@@ -1,0 +1,333 @@
+kind: pipeline
+type: docker
+name: default
+
+steps:
+  - name: restore-cache
+    image: drillster/drone-volume-cache
+    volumes:
+      - name: drone-cache
+        path: /cache
+    settings:
+      restore: true
+      mount:
+        - ./node_modules
+        # We can only mount volume caches into the working directory, so all steps which use Gradle must have
+        # the GRADLE_USER_HOME environment variable pointing here.
+        - ./gradle_cache
+        - ./sonar_cache
+        - ./trivy_cache
+
+  - name: fetch-fds-submodule
+    image: alpine/git:v2.26.2
+    commands:
+      - echo "$${BITBUCKET_SSH_KEY}" > bitbucket_ssh_key
+      - chmod 600 bitbucket_ssh_key
+      - export GIT_SSH_COMMAND="ssh -i bitbucket_ssh_key -F /dev/null  -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+      - git submodule update --init --recursive
+    environment:
+      BITBUCKET_SSH_KEY:
+        from_secret: bitbucket_ssh_key
+
+  - name: build-frontend
+    image: node:18
+    commands:
+      - cd fivium-design-system-core && npm install && npx gulp buildAll && cd ..
+      - npm install && npx gulp buildAll
+
+  - name: build-backend
+    image: quay.io/testcontainers/dind-drone-plugin
+    privileged: true
+    environment:
+      TZ: Europe/London
+      CI_WORKSPACE: /drone/src
+      GRADLE_USER_HOME: /drone/src/gradle_cache
+      DOCKER_CONFIG_JSON:
+        from_secret: docker_config
+      DOCKER_CONFIG: /drone/dockerconfig
+    volumes:
+      - name: docker-cache-overlay2
+        path: /drone/docker/overlay2
+      - name: docker-cache-image
+        path: /drone/docker/image
+    settings:
+      storage_driver: overlay2 --insecure-registry repo1.dev.fivium.local:5000 --dns=192.168.10.1
+      cmd:
+        - mkdir /drone/dockerconfig
+        - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
+        - chmod +x gradlew
+        - ./gradlew checkstyleMain test bootJar --continue --parallel --max-workers=3
+      build_image: repo1.dev.fivium.local:5000/docker-compose-java21
+
+  - name: sync-reports
+    image: alpine:3.16.0
+    commands:
+      - mkdir -p /var/webfiles/${DRONE_BUILD_NUMBER}
+      - cp -r build/reports /var/webfiles/${DRONE_BUILD_NUMBER}
+    volumes:
+      - name: webfiles
+        path: /var/webfiles
+    when:
+      status: [ success, failure ]
+
+  - name: code-analysis
+    image: repo1.dev.fivium.local:5000/sonarcloud-scan-java21:latest
+    environment:
+      SONAR_TOKEN:
+        from_secret: sonarcloud_token
+      GRADLE_USER_HOME: /drone/src/gradle_cache
+      # This SONAR_USER_HOME is the cache path - not the actual user home
+      SONAR_USER_HOME: /drone/src/sonar_cache
+    commands:
+      - chmod +x gradlew
+      - ./gradlew sonarqube -info
+    when:
+      # The Pull Request Pipeline will run the Code Analysis on all other branches (once a PR is open)
+      branch:
+        - develop
+        - main
+        - drone/*
+
+  - name: publish-docker-develop
+    image: plugins/docker:19.03.8
+    settings:
+      registry: quay.io
+      repo: quay.io/fivium/xyz
+      tags:
+        - develop-${DRONE_BUILD_NUMBER}
+      config:
+        from_secret: docker_config
+    when:
+      branch:
+        - develop
+      status:
+        - success
+
+  - name: publish-docker
+    image: plugins/docker:19.03.8
+    settings:
+      registry: quay.io
+      repo: quay.io/fivium/xyz
+      tags:
+        - ${DRONE_BRANCH/\//-}-${DRONE_BUILD_NUMBER}
+      config:
+        from_secret: docker_config
+    when:
+      branch:
+        - main
+        - hotfix/**
+        - release/**
+      status:
+        - success
+
+  - name: trivy-build-image
+    image: docker:20.10.9
+    volumes:
+      - name: docker-sock
+        path: /var/run/docker.sock
+    commands:
+      - docker build -t quay.io/fivium/xyz:trivy-scan-target .
+
+  - name: trivy-scan
+    image: aquasec/trivy:0.58.0
+    environment:
+      TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db,aquasec/trivy-db,ghcr.io/aquasecurity/trivy-db
+      TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db,aquasec/trivy-java-db,ghcr.io/aquasecurity/trivy-java-db
+    volumes:
+      - name: docker-sock
+        path: /var/run/docker.sock
+      - name: webfiles
+        path: /var/webfiles
+    commands:
+      # timeout set as initial cache population can seemingly take a while sometimes
+      - trivy --cache-dir /drone/src/trivy_cache image --timeout 30m --exit-code 1 quay.io/fivium/xyz:trivy-scan-target
+    when:
+      status:
+        - success
+
+  - name: rebuild-cache
+    image: drillster/drone-volume-cache
+    volumes:
+      - name: drone-cache
+        path: /cache
+    settings:
+      rebuild: true
+      mount:
+        - ./node_modules
+        - ./gradle_cache
+        - ./sonar_cache
+        - ./trivy_cache
+
+  - name: slack
+    image: plugins/slack
+    settings:
+      webhook: https://hooks.slack.com/services/TODO_XYZ_WEBHOOK_URL
+      channel: xyz-builds
+      template: "*{{build.status}}* <{{build.link}}|Commit {{truncate build.commit 7}} on {{build.branch}} by ${DRONE_COMMIT_AUTHOR_NAME}>\nReports published to: http://drone-assets.fivium.local:9090/xyz/{{build.number}}/"
+    when:
+      status: [ success, failure ]
+trigger:
+  event:
+    include:
+      - push
+
+volumes:
+  - name: webfiles
+    host:
+      path: /home/fivium/www/xyz
+
+  - name: drone-cache
+    host:
+      path: /home/fivium/drone-cache
+
+  - name: docker-sock
+    host:
+      path: /var/run/docker.sock
+
+  - name: docker-cache-overlay2
+    host:
+      path: /home/fivium/docker-drone-cache-v2/overlay2
+
+  - name: docker-cache-image
+    host:
+      path: /home/fivium/docker-drone-cache-v2/image
+
+---
+kind: pipeline
+type: docker
+name: github-pr
+
+clone:
+  disable: true
+
+steps:
+  - name: clone
+    image: alpine/git:v2.26.2
+    commands:
+      # Manually cloning as there seems to be a bug with DRONE_BRANCH on Pull Request Events
+      # DRONE_BRANCH is set to the target branch, rather than the current branch
+      # This means that Sonarcloud doesn't think anything has changed
+      - git clone https://github.com/Fivium/xyz.git .
+      - git checkout $DRONE_SOURCE_BRANCH
+
+  - name: restore-cache
+    image: drillster/drone-volume-cache
+    volumes:
+      - name: drone-cache
+        path: /cache
+    settings:
+      restore: true
+      mount:
+        - ./node_modules
+        # We can only mount volume caches into the working directory, so all steps which use Gradle must have
+        # the GRADLE_USER_HOME environment variable pointing here.
+        - ./gradle_cache
+        - ./sonar_cache
+
+  - name: fetch-fds-submodule
+    image: alpine/git:v2.26.2
+    commands:
+      - echo "$${BITBUCKET_SSH_KEY}" > bitbucket_ssh_key
+      - chmod 600 bitbucket_ssh_key
+      - export GIT_SSH_COMMAND="ssh -i bitbucket_ssh_key -F /dev/null  -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+      - git submodule update --init --recursive
+    environment:
+      BITBUCKET_SSH_KEY:
+        from_secret: bitbucket_ssh_key
+
+  - name: build-frontend
+    image: node:18
+    commands:
+      - cd fivium-design-system-core && npm install && npx gulp buildAll && cd ..
+      - npm install && npx gulp buildAll
+
+  # This is in the PR pipeline so the code-analysis below can access the test data (to see coverage)
+  - name: build-backend
+    image: quay.io/testcontainers/dind-drone-plugin
+    privileged: true
+    # See https://confluence.fivium.co.uk/display/JAVA/Testcontainers
+    environment:
+      TZ: Europe/London
+      CI_WORKSPACE: /drone/src
+      GRADLE_USER_HOME: /drone/src/gradle_cache
+      DOCKER_CONFIG_JSON:
+        from_secret: docker_config
+      DOCKER_CONFIG: /drone/dockerconfig # testcontainers override location for Docker config JSON
+    volumes:
+      - name: docker-cache-overlay2
+        path: /drone/docker/overlay2
+      - name: docker-cache-image
+        path: /drone/docker/image
+    settings:
+      storage_driver: overlay2 --insecure-registry repo1.dev.fivium.local:5000 --dns=192.168.10.1
+      cmd:
+        - mkdir /drone/dockerconfig
+        - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
+        - chmod +x gradlew
+        - ./gradlew checkstyleMain test bootJar --continue --parallel --max-workers=3
+      build_image: repo1.dev.fivium.local:5000/docker-compose-java21
+
+  # This is in the PR pipeline as only PR events get the necessary information for proper github integration
+  - name: code-analysis
+    image: repo1.dev.fivium.local:5000/sonarcloud-scan-java21:latest
+    environment:
+      SONAR_TOKEN:
+        from_secret: sonarcloud_token
+      GRADLE_USER_HOME: /drone/src/gradle_cache
+      # This SONAR_USER_HOME is the cache path - not the actual user home
+      SONAR_USER_HOME: /drone/src/sonar_cache
+    commands:
+      - chmod +x gradlew
+      - ./gradlew sonarqube -info
+
+  - name: rebuild-cache
+    image: drillster/drone-volume-cache
+    volumes:
+      - name: drone-cache
+        path: /cache
+    settings:
+      rebuild: true
+      mount:
+        - ./node_modules
+        - ./gradle_cache
+        - ./sonar_cache
+
+trigger:
+  event:
+    - pull_request
+
+volumes:
+  - name: drone-cache
+    host:
+      path: /home/fivium/drone-cache
+
+  - name: docker-cache-overlay2
+    host:
+      path: /home/fivium/docker-drone-cache-v2/overlay2
+
+  - name: docker-cache-image
+    host:
+      path: /home/fivium/docker-drone-cache-v2/image
+---
+
+kind: secret
+name: docker_config
+data: TODO XYZ
+
+---
+
+kind: secret
+name: sonarcloud_token
+data: TODO XYZ
+
+---
+
+kind: secret
+name: bitbucket_ssh_key
+data: TODO XYZ
+
+---
+
+kind: secret
+name: drone_token
+data: TODO XYZ

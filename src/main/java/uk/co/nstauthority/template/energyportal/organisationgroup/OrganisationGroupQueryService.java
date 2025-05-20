@@ -1,0 +1,74 @@
+package uk.co.nstauthority.template.energyportal.organisationgroup;
+
+import java.util.List;
+import java.util.Optional;
+import org.springframework.stereotype.Service;
+import uk.co.fivium.energyportalapi.client.RequestPurpose;
+import uk.co.fivium.energyportalapi.client.organisation.OrganisationApi;
+import uk.co.fivium.energyportalapi.generated.client.OrganisationGroupProjectionRoot;
+import uk.co.fivium.energyportalapi.generated.client.OrganisationGroupsProjectionRoot;
+import uk.co.fivium.energyportalapi.generated.types.OrganisationGroup;
+import uk.co.nstauthority.template.energyportal.organisations.OrganisationUnitJson;
+
+@Service
+public class OrganisationGroupQueryService {
+  public static final OrganisationGroupsProjectionRoot ORGANISATION_GROUPS_PROJECTION_ROOT =
+      new OrganisationGroupsProjectionRoot()
+          .organisationGroupId()
+          .name();
+  public static final OrganisationGroupProjectionRoot ORGANISATION_GROUP_PROJECTION_ROOT =
+      new OrganisationGroupProjectionRoot()
+          .organisationGroupId()
+          .name();
+  public static final OrganisationGroupsProjectionRoot ORGANISATION_GROUPS_UNITS_PROJECTION_ROOT =
+      ORGANISATION_GROUPS_PROJECTION_ROOT
+          .organisationUnits()
+          .organisationUnitId()
+          .name()
+          .registeredNumber()
+          .isDuplicate()
+          .root();
+
+  private final OrganisationApi organisationApi;
+
+  OrganisationGroupQueryService(OrganisationApi organisationApi) {
+    this.organisationApi = organisationApi;
+  }
+
+  public List<OrganisationGroupDto> getOrganisationGroupsByName(String name) {
+    return organisationApi.searchOrganisationGroups(
+            name,
+            ORGANISATION_GROUPS_PROJECTION_ROOT,
+            new RequestPurpose("getOrganisationGroupsByName")
+        )
+        .stream()
+        .map(OrganisationGroupDto::from)
+        .toList();
+  }
+
+  public List<OrganisationGroup> getOrganisationGroupsByIds(List<Integer> organisationGroups) {
+    return organisationApi.getAllOrganisationGroupsByIds(
+        organisationGroups,
+        ORGANISATION_GROUPS_UNITS_PROJECTION_ROOT,
+        new RequestPurpose("getOrganisationGroupsByIds")
+    );
+  }
+
+  public List<OrganisationUnitJson> getOrganisationUnitsByOrganisationGroupIds(List<Integer> organisationGroupIds) {
+    return getOrganisationGroupsByIds(organisationGroupIds)
+        .stream()
+        .filter(orgGroup -> orgGroup.getOrganisationUnits() != null && !orgGroup.getOrganisationUnits().isEmpty())
+        .flatMap(orgGroup -> orgGroup.getOrganisationUnits().stream())
+        .map(OrganisationUnitJson::from)
+        .toList();
+  }
+
+  public Optional<OrganisationGroupDto> getOrganisationGroupById(Integer id) {
+    return organisationApi.findOrganisationGroup(
+            id,
+            ORGANISATION_GROUP_PROJECTION_ROOT,
+            new RequestPurpose("getOrganisationGroupById")
+        )
+        .map(OrganisationGroupDto::from);
+  }
+}

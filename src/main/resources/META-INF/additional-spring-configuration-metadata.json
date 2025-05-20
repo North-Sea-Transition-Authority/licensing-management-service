@@ -1,0 +1,34 @@
+{
+  "properties": [
+    {
+      "name": "branding.service.name",
+      "type": "java.lang.String",
+      "description": "Full name of the service."
+    },
+    {
+      "name": "branding.service.mnemonic",
+      "type": "java.lang.String",
+      "description": "Mnemonic of the service."
+    },
+    {
+      "name": "branding.customer.name",
+      "type": "java.lang.String",
+      "description": "Full name of the customer."
+    },
+    {
+      "name": "branding.customer.mnemonic",
+      "type": "java.lang.String",
+      "description": "Mnemonic of the customer."
+    },
+    {
+      "name": "database.url",
+      "type": "java.lang.String",
+      "description": "URL of the database the service will connect to."
+    },
+    {
+      "name": "schema.password",
+      "type": "java.lang.String",
+      "description": "The password for the database schema the service will connect to."
+    }
+  ]
+}

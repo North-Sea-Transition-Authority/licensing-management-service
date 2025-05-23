@@ -148,6 +148,7 @@ steps:
   - name: scan-and-sync-public-repo
     image: quay.io/fivium/drone-trufflehog-plugin:v1.0
     settings:
+      scan_since_commit_hash: 04f3c35fa22d864daaf6b1c50045befb7925db48
       sync_to_mirror: true
       mirror_remote_url: git@github.com:North-Sea-Transition-Authority/licensing-management-service.git
       mirror_branch_to_sync: develop

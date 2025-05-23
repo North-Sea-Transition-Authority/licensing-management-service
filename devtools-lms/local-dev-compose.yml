@@ -1,0 +1,33 @@
+version: '3.9'
+
+services:
+
+  local-db:
+    image: postgres:16-alpine
+    ports:
+      - target: 5432
+        published: 5432
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: dev1
+      POSTGRES_DB: lms
+    volumes:
+      - lms-db-volume:/var/lib/postgresql/data
+      - ./create_db_user.sh:/docker-entrypoint-initdb.d/create_db_user.sh
+
+  clamav:
+    image: clamav/clamav:stable
+    ports:
+      - "3310:3310"
+
+  s3mock:
+    image: adobe/s3mock:latest
+    ports:
+      - "9090:9090"
+    environment:
+      initialBuckets: lms-bucket
+      retainFilesOnExit: true
+      root: ./s3data
+
+volumes:
+  lms-db-volume:

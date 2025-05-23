@@ -19,8 +19,8 @@ Create a new GitHub repository and select `Fivium/digital-springboot-template` f
 This will create a new repo with the contents of this template.
 
 In your new repository, do the following:
-- Rename the `uk.co.nstauthority.template` package, replacing `template` with your service name. You may also need to replace `co.nstauthority` with `gov.desnz` for a DESNZ/BEIS app.
-- `Ctrl` + `Shift` + `F` in IntelliJ and find all usages of the string `uk.co.nstauthority.template`, then update as above.
+- Rename the `uk.co.nstauthority.licensingmanagementservice` package, replacing `template` with your service name. You may also need to replace `co.nstauthority` with `gov.desnz` for a DESNZ/BEIS app.
+- `Ctrl` + `Shift` + `F` in IntelliJ and find all usages of the string `uk.co.nstauthority.licensingmanagementservice`, then update as above.
 - `Ctrl` + `Shift` + `F` in IntelliJ and find all usages of the string `xyz`. Replace all of these with your service name, or whatever makes the most sense in context based on the comments. You should have no references to `xyz` in your codebase after proper configuration. Pay special attention to:
   - The project name in `settings.gradle`
   - Placeholder values in the various `.properties` files
@@ -123,7 +123,7 @@ npm install && npx gulp buildAll
 ### 5. Run the app
 Create a run configuration for the Spring app and start the application.
 
-The application will be running on `localhost:8080/xyz/<endpoint>`
+The application will be running on `localhost:8080/lms/<endpoint>`
 
 ## Development setup
 

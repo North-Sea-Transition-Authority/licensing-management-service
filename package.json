@@ -1,5 +1,5 @@
 {
-  "name": "xyz-template",
+  "name": "lms-template",
   "devDependencies": {
     "@babel/preset-env": "^7.18.2",
     "autoprefixer": "^10.4.7",

@@ -1,0 +1,29 @@
+# com.google.guava:guava
+CVE-2023-2976
+CVE-2020-8908
+
+# com.google.protobuf:protobuf-java
+CVE-2024-7254
+
+# com.squareup.okio:okio
+CVE-2023-3635
+
+# commons-io:commons-io
+CVE-2024-47554
+
+# org.apache.tomcat.embed:tomcat-embed-core
+CVE-2025-31650
+CVE-2025-31651
+
+# org.bouncycastle:bcpkix-jdk18on
+CVE-2023-33202
+
+# org.bouncycastle:bcprov-jdk18on
+CVE-2023-33201
+CVE-2023-33202
+CVE-2024-29857
+CVE-2024-30171
+CVE-2024-34447
+
+# org.springframework.boot:spring-boot
+CVE-2025-22235

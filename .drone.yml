@@ -92,7 +92,7 @@ steps:
     image: plugins/docker:19.03.8
     settings:
       registry: quay.io
-      repo: quay.io/fivium/xyz
+      repo: quay.io/fivium/licensing-management-service
       tags:
         - develop-${DRONE_BUILD_NUMBER}
       config:
@@ -107,7 +107,7 @@ steps:
     image: plugins/docker:19.03.8
     settings:
       registry: quay.io
-      repo: quay.io/fivium/xyz
+      repo: quay.io/fivium/licensing-management-service
       tags:
         - ${DRONE_BRANCH/\//-}-${DRONE_BUILD_NUMBER}
       config:
@@ -126,7 +126,7 @@ steps:
       - name: docker-sock
         path: /var/run/docker.sock
     commands:
-      - docker build -t quay.io/fivium/xyz:trivy-scan-target .
+      - docker build -t quay.io/fivium/licensing-management-service:trivy-scan-target .
 
   - name: trivy-scan
     image: aquasec/trivy:0.58.0
@@ -140,10 +140,24 @@ steps:
         path: /var/webfiles
     commands:
       # timeout set as initial cache population can seemingly take a while sometimes
-      - trivy --cache-dir /drone/src/trivy_cache image --timeout 30m --exit-code 1 quay.io/fivium/xyz:trivy-scan-target
+      - trivy --cache-dir /drone/src/trivy_cache image --timeout 30m --exit-code 1 quay.io/fivium/licensing-management-service:trivy-scan-target
     when:
       status:
         - success
+
+  - name: scan-and-sync-public-repo
+    image: quay.io/fivium/drone-trufflehog-plugin:v1.0
+    settings:
+      sync_to_mirror: true
+      mirror_remote_url: git@github.com:North-Sea-Transition-Authority/licensing-management-service.git
+      mirror_branch_to_sync: develop
+      mirror_remote_ssh_key:
+        from_secret: sync_ssh_key
+    when:
+      event:
+        - push
+      branch:
+        - develop
 
   - name: rebuild-cache
     image: drillster/drone-volume-cache
@@ -161,9 +175,10 @@ steps:
   - name: slack
     image: plugins/slack
     settings:
-      webhook: https://hooks.slack.com/services/TODO_XYZ_WEBHOOK_URL
-      channel: xyz-builds
-      template: "*{{build.status}}* <{{build.link}}|Commit {{truncate build.commit 7}} on {{build.branch}} by ${DRONE_COMMIT_AUTHOR_NAME}>\nReports published to: http://drone-assets.fivium.local:9090/xyz/{{build.number}}/"
+      webhook:
+        from_secret: slack_token
+      channel: lms-builds
+      template: "*{{build.status}}* <{{build.link}}|Commit {{truncate build.commit 7}} on {{build.branch}} by ${DRONE_COMMIT_AUTHOR_NAME}>\nReports published to: http://drone-assets.fivium.local:9090/licensing-management-service/{{build.number}}/"
     when:
       status: [ success, failure ]
 trigger:
@@ -174,7 +189,7 @@ trigger:
 volumes:
   - name: webfiles
     host:
-      path: /home/fivium/www/xyz
+      path: /home/fivium/www/licensing-management-service
 
   - name: drone-cache
     host:
@@ -207,7 +222,7 @@ steps:
       # Manually cloning as there seems to be a bug with DRONE_BRANCH on Pull Request Events
       # DRONE_BRANCH is set to the target branch, rather than the current branch
       # This means that Sonarcloud doesn't think anything has changed
-      - git clone https://github.com/Fivium/xyz.git .
+      - git clone https://github.com/Fivium/licensing-management-service.git .
       - git checkout $DRONE_SOURCE_BRANCH
 
   - name: restore-cache
@@ -312,22 +327,29 @@ volumes:
 
 kind: secret
 name: docker_config
-data: TODO XYZ
+data: nf9QW4ARHRCwLMpIVVs4uRwYg3If3vRSjXpqhGTdHA9uhOoZ027pB7exHIF0s2h8Uw6Pi8BmkVRHFf6RVXCFgQSGnRqzor5E0Dpv4jFLA1VCgneU+5M0fE/aZBtvR15xTEj2bZIHesHUo9Jlw0Wg2B0SMjHWYRRcUc1BDPB+y0m/PO5hK/Up+8spY5gDCuifKtN76GAG2iVPtMz20f8aquMoehsRtYg+Jd+1ByLAG7Wpbw7V5lGsKN9ofEHpK8FvASwGXlLsJF2ezj0eeGsOrClWrmZojAYbay+UHXpL/GJ7Am3BMEF09ZIcoR5751q5Kgh6MHT/VzkMGGktk+SgGVpNpnOrJ06OhHLRH3JU
 
 ---
 
 kind: secret
 name: sonarcloud_token
-data: TODO XYZ
+data: CmL8irC3ppW8jSLEhHBElLGt6G8BIHIcscuG6Z57HPfeZDGwSACQ0iWB7/P2uYnb+sGrARLyuG1lyqaPmTP3wj5kGiY=
 
 ---
 
 kind: secret
 name: bitbucket_ssh_key
-data: TODO XYZ
+data: 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
+
 
 ---
 
 kind: secret
-name: drone_token
-data: TODO XYZ
+name: sync_ssh_key
+data: /wpGnYGmv1Aj6SAdN/HncMwItJbEMfoUYbe6RhoTyuzF2vr5aLtW61+USmoRuOKLNz5nsiJ+d2NbkwD7aXPLDMYkknEtd0m3bJa3K80+JMSCLZwPejY66+pX2VB9ng9TWyoPeafMQEyWvD6QPAHJzIICjapXxVPd8ZE23mwPllJxHCVfbc4S+4QhsR+/4SgOu+WAYa5rifJjOr9KzJCQnXNS1u9wNrrrv/ahPuZRzt0uZUxbrVxH6CdECbk7+Vd36ADAWiHn3NMoA6f0p0sSF1lqL7nlfv9XMJUXSOqRMPi/qUBLrE4UcFP9Zj2WDCBcWY/sAdemMpS8/NKNVg8674MiSoMtXjJgug7lHAeOZVde/4TagpazlusCuzik7b7cXuhy/Iy2HzfmMR3SblwD6yhlOp1rFx1pc+emRZvhnlf+k/wRtu5OGhqCF6gGu3I1MR8T8Mb5mQe8vIEPodYI8I7cxCT5LUg91xtoBrTniPxkzP/cB+QmJu/Wj/0xreP2sXKAetWzM2IzhbLlllKGXtEeQe+1va+F7jav5KuZgcrhR+eOqdl+OCETv4oyPzQm1uznRKVv9XXjB2RFd4dquW4CKb0vHNaxvqgvag==
+
+---
+
+kind: secret
+name: slack_token
+data: wbgEOfva9lkn70yfZy882ZZJn4p19887M4A/qxXAxt30RW29iQHvnPd9Og0foEseCzQRjVI48rzZ0yrqNPNiTBwCLaaMV2CYU2wE/zsSv3/fzVxdVIkP0wJnKRMaKkfVh/ZXOEdWWbb7m24=

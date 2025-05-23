@@ -1,5 +1,5 @@
 FROM eclipse-temurin:21-alpine
-COPY ./build/libs/xyz.jar app.jar
+COPY ./build/libs/licensing-management-service.jar app.jar
 
 RUN apk update && apk upgrade && apk add curl && rm -rf /var/cache/apk/*
 

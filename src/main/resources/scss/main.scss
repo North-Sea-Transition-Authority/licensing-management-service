@@ -4,7 +4,7 @@
 $govuk-assets-path: "../../govuk-frontend/govuk/assets/";
 
 // replace xyz with application context path
-$fds-assets-path: "/xyz/assets/static/fds/";
+$fds-assets-path: "/lms/assets/static/fds/";
 
 // import ALL GOVUK FRONTEND components
 @import '../public/assets/govuk-frontend/govuk/all';

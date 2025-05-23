@@ -1,0 +1,371 @@
+package uk.co.nstauthority.licensingmanagementservice.teams.management;
+
+import jakarta.transaction.Transactional;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import uk.co.fivium.digital.energyportalteamaccesslibrary.team.EnergyPortalAccessService;
+import uk.co.fivium.digital.energyportalteamaccesslibrary.team.InstigatingWebUserAccountId;
+import uk.co.fivium.digital.energyportalteamaccesslibrary.team.ResourceType;
+import uk.co.fivium.digital.energyportalteamaccesslibrary.team.TargetWebUserAccountId;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.Team;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamRepository;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamRoleRepository;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
+import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamMemberView;
+
+@Service
+public class TeamManagementService {
+
+  static final String PORTAL_USER_LOOKUP_PURPOSE = "Fetch user in team";
+  static final String PORTAL_USERS_LOOKUP_PURPOSE = "Fetch users in team";
+  static final String PORTAL_VALIDATE_USERS_LOOKUP_PURPOSE = "Validate user account";
+  static final String TEAM_TYPE_UNEXPECTED_STATIC_ERROR = "TeamType %s is static, expected scoped";
+  static final String RESOURCE_TEAM_TYPE = "XYZ_ACCESS_TEAM";
+
+  private final TeamRepository teamRepository;
+  private final TeamRoleRepository teamRoleRepository;
+  private final TeamQueryService teamQueryService;
+  private final EnergyPortalUserService energyPortalUserService;
+  private final EnergyPortalAccessService energyPortalAccessService;
+
+  public TeamManagementService(TeamRepository teamRepository,
+                               TeamRoleRepository teamRoleRepository,
+                               EnergyPortalUserService energyPortalUserService,
+                               TeamQueryService teamQueryService,
+                               EnergyPortalAccessService energyPortalAccessService
+  ) {
+    this.teamRepository = teamRepository;
+    this.teamRoleRepository = teamRoleRepository;
+    this.energyPortalUserService = energyPortalUserService;
+    this.teamQueryService = teamQueryService;
+    this.energyPortalAccessService = energyPortalAccessService;
+  }
+
+  public Team createScopedTeam(String name, TeamType teamType, TeamScopeReference scopeRef) {
+    if (!teamType.isScoped()) {
+      throw new TeamManagementException("Team of type %s is not scoped".formatted(teamType));
+    }
+
+    if (doesScopedTeamWithReferenceExist(teamType, scopeRef)) {
+      throw new TeamManagementException("Team of type %s scope type %s and scope id %s already exists"
+          .formatted(teamType, scopeRef.getId(), scopeRef.getType()));
+    }
+
+    var team = new Team();
+    team.setName(name);
+    team.setTeamType(teamType);
+    team.setScopeType(scopeRef.getType());
+    team.setScopeId(scopeRef.getId());
+    return teamRepository.save(team);
+  }
+
+  public Set<TeamType> getTeamTypesUserIsMemberOf(long wuaId) {
+    return teamRoleRepository.findAllByWuaId(wuaId)
+        .stream()
+        .map(teamRole -> teamRole.getTeam().getTeamType())
+        .collect(Collectors.toSet());
+  }
+
+  public Optional<Team> getStaticTeamOfTypeUserCanManage(TeamType teamType, Long wuaId) {
+    if (teamType.isScoped()) {
+      throw new TeamManagementException("TeamType %s is scoped, expected static".formatted(teamType));
+    }
+    return getTeamsOfTypeUserCanManage(teamType, wuaId).stream()
+        .findFirst();
+  }
+
+  Optional<Team> getStaticTeamOfTypeUserIsMemberOf(TeamType teamType, Long wuaId) {
+    if (teamType.isScoped()) {
+      throw new TeamManagementException("TeamType %s is scoped, expected static".formatted(teamType));
+    }
+    return getTeamsOfTypeUserIsMemberOf(teamType, wuaId)
+        .stream()
+        .findFirst();
+  }
+
+  public List<Team> getScopedTeamsOfTypeUserCanManage(TeamType teamType, Long wuaId) {
+    if (!teamType.isScoped()) {
+      throw new TeamManagementException(TEAM_TYPE_UNEXPECTED_STATIC_ERROR.formatted(teamType));
+    }
+    var teams = new ArrayList<>(getTeamsOfTypeUserCanManage(teamType, wuaId));
+
+    if (teamType.equals(TeamType.ORGANISATION) && userCanManageAnyOrganisationTeam(wuaId)) {
+      // If we want org teams, and the user is a regulator who can manage any org team, include all the org teams.
+      teams.addAll(getAllScopedTeamsOfType(TeamType.ORGANISATION));
+    }
+
+    return teams.stream()
+        .distinct() // Remove possible dupes from adding all scoped teams the user may already be a team manager of
+        .toList();
+  }
+
+  public Set<Team> getScopedTeamsOfTypeUserIsMemberOf(TeamType teamType, Long wuaId) {
+
+    if (!teamType.isScoped()) {
+      throw new TeamManagementException(TEAM_TYPE_UNEXPECTED_STATIC_ERROR.formatted(teamType));
+    }
+
+    var teams = new HashSet<>(getTeamsOfTypeUserIsMemberOf(teamType, wuaId));
+
+    if (teamType.equals(TeamType.ORGANISATION) && userCanManageAnyOrganisationTeam(wuaId)) {
+      // If we want org teams, and the user is a regulator who can manage any org team, include all the org teams.
+      teams.addAll(getAllScopedTeamsOfType(TeamType.ORGANISATION));
+    }
+
+    return new HashSet<>(teams);
+  }
+
+  public Team getTeam(UUID teamId) throws ResponseStatusException {
+    return teamRepository.findById(teamId)
+        .orElseThrow(
+            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Team with id %s not found".formatted(teamId)));
+  }
+
+  public TeamMemberView getTeamMemberView(Team team, Long wuaId) {
+    var teamRoles = teamRoleRepository.findByWuaIdAndTeam(wuaId, team).stream()
+        .map(TeamRole::getRole)
+        .toList();
+
+    var user = energyPortalUserService.findByWuaId(WebUserAccountId.from(wuaId), PORTAL_USER_LOOKUP_PURPOSE)
+        .orElseThrow(() -> new TeamManagementException("WuaId %s not found via EPA".formatted(wuaId)));
+
+    return TeamMemberView.fromEpaUser(user, team.getId(), teamRoles);
+  }
+
+  public List<TeamMemberView> getTeamMemberViewsForTeam(Team team) {
+    var teamRoles = teamRoleRepository.findByTeam(team);
+
+    var memberWuaIds = teamRoles.stream()
+        .map(TeamRole::getWuaId)
+        .distinct()
+        .toList();
+
+    var webUserAccountIds = memberWuaIds.stream()
+        .map(WebUserAccountId::from)
+        .toList();
+
+    var epaUsers = energyPortalUserService.findByWuaIds(webUserAccountIds, PORTAL_USERS_LOOKUP_PURPOSE);
+
+    return memberWuaIds.stream()
+        .map(wuaId -> {
+          var epaUser = epaUsers.stream()
+              .filter(u -> u.webUserAccountId().equals(wuaId))
+              .findFirst()
+              .orElseThrow(() -> new TeamManagementException("WuaId %s not found in EPA user set".formatted(wuaId)));
+
+          List<Role> userRoles = teamRoles.stream()
+              .filter(teamRole -> teamRole.getWuaId().equals(wuaId))
+              .map(TeamRole::getRole)
+              .toList();
+
+          List<Role> orderedUserRoles = team.getTeamType().getAllowedRoles()
+              .stream()
+              .filter(userRoles::contains)
+              .toList();
+
+          return TeamMemberView.fromEpaUser(epaUser, team.getId(), orderedUserRoles);
+        })
+        .sorted(Comparator.comparing(TeamMemberView::forename, String::compareToIgnoreCase)
+            .thenComparing(TeamMemberView::surname, String::compareToIgnoreCase))
+        .toList();
+  }
+
+  @Transactional
+  public void setUserTeamRoles(Long wuaId, Team team, List<Role> roles, ServiceUserDetail instigatingUser) {
+    if (!new HashSet<>(team.getTeamType().getAllowedRoles()).containsAll(roles)) {
+      throw new TeamManagementException("Roles %s are not valid for team type %s".formatted(roles, team.getTeamType()));
+    }
+
+    // Check the user is valid
+    var userOptional = energyPortalUserService
+        .findByWuaId(WebUserAccountId.from(wuaId), PORTAL_VALIDATE_USERS_LOOKUP_PURPOSE);
+
+    if (userOptional.isEmpty()) {
+      throw new TeamManagementException("User account with wuaId %s does not exist".formatted(wuaId));
+    }
+    var user = userOptional.get();
+    if (user.sharedAccount()) {
+      throw new TeamManagementException(
+          "User account with wuaId %s is a shared account so can't be added to teams".formatted(wuaId));
+    }
+    if (!user.canLogin()) {
+      throw new TeamManagementException(
+          "User account with wuaId %s is not active so can't be added to teams".formatted(wuaId));
+    }
+
+    var isNewUser = teamRoleRepository.findAllByWuaId(user.webUserAccountId()).isEmpty();
+
+    teamRoleRepository.deleteByWuaIdAndTeam(wuaId, team);
+
+    var newTeamRoles = roles.stream()
+        .map(role -> {
+          var teamRole = new TeamRole();
+          teamRole.setTeam(team);
+          teamRole.setRole(role);
+          teamRole.setWuaId(wuaId);
+          return teamRole;
+        }).toList();
+    teamRoleRepository.saveAll(newTeamRoles);
+
+    if (!doesTeamHaveTeamManager(team)) {
+      throw new TeamManagementException("At least 1 team manager must exist in team %s".formatted(team.getId()));
+    }
+
+    if (isNewUser) {
+      energyPortalAccessService.addUserToAccessTeam(
+          new ResourceType(RESOURCE_TEAM_TYPE),
+          new TargetWebUserAccountId(new WebUserAccountId(user.webUserAccountId()).id()),
+          new InstigatingWebUserAccountId(instigatingUser.wuaId())
+      );
+    }
+  }
+
+  @Transactional
+  public void removeUserFromTeam(Long wuaId, Team team, ServiceUserDetail instigatingUser) {
+    if (!willManageTeamRoleBePresentAfterMemberRemoval(team, wuaId)) {
+      throw new TeamManagementException(
+          "Can't remove last team manager user %s from team %s".formatted(wuaId, team.getId()));
+    }
+    teamRoleRepository.deleteByWuaIdAndTeam(wuaId, team);
+
+    var isUserRemovedFromAllTeams = teamRoleRepository.findAllByWuaId(wuaId).isEmpty();
+
+    if (isUserRemovedFromAllTeams) {
+      energyPortalAccessService.removeUserFromAccessTeam(
+          new ResourceType(RESOURCE_TEAM_TYPE),
+          new TargetWebUserAccountId(wuaId),
+          new InstigatingWebUserAccountId(instigatingUser.wuaId())
+      );
+    }
+  }
+
+  public boolean willManageTeamRoleBePresentAfterMemberRoleUpdate(Team team, Long wuaId, List<Role> membersNewRoles) {
+    if (membersNewRoles.contains(Role.MANAGE_TEAM)) {
+      return true;
+    }
+    return willManageTeamRoleBePresentAfterMemberRemoval(team, wuaId);
+  }
+
+  public boolean willManageTeamRoleBePresentAfterMemberRemoval(Team team, Long wuaId) {
+    return teamRoleRepository.findByTeam(team).stream()
+        .filter(teamRole -> !teamRole.getWuaId().equals(wuaId))
+        .anyMatch(teamRole -> teamRole.getRole().equals(Role.MANAGE_TEAM));
+  }
+
+  public boolean doesScopedTeamWithReferenceExist(TeamType teamType, TeamScopeReference scopeRef) {
+    return getScopedTeam(teamType, scopeRef).isPresent();
+  }
+
+  public Optional<Team> getScopedTeam(TeamType teamType, TeamScopeReference scopeRef) {
+    return teamRepository.findByTeamTypeAndScopeTypeAndScopeId(teamType, scopeRef.getType(), scopeRef.getId());
+  }
+
+  public List<Team> getScopedTeams(TeamType teamType, String scopeType, Collection<String> scopeReferences) {
+    return teamRepository.findByTeamTypeAndScopeTypeAndScopeIdIn(teamType, scopeType, scopeReferences);
+  }
+
+  public boolean canManageTeam(Team team, long wuaId) {
+    if (team.getTeamType().isScoped()) {
+      return getScopedTeamsOfTypeUserCanManage(team.getTeamType(), wuaId)
+          .stream()
+          .anyMatch(scopedTeam -> scopedTeam.getId().equals(team.getId()));
+    } else {
+      return getStaticTeamOfTypeUserCanManage(team.getTeamType(), wuaId).isPresent();
+    }
+  }
+
+  public boolean isMemberOfTeam(Team team, long wuaId) {
+    return teamRoleRepository.existsByTeamAndWuaId(team, wuaId);
+  }
+
+  public boolean userCanManageAnyOrganisationTeam(long wuaId) {
+    return teamQueryService.userHasStaticRole(wuaId, TeamType.REGULATOR, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM);
+  }
+
+  public Map<String, String> getReassignUserOptions(Role role, Long currentAssigneeWuaId, TeamType teamType) {
+    var wuaIds = teamRoleRepository.findAllByRole(role)
+        .stream()
+        .filter(teamRole -> teamRole.getTeam().getTeamType().equals(teamType))
+        .map(TeamRole::getWuaId)
+        .filter(id -> !Objects.equals(id, currentAssigneeWuaId))
+        .map(WebUserAccountId::from)
+        .toList();
+
+    return energyPortalUserService.findByWuaIds(wuaIds, PORTAL_USERS_LOOKUP_PURPOSE)
+        .stream()
+        .collect(Collectors.toMap(
+            user -> user.webUserAccountId().toString(),
+            user -> "%s (%s)".formatted(user.displayName(), user.emailAddress()))
+        );
+  }
+
+  public List<TeamMemberView> getActiveTeamMembersViewsForTeamAndRole(Team team, Role role) {
+    return teamRoleRepository.findAllByTeamAndRole(team, role)
+        .stream()
+        .map(teamMember -> energyPortalUserService.getByWuaId(
+            WebUserAccountId.from(teamMember.getWuaId()),
+            PORTAL_USER_LOOKUP_PURPOSE)
+        )
+        .filter(EnergyPortalUserJson::canLogin)
+        .map(user -> TeamMemberView.fromEpaUser(user, team.getId(), List.of(role)))
+        .toList();
+  }
+
+  public List<Team> getAllScopedTeamsOfType(TeamType teamType) {
+    if (!teamType.isScoped()) {
+      throw new TeamManagementException(TEAM_TYPE_UNEXPECTED_STATIC_ERROR.formatted(teamType));
+    }
+    return teamRepository.findByTeamType(teamType);
+  }
+
+  private boolean doesTeamHaveTeamManager(Team team) {
+    return teamRoleRepository.findByTeam(team).stream()
+        .anyMatch(teamRole -> teamRole.getRole().equals(Role.MANAGE_TEAM));
+  }
+
+  private List<Team> getTeamsUserCanManage(Long wuaId) {
+    var userTeamRoles = teamRoleRepository.findByWuaIdAndRole(wuaId, Role.MANAGE_TEAM);
+    return userTeamRoles.stream()
+        .map(TeamRole::getTeam)
+        .toList();
+  }
+
+  private Set<Team> getTeamsUserIsMemberOf(Long wuaId) {
+    var userTeamRoles = teamRoleRepository.findAllByWuaId(wuaId);
+    return userTeamRoles.stream()
+        .map(TeamRole::getTeam)
+        .collect(Collectors.toSet());
+  }
+
+  private List<Team> getTeamsOfTypeUserCanManage(TeamType teamType, Long wuaId) {
+    return getTeamsUserCanManage(wuaId).stream()
+        .filter(team -> team.getTeamType().equals(teamType))
+        .toList();
+  }
+
+  private Set<Team> getTeamsOfTypeUserIsMemberOf(TeamType teamType, Long wuaId) {
+    return getTeamsUserIsMemberOf(wuaId).stream()
+        .filter(team -> team.getTeamType().equals(teamType))
+        .collect(Collectors.toSet());
+  }
+}

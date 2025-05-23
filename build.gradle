@@ -46,7 +46,8 @@ dependencies {
 	implementation 'uk.co.fivium.digitalformlibrary:digital-form-library:v3.0.0'
 	implementation "uk.co.fivium:file-upload-spring-boot-starter:${fileUploadLibraryVersion}"
 	implementation 'uk.co.fivium.digital.energyportalteamaccesslibrary:energy-portal-team-access-libray:v1.0.0'
-	implementation 'uk.co.fivium:digital-payments-library-spring-boot-starter:1.0.0'
+// TODO re-add when payments required
+//	implementation 'uk.co.fivium:digital-payments-library-spring-boot-starter:1.0.0'
 	implementation 'uk.co.fivium.feedbackmanagementservice:client:v2.3.0'
 	implementation "uk.co.fivium:file-upload-spring-boot-starter:v2.6.0"
 

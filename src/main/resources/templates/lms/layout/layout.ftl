@@ -122,6 +122,9 @@
     notificationBannerContent=notificationBannerContent
     topNavigation=showNavigationItems
   >
+
+    <@fdsGoogleAnalytics.googleAnalytics measurementId=analytics.serviceAnalyticIdentifier() />
+    <@fdsGoogleAnalytics.googleAnalytics measurementId=analytics.energyPortalAnalyticIdentifier() />
     <#nested />
   </@fdsDefaultPageTemplate>
 </#macro>

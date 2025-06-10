@@ -14,6 +14,7 @@ CVE-2024-47554
 # org.apache.tomcat.embed:tomcat-embed-core
 CVE-2025-31650
 CVE-2025-31651
+CVE-2025-46701
 
 # org.bouncycastle:bcpkix-jdk18on
 CVE-2023-33202
@@ -27,3 +28,6 @@ CVE-2024-34447
 
 # org.springframework.boot:spring-boot
 CVE-2025-22235
+
+# org.springframework:spring-context
+CVE-2025-22233

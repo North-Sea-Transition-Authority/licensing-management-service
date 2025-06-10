@@ -12,6 +12,7 @@
 <#-- @ftlvariable name="privacyUrl" type="String" -->
 <#-- @ftlvariable name="contactPageUrl" type="String" -->
 <#-- @ftlvariable name="notificationBanner" type="uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner" -->
+<#-- @ftlvariable name="analytics" type="uk.co.nstauthority.licensingmanagementservice.configuration.AnalyticsConfigurationProperties" -->
 
 <#macro defaultPage
   htmlTitle

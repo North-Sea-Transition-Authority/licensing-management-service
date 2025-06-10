@@ -51,6 +51,7 @@ class ErrorServiceTest {
     verify(controllerAdviceService).addBrandingModelAttributes(modelAndView);
     verify(controllerAdviceService).addCommonUrlModelAttributes(modelAndView);
     verify(controllerAdviceService).addFooterLinkModelAttributes(modelAndView);
+    verify(controllerAdviceService).addAnalytics(modelAndView);
     verifyNoMoreInteractions(controllerAdviceService);
   }
 
@@ -67,6 +68,7 @@ class ErrorServiceTest {
     verify(controllerAdviceService).addBrandingModelAttributes(modelAndView);
     verify(controllerAdviceService).addCommonUrlModelAttributes(modelAndView);
     verify(controllerAdviceService).addFooterLinkModelAttributes(modelAndView);
+    verify(controllerAdviceService).addAnalytics(modelAndView);
     verifyNoMoreInteractions(controllerAdviceService);
   }
 

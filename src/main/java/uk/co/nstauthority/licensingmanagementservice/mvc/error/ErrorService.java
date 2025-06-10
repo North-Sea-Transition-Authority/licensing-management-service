@@ -31,6 +31,7 @@ public class ErrorService {
     controllerAdviceService.addBrandingModelAttributes(modelAndView);
     controllerAdviceService.addCommonUrlModelAttributes(modelAndView);
     controllerAdviceService.addFooterLinkModelAttributes(modelAndView);
+    controllerAdviceService.addAnalytics(modelAndView);
 
     if (Objects.isNull(throwable)) {
       return modelAndView;

@@ -11,6 +11,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.branding.CustomerConfigurationProperties;
 import uk.co.nstauthority.licensingmanagementservice.branding.ServiceConfigurationProperties;
+import uk.co.nstauthority.licensingmanagementservice.configuration.AnalyticsConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.fds.footer.FooterController;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
@@ -20,13 +21,16 @@ public class ControllerAdviceService {
   private final CustomerConfigurationProperties customerConfigurationProperties;
   private final ServiceConfigurationProperties serviceConfigurationProperties;
   private final UserDetailService userDetailService;
+  private final AnalyticsConfiguration analyticsConfiguration;
 
   public ControllerAdviceService(CustomerConfigurationProperties customerConfigurationProperties,
                                  ServiceConfigurationProperties serviceConfigurationProperties,
-                                 UserDetailService userDetailService) {
+                                 UserDetailService userDetailService,
+                                 AnalyticsConfiguration analyticsConfiguration) {
     this.customerConfigurationProperties = customerConfigurationProperties;
     this.serviceConfigurationProperties = serviceConfigurationProperties;
     this.userDetailService = userDetailService;
+    this.analyticsConfiguration = analyticsConfiguration;
   }
 
   public void addBrandingModelAttributes(Object model) {
@@ -57,6 +61,10 @@ public class ControllerAdviceService {
     } catch (InvalidAuthenticationException exception) {
       // public endpoints may not have a user
     }
+  }
+
+  public void addAnalytics(Object model) {
+    getAttributeConsumer(model).accept("analytics", analyticsConfiguration.getAnalyticsConfigurationProperties());
   }
 
   private BiConsumer<String, Object> getAttributeConsumer(Object object) {

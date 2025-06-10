@@ -18,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.branding.CustomerConfigurationProperties;
 import uk.co.nstauthority.licensingmanagementservice.branding.ServiceConfigurationProperties;
+import uk.co.nstauthority.licensingmanagementservice.configuration.AnalyticsConfigurationProperties;
 
 @ContextConfiguration(
     classes = {
@@ -45,6 +46,7 @@ class DefaultPageControllerAdviceTest extends AbstractControllerTest {
         .hasNoNullFieldsOrProperties();
     assertThat((ServiceConfigurationProperties) modelMap.get("serviceBranding"))
         .hasNoNullFieldsOrProperties();
+    assertThat((AnalyticsConfigurationProperties) modelMap.get("analytics")).hasNoNullFieldsOrProperties();
     assertThat(modelMap.get("accessibilityStatementUrl")).isNotNull();
     assertThat(modelMap.get("privacyUrl")).isNotNull();
     assertThat(modelMap.get("cookiePolicyUrl")).isNotNull();

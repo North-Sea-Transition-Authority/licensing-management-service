@@ -26,6 +26,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.AccessHandler
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasRolesInTeamTypeInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.branding.CustomerConfigurationProperties;
 import uk.co.nstauthority.licensingmanagementservice.branding.ServiceConfigurationProperties;
+import uk.co.nstauthority.licensingmanagementservice.configuration.AnalyticsConfiguration;
+import uk.co.nstauthority.licensingmanagementservice.configuration.AnalyticsConfigurationProperties;
 import uk.co.nstauthority.licensingmanagementservice.configuration.EnergyPortalConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.configuration.ErrorConfigurationProperties;
 import uk.co.nstauthority.licensingmanagementservice.configuration.SamlProperties;
@@ -45,8 +47,8 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.access.TeamManagementHandlerInterceptor;
 import uk.co.nstauthority.licensingmanagementservice.topnavigation.TopNavigationService;
-import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationArgumentResolver;
+import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationService;
 
 @WebMvcTest
 @AutoConfigureMockMvc
@@ -67,14 +69,16 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     RequestLogFilter.class,
     PostAuthenticationRequestMdcFilter.class,
     HasRolesInTeamTypeInterceptorRule.class,
-    XyzApplicationArgumentResolver.class
+    XyzApplicationArgumentResolver.class,
+    AnalyticsConfiguration.class
 })
 @EnableConfigurationProperties({
-  SamlProperties.class,
-  EnergyPortalConfiguration.class,
-  ErrorConfigurationProperties.class,
-  CustomerConfigurationProperties.class,
-  ServiceConfigurationProperties.class
+    SamlProperties.class,
+    EnergyPortalConfiguration.class,
+    ErrorConfigurationProperties.class,
+    CustomerConfigurationProperties.class,
+    ServiceConfigurationProperties.class,
+    AnalyticsConfigurationProperties.class
 })
 @ActiveProfiles("test")
 public abstract class AbstractControllerTest {

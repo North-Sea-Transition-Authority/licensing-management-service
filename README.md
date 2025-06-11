@@ -1,47 +1,4 @@
-# Template SpringBoot Project
-
-## What's provided
-
-- Java 21 project running Spring 3.2
-- Fivium Design System submodule setup
-- SAML login via the Energy Portal
-- Global logout via service or Energy Portal
-- Session persistence
-- Error handling and FDS error pages
-- Accessibility statement, cookie banner, contact information pages, linked in footer
-- Energy Portal API integration
-- Basic setup for Digital Form library, File Upload library and Payments library
-- Envers
-- Shedlock
-
-## Using the template
-Create a new GitHub repository and select `Fivium/digital-springboot-template` from the `Repository template` dropdown.
-This will create a new repo with the contents of this template.
-
-In your new repository, do the following:
-- Rename the `uk.co.nstauthority.licensingmanagementservice` package, replacing `template` with your service name. You may also need to replace `co.nstauthority` with `gov.desnz` for a DESNZ/BEIS app.
-- `Ctrl` + `Shift` + `F` in IntelliJ and find all usages of the string `uk.co.nstauthority.licensingmanagementservice`, then update as above.
-- `Ctrl` + `Shift` + `F` in IntelliJ and find all usages of the string `xyz`. Replace all of these with your service name, or whatever makes the most sense in context based on the comments. You should have no references to `xyz` in your codebase after proper configuration. Pay special attention to:
-  - The project name in `settings.gradle`
-  - Placeholder values in the various `.properties` files
-  - `.drone.yml`, and the `devtools-xyz` folder
-  - The Freemarker templates folder `src/main/resources/templates/xyz` and its references in controllers
-  - Dates of audits in the accessibility statement, and business support details in the contact page
-- Update the `banner.txt`
-- Update this readme to remove these template related tasks.
-- Delete the `.drone_for_template.yml`
-
-Then follow from step 3 onwards in [this document](https://docs.google.com/document/d/1kNwiGmVaugnoO8DmeziFpOv1oGa_fEC6fhJjCHD-qIg/edit) for setup of Drone secrets and other services.
-
-Additionally, follow the [FOX side setup instructions](https://fivium.atlassian.net/wiki/spaces/BESPOKE/pages/1738805/Logging+out+of+Energy+Portal+and+Service) to configure the global logout from the Energy Portal. The Java setup has already been done in this template.  
-
-To deploy your service into the dev stack see the [SB2 new service setup guide](https://fivium.atlassian.net/wiki/spaces/BESPOKE/pages/729645094/SB2+new+service+setup+guide).
-
-## Default users
-Running the provided `setup-dev-users-teams.sql` provides you with access for two users, `industry.editor@template.co.uk` and `administrator@template.co.uk`
-
-
-# XYZ
+# Licensing Management Service
 
 ## Pre-requisites
 - Java 21
@@ -62,14 +19,6 @@ Running the provided `setup-dev-users-teams.sql` provides you with access for tw
 
 ### 2. Add the required profile
 
-### Logging
-
-XYZ can log in either JSON or text mode.
-
-In order to turn on JSON logging, set the profile `json-logging`. This will automatically include any MDC attributes.
-
-JSON logging is the preferred solution for SB2.
-
 ### Development
 - In your IntelliJ run configuration for the Spring app, include `development` in your active profiles
 
@@ -80,15 +29,22 @@ JSON logging is the preferred solution for SB2.
 | Environment Variable                 | Description                                                                            |
 |--------------------------------------|----------------------------------------------------------------------------------------|
 | **Database**                         |                                                                                        |
-| `XYZ_DATABASE_URL`                   | The URL to the database the service connect to                                         |
-| `XYZ_DATABASE_PASSWORD`              | Database schema password for the `XYZ` user                                            |
+| `LMS_DATABASE_URL`                   | The URL to the database the service connect to                                         |
+| `LMS_DATABASE_PASSWORD`              | Database schema password for the `XYZ` user                                            |
 |                                      |                                                                                        |
 | **Feedback Management Service**      |                                                                                        |
-| `XYZ_FMS_URL_BASE`                   | The URL for the FMS instance on your environment                                       |
-| `XYZ_FMS_CONNECTION_TIMEOUT_SECONDS` | Connection timeout in seconds. Defaults to `20`                                        |
-| `XYZ_FMS_SUBMIT_ENDPOINT`            | The FMS endpoint where feedback will be sent here. Defaults to `/api/v1/save-feedback` |
-| `XYZ_FMS_PRESHARED_KEY`              | This is the pre-shared key used when making requests                                   |
+| `LMS_FMS_URL_BASE`                   | The URL for the FMS instance on your environment                                       |
+| `LMS_FMS_CONNECTION_TIMEOUT_SECONDS` | Connection timeout in seconds. Defaults to `20`                                        |
+| `LMS_FMS_SUBMIT_ENDPOINT`            | The FMS endpoint where feedback will be sent here. Defaults to `/api/v1/save-feedback` |
+| `LMS_FMS_PRESHARED_KEY`              | This is the pre-shared key used when making requests                                   |
 
+### Logging
+
+LMS can log in either JSON or text mode.
+
+In order to turn on JSON logging, set the profile `json-logging`. This will automatically include any MDC attributes.
+
+JSON logging is the preferred solution for SB2.
 
 ### 3. Initialise the Fivium Design System
 ```bash

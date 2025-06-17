@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,6 +20,7 @@ import uk.co.fivium.digital.energyportalteamaccesslibrary.team.EnergyPortalAcces
 import uk.co.fivium.digital.energyportalteamaccesslibrary.team.InstigatingWebUserAccountId;
 import uk.co.fivium.digital.energyportalteamaccesslibrary.team.ResourceType;
 import uk.co.fivium.digital.energyportalteamaccesslibrary.team.TargetWebUserAccountId;
+import uk.co.fivium.energyportal.accounts.starter.EnergyPortalServiceAccessService;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
@@ -46,19 +48,27 @@ public class TeamManagementService {
   private final TeamRoleRepository teamRoleRepository;
   private final TeamQueryService teamQueryService;
   private final EnergyPortalUserService energyPortalUserService;
-  private final EnergyPortalAccessService energyPortalAccessService;
+  private final EnergyPortalServiceAccessService energyPortalServiceAccessService;
 
-  public TeamManagementService(TeamRepository teamRepository,
-                               TeamRoleRepository teamRoleRepository,
-                               EnergyPortalUserService energyPortalUserService,
-                               TeamQueryService teamQueryService,
-                               EnergyPortalAccessService energyPortalAccessService
+  private final EnergyPortalAccessService energyPortalAccessService;
+  private final boolean useEpas;
+
+  TeamManagementService(
+      TeamRepository teamRepository,
+      TeamRoleRepository teamRoleRepository,
+      TeamQueryService teamQueryService,
+      EnergyPortalUserService energyPortalUserService,
+      EnergyPortalServiceAccessService energyPortalServiceAccessService,
+      EnergyPortalAccessService energyPortalAccessService,
+      Environment environment
   ) {
     this.teamRepository = teamRepository;
     this.teamRoleRepository = teamRoleRepository;
-    this.energyPortalUserService = energyPortalUserService;
     this.teamQueryService = teamQueryService;
+    this.energyPortalUserService = energyPortalUserService;
+    this.energyPortalServiceAccessService = energyPortalServiceAccessService;
     this.energyPortalAccessService = energyPortalAccessService;
+    this.useEpas = environment.matchesProfiles("use-epas");
   }
 
   public Team createScopedTeam(String name, TeamType teamType, TeamScopeReference scopeRef) {
@@ -231,13 +241,20 @@ public class TeamManagementService {
       throw new TeamManagementException("At least 1 team manager must exist in team %s".formatted(team.getId()));
     }
 
-    if (isNewUser) {
+    if (!isNewUser) {
+      return;
+    }
+
+    if (!useEpas) {
       energyPortalAccessService.addUserToAccessTeam(
           new ResourceType(RESOURCE_TEAM_TYPE),
           new TargetWebUserAccountId(new WebUserAccountId(user.webUserAccountId()).id()),
           new InstigatingWebUserAccountId(instigatingUser.wuaId())
       );
+      return;
     }
+
+    energyPortalServiceAccessService.addUser(user.webUserAccountId());
   }
 
   @Transactional
@@ -249,14 +266,20 @@ public class TeamManagementService {
     teamRoleRepository.deleteByWuaIdAndTeam(wuaId, team);
 
     var isUserRemovedFromAllTeams = teamRoleRepository.findAllByWuaId(wuaId).isEmpty();
+    if (!isUserRemovedFromAllTeams) {
+      return;
+    }
 
-    if (isUserRemovedFromAllTeams) {
+    if (!useEpas) {
       energyPortalAccessService.removeUserFromAccessTeam(
           new ResourceType(RESOURCE_TEAM_TYPE),
           new TargetWebUserAccountId(wuaId),
           new InstigatingWebUserAccountId(instigatingUser.wuaId())
       );
+      return;
     }
+
+    energyPortalServiceAccessService.removeUser(wuaId);
   }
 
   public boolean willManageTeamRoleBePresentAfterMemberRoleUpdate(Team team, Long wuaId, List<Role> membersNewRoles) {

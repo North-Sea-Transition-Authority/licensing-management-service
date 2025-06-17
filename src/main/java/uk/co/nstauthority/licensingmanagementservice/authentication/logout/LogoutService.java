@@ -5,7 +5,7 @@ import org.springframework.session.Session;
 import org.springframework.stereotype.Service;
 
 @Service
-class LogoutService {
+public class LogoutService {
 
   private final FindByIndexNameSessionRepository<? extends Session> sessionRepository;
 
@@ -24,7 +24,7 @@ class LogoutService {
    * Deletes the spring sessions for all the principals that have a name that matches the provided wuaId.
    * @param wuaId the web user account id of the user to be logged out of the application
    */
-  void logoutUser(Long wuaId) {
+  public void logoutUser(Long wuaId) {
     var sessions = sessionRepository.findByPrincipalName(wuaId.toString());
     sessions.keySet().forEach(sessionRepository::deleteById);
   }

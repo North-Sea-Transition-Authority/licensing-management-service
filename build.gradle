@@ -1,5 +1,5 @@
 plugins {
-	id 'org.springframework.boot' version '3.4.4'
+	id 'org.springframework.boot' version '3.4.6'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'java'
 	id "org.sonarqube" version "5.1.0.4882"
@@ -43,6 +43,8 @@ dependencies {
 	implementation 'org.flywaydb:flyway-database-postgresql'
 
 	implementation 'uk.co.fivium.energyportalapi:client:v14.3.0'
+	implementation 'uk.co.fivium.energyportalmessagequeue:spring-boot-starter:v4.3.0'
+	implementation 'uk.co.fivium.energyportal.accounts:energy-portal-accounts-spring-boot-starter:v0.5'
 	implementation 'uk.co.fivium.digitalformlibrary:digital-form-library:v3.0.0'
 	implementation "uk.co.fivium:file-upload-spring-boot-starter:${fileUploadLibraryVersion}"
 	implementation 'uk.co.fivium.digital.energyportalteamaccesslibrary:energy-portal-team-access-libray:v1.0.0'

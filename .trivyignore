@@ -31,3 +31,10 @@ CVE-2025-22235
 
 # org.springframework:spring-context
 CVE-2025-22233
+
+# org.postgresql:postgresql
+CVE-2024-7254
+CVE-2025-49146
+
+# org.springframework:spring-web
+CVE-2025-41234

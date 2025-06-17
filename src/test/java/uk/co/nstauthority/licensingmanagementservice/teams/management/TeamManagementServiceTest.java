@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.refEq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -24,10 +25,12 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.env.Environment;
 import uk.co.fivium.digital.energyportalteamaccesslibrary.team.EnergyPortalAccessService;
 import uk.co.fivium.digital.energyportalteamaccesslibrary.team.InstigatingWebUserAccountId;
 import uk.co.fivium.digital.energyportalteamaccesslibrary.team.ResourceType;
 import uk.co.fivium.digital.energyportalteamaccesslibrary.team.TargetWebUserAccountId;
+import uk.co.fivium.energyportal.accounts.starter.EnergyPortalServiceAccessService;
 import uk.co.fivium.energyportalapi.generated.types.User;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
@@ -64,6 +67,12 @@ class TeamManagementServiceTest {
 
   @Mock
   private EnergyPortalAccessService energyPortalAccessService;
+
+  @Mock
+  private EnergyPortalServiceAccessService energyPortalServiceAccessService;
+
+  @Mock
+  private Environment environment;
 
   @InjectMocks
   private TeamManagementService teamManagementService;
@@ -394,6 +403,37 @@ class TeamManagementServiceTest {
         refEq(new ResourceType(RESOURCE_TEAM_TYPE)),
         refEq(new TargetWebUserAccountId(1L)),
         refEq(new InstigatingWebUserAccountId(userDetail.wuaId())));
+
+    verifyNoInteractions(energyPortalServiceAccessService);
+  }
+
+  @Test
+  void setUserTeamRole_isNewUser_useEpas() {
+    when(environment.matchesProfiles("use-epas")).thenReturn(true);
+
+    var teamManagementService = new TeamManagementService(
+        teamRepository,
+        teamRoleRepository,
+        teamQueryService,
+        energyPortalUserService,
+        energyPortalServiceAccessService,
+        energyPortalAccessService,
+        environment
+    );
+
+    when(energyPortalUserService.findByWuaId(WebUserAccountId.from(USER_1_WUA_ID), PORTAL_VALIDATE_USERS_LOOKUP_PURPOSE))
+        .thenReturn(Optional.of(EnergyPortalUserJson.from(user1)));
+    when(teamRoleRepository.findByTeam(regTeam))
+        .thenReturn(List.of(regTeamUser1RoleManage)); // Make doesTeamHaveTeamManager() check return true
+    when(teamRoleRepository.findAllByWuaId(USER_1_WUA_ID))
+        .thenReturn(Collections.emptyList());
+
+    teamManagementService.setUserTeamRoles(USER_1_WUA_ID, regTeam,
+        List.of(Role.MANAGE_TEAM, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM), userDetail);
+
+    verify(energyPortalServiceAccessService).addUser(USER_1_WUA_ID);
+
+    verifyNoInteractions(energyPortalAccessService);
   }
 
   @Test
@@ -490,8 +530,35 @@ class TeamManagementServiceTest {
         refEq(new ResourceType(RESOURCE_TEAM_TYPE)),
         refEq(new TargetWebUserAccountId(2L)),
         refEq(new InstigatingWebUserAccountId(userDetail.wuaId())));
+
+    verifyNoInteractions(energyPortalServiceAccessService);
   }
 
+  @Test
+  void removeUserFromTeam_userRemovedFromAllTeams_useEpas() {
+    when(environment.matchesProfiles("use-epas")).thenReturn(true);
+
+    var teamManagementService = new TeamManagementService(
+        teamRepository,
+        teamRoleRepository,
+        teamQueryService,
+        energyPortalUserService,
+        energyPortalServiceAccessService,
+        energyPortalAccessService,
+        environment
+    );
+
+    when(teamRoleRepository.findByTeam(regTeam))
+        .thenReturn(List.of(regTeamUser1RoleManage));
+
+    when(teamRoleRepository.findAllByWuaId(2L)).thenReturn(Collections.emptyList());
+
+    teamManagementService.removeUserFromTeam(USER_2_WUA_ID, regTeam, userDetail);
+
+    verify(energyPortalServiceAccessService).removeUser(USER_2_WUA_ID);
+
+    verifyNoInteractions(energyPortalAccessService);
+  }
 
   @Test
   void removeUserFromTeam_lastTeamManager() {

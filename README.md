@@ -22,21 +22,44 @@
 ### Development
 - In your IntelliJ run configuration for the Spring app, include `development` in your active profiles
 
+| Environment Variable                     | Description                                                                                                        |
+|------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
+| **Energy Portal Message Queue**          |                                                                                                                    |
+| `LMS_EPMQ_SNS_SQS_AWS_ACCESS_KEY_ID`     | Refer to [EPMQ readme](https://github.com/Fivium/energy-portal-message-queue#2-add-required-environment-variables) |
+| `LMS_EPMQ_SNS_SQS_AWS_SECRET_ACCESS_KEY` | Refer to [EPMQ readme](https://github.com/Fivium/energy-portal-message-queue#2-add-required-environment-variables) |
+| `LMS_EPMQ_ENVIRONMENT_SUFFIX`            | Refer to [EPMQ readme](https://github.com/Fivium/energy-portal-message-queue#2-add-required-environment-variables) |
+
 ### Production
 - In your IntelliJ run configuration for the Spring app, include `production` in your active profiles
 - The following environment variables are required when using this profile:
 
-| Environment Variable                 | Description                                                                            |
-|--------------------------------------|----------------------------------------------------------------------------------------|
-| **Database**                         |                                                                                        |
-| `LMS_DATABASE_URL`                   | The URL to the database the service connect to                                         |
-| `LMS_DATABASE_PASSWORD`              | Database schema password for the `XYZ` user                                            |
-|                                      |                                                                                        |
-| **Feedback Management Service**      |                                                                                        |
-| `LMS_FMS_URL_BASE`                   | The URL for the FMS instance on your environment                                       |
-| `LMS_FMS_CONNECTION_TIMEOUT_SECONDS` | Connection timeout in seconds. Defaults to `20`                                        |
-| `LMS_FMS_SUBMIT_ENDPOINT`            | The FMS endpoint where feedback will be sent here. Defaults to `/api/v1/save-feedback` |
-| `LMS_FMS_PRESHARED_KEY`              | This is the pre-shared key used when making requests                                   |
+| Environment Variable                     | Description                                                                                                        |
+|------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
+| **Database**                             |                                                                                                                    |
+| `LMS_DATABASE_URL`                       | The URL to the database the service connect to                                                                     |
+| `LMS_DATABASE_PASSWORD`                  | Database schema password for the `XYZ` user                                                                        |
+|                                          |                                                                                                                    |
+| **Feedback Management Service**          |                                                                                                                    |
+| `LMS_FMS_URL_BASE`                       | The URL for the FMS instance on your environment                                                                   |
+| `LMS_FMS_CONNECTION_TIMEOUT_SECONDS`     | Connection timeout in seconds. Defaults to `20`                                                                    |
+| `LMS_FMS_SUBMIT_ENDPOINT`                | The FMS endpoint where feedback will be sent here. Defaults to `/api/v1/save-feedback`                             |
+| `LMS_FMS_PRESHARED_KEY`                  | This is the pre-shared key used when making requests                                                               |
+|                                          |                                                                                                                    |
+| **Energy Portal Message Queue**          |                                                                                                                    |
+| `LMS_EPMQ_SNS_SQS_AWS_ACCESS_KEY_ID`     | Refer to [EPMQ readme](https://github.com/Fivium/energy-portal-message-queue#2-add-required-environment-variables) |
+| `LMS_EPMQ_SNS_SQS_AWS_SECRET_ACCESS_KEY` | Refer to [EPMQ readme](https://github.com/Fivium/energy-portal-message-queue#2-add-required-environment-variables) |
+| `LMS_EPMQ_ENVIRONMENT_SUFFIX`            | Refer to [EPMQ readme](https://github.com/Fivium/energy-portal-message-queue#2-add-required-environment-variables) |
+
+### Energy Portal accounts service integrationAdd commentMore actions
+
+In order to integrate with the Energy Portal accounts service as the IDP you need to include the `use-epas` profile. If running Energy Portal accounts service
+locally add the `use-epas-development` profile as well.
+
+For deployed environments we require the following environment variables to be set
+- EPAS_SAML_ENTITY_ID
+- EPAS_SAML_LOGIN_URL
+- EPAS_LOGOUT_REQUEST_URL
+- EPAS_SAML_BASE_URL (e.g. https://nsta.itportal.dev.fivium.co.uk)
 
 ### Logging
 

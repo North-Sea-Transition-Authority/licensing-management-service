@@ -73,7 +73,7 @@ public class RequestLogFilter extends OncePerRequestFilter {
           "[{}] {}{} ({}), time: {}ms, status: {}, user id: {}, proxy id: {}, " +
               "overall hibernate count: {}, " +
               "hibernate count by query: {}, " +
-              "epa request count by purpose: {}, ",
+              "epa request count by purpose: {} ",
           value("request_method", request.getMethod()),
           value("request_uri_pattern", request.getRequestURI()),
           value("request_query_string", queryString),

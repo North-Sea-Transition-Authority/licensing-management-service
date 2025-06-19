@@ -1,4 +1,15 @@
-# Licensing Management Service
+# Licence Management Service
+
+## Background
+The Licence Management Service (LMS) is used to track licence schedule and work programme information for a variety of licence types including:
+- Production
+- Carbon Storage
+- Gas Storage
+- Methane Drainage
+- Exploration
+
+The service also sends reminders to licensees to provide updates on future licence scheduled events who then provide those updates through the service and processed by the NSTA.
+
 
 ## Pre-requisites
 - Java 21
@@ -39,6 +50,14 @@
 | `LMS_DATABASE_URL`                       | The URL to the database the service connect to                                                                     |
 | `LMS_DATABASE_PASSWORD`                  | Database schema password for the `XYZ` user                                                                        |
 |                                          |                                                                                                                    |
+| **Energy Portal**                        |                                                                                                                    |
+| `LMS_ENERGY_PORTAL_API_TOKEN`            | EPA token                                                                                                          |
+| `LMS_ENERGY_PORTAL_LOGOUT_KEY`           | Key to allow logout from the energy portal                                                                         |
+|                                          |                                                                                                                    |
+| **S3**                                   |                                                                                                                    |
+| `LMS_S3_ACCESS_TOKEN`                    |                                                                                                                    |
+| `LMS_S3_SECRET_TOKEN`                    |                                                                                                                    |
+|                                          |                                                                                                                    |
 | **Feedback Management Service**          |                                                                                                                    |
 | `LMS_FMS_URL_BASE`                       | The URL for the FMS instance on your environment                                                                   |
 | `LMS_FMS_CONNECTION_TIMEOUT_SECONDS`     | Connection timeout in seconds. Defaults to `20`                                                                    |
@@ -49,17 +68,30 @@
 | `LMS_EPMQ_SNS_SQS_AWS_ACCESS_KEY_ID`     | Refer to [EPMQ readme](https://github.com/Fivium/energy-portal-message-queue#2-add-required-environment-variables) |
 | `LMS_EPMQ_SNS_SQS_AWS_SECRET_ACCESS_KEY` | Refer to [EPMQ readme](https://github.com/Fivium/energy-portal-message-queue#2-add-required-environment-variables) |
 | `LMS_EPMQ_ENVIRONMENT_SUFFIX`            | Refer to [EPMQ readme](https://github.com/Fivium/energy-portal-message-queue#2-add-required-environment-variables) |
+|                                          |                                                                                                                    |
+| **Metrics**                              |                                                                                                                    |
+| `LMS_METRICS_ENVIRONMENT_NAME`           | Metrics environment name                                                                                           |
+| `LMS_METRICS_INSTANCE_TAG`               | Metrics instance name                                                                                              |
+| `LMS_ENABLE_STATSD`                      | Flag to enable/disable metrics gathering                                                                           |
+| `LMS_STATSD_HOST`                        | Metrics host address                                                                                               |
+|                                          |                                                                                                                    |
+| **Google Analytics**                     |                                                                                                                    |
+| `LMS_ANALYTICS_SERVICE_IDENTIFIER`       | Google analytics measurement ID for the service                                                                    |
+| `LMS_ANALYTICS_ENERGY_PORTAL_IDENTIFIER` | Google analytics measurement ID for the energy portal                                                              |
 
-### Energy Portal accounts service integrationAdd commentMore actions
+### Energy Portal accounts service integration
 
 In order to integrate with the Energy Portal accounts service as the IDP you need to include the `use-epas` profile. If running Energy Portal accounts service
 locally add the `use-epas-development` profile as well.
 
 For deployed environments we require the following environment variables to be set
-- EPAS_SAML_ENTITY_ID
-- EPAS_SAML_LOGIN_URL
-- EPAS_LOGOUT_REQUEST_URL
-- EPAS_SAML_BASE_URL (e.g. https://nsta.itportal.dev.fivium.co.uk)
+
+| Environment Variable      | Description                                                       |
+|---------------------------|-------------------------------------------------------------------|
+| `EPAS_SAML_ENTITY_ID`     | Unique identifier for the service and environment                 |
+| `EPAS_SAML_LOGIN_URL`     | The URL to log into the service and other energy portal services  |
+| `EPAS_LOGOUT_REQUEST_URL` | The URL to logout of the service and other energy portal services |
+| `EPAS_SAML_BASE_URL`      | (e.g. https://nsta.itportal.dev.fivium.co.uk)                     |
 
 ### Logging
 

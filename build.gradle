@@ -41,8 +41,7 @@ dependencies {
 	implementation "org.springframework.data:spring-data-envers"
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-database-postgresql'
-// TODO switch to dev post tagged release
-	implementation 'uk.co.fivium.energyportalapi:client:feature-LMS1-109-licence-subtype-SNAPSHOT'
+	implementation 'uk.co.fivium.energyportalapi:client:v14.4.0'
 	implementation 'uk.co.fivium.energyportalmessagequeue:spring-boot-starter:v4.3.0'
 	implementation 'uk.co.fivium.energyportal.accounts:energy-portal-accounts-spring-boot-starter:v0.5'
 	implementation 'uk.co.fivium.digitalformlibrary:digital-form-library:v3.0.0'
@@ -67,6 +66,7 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
+	testImplementation "org.testcontainers:postgresql:1.20.2"
 }
 
 tasks {
@@ -108,7 +108,7 @@ sonarqube {
 
 checkstyle {
 	config = rootProject.resources.text.fromFile('devtools-lms/checkstyle.xml')
-	toolVersion '10.4'
+	toolVersion '10.26.0'
 	ignoreFailures = false
 	maxWarnings = 0
 }

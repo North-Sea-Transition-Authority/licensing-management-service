@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence;
+package uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -6,11 +6,12 @@ import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 
 @Audited
 @Entity(name = "licence_responsible_organisations")
 @IdClass(LicenceOrganisationId.class)
-public class ResponsibleOrganisation {
+public class LicenceResponsibleOrganisation {
 
   @Id
   @JoinColumn(name = "licence_id")
@@ -22,7 +23,7 @@ public class ResponsibleOrganisation {
 
   private Boolean managedByLms;
 
-  public ResponsibleOrganisation() {
+  public LicenceResponsibleOrganisation() {
   }
 
   public Licence getLicence() {

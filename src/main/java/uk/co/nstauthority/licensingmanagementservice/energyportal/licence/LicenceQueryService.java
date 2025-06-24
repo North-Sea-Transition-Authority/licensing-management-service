@@ -29,21 +29,28 @@ public class LicenceQueryService {
     this.licenceApi = licenceApi;
   }
 
-  public Map<Licence, List<OrganisationUnit>> getLicencesLicenseesMap() {
-    var searchFilter =  LicenceSearchFilter.builder().withStatuses(Arrays.stream(LicenceStatus.values()).toList()).build();
+  public EpaLicenceDataDto getEpaLicenceData() {
+    var searchFilter = LicenceSearchFilter.builder().withStatuses(Arrays.stream(LicenceStatus.values()).toList()).build();
 
-    return licenceApi.searchLicences(
+    return createLicenceDataDto(licenceApi.searchLicences(
         searchFilter,
         LICENCE_PROJECTION_ROOT,
         new RequestPurpose("Get all licences"),
         CorrelationIdUtil.getLogCorrelationId()
-    ).stream()
-        .collect(
-            StreamUtil.toLinkedHashMap(
-                this::convertFromEpaLicense,
-                uk.co.fivium.energyportalapi.generated.types.Licence::getLicensees
-            )
-        );
+    ));
+  }
+
+  private EpaLicenceDataDto createLicenceDataDto(List<uk.co.fivium.energyportalapi.generated.types.Licence> portalLicences) {
+    return new EpaLicenceDataDto(
+        convertPortalLicences(portalLicences),
+        getLicenceIdOrgIdMap(portalLicences)
+    );
+  }
+
+  private List<Licence> convertPortalLicences(List<uk.co.fivium.energyportalapi.generated.types.Licence> portalLicences) {
+    return portalLicences.stream()
+        .map(this::convertFromEpaLicense)
+        .toList();
   }
 
   private Licence convertFromEpaLicense(uk.co.fivium.energyportalapi.generated.types.Licence portalLicence) {
@@ -59,6 +66,22 @@ public class LicenceQueryService {
     licence.setPrefix(portalLicence.getLicenceType());
 
     return licence;
+  }
+
+  private Map<Integer, List<Integer>> getLicenceIdOrgIdMap(
+      List<uk.co.fivium.energyportalapi.generated.types.Licence> portalLicence
+  ) {
+    return portalLicence.stream()
+        .collect(StreamUtil.toLinkedHashMap(
+            uk.co.fivium.energyportalapi.generated.types.Licence::getId,
+            licence -> getOrgUnitIds(licence.getLicensees())
+        ));
+  }
+
+  private List<Integer> getOrgUnitIds(List<OrganisationUnit> organisationUnits) {
+    return organisationUnits.stream()
+        .map(OrganisationUnit::getOrganisationUnitId)
+        .toList();
   }
 
 }

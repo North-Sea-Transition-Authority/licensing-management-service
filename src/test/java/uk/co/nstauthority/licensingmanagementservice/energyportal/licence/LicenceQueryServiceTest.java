@@ -40,7 +40,7 @@ class LicenceQueryServiceTest {
   }
 
   @Test
-  void getLicencesLicenseesMap() {
+  void getEpaLicenceData() {
     var licence = new Licence();
     licence.setId(1);
     licence.setType(LicenceType.SEAWARD_PRODUCTION);
@@ -62,24 +62,29 @@ class LicenceQueryServiceTest {
         any()
     )).thenReturn(createPortalLicences());
 
-    var expectedResult = Map.of(
-        licence, List.of(organisationUnit, organisationUnit2),
-        licence2, List.of(organisationUnit)
+
+    var licences = List.of(licence, licence2);
+
+    var licenceIdOrgIdMap = Map.of(
+        1, List.of(1,2),
+        2, List.of(1)
     );
 
-    var result = licenceQueryService.getLicencesLicenseesMap();
+    var expectedResult = new EpaLicenceDataDto(licences, licenceIdOrgIdMap);
 
-    assertThat(result.keySet()).usingRecursiveComparison().isEqualTo(expectedResult.keySet());
-    assertThat(result.values()).usingRecursiveComparison().isEqualTo(expectedResult.values());
+    var result = licenceQueryService.getEpaLicenceData();
+
+    assertThat(result.licences()).usingRecursiveComparison().isEqualTo(expectedResult.licences());
+    assertThat(result.licenceIdOrgIdMap()).usingRecursiveComparison().isEqualTo(expectedResult.licenceIdOrgIdMap());
   }
 
   private List<uk.co.fivium.energyportalapi.generated.types.Licence> createPortalLicences() {
     var portalLicence = new uk.co.fivium.energyportalapi.generated.types.Licence(
         1,
         "P",
-        "frontier",
+        "Frontier",
         1,
-        "p1",
+        "P1",
         null,
         null,
         null,

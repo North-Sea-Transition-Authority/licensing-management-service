@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.util.enumutil;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -18,6 +19,18 @@ public class DisplayableEnumOptionUtil {
     return Arrays.stream((Displayable[]) displayableOptionEnum.getEnumConstants())
         .sorted(Comparator.comparingInt(Displayable::getDisplayOrder))
         .collect(StreamUtil.toLinkedHashMap(Displayable::getEnumName, Displayable::getDisplayName));
+  }
+
+  public static Map<String, String> getDisplayableOptions(
+      Collection<? extends Displayable> displayableOptionEnumConstants
+  ) {
+    return displayableOptionEnumConstants
+        .stream()
+        .sorted(Comparator.comparingInt(Displayable::getDisplayOrder))
+        .collect(StreamUtil.toLinkedHashMap(
+            Displayable::getEnumName,
+            Displayable::getDisplayName
+        ));
   }
 
   public static Map<String, String> getDisplayableOptionsFromStream(Stream<? extends Displayable> displayableStream) {

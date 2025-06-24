@@ -17,7 +17,7 @@ import org.springframework.validation.BeanPropertyBindingResult;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
-import uk.co.nstauthority.licensingmanagementservice.util.ValidatorTestingUtil;
+import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 
 @ExtendWith(MockitoExtension.class)
 class MemberRolesFormValidatorTest {

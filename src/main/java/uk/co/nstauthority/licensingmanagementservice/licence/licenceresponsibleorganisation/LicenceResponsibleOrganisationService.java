@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.NewLicenceForm;
 
 @Service
 public class LicenceResponsibleOrganisationService {
@@ -55,6 +56,27 @@ public class LicenceResponsibleOrganisationService {
     licensee.setLicence(licence);
     licensee.setResponsibleOrganisationId(orgId);
     licensee.setManagedByLms(false);
+    return licensee;
+  }
+
+  @Transactional
+  public void saveOrganisationsFromForm(
+      Licence licence,
+      NewLicenceForm form
+  ) {
+    var responsibleOrganisations = form.getOrganisationUnitIds().stream()
+        .map(id -> createLmsLicensee(licence, Integer.valueOf(id)))
+        .toList();
+
+    licenceResponsibleOrganisationRepository.saveAll(responsibleOrganisations);
+  }
+
+  private LicenceResponsibleOrganisation createLmsLicensee(Licence licence, Integer orgId) {
+    var licensee = new LicenceResponsibleOrganisation();
+    licensee.setLicence(licence);
+    licensee.setResponsibleOrganisationId(orgId);
+    licensee.setManagedByLms(true);
+
     return licensee;
   }
 }

@@ -17,7 +17,7 @@ import uk.co.fivium.energyportalapi.generated.types.User;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.util.ValidatorTestingUtil;
+import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 
 @ExtendWith(MockitoExtension.class)
 class AddMemberFormValidatorTest {

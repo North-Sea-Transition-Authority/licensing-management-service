@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.entry;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.validation.BeanPropertyBindingResult;
-import uk.co.nstauthority.licensingmanagementservice.util.ValidatorTestingUtil;
+import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.form.XyzApplicationForm;
 
 class FileValidationUtilTest {

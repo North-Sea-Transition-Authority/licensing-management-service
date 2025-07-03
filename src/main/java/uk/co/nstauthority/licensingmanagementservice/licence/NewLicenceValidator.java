@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
 
@@ -28,7 +29,10 @@ public class NewLicenceValidator {
       errors.rejectValue("licenceNumber", "licenceNumber.invalid", "The licence number must start with a digit");
     }
 
-    ValidationUtils.rejectIfEmpty(errors, "organisationUnitIds", "organisationUnitIds.required", "Add a licensee");
+    if (CollectionUtils.isEmpty(form.getOrganisationUnitIds())) {
+      errors.rejectValue("organisationUnitSelector", "organisationUnitSelector.notEmpty",
+          "You must add at least one licensee");
+    }
 
     return !errors.hasErrors();
   }

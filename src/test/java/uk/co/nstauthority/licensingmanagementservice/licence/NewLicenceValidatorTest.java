@@ -83,6 +83,6 @@ class NewLicenceValidatorTest {
     assertThat(newLicenceValidator.isValid(form, bindingResult)).isFalse();
 
     assertThat(ValidatorTestingUtil.extractErrors(bindingResult))
-        .containsExactly(entry("organisationUnitIds", Set.of("organisationUnitIds.required")));
+        .containsExactly(entry("organisationUnitSelector", Set.of("organisationUnitSelector.notEmpty")));
   }
 }

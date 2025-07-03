@@ -6,17 +6,18 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 
 @Service
-public class NewLicenceFormService {
+public class LicenceFormService {
 
   private final LicenceRepository licenceRepository;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final LicenceService licenceService;
 
-  public NewLicenceFormService(
+  public LicenceFormService(
       LicenceRepository licenceRepository,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
       OrganisationUnitQueryService organisationUnitQueryService,
@@ -37,7 +38,7 @@ public class NewLicenceFormService {
     licence.setLicenceNumber(form.getLicenceNumber());
 
     var savedLicence = licenceRepository.save(licence);
-    licenceResponsibleOrganisationService.saveOrganisationsFromForm(savedLicence, form);
+    licenceResponsibleOrganisationService.saveLicenseesFromForm(savedLicence, form.getOrganisationUnitIds());
   }
 
   public List<OrganisationUnitJson> getPreselectedOrganisationUnits(List<String> organisationUnitIds) {
@@ -50,5 +51,13 @@ public class NewLicenceFormService {
         .toList();
 
     return organisationUnitQueryService.getOrganisationUnitsByIds(orgUnitIds);
+  }
+
+  public List<OrganisationUnitJson> getSavedOrganisationUnits(Licence licence) {
+    var orgUnitIds = licenceResponsibleOrganisationService.getAllByLicence(licence).stream()
+        .map(LicenceResponsibleOrganisation::getResponsibleOrganisationId)
+        .map(String::valueOf)
+        .toList();
+    return getPreselectedOrganisationUnits(orgUnitIds);
   }
 }

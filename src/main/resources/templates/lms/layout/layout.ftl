@@ -25,6 +25,7 @@
   breadcrumbs={}
   errorSummaryItems=[]
   showNavigationItems=true
+  caption=""
 >
   <#local serviceName = serviceBranding.name() />
   <#local customerMnemonic = customerBranding.mnemonic() />
@@ -121,6 +122,7 @@
     errorItems=errorSummaryItems
     notificationBannerContent=notificationBannerContent
     topNavigation=showNavigationItems
+    caption=caption
   >
 
     <@fdsGoogleAnalytics.googleAnalytics measurementId=analytics.serviceAnalyticIdentifier() />

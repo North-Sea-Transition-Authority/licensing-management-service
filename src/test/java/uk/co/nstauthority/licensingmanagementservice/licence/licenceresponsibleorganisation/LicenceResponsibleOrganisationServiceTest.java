@@ -28,6 +28,15 @@ class LicenceResponsibleOrganisationServiceTest {
   private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
 
   @Test
+  void getAllByLicence() {
+    var licence = new Licence();
+
+    licenceResponsibleOrganisationService.getAllByLicence(licence);
+
+    verify(licenceResponsibleOrganisationRepository).findAllByLicence(licence);
+  }
+
+  @Test
   void refreshPearsResponsibleOrganisations() {
     var licence = new Licence();
     licence.setId(1);
@@ -62,18 +71,43 @@ class LicenceResponsibleOrganisationServiceTest {
     responsibleOrganisation4.setLicence(licence2);
     responsibleOrganisation4.setManagedByLms(false);
 
-    var expectedResult = List.of(
-        responsibleOrganisation,
-        responsibleOrganisation2,
-        responsibleOrganisation3,
-        responsibleOrganisation4
-    );
+    var oldOrgs = List.of(responsibleOrganisation, responsibleOrganisation2);
 
-    when(licenceResponsibleOrganisationRepository.findAllByManagedByLmsIsFalse()).thenReturn(expectedResult);
+    when(licenceResponsibleOrganisationRepository.findAllByManagedByLmsIsFalse()).thenReturn(oldOrgs);
 
     licenceResponsibleOrganisationService.refreshPearsResponsibleOrganisations(licenceList, licenceMap);
 
-    verify(licenceResponsibleOrganisationRepository).deleteAll(expectedResult);
+    verify(licenceResponsibleOrganisationRepository).deleteAll(oldOrgs);
+
+    verify(licenceResponsibleOrganisationRepository).saveAll(organisationCaptor.capture());
+
+    assertThat(organisationCaptor.getValue())
+        .containsExactlyInAnyOrder(
+            responsibleOrganisation,
+            responsibleOrganisation2,
+            responsibleOrganisation3,
+            responsibleOrganisation4);
+  }
+
+  @Test
+  void saveLicenseesFromForm() {
+    var licence = new Licence();
+
+    var orgs = List.of("1", "2");
+
+    var responsibleOrganisation = new LicenceResponsibleOrganisation();
+    responsibleOrganisation.setResponsibleOrganisationId(1);
+    responsibleOrganisation.setLicence(licence);
+    responsibleOrganisation.setManagedByLms(true);
+
+    var responsibleOrganisation2 = new LicenceResponsibleOrganisation();
+    responsibleOrganisation2.setResponsibleOrganisationId(2);
+    responsibleOrganisation2.setLicence(licence);
+    responsibleOrganisation2.setManagedByLms(true);
+
+    var expectedResult = List.of(responsibleOrganisation, responsibleOrganisation2);
+
+    licenceResponsibleOrganisationService.saveLicenseesFromForm(licence, orgs);
 
     verify(licenceResponsibleOrganisationRepository).saveAll(organisationCaptor.capture());
 

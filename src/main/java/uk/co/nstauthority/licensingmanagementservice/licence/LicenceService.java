@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence;
 import jakarta.transaction.Transactional;
 import java.util.Collection;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 
 @Service
 public class LicenceService {
@@ -11,6 +12,11 @@ public class LicenceService {
 
   public LicenceService(LicenceRepository licenceRepository) {
     this.licenceRepository = licenceRepository;
+  }
+
+  public Licence findLicenceByIdOrThrow(Integer id) {
+    return licenceRepository.findById(id)
+        .orElseThrow(() -> new LmsEntityNotFoundException("Could not find licence with id: %s".formatted(id)));
   }
 
   @Transactional

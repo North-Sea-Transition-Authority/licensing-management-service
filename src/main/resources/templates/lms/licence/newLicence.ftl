@@ -24,7 +24,7 @@ errorSummaryItems=errorSummaryItems>
                 pathForList="form.organisationUnitIds"
                 pathForSelector="form.organisationUnitSelector"
                 restUrl=springUrl(organisationUnitSearchEndpoint)
-                alreadyAdded=preselectedItems
+                alreadyAdded=preselectedOrgUnits
                 itemName="Licensees"
             />
         </@fdsFieldset.fieldset>

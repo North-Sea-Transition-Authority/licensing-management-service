@@ -17,10 +17,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 
 @ExtendWith(MockitoExtension.class)
-class NewLicenceFormServiceTest {
+class LicenceFormServiceTest {
 
   @Mock
   private LicenceRepository licenceRepository;
@@ -35,7 +36,7 @@ class NewLicenceFormServiceTest {
   private LicenceService licenceService;
 
   @InjectMocks
-  private NewLicenceFormService newLicenceFormService;
+  private LicenceFormService licenceFormService;
 
   @Captor
   private ArgumentCaptor<Licence> licenceCaptor;
@@ -55,7 +56,7 @@ class NewLicenceFormServiceTest {
     licence.setPrefix("CS");
     licence.setLicenceNumber("001");
 
-    newLicenceFormService.saveNewLicenceFromForm(form);
+    licenceFormService.saveNewLicenceFromForm(form);
 
     verify(licenceRepository).save(licenceCaptor.capture());
 
@@ -63,7 +64,7 @@ class NewLicenceFormServiceTest {
         .usingRecursiveComparison()
         .isEqualTo(licence);
 
-    verify(licenceResponsibleOrganisationService).saveOrganisationsFromForm(any(), eq(form));
+    verify(licenceResponsibleOrganisationService).saveLicenseesFromForm(any(), eq(form.getOrganisationUnitIds()));
   }
 
   @Test
@@ -80,13 +81,42 @@ class NewLicenceFormServiceTest {
 
     when(organisationUnitQueryService.getOrganisationUnitsByIds(List.of(1,2))).thenReturn(List.of(orgUnitJson, orgUnitJson2));
 
-    assertThat(newLicenceFormService.getPreselectedOrganisationUnits(List.of("1", "2"))).isEqualTo(List.of(orgUnitJson, orgUnitJson2));
+    assertThat(licenceFormService.getPreselectedOrganisationUnits(List.of("1", "2"))).isEqualTo(List.of(orgUnitJson, orgUnitJson2));
   }
 
   @Test
   void getPreselectedOrganisationUnits_noneSelected() {
-    assertThat(newLicenceFormService.getPreselectedOrganisationUnits(List.of())).isEmpty();
+    assertThat(licenceFormService.getPreselectedOrganisationUnits(List.of())).isEmpty();
 
     verifyNoInteractions(organisationUnitQueryService);
+  }
+
+  @Test
+  void getSavedOrganisationUnits() {
+    var licence = new Licence();
+
+    var licenceResponsibleOrganisation = new LicenceResponsibleOrganisation();
+    licenceResponsibleOrganisation.setLicence(licence);
+    licenceResponsibleOrganisation.setResponsibleOrganisationId(1);
+
+    var licenceResponsibleOrganisation2 = new LicenceResponsibleOrganisation();
+    licenceResponsibleOrganisation2.setLicence(licence);
+    licenceResponsibleOrganisation2.setResponsibleOrganisationId(2);
+
+    when(licenceResponsibleOrganisationService.getAllByLicence(licence)).thenReturn(List.of(licenceResponsibleOrganisation, licenceResponsibleOrganisation2));
+
+    var orgUnitJson = new OrganisationUnitJson(
+        1,
+        "org name"
+    );
+
+    var orgUnitJson2 = new OrganisationUnitJson(
+        2,
+        "org name 2"
+    );
+
+    when(organisationUnitQueryService.getOrganisationUnitsByIds(List.of(1,2))).thenReturn(List.of(orgUnitJson, orgUnitJson2));
+
+    assertThat(licenceFormService.getSavedOrganisationUnits(licence)).isEqualTo(List.of(orgUnitJson, orgUnitJson2));
   }
 }

@@ -65,4 +65,8 @@ public class Licence {
   public void setLicenceNumber(String licenceNumber) {
     this.licenceNumber = licenceNumber;
   }
+
+  public String getLicenceReference() {
+    return prefix + licenceNumber;
+  }
 }

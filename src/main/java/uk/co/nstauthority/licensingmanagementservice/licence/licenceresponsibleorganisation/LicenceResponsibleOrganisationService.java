@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.NewLicenceForm;
 
 @Service
 public class LicenceResponsibleOrganisationService {
@@ -16,6 +15,10 @@ public class LicenceResponsibleOrganisationService {
       LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository
   ) {
     this.licenceResponsibleOrganisationRepository = licenceResponsibleOrganisationRepository;
+  }
+
+  public List<LicenceResponsibleOrganisation> getAllByLicence(Licence licence) {
+    return licenceResponsibleOrganisationRepository.findAllByLicence(licence);
   }
 
   @Transactional
@@ -60,18 +63,18 @@ public class LicenceResponsibleOrganisationService {
   }
 
   @Transactional
-  public void saveOrganisationsFromForm(
+  public void saveLicenseesFromForm(
       Licence licence,
-      NewLicenceForm form
+      List<String> organisationUnitIds
   ) {
-    var responsibleOrganisations = form.getOrganisationUnitIds().stream()
-        .map(id -> createLmsLicensee(licence, Integer.valueOf(id)))
+    var responsibleOrganisations = organisationUnitIds.stream()
+        .map(id -> createManagedLicensee(licence, Integer.valueOf(id)))
         .toList();
 
     licenceResponsibleOrganisationRepository.saveAll(responsibleOrganisations);
   }
 
-  private LicenceResponsibleOrganisation createLmsLicensee(Licence licence, Integer orgId) {
+  private LicenceResponsibleOrganisation createManagedLicensee(Licence licence, Integer orgId) {
     var licensee = new LicenceResponsibleOrganisation();
     licensee.setLicence(licence);
     licensee.setResponsibleOrganisationId(orgId);

@@ -38,9 +38,6 @@ class LicenceControllerTest extends AbstractControllerTest {
   private NewLicenceValidator newLicenceValidator;
 
   @MockitoBean
-  private LicenceService licenceService;
-
-  @MockitoBean
   private ManageLicenseesValidator manageLicenseesValidator;
 
   @MockitoBean

@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceServiceTest {
@@ -20,6 +22,30 @@ class LicenceServiceTest {
 
   @InjectMocks
   private LicenceService licenceService;
+
+
+  @Test
+  void getAllLicences() {
+    licenceService.getAllLicences();
+
+    verify(licenceRepository).findAll();
+  }
+
+  @Test
+  void findLicenceByIdOrThrow() {
+    var licence = new Licence();
+
+    when(licenceRepository.findById(1)).thenReturn(Optional.of(licence));
+
+    assertThat(licenceService.findLicenceByIdOrThrow(1)).isEqualTo(licence);
+  }
+
+  @Test
+  void findLicenceByIdOrThrow_licenceNotFound() {
+    when(licenceRepository.findById(1)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> licenceService.findLicenceByIdOrThrow(1)).isInstanceOf(LmsEntityNotFoundException.class);
+  }
 
   @Test
   void saveLicences() {

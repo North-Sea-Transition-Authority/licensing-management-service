@@ -25,10 +25,10 @@ class TopNavigationServiceTest {
     var topNavigationItems = topNavigationService.getTopNavigationItems();
     assertThat(topNavigationItems).containsExactly(
         TopNavigationItem.WORK_AREA,
+        TopNavigationItem.LICENCE_SEARCH,
         TopNavigationItem.TEAMS
     );
   }
-
 
   @Test
   void getTopNavigationItems_withoutLoggedInUser() {

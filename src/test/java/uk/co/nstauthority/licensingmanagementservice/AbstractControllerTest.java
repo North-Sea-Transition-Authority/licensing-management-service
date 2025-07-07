@@ -35,6 +35,8 @@ import uk.co.nstauthority.licensingmanagementservice.configuration.WebSecurityCo
 import uk.co.nstauthority.licensingmanagementservice.energyportal.epa.EpaRequestHandler;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.hibernate.HibernateQueryCounter;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceArgumentResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ControllerAdviceService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.DefaultPageControllerAdvice;
 import uk.co.nstauthority.licensingmanagementservice.mvc.PostAuthenticationRequestMdcFilter;
@@ -70,7 +72,8 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     PostAuthenticationRequestMdcFilter.class,
     HasRolesInTeamTypeInterceptorRule.class,
     XyzApplicationArgumentResolver.class,
-    AnalyticsConfiguration.class
+    AnalyticsConfiguration.class,
+    LicenceArgumentResolver.class
 })
 @EnableConfigurationProperties({
     SamlProperties.class,
@@ -97,6 +100,9 @@ public abstract class AbstractControllerTest {
 
   @MockitoBean
   protected XyzApplicationService xyzApplicationService;
+
+  @MockitoBean
+  protected LicenceService licenceService;
 
   @Autowired
   protected TeamManagementHandlerInterceptor teamManagementHandlerInterceptor;

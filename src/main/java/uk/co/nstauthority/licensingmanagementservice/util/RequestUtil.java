@@ -19,4 +19,11 @@ public class RequestUtil {
         .map(map -> map.get(pathVariableName))
         .map(UUID::fromString);
   }
+
+  public static Optional<Integer> getIntegerId(HttpServletRequest request, String pathVariableName) {
+    return Optional.ofNullable(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE))
+        .map(o -> (Map<String, String>) o)
+        .map(map -> map.get(pathVariableName))
+        .map(Integer::parseInt);
+  }
 }

@@ -29,13 +29,11 @@ class LicenceSearchServiceTest {
   void getSearchResultItems() {
     var licence = new Licence();
     licence.setType(LicenceType.SEAWARD_PRODUCTION);
-    licence.setLicenceNumber("1");
-    licence.setPrefix("P");
+    licence.setLicenceReference("P1");
 
     var licence2 = new Licence();
     licence2.setType(LicenceType.CARBON_STORAGE);
-    licence2.setLicenceNumber("2");
-    licence2.setPrefix("CS");
+    licence2.setLicenceReference("CS2");
 
     when(licenceService.getAllLicences()).thenReturn(List.of(licence, licence2));
 

@@ -53,8 +53,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
   void renderLicenceOverview() throws Exception {
     var licence = new Licence();
     licence.setType(LicenceType.CARBON_STORAGE);
-    licence.setLicenceNumber("1");
-    licence.setPrefix("CS");
+    licence.setLicenceReference("CS1");
 
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
 

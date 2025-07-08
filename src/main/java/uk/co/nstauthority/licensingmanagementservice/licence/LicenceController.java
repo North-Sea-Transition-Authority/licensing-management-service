@@ -82,9 +82,10 @@ public class LicenceController {
   }
 
   @GetMapping("/{licenceId}/manage-licensees")
-  ModelAndView renderManageLicenseesPage(@PathVariable Integer licenceId) {
-    var licence = licenceService.findLicenceByIdOrThrow(licenceId);
-
+  ModelAndView renderManageLicenseesPage(
+      @PathVariable Integer licenceId,
+      Licence licence
+  ) {
     if (!licence.getType().getManagedByLms()) {
       throw new ResponseStatusException(
           HttpStatusCode.valueOf(403),
@@ -102,11 +103,10 @@ public class LicenceController {
   @PostMapping("/{licenceId}/manage-licensees")
   ModelAndView saveManageLicenseesPage(
       @PathVariable Integer licenceId,
+      Licence licence,
       @ModelAttribute("form") ManageLicenseesForm form,
       BindingResult bindingResult
   ) {
-    var licence = licenceService.findLicenceByIdOrThrow(licenceId);
-
     if (!licence.getType().getManagedByLms()) {
       throw new ResponseStatusException(
           HttpStatusCode.valueOf(403),

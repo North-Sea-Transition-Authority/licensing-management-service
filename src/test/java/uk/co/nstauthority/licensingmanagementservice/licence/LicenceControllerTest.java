@@ -108,6 +108,7 @@ class LicenceControllerTest extends AbstractControllerTest {
   void renderManageLicenseesPage() throws Exception {
     var licence = new Licence();
     licence.setType(LicenceType.CARBON_STORAGE);
+    licence.setLicenceReference("CS1");
 
     var selectedOrgUnits = List.of(new OrganisationUnitJson(1, "org name"));
 
@@ -115,7 +116,7 @@ class LicenceControllerTest extends AbstractControllerTest {
     when(licenceFormService.getSavedOrganisationUnits(licence)).thenReturn(selectedOrgUnits);
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceController.class).renderManageLicenseesPage(1)))
+            get(ReverseRouter.route(on(LicenceController.class).renderManageLicenseesPage(1, null)))
                 .with(user(organisationUser))
         )
         .andExpect(status().isOk())
@@ -133,7 +134,7 @@ class LicenceControllerTest extends AbstractControllerTest {
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceController.class).renderManageLicenseesPage(1)))
+            get(ReverseRouter.route(on(LicenceController.class).renderManageLicenseesPage(1, null)))
                 .with(user(organisationUser))
         )
         .andExpect(status().isForbidden());
@@ -148,7 +149,7 @@ class LicenceControllerTest extends AbstractControllerTest {
     when(manageLicenseesValidator.isValid(any(), any())).thenReturn(true);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceController.class).saveManageLicenseesPage(1, null, null)))
+            post(ReverseRouter.route(on(LicenceController.class).saveManageLicenseesPage(1, null, null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
@@ -161,13 +162,14 @@ class LicenceControllerTest extends AbstractControllerTest {
   void saveManageLicenseesPage_formIsNotValid() throws Exception {
     var licence = new Licence();
     licence.setType(LicenceType.CARBON_STORAGE);
+    licence.setLicenceReference("CS1");
 
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
     when(manageLicenseesValidator.isValid(any(), any())).thenReturn(false);
     when(licenceFormService.getPreselectedOrganisationUnits(List.of())).thenReturn(List.of());
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceController.class).saveManageLicenseesPage(1, null, null)))
+            post(ReverseRouter.route(on(LicenceController.class).saveManageLicenseesPage(1, null, null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
@@ -188,7 +190,7 @@ class LicenceControllerTest extends AbstractControllerTest {
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceController.class).saveManageLicenseesPage(1, null, null)))
+            post(ReverseRouter.route(on(LicenceController.class).saveManageLicenseesPage(1, null, null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )

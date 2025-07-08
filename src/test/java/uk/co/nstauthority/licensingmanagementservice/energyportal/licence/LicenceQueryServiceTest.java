@@ -47,6 +47,7 @@ class LicenceQueryServiceTest {
     licence.setSubtype(LicenceSubtype.FRONTIER);
     licence.setPrefix("P");
     licence.setLicenceNumber("1");
+    licence.setLicenceReference("P1");
 
     var licence2 = new Licence();
     licence2.setId(2);
@@ -54,6 +55,7 @@ class LicenceQueryServiceTest {
     licence2.setSubtype(null);
     licence2.setPrefix("PEDL");
     licence2.setLicenceNumber("2");
+    licence2.setLicenceReference("PEDL2");
 
     when(licenceApi.searchLicences(
         any(LicenceSearchFilter.class),

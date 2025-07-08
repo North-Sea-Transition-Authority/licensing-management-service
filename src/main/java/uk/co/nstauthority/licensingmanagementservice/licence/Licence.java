@@ -23,6 +23,8 @@ public class Licence {
 
   private String licenceNumber;
 
+  private String licenceReference;
+
   public Licence() {
   }
 
@@ -67,6 +69,10 @@ public class Licence {
   }
 
   public String getLicenceReference() {
-    return prefix + licenceNumber;
+    return licenceReference;
+  }
+
+  public void setLicenceReference(String licenceReference) {
+    this.licenceReference = licenceReference;
   }
 }

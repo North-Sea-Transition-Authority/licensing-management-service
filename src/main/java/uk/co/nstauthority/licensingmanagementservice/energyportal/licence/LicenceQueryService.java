@@ -64,6 +64,7 @@ public class LicenceQueryService {
     licence.setSubtype(subType);
     licence.setLicenceNumber(portalLicence.getLicenceNo().toString());
     licence.setPrefix(portalLicence.getLicenceType());
+    licence.setLicenceReference(portalLicence.getLicenceRef());
 
     return licence;
   }

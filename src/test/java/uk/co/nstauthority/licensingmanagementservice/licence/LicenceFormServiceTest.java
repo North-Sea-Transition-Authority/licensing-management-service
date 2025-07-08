@@ -55,6 +55,7 @@ class LicenceFormServiceTest {
     licence.setType(LicenceType.CARBON_STORAGE);
     licence.setPrefix("CS");
     licence.setLicenceNumber("001");
+    licence.setLicenceReference("CS001");
 
     licenceFormService.saveNewLicenceFromForm(form);
 

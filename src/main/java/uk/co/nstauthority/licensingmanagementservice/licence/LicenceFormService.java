@@ -36,6 +36,7 @@ public class LicenceFormService {
     licence.setType(form.getLicenceType());
     licence.setPrefix(form.getLicenceType().getPrefix());
     licence.setLicenceNumber(form.getLicenceNumber());
+    licence.setLicenceReference(form.getLicenceType().getPrefix() + form.getLicenceNumber());
 
     var savedLicence = licenceRepository.save(licence);
     licenceResponsibleOrganisationService.saveLicenseesFromForm(savedLicence, form.getOrganisationUnitIds());

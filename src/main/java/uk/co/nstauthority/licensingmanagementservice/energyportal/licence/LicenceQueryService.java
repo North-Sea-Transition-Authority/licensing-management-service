@@ -21,7 +21,15 @@ import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 public class LicenceQueryService {
 
   public static final LicencesProjectionRoot LICENCE_PROJECTION_ROOT =
-      new LicencesProjectionRoot().id().licenceType().licenceSubType().licenceNo().licensees().organisationUnitId().root();
+      new LicencesProjectionRoot()
+          .id()
+          .licenceType()
+          .licenceSubType()
+          .licenceNo()
+          .licenceRef()
+          .licensees()
+          .organisationUnitId()
+          .root();
 
   private final LicenceApi licenceApi;
 

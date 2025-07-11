@@ -1,8 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -61,16 +60,17 @@ class LicenceScheduleSelectionControllerTest extends AbstractControllerTest {
 
   @SecurityTest
   void submitSelectLicenceForSchedule() throws Exception {
-    when(selectLicenceFormValidator.isValid(any(), any())).thenReturn(true);
+    var form = new SelectLicenceForm();
+    form.setLicenceId("1");
+    when(selectLicenceFormValidator.isValid(eq(form), any())).thenReturn(true);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleSelectionController.class).submitSelectLicenceForSchedule(null, null)))
+            post(ReverseRouter.route(on(LicenceScheduleSelectionController.class).submitSelectLicenceForSchedule(form, null)))
                 .with(user(organisationUser))
                 .with(csrf())
+                .flashAttr("form", form)
         )
         .andExpect(status().is3xxRedirection());
-
-    verify(licenceScheduleService).saveLicenceScheduleFromForm(any());
   }
 
   @SecurityTest
@@ -89,7 +89,5 @@ class LicenceScheduleSelectionControllerTest extends AbstractControllerTest {
             SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchLicencesByReference(null))))
         .andExpect(model().attribute("backUrl",
             ReverseRouter.route(on(StartLicenceScheduleJourneyController.class).renderStartLicenceScheduleJourney())));
-
-    verify(licenceScheduleService, never()).saveLicenceScheduleFromForm(any());
   }
 }

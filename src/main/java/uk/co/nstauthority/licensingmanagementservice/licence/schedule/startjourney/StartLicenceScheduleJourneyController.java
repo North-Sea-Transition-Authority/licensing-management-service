@@ -5,6 +5,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
@@ -27,7 +28,7 @@ public class StartLicenceScheduleJourneyController {
 
   @PostMapping("/create-or-update")
   ModelAndView submitSelectCreateOrUpdateSchedule(
-      SelectCreateUpdateScheduleForm form,
+      @ModelAttribute("form") SelectCreateUpdateScheduleForm form,
       BindingResult bindingResult
   ) {
     if (!selectCreateUpdateScheduleFormValidator.isValid(form, bindingResult)) {

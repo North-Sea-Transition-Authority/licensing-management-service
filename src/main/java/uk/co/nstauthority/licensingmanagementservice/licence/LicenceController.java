@@ -29,21 +29,18 @@ public class LicenceController {
 
   private final LicenceFormService licenceFormService;
   private final NewLicenceValidator newLicenceValidator;
-  private final LicenceService licenceService;
   private final ManageLicenseesValidator manageLicenseesValidator;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
 
   public LicenceController(
       LicenceFormService licenceFormService,
       NewLicenceValidator newLicenceValidator,
-      LicenceService licenceService,
       ManageLicenseesValidator manageLicenseesValidator,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService
   ) {
 
     this.licenceFormService = licenceFormService;
     this.newLicenceValidator = newLicenceValidator;
-    this.licenceService = licenceService;
     this.manageLicenseesValidator = manageLicenseesValidator;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
   }

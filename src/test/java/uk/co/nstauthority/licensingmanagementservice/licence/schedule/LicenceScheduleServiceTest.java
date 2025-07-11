@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,7 +12,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.SelectLicenceForm;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceScheduleServiceTest {
@@ -31,6 +29,15 @@ class LicenceScheduleServiceTest {
   private ArgumentCaptor<LicenceSchedule> licenceScheduleArgumentCaptor;
 
   @Test
+  void getLicenceScheduleByLicence() {
+    var licence = new Licence();
+
+    licenceScheduleService.getLicenceScheduleByLicence(licence);
+
+    verify(licenceScheduleRepository).findByLicence(licence);
+  }
+
+  @Test
   void doesLicenceScheduleExistForLicence() {
     var licence = new Licence();
 
@@ -40,15 +47,10 @@ class LicenceScheduleServiceTest {
   }
 
   @Test
-  void saveLicenceScheduleFromForm() {
-    var form = new SelectLicenceForm();
-    form.setLicenceId("1");
-
+  void createNewLicenceScheduleForLicence() {
     var licence = new Licence();
 
-    when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
-
-    licenceScheduleService.saveLicenceScheduleFromForm(form);
+    licenceScheduleService.createNewLicenceScheduleForLicence(licence);
 
     verify(licenceScheduleRepository).save(licenceScheduleArgumentCaptor.capture());
 

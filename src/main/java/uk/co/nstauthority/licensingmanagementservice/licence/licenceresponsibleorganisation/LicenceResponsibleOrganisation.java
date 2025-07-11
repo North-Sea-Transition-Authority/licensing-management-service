@@ -6,6 +6,8 @@ import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.util.Objects;
+import org.hibernate.annotations.Cascade;
+import org.hibernate.annotations.CascadeType;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 
@@ -15,8 +17,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 public class LicenceResponsibleOrganisation {
 
   @Id
+  @ManyToOne()
   @JoinColumn(name = "licence_id")
-  @ManyToOne
+  @Cascade(CascadeType.MERGE)
   private Licence licence;
 
   @Id

@@ -3,8 +3,10 @@ package uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsible
 import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 @Service
 public class LicenceResponsibleOrganisationService {
@@ -67,11 +69,29 @@ public class LicenceResponsibleOrganisationService {
       Licence licence,
       List<String> organisationUnitIds
   ) {
-    var responsibleOrganisations = organisationUnitIds.stream()
-        .map(id -> createManagedLicensee(licence, Integer.valueOf(id)))
+    // Manually split items to save/delete due to issues with saving and deleting composite keys in the same transaction
+    var responsibleOrganisationIdsFromForm = organisationUnitIds.stream()
+        .map(Integer::parseInt)
         .toList();
 
-    licenceResponsibleOrganisationRepository.saveAll(responsibleOrganisations);
+    var existingResponsibleOrganisationIdMap = getAllByLicence(licence).stream()
+        .collect(StreamUtil.toLinkedHashMap(LicenceResponsibleOrganisation::getResponsibleOrganisationId, Function.identity()));
+
+    var responsibleOrganisationsToDelete = existingResponsibleOrganisationIdMap.keySet().stream()
+        .filter(id -> !responsibleOrganisationIdsFromForm.contains(id))
+        .map(existingResponsibleOrganisationIdMap::get)
+        .toList();
+
+    var responsibleOrganisationsToSave = responsibleOrganisationIdsFromForm.stream()
+        .filter(id -> !existingResponsibleOrganisationIdMap.containsKey(id))
+        .map(id -> createManagedLicensee(licence, id))
+        .toList();
+
+    licenceResponsibleOrganisationRepository.deleteAll(responsibleOrganisationsToDelete);
+
+    licenceResponsibleOrganisationRepository.flush();
+
+    licenceResponsibleOrganisationRepository.saveAll(responsibleOrganisationsToSave);
   }
 
   private LicenceResponsibleOrganisation createManagedLicensee(Licence licence, Integer orgId) {

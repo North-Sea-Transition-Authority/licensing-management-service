@@ -116,4 +116,43 @@ class LicenceResponsibleOrganisationServiceTest {
         .ignoringCollectionOrder()
         .isEqualTo(expectedResult);
   }
+
+  @Test
+  void saveLicenseesFromForm_addAndDelete() {
+    var licence = new Licence();
+
+    var orgs = List.of("1", "3");
+
+    var responsibleOrganisation = new LicenceResponsibleOrganisation();
+    responsibleOrganisation.setResponsibleOrganisationId(1);
+    responsibleOrganisation.setLicence(licence);
+    responsibleOrganisation.setManagedByLms(true);
+
+    var responsibleOrganisation2 = new LicenceResponsibleOrganisation();
+    responsibleOrganisation2.setResponsibleOrganisationId(2);
+    responsibleOrganisation2.setLicence(licence);
+    responsibleOrganisation2.setManagedByLms(true);
+
+    var responsibleOrganisation3 = new LicenceResponsibleOrganisation();
+    responsibleOrganisation3.setResponsibleOrganisationId(3);
+    responsibleOrganisation3.setLicence(licence);
+    responsibleOrganisation3.setManagedByLms(true);
+
+    when(licenceResponsibleOrganisationRepository.findAllByLicence(licence)).thenReturn(List.of(responsibleOrganisation, responsibleOrganisation2));
+
+    var expectedDelete = List.of(responsibleOrganisation2);
+
+    var expectedSave = List.of(responsibleOrganisation3);
+
+    licenceResponsibleOrganisationService.saveLicenseesFromForm(licence, orgs);
+
+    verify(licenceResponsibleOrganisationRepository).deleteAll(expectedDelete);
+
+    verify(licenceResponsibleOrganisationRepository).saveAll(organisationCaptor.capture());
+
+    assertThat(organisationCaptor.getValue())
+        .usingRecursiveComparison()
+        .ignoringCollectionOrder()
+        .isEqualTo(expectedSave);
+  }
 }

@@ -24,14 +24,21 @@ public class LicenceService {
         .orElseThrow(() -> new LmsEntityNotFoundException("Could not find licence with id: %s".formatted(id)));
   }
 
+  public boolean licenceNumberExistsForType(
+      LicenceType licenceType,
+      String licenceNumber
+  ) {
+    return licenceRepository.existsByTypeAndLicenceNumber(licenceType, licenceNumber);
+  }
+
   @Transactional
   public Iterable<Licence> saveLicences(Collection<Licence> licences) {
     return licenceRepository.saveAll(licences);
   }
-
   // Generate the next licence id. If there are none, start at 10000 to leave a buffer for pears managed licence ids.
   // We are manually generating ids because @GeneratedValue prevents saving fixed ids which we need to do to when
   // pulling licence data from pears to preserve pears licence ids.
+
   public Integer getNextLicenceId() {
     var maxLicence = licenceRepository.findTopByOrderByIdDesc();
 

@@ -48,6 +48,13 @@ class LicenceServiceTest {
   }
 
   @Test
+  void licenceNumberExistsForType() {
+    licenceService.licenceNumberExistsForType(LicenceType.CARBON_STORAGE, "001");
+
+    verify(licenceRepository).existsByTypeAndLicenceNumber(LicenceType.CARBON_STORAGE, "001");
+  }
+
+  @Test
   void saveLicences() {
     var licences = List.of(new Licence());
 

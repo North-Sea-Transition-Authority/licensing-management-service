@@ -11,4 +11,6 @@ public interface LicenceRepository extends JpaRepository<Licence, Integer> {
   Optional<Licence> findTopByOrderByIdDesc();
 
   List<Licence> findAllByLicenceReferenceContainingIgnoreCase(String licenceReference);
+
+  boolean existsByTypeAndLicenceNumber(LicenceType type, String licenceNumber);
 }

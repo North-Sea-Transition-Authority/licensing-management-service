@@ -9,6 +9,12 @@ import org.springframework.validation.ValidationUtils;
 @Service
 public class NewLicenceValidator {
 
+  private final LicenceService licenceService;
+
+  public NewLicenceValidator(LicenceService licenceService) {
+    this.licenceService = licenceService;
+  }
+
   boolean isValid(NewLicenceForm form, Errors errors) {
     ValidationUtils.rejectIfEmptyOrWhitespace(
         errors,
@@ -27,6 +33,13 @@ public class NewLicenceValidator {
     if (StringUtils.isNotBlank(form.getLicenceNumber())
         && !form.getLicenceNumber().matches("^\\d.*")) {
       errors.rejectValue("licenceNumber", "licenceNumber.invalid", "The licence number must start with a digit");
+    }
+
+    if (form.getLicenceType() != null && StringUtils.isNotBlank(form.getLicenceNumber())
+        && licenceService.licenceNumberExistsForType(form.getLicenceType(), form.getLicenceNumber())) {
+
+      errors.rejectValue("licenceNumber", "licenceNumber.invalid",
+          "The licence number already exists for the selected licence type");
     }
 
     if (CollectionUtils.isEmpty(form.getOrganisationUnitIds())) {

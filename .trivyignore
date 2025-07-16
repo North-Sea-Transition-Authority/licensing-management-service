@@ -40,3 +40,6 @@ CVE-2025-49146
 
 # org.springframework:spring-web
 CVE-2025-41234
+
+# org.apache.commons:commons-lang3
+CVE-2025-48924

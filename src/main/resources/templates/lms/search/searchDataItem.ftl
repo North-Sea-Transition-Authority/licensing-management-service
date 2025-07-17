@@ -4,7 +4,7 @@
 <#macro resultListItem dataView>
   <#if dataView.tagText()?has_content>
     <#assign tagContent>
-      <@fdsResultList.resultListTag tagClass=dataView.tagClass() tagText=dataView.tagText()/>
+      <@fdsTag.tag tagClass=dataView.tagClass()>${dataView.tagText()}</@fdsTag.tag>
     </#assign>
   <#else>
     <#assign tagContent=""/>

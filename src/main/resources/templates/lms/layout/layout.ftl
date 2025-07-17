@@ -65,12 +65,8 @@
 
   <#assign serviceHeader>
     <@pageHeader.header
-      serviceName=serviceName
-      customerMnemonic=customerMnemonic
-      serviceHomeUrl=serviceHomeUrl
-      signedInUserName=(loggedInUser?has_content)?then(loggedInUser.displayName(), "")
+      signedInUserName=(loggedInUser?has_content)?then(loggedInUser.displayNameIncludingAnyProxyUser(), "")
       signOutUrl=springUrl("/logout")
-      pageSize=pageSize
       extendContainerWidth=extendContainerWidth
     />
   </#assign>
@@ -122,6 +118,8 @@
     errorItems=errorSummaryItems
     notificationBannerContent=notificationBannerContent
     topNavigation=showNavigationItems
+    topNavigationServiceUrl=serviceHomeUrl
+    topNavigationServiceName=serviceName
     caption=caption
   >
 

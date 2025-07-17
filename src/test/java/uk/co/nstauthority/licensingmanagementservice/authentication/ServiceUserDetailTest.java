@@ -35,6 +35,6 @@ class ServiceUserDetailTest {
         .withProxyWuaId(3L)
         .build();
 
-    assertThat(user.displayNameIncludingAnyProxyUser()).isEqualTo("proxyUsername/Forename Surname");
+    assertThat(user.displayNameIncludingAnyProxyUser()).isEqualTo("proxyUsername as Forename Surname");
   }
 }

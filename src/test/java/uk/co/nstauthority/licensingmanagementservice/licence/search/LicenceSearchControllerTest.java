@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
+import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @ContextConfiguration(classes = LicenceSearchController.class)
 class LicenceSearchControllerTest extends AbstractControllerTest {
@@ -55,7 +56,9 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/search/licenceSearch"))
         .andExpect(model().attribute("searchItems", List.of()))
-        .andExpect(model().attribute("clearFilterUrl", CLEARED_SEARCH_FILTERS_ROUTE));
+        .andExpect(model().attribute("clearFilterUrl", CLEARED_SEARCH_FILTERS_ROUTE))
+        .andExpect(model().attribute("licenceTypes",
+            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes())));
   }
 
   @SecurityTest
@@ -75,7 +78,9 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/search/licenceSearch"))
         .andExpect(model().attribute("searchItems", List.of()))
-        .andExpect(model().attribute("clearFilterUrl", CLEARED_SEARCH_FILTERS_ROUTE));
+        .andExpect(model().attribute("clearFilterUrl", CLEARED_SEARCH_FILTERS_ROUTE))
+        .andExpect(model().attribute("licenceTypes",
+            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes())));
 
     verify(licenceSearchService).getSearchResultItems(form);
   }

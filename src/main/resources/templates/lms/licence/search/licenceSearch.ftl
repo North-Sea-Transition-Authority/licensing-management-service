@@ -15,6 +15,10 @@ extendContainerWidth=true
     hasSearchBeenInvoked=searchItems?has_content
     clearFilterUrl=clearFilterUrl
     >
+        <@dataItemFilter.licenceTypeFilter
+        form=form
+        licenceTypes=licenceTypes
+        />
         <@dataItemFilter.referenceFilter
         form=form
         />

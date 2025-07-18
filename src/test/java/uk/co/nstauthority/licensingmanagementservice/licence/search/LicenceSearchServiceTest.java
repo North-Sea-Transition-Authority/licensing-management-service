@@ -65,6 +65,30 @@ class LicenceSearchServiceTest {
         ));
   }
 
+  @Test
+  void getSearchResultItems_FilterByLicenceType_ReturnsFilteredResults() {
+    var licence1 = buildLicence(LicenceType.SEAWARD_PRODUCTION, "P1");
+    var licence2 = buildLicence(LicenceType.CARBON_STORAGE, "CS2");
+    var licence3 = buildLicence(LicenceType.CARBON_STORAGE, "CS3");
+    var licence4 = buildLicence(LicenceType.LANDWARD_PRODUCTION, "P2");
+
+    when(licenceService.getAllLicences()).thenReturn(List.of(licence1, licence2, licence3, licence4));
+
+    var filterForm = new LicenceSearchFilterForm();
+    filterForm.setLicenceTypes(List.of(LicenceType.CARBON_STORAGE.name(), LicenceType.LANDWARD_PRODUCTION.name()));
+
+    var result = licenceSearchService.getSearchResultItems(filterForm);
+
+    assertThat(result)
+        .usingRecursiveComparison()
+        .ignoringCollectionOrder()
+        .isEqualTo(List.of(
+            buildSearchResultItem(licence2),
+            buildSearchResultItem(licence3),
+            buildSearchResultItem(licence4)
+        ));
+  }
+
   private Licence buildLicence(LicenceType licenceType, String ref) {
     var licence = new Licence();
     licence.setType(licenceType);

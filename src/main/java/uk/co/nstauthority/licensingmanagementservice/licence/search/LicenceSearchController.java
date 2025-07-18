@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @Controller
 @RequestMapping("licences/search")
@@ -28,6 +30,11 @@ public class LicenceSearchController {
   @GetMapping
   public ModelAndView renderSearchPage(@ModelAttribute("licenceSearchSession") LicenceSearchSession searchSession) {
     var form = searchSession.getSearchFilterForm();
+
+    if (!searchSession.hasSearchBeenInvoked()) {
+      form.setLicenceTypes(LicenceType.getDisplayableLicenceTypesNames());
+    }
+
     return getLicenceSearchModelAndView(form);
   }
 
@@ -66,6 +73,7 @@ public class LicenceSearchController {
     return new ModelAndView("lms/licence/search/licenceSearch")
         .addObject("form", form)
         .addObject("clearFilterUrl", ReverseRouter.route(on(LicenceSearchController.class).clearSearchFilters(null, null)))
+        .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
         .addObject("searchItems", licenceSearchService.getSearchResultItems(form));
   }
 }

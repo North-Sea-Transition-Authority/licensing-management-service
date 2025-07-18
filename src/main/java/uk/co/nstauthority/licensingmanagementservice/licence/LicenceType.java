@@ -71,11 +71,24 @@ public enum LicenceType implements Displayable {
       case "XL" -> LicenceType.XL;
       default -> throw new RuntimeException("Invalid licence type: " + prefix);
     };
+
   }
 
   public static List<LicenceType> getLicenceTypesManagedByLms() {
     return Arrays.stream(values())
         .filter(LicenceType::getManagedByLms)
+        .toList();
+  }
+
+  public static List<LicenceType> getDisplayableTypes() {
+    return Arrays.stream(values())
+        .filter(lt -> !lt.getDisplayName().isEmpty())
+        .toList();
+  }
+
+  public static List<String> getDisplayableLicenceTypesNames() {
+    return getDisplayableTypes().stream()
+        .map(Enum::name)
         .toList();
   }
 }

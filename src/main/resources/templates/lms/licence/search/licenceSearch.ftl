@@ -13,7 +13,7 @@ extendContainerWidth=true
     <@search.standardSearch
     searchResults=searchItems
     hasSearchBeenInvoked=searchItems?has_content
-    clearFilterUrl="#"
+    clearFilterUrl=clearFilterUrl
     >
         <@dataItemFilter.referenceFilter
         form=form

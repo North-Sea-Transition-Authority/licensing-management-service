@@ -9,6 +9,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
+import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
 
 @Service
 public class LicenceSearchService {
@@ -19,8 +20,9 @@ public class LicenceSearchService {
     this.licenceService = licenceService;
   }
 
-  public List<SearchResultItem> getSearchResultItems() {
+  public List<SearchResultItem> getSearchResultItems(LicenceSearchFilterForm filterForm) {
     return licenceService.getAllLicences().stream()
+        .filter(licence -> FilterUtil.filterTextInput(licence.getLicenceReference(), filterForm.getReference()))
         .map(this::toSearchResultItem)
         .sorted(Comparator.comparing(SearchResultItem::linkHeadingText))
         .toList();

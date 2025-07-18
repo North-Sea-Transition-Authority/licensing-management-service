@@ -13,7 +13,7 @@ public enum TopNavigationItem {
       ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))
   ),
   LICENCE_SEARCH("Licence Search",
-      ReverseRouter.route(on(LicenceSearchController.class).renderLicenceSearchPage())
+      ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null))
   ),
   TEAMS("Teams",
       ReverseRouter.route(on(TeamManagementController.class).renderTeamTypeList(null))

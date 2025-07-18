@@ -26,34 +26,57 @@ class LicenceSearchServiceTest {
   private LicenceSearchService licenceSearchService;
 
   @Test
-  void getSearchResultItems() {
-    var licence = new Licence();
-    licence.setType(LicenceType.SEAWARD_PRODUCTION);
-    licence.setLicenceReference("P1");
-
-    var licence2 = new Licence();
-    licence2.setType(LicenceType.CARBON_STORAGE);
-    licence2.setLicenceReference("CS2");
+  void getSearchResultItems_NoFilters_ReturnsAllResults() {
+    var licence = buildLicence(LicenceType.SEAWARD_PRODUCTION, "P1");
+    var licence2 = buildLicence(LicenceType.CARBON_STORAGE, "CS2");
 
     when(licenceService.getAllLicences()).thenReturn(List.of(licence, licence2));
 
-    var searchResultItem = SearchResultItem.newBuilder()
-        .withLinkHeadingUrl(ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licence.getId(), null)))
-        .withLinkHeadingText(licence.getLicenceReference())
-        .withCaptionText(licence.getType().getDisplayName())
-        .build();
-
-    var searchResultItem2 = SearchResultItem.newBuilder()
-        .withLinkHeadingUrl(ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licence2.getId(), null)))
-        .withLinkHeadingText(licence2.getLicenceReference())
-        .withCaptionText(licence2.getType().getDisplayName())
-        .build();
-
-    var result = licenceSearchService.getSearchResultItems();
+    var result = licenceSearchService.getSearchResultItems(new LicenceSearchFilterForm());
 
     assertThat(result)
         .usingRecursiveComparison()
         .ignoringCollectionOrder()
-        .isEqualTo(List.of(searchResultItem, searchResultItem2));
+        .isEqualTo(List.of(
+            buildSearchResultItem(licence),
+            buildSearchResultItem(licence2)
+        ));
+  }
+
+  @Test
+  void getSearchResultItems_FilterByReference_ReturnsFilteredResults() {
+    var licence = buildLicence(LicenceType.SEAWARD_PRODUCTION, "P1");
+    var licence2 = buildLicence(LicenceType.CARBON_STORAGE, "CS2");
+    var licence3 = buildLicence(LicenceType.CARBON_STORAGE, "CS3");
+
+    when(licenceService.getAllLicences()).thenReturn(List.of(licence, licence2, licence3));
+
+    var filterForm = new LicenceSearchFilterForm();
+    filterForm.setReference("s");
+
+    var result = licenceSearchService.getSearchResultItems(filterForm);
+
+    assertThat(result)
+        .usingRecursiveComparison()
+        .ignoringCollectionOrder()
+        .isEqualTo(List.of(
+            buildSearchResultItem(licence2),
+            buildSearchResultItem(licence3)
+        ));
+  }
+
+  private Licence buildLicence(LicenceType licenceType, String ref) {
+    var licence = new Licence();
+    licence.setType(licenceType);
+    licence.setLicenceReference(ref);
+    return licence;
+  }
+
+  private SearchResultItem buildSearchResultItem(Licence licence) {
+    return SearchResultItem.newBuilder()
+        .withLinkHeadingUrl(ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licence.getId(), null)))
+        .withLinkHeadingText(licence.getLicenceReference())
+        .withCaptionText(licence.getType().getDisplayName())
+        .build();
   }
 }

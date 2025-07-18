@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation;
 
 import jakarta.transaction.Transactional;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -14,13 +15,16 @@ public class LicenceResponsibleOrganisationService {
   private final LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository;
 
   public LicenceResponsibleOrganisationService(
-      LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository
-  ) {
+      LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository) {
     this.licenceResponsibleOrganisationRepository = licenceResponsibleOrganisationRepository;
   }
 
   public List<LicenceResponsibleOrganisation> getAllByLicence(Licence licence) {
     return licenceResponsibleOrganisationRepository.findAllByLicence(licence);
+  }
+
+  public List<LicenceResponsibleOrganisation> getAllByLicenceIn(Collection<Licence> licences) {
+    return licenceResponsibleOrganisationRepository.findAllByLicenceIn(licences);
   }
 
   @Transactional

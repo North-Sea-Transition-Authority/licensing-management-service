@@ -11,3 +11,16 @@
         <@fdsSearch.searchCheckboxes path="form.licenceTypes" checkboxes=licenceTypes/>
     </@fdsSearch.searchFilterItem>
 </#macro>
+
+<#macro licenseeOrgUnitFilter form licenseeOrgUnitUrl preSelectedLicenseeOrgUnit>
+    <@fdsSearch.searchFilterItem itemName="Licensee" expanded=form.licenceTypes?has_content>
+        <@fdsSearchSelector.searchSelectorRest
+        path="form.licenseeOrgUnitId"
+        restUrl=springUrl(licenseeOrgUnitUrl)
+        preselectedItems=preSelectedLicenseeOrgUnit
+        inputClass="govuk-!-width-three-quarters govuk-!-margin-bottom-0"
+        selectorMinInputLength=3
+        labelText=""
+        />
+    </@fdsSearch.searchFilterItem>
+</#macro>

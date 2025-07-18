@@ -22,5 +22,10 @@ extendContainerWidth=true
         <@dataItemFilter.referenceFilter
         form=form
         />
+        <@dataItemFilter.licenseeOrgUnitFilter
+        form=form
+        licenseeOrgUnitUrl=licenseeOrgUnitUrl
+        preSelectedLicenseeOrgUnit=preSelectedLicenseeOrgUnit
+        />
     </@search.standardSearch>
 </@defaultPage>

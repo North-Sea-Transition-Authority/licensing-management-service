@@ -11,6 +11,13 @@ import java.util.List;
 public record SummaryDataView(
     List<SummaryKeyValue> keyValues
 ) {
+
+  public static SummaryDataView newStringKeyValue(String key, String value) {
+    return SummaryDataView.newBuilder()
+        .addStringValue(key, value)
+        .build();
+  }
+
   public static Builder newBuilder() {
     return new Builder();
   }

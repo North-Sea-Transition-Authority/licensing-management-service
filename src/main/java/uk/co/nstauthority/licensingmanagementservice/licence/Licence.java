@@ -4,6 +4,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import java.util.Objects;
 import org.hibernate.envers.Audited;
 
 @Audited
@@ -74,5 +75,22 @@ public class Licence {
 
   public void setLicenceReference(String licenceReference) {
     this.licenceReference = licenceReference;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    Licence licence = (Licence) o;
+    return Objects.equals(id,
+        licence.id) && type == licence.type && subtype == licence.subtype && Objects.equals(prefix,
+        licence.prefix) && Objects.equals(licenceNumber, licence.licenceNumber) && Objects.equals(
+        licenceReference, licence.licenceReference);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, type, subtype, prefix, licenceNumber, licenceReference);
   }
 }

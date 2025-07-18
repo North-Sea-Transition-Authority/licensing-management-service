@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,4 +13,6 @@ public interface LicenceResponsibleOrganisationRepository extends JpaRepository<
   List<LicenceResponsibleOrganisation> findAllByManagedByLmsIsFalse();
 
   List<LicenceResponsibleOrganisation> findAllByLicence(Licence licence);
+
+  List<LicenceResponsibleOrganisation> findAllByLicenceIn(Collection<Licence> licences);
 }

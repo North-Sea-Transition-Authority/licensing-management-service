@@ -11,7 +11,7 @@ import org.springframework.test.context.ActiveProfiles;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"development", "integration-test", "use-epas-development"})
+@ActiveProfiles({"development", "integration-test"})
 @Import(EnergyPortalMessageQueueTestConfiguration.class)
 public @interface IntegrationTest {
 }

@@ -12,14 +12,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import uk.co.fivium.digital.energyportalteamaccesslibrary.team.EnergyPortalAccessService;
-import uk.co.fivium.digital.energyportalteamaccesslibrary.team.InstigatingWebUserAccountId;
-import uk.co.fivium.digital.energyportalteamaccesslibrary.team.ResourceType;
-import uk.co.fivium.digital.energyportalteamaccesslibrary.team.TargetWebUserAccountId;
 import uk.co.fivium.energyportal.accounts.starter.EnergyPortalServiceAccessService;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
@@ -42,7 +37,6 @@ public class TeamManagementService {
   static final String PORTAL_USERS_LOOKUP_PURPOSE = "Fetch users in team";
   static final String PORTAL_VALIDATE_USERS_LOOKUP_PURPOSE = "Validate user account";
   static final String TEAM_TYPE_UNEXPECTED_STATIC_ERROR = "TeamType %s is static, expected scoped";
-  static final String RESOURCE_TEAM_TYPE = "XYZ_ACCESS_TEAM";
 
   private final TeamRepository teamRepository;
   private final TeamRoleRepository teamRoleRepository;
@@ -50,25 +44,18 @@ public class TeamManagementService {
   private final EnergyPortalUserService energyPortalUserService;
   private final EnergyPortalServiceAccessService energyPortalServiceAccessService;
 
-  private final EnergyPortalAccessService energyPortalAccessService;
-  private final boolean useEpas;
-
   TeamManagementService(
       TeamRepository teamRepository,
       TeamRoleRepository teamRoleRepository,
       TeamQueryService teamQueryService,
       EnergyPortalUserService energyPortalUserService,
-      EnergyPortalServiceAccessService energyPortalServiceAccessService,
-      EnergyPortalAccessService energyPortalAccessService,
-      Environment environment
+      EnergyPortalServiceAccessService energyPortalServiceAccessService
   ) {
     this.teamRepository = teamRepository;
     this.teamRoleRepository = teamRoleRepository;
     this.teamQueryService = teamQueryService;
     this.energyPortalUserService = energyPortalUserService;
     this.energyPortalServiceAccessService = energyPortalServiceAccessService;
-    this.energyPortalAccessService = energyPortalAccessService;
-    this.useEpas = environment.matchesProfiles("use-epas");
   }
 
   public Team createScopedTeam(String name, TeamType teamType, TeamScopeReference scopeRef) {
@@ -245,15 +232,6 @@ public class TeamManagementService {
       return;
     }
 
-    if (!useEpas) {
-      energyPortalAccessService.addUserToAccessTeam(
-          new ResourceType(RESOURCE_TEAM_TYPE),
-          new TargetWebUserAccountId(new WebUserAccountId(user.webUserAccountId()).id()),
-          new InstigatingWebUserAccountId(instigatingUser.wuaId())
-      );
-      return;
-    }
-
     energyPortalServiceAccessService.addUser(user.webUserAccountId());
   }
 
@@ -267,15 +245,6 @@ public class TeamManagementService {
 
     var isUserRemovedFromAllTeams = teamRoleRepository.findAllByWuaId(wuaId).isEmpty();
     if (!isUserRemovedFromAllTeams) {
-      return;
-    }
-
-    if (!useEpas) {
-      energyPortalAccessService.removeUserFromAccessTeam(
-          new ResourceType(RESOURCE_TEAM_TYPE),
-          new TargetWebUserAccountId(wuaId),
-          new InstigatingWebUserAccountId(instigatingUser.wuaId())
-      );
       return;
     }
 

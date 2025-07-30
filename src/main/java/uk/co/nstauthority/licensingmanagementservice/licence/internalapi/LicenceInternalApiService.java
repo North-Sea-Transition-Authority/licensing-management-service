@@ -4,6 +4,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 
 @Service
 public class LicenceInternalApiService {
@@ -20,11 +21,16 @@ public class LicenceInternalApiService {
         .toList();
   }
 
+  List<LicenceJson> searchLicencesByReferenceAndType(String searchTerm, LicenceType type) {
+    return licenceRepository.findAllByLicenceReferenceContainingIgnoreCaseAndType(searchTerm, type).stream()
+        .map(this::toLicenceJson)
+        .toList();
+  }
+
   private LicenceJson toLicenceJson(Licence licence) {
     return new LicenceJson(
         licence.getId(),
         licence.getLicenceReference()
     );
   }
-
 }

@@ -158,4 +158,10 @@ class LicenceTypeFeatureServiceTest {
     var events = underTest.getSupportedEvents(LicenceType.A);
     assertThat(events).isEmpty();
   }
+
+  @Test
+  void getLicenceTypesThatCanCreateEventRequests() {
+    var events = underTest.getLicenceTypesThatCanCreateScheduleWorkProgrammeApplications();
+    assertThat(events).contains(LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION, LicenceType.CARBON_STORAGE);
+  }
 }

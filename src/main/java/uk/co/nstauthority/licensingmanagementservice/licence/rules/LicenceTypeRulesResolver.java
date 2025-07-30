@@ -1,12 +1,15 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.rules;
 
 import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import java.util.Set;
+import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.EventType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 
+@Service
 public interface LicenceTypeRulesResolver {
   boolean hasTerms(@NotNull LicenceType licenceType);
 
@@ -31,4 +34,6 @@ public interface LicenceTypeRulesResolver {
   boolean isWorkProgrammesPhaseTied(LicenceType licenceType);
 
   Set<EventType> getSupportedEvents(@NotNull LicenceType licenceType);
+
+  List<LicenceType> getLicenceTypesThatCanCreateScheduleWorkProgrammeApplications();
 }

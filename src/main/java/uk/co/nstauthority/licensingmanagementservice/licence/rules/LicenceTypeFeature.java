@@ -49,6 +49,10 @@ public enum LicenceTypeFeature {
   ), EnumSet.of(
       TermType.APPRAISAL
   )),
+  CAN_CREATE_SCHEDULE_WORK_PROGRAMME_APPLICATIONS(EnumSet.of(
+      LicenceTypeGroup.PRODUCTION,
+      LicenceTypeGroup.CARBON_STORAGE
+  )),
   ;
 
   private final Set<LicenceType> supportingLicenceTypes;

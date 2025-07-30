@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesc
 import jakarta.transaction.Transactional;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
@@ -23,6 +24,11 @@ public class LicenceScheduleDetailService {
 
   public Optional<LicenceScheduleDetail> getByLicenceSchedule(LicenceSchedule licenceSchedule) {
     return licenceScheduleDetailRepository.findByLicenceSchedule(licenceSchedule);
+  }
+
+  public LicenceScheduleDetail getByScheduleDetailByLicenceOrThrow(Licence licence) {
+    return licenceScheduleDetailRepository.findByLicenceSchedule_Licence(licence)
+        .orElseThrow(() -> new LmsEntityNotFoundException("licence schedule detail", licence.getId()));
   }
 
   @Transactional

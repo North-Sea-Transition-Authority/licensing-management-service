@@ -12,6 +12,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
@@ -37,6 +38,26 @@ class LicenceInternalApiRestControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceInternalApiRestController.class).searchLicencesByReference(null)))
+                .with(user(user))
+                .param("term", searchTerm)
+        )
+        .andExpect(status().isOk());
+  }
+
+  @SecurityTest
+  void searchLicencesByReferenceAndType() throws Exception {
+    var user = ServiceUserDetailTestUtil.newBuilder().build();
+
+    var licenceType = LicenceType.CARBON_STORAGE;
+    var searchTerm = "searchTerm";
+
+    var response = List.of(new LicenceJson(1, "CS001"));
+
+    when(licenceInternalApiService.searchLicencesByReferenceAndType(searchTerm, licenceType))
+        .thenReturn(response);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceInternalApiRestController.class).searchLicencesByReferenceAndType(licenceType.getUrlSlug(), null)))
                 .with(user(user))
                 .param("term", searchTerm)
         )

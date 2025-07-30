@@ -1,11 +1,15 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.rules;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
+import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.EventType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 
+@Service
 public class LicenceTypeFeatureService implements LicenceTypeRulesResolver {
   @Override
   public boolean hasTerms(LicenceType licenceType) {
@@ -73,5 +77,12 @@ public class LicenceTypeFeatureService implements LicenceTypeRulesResolver {
   @Override
   public Set<EventType> getSupportedEvents(LicenceType licenceType) {
     return EventType.getEventsFor(licenceType);
+  }
+
+  @Override
+  public List<LicenceType> getLicenceTypesThatCanCreateScheduleWorkProgrammeApplications() {
+    return Arrays.stream(LicenceType.values())
+        .filter(LicenceTypeFeature.CAN_CREATE_SCHEDULE_WORK_PROGRAMME_APPLICATIONS::isEnabledFor)
+        .toList();
   }
 }

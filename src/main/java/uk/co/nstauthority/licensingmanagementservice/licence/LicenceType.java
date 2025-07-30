@@ -1,37 +1,41 @@
 package uk.co.nstauthority.licensingmanagementservice.licence;
 
+import jakarta.validation.constraints.NotNull;
 import java.util.Arrays;
 import java.util.List;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
 public enum LicenceType implements Displayable {
-  CARBON_STORAGE("Carbon storage", "CS", true),
-  GAS_STORAGE("Gas storage", "GS", true),
-  LANDWARD_EXPLORATION("Landward exploration", "LX", true),
-  LANDWARD_PRODUCTION("Landward production", "PEDL", false),
-  METHANE_DRAINAGE("Methane drainage", "MDL", true),
-  SEAWARD_EXPLORATION("Seaward exploration", "E", true),
-  SEAWARD_PRODUCTION("Seaward production", "P", false),
+  CARBON_STORAGE("Carbon storage", "CS", "carbon-storage", true),
+  GAS_STORAGE("Gas storage", "GS", "gas-storage", true),
+  LANDWARD_EXPLORATION("Landward exploration", "LX", "landward-exploration", true),
+  LANDWARD_PRODUCTION("Landward production", "PEDL", "landward-production", false),
+  METHANE_DRAINAGE("Methane drainage", "MDL", "methane-drainage", true),
+  SEAWARD_EXPLORATION("Seaward exploration", "E", "seaward-exploration", true),
+  SEAWARD_PRODUCTION("Seaward production", "P", "seaward-production", false),
   // Unknown mappings
-  A("", "A", false),
-  AL("", "AL", false),
-  B("", "B", false),
-  CE("", "CE", false),
-  DL("", "DL", false),
-  NA("", "NA", false),
-  XL("", "XL", false);
+  A("", "A", "a", false),
+  AL("", "AL", "al", false),
+  B("", "B", "b", false),
+  CE("", "CE", "ce", false),
+  DL("", "DL", "dl", false),
+  NA("", "NA", "na", false),
+  XL("", "XL", "xl", false);
 
   private final String displayName;
   private final String prefix;
+  private final String urlSlug;
   private final Boolean managedByLms;
 
   LicenceType(
       String displayName,
       String prefix,
+      String urlSlug,
       Boolean managedByLms
   ) {
     this.displayName = displayName;
     this.prefix = prefix;
+    this.urlSlug = urlSlug;
     this.managedByLms = managedByLms;
   }
 
@@ -49,8 +53,19 @@ public enum LicenceType implements Displayable {
     return prefix;
   }
 
+  public String getUrlSlug() {
+    return urlSlug;
+  }
+
   public Boolean getManagedByLms() {
     return managedByLms;
+  }
+
+  public static LicenceType getFromSlugOrThrow(@NotNull String slug) {
+    return Arrays.stream(values())
+        .filter(lt -> lt.getUrlSlug().equals(slug))
+        .findFirst()
+        .orElseThrow(() -> new IllegalArgumentException("Invalid licence type slug: " + slug));
   }
 
   public static LicenceType getFromPrefix(String prefix) {

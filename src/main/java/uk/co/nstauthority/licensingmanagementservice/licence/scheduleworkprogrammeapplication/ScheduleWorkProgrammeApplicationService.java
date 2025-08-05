@@ -1,8 +1,10 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication;
 
 import jakarta.transaction.Transactional;
+import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 
@@ -59,4 +61,8 @@ public class ScheduleWorkProgrammeApplicationService {
     return scheduleWorkProgrammeApplicationDetail;
   }
 
+  public ScheduleWorkProgrammeApplicationDetail getDetailByIdOrThrow(UUID detailId) {
+    return scheduleWorkProgrammeApplicationDetailRepository.findById(detailId)
+        .orElseThrow(() -> new LmsEntityNotFoundException("schedule work programme application detail", detailId));
+  }
 }

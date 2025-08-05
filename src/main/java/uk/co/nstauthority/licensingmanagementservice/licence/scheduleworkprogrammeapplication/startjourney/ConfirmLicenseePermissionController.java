@@ -10,11 +10,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @Controller
 @RequestMapping("licences/schedule-work-programme-applications/{licenceTypeSlug}/{licenceId}/confirm-licensee-permission")
@@ -23,45 +23,40 @@ public class ConfirmLicenseePermissionController {
 
   private final ConfirmLicenseePermissionFormValidator confirmLicenseePermissionFormValidator;
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
-  private final LicenceService licenceService;
 
   public ConfirmLicenseePermissionController(ConfirmLicenseePermissionFormValidator confirmLicenseePermissionFormValidator,
-                                             ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
-                                             LicenceService licenceService) {
+                                             ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService) {
     this.confirmLicenseePermissionFormValidator = confirmLicenseePermissionFormValidator;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
-    this.licenceService = licenceService;
   }
 
   @GetMapping
   ModelAndView renderConfirmLicenseePermission(@PathVariable String licenceTypeSlug,
                                                @PathVariable Integer licenceId) {
-    return gettLicenseePermissionConfirmationModelAndView(new ConfirmLicenseePermissionForm(), licenceTypeSlug);
+    return getLicenseePermissionConfirmationModelAndView(new ConfirmLicenseePermissionForm(), licenceTypeSlug);
   }
 
   @PostMapping
   ModelAndView submitLicenseePermissionConfirmation(
       @PathVariable String licenceTypeSlug,
       @PathVariable Integer licenceId,
+      Licence licence,
       @ModelAttribute("form") ConfirmLicenseePermissionForm form,
       BindingResult bindingResult
   ) {
-    var licence = licenceService.findLicenceByIdOrThrow(licenceId);
 
     if (!confirmLicenseePermissionFormValidator.isValid(form, bindingResult)) {
-      return gettLicenseePermissionConfirmationModelAndView(form, licenceTypeSlug);
+      return getLicenseePermissionConfirmationModelAndView(form, licenceTypeSlug);
     }
 
-    scheduleWorkProgrammeApplicationService
+    var applicationDetail = scheduleWorkProgrammeApplicationService
         .createNewScheduleWorkProgrammeApplicationForLicence(licence, form.getAllLicenseesPermissionConfirmed());
 
-    // TODO: LMS1-130 redirect to schedule extension or work programme amendment application task list
-    return ReverseRouter.redirect(on(WorkAreaController.class)
-
-        .getWorkArea(null, null));
+    return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+        .getTaskList(applicationDetail.getId(), null, null));
   }
 
-  private ModelAndView gettLicenseePermissionConfirmationModelAndView(
+  private ModelAndView getLicenseePermissionConfirmationModelAndView(
       ConfirmLicenseePermissionForm selectLicenceTypeForm,
       String licenceTypeSlug) {
     var licenceType = LicenceType.getFromSlugOrThrow(licenceTypeSlug);

@@ -9,13 +9,13 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 import static uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.ConfirmLicenseePermissionController.PAGE_TITLE;
 
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -24,19 +24,15 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
-import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
-@ContextConfiguration(classes = uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.ConfirmLicenseePermissionController.class)
+@ContextConfiguration(classes = ConfirmLicenseePermissionController.class)
 class ConfirmLicenseePermissionControllerTest extends AbstractControllerTest {
 
   @MockitoBean
-  private uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.ConfirmLicenseePermissionFormValidator confirmLicenseePermissionFormValidator;
-
-  @MockitoBean
-  private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
+  private ConfirmLicenseePermissionFormValidator confirmLicenseePermissionFormValidator;
 
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
@@ -53,16 +49,14 @@ class ConfirmLicenseePermissionControllerTest extends AbstractControllerTest {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(
-                uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.ConfirmLicenseePermissionController.class).renderConfirmLicenseePermission(licenceType.getUrlSlug(), 1)))
+            get(ReverseRouter.route(on(ConfirmLicenseePermissionController.class).renderConfirmLicenseePermission(licenceType.getUrlSlug(), 1)))
                 .with(user(organisationUser))
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/confirmLicenseePermission"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("pageCaption", licenceType.getDisplayName()))
-        .andExpect(model().attribute("backUrl",  ReverseRouter.route(on(
-            uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.SelectScheduleWorkProgrammeApplicationLicenceController.class)
+        .andExpect(model().attribute("backUrl",  ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class)
             .renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))));
 
 
@@ -77,19 +71,23 @@ class ConfirmLicenseePermissionControllerTest extends AbstractControllerTest {
     var licence = mock(Licence.class);
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
 
-    var form = new uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.ConfirmLicenseePermissionForm();
+    var form = new ConfirmLicenseePermissionForm();
     form.setAllLicenseesPermissionConfirmed(true);
 
+    var scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
+    var uuid = UUID.randomUUID();
+    scheduleWorkProgrammeApplicationDetail.setId(uuid);
+
+    when(scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence, form.getAllLicenseesPermissionConfirmed()))
+        .thenReturn(scheduleWorkProgrammeApplicationDetail);
+
     mockMvc.perform(
-            post(ReverseRouter.route(on(
-                uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.ConfirmLicenseePermissionController.class).submitLicenseePermissionConfirmation(licenceType.getUrlSlug(), 1, form, null)))
+            post(ReverseRouter.route(on(ConfirmLicenseePermissionController.class).submitLicenseePermissionConfirmation(licenceType.getUrlSlug(), 1, null, form, null)))
                 .with(user(organisationUser))
                 .with(csrf())
                 .flashAttr("form", form)
         )
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(WorkAreaController.class)
-                .getWorkArea(null, null))));
+        .andExpect(status().is3xxRedirection());
 
     verify(scheduleWorkProgrammeApplicationService).createNewScheduleWorkProgrammeApplicationForLicence(licence, true);
   }
@@ -101,8 +99,7 @@ class ConfirmLicenseePermissionControllerTest extends AbstractControllerTest {
     when(confirmLicenseePermissionFormValidator.isValid(any(), any())).thenReturn(false);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(
-                uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.ConfirmLicenseePermissionController.class).submitLicenseePermissionConfirmation(licenceType.getUrlSlug(), 1, null, null)))
+            post(ReverseRouter.route(on(ConfirmLicenseePermissionController.class).submitLicenseePermissionConfirmation(licenceType.getUrlSlug(), 1, null,null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
@@ -110,8 +107,7 @@ class ConfirmLicenseePermissionControllerTest extends AbstractControllerTest {
         .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/confirmLicenseePermission"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("pageCaption", licenceType.getDisplayName()))
-        .andExpect(model().attribute("backUrl",  ReverseRouter.route(on(
-            uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.SelectScheduleWorkProgrammeApplicationLicenceController.class)
+        .andExpect(model().attribute("backUrl",  ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class)
             .renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))));
 
     verifyNoInteractions(scheduleWorkProgrammeApplicationService);

@@ -37,6 +37,8 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgr
 import uk.co.nstauthority.licensingmanagementservice.hibernate.HibernateQueryCounter;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailArgumentResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ControllerAdviceService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.DefaultPageControllerAdvice;
 import uk.co.nstauthority.licensingmanagementservice.mvc.PostAuthenticationRequestMdcFilter;
@@ -73,7 +75,8 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     HasRolesInTeamTypeInterceptorRule.class,
     XyzApplicationArgumentResolver.class,
     AnalyticsConfiguration.class,
-    LicenceArgumentResolver.class
+    LicenceArgumentResolver.class,
+    ScheduleWorkProgrammeApplicationDetailArgumentResolver.class
 })
 @EnableConfigurationProperties({
     SamlProperties.class,
@@ -103,6 +106,9 @@ public abstract class AbstractControllerTest {
 
   @MockitoBean
   protected LicenceService licenceService;
+
+  @MockitoBean
+  protected ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
 
   @Autowired
   protected TeamManagementHandlerInterceptor teamManagementHandlerInterceptor;

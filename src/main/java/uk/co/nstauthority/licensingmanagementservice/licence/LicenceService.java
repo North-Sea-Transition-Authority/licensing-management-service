@@ -21,7 +21,7 @@ public class LicenceService {
 
   public Licence findLicenceByIdOrThrow(Integer id) {
     return licenceRepository.findById(id)
-        .orElseThrow(() -> new LmsEntityNotFoundException("Could not find licence with id: %s".formatted(id)));
+        .orElseThrow(() -> new LmsEntityNotFoundException("licence", id));
   }
 
   public boolean licenceNumberExistsForType(

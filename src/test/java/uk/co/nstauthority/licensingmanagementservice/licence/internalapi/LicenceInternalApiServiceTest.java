@@ -12,6 +12,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceInternalApiServiceTest {
@@ -19,11 +21,14 @@ class LicenceInternalApiServiceTest {
   @Mock
   private LicenceRepository licenceRepository;
 
+  @Mock
+  private LicenceScheduleService licenceScheduleService;
+
   @InjectMocks
   private LicenceInternalApiService licenceInternalApiService;
 
   @Test
-  void searchLicencesWithoutScheduleByReference() {
+  void searchLicencesByReference() {
     var searchTerm = "term";
 
     var licence = buildLicence(1, "CS001");
@@ -40,21 +45,24 @@ class LicenceInternalApiServiceTest {
   }
 
   @Test
-  void searchLicencesByReferenceAndType() {
+  void searchLicencesWithSchedulesByReferenceAndType() {
     var searchTerm = "term";
     var licenceType = LicenceType.GAS_STORAGE;
 
     var licenceReference = "GS001";
     int id = 3;
-    var licence3 = buildLicence(id, licenceReference);
+    var licence = buildLicence(id, licenceReference);
 
-    when(licenceRepository.findAllByLicenceReferenceContainingIgnoreCaseAndType(searchTerm, licenceType)).thenReturn(List.of(licence3));
+    var licenceSchedule = new LicenceSchedule();
+    licenceSchedule.setLicence(licence);
 
-    var licenceJson1 = new LicenceJson(id, licenceReference);
+    when(licenceScheduleService.searchAllSchedulesByLicenceRefAndType(searchTerm, licenceType)).thenReturn(List.of(licenceSchedule));
 
-    assertThat(licenceInternalApiService.searchLicencesByReferenceAndType(searchTerm, licenceType))
+    var licenceJson = new LicenceJson(id, licenceReference);
+
+    assertThat(licenceInternalApiService.searchLicencesWithSchedulesByReferenceAndType(searchTerm, licenceType))
         .usingRecursiveComparison()
-        .isEqualTo(List.of(licenceJson1));
+        .isEqualTo(List.of(licenceJson));
   }
 
   private Licence buildLicence(int id, String licenceReference) {

@@ -1,9 +1,10 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule;
 
 import jakarta.transaction.Transactional;
-import java.util.Optional;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 
 @Service
 public class LicenceScheduleService {
@@ -16,12 +17,15 @@ public class LicenceScheduleService {
     this.licenceScheduleRepository = licenceScheduleRepository;
   }
 
-  public Optional<LicenceSchedule> getLicenceScheduleByLicence(Licence licence) {
-    return licenceScheduleRepository.findByLicence(licence);
-  }
-
   public boolean doesLicenceScheduleExistForLicence(Licence licence) {
     return licenceScheduleRepository.existsByLicence(licence);
+  }
+
+  public List<LicenceSchedule> searchAllSchedulesByLicenceRefAndType(String searchTerm, LicenceType licenceType) {
+    return licenceScheduleRepository.findAllByLicence_LicenceReferenceContainingIgnoreCaseAndLicence_Type(
+        searchTerm,
+        licenceType
+    );
   }
 
   @Transactional

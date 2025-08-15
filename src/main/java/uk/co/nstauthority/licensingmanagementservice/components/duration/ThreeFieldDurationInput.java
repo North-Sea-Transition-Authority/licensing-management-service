@@ -48,6 +48,6 @@ public class ThreeFieldDurationInput {
   }
 
   public ThreeFieldDuration toThreeFieldDuration() {
-    return new ThreeFieldDuration(Integer.parseInt(days), Integer.parseInt(months), Integer.parseInt(years));
+    return new ThreeFieldDuration(Integer.parseInt(years), Integer.parseInt(months), Integer.parseInt(days));
   }
 }

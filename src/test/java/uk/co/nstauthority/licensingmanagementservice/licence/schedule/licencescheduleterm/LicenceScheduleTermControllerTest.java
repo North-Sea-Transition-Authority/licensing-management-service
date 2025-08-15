@@ -34,7 +34,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 class LicenceScheduleTermControllerTest extends AbstractControllerTest {
 
   @MockitoBean
-  private LicenceScheduleTermService licenceScheduleTermService;
+  private LicenceScheduleTermFormService licenceScheduleTermFormService;
 
   @MockitoBean
   private LicenceScheduleTermFormValidator licenceScheduleTermFormValidator;
@@ -86,7 +86,7 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(licenceScheduleTermService).saveTermFromForm(any(), eq(licenceScheduleDetail));
+    verify(licenceScheduleTermFormService).saveTermFromForm(any(), eq(licenceScheduleDetail));
   }
 
   @Test
@@ -102,7 +102,7 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
         .andExpect(view().name("lms/licence/schedule/createScheduleTerm"))
         .andExpect(model().attribute("radioOptions", TermType.getTermRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)));
 
-    verify(licenceScheduleTermService, never()).saveTermFromForm(any(), any());
+    verify(licenceScheduleTermFormService, never()).saveTermFromForm(any(), any());
   }
 
 }

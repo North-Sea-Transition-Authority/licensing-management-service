@@ -2,7 +2,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencest
 
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 
 @Service
@@ -17,6 +19,13 @@ public class LicenceStartDateService {
   ) {
     this.licenceStartDateRepository = licenceStartDateRepository;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
+  }
+
+  public LicenceStartDate getByLicenceScheduleDetailOrThrow(LicenceScheduleDetail licenceScheduleDetail) {
+    return licenceStartDateRepository.findByLicenceScheduleDetail(licenceScheduleDetail)
+        .orElseThrow(() -> new LmsEntityNotFoundException(
+            "Licence start date not found for licence schedule detail with id: " + licenceScheduleDetail.getId())
+        );
   }
 
   @Transactional

@@ -1,6 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm;
 
-import jakarta.transaction.Transactional;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -18,17 +17,7 @@ public class LicenceScheduleTermService {
     return licenceScheduleTermRepository.findByLicenceScheduleDetail(scheduleDetail);
   }
 
-  @Transactional
-  public void saveTermFromForm(
-      LicenceScheduleTermForm licenceScheduleTermForm,
-      LicenceScheduleDetail licenceScheduleDetail
-  ) {
-    var licenceScheduleTerm = new LicenceScheduleTerm();
-    licenceScheduleTerm.setLicenceScheduleDetail(licenceScheduleDetail);
-    licenceScheduleTerm.setTermType(licenceScheduleTermForm.getTermType());
-    licenceScheduleTerm.setTermDuration(licenceScheduleTermForm.getTermDuration().toThreeFieldDuration());
-    licenceScheduleTermRepository.save(licenceScheduleTerm);
-
-    //TODO: LMS1-145 call schedule date calculation here
+  public void saveTerms(List<LicenceScheduleTerm> licenceScheduleTerms) {
+    licenceScheduleTermRepository.saveAll(licenceScheduleTerms);
   }
 }

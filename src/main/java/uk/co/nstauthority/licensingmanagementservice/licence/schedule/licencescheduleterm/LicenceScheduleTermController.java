@@ -20,14 +20,14 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController
 @RequestMapping("/licence/schedule/{licenceScheduleDetailId}/term")
 public class LicenceScheduleTermController {
 
-  private LicenceScheduleTermService licenceScheduleTermService;
-  private LicenceScheduleTermFormValidator licenceScheduleTermFormValidator;
+  private final LicenceScheduleTermFormService licenceScheduleTermFormService;
+  private final LicenceScheduleTermFormValidator licenceScheduleTermFormValidator;
 
   public LicenceScheduleTermController(
-      LicenceScheduleTermService licenceScheduleTermService,
+      LicenceScheduleTermFormService licenceScheduleTermFormService,
       LicenceScheduleTermFormValidator licenceScheduleTermFormValidator
   ) {
-    this.licenceScheduleTermService = licenceScheduleTermService;
+    this.licenceScheduleTermFormService = licenceScheduleTermFormService;
     this.licenceScheduleTermFormValidator = licenceScheduleTermFormValidator;
   }
 
@@ -50,7 +50,7 @@ public class LicenceScheduleTermController {
       return getScheduleTermModelAndView(form, licenceScheduleDetail);
     }
 
-    licenceScheduleTermService.saveTermFromForm(form, licenceScheduleDetail);
+    licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail);
 
     // TODO: LMS1-135 redirect to licence schedule timeline
     return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));

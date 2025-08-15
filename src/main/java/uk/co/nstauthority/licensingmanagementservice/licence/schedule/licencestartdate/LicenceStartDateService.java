@@ -20,13 +20,13 @@ public class LicenceStartDateService {
   }
 
   @Transactional
-  public void saveNewLicenceStartDateFromForm(LicenceStartDateForm form, Licence licence) {
+  public LicenceStartDate saveNewLicenceStartDateFromForm(LicenceStartDateForm form, Licence licence) {
     var licenceScheduleDetail = licenceScheduleDetailService.createNewLicenceScheduleEntitiesForLicence(licence);
 
     var licenceStartDate = new LicenceStartDate();
     licenceStartDate.setLicenceScheduleDetail(licenceScheduleDetail);
     form.getLicenceStartDate().getAsLocalDate().ifPresent(licenceStartDate::setStartDate);
 
-    licenceStartDateRepository.save(licenceStartDate);
+    return licenceStartDateRepository.save(licenceStartDate);
   }
 }

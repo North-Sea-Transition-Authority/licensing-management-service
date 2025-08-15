@@ -1,19 +1,32 @@
 package uk.co.nstauthority.licensingmanagementservice.licence;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
+import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
-public enum TermType {
-  INITIAL(LicenceTypeGroup.PRODUCTION),
-  SECOND(LicenceTypeGroup.PRODUCTION),
-  THIRD(LicenceTypeGroup.PRODUCTION),
-  APPRAISAL(LicenceTypeGroup.CARBON_STORAGE);
+public enum TermType implements Displayable {
+  INITIAL(LicenceTypeGroup.PRODUCTION, "Initial Term", 1),
+  SECOND(LicenceTypeGroup.PRODUCTION, "Second Term", 2),
+  THIRD(LicenceTypeGroup.PRODUCTION, "Third Term", 3),
+  APPRAISAL(LicenceTypeGroup.CARBON_STORAGE, "Appraisal Term", 1),
+  OPERATIONAL(LicenceTypeGroup.CARBON_STORAGE, "Operational Term", 2),
+  POST_CLOSURE_PERIOD(LicenceTypeGroup.CARBON_STORAGE, "Post Closure Period", 3);
 
   private final Set<LicenceType> licenceTypes;
+  private final String displayName;
+  private final Integer displayOrder;
 
-  TermType(LicenceTypeGroup licenceTypeGroup) {
+  TermType(
+      LicenceTypeGroup licenceTypeGroup,
+      String displayName,
+      Integer displayOrder
+  ) {
     this.licenceTypes = licenceTypeGroup.getLicenceTypes();
+    this.displayName = displayName;
+    this.displayOrder = displayOrder;
   }
 
   public Set<LicenceType> getLicenceTypes() {
@@ -24,5 +37,19 @@ public enum TermType {
     return Stream.of(values())
         .filter(termType -> termType.getLicenceTypes().contains(licenceType))
         .collect(Collectors.toSet());
+  }
+
+  public static Map<String, String> getTermRadioOptionsFor(LicenceType licenceType) {
+    return DisplayableEnumOptionUtil.getDisplayableOptions(getTermsFor(licenceType));
+  }
+
+  @Override
+  public String getDisplayName() {
+    return displayName;
+  }
+
+  @Override
+  public int getDisplayOrder() {
+    return displayOrder;
   }
 }

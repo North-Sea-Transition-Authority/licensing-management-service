@@ -1,9 +1,12 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -11,6 +14,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
@@ -31,12 +35,23 @@ class LicenceScheduleDetailServiceTest {
   private ArgumentCaptor<LicenceScheduleDetail> licenceScheduleDetailArgumentCaptor;
 
   @Test
-  void getByLicenceSchedule() {
-    var licenceSchedule = new LicenceSchedule();
+  void getByIdOrThrow() {
+    var licenceScheduleDetailId = UUID.randomUUID();
 
-    licenceScheduleDetailService.getByLicenceSchedule(licenceSchedule);
+    var licenceScheduleDetail = new LicenceScheduleDetail();
 
-    verify(licenceScheduleDetailRepository).findByLicenceSchedule(licenceSchedule);
+    when(licenceScheduleDetailRepository.findById(licenceScheduleDetailId)).thenReturn(Optional.of(licenceScheduleDetail));
+
+    assertThat(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetailId)).isEqualTo(licenceScheduleDetail);
+  }
+
+  @Test
+  void getByIdOrThrow_licenceScheduleDetailNotFound() {
+    var licenceScheduleDetailId = UUID.randomUUID();
+
+    when(licenceScheduleDetailRepository.findById(licenceScheduleDetailId)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetailId)).isInstanceOf(LmsEntityNotFoundException.class);
   }
 
   @Test

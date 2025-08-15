@@ -12,12 +12,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.LicenceScheduleSelectionController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @Controller
-@RequestMapping("/licences/schedules/start-date/{licenceId}")
+@RequestMapping("/licence/{licenceId}/schedule/start-date")
 public class LicenceStartDateController {
 
   static final String PAGE_TITLE = "What is the licence start date?";
@@ -36,7 +37,7 @@ public class LicenceStartDateController {
     this.licenceScheduleService = licenceScheduleService;
   }
 
-  @GetMapping
+  @GetMapping("/create")
   public ModelAndView renderScheduleDetailsForm(
       @PathVariable Integer licenceId,
       Licence licence
@@ -47,7 +48,7 @@ public class LicenceStartDateController {
     );
   }
 
-  @PostMapping
+  @PostMapping("/create")
   public ModelAndView submitScheduleDetailsForm(
       @PathVariable Integer licenceId,
       Licence licence,
@@ -60,10 +61,10 @@ public class LicenceStartDateController {
           licenceScheduleService.doesLicenceScheduleExistForLicence(licence)
       );
     }
-    licenceStartDateService.saveNewLicenceStartDateFromForm(form, licence);
+    var scheduleDetailId = licenceStartDateService.saveNewLicenceStartDateFromForm(form, licence)
+        .getLicenceScheduleDetail().getId();
 
-    //TODO: LMS1-87 redirect to task list
-    return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
+    return ReverseRouter.redirect(on(LicenceScheduleTermController.class).renderAddNewTermForm(scheduleDetailId, null));
   }
 
   private ModelAndView getScheduleDetailsModelAndView(LicenceStartDateForm form, boolean backToTaskList) {

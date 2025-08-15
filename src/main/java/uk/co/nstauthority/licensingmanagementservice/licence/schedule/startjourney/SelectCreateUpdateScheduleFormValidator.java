@@ -8,7 +8,12 @@ import org.springframework.validation.ValidationUtils;
 public class SelectCreateUpdateScheduleFormValidator {
 
   boolean isValid(SelectCreateUpdateScheduleForm form, Errors errors) {
-    ValidationUtils.rejectIfEmpty(errors, "selectedJourneyOption", "selectedJourneyOption.required");
+    ValidationUtils.rejectIfEmpty(
+        errors,
+        "selectedJourneyOption",
+        "selectedJourneyOption.required",
+        "Select if you want to create or update an existing licence schedule"
+    );
 
     return !errors.hasErrors();
   }

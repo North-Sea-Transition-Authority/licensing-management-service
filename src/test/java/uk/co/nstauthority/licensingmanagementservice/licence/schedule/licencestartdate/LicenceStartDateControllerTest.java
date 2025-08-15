@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencest
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -22,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.LicenceScheduleSelectionController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
@@ -84,7 +84,12 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
 
   @SecurityTest
   void submitScheduleDetailsForm_validForm() throws Exception {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    var licenceStartDate = new LicenceStartDate();
+    licenceStartDate.setLicenceScheduleDetail(licenceScheduleDetail);
+
     when(licenceStartDateValidator.isValid(any(), any())).thenReturn(true);
+    when(licenceStartDateService.saveNewLicenceStartDateFromForm(any(), eq(licence))).thenReturn(licenceStartDate);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceStartDateController.class).submitScheduleDetailsForm(LICENCE_ID, null, null, null)))
@@ -92,8 +97,6 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
-
-    verify(licenceStartDateService).saveNewLicenceStartDateFromForm(any(), eq(licence));
   }
 
   @SecurityTest

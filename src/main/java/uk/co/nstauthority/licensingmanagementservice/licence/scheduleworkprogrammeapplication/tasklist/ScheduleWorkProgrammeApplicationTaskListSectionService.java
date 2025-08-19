@@ -7,12 +7,12 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose.SwpApplicationRequestPurposeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSectionService;
-import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @Service
 public class ScheduleWorkProgrammeApplicationTaskListSectionService
@@ -29,7 +29,8 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
         new TaskListItem(
             WHAT_ARE_YOU_REQUESTING_TO_DO,
             TaskListLabel.notStartedOrComplete(false),
-            ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))
+            ReverseRouter.route(on(SwpApplicationRequestPurposeController.class)
+                .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null))
         )
     );
     return Optional.of(new TaskListSection(APPLICATION_DETAILS_SECTION_NAME, SECTION_ORDER, items));

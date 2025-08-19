@@ -10,11 +10,11 @@ import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose.SwpApplicationRequestPurposeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
-import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ExtendWith(MockitoExtension.class)
 class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
@@ -41,7 +41,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
                     TaskListLabel.NOT_COMPLETE,
-                    ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))
+                    ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).renderForm(null, null))
                 )
             ),
             ScheduleWorkProgrammeApplicationTaskListSectionService.APPLICATION_DETAILS_SECTION_NAME,

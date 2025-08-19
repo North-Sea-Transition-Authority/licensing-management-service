@@ -2,8 +2,6 @@
 <#import '../search/search.ftl' as search>
 <#import '../macros/dataItems/filters.ftl' as dataItemFilter>
 
-<#assign pageTitle = "Work area" />
-
 <@defaultPage
   htmlTitle=pageTitle
   pageHeading=pageTitle

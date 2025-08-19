@@ -48,3 +48,6 @@ CVE-2025-48924
 
 # io.netty:netty-codec-http2
 CVE-2025-55163
+
+# org.springframework:spring-webmvc
+CVE-2025-41242

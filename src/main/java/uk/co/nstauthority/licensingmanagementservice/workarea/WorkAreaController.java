@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.StartXyzAppl
 @RequestMapping("/work-area")
 @SessionAttributes("workAreaSession")
 public class WorkAreaController {
+  public static final String WORK_AREA_PAGE_NAME = "Work area";
 
   private final WorkAreaService workAreaService;
   private final TeamQueryService teamQueryService;
@@ -59,6 +60,7 @@ public class WorkAreaController {
   private @NotNull ModelAndView getModelAndView(WorkAreaFilterForm form, ServiceUserDetail user) {
     var canStartApplication = teamQueryService.userHasAtLeastOneRoleIn(user.wuaId(), Set.of(Role.EDIT_APPLICATION));
     return new ModelAndView("lms/workarea/workArea")
+        .addObject("pageTitle", WORK_AREA_PAGE_NAME)
         .addObject("workAreaItems", workAreaService.getSearchResultItems(form))
         .addObject("canStartApplication", canStartApplication)
         .addObject("startApplicationUrl", ReverseRouter.route(on(StartXyzApplicationController.class).startApplication()))

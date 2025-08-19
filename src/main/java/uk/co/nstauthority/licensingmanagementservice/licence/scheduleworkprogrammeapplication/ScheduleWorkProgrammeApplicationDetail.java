@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication;
 
+import com.google.common.annotations.VisibleForTesting;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -27,6 +28,14 @@ public class ScheduleWorkProgrammeApplicationDetail {
 
   @Column
   private Boolean allLicenseesPermissionConfirmed;
+
+  public ScheduleWorkProgrammeApplicationDetail() {
+  }
+
+  @VisibleForTesting
+  public ScheduleWorkProgrammeApplicationDetail(UUID swpApplicationDetailId) {
+    this.id = swpApplicationDetailId;
+  }
 
   public UUID getId() {
     return id;

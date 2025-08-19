@@ -15,7 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 @RequestMapping("licences/schedule-work-programme-applications/{scheduleWorkProgrammeApplicationDetailId}")
 public class ScheduleWorkProgrammeApplicationTaskListController {
 
-  public static final String PAGE_TITLE = "Schedule and work programme application Task list";
+  public static final String PAGE_TITLE = "Task list";
 
   private final ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService;
 

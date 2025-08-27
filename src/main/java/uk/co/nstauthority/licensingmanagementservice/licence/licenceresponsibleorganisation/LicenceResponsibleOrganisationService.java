@@ -13,10 +13,13 @@ import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 public class LicenceResponsibleOrganisationService {
 
   private final LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository;
+  private final PearsResponsibleOrganisationRefreshService pearsResponsibleOrganisationRefreshService;
 
   public LicenceResponsibleOrganisationService(
-      LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository) {
+      LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository,
+      PearsResponsibleOrganisationRefreshService pearsResponsibleOrganisationRefreshService) {
     this.licenceResponsibleOrganisationRepository = licenceResponsibleOrganisationRepository;
+    this.pearsResponsibleOrganisationRefreshService = pearsResponsibleOrganisationRefreshService;
   }
 
   public List<LicenceResponsibleOrganisation> getAllByLicence(Licence licence) {
@@ -27,45 +30,12 @@ public class LicenceResponsibleOrganisationService {
     return licenceResponsibleOrganisationRepository.findAllByLicenceIn(licences);
   }
 
-  @Transactional
   public void refreshPearsResponsibleOrganisations(
       List<Licence> licences,
       Map<Integer, List<Integer>> licenceIdOrgIdMap
   ) {
-    var oldOrganisations = licenceResponsibleOrganisationRepository.findAllByManagedByLmsIsFalse();
-    licenceResponsibleOrganisationRepository.deleteAll(oldOrganisations);
-    licenceResponsibleOrganisationRepository.flush();
-
-    saveResponsibleOrganisationsForLicences(licences, licenceIdOrgIdMap);
-  }
-
-  private void saveResponsibleOrganisationsForLicences(
-      List<Licence> licences,
-      Map<Integer, List<Integer>> licenceIdOrgIdMap
-  ) {
-    var responsibleOrganisations = licences.stream()
-        .map(licence ->  createLicenseesForPearsLicence(licence, licenceIdOrgIdMap.get(licence.getId())))
-        .flatMap(List::stream)
-        .toList();
-
-    licenceResponsibleOrganisationRepository.saveAll(responsibleOrganisations);
-  }
-
-  private List<LicenceResponsibleOrganisation> createLicenseesForPearsLicence(
-      Licence licence,
-      List<Integer> orgIds
-  ) {
-    return orgIds.stream()
-        .map(id -> createPearsLicensee(licence, id))
-        .toList();
-  }
-
-  private LicenceResponsibleOrganisation createPearsLicensee(Licence licence, Integer orgId) {
-    var licensee = new LicenceResponsibleOrganisation();
-    licensee.setLicence(licence);
-    licensee.setResponsibleOrganisationId(orgId);
-    licensee.setManagedByLms(false);
-    return licensee;
+    pearsResponsibleOrganisationRefreshService.saveResponsibleOrganisationsForLicences(licences, licenceIdOrgIdMap);
+    pearsResponsibleOrganisationRefreshService.deleteRemovedResponsibleOrganisationsForLicences(licenceIdOrgIdMap);
   }
 
   @Transactional

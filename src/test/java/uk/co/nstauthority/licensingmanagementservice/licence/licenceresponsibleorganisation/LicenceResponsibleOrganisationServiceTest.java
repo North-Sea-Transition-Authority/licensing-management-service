@@ -24,6 +24,9 @@ class LicenceResponsibleOrganisationServiceTest {
   @Mock
   private LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository;
 
+  @Mock
+  private PearsResponsibleOrganisationRefreshService pearsResponsibleOrganisationRefreshService;
+
   @InjectMocks
   private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
 
@@ -51,42 +54,11 @@ class LicenceResponsibleOrganisationServiceTest {
         2, List.of(1, 3)
     );
 
-    var responsibleOrganisation = new LicenceResponsibleOrganisation();
-    responsibleOrganisation.setResponsibleOrganisationId(1);
-    responsibleOrganisation.setLicence(licence);
-    responsibleOrganisation.setManagedByLms(false);
-
-    var responsibleOrganisation2 = new LicenceResponsibleOrganisation();
-    responsibleOrganisation2.setResponsibleOrganisationId(2);
-    responsibleOrganisation2.setLicence(licence);
-    responsibleOrganisation2.setManagedByLms(false);
-
-    var responsibleOrganisation3 = new LicenceResponsibleOrganisation();
-    responsibleOrganisation3.setResponsibleOrganisationId(1);
-    responsibleOrganisation3.setLicence(licence2);
-    responsibleOrganisation3.setManagedByLms(false);
-
-    var responsibleOrganisation4 = new LicenceResponsibleOrganisation();
-    responsibleOrganisation4.setResponsibleOrganisationId(3);
-    responsibleOrganisation4.setLicence(licence2);
-    responsibleOrganisation4.setManagedByLms(false);
-
-    var oldOrgs = List.of(responsibleOrganisation, responsibleOrganisation2);
-
-    when(licenceResponsibleOrganisationRepository.findAllByManagedByLmsIsFalse()).thenReturn(oldOrgs);
-
     licenceResponsibleOrganisationService.refreshPearsResponsibleOrganisations(licenceList, licenceMap);
 
-    verify(licenceResponsibleOrganisationRepository).deleteAll(oldOrgs);
+    verify(pearsResponsibleOrganisationRefreshService).saveResponsibleOrganisationsForLicences(licenceList, licenceMap);
+    verify(pearsResponsibleOrganisationRefreshService).deleteRemovedResponsibleOrganisationsForLicences(licenceMap);
 
-    verify(licenceResponsibleOrganisationRepository).saveAll(organisationCaptor.capture());
-
-    assertThat(organisationCaptor.getValue())
-        .containsExactlyInAnyOrder(
-            responsibleOrganisation,
-            responsibleOrganisation2,
-            responsibleOrganisation3,
-            responsibleOrganisation4);
   }
 
   @Test

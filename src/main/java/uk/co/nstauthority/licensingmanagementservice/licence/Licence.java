@@ -29,6 +29,10 @@ public class Licence {
   public Licence() {
   }
 
+  public Licence(Integer id) {
+    this.id = id;
+  }
+
   public Integer getId() {
     return id;
   }

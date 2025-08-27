@@ -46,6 +46,9 @@ CVE-2025-41234
 # org.apache.commons:commons-lang3
 CVE-2025-48924
 
+# org.springframework:spring-webmvc
+CVE-2025-41242
+
 # io.netty:netty-codec-http2
 CVE-2025-55163
 

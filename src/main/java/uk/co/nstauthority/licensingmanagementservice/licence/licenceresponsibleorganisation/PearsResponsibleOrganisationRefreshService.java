@@ -4,11 +4,15 @@ import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 
 @Service
 public class PearsResponsibleOrganisationRefreshService {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(PearsResponsibleOrganisationRefreshService.class);
 
   private final LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository;
 
@@ -38,6 +42,7 @@ public class PearsResponsibleOrganisationRefreshService {
 
     // Delete the removed organisations
     licenceResponsibleOrganisationRepository.deleteAll(removedOrganisations);
+    LOGGER.info("Deleted {} removed responsible organisations", removedOrganisations.size());
     licenceResponsibleOrganisationRepository.flush();
   }
 
@@ -52,6 +57,7 @@ public class PearsResponsibleOrganisationRefreshService {
         .toList();
 
     licenceResponsibleOrganisationRepository.saveAll(responsibleOrganisations);
+    LOGGER.info("Updated PEARS responsible organisations");
   }
 
   private List<LicenceResponsibleOrganisation> createLicenseesForPearsLicence(

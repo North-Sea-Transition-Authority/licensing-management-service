@@ -19,7 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 @Controller
-@RequestMapping("licences/schedule-work-programme-applications/{scheduleWorkProgrammeApplicationDetailId}/request-purpose")
+@RequestMapping("licences/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/request-purpose")
 public class SwpApplicationRequestPurposeController {
 
   static final String PAGE_TITLE = "What are you requesting to do?";

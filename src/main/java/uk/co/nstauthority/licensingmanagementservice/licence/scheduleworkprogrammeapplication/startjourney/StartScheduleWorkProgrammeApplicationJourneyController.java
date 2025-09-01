@@ -11,7 +11,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
-@RequestMapping("licences/schedule-work-programme-applications/{licenceTypeSlug}/start")
+@RequestMapping("licences/schedule-work-programme-application/{licenceTypeSlug}/start")
 public class StartScheduleWorkProgrammeApplicationJourneyController {
 
   public static final String PAGE_TITLE = "Start a schedule extension or work programme amendment application";

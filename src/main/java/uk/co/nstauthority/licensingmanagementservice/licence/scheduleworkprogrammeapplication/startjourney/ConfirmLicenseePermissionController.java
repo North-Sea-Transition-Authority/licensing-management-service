@@ -17,7 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
-@RequestMapping("licences/schedule-work-programme-applications/{licenceTypeSlug}/{licenceId}/confirm-licensee-permission")
+@RequestMapping("licences/schedule-work-programme-application/{licenceTypeSlug}/{licenceId}/confirm-licensee-permission")
 public class ConfirmLicenseePermissionController {
   public static final String PAGE_TITLE = "Have you confirmed this request is made on behalf of all licensees?";
 

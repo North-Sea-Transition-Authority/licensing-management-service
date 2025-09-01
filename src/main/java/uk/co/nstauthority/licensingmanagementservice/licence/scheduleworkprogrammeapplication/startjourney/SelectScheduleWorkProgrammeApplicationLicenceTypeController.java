@@ -14,7 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @Controller
-@RequestMapping("licences/schedule-work-programme-applications/licence-type")
+@RequestMapping("licences/schedule-work-programme-application/licence-type")
 public class SelectScheduleWorkProgrammeApplicationLicenceTypeController {
   public static final String PAGE_TITLE = "What type of licence is this application related to?";
 

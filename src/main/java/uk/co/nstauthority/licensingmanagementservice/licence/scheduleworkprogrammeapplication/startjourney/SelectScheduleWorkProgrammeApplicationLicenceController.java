@@ -17,7 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.internalapi.Licence
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
-@RequestMapping("licences/schedule-work-programme-applications/{licenceTypeSlug}/licence")
+@RequestMapping("licences/schedule-work-programme-application/{licenceTypeSlug}/licence")
 public class SelectScheduleWorkProgrammeApplicationLicenceController {
 
   static final String PAGE_TITLE

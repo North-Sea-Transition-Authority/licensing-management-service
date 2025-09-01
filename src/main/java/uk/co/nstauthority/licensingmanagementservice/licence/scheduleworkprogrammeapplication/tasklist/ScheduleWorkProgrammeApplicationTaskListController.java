@@ -12,7 +12,7 @@ import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Controller
-@RequestMapping("licences/schedule-work-programme-applications/{scheduleWorkProgrammeApplicationDetailId}")
+@RequestMapping("licences/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}")
 public class ScheduleWorkProgrammeApplicationTaskListController {
 
   public static final String PAGE_TITLE = "Task list";

@@ -68,6 +68,11 @@ public class LicenceResponsibleOrganisationService {
     licenceResponsibleOrganisationRepository.saveAll(responsibleOrganisationsToSave);
   }
 
+  @Transactional
+  public void saveLicensees(List<LicenceResponsibleOrganisation> licenceResponsibleOrganisations) {
+    licenceResponsibleOrganisationRepository.saveAll(licenceResponsibleOrganisations);
+  }
+
   private LicenceResponsibleOrganisation createManagedLicensee(Licence licence, Integer orgId) {
     var licensee = new LicenceResponsibleOrganisation();
     licensee.setLicence(licence);

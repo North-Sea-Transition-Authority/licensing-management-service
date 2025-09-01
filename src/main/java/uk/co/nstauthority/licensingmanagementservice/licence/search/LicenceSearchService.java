@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
@@ -104,11 +105,12 @@ public class LicenceSearchService {
   }
 
   private SearchResultItem toSearchResultItem(Licence licence, List<String> licensees) {
+    var mappedLicensees = licensees.stream().filter(Objects::nonNull).toList();
     return SearchResultItem.newBuilder()
         .withLinkHeadingUrl(ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licence.getId(), null)))
         .withLinkHeadingText(licence.getLicenceReference())
         .withCaptionText(licence.getType().getDisplayName())
-        .withDataItemRow(SummaryDataView.newStringKeyValue("Licensee(s)", String.join(", ", licensees)))
+        .withDataItemRow(SummaryDataView.newStringKeyValue("Licensee(s)", String.join(", ", mappedLicensees)))
         .build();
   }
 }

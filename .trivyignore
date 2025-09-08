@@ -55,3 +55,9 @@ CVE-2025-55163
 
 # org.springframework:spring-webmvc
 CVE-2025-41242
+
+# io.netty:netty-codec
+CVE-2025-58057
+
+# io.netty:netty-codec-http
+CVE-2025-58056

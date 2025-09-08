@@ -9,7 +9,7 @@
   extendContainerWidth=true
 >
   <#if canStartApplication>
-      <@fdsAction.link linkText="Create submission" linkUrl=springUrl(startApplicationUrl) linkClass="govuk-button"/>
+      <@fdsAction.link linkText="Start application" linkUrl=springUrl(startApplicationUrl) linkClass="govuk-button"/>
   </#if>
   <@search.standardSearch
   clearFilterUrl=clearFilterUrl

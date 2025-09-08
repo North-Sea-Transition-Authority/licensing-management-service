@@ -23,11 +23,11 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.SelectScheduleWorkProgrammeApplicationLicenceTypeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
-import uk.co.nstauthority.licensingmanagementservice.xyzapplication.StartXyzApplicationController;
 
 @ContextConfiguration(classes = WorkAreaController.class)
 class WorkAreaControllerTest extends AbstractControllerTest {
@@ -109,7 +109,7 @@ class WorkAreaControllerTest extends AbstractControllerTest {
             ReverseRouter.route(on(WorkAreaController.class).clearWorkAreaFilters(null, null))))
         .andExpect(model().attribute("canStartApplication", true))
         .andExpect(model().attribute("startApplicationUrl",
-            ReverseRouter.route(on(StartXyzApplicationController.class).startApplication())))
+            ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceTypeController.class).renderSelectLicenceType())))
         .andReturn()
         .getModelAndView();
 
@@ -128,7 +128,7 @@ class WorkAreaControllerTest extends AbstractControllerTest {
         .andExpect(view().name("lms/workarea/workArea"))
         .andExpect(model().attribute("clearFilterUrl",
             ReverseRouter.route(on(WorkAreaController.class).clearWorkAreaFilters(null, null))))
-        .andExpect(model().attribute("canStartApplication", false))
+        .andExpect(model().attribute("canStartApplication", true))
         .andReturn()
         .getModelAndView();
 

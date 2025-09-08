@@ -29,7 +29,7 @@ public class SelectScheduleWorkProgrammeApplicationLicenceTypeController {
   }
 
   @GetMapping
-  ModelAndView renderSelectLicenceType() {
+  public ModelAndView renderSelectLicenceType() {
     return getSelectLicenceTypeModelAndView(new SelectScheduleWorkProgrammeApplicationLicenceTypeForm());
   }
 

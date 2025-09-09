@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.util;
+package uk.co.nstauthority.licensingmanagementservice.architecture;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 
@@ -8,6 +8,10 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
+import uk.co.nstauthority.licensingmanagementservice.util.AnnotationSecurityTest;
+import uk.co.nstauthority.licensingmanagementservice.util.AuthorisationSecurityTest;
+import uk.co.nstauthority.licensingmanagementservice.util.ParameterizedAuthorisationSecurityTest;
+import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 public class TestSecurityRules {
 

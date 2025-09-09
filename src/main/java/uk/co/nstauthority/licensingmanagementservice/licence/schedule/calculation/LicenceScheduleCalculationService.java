@@ -1,6 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation;
 
-import com.google.common.annotations.VisibleForTesting;
 import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -46,7 +45,6 @@ public class LicenceScheduleCalculationService {
     licenceScheduleTermService.saveTerms(terms);
   }
 
-  @VisibleForTesting
   LocalDate calculateEndDate(LocalDate startDate, ThreeFieldDuration duration) {
     var endDate = startDate
         .plusYears(duration.years())

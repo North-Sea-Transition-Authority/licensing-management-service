@@ -1,0 +1,100 @@
+package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase;
+
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import java.time.LocalDate;
+import java.util.UUID;
+import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
+import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+
+@Audited
+@Entity(name = "licence_schedule_phases")
+public class LicenceSchedulePhase {
+
+  @Id
+  @UuidGenerator
+  private UUID id;
+
+  @ManyToOne
+  private LicenceScheduleDetail licenceScheduleDetail;
+
+  @Enumerated(EnumType.STRING)
+  private PhaseType phaseType;
+
+  @Embedded
+  @AttributeOverride(name = "days", column = @Column(name = "phase_duration_days"))
+  @AttributeOverride(name = "months", column = @Column(name = "phase_duration_months"))
+  @AttributeOverride(name = "years", column = @Column(name = "phase_duration_years"))
+  private ThreeFieldDuration phaseDuration;
+
+  private LocalDate startDate;
+
+  private LocalDate endDate;
+
+  private String comments;
+
+  public UUID getId() {
+    return id;
+  }
+
+  public void setId(UUID id) {
+    this.id = id;
+  }
+
+  public LicenceScheduleDetail getLicenceScheduleDetail() {
+    return licenceScheduleDetail;
+  }
+
+  public void setLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
+    this.licenceScheduleDetail = licenceScheduleDetail;
+  }
+
+  public PhaseType getPhaseType() {
+    return phaseType;
+  }
+
+  public void setPhaseType(PhaseType phaseType) {
+    this.phaseType = phaseType;
+  }
+
+  public ThreeFieldDuration getPhaseDuration() {
+    return phaseDuration;
+  }
+
+  public void setPhaseDuration(ThreeFieldDuration phaseDuration) {
+    this.phaseDuration = phaseDuration;
+  }
+
+  public LocalDate getStartDate() {
+    return startDate;
+  }
+
+  public void setStartDate(LocalDate startDate) {
+    this.startDate = startDate;
+  }
+
+  public LocalDate getEndDate() {
+    return endDate;
+  }
+
+  public void setEndDate(LocalDate endDate) {
+    this.endDate = endDate;
+  }
+
+  public String getComments() {
+    return comments;
+  }
+
+  public void setComments(String comments) {
+    this.comments = comments;
+  }
+}

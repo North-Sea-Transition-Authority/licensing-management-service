@@ -31,7 +31,7 @@ public class LicenceScheduleTermFormValidator {
         errors.rejectValue(
             "termType",
             "termType.invalid",
-            "%s already exists on the schedule".formatted(form.getTermType().getDisplayName())
+            "%s already exists on the licence schedule".formatted(form.getTermType().getDisplayName())
         );
       }
     }

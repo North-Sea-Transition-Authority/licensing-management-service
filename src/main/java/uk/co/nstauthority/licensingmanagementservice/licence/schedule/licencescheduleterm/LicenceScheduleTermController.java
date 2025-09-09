@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @Controller
 @RequestMapping("/licence/schedule/{licenceScheduleDetailId}/term")
@@ -52,8 +52,8 @@ public class LicenceScheduleTermController {
 
     licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail);
 
-    // TODO: LMS1-135 redirect to licence schedule timeline
-    return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
+    return ReverseRouter.redirect(on(LicenceScheduleTimelineController.class)
+        .renderLicenceScheduleTimeline(licenceScheduleDetail.getId(), null));
   }
 
   private ModelAndView getScheduleTermModelAndView(LicenceScheduleTermForm form, LicenceScheduleDetail licenceScheduleDetail) {
@@ -61,6 +61,8 @@ public class LicenceScheduleTermController {
 
     return new ModelAndView("lms/licence/schedule/createScheduleTerm")
         .addObject("form", form)
-        .addObject("radioOptions", TermType.getTermRadioOptionsFor(licenceType));
+        .addObject("radioOptions", TermType.getTermRadioOptionsFor(licenceType))
+        .addObject("cancelUrl", ReverseRouter.route(on(LicenceScheduleTimelineController.class)
+                .renderLicenceScheduleTimeline(licenceScheduleDetail.getId(), null)));
   }
 }

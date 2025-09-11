@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase;
 
+import jakarta.transaction.Transactional;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -15,5 +16,10 @@ public class LicenceSchedulePhaseService {
 
   public List<LicenceSchedulePhase> getPhasesByLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
     return licenceSchedulePhaseRepository.findByLicenceScheduleDetail(licenceScheduleDetail);
+  }
+
+  @Transactional
+  public void saveLicenceSchedulePhases(List<LicenceSchedulePhase> licenceSchedulePhase) {
+    licenceSchedulePhaseRepository.saveAll(licenceSchedulePhase);
   }
 }

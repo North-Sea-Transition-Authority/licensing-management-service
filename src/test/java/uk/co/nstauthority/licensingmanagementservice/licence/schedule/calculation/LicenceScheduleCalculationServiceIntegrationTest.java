@@ -9,8 +9,11 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
+import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
@@ -27,6 +30,9 @@ class LicenceScheduleCalculationServiceIntegrationTest {
   private LicenceScheduleTermRepository licenceScheduleTermRepository;
 
   @Autowired
+  private LicenceSchedulePhaseRepository licenceSchedulePhaseRepository;
+
+  @Autowired
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
 
   private LicenceScheduleDetail licenceScheduleDetail;
@@ -38,6 +44,12 @@ class LicenceScheduleCalculationServiceIntegrationTest {
   private LicenceScheduleTerm licenceScheduleTerm2;
 
   private LicenceScheduleTerm licenceScheduleTerm3;
+
+  private LicenceSchedulePhase licenceSchedulePhase;
+
+  private LicenceSchedulePhase licenceSchedulePhase2;
+
+  private LicenceSchedulePhase licenceSchedulePhase3;
 
   @Test
   void calculateAndSaveLicenceScheduleDates() {
@@ -54,7 +66,14 @@ class LicenceScheduleCalculationServiceIntegrationTest {
     licenceScheduleTerm3.setStartDate(licenceScheduleTerm2.getEndDate().plusDays(1));
     licenceScheduleTerm3.setEndDate(licenceScheduleTerm2.getEndDate().plusYears(1));
 
-    licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+    licenceSchedulePhase.setStartDate(licenceStartDate.getStartDate());
+    licenceSchedulePhase.setEndDate(LocalDate.of(2025, 1, 31));
+
+    licenceSchedulePhase2.setStartDate(licenceSchedulePhase.getEndDate().plusDays(1));
+    licenceSchedulePhase2.setEndDate(licenceSchedulePhase.getEndDate().plusMonths(1));
+
+    licenceSchedulePhase3.setStartDate(licenceSchedulePhase2.getEndDate().plusDays(1));
+    licenceSchedulePhase3.setEndDate(licenceSchedulePhase2.getEndDate().plusMonths(1));
 
     var expectedTermResult = List.of(licenceScheduleTerm, licenceScheduleTerm2, licenceScheduleTerm3);
 
@@ -64,6 +83,15 @@ class LicenceScheduleCalculationServiceIntegrationTest {
         .usingRecursiveComparison()
         .ignoringFields("id")
         .isEqualTo(expectedTermResult);
+
+    var expectedPhaseResult = List.of(licenceSchedulePhase, licenceSchedulePhase2, licenceSchedulePhase3);
+
+    var actualPhaseResult = licenceSchedulePhaseRepository.findAll();
+
+    assertThat(actualPhaseResult)
+        .usingRecursiveComparison()
+        .ignoringFields("id")
+        .isEqualTo(expectedPhaseResult);
   }
 
   private void createDbBaseline() {
@@ -97,6 +125,27 @@ class LicenceScheduleCalculationServiceIntegrationTest {
     licenceScheduleTerm3.setTermDuration(new ThreeFieldDuration(1, 0, 0));
 
     em.persist(licenceScheduleTerm3);
+
+    licenceSchedulePhase = new LicenceSchedulePhase();
+    licenceSchedulePhase.setLicenceScheduleDetail(licenceScheduleDetail);
+    licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
+    licenceSchedulePhase.setPhaseDuration(new ThreeFieldDuration(0, 1, 0));
+
+    em.persist(licenceSchedulePhase);
+
+    licenceSchedulePhase2 = new LicenceSchedulePhase();
+    licenceSchedulePhase2.setLicenceScheduleDetail(licenceScheduleDetail);
+    licenceSchedulePhase2.setPhaseType(PhaseType.PHASE_B);
+    licenceSchedulePhase2.setPhaseDuration(new ThreeFieldDuration(0, 1, 0));
+
+    em.persist(licenceSchedulePhase2);
+
+    licenceSchedulePhase3 = new LicenceSchedulePhase();
+    licenceSchedulePhase3.setLicenceScheduleDetail(licenceScheduleDetail);
+    licenceSchedulePhase3.setPhaseType(PhaseType.PHASE_C);
+    licenceSchedulePhase3.setPhaseDuration(new ThreeFieldDuration(0, 1, 0));
+
+    em.persist(licenceSchedulePhase3);
     em.flush();
   }
 }

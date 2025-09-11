@@ -1,6 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,8 +17,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
+import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
@@ -31,11 +36,17 @@ class LicenceScheduleCalculationServiceTest {
   @Mock
   private LicenceScheduleTermService licenceScheduleTermService;
 
+  @Mock
+  private LicenceSchedulePhaseService licenceSchedulePhaseService;
+
   @InjectMocks
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
 
   @Captor
   private ArgumentCaptor<List<LicenceScheduleTerm>> licenceScheduleTermArgumentCaptor;
+
+  @Captor
+  private ArgumentCaptor<List<LicenceSchedulePhase>> licenceSchedulePhaseArgumentCaptor;
 
   @Test
   void calculateAndSaveLicenceScheduleDates() {
@@ -56,6 +67,10 @@ class LicenceScheduleCalculationServiceTest {
     licenceScheduleTerm3.setTermType(TermType.THIRD);
     licenceScheduleTerm3.setTermDuration(new ThreeFieldDuration(1, 0, 0));
 
+    var licenceSchedulePhase = new LicenceSchedulePhase();
+    licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
+    licenceSchedulePhase.setPhaseDuration(new ThreeFieldDuration(0, 1, 0));
+
     when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail)).thenReturn(licenceStartDate);
 
     ArrayList<LicenceScheduleTerm> licenceScheduleTerms = new ArrayList<>();
@@ -65,6 +80,9 @@ class LicenceScheduleCalculationServiceTest {
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(licenceScheduleTerms);
+
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(licenceSchedulePhase));
 
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
 
@@ -95,6 +113,80 @@ class LicenceScheduleCalculationServiceTest {
         licenceStartDate.getStartDate().plusYears(2),
         LocalDate.of(2025, 12, 31).plusYears(2)
     );
+
+    verify(licenceSchedulePhaseService).saveLicenceSchedulePhases(licenceSchedulePhaseArgumentCaptor.capture());
+
+    var phaseResult = licenceSchedulePhaseArgumentCaptor.getValue();
+
+    assertThat(phaseResult.getFirst()).extracting(
+        LicenceSchedulePhase::getStartDate,
+        LicenceSchedulePhase::getEndDate
+    ).containsExactly(
+        licenceStartDate.getStartDate(),
+        LocalDate.of(2025, 1, 31)
+    );
+  }
+
+  @Test
+  void calculateAndSavePhaseDatesForTerm() {
+    var licenceScheduleTerm = new LicenceScheduleTerm();
+    licenceScheduleTerm.setTermType(TermType.INITIAL);
+    licenceScheduleTerm.setStartDate(LocalDate.of(2025, 1, 1));
+
+    var licenceSchedulePhase = new LicenceSchedulePhase();
+    licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
+    licenceSchedulePhase.setPhaseDuration(new ThreeFieldDuration(0, 1, 0));
+
+    var licenceSchedulePhase2 = new LicenceSchedulePhase();
+    licenceSchedulePhase2.setPhaseType(PhaseType.PHASE_C);
+    licenceSchedulePhase2.setPhaseDuration(new ThreeFieldDuration(0, 1, 0));
+
+    licenceScheduleCalculationService.calculateAndSavePhaseDatesForTerm(
+        List.of(licenceSchedulePhase, licenceSchedulePhase2),
+        licenceScheduleTerm
+    );
+
+    verify(licenceSchedulePhaseService).saveLicenceSchedulePhases(licenceSchedulePhaseArgumentCaptor.capture());
+
+    var phaseResult = licenceSchedulePhaseArgumentCaptor.getValue();
+
+    assertThat(phaseResult.getFirst()).extracting(
+        LicenceSchedulePhase::getStartDate,
+        LicenceSchedulePhase::getEndDate
+    ).containsExactly(
+        licenceScheduleTerm.getStartDate(),
+        LocalDate.of(2025, 1, 31)
+    );
+
+    assertThat(phaseResult.get(1)).extracting(
+        LicenceSchedulePhase::getStartDate,
+        LicenceSchedulePhase::getEndDate
+    ).containsExactly(
+        licenceScheduleTerm.getStartDate().plusMonths(1),
+        LocalDate.of(2025, 2, 28)
+    );
+  }
+
+  @Test
+  void calculateAndSavePhaseDatesForTermNoPhasesToCalculate() {
+    var licenceScheduleTerm = new LicenceScheduleTerm();
+    licenceScheduleTerm.setTermType(TermType.SECOND);
+    licenceScheduleTerm.setStartDate(LocalDate.of(2025, 1, 1));
+
+    var licenceSchedulePhase = new LicenceSchedulePhase();
+    licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
+    licenceSchedulePhase.setPhaseDuration(new ThreeFieldDuration(0, 1, 0));
+
+    var licenceSchedulePhase2 = new LicenceSchedulePhase();
+    licenceSchedulePhase2.setPhaseType(PhaseType.PHASE_C);
+    licenceSchedulePhase2.setPhaseDuration(new ThreeFieldDuration(0, 1, 0));
+
+    licenceScheduleCalculationService.calculateAndSavePhaseDatesForTerm(
+        List.of(licenceSchedulePhase, licenceSchedulePhase2),
+        licenceScheduleTerm
+    );
+
+    verify(licenceSchedulePhaseService, never()).saveLicenceSchedulePhases(any());
   }
 
   @Test

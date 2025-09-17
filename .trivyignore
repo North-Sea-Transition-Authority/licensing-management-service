@@ -61,3 +61,9 @@ CVE-2025-58057
 
 # io.netty:netty-codec-http
 CVE-2025-58056
+
+# org.springframework.security:spring-security-core
+CVE-2025-41248
+
+# org.springframework:spring-core
+CVE-2025-41249

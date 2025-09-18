@@ -132,6 +132,22 @@ public class TeamManagementService {
     return new HashSet<>(teams);
   }
 
+  public Optional<EnergyPortalUserJson> getEnergyPortalUser(String emailAddress) {
+    var energyPortalUserDtos = energyPortalUserService.findUsersByEmail(
+        emailAddress,
+        "Find user to add to team"
+    );
+
+    if (energyPortalUserDtos.size() > 1) {
+      throw new TeamManagementException(
+          "More than one UK Energy Portal user exists with the email address %s".formatted(emailAddress)
+      );
+    }
+    return energyPortalUserDtos
+        .stream()
+        .findFirst();
+  }
+
   public Team getTeam(UUID teamId) throws ResponseStatusException {
     return teamRepository.findById(teamId)
         .orElseThrow(

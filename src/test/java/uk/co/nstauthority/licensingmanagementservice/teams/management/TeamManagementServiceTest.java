@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.refEq;
 import static org.mockito.Mockito.never;
@@ -247,6 +248,25 @@ class TeamManagementServiceTest {
   void getScopedTeamOfTypeUserCanManage_notScoped() {
     assertThatExceptionOfType(TeamManagementException.class)
         .isThrownBy(() -> teamManagementService.getScopedTeamsOfTypeUserCanManage(TeamType.REGULATOR, USER_1_WUA_ID));
+  }
+
+  @Test
+  void getEnergyPortalUser() {
+    teamManagementService.getEnergyPortalUser("foo");
+    verify(energyPortalUserService).findUsersByEmail(eq("foo"), anyString());
+  }
+
+  @Test
+  void getEnergyPortalUser_whenMultipleUsersFound_thenThrow() {
+    var emailAddress = "foo";
+
+    when(energyPortalUserService.findUsersByEmail(eq(emailAddress), anyString()))
+        .thenReturn(List.of(EnergyPortalUserTestUtil.newBuilder().buildJson(), EnergyPortalUserTestUtil.newBuilder().buildJson()));
+
+    assertThatThrownBy(() -> teamManagementService.getEnergyPortalUser("foo"))
+        .isInstanceOf(TeamManagementException.class)
+        .hasMessage("More than one UK Energy Portal user exists with the email address %s".formatted(emailAddress)
+        );
   }
 
   @Test

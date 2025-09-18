@@ -47,11 +47,11 @@ public class EnergyPortalUserService {
     this.userApi = userApi;
   }
 
-  public List<EnergyPortalUserJson> findUsersByEmail(String username, String purpose) {
-    return StringUtils.isBlank(username)
+  public List<EnergyPortalUserJson> findUsersByEmail(String emailAddress, String purpose) {
+    return StringUtils.isBlank(emailAddress)
         ? List.of()
         : userApi.searchUsersByEmail(
-            username,
+            emailAddress,
             USERS_PROJECTION_ROOT,
             new RequestPurpose(purpose)
         )

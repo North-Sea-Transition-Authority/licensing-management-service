@@ -2,13 +2,13 @@ package uk.co.nstauthority.licensingmanagementservice.teams.management.form;
 
 public class AddMemberForm {
 
-  private String username;
+  private String emailAddress;
 
-  public String getUsername() {
-    return username;
+  public String getEmailAddress() {
+    return emailAddress;
   }
 
-  public void setUsername(String username) {
-    this.username = username;
+  public void setEmailAddress(String emailAddress) {
+    this.emailAddress = emailAddress;
   }
 }

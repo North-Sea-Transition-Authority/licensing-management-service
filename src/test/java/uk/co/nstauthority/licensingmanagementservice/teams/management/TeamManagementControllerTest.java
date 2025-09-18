@@ -30,7 +30,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.Errors;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.server.ResponseStatusException;
 import uk.co.fivium.energyportalapi.generated.types.User;
@@ -529,20 +528,22 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         .canLogin(true)
         .build();
 
+    when(addMemberFormValidator.isValid(any(), any())).thenReturn(true);
+
     when(teamManagementService.getTeam(regTeam.getId()))
         .thenReturn(regTeam);
 
     when(teamManagementService.getStaticTeamOfTypeUserCanManage(regTeam.getTeamType(), invokingUser.wuaId()))
         .thenReturn(Optional.of(regTeam));
 
-    when(energyPortalUserService.findUsersByEmail("foo", "Find user to add to team"))
+    when(energyPortalUserService.findUsersByEmail("test@email", "Find user to add to team"))
         .thenReturn(List.of(EnergyPortalUserJson.from(epaUser)));
 
     mockMvc.perform(
             post(ReverseRouter.route(on(TeamManagementController.class).handleAddMemberToTeam(regTeam.getId(), null, null)))
                 .with(csrf())
                 .with(user(invokingUser))
-                .param("username", "foo"))
+                .param("emailAddress", "test@email" ))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(
             ReverseRouter.route(on(TeamManagementController.class).renderUserTeamRoles(regTeam.getId(), 999L, null))));
@@ -556,12 +557,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
     when(teamManagementService.getStaticTeamOfTypeUserCanManage(regTeam.getTeamType(), invokingUser.wuaId()))
         .thenReturn(Optional.of(regTeam));
 
-    doAnswer( invocation -> {
-          BindingResult bindingResult = invocation.getArgument(1);
-          bindingResult.addError(new ObjectError("Error", "error"));
-          return invocation;
-        }
-    ).when(addMemberFormValidator).validate(any(), any(Errors.class));
+    when(addMemberFormValidator.isValid(any(), any())).thenReturn(false);
 
     when(energyPortalConfiguration.registrationUrl())
         .thenReturn("https://example.com");
@@ -575,6 +571,8 @@ class TeamManagementControllerTest extends AbstractControllerTest {
 
   @Test
   void handleAddMemberToTeam_invalidUser() throws Exception {
+    when(addMemberFormValidator.isValid(any(), any())).thenReturn(true);
+
     when(teamManagementService.getTeam(regTeam.getId()))
         .thenReturn(regTeam);
 
@@ -588,7 +586,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
             post(ReverseRouter.route(on(TeamManagementController.class).handleAddMemberToTeam(regTeam.getId(), null, null)))
                 .with(csrf())
                 .with(user(invokingUser))
-                .param("username", "foo"))
+                .param("email", "foo"))
         .andExpect(status().isBadRequest());
   }
 
@@ -604,7 +602,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
             post(ReverseRouter.route(on(TeamManagementController.class).handleAddMemberToTeam(regTeam.getId(), null, null)))
                 .with(csrf())
                 .with(user(invokingUser))
-                .param("username", "foo"))
+                .param("email", "foo"))
         .andExpect(status().isForbidden());
   }
 

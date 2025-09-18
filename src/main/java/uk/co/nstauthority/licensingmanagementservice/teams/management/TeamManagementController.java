@@ -191,8 +191,7 @@ public class TeamManagementController {
   public ModelAndView handleAddMemberToTeam(@PathVariable UUID teamId,
                                             @ModelAttribute("form") AddMemberForm form,
                                             BindingResult bindingResult) {
-    addMemberFormValidator.validate(form, bindingResult);
-    if (bindingResult.hasErrors()) {
+    if (!addMemberFormValidator.isValid(form, bindingResult)) {
       return new ModelAndView("lms/teamManagement/addMember")
           .addObject(
               CANCEL_URL_ATTRIBUTE_NAME,
@@ -201,13 +200,13 @@ public class TeamManagementController {
           .addObject("registerUrl", energyPortalConfiguration.registrationUrl());
     }
 
-    var wuaId = energyPortalUserService.findUsersByEmail(form.getUsername(), "Find user to add to team").stream()
+    var wuaId = energyPortalUserService.findUsersByEmail(form.getEmailAddress(), "Find user to add to team").stream()
         .filter(user -> !user.sharedAccount() && user.canLogin())
         .map(EnergyPortalUserJson::webUserAccountId)
         .findFirst()
         .orElseThrow(() -> new ResponseStatusException(
             HttpStatus.BAD_REQUEST,
-            "user with username %s not found or is shared account".formatted(form.getUsername()))
+            "user with email address %s does not exist".formatted(form.getEmailAddress()))
         );
 
 

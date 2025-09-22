@@ -18,7 +18,6 @@ class SwpApplicationRequestPurposeValidatorTest {
   @Test
   void isValid_invalidForm() {
     var form = new SwpApplicationRequestPurposeForm();
-
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
     assertThat(swpApplicationRequestPurposeValidator.isValid(form, bindingResult)).isFalse();
@@ -27,7 +26,7 @@ class SwpApplicationRequestPurposeValidatorTest {
   @Test
   void isValid_validForm() {
     var form = new SwpApplicationRequestPurposeForm();
-     form.setRequestPurposes(Set.of(SwpApplicationRequestPurposeOption.EXTEND_A_PHASE_OR_TERM));
+    form.setRequestPurposes(Set.of(SwpApplicationRequestPurposeOption.EXTEND_A_PHASE_OR_TERM));
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 

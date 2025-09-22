@@ -40,7 +40,8 @@ class ScheduleWorkProgrammeApplicationTaskListControllerTest extends AbstractCon
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(scheduleWorkProgrammeApplicationDetail);
 
     var user = ServiceUserDetailTestUtil.newBuilder().build();
-    when(scheduleWorkProgrammeApplicationTaskListService.getAllSections(scheduleWorkProgrammeApplicationDetail, user)).thenReturn(sections);
+    when(scheduleWorkProgrammeApplicationTaskListService.getAllSections(scheduleWorkProgrammeApplicationDetail, user
+    )).thenReturn(sections);
 
     mockMvc.perform(
         get(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(id, scheduleWorkProgrammeApplicationDetail, user)))

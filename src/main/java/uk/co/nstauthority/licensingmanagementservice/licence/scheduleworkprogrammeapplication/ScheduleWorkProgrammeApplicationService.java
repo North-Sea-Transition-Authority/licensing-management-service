@@ -18,8 +18,7 @@ public class ScheduleWorkProgrammeApplicationService {
   public ScheduleWorkProgrammeApplicationService(
       ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository,
       ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository,
-      LicenceScheduleDetailService licenceScheduleDetailService
-  ) {
+      LicenceScheduleDetailService licenceScheduleDetailService) {
     this.scheduleWorkProgrammeApplicationRepository = scheduleWorkProgrammeApplicationRepository;
     this.scheduleWorkProgrammeApplicationDetailRepository = scheduleWorkProgrammeApplicationDetailRepository;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
@@ -50,8 +49,7 @@ public class ScheduleWorkProgrammeApplicationService {
   }
 
   private ScheduleWorkProgrammeApplicationDetail createScheduleWorkProgrammeApplicationDetail(
-      ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication,
-      Boolean allLicenseesPermissionConfirmed) {
+      ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication, Boolean allLicenseesPermissionConfirmed) {
     var scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
     scheduleWorkProgrammeApplicationDetail.setVersionNumber(1);
@@ -62,7 +60,7 @@ public class ScheduleWorkProgrammeApplicationService {
   }
 
   public ScheduleWorkProgrammeApplicationDetail getDetailByIdOrThrow(UUID detailId) {
-    return scheduleWorkProgrammeApplicationDetailRepository.findById(detailId)
-        .orElseThrow(() -> new LmsEntityNotFoundException("schedule work programme application detail", detailId));
+    return scheduleWorkProgrammeApplicationDetailRepository.findById(detailId).orElseThrow(
+        () -> new LmsEntityNotFoundException("schedule work programme application detail", detailId));
   }
 }

@@ -75,7 +75,6 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
         .andExpect(status().isOk());
 
     expectStandardModelExists(resultActions);
-
   }
 
   @SecurityTest
@@ -103,7 +102,7 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
 
     var resultActions = mockMvc.perform(
         post(ReverseRouter.route(
-            on(SwpApplicationRequestPurposeController.class).submitForm(SWP_APPLICATION_DETAIL_ID, null, null, null)))
+            on(SwpApplicationRequestPurposeController.class).submitForm(SWP_APPLICATION_DETAIL_ID, scheduleWorkProgrammeApplicationDetail, null, null)))
             .with(user(USER))
             .with(csrf())
     )

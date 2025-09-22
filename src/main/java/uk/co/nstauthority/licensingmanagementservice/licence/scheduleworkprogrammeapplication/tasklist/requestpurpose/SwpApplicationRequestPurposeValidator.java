@@ -11,7 +11,6 @@ public class SwpApplicationRequestPurposeValidator {
     if (form.getRequestPurposes().isEmpty()) {
       errors.rejectValue("requestPurposes", "requestPurposes.empty", "Select what you are requesting to do");
     }
-
     return !errors.hasErrors();
   }
 }

@@ -13,7 +13,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
-import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSectionService;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplication;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationStatus;
 
@@ -27,7 +26,7 @@ class XyzApplicationTaskListServiceTest {
 
   @BeforeEach
   void setUp() {
-    List<TaskListSectionService<XyzApplication>> taskListSections = List.of(xyzApplicationTaskListSectionService);
+    List<XyzTaskListSectionService<XyzApplication>> taskListSections = List.of(xyzApplicationTaskListSectionService);
     xyzApplicationTaskListService = new XyzApplicationTaskListService(taskListSections);
   }
 

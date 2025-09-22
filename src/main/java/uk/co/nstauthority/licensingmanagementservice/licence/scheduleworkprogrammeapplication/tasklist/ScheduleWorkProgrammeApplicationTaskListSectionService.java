@@ -2,12 +2,16 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose.SwpApplicationRequestPurposeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose.SwpApplicationRequestPurposeRepository;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
@@ -18,21 +22,51 @@ import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSectionSer
 public class ScheduleWorkProgrammeApplicationTaskListSectionService
     implements TaskListSectionService<ScheduleWorkProgrammeApplicationDetail> {
 
+  LicenceScheduleExtensionSubmissionService licenceScheduleExtensionSubmissionService;
+  SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository;
+
+  private boolean extensionSelection;
+
+  public ScheduleWorkProgrammeApplicationTaskListSectionService(
+      SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository,
+      LicenceScheduleExtensionSubmissionService licenceScheduleExtensionSubmissionService) {
+    this.licenceScheduleExtensionSubmissionService = licenceScheduleExtensionSubmissionService;
+    this.swpApplicationRequestPurposeRepository = swpApplicationRequestPurposeRepository;
+  }
+
   static final String APPLICATION_DETAILS_SECTION_NAME = "Schedule and work programme application details";
   static final String WHAT_ARE_YOU_REQUESTING_TO_DO = "What are you requesting to do?";
+  static final String EXTENSION_DETAILS = "Extension Details";
   static final int SECTION_ORDER = 10;
 
+
   @Override
-  public Optional<TaskListSection> getSection(ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
-                                              ServiceUserDetail user) {
-    var items = List.of(
+  public Optional<TaskListSection> getSection(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
+      ServiceUserDetail user) {
+
+    var items = new ArrayList<>(List.of(
         new TaskListItem(
             WHAT_ARE_YOU_REQUESTING_TO_DO,
             TaskListLabel.notStartedOrComplete(false),
             ReverseRouter.route(on(SwpApplicationRequestPurposeController.class)
                 .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null))
-        )
-    );
+        )));
+
+    swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(
+        scheduleWorkProgrammeApplicationDetail).ifPresent(purpose ->
+        extensionSelection = purpose.getExtendTerm() || purpose.getExtendPhaseOrTerm());
+
+    if (extensionSelection) {
+      items.add(new TaskListItem(
+          EXTENSION_DETAILS,
+          TaskListLabel.notStartedOrComplete(
+              licenceScheduleExtensionSubmissionService.isSectionSubmittable(
+                  scheduleWorkProgrammeApplicationDetail)),
+          ReverseRouter.route(on(LicenceScheduleExtensionController.class)
+              .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null))
+      ));
+    }
     return Optional.of(new TaskListSection(APPLICATION_DETAILS_SECTION_NAME, SECTION_ORDER, items));
   }
 }

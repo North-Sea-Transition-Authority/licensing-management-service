@@ -7,16 +7,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
-import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSectionService;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplication;
 
 @Service
 public class XyzApplicationTaskListService {
 
-  private final List<TaskListSectionService<XyzApplication>> taskListSectionServices;
+  private final List<XyzTaskListSectionService<XyzApplication>> taskListSectionServices;
 
   @Autowired
-  public XyzApplicationTaskListService(List<TaskListSectionService<XyzApplication>> taskListSectionServices) {
+  public XyzApplicationTaskListService(List<XyzTaskListSectionService<XyzApplication>> taskListSectionServices) {
     this.taskListSectionServices = taskListSectionServices;
   }
 

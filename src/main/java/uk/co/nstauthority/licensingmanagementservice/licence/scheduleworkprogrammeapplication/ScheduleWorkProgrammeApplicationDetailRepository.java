@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication;
 
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -8,4 +9,6 @@ import org.springframework.stereotype.Repository;
 public interface ScheduleWorkProgrammeApplicationDetailRepository
     extends JpaRepository<ScheduleWorkProgrammeApplicationDetail, UUID> {
 
+  Optional<ScheduleWorkProgrammeApplicationDetail> getScheduleWorkProgrammeApplicationDetailByScheduleWorkProgrammeApplication(
+      ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication);
 }

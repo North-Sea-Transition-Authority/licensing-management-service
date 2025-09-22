@@ -25,6 +25,8 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose.SwpApplicationRequestPurpose;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose.SwpApplicationRequestPurposeService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
@@ -37,11 +39,17 @@ class ConfirmLicenseePermissionControllerTest extends AbstractControllerTest {
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
 
+  @MockitoBean
+  private SwpApplicationRequestPurposeService swpApplicationRequestPurposeService;
+
   @BeforeEach
   void setUp() {
     organisationUser = ServiceUserDetailTestUtil.newBuilder()
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
+
+    var swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
+    when(swpApplicationRequestPurposeService.saveOrUpdateRequestPurpose(any(),any())).thenReturn(swpApplicationRequestPurpose);
   }
 
   @SecurityTest

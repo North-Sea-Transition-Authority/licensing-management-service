@@ -10,13 +10,12 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
-import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSectionService;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplication;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.form.XyzApplicationFormController;
 
 @Service
-public class XyzApplicationTaskListSectionService implements TaskListSectionService<XyzApplication> {
+public class XyzApplicationTaskListSectionService implements XyzTaskListSectionService<XyzApplication> {
 
   static final String APPLICATION_DETAILS_SECTION_NAME = "XyzApplication details";
   static final String APPLICATION_DETAILS_ITEM_NAME = "XyzApplication details";

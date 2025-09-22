@@ -14,20 +14,25 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose.SwpApplicationRequestPurposeService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
-@RequestMapping("licences/schedule-work-programme-application/{licenceTypeSlug}/{licenceId}/confirm-licensee-permission")
+@RequestMapping("licence/{licenceId}/schedule-work-programme-application/{licenceTypeSlug}/confirm-licensee-permission")
 public class ConfirmLicenseePermissionController {
   public static final String PAGE_TITLE = "Have you confirmed this request is made on behalf of all licensees?";
 
   private final ConfirmLicenseePermissionFormValidator confirmLicenseePermissionFormValidator;
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
+  private final SwpApplicationRequestPurposeService swpApplicationRequestPurposeService;
 
-  public ConfirmLicenseePermissionController(ConfirmLicenseePermissionFormValidator confirmLicenseePermissionFormValidator,
-                                             ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService) {
+  public ConfirmLicenseePermissionController(
+      ConfirmLicenseePermissionFormValidator confirmLicenseePermissionFormValidator,
+      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
+      SwpApplicationRequestPurposeService swpApplicationRequestPurposeService) {
     this.confirmLicenseePermissionFormValidator = confirmLicenseePermissionFormValidator;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
+    this.swpApplicationRequestPurposeService = swpApplicationRequestPurposeService;
   }
 
   @GetMapping
@@ -51,6 +56,10 @@ public class ConfirmLicenseePermissionController {
 
     var applicationDetail = scheduleWorkProgrammeApplicationService
         .createNewScheduleWorkProgrammeApplicationForLicence(licence, form.getAllLicenseesPermissionConfirmed());
+
+    swpApplicationRequestPurposeService.saveOrUpdateRequestPurpose(applicationDetail,
+        swpApplicationRequestPurposeService.getFilledSwpApplicationRequestPurposeForm(
+            applicationDetail));
 
     return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationTaskListController.class)
         .getTaskList(applicationDetail.getId(), null, null));

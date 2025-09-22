@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -15,6 +16,7 @@ import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
 @Audited
 @Entity(name = "licence_schedule_phases")
@@ -23,6 +25,10 @@ public class LicenceSchedulePhase {
   @Id
   @UuidGenerator
   private UUID id;
+
+  @ManyToOne
+  @JoinColumn(name = "licence_schedule_term_id")
+  private LicenceScheduleTerm licenceScheduleTerm;
 
   @ManyToOne
   private LicenceScheduleDetail licenceScheduleDetail;
@@ -96,5 +102,13 @@ public class LicenceSchedulePhase {
 
   public void setComments(String comments) {
     this.comments = comments;
+  }
+
+  public LicenceScheduleTerm getLicenceScheduleTerm() {
+    return licenceScheduleTerm;
+  }
+
+  public void setLicenceScheduleTerm(LicenceScheduleTerm licenceScheduleTerm) {
+    this.licenceScheduleTerm = licenceScheduleTerm;
   }
 }

@@ -19,7 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 @Controller
-@RequestMapping("licences/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/request-purpose")
+@RequestMapping("licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/request-purpose")
 public class SwpApplicationRequestPurposeController {
 
   static final String PAGE_TITLE = "What are you requesting to do?";
@@ -41,7 +41,8 @@ public class SwpApplicationRequestPurposeController {
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
     return getModelAndView(
-        swpApplicationRequestPurposeService.getFilledSwpApplicationRequestPurposeForm(scheduleWorkProgrammeApplicationDetail),
+        swpApplicationRequestPurposeService.getFilledSwpApplicationRequestPurposeForm(
+            scheduleWorkProgrammeApplicationDetail),
         scheduleWorkProgrammeApplicationDetail
     );
   }
@@ -56,7 +57,6 @@ public class SwpApplicationRequestPurposeController {
     if (!swpApplicationRequestPurposeValidator.isValid(form, bindingResult)) {
       return getModelAndView(form, scheduleWorkProgrammeApplicationDetail);
     }
-
     swpApplicationRequestPurposeService.saveOrUpdateRequestPurpose(scheduleWorkProgrammeApplicationDetail, form);
 
     return ReverseRouter.redirect(getTaskListRoute(scheduleWorkProgrammeApplicationDetailId));
@@ -72,7 +72,8 @@ public class SwpApplicationRequestPurposeController {
 
     var modelAndView = new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/requestPurpose");
 
-    var pageOptionsMap = swpApplicationRequestPurposeService.getPageOptions(scheduleWorkProgrammeApplicationDetail).stream()
+    var pageOptionsMap = swpApplicationRequestPurposeService.getPageOptions(
+            scheduleWorkProgrammeApplicationDetail).stream()
         .collect(StreamUtil.toLinkedHashMap(Enum::name, SwpApplicationRequestPurposeOption::getDisplayName));
 
     var taskListUrl = ReverseRouter.route(getTaskListRoute(scheduleWorkProgrammeApplicationDetail.getId()));

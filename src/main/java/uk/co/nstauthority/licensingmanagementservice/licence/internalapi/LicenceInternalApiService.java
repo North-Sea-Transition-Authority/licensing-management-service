@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.internalapi;
 
+import java.util.Comparator;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
@@ -31,6 +32,7 @@ public class LicenceInternalApiService {
 
   List<LicenceJson> searchLicencesWithSchedulesByReferenceAndType(String searchTerm, LicenceType type) {
     return licenceScheduleService.searchAllSchedulesByLicenceRefAndType(searchTerm, type).stream()
+        .sorted(Comparator.comparing(s -> s.getLicence().getLicenceNumber()))
         .map(LicenceSchedule::getLicence)
         .map(this::toLicenceJson)
         .toList();

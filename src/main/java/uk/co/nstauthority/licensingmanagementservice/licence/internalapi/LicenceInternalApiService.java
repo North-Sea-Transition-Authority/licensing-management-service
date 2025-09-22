@@ -32,8 +32,8 @@ public class LicenceInternalApiService {
 
   List<LicenceJson> searchLicencesWithSchedulesByReferenceAndType(String searchTerm, LicenceType type) {
     return licenceScheduleService.searchAllSchedulesByLicenceRefAndType(searchTerm, type).stream()
-        .sorted(Comparator.comparing(s -> s.getLicence().getLicenceNumber()))
         .map(LicenceSchedule::getLicence)
+        .sorted(Comparator.comparing(Licence::getPrefix).thenComparing(Licence::getLicenceNumber))
         .map(this::toLicenceJson)
         .toList();
   }

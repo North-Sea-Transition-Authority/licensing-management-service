@@ -52,7 +52,8 @@ class LicenceSchedulePhaseControllerTest extends AbstractControllerTest {
         .build();
 
     var licence = LicenceTestUtil.builder()
-        .setLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withId(1)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
         .build();
 
     licenceScheduleDetail = LicenceTestUtil.createLicenceScheduleDetail(licence, LICENCE_SCHEDULE_DETAIL_ID);

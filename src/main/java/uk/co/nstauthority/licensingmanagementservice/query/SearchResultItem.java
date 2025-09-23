@@ -2,11 +2,10 @@ package uk.co.nstauthority.licensingmanagementservice.query;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 
 public record SearchResultItem(
-    UUID id,
+    String id,
     String linkHeadingUrl,
     String linkHeadingText,
     String tagText,
@@ -20,7 +19,7 @@ public record SearchResultItem(
   }
 
   public static class Builder {
-    private UUID id;
+    private String id;
     private String linkHeadingUrl;
     private String linkHeadingText;
     private String tagText;
@@ -28,7 +27,7 @@ public record SearchResultItem(
     private String captionText;
     private final List<SummaryDataView> dataItemRows = new ArrayList<>();
 
-    public Builder withId(UUID id) {
+    public Builder withId(String id) {
       this.id = id;
       return this;
     }

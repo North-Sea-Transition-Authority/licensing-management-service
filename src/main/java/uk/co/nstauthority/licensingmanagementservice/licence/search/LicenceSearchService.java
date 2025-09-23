@@ -107,6 +107,7 @@ public class LicenceSearchService {
   private SearchResultItem toSearchResultItem(Licence licence, List<String> licensees) {
     var mappedLicensees = licensees.stream().filter(Objects::nonNull).toList();
     return SearchResultItem.newBuilder()
+        .withId(licence.getId().toString())
         .withLinkHeadingUrl(ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licence.getId(), null)))
         .withLinkHeadingText(licence.getLicenceReference())
         .withCaptionText(licence.getType().getDisplayName())

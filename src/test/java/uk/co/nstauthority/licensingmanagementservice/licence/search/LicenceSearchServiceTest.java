@@ -20,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
@@ -45,8 +46,8 @@ class LicenceSearchServiceTest {
 
   @Test
   void getSearchResultItems_NoFilters_ReturnsAllResults() {
-    var licence = buildLicence(LicenceType.SEAWARD_PRODUCTION, "P1");
-    var licence2 = buildLicence(LicenceType.CARBON_STORAGE, "CS2");
+    var licence = buildLicence(1, LicenceType.SEAWARD_PRODUCTION, "P1");
+    var licence2 = buildLicence(2, LicenceType.CARBON_STORAGE, "CS2");
 
     when(licenceService.getAllLicences()).thenReturn(List.of(licence, licence2));
     when(licenceResponsibleOrganisationService.getAllByLicenceIn(List.of(licence, licence2)))
@@ -65,9 +66,9 @@ class LicenceSearchServiceTest {
 
   @Test
   void getSearchResultItems_FilterByReference_ReturnsFilteredResults() {
-    var licence = buildLicence(LicenceType.SEAWARD_PRODUCTION, "P1");
-    var licence2 = buildLicence(LicenceType.CARBON_STORAGE, "CS2");
-    var licence3 = buildLicence(LicenceType.CARBON_STORAGE, "CS3");
+    var licence = buildLicence(1, LicenceType.SEAWARD_PRODUCTION, "P1");
+    var licence2 = buildLicence(2, LicenceType.CARBON_STORAGE, "CS2");
+    var licence3 = buildLicence(3, LicenceType.CARBON_STORAGE, "CS3");
 
     when(licenceService.getAllLicences()).thenReturn(List.of(licence, licence2, licence3));
 
@@ -87,10 +88,10 @@ class LicenceSearchServiceTest {
 
   @Test
   void getSearchResultItems_FilterByLicenceType_ReturnsFilteredResults() {
-    var licence1 = buildLicence(LicenceType.SEAWARD_PRODUCTION, "P1");
-    var licence2 = buildLicence(LicenceType.CARBON_STORAGE, "CS2");
-    var licence3 = buildLicence(LicenceType.CARBON_STORAGE, "CS3");
-    var licence4 = buildLicence(LicenceType.LANDWARD_PRODUCTION, "P2");
+    var licence1 = buildLicence(1, LicenceType.SEAWARD_PRODUCTION, "P1");
+    var licence2 = buildLicence(2, LicenceType.CARBON_STORAGE, "CS2");
+    var licence3 = buildLicence(3, LicenceType.CARBON_STORAGE, "CS3");
+    var licence4 = buildLicence(4, LicenceType.LANDWARD_PRODUCTION, "P2");
 
     when(licenceService.getAllLicences()).thenReturn(List.of(licence1, licence2, licence3, licence4));
 
@@ -111,10 +112,10 @@ class LicenceSearchServiceTest {
 
   @Test
   void getSearchResultItems_FilterByLicensee_ReturnsFilteredResults() {
-    var licence1 = buildLicence(LicenceType.SEAWARD_PRODUCTION, "P1");
-    var licence2 = buildLicence(LicenceType.CARBON_STORAGE, "CS1");
-    var licence3 = buildLicence(LicenceType.GAS_STORAGE, "GS1");
-    var licence4 = buildLicence(LicenceType.LANDWARD_PRODUCTION, "P2");
+    var licence1 = buildLicence(1, LicenceType.SEAWARD_PRODUCTION, "P1");
+    var licence2 = buildLicence(2, LicenceType.CARBON_STORAGE, "CS1");
+    var licence3 = buildLicence(3, LicenceType.GAS_STORAGE, "GS1");
+    var licence4 = buildLicence(4, LicenceType.LANDWARD_PRODUCTION, "P2");
     var licences = List.of(licence1, licence2, licence3, licence4);
 
     when(licenceService.getAllLicences()).thenReturn(licences);
@@ -140,8 +141,8 @@ class LicenceSearchServiceTest {
 
   @Test
   void getResponsibleOrganisationNamesByLicences_ReturnsCorrectMapping() {
-    var licence1 = buildLicence(LicenceType.SEAWARD_PRODUCTION, "P1");
-    var licence2 = buildLicence(LicenceType.CARBON_STORAGE, "CS2");
+    var licence1 = buildLicence(1, LicenceType.SEAWARD_PRODUCTION, "P1");
+    var licence2 = buildLicence(2, LicenceType.CARBON_STORAGE, "CS2");
 
     var lro1 = buildLicenceResponsibleOrganisation(licence1, 100);
     var lro2 = buildLicenceResponsibleOrganisation(licence1, 101);
@@ -190,11 +191,12 @@ class LicenceSearchServiceTest {
     verifyNoInteractions(organisationUnitQueryService);
   }
 
-  private Licence buildLicence(LicenceType licenceType, String ref) {
-    var licence = new Licence();
-    licence.setType(licenceType);
-    licence.setLicenceReference(ref);
-    return licence;
+  private Licence buildLicence(Integer id, LicenceType licenceType, String ref) {
+    return LicenceTestUtil.builder()
+        .withId(id)
+        .withLicenceType(licenceType)
+        .withLicenceReference(ref)
+        .build();
   }
 
   private LicenceResponsibleOrganisation buildLicenceResponsibleOrganisation(Licence licence, int responsibleOrganisationId) {
@@ -206,6 +208,7 @@ class LicenceSearchServiceTest {
 
   private SearchResultItem buildSearchResultItem(Licence licence, List<String> licensees) {
     return SearchResultItem.newBuilder()
+        .withId(licence.getId().toString())
         .withLinkHeadingUrl(ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licence.getId(), null)))
         .withLinkHeadingText(licence.getLicenceReference())
         .withCaptionText(licence.getType().getDisplayName())

@@ -20,9 +20,9 @@ import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.xyzapplication.SupportingDocumentApplicationFileUsage;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplication;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationRestController;
-import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationSupportingDocumentFileUsage;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.tasklist.XyzApplicationTaskListController;
 
 @Controller
@@ -101,7 +101,7 @@ public class XyzApplicationFormController {
   ) {
     return fileControllerHelperService.download(
         fileId,
-        () -> XyzApplicationSupportingDocumentFileUsage.fromApplication(xyzApplication),
+        () -> SupportingDocumentApplicationFileUsage.fromApplication(xyzApplication),
         userDetail
     );
   }
@@ -114,7 +114,7 @@ public class XyzApplicationFormController {
   ) {
     return fileControllerHelperService.delete(
         fileId,
-        () -> XyzApplicationSupportingDocumentFileUsage.fromApplication(xyzApplication),
+        () -> SupportingDocumentApplicationFileUsage.fromApplication(xyzApplication),
         userDetail
     );
   }

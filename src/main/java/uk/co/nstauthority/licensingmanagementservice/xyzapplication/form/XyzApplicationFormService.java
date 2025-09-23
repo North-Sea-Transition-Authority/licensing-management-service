@@ -8,24 +8,24 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.fileuploadlibrary.FileUploadLibraryUtils;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
-import uk.co.nstauthority.licensingmanagementservice.file.XyzApplicationFileService;
+import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileService;
+import uk.co.nstauthority.licensingmanagementservice.xyzapplication.SupportingDocumentApplicationFileUsage;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplication;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationService;
-import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationSupportingDocumentFileUsage;
 
 @Service
 public class XyzApplicationFormService {
 
   private final SearchSelectorService searchSelectorService;
   private final XyzApplicationService xyzApplicationService;
-  private final XyzApplicationFileService xyzApplicationFileService;
+  private final ApplicationFileService applicationFileService;
 
   public XyzApplicationFormService(SearchSelectorService searchSelectorService,
                                    XyzApplicationService xyzApplicationService,
-                                   XyzApplicationFileService xyzApplicationFileService) {
+                                   ApplicationFileService applicationFileService) {
     this.searchSelectorService = searchSelectorService;
     this.xyzApplicationService = xyzApplicationService;
-    this.xyzApplicationFileService = xyzApplicationFileService;
+    this.applicationFileService = applicationFileService;
   }
 
   public Map<String, String> getPreselectedApplication(String applicationId) {
@@ -44,8 +44,8 @@ public class XyzApplicationFormService {
 
   public XyzApplicationForm getApplicationForm(XyzApplication xyzApplication) {
     var applicationForm = new XyzApplicationForm();
-    var uploadedFileForm = xyzApplicationFileService.getUploadedFiles(
-        XyzApplicationSupportingDocumentFileUsage.fromApplication(xyzApplication)
+    var uploadedFileForm = applicationFileService.getUploadedFiles(
+        SupportingDocumentApplicationFileUsage.fromApplication(xyzApplication)
         )
         .stream()
         .map(FileUploadLibraryUtils::asForm)
@@ -63,8 +63,8 @@ public class XyzApplicationFormService {
     // applicationEntityRepo.save(applicationEntity)
 
     // save any associated documents from form
-    xyzApplicationFileService.saveDocuments(
-        XyzApplicationSupportingDocumentFileUsage.fromApplication(xyzApplication),
+    applicationFileService.saveDocuments(
+        SupportingDocumentApplicationFileUsage.fromApplication(xyzApplication),
         xyzApplicationForm.getDocuments()
     );
   }

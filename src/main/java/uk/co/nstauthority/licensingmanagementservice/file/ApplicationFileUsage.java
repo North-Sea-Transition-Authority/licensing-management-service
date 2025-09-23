@@ -1,6 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.file;
 
-public interface XyzApplicationFileUsage {
+public interface ApplicationFileUsage {
 
   String usageId();
 

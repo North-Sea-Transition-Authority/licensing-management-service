@@ -1,10 +1,10 @@
 package uk.co.nstauthority.licensingmanagementservice.file;
 
-public enum XyzApplicationFileUsageType {
-  SUPPORTING_DOCUMENT("SUPPORTING-DOCUMENT");
+public enum FileUsageType {
+  APPLICATION_SUPPORTING_DOCUMENT("APPLICATION-SUPPORTING-DOCUMENT");
   private final String usageType;
 
-  XyzApplicationFileUsageType(String usageType) {
+  FileUsageType(String usageType) {
     this.usageType = usageType;
   }
 

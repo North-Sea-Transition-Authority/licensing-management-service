@@ -48,13 +48,13 @@ class FileControllerHelperServiceTest {
   private FileService fileService;
 
   @Mock
-  private XyzApplicationFileService xyzApplicationFileService;
+  private ApplicationFileService applicationFileService;
 
   @Spy
   @InjectMocks
   private FileControllerHelperService fileControllerHelperService;
 
-  private final XyzApplicationFileUsage testFileUsage = new TestFileUsage("usageId", "usageType", "documentType");
+  private final ApplicationFileUsage testApplicationFileUsage = new TestApplicationFileUsage("usageId", "usageType", "documentType");
 
   @Test
   void fileUploadComponentAttributes() {
@@ -203,7 +203,7 @@ class FileControllerHelperServiceTest {
     var fileId = UUID.randomUUID();
     var userDetail = ServiceUserDetailTestUtil.newBuilder().build();
     var uploadedFile = new UploadedFile();
-    Supplier<XyzApplicationFileUsage> usageSupplier = () -> testFileUsage;
+    Supplier<ApplicationFileUsage> usageSupplier = () -> testApplicationFileUsage;
     ArgumentCaptor<Function<UploadedFile, ResponseEntity<InputStreamResource>>> fileServiceDownloadFunctionCaptor = ArgumentCaptor.forClass(Function.class);
     ResponseEntity<InputStreamResource> responseEntity = ResponseEntity.ok().build();
 
@@ -223,7 +223,7 @@ class FileControllerHelperServiceTest {
     var userDetail = ServiceUserDetailTestUtil.newBuilder().build();
     var uploadedFile = new UploadedFile();
     var deleteResponse = FileDeleteResponse.success(fileId);
-    Supplier<XyzApplicationFileUsage> usageSupplier = () -> testFileUsage;
+    Supplier<ApplicationFileUsage> usageSupplier = () -> testApplicationFileUsage;
     ArgumentCaptor<Function<UploadedFile, ResponseEntity<FileDeleteResponse>>> fileServiceDeleteFunctionCaptor = ArgumentCaptor.forClass(Function.class);
     ResponseEntity<FileDeleteResponse> responseEntity = ResponseEntity.ok(deleteResponse);
 
@@ -243,11 +243,11 @@ class FileControllerHelperServiceTest {
     var userDetail = ServiceUserDetailTestUtil.newBuilder().build();
     var uploadedFile = new UploadedFile();
     var result = ResponseEntity.ok(fileId);
-    Supplier<XyzApplicationFileUsage> usageSupplier = () -> testFileUsage;
+    Supplier<ApplicationFileUsage> usageSupplier = () -> testApplicationFileUsage;
     Function<UploadedFile, ResponseEntity<UUID>> getOkResponseWithFileIdFunction = file -> result;
 
     when(fileService.find(fileId)).thenReturn(Optional.of(uploadedFile));
-    when(xyzApplicationFileService.doesFileHaveUsage(uploadedFile)).thenReturn(true);
+    when(applicationFileService.doesFileHaveUsage(uploadedFile)).thenReturn(true);
 
     assertThat(fileControllerHelperService.findFileAndThen(
         fileId,
@@ -256,14 +256,14 @@ class FileControllerHelperServiceTest {
         getOkResponseWithFileIdFunction
     )).isEqualTo(result);
 
-    verify(xyzApplicationFileService).throwIfFileDoesNotBelongToUsage(uploadedFile, testFileUsage);
+    verify(applicationFileService).throwIfFileDoesNotBelongToUsage(uploadedFile, testApplicationFileUsage);
   }
 
   @Test
   void findFileAndThen_fileDoesNotExist() {
     var fileId = UUID.randomUUID();
     var userDetail = ServiceUserDetailTestUtil.newBuilder().build();
-    Supplier<XyzApplicationFileUsage> usageSupplier = () -> testFileUsage;
+    Supplier<ApplicationFileUsage> usageSupplier = () -> testApplicationFileUsage;
     Function<UploadedFile, ResponseEntity<UUID>> getOkResponseWithFileIdFunction = mock(Function.class);
 
     when(fileService.find(fileId)).thenReturn(Optional.empty());
@@ -278,7 +278,7 @@ class FileControllerHelperServiceTest {
         .isEqualTo(HttpStatus.NOT_FOUND);
 
     verify(getOkResponseWithFileIdFunction, never()).apply(any());
-    verify(xyzApplicationFileService, never()).throwIfFileDoesNotBelongToUsage(any(), any());
+    verify(applicationFileService, never()).throwIfFileDoesNotBelongToUsage(any(), any());
   }
 
   @Test
@@ -287,12 +287,12 @@ class FileControllerHelperServiceTest {
     var userDetail = ServiceUserDetailTestUtil.newBuilder().build();
     var uploadedFile = new UploadedFile();
     var result = ResponseEntity.ok(fileId);
-    Supplier<XyzApplicationFileUsage> usageSupplier = () -> testFileUsage;
+    Supplier<ApplicationFileUsage> usageSupplier = () -> testApplicationFileUsage;
     Function<UploadedFile, ResponseEntity<UUID>> getOkResponseWithFileIdFunction = file -> result;
 
     when(fileService.find(fileId)).thenReturn(Optional.of(uploadedFile));
-    when(xyzApplicationFileService.doesFileHaveUsage(uploadedFile)).thenReturn(false);
-    when(xyzApplicationFileService.fileBelongsToUser(uploadedFile, userDetail)).thenReturn(true);
+    when(applicationFileService.doesFileHaveUsage(uploadedFile)).thenReturn(false);
+    when(applicationFileService.fileBelongsToUser(uploadedFile, userDetail)).thenReturn(true);
 
     assertThat(fileControllerHelperService.findFileAndThen(
         fileId,
@@ -301,7 +301,7 @@ class FileControllerHelperServiceTest {
         getOkResponseWithFileIdFunction
     )).isEqualTo(result);
 
-    verify(xyzApplicationFileService, never()).throwIfFileDoesNotBelongToUsage(any(), any());
+    verify(applicationFileService, never()).throwIfFileDoesNotBelongToUsage(any(), any());
   }
 
   @Test
@@ -309,12 +309,12 @@ class FileControllerHelperServiceTest {
     var fileId = UUID.randomUUID();
     var userDetail = ServiceUserDetailTestUtil.newBuilder().build();
     var uploadedFile = new UploadedFile();
-    Supplier<XyzApplicationFileUsage> usageSupplier = () -> testFileUsage;
+    Supplier<ApplicationFileUsage> usageSupplier = () -> testApplicationFileUsage;
     Function<UploadedFile, ResponseEntity<UUID>> getOkResponseWithFileIdFunction = mock(Function.class);
 
     when(fileService.find(fileId)).thenReturn(Optional.of(uploadedFile));
-    when(xyzApplicationFileService.doesFileHaveUsage(uploadedFile)).thenReturn(false);
-    when(xyzApplicationFileService.fileBelongsToUser(uploadedFile, userDetail)).thenReturn(false);
+    when(applicationFileService.doesFileHaveUsage(uploadedFile)).thenReturn(false);
+    when(applicationFileService.fileBelongsToUser(uploadedFile, userDetail)).thenReturn(false);
 
     assertThat(fileControllerHelperService.findFileAndThen(
         fileId,
@@ -326,6 +326,6 @@ class FileControllerHelperServiceTest {
         .isEqualTo(HttpStatus.NOT_FOUND);
 
     verify(getOkResponseWithFileIdFunction, never()).apply(any());
-    verify(xyzApplicationFileService, never()).throwIfFileDoesNotBelongToUsage(any(), any());
+    verify(applicationFileService, never()).throwIfFileDoesNotBelongToUsage(any(), any());
   }
 }

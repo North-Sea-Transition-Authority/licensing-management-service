@@ -26,11 +26,11 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 public class FileControllerHelperService {
 
   private final FileService fileService;
-  private final XyzApplicationFileService xyzApplicationFileService;
+  private final ApplicationFileService applicationFileService;
 
-  public FileControllerHelperService(FileService fileService, XyzApplicationFileService xyzApplicationFileService) {
+  public FileControllerHelperService(FileService fileService, ApplicationFileService applicationFileService) {
     this.fileService = fileService;
-    this.xyzApplicationFileService = xyzApplicationFileService;
+    this.applicationFileService = applicationFileService;
   }
 
   public <T> FileUploadComponentAttributes fileUploadComponentAttributes(
@@ -91,7 +91,7 @@ public class FileControllerHelperService {
   }
 
   public ResponseEntity<InputStreamResource> download(UUID fileId,
-                                                      Supplier<XyzApplicationFileUsage> usageSupplier,
+                                                      Supplier<ApplicationFileUsage> usageSupplier,
                                                       ServiceUserDetail userDetail) {
     return findFileAndThen(
         fileId,
@@ -102,7 +102,7 @@ public class FileControllerHelperService {
   }
 
   public ResponseEntity<FileDeleteResponse> delete(UUID fileId,
-                                                   Supplier<XyzApplicationFileUsage> usageSupplier,
+                                                   Supplier<ApplicationFileUsage> usageSupplier,
                                                    ServiceUserDetail userDetail) {
     return findFileAndThen(
         fileId,
@@ -114,7 +114,7 @@ public class FileControllerHelperService {
 
   <T> ResponseEntity<T> findFileAndThen(
       UUID fileId,
-      Supplier<XyzApplicationFileUsage> usageSupplier,
+      Supplier<ApplicationFileUsage> usageSupplier,
       ServiceUserDetail userDetail,
       Function<UploadedFile, ResponseEntity<T>> andThen
   ) {
@@ -126,12 +126,12 @@ public class FileControllerHelperService {
 
     var uploadedFile = uploadedFileOptional.get();
 
-    if (xyzApplicationFileService.doesFileHaveUsage(uploadedFile)) {
-      xyzApplicationFileService.throwIfFileDoesNotBelongToUsage(uploadedFile, usageSupplier.get());
+    if (applicationFileService.doesFileHaveUsage(uploadedFile)) {
+      applicationFileService.throwIfFileDoesNotBelongToUsage(uploadedFile, usageSupplier.get());
       return andThen.apply(uploadedFile);
     }
 
-    if (xyzApplicationFileService.fileBelongsToUser(uploadedFile, userDetail)) {
+    if (applicationFileService.fileBelongsToUser(uploadedFile, userDetail)) {
       return andThen.apply(uploadedFile);
     }
 

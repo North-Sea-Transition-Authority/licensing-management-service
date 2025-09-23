@@ -15,11 +15,11 @@ public class XyzApplicationFileTestUtil {
         .build();
   }
 
-  public static UploadedFile createdUploadedFile(XyzApplicationFileUsage fileUsage) {
+  public static UploadedFile createdUploadedFile(ApplicationFileUsage applicationFileUsage) {
     var uploadedFile = createUploadFile();
-    uploadedFile.setUsageId(fileUsage.usageId());
-    uploadedFile.setUsageType(fileUsage.usageType());
-    uploadedFile.setDocumentType(fileUsage.documentType());
+    uploadedFile.setUsageId(applicationFileUsage.usageId());
+    uploadedFile.setUsageType(applicationFileUsage.usageType());
+    uploadedFile.setDocumentType(applicationFileUsage.documentType());
     return uploadedFile;
   }
 }

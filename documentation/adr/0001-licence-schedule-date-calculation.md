@@ -1,8 +1,8 @@
 # Calculating dates of a licence schedule and work programme
 * Author: Ryan Middleton
-* Status: proposed
+* Status: accepted
 
-## Context and Problem Statement
+## Context and problem statement
 
 We need to be able to calculate the dates on a licence schedule and work programme.
 
@@ -94,7 +94,7 @@ We need to decide if LMS should materialize end dates as part of the licence sch
 #### Cons of materializing end dates
 - Introduces potential for bugs when aligning start/end dates
 
-## Decision Outcome
+## Decision outcome
 
 The decision is to calculate the entire licence schedule (Option 2).
 

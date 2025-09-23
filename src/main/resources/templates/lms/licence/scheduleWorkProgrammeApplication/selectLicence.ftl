@@ -4,6 +4,7 @@
 htmlTitle=pageTitle
 pageHeading=""
 caption=pageCaption
+captionClass="govuk-caption-m"
 pageSize=PageSize.TWO_THIRDS_COLUMN
 errorSummaryItems=errorSummaryItems>
     <@fdsForm.htmlForm>
@@ -13,6 +14,7 @@ errorSummaryItems=errorSummaryItems>
             restUrl=springUrl(searchUrl)
             labelText=pageTitle
             pageHeading=true
+            labelHeadingClass="govuk-label--m"
         />
 
         <@fdsAction.submitButtons primaryButtonText="Continue" secondaryLinkText="Back" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(backUrl)/>

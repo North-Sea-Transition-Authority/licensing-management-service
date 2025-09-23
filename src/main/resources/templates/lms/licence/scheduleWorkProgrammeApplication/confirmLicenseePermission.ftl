@@ -3,6 +3,8 @@
 <@defaultPage
 htmlTitle=pageTitle
 pageHeading=""
+caption=pageCaption
+captionClass="govuk-caption-l"
 pageSize=PageSize.TWO_THIRDS_COLUMN
 errorSummaryItems=errorSummaryItems>
     <@fdsForm.htmlForm>
@@ -12,8 +14,8 @@ errorSummaryItems=errorSummaryItems>
         labelText=pageTitle
         showLabelOnly=true
         fieldsetHeadingSize="h1"
-        fieldsetHeadingClass="govuk-fieldset__legend--xl"
-        noFieldsetHeadingSize="--xl">
+        fieldsetHeadingClass="govuk-fieldset__legend--l"
+        noFieldsetHeadingSize="--l">
             <@fdsRadio.radioYes path="form.allLicenseesPermissionConfirmed"/>
             <@fdsRadio.radioNo path="form.allLicenseesPermissionConfirmed"/>
         </@fdsRadio.radioGroup>

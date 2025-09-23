@@ -17,6 +17,7 @@
 <#macro defaultPage
   htmlTitle
   pageHeading=htmlTitle
+  pageHeadingClass="govuk-heading-xl"
   phaseBanner=true
   pageSize=PageSize.TWO_THIRDS_COLUMN
   extendContainerWidth=false
@@ -26,6 +27,7 @@
   errorSummaryItems=[]
   showNavigationItems=true
   caption=""
+  captionClass="govuk-caption-xl"
 >
   <#local serviceName = serviceBranding.name() />
   <#local customerMnemonic = customerBranding.mnemonic() />
@@ -98,6 +100,7 @@
     headerContent=serviceHeader
     footerContent=footerContent
     pageHeading=pageHeading
+    pageHeadingClass=pageHeadingClass
     headerLogo="GOV_CREST"
     logoProductText=customerMnemonic
     phaseBanner=phaseBanner
@@ -121,6 +124,7 @@
     topNavigationServiceUrl=serviceHomeUrl
     topNavigationServiceName=serviceName
     caption=caption
+    captionClass=captionClass
   >
 
     <@fdsGoogleAnalytics.googleAnalytics measurementId=analytics.serviceAnalyticIdentifier() />

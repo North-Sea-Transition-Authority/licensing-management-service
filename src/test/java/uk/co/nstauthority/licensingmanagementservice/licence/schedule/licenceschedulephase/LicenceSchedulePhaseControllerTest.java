@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -56,7 +57,10 @@ class LicenceSchedulePhaseControllerTest extends AbstractControllerTest {
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
         .build();
 
-    licenceScheduleDetail = LicenceTestUtil.createLicenceScheduleDetail(licence, LICENCE_SCHEDULE_DETAIL_ID);
+    licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(
+        LICENCE_SCHEDULE_DETAIL_ID,
+        LicenceScheduleTestUtil.createLicenceSchedule(licence)
+    );
 
     when(licenceScheduleDetailService.getByIdOrThrow(LICENCE_SCHEDULE_DETAIL_ID)).thenReturn(licenceScheduleDetail);
   }

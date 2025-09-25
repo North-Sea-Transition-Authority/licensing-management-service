@@ -4,6 +4,7 @@
 <@defaultPage
 htmlTitle="Application"
 pageHeading=pageTitle
+caption=pageCaption
 pageSize=PageSize.TWO_THIRDS_COLUMN
 breadcrumbs=breadcrumbs>
 

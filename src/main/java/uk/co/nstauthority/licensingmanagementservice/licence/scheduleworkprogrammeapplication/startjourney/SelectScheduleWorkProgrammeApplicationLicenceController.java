@@ -51,7 +51,7 @@ public class SelectScheduleWorkProgrammeApplicationLicenceController {
     var licence = licenceService.findLicenceByIdOrThrow(Integer.parseInt(form.getLicenceId()));
 
     return ReverseRouter.redirect(on(ConfirmLicenseePermissionController.class)
-        .renderConfirmLicenseePermission(licenceTypeSlug, licence.getId()));
+        .renderConfirmLicenseePermission(licenceTypeSlug, licence.getId(), null));
   }
 
   private ModelAndView getSelectLicenceModelAndView(SelectScheduleWorkProgrammeApplicationLicenceForm selectLicenceForm,

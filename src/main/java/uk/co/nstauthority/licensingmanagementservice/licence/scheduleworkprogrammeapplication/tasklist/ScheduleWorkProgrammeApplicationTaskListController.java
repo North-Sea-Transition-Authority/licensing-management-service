@@ -9,19 +9,23 @@ import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Controller
-@RequestMapping("licences/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}")
+@RequestMapping("licences/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/task-list")
 public class ScheduleWorkProgrammeApplicationTaskListController {
 
   public static final String PAGE_TITLE = "Task list";
 
   private final ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService;
+  private final LicenceService licenceService;
 
   public ScheduleWorkProgrammeApplicationTaskListController(
-      ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService) {
+      ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService,
+      LicenceService licenceService) {
     this.scheduleWorkProgrammeApplicationTaskListService = scheduleWorkProgrammeApplicationTaskListService;
+    this.licenceService = licenceService;
   }
 
   @GetMapping
@@ -35,9 +39,16 @@ public class ScheduleWorkProgrammeApplicationTaskListController {
         serviceUserDetail
     );
 
+    var licence = scheduleWorkProgrammeApplicationDetail
+        .getScheduleWorkProgrammeApplication()
+        .getLicenceScheduleDetail()
+        .getLicenceSchedule()
+        .getLicence();
+
     var modelAndView = new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/taskList")
         .addObject("taskListSections", sections)
-        .addObject("pageTitle", PAGE_TITLE);
+        .addObject("pageTitle", PAGE_TITLE)
+        .addObject("pageCaption", licenceService.getLicencePageCaption(licence));
 
     var breadcrumbs = Breadcrumbs.builder(PAGE_TITLE)
         .addWorkAreaBreadcrumb()

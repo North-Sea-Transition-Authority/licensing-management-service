@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
@@ -25,20 +26,23 @@ public class ConfirmLicenseePermissionController {
   private final ConfirmLicenseePermissionFormValidator confirmLicenseePermissionFormValidator;
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final SwpApplicationRequestPurposeService swpApplicationRequestPurposeService;
+  private final LicenceService licenceService;
 
   public ConfirmLicenseePermissionController(
       ConfirmLicenseePermissionFormValidator confirmLicenseePermissionFormValidator,
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
-      SwpApplicationRequestPurposeService swpApplicationRequestPurposeService) {
+      SwpApplicationRequestPurposeService swpApplicationRequestPurposeService, LicenceService licenceService) {
     this.confirmLicenseePermissionFormValidator = confirmLicenseePermissionFormValidator;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.swpApplicationRequestPurposeService = swpApplicationRequestPurposeService;
+    this.licenceService = licenceService;
   }
 
   @GetMapping
   ModelAndView renderConfirmLicenseePermission(@PathVariable String licenceTypeSlug,
-                                               @PathVariable Integer licenceId) {
-    return getLicenseePermissionConfirmationModelAndView(new ConfirmLicenseePermissionForm(), licenceTypeSlug);
+                                               @PathVariable Integer licenceId,
+                                               Licence licence) {
+    return getLicenseePermissionConfirmationModelAndView(new ConfirmLicenseePermissionForm(), licenceTypeSlug, licence);
   }
 
   @PostMapping
@@ -51,7 +55,7 @@ public class ConfirmLicenseePermissionController {
   ) {
 
     if (!confirmLicenseePermissionFormValidator.isValid(form, bindingResult)) {
-      return getLicenseePermissionConfirmationModelAndView(form, licenceTypeSlug);
+      return getLicenseePermissionConfirmationModelAndView(form, licenceTypeSlug, licence);
     }
 
     var applicationDetail = scheduleWorkProgrammeApplicationService
@@ -67,13 +71,15 @@ public class ConfirmLicenseePermissionController {
 
   private ModelAndView getLicenseePermissionConfirmationModelAndView(
       ConfirmLicenseePermissionForm selectLicenceTypeForm,
-      String licenceTypeSlug) {
+      String licenceTypeSlug,
+      Licence licence) {
     var licenceType = LicenceType.getFromSlugOrThrow(licenceTypeSlug);
+    var caption = licenceService.getLicencePageCaption(licence);
 
     return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/confirmLicenseePermission")
         .addObject("form", selectLicenceTypeForm)
         .addObject("pageTitle", PAGE_TITLE)
-        .addObject("pageCaption", licenceType.getDisplayName())
+        .addObject("pageCaption", caption)
         .addObject("backUrl", ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class)
             .renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))
         );

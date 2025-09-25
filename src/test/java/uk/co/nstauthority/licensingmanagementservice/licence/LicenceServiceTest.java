@@ -89,4 +89,19 @@ class LicenceServiceTest {
 
     assertThat(licenceService.getNextLicenceId()).isEqualTo(10001);
   }
+
+  @Test
+  void getLicencePageCaption() {
+
+    var licenceId = 1;
+    var licenceType = LicenceType.CARBON_STORAGE;
+    var licenceRef = "P100";
+    var licence = LicenceTestUtil.builder()
+        .withId(licenceId)
+        .withLicenceType(licenceType)
+        .withLicenceReference(licenceRef)
+        .build();
+    when(licenceRepository.findById(licenceId)).thenReturn(Optional.of(licence));
+    assertThat(licenceService.getLicencePageCaption(licence)).isEqualTo(licenceType.getDisplayName() + " - " + licenceRef);
+  }
 }

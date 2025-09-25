@@ -23,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose.SwpApplicationRequestPurpose;
@@ -38,6 +39,9 @@ class ConfirmLicenseePermissionControllerTest extends AbstractControllerTest {
 
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
+  private static final String CAPTION = "Licence type - Licence ref";
+  private static final Integer LICENCE_ID = 1;
+  private static final Licence LICENCE = LicenceTestUtil.builder().withId(LICENCE_ID).build();
 
   @MockitoBean
   private SwpApplicationRequestPurposeService swpApplicationRequestPurposeService;
@@ -50,6 +54,8 @@ class ConfirmLicenseePermissionControllerTest extends AbstractControllerTest {
 
     var swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
     when(swpApplicationRequestPurposeService.saveOrUpdateRequestPurpose(any(),any())).thenReturn(swpApplicationRequestPurpose);
+    when(licenceService.findLicenceByIdOrThrow(LICENCE_ID)).thenReturn(LICENCE);
+    when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(CAPTION);
   }
 
   @SecurityTest
@@ -57,13 +63,13 @@ class ConfirmLicenseePermissionControllerTest extends AbstractControllerTest {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(ConfirmLicenseePermissionController.class).renderConfirmLicenseePermission(licenceType.getUrlSlug(), 1)))
+            get(ReverseRouter.route(on(ConfirmLicenseePermissionController.class).renderConfirmLicenseePermission(licenceType.getUrlSlug(), LICENCE_ID, null)))
                 .with(user(organisationUser))
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/confirmLicenseePermission"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
-        .andExpect(model().attribute("pageCaption", licenceType.getDisplayName()))
+        .andExpect(model().attribute("pageCaption", CAPTION))
         .andExpect(model().attribute("backUrl",  ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class)
             .renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))));
 
@@ -107,14 +113,14 @@ class ConfirmLicenseePermissionControllerTest extends AbstractControllerTest {
     when(confirmLicenseePermissionFormValidator.isValid(any(), any())).thenReturn(false);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(ConfirmLicenseePermissionController.class).submitLicenseePermissionConfirmation(licenceType.getUrlSlug(), 1, null,null, null)))
+            post(ReverseRouter.route(on(ConfirmLicenseePermissionController.class).submitLicenseePermissionConfirmation(licenceType.getUrlSlug(), LICENCE_ID, null,null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/confirmLicenseePermission"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
-        .andExpect(model().attribute("pageCaption", licenceType.getDisplayName()))
+        .andExpect(model().attribute("pageCaption", CAPTION))
         .andExpect(model().attribute("backUrl",  ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class)
             .renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))));
 

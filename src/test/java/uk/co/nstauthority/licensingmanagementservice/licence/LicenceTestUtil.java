@@ -1,9 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence;
 
-import java.util.UUID;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
-
 public class LicenceTestUtil {
 
   private LicenceTestUtil() {}
@@ -57,20 +53,5 @@ public class LicenceTestUtil {
 
       return licence;
     }
-  }
-
-  public static LicenceSchedule createLicenceSchedule(Licence licence) {
-    var licenceSchedule = new LicenceSchedule();
-    licenceSchedule.setLicence(licence);
-    return licenceSchedule;
-  }
-
-  public static LicenceScheduleDetail createLicenceScheduleDetail(Licence licence, UUID scheduleDetailId) {
-    var licenceSchedule = createLicenceSchedule(licence);
-
-    var licenceScheduleDetail = new LicenceScheduleDetail();
-    licenceScheduleDetail.setLicenceSchedule(licenceSchedule);
-    licenceScheduleDetail.setId(scheduleDetailId);
-    return licenceScheduleDetail;
   }
 }

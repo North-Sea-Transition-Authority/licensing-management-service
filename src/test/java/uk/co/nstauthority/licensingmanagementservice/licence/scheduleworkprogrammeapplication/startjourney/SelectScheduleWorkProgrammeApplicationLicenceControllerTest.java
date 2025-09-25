@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import static java.lang.Integer.parseInt;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -84,7 +83,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceControllerTest extends Abstra
         )
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(ConfirmLicenseePermissionController.class)
-            .renderConfirmLicenseePermission(licenceType.getUrlSlug(), licenceId))));
+            .renderConfirmLicenseePermission(licenceType.getUrlSlug(), licenceId, null))));
   }
 
   @SecurityTest

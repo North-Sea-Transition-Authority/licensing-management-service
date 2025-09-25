@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.test.context.ContextConfiguration;
@@ -58,8 +59,10 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
   @SecurityTest
   void renderLicenceScheduleTimeline() throws Exception {
     var timelineSummaryCardView = new TimelineSummaryCardView("date");
+    var timelineActionViews = List.of(new LicenceScheduleTimelineService.TimelineActionView(LicenceScheduleTimelineAction.ADD_A_TERM, ""));
 
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
+    when(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail)).thenReturn(timelineActionViews);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceScheduleTimelineController.class).renderLicenceScheduleTimeline(LICENCE_SCHEDULE_DETAIL_ID, null)))
@@ -68,6 +71,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/scheduleTimeline"))
         .andExpect(model().attribute("pageTitle", LicenceScheduleTimelineController.PAGE_TITLE.formatted(licence.getLicenceReference())))
-        .andExpect(model().attribute("timelineSummaryCardView", timelineSummaryCardView));
+        .andExpect(model().attribute("timelineSummaryCardView", timelineSummaryCardView))
+        .andExpect(model().attribute("actions", timelineActionViews));
   }
 }

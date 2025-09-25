@@ -29,7 +29,8 @@ public class LicenceScheduleTimelineController {
 
     return new ModelAndView("lms/licence/schedule/scheduleTimeline")
         .addObject("pageTitle", PAGE_TITLE.formatted(licenceRef))
-        .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail));
+        .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
+        .addObject("actions", licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail));
   }
 
 }

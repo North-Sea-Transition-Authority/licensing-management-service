@@ -13,11 +13,9 @@ extendContainerWidth=true>
     </@fdsSummaryList.summaryListCard>
 
     <@fdsActionDropdown.actionDropdown dropdownButtonText="Add an event">
-        <@fdsActionDropdown.actionDropdownItem actionText="Add a term"/>
-        <@fdsActionDropdown.actionDropdownItem actionText="Add a phase"/>
-        <@fdsActionDropdown.actionDropdownItem actionText="Add a schedule event"/>
-        <@fdsActionDropdown.actionDropdownItem actionText="Add a rate"/>
-        <@fdsActionDropdown.actionDropdownItem actionText="Add a work programme element"/>
+        <#list actions as actionView>
+            <@fdsActionDropdown.actionDropdownItem actionText=actionView.action().displayText linkActionUrl=springUrl(actionView.url()) linkAction=true/>
+        </#list>
     </@fdsActionDropdown.actionDropdown>
 
 </@defaultPage>

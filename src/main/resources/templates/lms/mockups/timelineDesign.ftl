@@ -21,6 +21,9 @@ extendContainerWidth=true>
         <@fdsSummaryList.summaryListRowNoAction keyText="Licence round">
             6
         </@fdsSummaryList.summaryListRowNoAction>
+        <@fdsSummaryList.summaryListRowNoAction keyText="Licence status">
+            Extant
+        </@fdsSummaryList.summaryListRowNoAction>
     </@fdsSummaryList.summaryListCard>
 
     <@fdsActionDropdown.actionDropdown dropdownButtonText="Add an event">
@@ -53,12 +56,12 @@ extendContainerWidth=true>
                                 <@fdsAction.link linkText="Edit" linkUrl="#" linkClass="govuk-link"/>
                                 <@fdsAction.link linkText="Remove" linkUrl="#" linkClass="govuk-link"/>
                             </#assign>
-                            <@fdsTimeline.timelineTimeStamp
+                            <@custom.timelineTimeStampComplete
                             timeStampHeading="Phase A"
                             timeStampHeadingHint="1 June 2024 to 31 May 2028 (4 years)"
                             timelineActionContent=timelineActions>
-                            </@fdsTimeline.timelineTimeStamp>
-                            <@custom.timelineTimeStampSmall
+                            </@custom.timelineTimeStampComplete>
+                            <@custom.timelineTimeStampSmallComplete
                             timeStampHeading="Phase A yearly rate"
                             timeStampHeadingHint="1 June 2024 to 31 May 2028 (4 years)"
                             timelineActionContent=timelineActions
@@ -68,17 +71,23 @@ extendContainerWidth=true>
                                         £15 per km<sup>2</sup>
                                     </p>
                                 </@fdsTimeline.timelineEvent>
-                            </@custom.timelineTimeStampSmall>
-                            <@fdsTimeline.timelineTimeStamp
+                            </@custom.timelineTimeStampSmallComplete>
+                            <@custom.timelineTimeStampComplete
                             timeStampHeading="End of phase requirements"
                             >
-                            </@fdsTimeline.timelineTimeStamp>
+                            </@custom.timelineTimeStampComplete>
 
-                            <@custom.timelineTimeStampSmall
+                            <@custom.timelineTimeStampNoDotComplete
                             timeStampHeading="Obtain 3D Seismic Data"
                             timelineActionContent=timelineActions
                             >
                                 <@fdsTimeline.timelineEvent>
+                                    <br>
+                                    <@fdsTag.tag>
+                                        Completed
+                                    </@fdsTag.tag>
+                                    <br>
+                                    <br>
                                     <p class="govuk-body">
                                         Obtain and interpret 270 sq kms 3D seismic data reprocessed to Pre-SDM.
                                     </p>
@@ -89,48 +98,66 @@ extendContainerWidth=true>
                                         </p>
                                     </@fdsDetails.summaryDetails>
                                 </@fdsTimeline.timelineEvent>
-                            </@custom.timelineTimeStampSmall>
-                            <@custom.timelineTimeStampSmall
+                            </@custom.timelineTimeStampNoDotComplete>
+                            <@custom.timelineTimeStampNoDotComplete
                             timeStampHeading="Complete a biostratigraphy study"
                             timelineActionContent=timelineActions
                             >
                                 <@fdsTimeline.timelineEvent>
+                                    <br>
+                                    <@fdsTag.tag>
+                                        Completed
+                                    </@fdsTag.tag>
+                                    <br>
+                                    <br>
                                     <p class="govuk-body">
                                         Complete a biostratigraphy study focused on the Carboniferous.
                                     </p>
                                 </@fdsTimeline.timelineEvent>
-                            </@custom.timelineTimeStampSmall>
-                            <@custom.timelineTimeStampSmall
+                            </@custom.timelineTimeStampNoDotComplete>
+                            <@custom.timelineTimeStampNoDotComplete
                             timeStampHeading="Complete a fault seal study"
                             timelineActionContent=timelineActions
                             >
                                 <@fdsTimeline.timelineEvent>
+                                    <br>
+                                    <@fdsTag.tag>
+                                        Completed
+                                    </@fdsTag.tag>
+                                    <br>
+                                    <br>
                                     <p class="govuk-body">
                                         Complete a fault seal study including fault juxtaposition and membrane seal analysis.
                                     </p>
                                 </@fdsTimeline.timelineEvent>
-                            </@custom.timelineTimeStampSmall>
-                            <@custom.timelineTimeStampSmall
+                            </@custom.timelineTimeStampNoDotComplete>
+                            <@custom.timelineTimeStampNoDotComplete
                             timeStampHeading="Complete an engineering study"
                             timelineActionContent=timelineActions
                             >
                                 <@fdsTimeline.timelineEvent>
+                                    <br>
+                                    <@fdsTag.tag tagClass="govuk-tag--yellow">
+                                        Waived
+                                    </@fdsTag.tag>
+                                    <br>
+                                    <br>
                                     <p class="govuk-body">
                                         Complete an engineering study on processing and abating emission of the expected high carbon dioxide in the production flow-stream.
                                     </p>
                                 </@fdsTimeline.timelineEvent>
-                            </@custom.timelineTimeStampSmall>
-                            <@fdsTimeline.timelineTimeStamp
+                            </@custom.timelineTimeStampNoDotComplete>
+                            <@custom.timelineTimeStampCompleteNoBorder
                             timeStampHeading="End of Phase A"
                             timeStampHeadingHint="31 May 2028"
                             timeStampClass="fds-timeline__time-stamp--no-border">
-                            </@fdsTimeline.timelineTimeStamp>
-                            <@fdsTimeline.timelineTimeStamp
+                            </@custom.timelineTimeStampCompleteNoBorder>
+                            <@custom.timelineTimeStampComplete
                             timeStampHeading="Phase C"
                             timeStampHeadingHint="1 June 2028 to 31 May 2030 (2 years)"
                             timelineActionContent=timelineActions>
-                            </@fdsTimeline.timelineTimeStamp>
-                            <@custom.timelineTimeStampSmall
+                            </@custom.timelineTimeStampComplete>
+                            <@custom.timelineTimeStampSmallComplete
                             timeStampHeading="Phase C yearly rate"
                             timeStampHeadingHint="1 June 2028 to 31 May 2030 (2 years)"
                             timelineActionContent=timelineActions
@@ -140,12 +167,12 @@ extendContainerWidth=true>
                                         £150 per km<sup>2</sup>
                                     </p>
                                 </@fdsTimeline.timelineEvent>
-                            </@custom.timelineTimeStampSmall>
-                            <@fdsTimeline.timelineTimeStamp
+                            </@custom.timelineTimeStampSmallComplete>
+                            <@custom.timelineTimeStampComplete
                             timeStampHeading="End of phase requirements"
                             timeStampHeadingHint="31 May 2030">
-                            </@fdsTimeline.timelineTimeStamp>
-                            <@custom.timelineTimeStampSmall
+                            </@custom.timelineTimeStampComplete>
+                            <@custom.timelineTimeStampNoDotComplete
                             timeStampHeading="Mandatory relinquishment"
                             timelineActionContent=timelineActions
                             >
@@ -154,8 +181,8 @@ extendContainerWidth=true>
                                         50%
                                     </p>
                                 </@fdsTimeline.timelineEvent>
-                            </@custom.timelineTimeStampSmall>
-                            <@custom.timelineTimeStampSmall
+                            </@custom.timelineTimeStampNoDotComplete>
+                            <@custom.timelineTimeStampNoDotComplete
                             timeStampHeading="Well drill"
                             timelineActionContent=timelineActions
                             >
@@ -164,24 +191,24 @@ extendContainerWidth=true>
                                         Drill a well to 4,350m TVDSS or to the top Westphalian A, whichever is the shallower.
                                     </p>
                                 </@fdsTimeline.timelineEvent>
-                            </@custom.timelineTimeStampSmall>
-                            <@fdsTimeline.timelineTimeStamp
+                            </@custom.timelineTimeStampNoDotComplete>
+                            <@custom.timelineTimeStampCompleteNoBorder
                             timeStampHeading="End of Phase C"
                             timeStampHeadingHint="31 May 2030"
                             timeStampClass="fds-timeline__time-stamp--no-border">
-                            </@fdsTimeline.timelineTimeStamp>
+                            </@custom.timelineTimeStampCompleteNoBorder>
                         </@fdsTimeline.timelineSection>
                     </@fdsTimeline.timeline>
                 </@fdsAccordion.accordionSection>
                 <@fdsAccordion.accordionSection sectionHeading="Second Term" summaryText="1 June 2030 to 31 May 2034 (4 years)">
                     <@fdsTimeline.timeline>
                         <@fdsTimeline.timelineSection>
-                            <@fdsTimeline.timelineTimeStamp
+                            <@custom.timelineTimeStampComplete
                             timeStampHeading="Start of Second Term"
                             timeStampHeadingHint="1 June 2030 to 31 May 2034 (4 years)"
                             timelineActionContent=timelineActions>
-                            </@fdsTimeline.timelineTimeStamp>
-                            <@custom.timelineTimeStampSmall
+                            </@custom.timelineTimeStampComplete>
+                            <@custom.timelineTimeStampSmallComplete
                             timeStampHeading="Rate"
                             timeStampHeadingHint="1 June 2030 to 31 May 2031 (1 year)"
                             timelineActionContent=timelineActions
@@ -191,8 +218,8 @@ extendContainerWidth=true>
                                         £300 per km<sup>2</sup>
                                     </p>
                                 </@fdsTimeline.timelineEvent>
-                            </@custom.timelineTimeStampSmall>
-                            <@custom.timelineTimeStampSmall
+                            </@custom.timelineTimeStampSmallComplete>
+                            <@custom.timelineTimeStampSmallCompleteNoBorder
                             timeStampHeading="Rate"
                             timelineActionContent=timelineActions
                             timeStampHeadingHint="1 June 2031 to 31 May 2032 (1 year)"
@@ -202,7 +229,7 @@ extendContainerWidth=true>
                                         £900 per km<sup>2</sup>
                                     </p>
                                 </@fdsTimeline.timelineEvent>
-                            </@custom.timelineTimeStampSmall>
+                            </@custom.timelineTimeStampSmallCompleteNoBorder>
                             <@custom.timelineTimeStampSmall
                             timeStampHeading="Rate"
                             timeStampHeadingHint="1 June 2032 to 31 May 2033 (1 year)"
@@ -229,11 +256,18 @@ extendContainerWidth=true>
                             timeStampHeading="End of term requirements"
                             >
                             </@fdsTimeline.timelineTimeStamp>
-                            <@custom.timelineTimeStampSmall
+                            <@custom.timelineTimeStampNoDot
                             timeStampHeading="Mandatory relinquishment"
                             timelineActionContent=timelineActions
                             >
-                            </@custom.timelineTimeStampSmall>
+                                <@fdsTimeline.timelineEvent>
+                                    <br>
+                                    <@fdsTag.tag tagClass="govuk-tag--light-blue">
+                                        In progress
+                                    </@fdsTag.tag>
+                                    <br>
+                                </@fdsTimeline.timelineEvent>
+                            </@custom.timelineTimeStampNoDot>
                             <@fdsTimeline.timelineTimeStamp
                             timeStampHeading="End of Second Term"
                             timeStampHeadingHint="31 May 2034"

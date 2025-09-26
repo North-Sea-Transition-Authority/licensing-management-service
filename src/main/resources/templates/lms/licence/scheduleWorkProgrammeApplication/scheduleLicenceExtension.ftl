@@ -28,7 +28,7 @@
         dayPath="form.extensionDuration.days"
         monthPath="form.extensionDuration.months"
         yearPath="form.extensionDuration.years"
-        labelText="How long are you requesting to extend by?"
+        labelText="How long are you requesting this to be extended by?"
         formId="extension"
         />
 
@@ -46,7 +46,7 @@
           </ul>
         </@fdsDetails.summaryDetails>
 
-        <@fdsAction.submitButtons primaryButtonText="Save" secondaryLinkText="Cancel" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>
+        <@fdsAction.submitButtons primaryButtonText="Save and complete" secondaryLinkText="Cancel" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>
 
     </@fdsForm.htmlForm>
 </@defaultPage>

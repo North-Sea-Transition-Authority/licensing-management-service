@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencest
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -13,6 +14,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 import static uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController.PAGE_TITLE;
 
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -20,9 +22,11 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.LicenceScheduleSelectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
@@ -36,13 +40,16 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
   private LicenceStartDateService licenceStartDateService;
 
   @MockitoBean
-  private LicenceScheduleService licenceScheduleService;
+  private LicenceScheduleCalculationService licenceScheduleCalculationService;
 
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
 
   private Licence licence;
   private static final Integer LICENCE_ID = 1;
+
+  private LicenceScheduleDetail licenceScheduleDetail;
+  private static final UUID LICENCE_SCHEDULE_DETAIL_ID = UUID.randomUUID();
 
   @BeforeEach
   void setUp() {
@@ -52,39 +59,26 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
     
     licence = new Licence();
     when(licenceService.findLicenceByIdOrThrow(LICENCE_ID)).thenReturn(licence);
+
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+    licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(LICENCE_SCHEDULE_DETAIL_ID, licenceSchedule);
+    when(licenceScheduleDetailService.getByIdOrThrow(LICENCE_SCHEDULE_DETAIL_ID)).thenReturn(licenceScheduleDetail);
   }
 
   @SecurityTest
-  void renderScheduleDetailsForm_scheduleExists() throws Exception {
-    when(licenceScheduleService.doesLicenceScheduleExistForLicence(licence)).thenReturn(true);
-
+  void renderLicenceStartDateForm() throws Exception {
     mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceStartDateController.class).renderScheduleDetailsForm(LICENCE_ID, null)))
-                .with(user(organisationUser))
-        )
-        .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/schedule/startDate"))
-        .andExpect(model().attribute("pageTitle", PAGE_TITLE));
-  }
-
-  @SecurityTest
-  void renderScheduleDetailsForm_scheduleDoesNotExist() throws Exception {
-    when(licenceScheduleService.doesLicenceScheduleExistForLicence(licence)).thenReturn(false);
-
-    mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceStartDateController.class).renderScheduleDetailsForm(LICENCE_ID, null)))
+            get(ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateForm(LICENCE_ID, null)))
                 .with(user(organisationUser))
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/startDate"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
-        .andExpect(model().attribute("backUrl",
-            ReverseRouter.route(on(LicenceScheduleSelectionController.class).renderSelectLicenceForSchedule())));
+        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(LicenceScheduleSelectionController.class).renderSelectLicenceForSchedule())));
   }
 
   @SecurityTest
-  void submitScheduleDetailsForm_validForm() throws Exception {
-    var licenceScheduleDetail = new LicenceScheduleDetail();
+  void submitLicenceStartDateForm_validForm() throws Exception {
     var licenceStartDate = new LicenceStartDate();
     licenceStartDate.setLicenceScheduleDetail(licenceScheduleDetail);
 
@@ -92,7 +86,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
     when(licenceStartDateService.saveNewLicenceStartDateFromForm(any(), eq(licence))).thenReturn(licenceStartDate);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceStartDateController.class).submitScheduleDetailsForm(LICENCE_ID, null, null, null)))
+            post(ReverseRouter.route(on(LicenceStartDateController.class).submitLicenceStartDateForm(LICENCE_ID, null, null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
@@ -100,16 +94,66 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
   }
 
   @SecurityTest
-  void submitScheduleDetailsForm_invalidForm() throws Exception {
+  void submitLicenceStartDateForm_invalidForm() throws Exception {
     when(licenceStartDateValidator.isValid(any(), any())).thenReturn(false);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceStartDateController.class).submitScheduleDetailsForm(LICENCE_ID, null, null, null)))
+            post(ReverseRouter.route(on(LicenceStartDateController.class).submitLicenceStartDateForm(LICENCE_ID, null, null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/startDate"))
-        .andExpect(model().attribute("pageTitle", PAGE_TITLE));
+        .andExpect(model().attribute("pageTitle", PAGE_TITLE))
+        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(LicenceScheduleSelectionController.class).renderSelectLicenceForSchedule())));
+  }
+
+  @SecurityTest
+  void renderLicenceStartDateUpdateForm() throws Exception {
+    when(licenceStartDateService.getLicenceStartDateForm(licenceScheduleDetail)).thenReturn(new LicenceStartDateForm());
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateUpdateForm(LICENCE_SCHEDULE_DETAIL_ID, null)))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/licence/schedule/startDate"))
+        .andExpect(model().attribute("pageTitle", PAGE_TITLE))
+        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(LicenceScheduleTimelineController.class)
+            .renderLicenceScheduleTimeline(LICENCE_SCHEDULE_DETAIL_ID, null))));
+  }
+
+  @SecurityTest
+  void submitLicenceStartDateUpdateForm_validForm() throws Exception {
+    var licenceStartDate = new LicenceStartDate();
+    licenceStartDate.setLicenceScheduleDetail(licenceScheduleDetail);
+
+    when(licenceStartDateValidator.isValid(any(), any())).thenReturn(true);
+    when(licenceStartDateService.saveOrUpdateLicenceStartDateFromForm(any(), eq(licenceScheduleDetail))).thenReturn(licenceStartDate);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(LicenceStartDateController.class).submitLicenceStartDateUpdateForm(LICENCE_SCHEDULE_DETAIL_ID, null, null, null)))
+                .with(user(organisationUser))
+                .with(csrf())
+        )
+        .andExpect(status().is3xxRedirection());
+
+    verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  @SecurityTest
+  void submitLicenceStartDateUpdateForm_invalidForm() throws Exception {
+    when(licenceStartDateValidator.isValid(any(), any())).thenReturn(false);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(LicenceStartDateController.class).submitLicenceStartDateUpdateForm(LICENCE_SCHEDULE_DETAIL_ID, null, null, null)))
+                .with(user(organisationUser))
+                .with(csrf())
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/licence/schedule/startDate"))
+        .andExpect(model().attribute("pageTitle", PAGE_TITLE))
+        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(LicenceScheduleTimelineController.class)
+            .renderLicenceScheduleTimeline(LICENCE_SCHEDULE_DETAIL_ID, null))));
   }
 }

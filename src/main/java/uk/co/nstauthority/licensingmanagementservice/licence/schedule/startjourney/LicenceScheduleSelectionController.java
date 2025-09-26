@@ -43,7 +43,7 @@ public class LicenceScheduleSelectionController {
     }
 
     return ReverseRouter.redirect(on(LicenceStartDateController.class)
-        .renderScheduleDetailsForm(Integer.parseInt(form.getLicenceId()), null));
+        .renderLicenceStartDateForm(Integer.parseInt(form.getLicenceId()), null));
   }
 
   private ModelAndView getSelectLicenceModelAndView(SelectLicenceForm selectLicenceForm) {

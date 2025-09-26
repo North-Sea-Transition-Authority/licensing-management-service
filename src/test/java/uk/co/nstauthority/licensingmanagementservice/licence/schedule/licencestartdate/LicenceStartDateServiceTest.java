@@ -55,6 +55,30 @@ class LicenceStartDateServiceTest {
   }
 
   @Test
+  void saveOrUpdateLicenceStartDateFromForm() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+
+    var form = new LicenceStartDateForm();
+    form.getLicenceStartDate().setDay(1);
+    form.getLicenceStartDate().setMonth(1);
+    form.getLicenceStartDate().setYear(2025);
+
+    var date = LocalDate.of(2025, 1, 1);
+
+    licenceStartDateService.saveOrUpdateLicenceStartDateFromForm(form, licenceScheduleDetail);
+
+    verify(licenceStartDateRepository).save(licenceStartDateArgumentCaptor.capture());
+
+    assertThat(licenceStartDateArgumentCaptor.getValue()).extracting(
+        LicenceStartDate::getLicenceScheduleDetail,
+        LicenceStartDate::getStartDate
+    ).containsExactly(
+        licenceScheduleDetail,
+        date
+    );
+  }
+
+  @Test
   void saveNewLicenceStartDateFromForm() {
     var licence = new Licence();
     var licenceScheduleDetail = new LicenceScheduleDetail();
@@ -81,4 +105,18 @@ class LicenceStartDateServiceTest {
     );
   }
 
+  @Test
+  void getLicenceStartDateForm() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+
+    var startDate = LocalDate.of(2025, 1, 1);
+
+    var licenceStartDate = new LicenceStartDate();
+    licenceStartDate.setStartDate(startDate);
+
+    when(licenceStartDateRepository.findByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(Optional.of(licenceStartDate));
+
+    assertThat(licenceStartDateService.getLicenceStartDateForm(licenceScheduleDetail).getLicenceStartDate().getAsLocalDate())
+        .contains(startDate);
+  }
 }

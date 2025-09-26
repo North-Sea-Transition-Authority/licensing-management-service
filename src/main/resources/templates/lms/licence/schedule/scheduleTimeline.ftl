@@ -7,7 +7,7 @@ pageSize=PageSize.FULL_COLUMN
 extendContainerWidth=true>
 
     <@fdsSummaryList.summaryListCard headingText="Schedule details" summaryListId="summary-card-list">
-        <@fdsSummaryList.summaryListRow keyText="Start date" actionUrl="#" screenReaderActionText="">
+        <@fdsSummaryList.summaryListRow keyText="Start date" actionUrl=springUrl(updateLicenceStartDateUrl) screenReaderActionText="">
             ${timelineSummaryCardView.licenceStartDate()}
         </@fdsSummaryList.summaryListRow>
     </@fdsSummaryList.summaryListCard>

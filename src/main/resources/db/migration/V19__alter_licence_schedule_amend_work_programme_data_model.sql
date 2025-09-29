@@ -1,0 +1,16 @@
+ALTER TABLE licence_work_programme_amendment_request
+ADD COLUMN work_programme_extension_duration_days INTEGER,
+ADD COLUMN   work_programme_extension_duration_months INTEGER,
+ADD COLUMN  work_programme_extension_duration_years INTEGER,
+ADD COLUMN work_programme_amendment_information TEXT,
+ADD COLUMN duration_extension_required TEXT,
+ADD COLUMN additional_info_required TEXT;
+
+
+ALTER TABLE licence_work_programme_amendment_request_aud
+ADD COLUMN work_programme_extension_duration_days INTEGER,
+ADD COLUMN work_programme_extension_duration_months INTEGER,
+ADD COLUMN work_programme_extension_duration_years INTEGER,
+ADD COLUMN work_programme_amendment_information TEXT,
+ADD COLUMN duration_extension_required TEXT,
+ADD COLUMN additional_info_required TEXT;

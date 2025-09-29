@@ -22,7 +22,7 @@ public class SelectLicenceWorkAmendmentController {
 
   public static final String PAGE_TITLE = "What work programme activity are you requesting to amend?";
   private final SelectLicenceAmendmentFormValidator selectLicenceAmendmentFormValidator;
-  private final  SelectLicenceAmendmentFormService selectLicenceAmendmentFormService;
+  private final SelectLicenceAmendmentFormService selectLicenceAmendmentFormService;
 
   public SelectLicenceWorkAmendmentController(
       SelectLicenceAmendmentFormValidator selectLicenceAmendmentFormValidator,
@@ -57,8 +57,8 @@ public class SelectLicenceWorkAmendmentController {
     selectLicenceAmendmentFormService
         .saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail);
 
-    return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationTaskListController.class)
-        .getTaskList(scheduleWorkProgrammeApplicationDetailId, null, null));
+    return ReverseRouter.redirect(on(LicenceWorkProgrammeAmendmentController.class)
+        .renderForm(form.selectedWorkProgrammeActivityAmendmentId, scheduleWorkProgrammeApplicationDetailId, null));
   }
 
   private ModelAndView getModelAndView(SelectLicenceAmendmentForm form,

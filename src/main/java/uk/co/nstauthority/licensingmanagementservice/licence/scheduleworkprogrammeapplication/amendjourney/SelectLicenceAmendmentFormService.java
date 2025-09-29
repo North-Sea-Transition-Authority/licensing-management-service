@@ -15,22 +15,21 @@ public class SelectLicenceAmendmentFormService {
   }
 
   @Transactional
-  public void saveAmendmentForm(SelectLicenceAmendmentForm licenceScheduleExtensionForm,
+  public void saveAmendmentForm(SelectLicenceAmendmentForm licenceScheduleAmendmentForm,
                                 ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
 
-    var licenceWorkProgramAmendmentRequest = licenceWorkProgrammeAmendmentRepository
-        .findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivityId(
-            scheduleWorkProgrammeApplicationDetail,
-            licenceScheduleExtensionForm
+    var licenceWorkProgrammeAmendmentRequest = licenceWorkProgrammeAmendmentRepository
+        .findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivityId(scheduleWorkProgrammeApplicationDetail,
+            licenceScheduleAmendmentForm
                 .getSelectedWorkProgrammeActivityAmendmentId())
-        .orElse(new LicenceWorkProgramAmendmentRequest());
+        .orElse(new LicenceWorkProgrammeAmendmentRequest());
 
-    licenceWorkProgramAmendmentRequest.setScheduleWorkProgrammeApplicationDetails(
+    licenceWorkProgrammeAmendmentRequest.setScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail);
-    licenceWorkProgramAmendmentRequest.setWorkProgrammeActivityId(
-        licenceScheduleExtensionForm.getSelectedWorkProgrammeActivityAmendmentId());
+    licenceWorkProgrammeAmendmentRequest.setWorkProgrammeActivityId(
+        licenceScheduleAmendmentForm.getSelectedWorkProgrammeActivityAmendmentId());
 
-    licenceWorkProgrammeAmendmentRepository.save(licenceWorkProgramAmendmentRequest);
+    licenceWorkProgrammeAmendmentRepository.save(licenceWorkProgrammeAmendmentRequest);
   }
 
 }

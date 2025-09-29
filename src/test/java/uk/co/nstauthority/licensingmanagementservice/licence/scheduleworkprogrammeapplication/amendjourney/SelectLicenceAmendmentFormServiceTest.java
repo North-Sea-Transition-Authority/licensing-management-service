@@ -23,7 +23,7 @@ class SelectLicenceAmendmentFormServiceTest {
   LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
 
   @Captor
-  private ArgumentCaptor<LicenceWorkProgramAmendmentRequest> licenceWorkProgramAmendmentRequestArgumentCaptor;
+  private ArgumentCaptor<LicenceWorkProgrammeAmendmentRequest> licenceWorkProgrammeAmendmentRequestArgumentCaptor;
 
   @InjectMocks
   SelectLicenceAmendmentFormService selectLicenceAmendmentFormService;
@@ -36,17 +36,17 @@ class SelectLicenceAmendmentFormServiceTest {
     form.setSelectedWorkProgrammeActivityAmendmentId(UUID.randomUUID());
 
     when(licenceWorkProgrammeAmendmentRepository.findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivityId(any(),any())).thenReturn(
-        Optional.of(new LicenceWorkProgramAmendmentRequest()));
+        Optional.of(new LicenceWorkProgrammeAmendmentRequest()));
 
     selectLicenceAmendmentFormService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail);
 
-    verify(licenceWorkProgrammeAmendmentRepository).save(licenceWorkProgramAmendmentRequestArgumentCaptor.capture());
+    verify(licenceWorkProgrammeAmendmentRepository).save(licenceWorkProgrammeAmendmentRequestArgumentCaptor.capture());
 
-    var result = licenceWorkProgramAmendmentRequestArgumentCaptor.getValue();
+    var result = licenceWorkProgrammeAmendmentRequestArgumentCaptor.getValue();
 
     assertThat(result).extracting(
-        LicenceWorkProgramAmendmentRequest::getWorkProgrammeActivityId,
-        LicenceWorkProgramAmendmentRequest::getScheduleWorkProgrammeApplicationDetails
+        LicenceWorkProgrammeAmendmentRequest::getWorkProgrammeActivityId,
+        LicenceWorkProgrammeAmendmentRequest::getScheduleWorkProgrammeApplicationDetails
     ).containsExactly(
         form.getSelectedWorkProgrammeActivityAmendmentId(),
         scheduleWorkProgrammeApplicationDetail

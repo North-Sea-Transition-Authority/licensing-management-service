@@ -28,9 +28,13 @@ public class LicenceScheduleTimelineService {
   }
 
   TimelineSummaryCardView getTimelineSummaryCardView(LicenceScheduleDetail licenceScheduleDetail) {
+    var licence = licenceScheduleDetail.getLicenceSchedule().getLicence();
     var licenceStartDate = licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail);
 
-    return new TimelineSummaryCardView(DateFormatUtil.convertToDisplayText(licenceStartDate.getStartDate()));
+    return new TimelineSummaryCardView(
+        DateFormatUtil.convertToDisplayText(licenceStartDate.getStartDate()),
+        licence.getRoundIssuedOn()
+    );
   }
 
   List<TimelineActionView> getLicenceScheduleTimelineActions(LicenceScheduleDetail licenceScheduleDetail) {

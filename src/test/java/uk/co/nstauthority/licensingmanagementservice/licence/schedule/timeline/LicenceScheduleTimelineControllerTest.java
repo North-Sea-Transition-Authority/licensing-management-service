@@ -17,8 +17,9 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
@@ -43,22 +44,22 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
 
-    licence = new Licence();
-    licence.setType(LicenceType.SEAWARD_PRODUCTION);
-    licence.setLicenceReference("P1");
+    licence = LicenceTestUtil.builder()
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withLicenceReference("P1")
+        .withRoundIssuedOn("1")
+        .build();
 
-    var licenceSchedule = new LicenceSchedule();
-    licenceSchedule.setLicence(licence);
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
 
-    licenceScheduleDetail = new LicenceScheduleDetail();
-    licenceScheduleDetail.setLicenceSchedule(licenceSchedule);
+    licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
 
     when(licenceScheduleDetailService.getByIdOrThrow(LICENCE_SCHEDULE_DETAIL_ID)).thenReturn(licenceScheduleDetail);
   }
 
   @SecurityTest
   void renderLicenceScheduleTimeline() throws Exception {
-    var timelineSummaryCardView = new TimelineSummaryCardView("date");
+    var timelineSummaryCardView = new TimelineSummaryCardView("date", "1");
     var timelineActionViews = List.of(new LicenceScheduleTimelineService.TimelineActionView(LicenceScheduleTimelineAction.ADD_A_TERM, ""));
 
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);

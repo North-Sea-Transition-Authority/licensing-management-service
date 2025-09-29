@@ -27,6 +27,7 @@ public class LicenceQueryService {
           .licenceSubType()
           .licenceNo()
           .licenceRef()
+          .roundIssuedOn()
           .licensees()
           .organisationUnitId()
           .root();
@@ -57,11 +58,11 @@ public class LicenceQueryService {
 
   private List<Licence> convertPortalLicences(List<uk.co.fivium.energyportalapi.generated.types.Licence> portalLicences) {
     return portalLicences.stream()
-        .map(this::convertFromEpaLicense)
+        .map(this::convertFromEpaLicence)
         .toList();
   }
 
-  private Licence convertFromEpaLicense(uk.co.fivium.energyportalapi.generated.types.Licence portalLicence) {
+  private Licence convertFromEpaLicence(uk.co.fivium.energyportalapi.generated.types.Licence portalLicence) {
     var subType = portalLicence.getLicenceSubType() != null
         ? LicenceSubtype.fromEpaLicenceSubtype(portalLicence.getLicenceSubType())
         : null;
@@ -73,6 +74,7 @@ public class LicenceQueryService {
     licence.setLicenceNumber(portalLicence.getLicenceNo().toString());
     licence.setPrefix(portalLicence.getLicenceType());
     licence.setLicenceReference(portalLicence.getLicenceRef());
+    licence.setRoundIssuedOn(portalLicence.getRoundIssuedOn());
 
     return licence;
   }

@@ -15,6 +15,7 @@ public class LicenceTestUtil {
     private String licenceNumber;
     private String licencePrefix;
     private String licenceReference;
+    private String roundIssuedOn;
 
     private Builder() {}
 
@@ -43,6 +44,11 @@ public class LicenceTestUtil {
       return this;
     }
 
+    public Builder withRoundIssuedOn(String roundIssuedOn) {
+      this.roundIssuedOn = roundIssuedOn;
+      return this;
+    }
+
     public Licence build() {
       var licence = new Licence();
       licence.setId(id);
@@ -50,6 +56,7 @@ public class LicenceTestUtil {
       licence.setLicenceNumber(licenceNumber);
       licence.setPrefix(licencePrefix);
       licence.setLicenceReference(licenceReference);
+      licence.setRoundIssuedOn(roundIssuedOn);
 
       return licence;
     }

@@ -26,6 +26,8 @@ public class Licence {
 
   private String licenceReference;
 
+  private String roundIssuedOn;
+
   public Licence() {
   }
 
@@ -81,20 +83,31 @@ public class Licence {
     this.licenceReference = licenceReference;
   }
 
+  public String getRoundIssuedOn() {
+    return roundIssuedOn;
+  }
+
+  public void setRoundIssuedOn(String roundNumber) {
+    this.roundIssuedOn = roundNumber;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
     Licence licence = (Licence) o;
-    return Objects.equals(id,
-        licence.id) && type == licence.type && subtype == licence.subtype && Objects.equals(prefix,
-        licence.prefix) && Objects.equals(licenceNumber, licence.licenceNumber) && Objects.equals(
-        licenceReference, licence.licenceReference);
+    return Objects.equals(id, licence.id)
+        && type == licence.type
+        && subtype == licence.subtype
+        && Objects.equals(prefix, licence.prefix)
+        && Objects.equals(licenceNumber, licence.licenceNumber)
+        && Objects.equals(licenceReference, licence.licenceReference)
+        && Objects.equals(roundIssuedOn, licence.roundIssuedOn);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, type, subtype, prefix, licenceNumber, licenceReference);
+    return Objects.hash(id, type, subtype, prefix, licenceNumber, licenceReference, roundIssuedOn);
   }
 }

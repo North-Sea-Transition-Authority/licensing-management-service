@@ -10,6 +10,9 @@ extendContainerWidth=true>
         <@fdsSummaryList.summaryListRow keyText="Start date" actionUrl=springUrl(updateLicenceStartDateUrl) screenReaderActionText="">
             ${timelineSummaryCardView.licenceStartDate()}
         </@fdsSummaryList.summaryListRow>
+        <@fdsSummaryList.summaryListRowNoAction keyText="Round number">
+            ${timelineSummaryCardView.roundIssuedOn()!""}
+        </@fdsSummaryList.summaryListRowNoAction>
     </@fdsSummaryList.summaryListCard>
 
     <@fdsActionDropdown.actionDropdown dropdownButtonText="Add an event">

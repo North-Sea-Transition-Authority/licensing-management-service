@@ -48,6 +48,7 @@ class LicenceQueryServiceTest {
     licence.setPrefix("P");
     licence.setLicenceNumber("1");
     licence.setLicenceReference("P1");
+    licence.setRoundIssuedOn("1");
 
     var licence2 = new Licence();
     licence2.setId(2);
@@ -56,6 +57,7 @@ class LicenceQueryServiceTest {
     licence2.setPrefix("PEDL");
     licence2.setLicenceNumber("2");
     licence2.setLicenceReference("PEDL2");
+    licence2.setRoundIssuedOn("2");
 
     when(licenceApi.searchLicences(
         any(LicenceSearchFilter.class),
@@ -92,7 +94,8 @@ class LicenceQueryServiceTest {
         null,
         null,
         null,
-        List.of(organisationUnit, organisationUnit2)
+        List.of(organisationUnit, organisationUnit2),
+        "1"
     );
 
     var portalLicence2 = new uk.co.fivium.energyportalapi.generated.types.Licence(
@@ -106,7 +109,8 @@ class LicenceQueryServiceTest {
         null,
         null,
         null,
-        List.of(organisationUnit)
+        List.of(organisationUnit),
+        "2"
     );
 
     return List.of(portalLicence, portalLicence2);

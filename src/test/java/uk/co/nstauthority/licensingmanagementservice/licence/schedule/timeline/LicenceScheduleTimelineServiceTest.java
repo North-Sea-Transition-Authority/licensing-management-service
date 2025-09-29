@@ -16,7 +16,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeFeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
@@ -37,7 +36,13 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getTimelineSummaryCardView() {
-    var licenceScheduleDetail = new LicenceScheduleDetail();
+    var licence = LicenceTestUtil.builder()
+        .withRoundIssuedOn("1")
+        .build();
+
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+
+    var licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
 
     var licenceStartDate = new LicenceStartDate();
     licenceStartDate.setStartDate(LocalDate.of(2025, 1, 1));
@@ -46,10 +51,12 @@ class LicenceScheduleTimelineServiceTest {
 
     assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .extracting(
-            TimelineSummaryCardView::licenceStartDate
+            TimelineSummaryCardView::licenceStartDate,
+            TimelineSummaryCardView::roundIssuedOn
         )
-        .isEqualTo(
-            DateFormatUtil.convertToDisplayText(licenceStartDate.getStartDate())
+        .containsExactly(
+            DateFormatUtil.convertToDisplayText(licenceStartDate.getStartDate()),
+            licence.getRoundIssuedOn()
         );
   }
 

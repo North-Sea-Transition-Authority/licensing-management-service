@@ -35,6 +35,7 @@ public class LicenceScheduleTimelineController {
         .addObject("pageTitle", PAGE_TITLE.formatted(licenceRef))
         .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .addObject("actions", licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail))
+        .addObject("scheduleEventViews", licenceScheduleTimelineService.getLicenceScheduleEventViews(licenceScheduleDetail))
         .addObject("updateLicenceStartDateUrl", ReverseRouter.route(on(LicenceStartDateController.class)
                 .renderLicenceStartDateUpdateForm(licenceScheduleDetailId, null))
         );

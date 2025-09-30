@@ -19,8 +19,10 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
@@ -60,10 +62,12 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
   @SecurityTest
   void renderLicenceScheduleTimeline() throws Exception {
     var timelineSummaryCardView = new TimelineSummaryCardView("date", "1");
-    var timelineActionViews = List.of(new LicenceScheduleTimelineService.TimelineActionView(LicenceScheduleTimelineAction.ADD_A_TERM, ""));
+    var timelineActionViews = List.of(new TimelineActionView(LicenceScheduleTimelineAction.ADD_A_TERM, ""));
+    var scheduleEventViews = List.of(new TimelineTermView(List.of(), TermType.INITIAL, "", "", "", ""));
 
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
     when(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail)).thenReturn(timelineActionViews);
+    when(licenceScheduleTimelineService.getLicenceScheduleEventViews(licenceScheduleDetail)).thenReturn(scheduleEventViews);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceScheduleTimelineController.class).renderLicenceScheduleTimeline(LICENCE_SCHEDULE_DETAIL_ID, null)))
@@ -73,6 +77,9 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         .andExpect(view().name("lms/licence/schedule/scheduleTimeline"))
         .andExpect(model().attribute("pageTitle", LicenceScheduleTimelineController.PAGE_TITLE.formatted(licence.getLicenceReference())))
         .andExpect(model().attribute("timelineSummaryCardView", timelineSummaryCardView))
-        .andExpect(model().attribute("actions", timelineActionViews));
+        .andExpect(model().attribute("actions", timelineActionViews))
+        .andExpect(model().attribute("scheduleEventViews", scheduleEventViews))
+        .andExpect(model().attribute("updateLicenceStartDateUrl",
+            ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateUpdateForm(LICENCE_SCHEDULE_DETAIL_ID, null))));
   }
 }

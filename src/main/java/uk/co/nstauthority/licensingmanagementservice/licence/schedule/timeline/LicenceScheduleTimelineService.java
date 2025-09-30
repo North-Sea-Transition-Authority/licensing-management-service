@@ -6,11 +6,14 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationDisplayUtil;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeFeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -19,12 +22,16 @@ public class LicenceScheduleTimelineService {
 
   private final LicenceStartDateService licenceStartDateService;
   private final LicenceTypeFeatureService licenceTypeFeatureService;
+  private final LicenceScheduleTermService licenceScheduleTermService;
 
-  public LicenceScheduleTimelineService(LicenceStartDateService licenceStartDateService,
-                                        LicenceTypeFeatureService licenceTypeFeatureService
+  public LicenceScheduleTimelineService(
+      LicenceStartDateService licenceStartDateService,
+      LicenceTypeFeatureService licenceTypeFeatureService,
+      LicenceScheduleTermService licenceScheduleTermService
   ) {
     this.licenceStartDateService = licenceStartDateService;
     this.licenceTypeFeatureService = licenceTypeFeatureService;
+    this.licenceScheduleTermService = licenceScheduleTermService;
   }
 
   TimelineSummaryCardView getTimelineSummaryCardView(LicenceScheduleDetail licenceScheduleDetail) {
@@ -59,9 +66,31 @@ public class LicenceScheduleTimelineService {
     }
 
     return actions.stream()
-        .sorted(Comparator.comparing(actionView -> actionView.action.getDisplayOrder()))
+        .sorted(Comparator.comparing(actionView -> actionView.action().getDisplayOrder()))
         .toList();
   }
 
-  public record TimelineActionView(LicenceScheduleTimelineAction action, String url) {}
+  List<TimelineTermView> getLicenceScheduleEventViews(LicenceScheduleDetail licenceScheduleDetail) {
+    return licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
+        .sorted(Comparator.comparing(term -> term.getTermType().getDisplayOrder()))
+        .map(this::convertToTimelineTermView)
+        .toList();
+  }
+
+  private TimelineTermView convertToTimelineTermView(LicenceScheduleTerm licenceScheduleTerm) {
+    var dateDurationString = "%s to %s (%s)".formatted(
+        DateFormatUtil.convertToDisplayText(licenceScheduleTerm.getStartDate()),
+        DateFormatUtil.convertToDisplayText(licenceScheduleTerm.getEndDate()),
+        ThreeFieldDurationDisplayUtil.convertToDisplayText(licenceScheduleTerm.getTermDuration())
+    );
+
+    return new TimelineTermView(
+        List.of(),
+        licenceScheduleTerm.getTermType(),
+        dateDurationString,
+        DateFormatUtil.convertToDisplayText(licenceScheduleTerm.getEndDate()),
+        "#", //TODO LMS1-182: add update term link
+        "#" //TODO LMS1-187: add remove term link
+        );
+  }
 }

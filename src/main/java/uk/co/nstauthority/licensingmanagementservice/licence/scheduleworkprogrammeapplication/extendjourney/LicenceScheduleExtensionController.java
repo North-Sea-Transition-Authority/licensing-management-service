@@ -19,7 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 
 @Controller
-@RequestMapping("/licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/extension")
+@RequestMapping("/licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/extension-details")
 public class LicenceScheduleExtensionController {
 
   public static final String PAGE_TITLE = "Extension Details";
@@ -34,7 +34,7 @@ public class LicenceScheduleExtensionController {
     this.licenceScheduleExtensionFormValidator = licenceScheduleExtensionFormValidator;
   }
 
-  @GetMapping("/create")
+  @GetMapping
   public ModelAndView renderForm(
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
@@ -45,7 +45,7 @@ public class LicenceScheduleExtensionController {
     );
   }
 
-  @PostMapping("/create")
+  @PostMapping
   ModelAndView submitForm(
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,

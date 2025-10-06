@@ -45,10 +45,10 @@ class LicenceWorkProgrammeAmendmentFormServiceTest {
     licenceWorkProgrammeAmendmentRequest.setScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail);
     when(licenceWorkProgrammeAmendmentService.getAmendmentRequestByScheduleWorkProgrammeApplicationDetail(
-        any(),any())).thenReturn(Optional.of(licenceWorkProgrammeAmendmentRequest));
+        any())).thenReturn(Optional.of(licenceWorkProgrammeAmendmentRequest));
 
-    LicenceWorkProgrammeAmendmentForm actualForm = licenceWorkProgrammeAmendmentFormService.getLicenceWorkProgramAmendmentForm(
-        scheduleWorkProgrammeApplicationDetail,UUID.randomUUID());
+    LicenceWorkProgrammeAmendmentForm actualForm = licenceWorkProgrammeAmendmentFormService.getLicenceWorkProgrammeActivityAmendmentForm(
+        scheduleWorkProgrammeApplicationDetail);
 
     assertEquals(actualForm.getWorkProgrammeExtensionDuration().toThreeFieldDuration(),
         licenceWorkProgrammeAmendmentRequest.getWorkProgrammeExtensionDuration());
@@ -67,7 +67,7 @@ class LicenceWorkProgrammeAmendmentFormServiceTest {
     form.setDurationExtensionRequired(true);
     form.setAdditionalInfoRequired(true);
 
-    licenceWorkProgrammeAmendmentFormService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail,UUID.randomUUID());
+    licenceWorkProgrammeAmendmentFormService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail);
 
     verify(licenceWorkProgrammeAmendmentRepository).save(licenceWorkProgrammeAmendmentRequestArgumentCaptor.capture());
 
@@ -86,7 +86,7 @@ class LicenceWorkProgrammeAmendmentFormServiceTest {
     form.setDurationExtensionRequired(false);
     form.setAdditionalInfoRequired(false);
 
-    licenceWorkProgrammeAmendmentFormService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail,UUID.randomUUID());
+    licenceWorkProgrammeAmendmentFormService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail);
 
     verify(licenceWorkProgrammeAmendmentRepository,times(2)).save(licenceWorkProgrammeAmendmentRequestArgumentCaptor.capture());
 
@@ -112,7 +112,7 @@ class LicenceWorkProgrammeAmendmentFormServiceTest {
     form.setDurationExtensionRequired(true);
     form.setAdditionalInfoRequired(true);
 
-    licenceWorkProgrammeAmendmentFormService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail,UUID.randomUUID());
+    licenceWorkProgrammeAmendmentFormService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail);
 
     verify(licenceWorkProgrammeAmendmentRepository).save(licenceWorkProgrammeAmendmentRequestArgumentCaptor.capture());
 
@@ -137,7 +137,7 @@ class LicenceWorkProgrammeAmendmentFormServiceTest {
     form.setWorkProgrammeAmendmentInformation("testAmendmentInformation");
     form.setAdditionalInfoRequired(true);
 
-    licenceWorkProgrammeAmendmentFormService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail,UUID.randomUUID());
+    licenceWorkProgrammeAmendmentFormService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail);
 
     verify(licenceWorkProgrammeAmendmentRepository).save(licenceWorkProgrammeAmendmentRequestArgumentCaptor.capture());
 

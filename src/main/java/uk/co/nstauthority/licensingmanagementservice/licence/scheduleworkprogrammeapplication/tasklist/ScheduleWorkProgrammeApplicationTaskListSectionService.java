@@ -8,6 +8,11 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentController;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentRequest;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSubmissionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.SelectLicenceWorkAmendmentController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose.SwpApplicationRequestPurposeController;
@@ -23,20 +28,28 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
     implements TaskListSectionService<ScheduleWorkProgrammeApplicationDetail> {
 
   LicenceScheduleExtensionSubmissionService licenceScheduleExtensionSubmissionService;
+  LicenceWorkProgrammeAmendmentSubmissionService licenceWorkProgrammeAmendmentSubmissionService;
   SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository;
+  LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
 
   private boolean extensionSelection;
+  private boolean amendmentSelection;
 
   public ScheduleWorkProgrammeApplicationTaskListSectionService(
       SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository,
-      LicenceScheduleExtensionSubmissionService licenceScheduleExtensionSubmissionService) {
+      LicenceScheduleExtensionSubmissionService licenceScheduleExtensionSubmissionService,
+      LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository,
+      LicenceWorkProgrammeAmendmentSubmissionService licenceWorkProgrammeAmendmentSubmissionService) {
     this.licenceScheduleExtensionSubmissionService = licenceScheduleExtensionSubmissionService;
     this.swpApplicationRequestPurposeRepository = swpApplicationRequestPurposeRepository;
+    this.licenceWorkProgrammeAmendmentRepository = licenceWorkProgrammeAmendmentRepository;
+    this.licenceWorkProgrammeAmendmentSubmissionService = licenceWorkProgrammeAmendmentSubmissionService;
   }
 
   static final String APPLICATION_DETAILS_SECTION_NAME = "Schedule and work programme application details";
   static final String WHAT_ARE_YOU_REQUESTING_TO_DO = "What are you requesting to do?";
   static final String EXTENSION_DETAILS = "Extension Details";
+  static final String AMENDMENT_DETAILS = "Work programme amendment details";
   static final int SECTION_ORDER = 10;
 
 
@@ -53,9 +66,12 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
                 .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null))
         )));
 
-    swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(
-        scheduleWorkProgrammeApplicationDetail).ifPresent(purpose ->
-        extensionSelection = purpose.getExtendTerm() || purpose.getExtendPhaseOrTerm());
+    swpApplicationRequestPurposeRepository
+        .getByScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail)
+        .ifPresent(purpose -> {
+          extensionSelection = purpose.getExtendTerm() || purpose.getExtendPhaseOrTerm();
+          amendmentSelection = purpose.getAmendWorkProgramme();
+        });
 
     if (extensionSelection) {
       items.add(new TaskListItem(
@@ -67,6 +83,24 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
               .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null))
       ));
     }
+    if (amendmentSelection) {
+      var isSubmittable = licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionSubmittable(
+          scheduleWorkProgrammeApplicationDetail);
+      Optional<LicenceWorkProgrammeAmendmentRequest> workProgrammeApplicationDetails =
+          licenceWorkProgrammeAmendmentRepository.findByScheduleWorkProgrammeApplicationDetails(
+              scheduleWorkProgrammeApplicationDetail);
+
+      items.add(new TaskListItem(
+          AMENDMENT_DETAILS,
+          TaskListLabel.notStartedOrComplete(isSubmittable),
+          isSubmittable && workProgrammeApplicationDetails.isPresent()
+          ? ReverseRouter.route(on(LicenceWorkProgrammeAmendmentController.class).renderForm(
+          workProgrammeApplicationDetails.get().getWorkProgrammeActivityId(),
+          scheduleWorkProgrammeApplicationDetail.getId(), null))
+          : ReverseRouter.route(on(SelectLicenceWorkAmendmentController.class).renderForm(
+          scheduleWorkProgrammeApplicationDetail.getId(), null))));
+    }
+
     return Optional.of(new TaskListSection(APPLICATION_DETAILS_SECTION_NAME, SECTION_ORDER, items));
   }
 }

@@ -40,8 +40,8 @@ public class LicenceWorkProgrammeAmendmentController {
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
     return getModelAndView(
-        licenceWorkProgrammeAmendmentFormService.getLicenceWorkProgramAmendmentForm(
-            scheduleWorkProgrammeApplicationDetail, workProgrammeActivityId),
+        licenceWorkProgrammeAmendmentFormService.getLicenceWorkProgrammeActivityAmendmentForm(
+            scheduleWorkProgrammeApplicationDetail),
         scheduleWorkProgrammeApplicationDetail
     );
   }
@@ -58,8 +58,7 @@ public class LicenceWorkProgrammeAmendmentController {
       return getModelAndView(form, scheduleWorkProgrammeApplicationDetail);
     }
 
-    licenceWorkProgrammeAmendmentFormService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail,
-        workProgrammeActivityId);
+    licenceWorkProgrammeAmendmentFormService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail);
 
     return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationTaskListController.class)
         .getTaskList(scheduleWorkProgrammeApplicationDetailId, scheduleWorkProgrammeApplicationDetail, null));

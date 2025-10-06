@@ -5,7 +5,7 @@ import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
 
 @Service
-class SelectLicenceAmendmentFormValidator {
+public class SelectLicenceAmendmentFormValidator {
 
   LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
 

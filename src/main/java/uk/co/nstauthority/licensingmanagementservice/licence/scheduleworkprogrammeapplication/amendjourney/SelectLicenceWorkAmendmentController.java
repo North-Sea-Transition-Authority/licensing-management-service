@@ -38,7 +38,7 @@ public class SelectLicenceWorkAmendmentController {
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
     return getModelAndView(
-        new SelectLicenceAmendmentForm(),
+        selectLicenceAmendmentFormService.getLicenceSelectWorkProgramAmendmentForm(scheduleWorkProgrammeApplicationDetail),
         scheduleWorkProgrammeApplicationDetail
     );
   }

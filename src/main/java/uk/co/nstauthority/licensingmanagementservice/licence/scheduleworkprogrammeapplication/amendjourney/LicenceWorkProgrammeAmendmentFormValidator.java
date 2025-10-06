@@ -6,7 +6,7 @@ import org.springframework.validation.ValidationUtils;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationValidationUtil;
 
 @Service
-class LicenceWorkProgrammeAmendmentFormValidator {
+public class LicenceWorkProgrammeAmendmentFormValidator {
   public boolean isValid(LicenceWorkProgrammeAmendmentForm form, Errors errors) {
 
     if (form.isDurationExtensionRequired()) {

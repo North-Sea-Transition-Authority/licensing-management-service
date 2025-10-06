@@ -1,7 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney;
 
 import java.util.Optional;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
@@ -16,9 +15,10 @@ public class LicenceWorkProgrammeAmendmentService {
   }
 
   public Optional<LicenceWorkProgrammeAmendmentRequest> getAmendmentRequestByScheduleWorkProgrammeApplicationDetail(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail, UUID workProgrammeActivityId) {
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
     return licenceWorkProgrammeAmendmentRepository
-        .findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivityId(
-            scheduleWorkProgrammeApplicationDetail, workProgrammeActivityId);
+        .findByScheduleWorkProgrammeApplicationDetails(
+            scheduleWorkProgrammeApplicationDetail);
   }
+
 }

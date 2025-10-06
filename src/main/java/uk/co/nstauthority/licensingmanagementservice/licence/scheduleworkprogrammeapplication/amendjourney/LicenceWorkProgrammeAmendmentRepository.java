@@ -8,8 +8,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 
 @Repository
 public interface LicenceWorkProgrammeAmendmentRepository extends JpaRepository<LicenceWorkProgrammeAmendmentRequest, UUID> {
-  Optional<LicenceWorkProgrammeAmendmentRequest> findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivityId(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetails, UUID workProgrammeActivityId);
+
+  Optional<LicenceWorkProgrammeAmendmentRequest> findByScheduleWorkProgrammeApplicationDetails(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetails);
 
   boolean existsByWorkProgrammeActivityId(UUID workProgrammeActivityId);
 }

@@ -71,7 +71,7 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
 
   @SecurityTest
   void renderForm() throws Exception {
-    when(licenceWorkProgrammeAmendmentFormService.getLicenceWorkProgramAmendmentForm(any(),any())).thenReturn(
+    when(licenceWorkProgrammeAmendmentFormService.getLicenceWorkProgrammeActivityAmendmentForm(any())).thenReturn(
         new LicenceWorkProgrammeAmendmentForm());
 
     mockMvc.perform(
@@ -103,13 +103,13 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
         .andExpect(status().is3xxRedirection());
 
     verify(licenceWorkProgrammeAmendmentFormService).saveAmendmentForm(any(),
-        eq(scheduleWorkProgrammeApplicationDetail),any());
+        eq(scheduleWorkProgrammeApplicationDetail));
   }
 
   @Test
   void submitInvalidForm() throws Exception {
 
-    when(licenceWorkProgrammeAmendmentFormService.getLicenceWorkProgramAmendmentForm(any(),any())).thenReturn(
+    when(licenceWorkProgrammeAmendmentFormService.getLicenceWorkProgrammeActivityAmendmentForm(any())).thenReturn(
         new LicenceWorkProgrammeAmendmentForm());
 
 
@@ -127,7 +127,7 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
               ScheduleWorkProgrammeApplicationTaskListController.class)
               .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
 
-      verify(licenceWorkProgrammeAmendmentFormService, never()).saveAmendmentForm(any(), any(),any());
+      verify(licenceWorkProgrammeAmendmentFormService, never()).saveAmendmentForm(any(), any());
 
     }
   }

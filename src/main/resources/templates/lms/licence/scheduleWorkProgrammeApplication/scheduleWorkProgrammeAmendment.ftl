@@ -46,7 +46,7 @@
         primaryButtonText="Save and complete"
         secondaryLinkText="Cancel"
         linkSecondaryAction=true
-        linkSecondaryActionUrl="#"/>
+        linkSecondaryActionUrl=springUrl(cancelUrl)/>
     </@fdsForm.htmlForm>
 
 </@defaultPage>

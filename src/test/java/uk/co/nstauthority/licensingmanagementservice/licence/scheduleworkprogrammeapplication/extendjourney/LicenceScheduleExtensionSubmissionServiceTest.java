@@ -13,6 +13,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.validation.Errors;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentFormService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentFormValidator;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceScheduleExtensionSubmissionServiceTest {
@@ -21,6 +23,11 @@ class LicenceScheduleExtensionSubmissionServiceTest {
   LicenceScheduleExtensionFormService licenceScheduleExtensionFormService;
   @Mock
   LicenceScheduleExtensionFormValidator licenceScheduleExtensionFormValidator;
+
+  @Mock
+  LicenceWorkProgrammeAmendmentFormService licenceWorkProgrammeAmendmentFormService;
+  @Mock
+  LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator;
 
   @InjectMocks
   LicenceScheduleExtensionSubmissionService licenceScheduleExtensionSubmissionService;

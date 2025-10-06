@@ -35,7 +35,7 @@ class SelectLicenceAmendmentFormServiceTest {
     var form = new SelectLicenceAmendmentForm();
     form.setSelectedWorkProgrammeActivityAmendmentId(UUID.randomUUID());
 
-    when(licenceWorkProgrammeAmendmentRepository.findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivityId(any(),any())).thenReturn(
+    when(licenceWorkProgrammeAmendmentRepository.findByScheduleWorkProgrammeApplicationDetails(any())).thenReturn(
         Optional.of(new LicenceWorkProgrammeAmendmentRequest()));
 
     selectLicenceAmendmentFormService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail);

@@ -8,10 +8,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 public class SelectLicenceAmendmentFormService {
 
   LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
+  LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
 
   public SelectLicenceAmendmentFormService(
-      LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository) {
+      LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository,
+      LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService) {
     this.licenceWorkProgrammeAmendmentRepository = licenceWorkProgrammeAmendmentRepository;
+    this.licenceWorkProgrammeAmendmentService = licenceWorkProgrammeAmendmentService;
   }
 
   @Transactional
@@ -19,9 +22,7 @@ public class SelectLicenceAmendmentFormService {
                                 ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
 
     var licenceWorkProgrammeAmendmentRequest = licenceWorkProgrammeAmendmentRepository
-        .findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivityId(scheduleWorkProgrammeApplicationDetail,
-            licenceScheduleAmendmentForm
-                .getSelectedWorkProgrammeActivityAmendmentId())
+        .findByScheduleWorkProgrammeApplicationDetails(scheduleWorkProgrammeApplicationDetail)
         .orElse(new LicenceWorkProgrammeAmendmentRequest());
 
     licenceWorkProgrammeAmendmentRequest.setScheduleWorkProgrammeApplicationDetails(
@@ -30,6 +31,22 @@ public class SelectLicenceAmendmentFormService {
         licenceScheduleAmendmentForm.getSelectedWorkProgrammeActivityAmendmentId());
 
     licenceWorkProgrammeAmendmentRepository.save(licenceWorkProgrammeAmendmentRequest);
+  }
+
+  private SelectLicenceAmendmentForm licenceWorkProgramAmendmentToForm(
+      LicenceWorkProgrammeAmendmentRequest licenceWorkProgrammeAmendmentRequest) {
+    var form = new SelectLicenceAmendmentForm();
+    form.setSelectedWorkProgrammeActivityAmendmentId(licenceWorkProgrammeAmendmentRequest.getWorkProgrammeActivityId());
+    return form;
+  }
+
+  public SelectLicenceAmendmentForm getLicenceSelectWorkProgramAmendmentForm(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
+
+    return licenceWorkProgrammeAmendmentService
+        .getAmendmentRequestByScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail)
+        .map(this::licenceWorkProgramAmendmentToForm)
+        .orElse(new SelectLicenceAmendmentForm());
   }
 
 }

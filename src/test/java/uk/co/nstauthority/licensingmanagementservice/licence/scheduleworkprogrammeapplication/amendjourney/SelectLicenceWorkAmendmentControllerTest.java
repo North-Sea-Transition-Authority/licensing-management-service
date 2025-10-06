@@ -65,6 +65,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
   @SecurityTest
   void renderSelectAmendmentForm() throws Exception {
     when(selectLicenceAmendmentFormValidator.isValid(any(),any())).thenReturn(true);
+when(selectLicenceAmendmentFormService.getLicenceSelectWorkProgramAmendmentForm(scheduleWorkProgrammeApplicationDetail)).thenReturn(( new SelectLicenceAmendmentForm()));
 
     mockMvc.perform(
             get(ReverseRouter.route(

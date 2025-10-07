@@ -18,7 +18,6 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,8 +29,6 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.teams.Role;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
@@ -81,11 +78,6 @@ class FeedbackControllerTest extends AbstractControllerTest {
 
   @Test
   void getFeedback_assertModelProperties() throws Exception {
-    when(teamQueryService.userHasRoleInTeamType(
-        organisationUser.wuaId(),
-        TeamType.ORGANISATION,
-        Set.of(Role.EDIT_APPLICATION))
-    ).thenReturn(true);
     mockMvc.perform(get(ReverseRouter.route(on(FeedbackController.class)
             .getFeedback(null)))
             .with(user(organisationUser)))
@@ -111,11 +103,6 @@ class FeedbackControllerTest extends AbstractControllerTest {
 
   @Test
   void submitFeedback_assertRedirect() throws Exception {
-    when(teamQueryService.userHasRoleInTeamType(
-        organisationUser.wuaId(),
-        TeamType.ORGANISATION,
-        Set.of(Role.EDIT_APPLICATION))
-    ).thenReturn(true);
     mockMvc.perform(post(ReverseRouter.route(on(FeedbackController.class)
             .submitFeedback(null, null, null)))
             .with(user(organisationUser))
@@ -130,11 +117,6 @@ class FeedbackControllerTest extends AbstractControllerTest {
 
   @Test
   void submitFeedback_whenHasErrors_assertOk() throws Exception {
-    when(teamQueryService.userHasRoleInTeamType(
-        organisationUser.wuaId(),
-        TeamType.ORGANISATION,
-        Set.of(Role.EDIT_APPLICATION))
-    ).thenReturn(true);
     doAnswer(invocation -> {
       var bindingResult = (BindingResult) invocation.getArgument(1);
       bindingResult.addError(new ObjectError("error", "error"));
@@ -162,11 +144,6 @@ class FeedbackControllerTest extends AbstractControllerTest {
 
   @Test
   void getApplicationFeedback_assertModelProperties() throws Exception {
-    when(teamQueryService.userHasRoleInTeamType(
-        organisationUser.wuaId(),
-        TeamType.ORGANISATION,
-        Set.of(Role.EDIT_APPLICATION))
-    ).thenReturn(true);
     mockMvc.perform(get(ReverseRouter.route(on(FeedbackController.class)
             .getApplicationFeedback(xyzApplication, null)))
             .with(user(organisationUser)))
@@ -195,12 +172,6 @@ class FeedbackControllerTest extends AbstractControllerTest {
 
   @Test
   void submitApplicationFeedback_assertRedirect() throws Exception {
-    when(teamQueryService.userHasRoleInTeamType(
-        organisationUser.wuaId(),
-        TeamType.ORGANISATION,
-        Set.of(Role.EDIT_APPLICATION))
-    ).thenReturn(true);
-
     mockMvc.perform(post(ReverseRouter.route(on(FeedbackController.class)
             .submitApplicationFeedback(xyzApplication, null, null, null)))
             .with(user(organisationUser))
@@ -215,12 +186,6 @@ class FeedbackControllerTest extends AbstractControllerTest {
 
   @Test
   void submitApplicationFeedback_whenHasErrors_assertOk() throws Exception {
-    when(teamQueryService.userHasRoleInTeamType(
-        organisationUser.wuaId(),
-        TeamType.ORGANISATION,
-        Set.of(Role.EDIT_APPLICATION))
-    ).thenReturn(true);
-
     doAnswer(invocation -> {
       var bindingResult = (BindingResult) invocation.getArgument(1);
       bindingResult.addError(new ObjectError("error", "error"));

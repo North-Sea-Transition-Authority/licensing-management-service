@@ -8,11 +8,14 @@
 <#-- @ftlvariable name="serviceHomeUrl" type="String" -->
 <#-- @ftlvariable name="loggedInUser" type="uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail" -->
 <#-- @ftlvariable name="accessibilityStatementUrl" type="String" -->
+<#-- @ftlvariable name="feedbackPageUrl" type="String" -->
 <#-- @ftlvariable name="cookiePolicyUrl" type="String" -->
 <#-- @ftlvariable name="privacyUrl" type="String" -->
 <#-- @ftlvariable name="contactPageUrl" type="String" -->
 <#-- @ftlvariable name="notificationBanner" type="uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner" -->
 <#-- @ftlvariable name="analytics" type="uk.co.nstauthority.licensingmanagementservice.configuration.AnalyticsConfigurationProperties" -->
+
+<#assign FEEDBACK_PAGE_URL = springUrl(feedbackPageUrl) />
 
 <#macro defaultPage
   htmlTitle
@@ -79,6 +82,7 @@
         <@fdsFooter.footerMetaLink linkText="Accessibility statement" linkUrl=springUrl(accessibilityStatementUrl) />
         <@fdsFooter.footerMetaLink linkText="Contact" linkUrl=springUrl(contactPageUrl) />
         <@fdsFooter.footerMetaLink linkText="Privacy" linkUrl=privacyUrl openInNewTab=true/> <#-- Absolute url -->
+        <@fdsFooter.footerMetaLink linkText="Feedback" linkUrl=FEEDBACK_PAGE_URL/>
         <@fdsFooter.footerMetaLink linkText="Cookies" linkUrl=springUrl(cookiePolicyUrl) />
       </@fdsFooter.footerMeta>
     </#local>
@@ -104,6 +108,7 @@
     headerLogo="GOV_CREST"
     logoProductText=customerMnemonic
     phaseBanner=phaseBanner
+    phaseBannerLink=FEEDBACK_PAGE_URL
     serviceUrl=serviceHomeUrl
     homePageUrl=serviceHomeUrl
     wrapperWidth=extendContainerWidth

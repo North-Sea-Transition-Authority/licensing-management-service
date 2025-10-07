@@ -48,6 +48,7 @@ class DefaultPageControllerAdviceTest extends AbstractControllerTest {
         .hasNoNullFieldsOrProperties();
     assertThat((AnalyticsConfigurationProperties) modelMap.get("analytics")).hasNoNullFieldsOrProperties();
     assertThat(modelMap.get("accessibilityStatementUrl")).isNotNull();
+    assertThat(modelMap.get("feedbackPageUrl")).isNotNull();
     assertThat(modelMap.get("privacyUrl")).isNotNull();
     assertThat(modelMap.get("cookiePolicyUrl")).isNotNull();
     assertThat(modelMap.get("contactPageUrl")).isNotNull();

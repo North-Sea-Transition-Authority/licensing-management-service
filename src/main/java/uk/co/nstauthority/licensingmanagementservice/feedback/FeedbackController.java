@@ -11,21 +11,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTeamType;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.teams.Role;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplication;
 
 @Controller
 @RequestMapping
-@HasRolesInTeamType(value = {
-    @RolesAndTeamType(roles = {Role.EDIT_APPLICATION}, teamType = TeamType.ORGANISATION)
-})
 public class FeedbackController {
 
   public static final String PAGE_NAME = "Feedback";

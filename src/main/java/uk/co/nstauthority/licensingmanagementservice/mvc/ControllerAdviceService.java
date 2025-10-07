@@ -13,6 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.branding.CustomerConfigurat
 import uk.co.nstauthority.licensingmanagementservice.branding.ServiceConfigurationProperties;
 import uk.co.nstauthority.licensingmanagementservice.configuration.AnalyticsConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.fds.footer.FooterController;
+import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @Service
@@ -47,6 +48,8 @@ public class ControllerAdviceService {
   public void addFooterLinkModelAttributes(Object model) {
     getAttributeConsumer(model).accept("accessibilityStatementUrl",
         ReverseRouter.route(on(FooterController.class).accessibilityStatement()));
+    getAttributeConsumer(model).accept("feedbackPageUrl",
+        ReverseRouter.route(on(FeedbackController.class).getFeedback(null)));
     getAttributeConsumer(model).accept("privacyUrl", customerConfigurationProperties.privacyPolicyUrl());
     getAttributeConsumer(model).accept("cookiePolicyUrl",
         ReverseRouter.route(on(FooterController.class).cookies()));

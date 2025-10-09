@@ -8,12 +8,13 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 public enum TermType implements Displayable {
-  INITIAL(LicenceTypeGroup.PRODUCTION, "Initial Term", 1),
-  SECOND(LicenceTypeGroup.PRODUCTION, "Second Term", 2),
-  THIRD(LicenceTypeGroup.PRODUCTION, "Third Term", 3),
-  APPRAISAL(LicenceTypeGroup.CARBON_STORAGE, "Appraisal Term", 1),
-  OPERATIONAL(LicenceTypeGroup.CARBON_STORAGE, "Operational Term", 2),
-  POST_CLOSURE_PERIOD(LicenceTypeGroup.CARBON_STORAGE, "Post Closure Period", 3);
+  INITIAL(LicenceTypeGroup.PRODUCTION, "Initial Term", 10),
+  SECOND(LicenceTypeGroup.PRODUCTION, "Second Term", 20),
+  THIRD(LicenceTypeGroup.PRODUCTION, "Third Term", 30),
+  APPRAISAL(LicenceTypeGroup.CARBON_STORAGE, "Appraisal Term", 10),
+  INITIAL_CS(LicenceTypeGroup.CARBON_STORAGE, "Initial Term", 20),
+  OPERATIONAL(LicenceTypeGroup.CARBON_STORAGE, "Operational Term", 30),
+  POST_CLOSURE_PERIOD(LicenceTypeGroup.CARBON_STORAGE, "Post Closure Period", 40);
 
   private final Set<LicenceType> licenceTypes;
   private final String displayName;

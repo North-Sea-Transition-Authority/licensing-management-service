@@ -7,48 +7,51 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Service
 public class LicenceScheduleExtensionFormService {
   private final Clock clock;
   private final LicenceScheduleExtensionRepository licenceScheduleExtensionRepository;
-  private final LicenceScheduleTermRepository licenceScheduleTermRepository;
   private final LicenceScheduleExtensionService licenceScheduleExtensionService;
-  private final LicenceSchedulePhaseRepository licenceSchedulePhaseRepository;
+  private final LicenceScheduleTermService licenceScheduleTermService;
+  private final LicenceSchedulePhaseService licenceSchedulePhaseService;
 
   public LicenceScheduleExtensionFormService(
-      Clock clock, LicenceScheduleExtensionRepository licenceScheduleExtensionRepository,
-      LicenceScheduleTermRepository licenceScheduleTermRepository,
+      Clock clock,
+      LicenceScheduleExtensionRepository licenceScheduleExtensionRepository,
       LicenceScheduleExtensionService licenceScheduleExtensionService,
-      LicenceSchedulePhaseRepository licenceSchedulePhaseRepository) {
+      LicenceScheduleTermService licenceScheduleTermService,
+      LicenceSchedulePhaseService licenceSchedulePhaseService
+  ) {
     this.clock = clock;
     this.licenceScheduleExtensionRepository = licenceScheduleExtensionRepository;
-    this.licenceScheduleTermRepository = licenceScheduleTermRepository;
     this.licenceScheduleExtensionService = licenceScheduleExtensionService;
-    this.licenceSchedulePhaseRepository = licenceSchedulePhaseRepository;
+    this.licenceScheduleTermService = licenceScheduleTermService;
+    this.licenceSchedulePhaseService = licenceSchedulePhaseService;
   }
 
   public LicenceScheduleTerm getCurrentTerm(LicenceScheduleDetail licenceScheduleDetail) {
+    List<LicenceScheduleTerm> licenceScheduleTerms =
+        licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail);
 
-    List<LicenceScheduleTerm> licenceScheduleTerms = licenceScheduleTermRepository.findByLicenceScheduleDetail(
-        licenceScheduleDetail);
-
-    return licenceScheduleTerms.stream().filter(
-        term -> isCurrentlyActive(term.getStartDate(), term.getEndDate())).findFirst().orElse(null);
+    return licenceScheduleTerms.stream()
+        .filter(term -> isCurrentlyActive(term.getStartDate(), term.getEndDate()))
+        .findFirst()
+        .orElse(null);
   }
 
   public LicenceSchedulePhase getCurrentPhase(LicenceScheduleDetail licenceScheduleDetail) {
+    List<LicenceSchedulePhase> licenceSchedulePhases =
+        licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail);
 
-
-    List<LicenceSchedulePhase> licenceSchedulePhases = licenceSchedulePhaseRepository.findByLicenceScheduleDetail(
-        licenceScheduleDetail);
-
-    return licenceSchedulePhases.stream().filter(
-        phase -> isCurrentlyActive(phase.getStartDate(), phase.getEndDate())).findFirst().orElse(null);
+    return licenceSchedulePhases.stream()
+        .filter(phase -> isCurrentlyActive(phase.getStartDate(), phase.getEndDate()))
+        .findFirst()
+        .orElse(null);
   }
 
   boolean isCurrentlyActive(LocalDate startDate, LocalDate endDate) {
@@ -93,7 +96,6 @@ public class LicenceScheduleExtensionFormService {
         requestExtensionDuration.years().toString());
     form.setExplanation(licenceScheduleExtensionRequest.getExplanation());
     return form;
-
   }
 
   public LicenceScheduleExtensionForm getLicenceScheduleExtensionForm(

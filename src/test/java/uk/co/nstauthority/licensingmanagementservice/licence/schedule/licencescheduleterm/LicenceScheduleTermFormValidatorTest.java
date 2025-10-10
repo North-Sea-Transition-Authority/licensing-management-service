@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -55,7 +56,7 @@ class LicenceScheduleTermFormValidatorTest {
     var licenceScheduleTerm = new LicenceScheduleTerm();
     licenceScheduleTerm.setTermType(TermType.INITIAL);
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceScheduleTerm));
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceScheduleTerm));
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
@@ -71,6 +72,46 @@ class LicenceScheduleTermFormValidatorTest {
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
     assertThat(licenceScheduleTermFormValidator.isValid(form, bindingResult, new LicenceScheduleDetail())).isFalse();
+  }
+
+  @Test
+  void isValidUpdate() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    var licenceScheduleTerm = new LicenceScheduleTerm();
+    licenceScheduleTerm.setId(UUID.randomUUID());
+    licenceScheduleTerm.setTermType(TermType.INITIAL);
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceScheduleTerm));
+
+    var form = new LicenceScheduleTermForm();
+    form.setTermType(TermType.INITIAL);
+    form.setTermDuration(getValidDuration());
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(licenceScheduleTermFormValidator.isValidUpdate(form, bindingResult, licenceScheduleDetail, licenceScheduleTerm)).isTrue();
+  }
+
+  @Test
+  void isValidUpdate_invalid_termTypeAlreadyExists() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    var licenceScheduleTerm = new LicenceScheduleTerm();
+    licenceScheduleTerm.setId(UUID.randomUUID());
+    licenceScheduleTerm.setTermType(TermType.INITIAL);
+
+    var licenceScheduleTerm2 = new LicenceScheduleTerm();
+    licenceScheduleTerm2.setId(UUID.randomUUID());
+    licenceScheduleTerm2.setTermType(TermType.SECOND);
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceScheduleTerm, licenceScheduleTerm2));
+
+    var form = new LicenceScheduleTermForm();
+    form.setTermType(TermType.SECOND);
+    form.setTermDuration(getValidDuration());
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(licenceScheduleTermFormValidator.isValidUpdate(form, bindingResult, licenceScheduleDetail, licenceScheduleTerm)).isFalse();
   }
 
   private ThreeFieldDurationInput getValidDuration() {

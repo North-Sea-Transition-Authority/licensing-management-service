@@ -23,9 +23,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,10 +38,10 @@ class LicenceScheduleExtensionFormServiceTest {
   private LicenceScheduleExtensionRepository licenceScheduleExtensionRepository;
 
   @Mock
-  private LicenceScheduleTermRepository licenceScheduleTermRepository;
+  private LicenceScheduleTermService licenceScheduleTermService;
 
   @Mock
-  private LicenceSchedulePhaseRepository licenceSchedulePhaseRepository;
+  private LicenceSchedulePhaseService licenceSchedulePhaseService;
 
   @Mock
   private LicenceScheduleExtensionService licenceScheduleExtensionService;
@@ -94,8 +94,8 @@ class LicenceScheduleExtensionFormServiceTest {
     notCurrent.setStartDate(LocalDate.now(clock).plusYears(1));
     notCurrent.setEndDate(LocalDate.now(clock).plusYears(3));
 
-    when(licenceScheduleTermRepository.findByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(
-        List.of(currentTerm, notCurrent));
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(currentTerm, notCurrent));
 
     assertThat(licenceScheduleExtensionFormService.getCurrentTerm(licenceScheduleDetail)).isEqualTo(currentTerm);
   }
@@ -115,8 +115,8 @@ class LicenceScheduleExtensionFormServiceTest {
     laterPhase.setStartDate(LocalDate.now(clock).plusYears(1));
     laterPhase.setEndDate(LocalDate.now(clock).plusYears(3));
 
-    when(licenceSchedulePhaseRepository.findByLicenceScheduleDetail(
-        any())).thenReturn(List.of(currentPhase, laterPhase));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(any()))
+        .thenReturn(List.of(currentPhase, laterPhase));
 
     assertThat(licenceScheduleExtensionFormService.getCurrentPhase(licenceScheduleDetail)).isEqualTo(currentPhase);
   }

@@ -11,6 +11,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
@@ -39,7 +40,7 @@ class LicenceScheduleTermFormServiceTest {
     form.getTermDuration().setMonths("0");
     form.getTermDuration().setDays("0");
 
-    licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail);
+    licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail, new LicenceScheduleTerm());
 
     verify(licenceScheduleTermRepository).save(licenceScheduleTermArgumentCaptor.capture());
 
@@ -48,11 +49,13 @@ class LicenceScheduleTermFormServiceTest {
     assertThat(result).extracting(
         LicenceScheduleTerm::getLicenceScheduleDetail,
         LicenceScheduleTerm::getTermType,
-        LicenceScheduleTerm::getTermDuration
+        LicenceScheduleTerm::getTermDuration,
+        LicenceScheduleTerm::getStatus
     ).containsExactly(
         licenceScheduleDetail,
         TermType.INITIAL,
-        form.getTermDuration().toThreeFieldDuration()
+        form.getTermDuration().toThreeFieldDuration(),
+        LicenceScheduleEventStatus.ACTIVE
     );
 
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);

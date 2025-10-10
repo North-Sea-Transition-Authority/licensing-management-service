@@ -50,4 +50,10 @@ public class ThreeFieldDurationInput {
   public ThreeFieldDuration toThreeFieldDuration() {
     return new ThreeFieldDuration(Integer.parseInt(years), Integer.parseInt(months), Integer.parseInt(days));
   }
+
+  public void setFromThreeFieldDuration(ThreeFieldDuration duration) {
+    this.setDays(duration.days().toString());
+    this.setMonths(duration.months().toString());
+    this.setYears(duration.years().toString());
+  }
 }

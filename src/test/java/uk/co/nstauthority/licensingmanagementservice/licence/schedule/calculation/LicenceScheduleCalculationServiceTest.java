@@ -78,7 +78,7 @@ class LicenceScheduleCalculationServiceTest {
     licenceScheduleTerms.add(licenceScheduleTerm2);
     licenceScheduleTerms.add(licenceScheduleTerm3);
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(licenceScheduleTerms);
 
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))

@@ -1,7 +1,11 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm;
 
+import jakarta.transaction.Transactional;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Service
@@ -13,11 +17,23 @@ public class LicenceScheduleTermService {
     this.licenceScheduleTermRepository = licenceScheduleTermRepository;
   }
 
-  public List<LicenceScheduleTerm> getTermsByLicenceScheduleDetail(LicenceScheduleDetail scheduleDetail) {
-    return licenceScheduleTermRepository.findByLicenceScheduleDetail(scheduleDetail);
+  public List<LicenceScheduleTerm> getActiveTermsByLicenceScheduleDetail(LicenceScheduleDetail scheduleDetail) {
+    return licenceScheduleTermRepository.findByLicenceScheduleDetailAndStatus(scheduleDetail, LicenceScheduleEventStatus.ACTIVE);
   }
 
+  @Transactional
   public void saveTerms(List<LicenceScheduleTerm> licenceScheduleTerms) {
     licenceScheduleTermRepository.saveAll(licenceScheduleTerms);
+  }
+
+  LicenceScheduleTerm getTermByIdOrThrow(UUID id) {
+    return licenceScheduleTermRepository.findById(id)
+        .orElseThrow(() -> new LmsEntityNotFoundException("LicenceScheduleTerm not found", id.toString()));
+  }
+
+  @Transactional
+  void deleteTerm(LicenceScheduleTerm licenceScheduleTerm) {
+    licenceScheduleTerm.setStatus(LicenceScheduleEventStatus.DELETED);
+    licenceScheduleTermRepository.save(licenceScheduleTerm);
   }
 }

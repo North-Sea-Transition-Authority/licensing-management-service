@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uk.co.nstauthority.licensingmanagementservice.licence.DurationInputMapper;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Service
@@ -18,10 +17,10 @@ public class LicenceWorkProgrammeAmendmentFormService {
     this.licenceWorkProgrammeAmendmentService = licenceWorkProgrammeAmendmentService;
   }
 
-
   @Transactional
-  public void saveAmendmentForm(LicenceWorkProgrammeAmendmentForm licenceScheduleExtensionForm,
-                                ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  public void saveAmendmentForm(
+      LicenceWorkProgrammeAmendmentForm licenceScheduleExtensionForm,
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
     var licenceWorkProgrammeAmendmentRequest = licenceWorkProgrammeAmendmentRepository
         .findByScheduleWorkProgrammeApplicationDetails(
@@ -30,7 +29,6 @@ public class LicenceWorkProgrammeAmendmentFormService {
 
     licenceWorkProgrammeAmendmentRequest.setScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail);
-
     licenceWorkProgrammeAmendmentRequest.setDurationExtensionRequired(
         licenceScheduleExtensionForm.isDurationExtensionRequired());
     licenceWorkProgrammeAmendmentRequest.setAdditionalInfoRequired(
@@ -54,25 +52,24 @@ public class LicenceWorkProgrammeAmendmentFormService {
   }
 
   private LicenceWorkProgrammeAmendmentForm licenceWorkProgramAmendmentToForm(
-      LicenceWorkProgrammeAmendmentRequest licenceWorkProgrammeAmendmentRequest) {
-
+      LicenceWorkProgrammeAmendmentRequest licenceWorkProgrammeAmendmentRequest
+  ) {
     var form = new LicenceWorkProgrammeAmendmentForm();
-    var formExtensionDuration = form.getWorkProgrammeExtensionDuration();
-    var requestExtensionDuration = licenceWorkProgrammeAmendmentRequest.getWorkProgrammeExtensionDuration();
-
-    DurationInputMapper.mapToFormDuration(formExtensionDuration, requestExtensionDuration);
+    form.getWorkProgrammeExtensionDuration().setFromThreeFieldDuration(
+        licenceWorkProgrammeAmendmentRequest.getWorkProgrammeExtensionDuration());
     form.setAdditionalInfoRequired(licenceWorkProgrammeAmendmentRequest.isAdditionalInfoRequired());
     form.setDurationExtensionRequired(licenceWorkProgrammeAmendmentRequest.isDurationExtensionRequired());
     form.setWorkProgrammeAmendmentInformation(
         licenceWorkProgrammeAmendmentRequest.getWorkProgrammeAmendmentInformation());
     return form;
-
   }
 
   public LicenceWorkProgrammeAmendmentForm getLicenceWorkProgrammeActivityAmendmentForm(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
-    return licenceWorkProgrammeAmendmentService.getAmendmentRequestByScheduleWorkProgrammeApplicationDetail(
-        scheduleWorkProgrammeApplicationDetail).map(
-        this::licenceWorkProgramAmendmentToForm).orElse(new LicenceWorkProgrammeAmendmentForm());
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  ) {
+    return licenceWorkProgrammeAmendmentService
+        .getAmendmentRequestByScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail)
+        .map(this::licenceWorkProgramAmendmentToForm)
+        .orElse(new LicenceWorkProgrammeAmendmentForm());
   }
 }

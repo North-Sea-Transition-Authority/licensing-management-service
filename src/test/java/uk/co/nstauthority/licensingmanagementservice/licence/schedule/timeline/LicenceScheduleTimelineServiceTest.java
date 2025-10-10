@@ -6,6 +6,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
@@ -99,12 +101,14 @@ class LicenceScheduleTimelineServiceTest {
   @Test
   void getLicenceScheduleEventViews() {
     var term = new LicenceScheduleTerm();
+    term.setId(UUID.randomUUID());
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
 
     var term2 = new LicenceScheduleTerm();
+    term2.setId(UUID.randomUUID());
     term2.setTermType(TermType.SECOND);
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
@@ -115,8 +119,8 @@ class LicenceScheduleTimelineServiceTest {
         TermType.INITIAL,
         "1 January 2025 to 31 December 2025 (1 year)",
         "31 December 2025",
-        "#",
-        "#"
+        ReverseRouter.route(on(LicenceScheduleTermController.class).renderUpdateTermForm(term.getId())),
+        ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term.getId()))
     );
 
     var termView2 = new TimelineTermView(
@@ -124,11 +128,11 @@ class LicenceScheduleTimelineServiceTest {
         TermType.SECOND,
         "1 January 2026 to 31 December 2026 (1 year)",
         "31 December 2026",
-        "#",
-        "#"
+        ReverseRouter.route(on(LicenceScheduleTermController.class).renderUpdateTermForm(term2.getId())),
+        ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term2.getId()))
     );
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
 
     assertThat(licenceScheduleTimelineService.getLicenceScheduleEventViews(licenceScheduleDetail))
         .usingRecursiveComparison()

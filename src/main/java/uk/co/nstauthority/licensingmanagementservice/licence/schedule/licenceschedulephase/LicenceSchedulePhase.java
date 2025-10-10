@@ -15,6 +15,7 @@ import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
@@ -47,6 +48,9 @@ public class LicenceSchedulePhase {
   private LocalDate endDate;
 
   private String comments;
+
+  @Enumerated(EnumType.STRING)
+  private LicenceScheduleEventStatus status;
 
   public UUID getId() {
     return id;
@@ -110,5 +114,13 @@ public class LicenceSchedulePhase {
 
   public void setLicenceScheduleTerm(LicenceScheduleTerm licenceScheduleTerm) {
     this.licenceScheduleTerm = licenceScheduleTerm;
+  }
+
+  public LicenceScheduleEventStatus getStatus() {
+    return status;
+  }
+
+  public void setStatus(LicenceScheduleEventStatus status) {
+    this.status = status;
   }
 }

@@ -11,6 +11,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
@@ -50,12 +51,14 @@ class LicenceSchedulePhaseFormServiceTest {
         LicenceSchedulePhase::getLicenceScheduleDetail,
         LicenceSchedulePhase::getPhaseType,
         LicenceSchedulePhase::getPhaseDuration,
-        LicenceSchedulePhase::getComments
+        LicenceSchedulePhase::getComments,
+        LicenceSchedulePhase::getStatus
     ).containsExactly(
         licenceScheduleDetail,
         PhaseType.PHASE_A,
         form.getPhaseDuration().toThreeFieldDuration(),
-        form.getComments()
+        form.getComments(),
+        LicenceScheduleEventStatus.ACTIVE
     );
 
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);

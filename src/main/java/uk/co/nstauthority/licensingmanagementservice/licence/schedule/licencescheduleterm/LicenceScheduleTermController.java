@@ -17,21 +17,24 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.L
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
-@RequestMapping("/licence/schedule/{licenceScheduleDetailId}/term")
+@RequestMapping("/licence/schedule")
 public class LicenceScheduleTermController {
 
   private final LicenceScheduleTermFormService licenceScheduleTermFormService;
   private final LicenceScheduleTermFormValidator licenceScheduleTermFormValidator;
+  private final LicenceScheduleTermService licenceScheduleTermService;
 
   public LicenceScheduleTermController(
       LicenceScheduleTermFormService licenceScheduleTermFormService,
-      LicenceScheduleTermFormValidator licenceScheduleTermFormValidator
+      LicenceScheduleTermFormValidator licenceScheduleTermFormValidator,
+      LicenceScheduleTermService licenceScheduleTermService
   ) {
     this.licenceScheduleTermFormService = licenceScheduleTermFormService;
     this.licenceScheduleTermFormValidator = licenceScheduleTermFormValidator;
+    this.licenceScheduleTermService = licenceScheduleTermService;
   }
 
-  @GetMapping("/create")
+  @GetMapping("/{licenceScheduleDetailId}/term/create")
   public ModelAndView renderAddNewTermForm(
       @PathVariable UUID licenceScheduleDetailId,
       LicenceScheduleDetail licenceScheduleDetail
@@ -39,7 +42,7 @@ public class LicenceScheduleTermController {
     return getScheduleTermModelAndView(new LicenceScheduleTermForm(), licenceScheduleDetail);
   }
 
-  @PostMapping("/create")
+  @PostMapping("/{licenceScheduleDetailId}/term/create")
   ModelAndView submitAddNewTermForm(
       @PathVariable UUID licenceScheduleDetailId,
       LicenceScheduleDetail licenceScheduleDetail,
@@ -50,7 +53,35 @@ public class LicenceScheduleTermController {
       return getScheduleTermModelAndView(form, licenceScheduleDetail);
     }
 
-    licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail);
+    licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail, new LicenceScheduleTerm());
+
+    return ReverseRouter.redirect(on(LicenceScheduleTimelineController.class)
+        .renderLicenceScheduleTimeline(licenceScheduleDetail.getId(), null));
+  }
+
+  @GetMapping("/term/{licenceScheduleTermId}/update")
+  public ModelAndView renderUpdateTermForm(
+      @PathVariable UUID licenceScheduleTermId
+  ) {
+    var term = licenceScheduleTermService.getTermByIdOrThrow(licenceScheduleTermId);
+    var form = licenceScheduleTermFormService.getTermForm(term);
+    return getScheduleTermModelAndView(form, term.getLicenceScheduleDetail());
+  }
+
+  @PostMapping("/term/{licenceScheduleTermId}/update")
+  ModelAndView submitUpdateTermForm(
+      @PathVariable UUID licenceScheduleTermId,
+      @ModelAttribute("form") LicenceScheduleTermForm form,
+      BindingResult bindingResult
+  ) {
+    var term = licenceScheduleTermService.getTermByIdOrThrow(licenceScheduleTermId);
+    var licenceScheduleDetail = term.getLicenceScheduleDetail();
+
+    if (!licenceScheduleTermFormValidator.isValidUpdate(form, bindingResult, licenceScheduleDetail, term)) {
+      return getScheduleTermModelAndView(form, licenceScheduleDetail);
+    }
+
+    licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail, term);
 
     return ReverseRouter.redirect(on(LicenceScheduleTimelineController.class)
         .renderLicenceScheduleTimeline(licenceScheduleDetail.getId(), null));

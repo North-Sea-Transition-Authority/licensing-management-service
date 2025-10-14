@@ -36,4 +36,9 @@ public class LicenceScheduleService {
     return licenceScheduleRepository.save(licenceSchedule);
   }
 
+  @Transactional
+  public Iterable<LicenceSchedule> saveLicenceSchedules(List<LicenceSchedule> licenceSchedules) {
+    return licenceScheduleRepository.saveAll(licenceSchedules);
+  }
+
 }

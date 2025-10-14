@@ -22,8 +22,8 @@ public class LicenceScheduleTermService {
   }
 
   @Transactional
-  public void saveTerms(List<LicenceScheduleTerm> licenceScheduleTerms) {
-    licenceScheduleTermRepository.saveAll(licenceScheduleTerms);
+  public Iterable<LicenceScheduleTerm> saveTerms(List<LicenceScheduleTerm> licenceScheduleTerms) {
+    return licenceScheduleTermRepository.saveAll(licenceScheduleTerms);
   }
 
   LicenceScheduleTerm getTermByIdOrThrow(UUID id) {

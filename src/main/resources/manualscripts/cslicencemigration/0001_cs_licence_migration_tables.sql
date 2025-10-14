@@ -11,3 +11,17 @@ CREATE TABLE lms.cs_licence_org_mapping (
     organisation_group_id INTEGER,
     organisation_group_name TEXT
 );
+
+CREATE TABLE lms.cs_start_date_migration_extract (
+    licence_ref TEXT,
+    start_date TEXT
+);
+
+CREATE TABLE lms.cs_term_migration_extract (
+    id INTEGER,
+    licence_ref TEXT,
+    term TEXT,
+    years INTEGER,
+    months INTEGER,
+    days INTEGER
+);

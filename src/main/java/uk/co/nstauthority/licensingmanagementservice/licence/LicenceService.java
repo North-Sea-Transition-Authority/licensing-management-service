@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence;
 import jakarta.transaction.Transactional;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 
@@ -29,6 +30,10 @@ public class LicenceService {
       String licenceNumber
   ) {
     return licenceRepository.existsByTypeAndLicenceNumber(licenceType, licenceNumber);
+  }
+
+  public Optional<Licence> findLicenceByReference(String licenceReference) {
+    return licenceRepository.findByLicenceReference(licenceReference);
   }
 
   @Transactional

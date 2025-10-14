@@ -2,6 +2,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -52,6 +55,39 @@ class LicenceServiceTest {
     licenceService.licenceNumberExistsForType(LicenceType.CARBON_STORAGE, "001");
 
     verify(licenceRepository).existsByTypeAndLicenceNumber(LicenceType.CARBON_STORAGE, "001");
+  }
+
+  @Test
+  void findLicenceByReference_returnsLicence_whenFound() {
+    Licence licence = new Licence();
+    licence.setLicenceReference("CS123");
+    when(licenceRepository.findByLicenceReference("CS123"))
+        .thenReturn(Optional.of(licence));
+
+    Optional<Licence> result = licenceService.findLicenceByReference("CS123");
+
+    assertTrue(result.isPresent());
+    assertEquals("CS123", result.get().getLicenceReference());
+  }
+
+  @Test
+  void findLicenceByReference_returnsEmpty_whenNotFound() {
+    when(licenceRepository.findByLicenceReference("NOT_FOUND"))
+        .thenReturn(Optional.empty());
+
+    Optional<Licence> result = licenceService.findLicenceByReference("NOT_FOUND");
+
+    assertFalse(result.isPresent());
+  }
+
+  @Test
+  void findLicenceByReference_returnsEmpty_whenReferenceIsNull() {
+    when(licenceRepository.findByLicenceReference(null))
+        .thenReturn(Optional.empty());
+
+    Optional<Licence> result = licenceService.findLicenceByReference(null);
+
+    assertFalse(result.isPresent());
   }
 
   @Test

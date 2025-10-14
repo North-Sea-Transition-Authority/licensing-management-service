@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail;
 
 import jakarta.transaction.Transactional;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
@@ -47,5 +48,10 @@ public class LicenceScheduleDetailService {
     licenceScheduleDetail.setLicenceSchedule(licenceSchedule);
 
     return licenceScheduleDetailRepository.save(licenceScheduleDetail);
+  }
+
+  @Transactional
+  public void saveLicenceScheduleDetails(List<LicenceScheduleDetail> licenceScheduleDetails) {
+    licenceScheduleDetailRepository.saveAll(licenceScheduleDetails);
   }
 }

@@ -47,8 +47,7 @@ public enum LicenceTypeFeature {
   WORK_PROGRAMMES_TERM_TIED(EnumSet.of(
       LicenceTypeGroup.CARBON_STORAGE
   ), EnumSet.of(
-      TermType.APPRAISAL,
-      TermType.INITIAL_CS
+      TermType.APPRAISAL
   )),
   CAN_CREATE_SCHEDULE_WORK_PROGRAMME_APPLICATIONS(EnumSet.of(
       LicenceTypeGroup.PRODUCTION,

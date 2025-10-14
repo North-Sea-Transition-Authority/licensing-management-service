@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate;
 
 import jakarta.transaction.Transactional;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
@@ -46,6 +47,11 @@ public class LicenceStartDateService {
   public LicenceStartDate saveNewLicenceStartDateFromForm(LicenceStartDateForm form, Licence licence) {
     var licenceScheduleDetail = licenceScheduleDetailService.createNewLicenceScheduleEntitiesForLicence(licence);
     return saveOrUpdateLicenceStartDateFromForm(form, licenceScheduleDetail);
+  }
+
+  @Transactional
+  public List<LicenceStartDate> saveLicenceStartDates(List<LicenceStartDate> licenceStartDates) {
+    return licenceStartDateRepository.saveAll(licenceStartDates);
   }
 
   public LicenceStartDateForm getLicenceStartDateForm(LicenceScheduleDetail licenceScheduleDetail) {

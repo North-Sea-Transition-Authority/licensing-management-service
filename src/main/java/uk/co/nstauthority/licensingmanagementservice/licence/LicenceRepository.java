@@ -13,4 +13,6 @@ public interface LicenceRepository extends JpaRepository<Licence, Integer> {
   List<Licence> findAllByLicenceReferenceContainingIgnoreCase(String licenceReference);
 
   boolean existsByTypeAndLicenceNumber(LicenceType type, String licenceNumber);
+
+  Optional<Licence> findByLicenceReference(String licenceReference);
 }

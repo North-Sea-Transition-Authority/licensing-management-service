@@ -26,6 +26,7 @@ class TopNavigationServiceTest {
     assertThat(topNavigationItems).containsExactly(
         TopNavigationItem.WORK_AREA,
         TopNavigationItem.LICENCE_SEARCH,
+        TopNavigationItem.CREATE_LICENCE,
         TopNavigationItem.TEAMS
     );
   }

@@ -46,7 +46,7 @@ public class LicenceController {
   }
 
   @GetMapping("/new")
-  ModelAndView renderNewLicenceForm() {
+  public ModelAndView renderNewLicenceForm() {
     return getNewLicenceModelAndView(new NewLicenceForm());
   }
 

@@ -36,7 +36,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
   private SelectLicenceAmendmentFormValidator selectLicenceAmendmentFormValidator;
 
   @MockitoBean
-  private SelectLicenceAmendmentFormService selectLicenceAmendmentFormService;
+  private SelectLicenceAmendmentService selectLicenceAmendmentService;
 
 
   private ServiceUserDetail organisationUser;
@@ -65,7 +65,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
   @SecurityTest
   void renderSelectAmendmentForm() throws Exception {
     when(selectLicenceAmendmentFormValidator.isValid(any(),any())).thenReturn(true);
-when(selectLicenceAmendmentFormService.getLicenceSelectWorkProgramAmendmentForm(scheduleWorkProgrammeApplicationDetail)).thenReturn(( new SelectLicenceAmendmentForm()));
+    when(selectLicenceAmendmentService.getLicenceSelectWorkProgramAmendmentForm(scheduleWorkProgrammeApplicationDetail)).thenReturn((new SelectLicenceAmendmentForm()));
 
     mockMvc.perform(
             get(ReverseRouter.route(
@@ -96,7 +96,7 @@ when(selectLicenceAmendmentFormService.getLicenceSelectWorkProgramAmendmentForm(
 
         )
         .andExpect(status().is3xxRedirection());
-    verify(selectLicenceAmendmentFormService).saveAmendmentForm(any(), any());
+    verify(selectLicenceAmendmentService).saveAmendmentForm(any(), any(),any());
   }
 
 
@@ -119,7 +119,7 @@ when(selectLicenceAmendmentFormService.getLicenceSelectWorkProgramAmendmentForm(
             ScheduleWorkProgrammeApplicationTaskListController.class)
             .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
 
-    verify(selectLicenceAmendmentFormService, never()).saveAmendmentForm(any(), any());
+    verify(selectLicenceAmendmentService, never()).saveAmendmentForm(any(), any(),any());
 
   }
 }

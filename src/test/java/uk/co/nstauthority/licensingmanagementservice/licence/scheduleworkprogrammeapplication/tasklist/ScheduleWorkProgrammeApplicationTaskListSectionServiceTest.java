@@ -14,10 +14,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentRepository;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentRequest;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSubmissionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSummaryController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.SelectLicenceWorkAmendmentController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionSubmissionService;
@@ -156,8 +155,6 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
     swpApplicationRequestPurpose.setAmendWorkProgramme(true);
     when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
         Optional.of(swpApplicationRequestPurpose));
-    when (licenceWorkProgrammeAmendmentRepository.findByScheduleWorkProgrammeApplicationDetails(
-            any())).thenReturn(Optional.of(new LicenceWorkProgrammeAmendmentRequest()));
     when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionSubmittable(any())).thenReturn(true);
 
     var application = new ScheduleWorkProgrammeApplicationDetail();
@@ -177,12 +174,16 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
                     TaskListLabel.NOT_COMPLETE,
-                    ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).renderForm(null, null))
+                    ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).renderForm(
+                        null,
+                        null))
                 ),
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.AMENDMENT_DETAILS,
                     TaskListLabel.COMPLETE,
-                    ReverseRouter.route(on(LicenceWorkProgrammeAmendmentController.class).renderForm(null,null, null))
+                    ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class).renderForm(
+                        null,
+                        null))
                 )
             ),
             ScheduleWorkProgrammeApplicationTaskListSectionService.APPLICATION_DETAILS_SECTION_NAME,
@@ -196,8 +197,6 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
     swpApplicationRequestPurpose.setAmendWorkProgramme(true);
     when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
         Optional.of(swpApplicationRequestPurpose));
-    when (licenceWorkProgrammeAmendmentRepository.findByScheduleWorkProgrammeApplicationDetails(
-        any())).thenReturn(Optional.of(new LicenceWorkProgrammeAmendmentRequest()));
     when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionSubmittable(any())).thenReturn(false);
 
     var application = new ScheduleWorkProgrammeApplicationDetail();

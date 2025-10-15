@@ -10,6 +10,11 @@ public class ThreeFieldDurationDisplayUtil {
   }
 
   public static String convertToDisplayText(ThreeFieldDuration duration) {
+
+    if (duration == null) {
+      return "";
+    }
+
     String durationDisplayText = "";
 
     durationDisplayText += formatDurationText(duration.years(), YEAR);

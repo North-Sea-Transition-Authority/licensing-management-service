@@ -33,8 +33,8 @@ public class LicenceWorkProgrammeAmendmentRequest {
 
   private String workProgrammeAmendmentInformation;
 
-  private boolean durationExtensionRequired;
-  private boolean additionalInfoRequired;
+  private Boolean workProgrammeCompletionDateChangeRequested;
+  private Boolean workProgrammeChangeRequested;
 
   public UUID getId() {
     return id;
@@ -77,19 +77,19 @@ public class LicenceWorkProgrammeAmendmentRequest {
     this.workProgrammeActivityId = workProgrammeActivityId;
   }
 
-  public boolean isDurationExtensionRequired() {
-    return durationExtensionRequired;
+  public Boolean getWorkProgrammeCompletionDateChangeRequested() {
+    return workProgrammeCompletionDateChangeRequested;
   }
 
-  public void setDurationExtensionRequired(boolean durationExtensionRequired) {
-    this.durationExtensionRequired = durationExtensionRequired;
+  public void setWorkProgrammeCompletionDateChangeRequested(Boolean durationExtensionRequired) {
+    this.workProgrammeCompletionDateChangeRequested = durationExtensionRequired;
   }
 
-  public boolean isAdditionalInfoRequired() {
-    return additionalInfoRequired;
+  public Boolean getWorkProgrammeChangeRequested() {
+    return workProgrammeChangeRequested;
   }
 
-  public void setAdditionalInfoRequired(boolean additionalInfoRequired) {
-    this.additionalInfoRequired = additionalInfoRequired;
+  public void setWorkProgrammeChangeRequested(Boolean additionalInfoRequired) {
+    this.workProgrammeChangeRequested = additionalInfoRequired;
   }
 }

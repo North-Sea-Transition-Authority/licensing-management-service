@@ -1,0 +1,11 @@
+ALTER TABLE licence_work_programme_amendment_request
+    RENAME COLUMN duration_extension_required TO work_programme_completion_date_change_requested;
+
+ALTER TABLE licence_work_programme_amendment_request
+    RENAME COLUMN additional_info_required TO work_programme_change_requested;
+
+ALTER TABLE licence_work_programme_amendment_request_aud
+    RENAME COLUMN duration_extension_required TO work_programme_completion_date_change_requested;
+
+ALTER TABLE licence_work_programme_amendment_request_aud
+    RENAME COLUMN additional_info_required TO work_programme_change_requested;

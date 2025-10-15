@@ -1,26 +1,26 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney;
 
+import java.util.List;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.BeanPropertyBindingResult;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Service
 public class LicenceWorkProgrammeAmendmentSubmissionService {
-  private final LicenceWorkProgrammeAmendmentFormService licenceWorkProgrammeAmendmentFormService;
-  private final LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator;
+
+  private final LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
 
   public LicenceWorkProgrammeAmendmentSubmissionService(
-      LicenceWorkProgrammeAmendmentFormService licenceWorkProgrammeAmendmentFormService,
-      LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator) {
-    this.licenceWorkProgrammeAmendmentFormService = licenceWorkProgrammeAmendmentFormService;
-    this.licenceWorkProgrammeAmendmentFormValidator = licenceWorkProgrammeAmendmentFormValidator;
+      LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository) {
+    this.licenceWorkProgrammeAmendmentRepository = licenceWorkProgrammeAmendmentRepository;
   }
 
   public boolean isAmendmentSectionSubmittable(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
-    var form = licenceWorkProgrammeAmendmentFormService.getLicenceWorkProgrammeActivityAmendmentForm(
-        scheduleWorkProgrammeApplicationDetail);
-    var bindingResult = new BeanPropertyBindingResult(form, "form");
-    return licenceWorkProgrammeAmendmentFormValidator.isValid(form, bindingResult);
+
+    List<LicenceWorkProgrammeAmendmentRequest> workProgrammeApplicationDetails =
+        licenceWorkProgrammeAmendmentRepository.findAllByScheduleWorkProgrammeApplicationDetails(
+            scheduleWorkProgrammeApplicationDetail);
+
+    return !workProgrammeApplicationDetails.isEmpty();
   }
 }

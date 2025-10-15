@@ -1,0 +1,2 @@
+ALTER TABLE licence_work_programme_amendment_request_aud
+ALTER COLUMN schedule_work_programme_application_details_id DROP NOT NULL;

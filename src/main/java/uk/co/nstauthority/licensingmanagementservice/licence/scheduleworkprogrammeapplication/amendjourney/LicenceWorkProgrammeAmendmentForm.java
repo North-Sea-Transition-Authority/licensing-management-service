@@ -4,8 +4,8 @@ import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFi
 
 public class LicenceWorkProgrammeAmendmentForm {
 
-  private boolean durationExtensionRequired;
-  private boolean additionalInfoRequired;
+  private Boolean durationExtensionRequired;
+  private Boolean additionalInfoRequired;
 
   private ThreeFieldDurationInput workProgrammeExtensionDuration = new ThreeFieldDurationInput(
       "workProgrammeExtensionDuration", "extension");
@@ -28,19 +28,19 @@ public class LicenceWorkProgrammeAmendmentForm {
     this.workProgrammeAmendmentInformation = workProgrammeAmendmentInformation;
   }
 
-  public boolean isDurationExtensionRequired() {
+  public Boolean getDurationExtensionRequired() {
     return durationExtensionRequired;
   }
 
-  public void setDurationExtensionRequired(boolean durationExtensionRequired) {
+  public void setDurationExtensionRequired(Boolean durationExtensionRequired) {
     this.durationExtensionRequired = durationExtensionRequired;
   }
 
-  public boolean isAdditionalInfoRequired() {
+  public Boolean getAdditionalInfoRequired() {
     return additionalInfoRequired;
   }
 
-  public void setAdditionalInfoRequired(boolean additionalInfoRequired) {
+  public void setAdditionalInfoRequired(Boolean additionalInfoRequired) {
     this.additionalInfoRequired = additionalInfoRequired;
   }
 }

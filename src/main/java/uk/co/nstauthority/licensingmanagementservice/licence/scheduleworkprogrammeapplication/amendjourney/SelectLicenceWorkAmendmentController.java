@@ -22,14 +22,14 @@ public class SelectLicenceWorkAmendmentController {
 
   public static final String PAGE_TITLE = "What work programme activity are you requesting to amend?";
   private final SelectLicenceAmendmentFormValidator selectLicenceAmendmentFormValidator;
-  private final SelectLicenceAmendmentFormService selectLicenceAmendmentFormService;
+  private final SelectLicenceAmendmentService selectLicenceAmendmentService;
 
   public SelectLicenceWorkAmendmentController(
       SelectLicenceAmendmentFormValidator selectLicenceAmendmentFormValidator,
-      SelectLicenceAmendmentFormService selectLicenceAmendmentFormService
+      SelectLicenceAmendmentService selectLicenceAmendmentService
   ) {
     this.selectLicenceAmendmentFormValidator = selectLicenceAmendmentFormValidator;
-    this.selectLicenceAmendmentFormService = selectLicenceAmendmentFormService;
+    this.selectLicenceAmendmentService = selectLicenceAmendmentService;
   }
 
   @GetMapping("/create")
@@ -38,7 +38,7 @@ public class SelectLicenceWorkAmendmentController {
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
     return getModelAndView(
-        selectLicenceAmendmentFormService.getLicenceSelectWorkProgramAmendmentForm(scheduleWorkProgrammeApplicationDetail),
+        selectLicenceAmendmentService.getLicenceSelectWorkProgramAmendmentForm(scheduleWorkProgrammeApplicationDetail),
         scheduleWorkProgrammeApplicationDetail
     );
   }
@@ -54,8 +54,9 @@ public class SelectLicenceWorkAmendmentController {
       return getModelAndView(form, scheduleWorkProgrammeApplicationDetail);
     }
 
-    selectLicenceAmendmentFormService
-        .saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail);
+    selectLicenceAmendmentService
+        .saveAmendmentForm(form.getSelectedWorkProgrammeActivityAmendmentId(), form,
+        scheduleWorkProgrammeApplicationDetail);
 
     return ReverseRouter.redirect(on(LicenceWorkProgrammeAmendmentController.class)
         .renderForm(form.selectedWorkProgrammeActivityAmendmentId, scheduleWorkProgrammeApplicationDetailId, null));

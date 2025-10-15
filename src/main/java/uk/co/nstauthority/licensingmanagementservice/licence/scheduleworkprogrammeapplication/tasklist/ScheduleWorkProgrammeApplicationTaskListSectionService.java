@@ -8,10 +8,9 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentRepository;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentRequest;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSubmissionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSummaryController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.SelectLicenceWorkAmendmentController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionSubmissionService;
@@ -86,17 +85,13 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
     if (amendmentSelection) {
       var isSubmittable = licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionSubmittable(
           scheduleWorkProgrammeApplicationDetail);
-      Optional<LicenceWorkProgrammeAmendmentRequest> workProgrammeApplicationDetails =
-          licenceWorkProgrammeAmendmentRepository.findByScheduleWorkProgrammeApplicationDetails(
-              scheduleWorkProgrammeApplicationDetail);
 
       items.add(new TaskListItem(
           AMENDMENT_DETAILS,
           TaskListLabel.notStartedOrComplete(isSubmittable),
-          isSubmittable && workProgrammeApplicationDetails.isPresent()
-          ? ReverseRouter.route(on(LicenceWorkProgrammeAmendmentController.class).renderForm(
-          workProgrammeApplicationDetails.get().getWorkProgrammeActivityId(),
-          scheduleWorkProgrammeApplicationDetail.getId(), null))
+          isSubmittable
+          ? ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class).renderForm(
+          scheduleWorkProgrammeApplicationDetail.getId(), scheduleWorkProgrammeApplicationDetail))
           : ReverseRouter.route(on(SelectLicenceWorkAmendmentController.class).renderForm(
           scheduleWorkProgrammeApplicationDetail.getId(), null))));
     }

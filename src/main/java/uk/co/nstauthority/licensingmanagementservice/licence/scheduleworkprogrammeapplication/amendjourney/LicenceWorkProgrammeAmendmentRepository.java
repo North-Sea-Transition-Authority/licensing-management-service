@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,7 +10,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 @Repository
 public interface LicenceWorkProgrammeAmendmentRepository extends JpaRepository<LicenceWorkProgrammeAmendmentRequest, UUID> {
 
-  Optional<LicenceWorkProgrammeAmendmentRequest> findByScheduleWorkProgrammeApplicationDetails(
+  Optional<LicenceWorkProgrammeAmendmentRequest> findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivityId(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetails, UUID workProgrammeActivityId);
+
+  List<LicenceWorkProgrammeAmendmentRequest> findAllByScheduleWorkProgrammeApplicationDetails(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetails);
+
+  boolean existsByScheduleWorkProgrammeApplicationDetails(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetails);
 
   boolean existsByWorkProgrammeActivityId(UUID workProgrammeActivityId);

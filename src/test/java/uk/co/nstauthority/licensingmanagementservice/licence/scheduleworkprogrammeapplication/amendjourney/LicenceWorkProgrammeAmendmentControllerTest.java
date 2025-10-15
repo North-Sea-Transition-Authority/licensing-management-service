@@ -23,7 +23,6 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListSectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -31,9 +30,6 @@ import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceWorkProgrammeAmendmentController.class)
 class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest {
-
-  @MockitoBean
-  private LicenceWorkProgrammeAmendmentFormService licenceWorkProgrammeAmendmentFormService;
 
   @MockitoBean
   private LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
@@ -71,7 +67,7 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
 
   @SecurityTest
   void renderForm() throws Exception {
-    when(licenceWorkProgrammeAmendmentFormService.getLicenceWorkProgrammeActivityAmendmentForm(any())).thenReturn(
+    when(licenceWorkProgrammeAmendmentService.getLicenceWorkProgrammeActivityAmendmentForm(any(), any())).thenReturn(
         new LicenceWorkProgrammeAmendmentForm());
 
     mockMvc.perform(
@@ -84,9 +80,8 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeAmendment"))
         .andExpect(model().attribute("pageTitle", "Work programme amendments"))
-        .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
-            ScheduleWorkProgrammeApplicationTaskListController.class)
-            .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
+        .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class)
+            .renderForm(scheduleWorkProgrammeApplicationDetail.getId(),null)))));
   }
 
   @Test
@@ -102,14 +97,14 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(licenceWorkProgrammeAmendmentFormService).saveAmendmentForm(any(),
-        eq(scheduleWorkProgrammeApplicationDetail));
+    verify(licenceWorkProgrammeAmendmentService).saveAmendmentForm(any(),
+        eq(scheduleWorkProgrammeApplicationDetail), any());
   }
 
   @Test
   void submitInvalidForm() throws Exception {
 
-    when(licenceWorkProgrammeAmendmentFormService.getLicenceWorkProgrammeActivityAmendmentForm(any())).thenReturn(
+    when(licenceWorkProgrammeAmendmentService.getLicenceWorkProgrammeActivityAmendmentForm(any(), any())).thenReturn(
         new LicenceWorkProgrammeAmendmentForm());
 
 
@@ -123,11 +118,10 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
           .andExpect(status().isOk())
           .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeAmendment"))
           .andExpect(model().attribute("pageTitle", "Work programme amendments"))
-          .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
-              ScheduleWorkProgrammeApplicationTaskListController.class)
-              .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
+          .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class)
+              .renderForm(scheduleWorkProgrammeApplicationDetail.getId(),null)))));
 
-      verify(licenceWorkProgrammeAmendmentFormService, never()).saveAmendmentForm(any(), any());
+      verify(licenceWorkProgrammeAmendmentService, never()).saveAmendmentForm(any(), any(), any());
 
     }
   }

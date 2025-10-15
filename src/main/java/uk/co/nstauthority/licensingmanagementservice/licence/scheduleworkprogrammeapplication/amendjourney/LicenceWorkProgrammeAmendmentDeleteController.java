@@ -1,0 +1,97 @@
+package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney;
+
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
+import java.util.UUID;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+
+@Controller
+@RequestMapping("/licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/" +
+    "work-programme-amendment/{workProgrammeActivityId}")
+public class LicenceWorkProgrammeAmendmentDeleteController {
+
+  private final LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
+  private final LicenceWorkProgrammeAmendmentSummaryService licenceWorkProgrammeAmendmentSummaryService;
+
+  LicenceWorkProgrammeAmendmentDeleteController(
+      LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService,
+      LicenceWorkProgrammeAmendmentSummaryService licenceWorkProgrammeAmendmentSummaryService) {
+    this.licenceWorkProgrammeAmendmentService = licenceWorkProgrammeAmendmentService;
+    this.licenceWorkProgrammeAmendmentSummaryService = licenceWorkProgrammeAmendmentSummaryService;
+  }
+
+  @GetMapping("/delete")
+  public ModelAndView renderForm(
+      @PathVariable UUID workProgrammeActivityId,
+      @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  ) {
+    var licenceWorkProgrammeAmendment =
+        licenceWorkProgrammeAmendmentService.getAmendmentRequestByScheduleWorkProgrammeApplicationDetail(
+            scheduleWorkProgrammeApplicationDetail, workProgrammeActivityId).orElse(null);
+    return getModelAndView(workProgrammeActivityId, scheduleWorkProgrammeApplicationDetailId, licenceWorkProgrammeAmendment);
+  }
+
+  @PostMapping("/delete")
+  public ModelAndView deleteLicenceWorkProgrammeAmendment(
+      @PathVariable UUID workProgrammeActivityId,
+      @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
+      RedirectAttributes redirectAttributes
+  ) {
+    var licenceWorkProgrammeAmendmentRequest = licenceWorkProgrammeAmendmentService
+        .getAmendmentRequestByScheduleWorkProgrammeApplicationDetailElseThrow(
+        scheduleWorkProgrammeApplicationDetail, workProgrammeActivityId);
+
+    addRedirectNotification(licenceWorkProgrammeAmendmentRequest.getWorkProgrammeActivityId()
+            .toString(),
+          redirectAttributes);
+
+    licenceWorkProgrammeAmendmentService.deleteWorkProgrammeAmendment(licenceWorkProgrammeAmendmentRequest,
+          scheduleWorkProgrammeApplicationDetail);
+
+    boolean hasRemainingAmendments = licenceWorkProgrammeAmendmentService
+        .hasAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail);
+
+    if (hasRemainingAmendments) {
+      return ReverseRouter.redirect(
+          on(LicenceWorkProgrammeAmendmentSummaryController.class)
+              .renderForm(scheduleWorkProgrammeApplicationDetailId, null));
+    } else {
+      return ReverseRouter.redirect(on(SelectLicenceWorkAmendmentController.class)
+          .renderForm(scheduleWorkProgrammeApplicationDetailId, null));
+    }
+  }
+
+  private ModelAndView getModelAndView(UUID workProgrammeActivityId,
+                                       UUID scheduleWorkProgrammeApplicationDetailId,
+                                       LicenceWorkProgrammeAmendmentRequest licenceWorkProgrammeAmendmentRequest
+  ) {
+
+    return new ModelAndView(
+        "lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeAmendmentDeleteConfirmation")
+        .addObject("backToSummaryUrl", ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class)
+            .renderForm(scheduleWorkProgrammeApplicationDetailId, null)))
+        .addObject("actionUrl", ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class)
+            .deleteLicenceWorkProgrammeAmendment(workProgrammeActivityId, scheduleWorkProgrammeApplicationDetailId,
+                null, null)))
+        .addObject("LicenceWorkProgrammeAmendmentSummaryView",
+            licenceWorkProgrammeAmendmentSummaryService.createSummaryViewFromWorkProgrammeAmendments(
+                licenceWorkProgrammeAmendmentRequest, LicenceWorkProgrammeAmendmentSummaryMode.VIEW));
+  }
+
+  private void addRedirectNotification(String workProgrammeTitle, RedirectAttributes redirectAttributes) {
+    NotificationBanner.newSuccessBanner()
+          .withHeadingContent(String.format("Your work programme %s has been deleted", workProgrammeTitle))
+          .applyTo(redirectAttributes);
+  }
+}

@@ -40,6 +40,17 @@ public class ScheduleWorkProgrammeApplicationService {
     return scheduleWorkProgrammeApplicationDetail;
   }
 
+  public Licence getLicenceFromScheduleWorkProgrammeApplicationDetail(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  ) {
+
+    return scheduleWorkProgrammeApplicationDetail
+        .getScheduleWorkProgrammeApplication()
+        .getLicenceScheduleDetail()
+        .getLicenceSchedule()
+        .getLicence();
+  }
+
   private ScheduleWorkProgrammeApplication createScheduleWorkProgrammeApplication(Licence licence) {
     var licenceScheduleDetail = licenceScheduleDetailService.getByScheduleDetailByLicenceOrThrow(licence);
 

@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -12,6 +14,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 
@@ -36,11 +40,30 @@ class ScheduleWorkProgrammeApplicationServiceTest {
   @Captor
   private ArgumentCaptor<ScheduleWorkProgrammeApplicationDetail> scheduleWorkProgrammeApplicationDetailCaptor;
 
+  private Licence licence;
+  private LicenceScheduleDetail licenceScheduleDetail;
+  private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail;
+
+  @BeforeEach
+  void setUp() {
+    licence = LicenceTestUtil.builder().build();
+    licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(LicenceScheduleTestUtil.createLicenceSchedule(licence));
+    scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationTestUtil
+        .builder()
+        .withId(UUID.randomUUID())
+        .withScheduleWorkProgrammeApplication(
+            ScheduleWorkProgrammeApplicationTestUtil.createScheduleWorkProgrammeApplication(licenceScheduleDetail))
+        .build();
+  }
+
+  @Test
+  void getLicenceFromScheduleWorkProgrammeApplicationDetail_withValidDetail_returnsLicence() {
+    Licence result = scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail);
+    assertThat(result).isEqualTo(licence);
+  }
+
   @Test
   void createNewScheduleWorkProgrammeApplicationForLicence_withValidLicenceAndPermissionTrue() {
-    Licence licence = new Licence();
-    var licenceScheduleDetail = new LicenceScheduleDetail();
-
     when(licenceScheduleDetailService.getByScheduleDetailByLicenceOrThrow(licence)).thenReturn(licenceScheduleDetail);
 
     ScheduleWorkProgrammeApplicationDetail result = scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence, true);
@@ -60,9 +83,6 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
   @Test
   void createNewScheduleWorkProgrammeApplicationForLicence_withValidLicenceAndPermissionFalse() {
-    Licence licence = new Licence();
-    var licenceScheduleDetail = new LicenceScheduleDetail();
-
     when(licenceScheduleDetailService.getByScheduleDetailByLicenceOrThrow(licence)).thenReturn(licenceScheduleDetail);
 
     ScheduleWorkProgrammeApplicationDetail result = scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence, false);

@@ -8,8 +8,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 @Service
 public class SelectLicenceAmendmentService {
 
-  LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
-  LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
+  private final LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
+  private final LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
   UUID workProgrammeAmendmentId;
 
   public SelectLicenceAmendmentService(

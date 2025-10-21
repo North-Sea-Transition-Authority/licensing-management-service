@@ -7,7 +7,7 @@ import org.springframework.validation.ValidationUtils;
 @Service
 public class SelectLicenceAmendmentFormValidator {
 
-  LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
+  private final LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
 
   public SelectLicenceAmendmentFormValidator(
       LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository) {

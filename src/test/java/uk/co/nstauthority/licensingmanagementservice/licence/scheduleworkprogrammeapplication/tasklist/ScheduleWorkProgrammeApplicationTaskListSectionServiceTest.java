@@ -93,7 +93,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
             List.of(
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
-                    TaskListLabel.NOT_COMPLETE,
+                    TaskListLabel.COMPLETE,
                     ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).renderForm(null, null))
                 ),
                 new TaskListItem(
@@ -131,7 +131,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
             List.of(
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
-                    TaskListLabel.NOT_COMPLETE,
+                    TaskListLabel.COMPLETE,
                     ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).renderForm(null, null))
                 ),
                 new TaskListItem(
@@ -170,7 +170,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
             List.of(
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
-                    TaskListLabel.NOT_COMPLETE,
+                    TaskListLabel.COMPLETE,
                     ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).renderForm(
                         null,
                         null))
@@ -213,7 +213,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
             List.of(
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
-                    TaskListLabel.NOT_COMPLETE,
+                    TaskListLabel.COMPLETE,
                     ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).renderForm(null, null))
                 ),
                 new TaskListItem(
@@ -252,7 +252,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
             List.of(
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
-                    TaskListLabel.NOT_COMPLETE,
+                    TaskListLabel.COMPLETE,
                     ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).renderForm(null, null))
                 ),
                 new TaskListItem(

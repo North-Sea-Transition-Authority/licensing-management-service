@@ -8,7 +8,6 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSummaryController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.SelectLicenceWorkAmendmentController;
@@ -26,10 +25,9 @@ import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSectionSer
 public class ScheduleWorkProgrammeApplicationTaskListSectionService
     implements TaskListSectionService<ScheduleWorkProgrammeApplicationDetail> {
 
-  LicenceScheduleExtensionSubmissionService licenceScheduleExtensionSubmissionService;
-  LicenceWorkProgrammeAmendmentSubmissionService licenceWorkProgrammeAmendmentSubmissionService;
-  SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository;
-  LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
+  private final LicenceScheduleExtensionSubmissionService licenceScheduleExtensionSubmissionService;
+  private final LicenceWorkProgrammeAmendmentSubmissionService licenceWorkProgrammeAmendmentSubmissionService;
+  private final SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository;
 
   private boolean extensionSelection;
   private boolean amendmentSelection;
@@ -37,11 +35,9 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
   public ScheduleWorkProgrammeApplicationTaskListSectionService(
       SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository,
       LicenceScheduleExtensionSubmissionService licenceScheduleExtensionSubmissionService,
-      LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository,
       LicenceWorkProgrammeAmendmentSubmissionService licenceWorkProgrammeAmendmentSubmissionService) {
     this.licenceScheduleExtensionSubmissionService = licenceScheduleExtensionSubmissionService;
     this.swpApplicationRequestPurposeRepository = swpApplicationRequestPurposeRepository;
-    this.licenceWorkProgrammeAmendmentRepository = licenceWorkProgrammeAmendmentRepository;
     this.licenceWorkProgrammeAmendmentSubmissionService = licenceWorkProgrammeAmendmentSubmissionService;
   }
 
@@ -57,20 +53,20 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
       ServiceUserDetail user) {
 
-    var items = new ArrayList<>(List.of(
-        new TaskListItem(
-            WHAT_ARE_YOU_REQUESTING_TO_DO,
-            TaskListLabel.notStartedOrComplete(false),
-            ReverseRouter.route(on(SwpApplicationRequestPurposeController.class)
-                .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null))
-        )));
-
     swpApplicationRequestPurposeRepository
         .getByScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail)
         .ifPresent(purpose -> {
           extensionSelection = purpose.getExtendTerm() || purpose.getExtendPhaseOrTerm();
           amendmentSelection = purpose.getAmendWorkProgramme();
         });
+
+    var items = new ArrayList<>(List.of(
+        new TaskListItem(
+            WHAT_ARE_YOU_REQUESTING_TO_DO,
+            TaskListLabel.notStartedOrComplete(extensionSelection || amendmentSelection),
+            ReverseRouter.route(on(SwpApplicationRequestPurposeController.class)
+                .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null))
+        )));
 
     if (extensionSelection) {
       items.add(new TaskListItem(

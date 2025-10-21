@@ -85,10 +85,12 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
     if (amendmentSelection) {
       var isSubmittable = licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionSubmittable(
           scheduleWorkProgrammeApplicationDetail);
+      var isComplete = licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionComplete(
+          scheduleWorkProgrammeApplicationDetail);
 
       items.add(new TaskListItem(
           AMENDMENT_DETAILS,
-          TaskListLabel.notStartedOrComplete(isSubmittable),
+          TaskListLabel.notStartedOrComplete(isComplete),
           isSubmittable
           ? ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class).renderForm(
           scheduleWorkProgrammeApplicationDetail.getId(), scheduleWorkProgrammeApplicationDetail))

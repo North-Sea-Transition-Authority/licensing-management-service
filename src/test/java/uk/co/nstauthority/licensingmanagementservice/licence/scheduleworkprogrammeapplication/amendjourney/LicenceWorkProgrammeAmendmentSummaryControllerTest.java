@@ -10,6 +10,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
@@ -137,19 +138,65 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
   }
 
   @Test
-  void submitValidForm() throws Exception {
+  void submitValidForm_withOptionSelectedYesNow() throws Exception {
+    when(licenceWorkProgrammeAmendmentSummaryFormValidator.isValid(any())).thenReturn(true);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class).submitForm(
+            SCHEDULE_APPLICATION_DETAIL_ID,
+               scheduleWorkProgrammeApplicationDetail,
+               null,
+               null
+           )))
+            .param(
+                "licenceWorkProgrammeAmendmentSummaryOptions",
+                LicenceWorkProgrammeAmendmentSummaryOptions.YES_NOW.getEnumName()
+            )
+            .with(user(organisationUser))
+            .with(csrf()))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(SelectLicenceWorkAmendmentController.class)
+            .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), scheduleWorkProgrammeApplicationDetail))));
+    verify(licenceWorkProgrammeAmendmentSummaryService).saveWorkProgrammeAmendmentSummaryForm(any(), any());
+  }
+
+  @Test
+  void submitValidForm_withOptionSelectedNo() throws Exception {
     when(licenceWorkProgrammeAmendmentSummaryFormValidator.isValid(any())).thenReturn(true);
 
     mockMvc.perform(
-            post(ReverseRouter.route(
-                on(LicenceWorkProgrammeAmendmentSummaryController.class).submitForm(
-                    SCHEDULE_APPLICATION_DETAIL_ID, scheduleWorkProgrammeApplicationDetail, null, null)))
-                .with(user(organisationUser))
-                .with(csrf())
-        )
-        .andExpect(status().is3xxRedirection());
+               post(ReverseRouter.route(
+                   on(LicenceWorkProgrammeAmendmentSummaryController.class).submitForm(
+                       SCHEDULE_APPLICATION_DETAIL_ID, scheduleWorkProgrammeApplicationDetail, null, null)))
+                   .param(
+                       "licenceWorkProgrammeAmendmentSummaryOptions",
+                       LicenceWorkProgrammeAmendmentSummaryOptions.NO.getEnumName()
+                   )
+                   .with(user(organisationUser))
+                   .with(csrf()))
+           .andExpect(status().is3xxRedirection())
+           .andExpect(redirectedUrl(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+               .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null))));
+    verify(licenceWorkProgrammeAmendmentSummaryService).saveWorkProgrammeAmendmentSummaryForm(any(), any());
+  }
 
-    verify(licenceWorkProgrammeAmendmentSummaryFormValidator).isValid(any());
+  @Test
+  void submitValidForm_withOptionSelectedYesLater() throws Exception {
+    when(licenceWorkProgrammeAmendmentSummaryFormValidator.isValid(any())).thenReturn(true);
+
+    mockMvc.perform(
+               post(ReverseRouter.route(
+                   on(LicenceWorkProgrammeAmendmentSummaryController.class).submitForm(
+                       SCHEDULE_APPLICATION_DETAIL_ID, scheduleWorkProgrammeApplicationDetail, null, null)))
+                   .param(
+                       "licenceWorkProgrammeAmendmentSummaryOptions",
+                       LicenceWorkProgrammeAmendmentSummaryOptions.YES_LATER.getEnumName()
+                   )
+                   .with(user(organisationUser))
+                   .with(csrf()))
+           .andExpect(status().is3xxRedirection())
+           .andExpect(redirectedUrl(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+               .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null))));
+    verify(licenceWorkProgrammeAmendmentSummaryService).saveWorkProgrammeAmendmentSummaryForm(any(), any());
   }
 
   @Test

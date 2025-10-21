@@ -2,11 +2,14 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -24,6 +27,9 @@ class LicenceWorkProgrammeAmendmentServiceTest {
 
   @Mock
   private LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
+
+  @Mock
+  private LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator;
 
   @InjectMocks
   private LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
@@ -147,5 +153,33 @@ class LicenceWorkProgrammeAmendmentServiceTest {
         form.getWorkProgrammeAmendmentInformation(),
         scheduleWorkProgrammeApplicationDetail
     );
+  }
+
+  @Test
+  void validateAllWorkProgrammeAmendments_withValidAmendments() {
+    when(licenceWorkProgrammeAmendmentFormValidator.isValid(any(), any())).thenReturn(true);
+
+    LicenceWorkProgrammeAmendmentRequest request = new LicenceWorkProgrammeAmendmentRequest();
+    request.setWorkProgrammeChangeRequested(true);
+    request.setWorkProgrammeAmendmentInformation("testAmendmentInformation");
+    request.setWorkProgrammeCompletionDateChangeRequested(true);
+    request.setWorkProgrammeExtensionDuration(new ThreeFieldDuration(2, 2, 2));
+
+    boolean result = licenceWorkProgrammeAmendmentService.validateAllWorkProgrammeAmendments(List.of(request));
+
+    assertTrue(result);
+    verify(licenceWorkProgrammeAmendmentFormValidator).isValid(any(LicenceWorkProgrammeAmendmentForm.class), any());
+  }
+
+  @Test
+  void validateAllWorkProgrammeAmendments_withInvalidAmendments() {
+    when(licenceWorkProgrammeAmendmentFormValidator.isValid(any(), any())).thenReturn(false);
+
+    LicenceWorkProgrammeAmendmentRequest request = new LicenceWorkProgrammeAmendmentRequest();
+    request.setWorkProgrammeChangeRequested(false);
+    request.setWorkProgrammeCompletionDateChangeRequested(false);
+
+    assertFalse(licenceWorkProgrammeAmendmentService.validateAllWorkProgrammeAmendments(List.of(request)));
+    verify(licenceWorkProgrammeAmendmentFormValidator).isValid(any(LicenceWorkProgrammeAmendmentForm.class), any());
   }
 }

@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
@@ -25,8 +26,9 @@ public class LicenceWorkProgrammeAmendmentSummaryService {
   }
 
   public Optional<LicenceWorkProgrammeAmendmentSummary>
-       getLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetail(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
+      getLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetail(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  ) {
     return licenceWorkProgrammeAmendmentSummaryRepository
         .findLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail);
@@ -87,5 +89,24 @@ public class LicenceWorkProgrammeAmendmentSummaryService {
         scheduleWorkProgrammeApplicationDetail)
         .map(this::licenceWorkProgramAmendmentSummaryToForm)
         .orElse(new LicenceWorkProgrammeAmendmentSummaryForm());
+  }
+
+  @Transactional
+  public void saveWorkProgrammeAmendmentSummaryForm(
+      LicenceWorkProgrammeAmendmentSummaryForm form,
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  ) {
+
+    var licenceWorkProgrammeAmendmentSummaryOptions =
+        getLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetail(
+        scheduleWorkProgrammeApplicationDetail
+    ).orElse(new LicenceWorkProgrammeAmendmentSummary());
+
+    licenceWorkProgrammeAmendmentSummaryOptions.setLicenceWorkProgrammeAmendmentSummaryOptions(
+        form.getLicenceWorkProgrammeAmendmentSummaryOptions());
+    licenceWorkProgrammeAmendmentSummaryOptions.setScheduleWorkProgrammeApplicationDetails(
+        scheduleWorkProgrammeApplicationDetail);
+
+    licenceWorkProgrammeAmendmentSummaryRepository.save(licenceWorkProgrammeAmendmentSummaryOptions);
   }
 }

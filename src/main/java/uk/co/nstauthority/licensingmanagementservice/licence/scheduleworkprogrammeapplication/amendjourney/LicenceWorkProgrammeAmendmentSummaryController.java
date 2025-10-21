@@ -68,9 +68,24 @@ public class LicenceWorkProgrammeAmendmentSummaryController {
       return getModelAndView(form, scheduleWorkProgrammeApplicationDetail);
     }
 
-    //TODO:Add another work programme amendment LMS1-206
-    return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationTaskListController.class)
-        .getTaskList(scheduleWorkProgrammeApplicationDetailId, null, null));
+    licenceWorkProgrammeAmendmentSummaryService.saveWorkProgrammeAmendmentSummaryForm(
+        form,
+        scheduleWorkProgrammeApplicationDetail
+    );
+
+    LicenceWorkProgrammeAmendmentSummaryOptions option = form.getLicenceWorkProgrammeAmendmentSummaryOptions();
+
+    if (option == LicenceWorkProgrammeAmendmentSummaryOptions.YES_NOW) {
+      return ReverseRouter.redirect(on(SelectLicenceWorkAmendmentController.class).renderForm(
+          scheduleWorkProgrammeApplicationDetailId,
+          scheduleWorkProgrammeApplicationDetail
+      ));
+    }
+    return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
+        scheduleWorkProgrammeApplicationDetailId,
+        scheduleWorkProgrammeApplicationDetail,
+        null
+    ));
   }
 
   private ModelAndView getModelAndView(

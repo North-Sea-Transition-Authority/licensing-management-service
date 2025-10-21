@@ -10,7 +10,7 @@ public class ConfirmLicenseePermissionFormValidator {
 
   boolean isValid(ConfirmLicenseePermissionForm form, Errors errors) {
     ValidationUtils.rejectIfEmpty(errors, "allLicenseesPermissionConfirmed", "allLicenseesPermissionConfirmed.required",
-        "Select whether you have confirmed this request is made on behalf of all licensees");
+        "Select if you have confirmed this request is made on behalf of all licensees");
 
     if (BooleanUtils.isFalse(form.getAllLicenseesPermissionConfirmed())) {
       errors.rejectValue("allLicenseesPermissionConfirmed", "allLicenseesPermissionConfirmed.required",

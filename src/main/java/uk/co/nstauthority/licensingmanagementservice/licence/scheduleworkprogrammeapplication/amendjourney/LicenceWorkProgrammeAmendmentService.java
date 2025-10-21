@@ -6,6 +6,8 @@ import java.util.UUID;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.BindingResult;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
@@ -13,10 +15,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 public class LicenceWorkProgrammeAmendmentService {
 
   private final LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
+  private final LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator;
 
   public LicenceWorkProgrammeAmendmentService(
-      LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository) {
+      LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository,
+      LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator
+  ) {
     this.licenceWorkProgrammeAmendmentRepository = licenceWorkProgrammeAmendmentRepository;
+    this.licenceWorkProgrammeAmendmentFormValidator = licenceWorkProgrammeAmendmentFormValidator;
   }
 
   public Optional<LicenceWorkProgrammeAmendmentRequest> getAmendmentRequestByScheduleWorkProgrammeApplicationDetail(
@@ -117,5 +123,21 @@ public class LicenceWorkProgrammeAmendmentService {
     return form;
   }
 
+  public boolean validateAllWorkProgrammeAmendments(
+      List<LicenceWorkProgrammeAmendmentRequest> workProgrammeApplicationDetails) {
 
+    return workProgrammeApplicationDetails
+        .stream()
+        .map(this::licenceWorkProgramAmendmentToForm)
+        .allMatch(form -> {
+          BindingResult bindingResult = new BeanPropertyBindingResult(
+              form,
+              "form"
+          );
+          return licenceWorkProgrammeAmendmentFormValidator.isValid(
+              form,
+              bindingResult
+          );
+        });
+  }
 }

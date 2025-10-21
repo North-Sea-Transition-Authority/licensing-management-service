@@ -7,13 +7,15 @@ import org.springframework.validation.ValidationUtils;
 @Service
 public class LicenceWorkProgrammeAmendmentSummaryFormValidator {
 
-  public boolean isValid(Errors errors) {
+  public boolean isValid(
+      Errors errors
+  ) {
 
     ValidationUtils.rejectIfEmpty(
         errors,
         "licenceWorkProgrammeAmendmentSummaryOptions",
         "licenceWorkProgrammeAmendmentSummaryOptions.required",
-        "Select whether you want to add a work programme amendment or not "
+        "Select if you want to add another work programme amendment"
     );
 
     return !errors.hasErrors();

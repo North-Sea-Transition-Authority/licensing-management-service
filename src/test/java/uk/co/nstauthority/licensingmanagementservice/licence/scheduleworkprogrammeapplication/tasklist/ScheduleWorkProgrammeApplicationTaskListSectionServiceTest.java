@@ -14,7 +14,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSummaryController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.SelectLicenceWorkAmendmentController;
@@ -39,9 +38,6 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
 
   @Mock
   private LicenceWorkProgrammeAmendmentSubmissionService licenceWorkProgrammeAmendmentSubmissionService;
-
-  @Mock
-  private LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
 
   @InjectMocks
   private ScheduleWorkProgrammeApplicationTaskListSectionService scheduleWorkProgrammeApplicationTaskListSectionService;
@@ -74,7 +70,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
   }
 
   @Test
-  void getSectionWithExtensionComplete() {
+  void getSection_withExtensionComplete() {
     SwpApplicationRequestPurpose swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
     swpApplicationRequestPurpose.setExtendTerm(true);
     when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
@@ -112,7 +108,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
   }
 
   @Test
-  void getSectionWithExtensionNotComplete() {
+  void getSection_withExtensionNotComplete() {
     SwpApplicationRequestPurpose swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
     swpApplicationRequestPurpose.setExtendTerm(true);
     when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
@@ -150,12 +146,13 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
   }
 
   @Test
-  void getSectionWithAmendmentComplete() {
+  void getSection_withAmendmentSubmittableAndComplete() {
     SwpApplicationRequestPurpose swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
     swpApplicationRequestPurpose.setAmendWorkProgramme(true);
     when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
         Optional.of(swpApplicationRequestPurpose));
     when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionSubmittable(any())).thenReturn(true);
+    when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionComplete(any())).thenReturn(true);
 
     var application = new ScheduleWorkProgrammeApplicationDetail();
     var user = ServiceUserDetailTestUtil.newBuilder().build();
@@ -192,12 +189,13 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
   }
 
   @Test
-  void getSectionWithAmendmentNotComplete() {
+  void getSection_withAmendmentNotSubmittableOrComplete() {
     SwpApplicationRequestPurpose swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
     swpApplicationRequestPurpose.setAmendWorkProgramme(true);
     when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
         Optional.of(swpApplicationRequestPurpose));
     when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionSubmittable(any())).thenReturn(false);
+    when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionComplete(any())).thenReturn(false);
 
     var application = new ScheduleWorkProgrammeApplicationDetail();
     var user = ServiceUserDetailTestUtil.newBuilder().build();
@@ -222,6 +220,45 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                     ScheduleWorkProgrammeApplicationTaskListSectionService.AMENDMENT_DETAILS,
                     TaskListLabel.NOT_COMPLETE,
                     ReverseRouter.route(on(SelectLicenceWorkAmendmentController.class).renderForm(null, null))
+                )
+            ),
+            ScheduleWorkProgrammeApplicationTaskListSectionService.APPLICATION_DETAILS_SECTION_NAME,
+            ScheduleWorkProgrammeApplicationTaskListSectionService.SECTION_ORDER
+        );
+  }
+
+  @Test
+  void getSection_withAmendmentSubmittableButNotComplete() {
+    SwpApplicationRequestPurpose swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
+    swpApplicationRequestPurpose.setAmendWorkProgramme(true);
+    when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
+        Optional.of(swpApplicationRequestPurpose));
+    when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionSubmittable(any())).thenReturn(true);
+    when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionComplete(any())).thenReturn(false);
+
+    var application = new ScheduleWorkProgrammeApplicationDetail();
+    var user = ServiceUserDetailTestUtil.newBuilder().build();
+    var sectionOptional = scheduleWorkProgrammeApplicationTaskListSectionService.getSection(application, user);
+    assertThat(sectionOptional).isPresent();
+    var section = sectionOptional.get();
+
+    assertThat(section)
+        .extracting(
+            TaskListSection::items,
+            TaskListSection::displayName,
+            TaskListSection::displayOrder
+        )
+        .containsExactly(
+            List.of(
+                new TaskListItem(
+                    ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
+                    TaskListLabel.NOT_COMPLETE,
+                    ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).renderForm(null, null))
+                ),
+                new TaskListItem(
+                    ScheduleWorkProgrammeApplicationTaskListSectionService.AMENDMENT_DETAILS,
+                    TaskListLabel.NOT_COMPLETE,
+                    ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class).renderForm(null, null))
                 )
             ),
             ScheduleWorkProgrammeApplicationTaskListSectionService.APPLICATION_DETAILS_SECTION_NAME,

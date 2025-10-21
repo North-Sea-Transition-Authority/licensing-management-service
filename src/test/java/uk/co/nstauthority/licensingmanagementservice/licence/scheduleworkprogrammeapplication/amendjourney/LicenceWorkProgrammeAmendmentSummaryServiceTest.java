@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
@@ -14,6 +15,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -136,7 +138,7 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
     result = licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentSummaryViewsFromScheduleWorkProgrammeApplicationDetail(
         scheduleWorkProgrammeApplicationDetail);
 
-    assertThat(result).isEmpty();
+    assert(result).isEmpty();
   }
 
   @Test
@@ -149,7 +151,7 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
     LicenceWorkProgrammeAmendmentSummaryForm result =
         licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentByScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail);
 
-    assertThat(result).isNotNull();
+    assertNotNull(result);
     assertThat(result.getLicenceWorkProgrammeAmendmentSummaryOptions()).isEqualTo(LicenceWorkProgrammeAmendmentSummaryOptions.YES_LATER);
 
     when(licenceWorkProgrammeAmendmentSummaryRepository
@@ -159,7 +161,111 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
 
     result = licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentByScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail);
 
-    assertThat(result).isNotNull();
+    assertNotNull(result);
     assertThat(result.getLicenceWorkProgrammeAmendmentSummaryOptions()).isNull();
+  }
+
+  @Test
+  void saveWorkProgrammeAmendmentSummaryForm_withYesNowOption() {
+    LicenceWorkProgrammeAmendmentSummaryForm form = new LicenceWorkProgrammeAmendmentSummaryForm();
+    form.setLicenceWorkProgrammeAmendmentSummaryOptions(
+        LicenceWorkProgrammeAmendmentSummaryOptions.YES_NOW);
+
+    when(licenceWorkProgrammeAmendmentSummaryRepository
+        .findLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetails(
+            scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(Optional.of(licenceWorkProgrammeAmendmentSummary));
+
+    licenceWorkProgrammeAmendmentSummaryService.saveWorkProgrammeAmendmentSummaryForm(
+        form, scheduleWorkProgrammeApplicationDetail);
+
+    ArgumentCaptor<LicenceWorkProgrammeAmendmentSummary> licenceWorkProgrammeAmendmentSummaryArgumentCaptor = ArgumentCaptor.forClass(LicenceWorkProgrammeAmendmentSummary.class);
+
+    verify(licenceWorkProgrammeAmendmentSummaryRepository).save(
+        licenceWorkProgrammeAmendmentSummaryArgumentCaptor.capture());
+
+    LicenceWorkProgrammeAmendmentSummary savedLicenceWorkProgrammeAmendmentSummary = licenceWorkProgrammeAmendmentSummaryArgumentCaptor.getValue();
+
+    assertThat(savedLicenceWorkProgrammeAmendmentSummary.getLicenceWorkProgrammeAmendmentSummaryOptions())
+        .isEqualTo(LicenceWorkProgrammeAmendmentSummaryOptions.YES_NOW);
+
+    assertThat(savedLicenceWorkProgrammeAmendmentSummary.getScheduleWorkProgrammeApplicationDetails())
+        .isEqualTo(scheduleWorkProgrammeApplicationDetail);
+  }
+
+  @Test
+  void saveWorkProgrammeAmendmentSummaryForm_withYesLaterOption() {
+    LicenceWorkProgrammeAmendmentSummaryForm form = new LicenceWorkProgrammeAmendmentSummaryForm();
+    form.setLicenceWorkProgrammeAmendmentSummaryOptions(
+        LicenceWorkProgrammeAmendmentSummaryOptions.YES_LATER);
+
+    when(licenceWorkProgrammeAmendmentSummaryRepository
+        .findLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetails(
+            scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(Optional.of(licenceWorkProgrammeAmendmentSummary));
+
+    licenceWorkProgrammeAmendmentSummaryService.saveWorkProgrammeAmendmentSummaryForm(
+        form, scheduleWorkProgrammeApplicationDetail);
+
+    ArgumentCaptor<LicenceWorkProgrammeAmendmentSummary> licenceWorkProgrammeAmendmentSummaryArgumentCaptor = ArgumentCaptor.forClass(LicenceWorkProgrammeAmendmentSummary.class);
+
+    verify(licenceWorkProgrammeAmendmentSummaryRepository).save(licenceWorkProgrammeAmendmentSummaryArgumentCaptor.capture());
+
+    LicenceWorkProgrammeAmendmentSummary savedLicenceWorkProgrammeAmendmentSummary = licenceWorkProgrammeAmendmentSummaryArgumentCaptor.getValue();
+
+    assertThat(savedLicenceWorkProgrammeAmendmentSummary.getLicenceWorkProgrammeAmendmentSummaryOptions())
+        .isEqualTo(LicenceWorkProgrammeAmendmentSummaryOptions.YES_LATER);
+    assertThat(savedLicenceWorkProgrammeAmendmentSummary.getScheduleWorkProgrammeApplicationDetails())
+        .isEqualTo(scheduleWorkProgrammeApplicationDetail);
+  }
+
+  @Test
+  void saveWorkProgrammeAmendmentSummaryForm_withNoOption() {
+    LicenceWorkProgrammeAmendmentSummaryForm form = new LicenceWorkProgrammeAmendmentSummaryForm();
+    form.setLicenceWorkProgrammeAmendmentSummaryOptions(
+        LicenceWorkProgrammeAmendmentSummaryOptions.NO);
+
+    when(licenceWorkProgrammeAmendmentSummaryRepository
+        .findLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetails(
+            scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(Optional.of(licenceWorkProgrammeAmendmentSummary));
+
+    licenceWorkProgrammeAmendmentSummaryService.saveWorkProgrammeAmendmentSummaryForm(
+        form, scheduleWorkProgrammeApplicationDetail);
+
+    verify(licenceWorkProgrammeAmendmentSummaryRepository).save(
+        licenceWorkProgrammeAmendmentSummary);
+
+    assertThat(licenceWorkProgrammeAmendmentSummary.getLicenceWorkProgrammeAmendmentSummaryOptions())
+        .isEqualTo(LicenceWorkProgrammeAmendmentSummaryOptions.NO);
+    assertThat(licenceWorkProgrammeAmendmentSummary.getScheduleWorkProgrammeApplicationDetails())
+        .isEqualTo(scheduleWorkProgrammeApplicationDetail);
+  }
+
+  @Test
+  void saveWorkProgrammeAmendmentSummaryForm_withNewSummaryOption() {
+    LicenceWorkProgrammeAmendmentSummaryForm form = new LicenceWorkProgrammeAmendmentSummaryForm();
+    form.setLicenceWorkProgrammeAmendmentSummaryOptions(LicenceWorkProgrammeAmendmentSummaryOptions.NO);
+
+    when(licenceWorkProgrammeAmendmentSummaryRepository
+        .findLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetails(
+            scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(Optional.empty());
+
+    licenceWorkProgrammeAmendmentSummaryService.saveWorkProgrammeAmendmentSummaryForm(
+        form, scheduleWorkProgrammeApplicationDetail);
+
+    ArgumentCaptor<LicenceWorkProgrammeAmendmentSummary> licenceWorkProgrammeAmendmentSummaryArgumentCaptor =
+        ArgumentCaptor.forClass(LicenceWorkProgrammeAmendmentSummary.class);
+
+    verify(licenceWorkProgrammeAmendmentSummaryRepository).save(licenceWorkProgrammeAmendmentSummaryArgumentCaptor.capture());
+
+    LicenceWorkProgrammeAmendmentSummary savedLicenceWorkProgrammeAmendmentSummary = licenceWorkProgrammeAmendmentSummaryArgumentCaptor.getValue();
+
+    assertThat(savedLicenceWorkProgrammeAmendmentSummary.getLicenceWorkProgrammeAmendmentSummaryOptions())
+        .isEqualTo(LicenceWorkProgrammeAmendmentSummaryOptions.NO);
+
+    assertThat(savedLicenceWorkProgrammeAmendmentSummary.getScheduleWorkProgrammeApplicationDetails())
+        .isEqualTo(scheduleWorkProgrammeApplicationDetail);
   }
 }

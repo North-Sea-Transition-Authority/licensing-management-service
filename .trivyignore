@@ -67,3 +67,6 @@ CVE-2025-41248
 
 # org.springframework:spring-core
 CVE-2025-41249
+
+# ch.qos.logback:logback-core
+CVE-2025-11226

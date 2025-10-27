@@ -17,6 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
@@ -38,7 +39,6 @@ public class LicenceController {
       ManageLicenseesValidator manageLicenseesValidator,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService
   ) {
-
     this.licenceFormService = licenceFormService;
     this.newLicenceValidator = newLicenceValidator;
     this.manageLicenseesValidator = manageLicenseesValidator;
@@ -56,9 +56,9 @@ public class LicenceController {
       BindingResult bindingResult
   ) {
     if (newLicenceValidator.isValid(form, bindingResult)) {
-      licenceFormService.saveNewLicenceFromForm(form);
+      var licence = licenceFormService.saveNewLicenceFromForm(form);
 
-      return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
+      return ReverseRouter.redirect(on(LicenceSearchController.class).renderLicenceOverview(licence.getId(), null));
     }
 
     return getNewLicenceModelAndView(form);
@@ -79,11 +79,11 @@ public class LicenceController {
   }
 
   @GetMapping("/{licenceId}/manage-licensees")
-  ModelAndView renderManageLicenseesPage(
+  public ModelAndView renderManageLicenseesPage(
       @PathVariable Integer licenceId,
       Licence licence
   ) {
-    if (!licence.getType().getManagedByLms()) {
+    if (!licence.getType().isManagedByLms()) {
       throw new ResponseStatusException(
           HttpStatusCode.valueOf(403),
           "Licence with id: %s is not managed by LMS".formatted(licenceId)
@@ -104,23 +104,23 @@ public class LicenceController {
       @ModelAttribute("form") ManageLicenseesForm form,
       BindingResult bindingResult
   ) {
-    if (!licence.getType().getManagedByLms()) {
+    if (!licence.getType().isManagedByLms()) {
       throw new ResponseStatusException(
           HttpStatusCode.valueOf(403),
           "Licence with id: %s is not managed by LMS".formatted(licenceId)
       );
     }
 
-    if (manageLicenseesValidator.isValid(form, bindingResult)) {
-      licenceResponsibleOrganisationService.saveLicenseesFromForm(licence, form.getOrganisationUnitIds());
-      return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
+    if (!manageLicenseesValidator.isValid(form, bindingResult)) {
+      return getManageLicenseesModelAndView(
+          form,
+          licence,
+          licenceFormService.getPreselectedOrganisationUnits(form.getOrganisationUnitIds())
+      );
     }
 
-    return getManageLicenseesModelAndView(
-        form,
-        licence,
-        licenceFormService.getPreselectedOrganisationUnits(form.getOrganisationUnitIds())
-    );
+    licenceResponsibleOrganisationService.saveLicenseesFromForm(licence, form.getOrganisationUnitIds());
+    return ReverseRouter.redirect(on(LicenceSearchController.class).renderLicenceOverview(licenceId, null));
   }
 
   private ModelAndView getManageLicenseesModelAndView(
@@ -136,6 +136,6 @@ public class LicenceController {
         .addObject("organisationUnitSearchEndpoint",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
         .addObject("backUrl",
-            ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)));
+            ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licence.getId(), null)));
   }
 }

@@ -23,6 +23,8 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionItem;
+import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
@@ -32,6 +34,9 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private LicenceSearchService licenceSearchService;
+
+  @MockitoBean
+  private LicenceActionService licenceActionService;
 
   private ServiceUserDetail organisationUser;
   public static final String RENDER_SEARCH_PAGE_ROUTE = ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null));
@@ -88,19 +93,25 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
   @SecurityTest
   void renderLicenceOverview() throws Exception {
     var licence = new Licence();
+    licence.setId(1);
     licence.setType(LicenceType.CARBON_STORAGE);
     licence.setLicenceReference("CS1");
 
-    when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
+    when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
+
+    var actions = List.of(LicenceActionItem.MANAGE_LICENSEES.toActionItemView(licence));
+
+    when(licenceActionService.getAvailableUserActionItems(licence, null)).thenReturn(actions);
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(1, null)))
+            get(ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licence.getId(), null)))
                 .with(user(organisationUser))
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/search/licenceOverview"))
-        .andExpect(model().attribute("pageTitle", licence.getLicenceReference()))
-        .andExpect(model().attribute("caption", licence.getType().getDisplayName()));
+        .andExpect(model().attribute("licenceReference", licence.getLicenceReference()))
+        .andExpect(model().attribute("caption", licence.getType().getDisplayName()))
+        .andExpect(model().attribute("licenceActions", actions));
   }
 
   @Test

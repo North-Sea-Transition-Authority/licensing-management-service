@@ -28,6 +28,8 @@ public class LicenceQueryService {
           .licenceNo()
           .licenceRef()
           .roundIssuedOn()
+          .licenceStatus()
+          .getParent()
           .licensees()
           .organisationUnitId()
           .root();
@@ -75,7 +77,9 @@ public class LicenceQueryService {
     licence.setPrefix(portalLicence.getLicenceType());
     licence.setLicenceReference(portalLicence.getLicenceRef());
     licence.setRoundIssuedOn(portalLicence.getRoundIssuedOn());
-
+    licence.setStatus(
+        uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus.valueOf(portalLicence.getLicenceStatus().name())
+    );
     return licence;
   }
 

@@ -52,7 +52,7 @@ public class ScheduleWorkProgrammeApplicationService {
   }
 
   private ScheduleWorkProgrammeApplication createScheduleWorkProgrammeApplication(Licence licence) {
-    var licenceScheduleDetail = licenceScheduleDetailService.getByScheduleDetailByLicenceOrThrow(licence);
+    var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceOrThrow(licence);
 
     var scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
     scheduleWorkProgrammeApplication.setLicenceScheduleDetail(licenceScheduleDetail);

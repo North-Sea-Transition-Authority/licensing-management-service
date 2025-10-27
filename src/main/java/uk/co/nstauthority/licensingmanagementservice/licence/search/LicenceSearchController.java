@@ -15,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
@@ -24,9 +25,14 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEn
 public class LicenceSearchController {
 
   private final LicenceSearchService licenceSearchService;
+  private final LicenceActionService licenceActionService;
 
-  public LicenceSearchController(LicenceSearchService licenceSearchService) {
+  public LicenceSearchController(
+      LicenceSearchService licenceSearchService,
+      LicenceActionService licenceActionService
+  ) {
     this.licenceSearchService = licenceSearchService;
+    this.licenceActionService = licenceActionService;
   }
 
   @GetMapping
@@ -61,13 +67,14 @@ public class LicenceSearchController {
 
   // Only here for now while we haven't got a page to go to from search
   @GetMapping("/{licenceId}")
-  ModelAndView renderLicenceOverview(
+  public ModelAndView renderLicenceOverview(
       @PathVariable Integer licenceId,
       Licence licence
   ) {
     return new ModelAndView("lms/licence/search/licenceOverview")
-        .addObject("pageTitle", licence.getLicenceReference())
-        .addObject("caption", licence.getType().getDisplayName());
+        .addObject("licenceReference", licence.getLicenceReference())
+        .addObject("caption", licence.getType().getDisplayName())
+        .addObject("licenceActions", licenceActionService.getAvailableUserActionItems(licence, null));
   }
 
   private ModelAndView getLicenceSearchModelAndView(LicenceSearchFilterForm form) {

@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -8,7 +10,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.util.UUID;
 import org.hibernate.envers.Audited;
+import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Audited
 @Entity(name = "licence_schedule_details")
@@ -36,5 +41,15 @@ public class LicenceScheduleDetail {
 
   public void setLicenceSchedule(LicenceSchedule licenceSchedule) {
     this.licenceSchedule = licenceSchedule;
+  }
+
+  public String getScheduleTimelineRouteUrl() {
+    return ReverseRouter.route(on(LicenceScheduleTimelineController.class)
+        .renderLicenceScheduleTimeline(licenceSchedule.getLicence().getId(), null));
+  }
+
+  public ModelAndView getScheduleTimelineRedirectUrl() {
+    return ReverseRouter.redirect(on(LicenceScheduleTimelineController.class)
+        .renderLicenceScheduleTimeline(licenceSchedule.getLicence().getId(), null));
   }
 }

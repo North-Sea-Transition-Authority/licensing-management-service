@@ -9,7 +9,6 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -17,6 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
@@ -38,7 +38,6 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
   private Licence licence;
 
   private LicenceScheduleDetail licenceScheduleDetail;
-  private static final UUID LICENCE_SCHEDULE_DETAIL_ID = UUID.randomUUID();
 
   @BeforeEach
   void setUp() {
@@ -47,21 +46,24 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         .build();
 
     licence = LicenceTestUtil.builder()
+        .withId(1)
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
         .withLicenceReference("P1")
         .withRoundIssuedOn("1")
+        .withStatus(LicenceStatus.EXTANT)
         .build();
 
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
 
     licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
-
-    when(licenceScheduleDetailService.getByIdOrThrow(LICENCE_SCHEDULE_DETAIL_ID)).thenReturn(licenceScheduleDetail);
   }
 
   @SecurityTest
   void renderLicenceScheduleTimeline() throws Exception {
-    var timelineSummaryCardView = new TimelineSummaryCardView("date", "1");
+    when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceOrThrow(licence)).thenReturn(licenceScheduleDetail);
+
+    var timelineSummaryCardView = new TimelineSummaryCardView("date", "1", LicenceStatus.EXTANT.getDisplayText());
     var timelineActionViews = List.of(new TimelineActionView(LicenceScheduleTimelineAction.ADD_A_TERM, ""));
     var scheduleEventViews = List.of(new TimelineTermView(List.of(), TermType.INITIAL, "", "", "", ""));
 
@@ -70,7 +72,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
     when(licenceScheduleTimelineService.getLicenceScheduleEventViews(licenceScheduleDetail)).thenReturn(scheduleEventViews);
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceScheduleTimelineController.class).renderLicenceScheduleTimeline(LICENCE_SCHEDULE_DETAIL_ID, null)))
+            get(ReverseRouter.route(on(LicenceScheduleTimelineController.class).renderLicenceScheduleTimeline(licence.getId(), null)))
                 .with(user(organisationUser))
         )
         .andExpect(status().isOk())
@@ -80,6 +82,6 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("actions", timelineActionViews))
         .andExpect(model().attribute("scheduleEventViews", scheduleEventViews))
         .andExpect(model().attribute("updateLicenceStartDateUrl",
-            ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateUpdateForm(LICENCE_SCHEDULE_DETAIL_ID, null))));
+            ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateUpdateForm(licenceScheduleDetail.getId(), null))));
   }
 }

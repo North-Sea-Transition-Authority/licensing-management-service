@@ -27,7 +27,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
@@ -74,8 +73,7 @@ class LicenceSchedulePhaseControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createSchedulePhase"))
         .andExpect(model().attribute("radioOptions", PhaseType.getPhaseRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)))
-        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceScheduleTimelineController.class)
-            .renderLicenceScheduleTimeline(LICENCE_SCHEDULE_DETAIL_ID, null))));
+        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
   }
 
   @Test
@@ -104,8 +102,7 @@ class LicenceSchedulePhaseControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createSchedulePhase"))
         .andExpect(model().attribute("radioOptions", PhaseType.getPhaseRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)))
-        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceScheduleTimelineController.class)
-            .renderLicenceScheduleTimeline(LICENCE_SCHEDULE_DETAIL_ID, null))));
+        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
 
     verify(licenceSchedulePhaseFormService, never()).savePhaseFromForm(any(), any());
   }

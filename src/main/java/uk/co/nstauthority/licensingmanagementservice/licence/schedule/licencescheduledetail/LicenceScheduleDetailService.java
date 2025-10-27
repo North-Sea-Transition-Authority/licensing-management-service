@@ -30,7 +30,7 @@ public class LicenceScheduleDetailService {
         );
   }
 
-  public LicenceScheduleDetail getByScheduleDetailByLicenceOrThrow(Licence licence) {
+  public LicenceScheduleDetail getScheduleDetailByLicenceOrThrow(Licence licence) {
     return licenceScheduleDetailRepository.findByLicenceSchedule_Licence(licence)
         .orElseThrow(() -> new LmsEntityNotFoundException("licence schedule detail", licence.getId()));
   }

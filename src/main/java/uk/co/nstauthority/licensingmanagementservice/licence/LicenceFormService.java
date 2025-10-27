@@ -30,16 +30,19 @@ public class LicenceFormService {
   }
 
   @Transactional
-  public void saveNewLicenceFromForm(NewLicenceForm form) {
+  public Licence saveNewLicenceFromForm(NewLicenceForm form) {
     var licence = new Licence();
     licence.setId(licenceService.getNextLicenceId());
     licence.setType(form.getLicenceType());
     licence.setPrefix(form.getLicenceType().getPrefix());
     licence.setLicenceNumber(form.getLicenceNumber());
     licence.setLicenceReference(form.getLicenceType().getPrefix() + form.getLicenceNumber());
+    licence.setStatus(LicenceStatus.EXTANT);
 
     var savedLicence = licenceRepository.save(licence);
     licenceResponsibleOrganisationService.saveLicenseesFromForm(savedLicence, form.getOrganisationUnitIds());
+
+    return savedLicence;
   }
 
   public List<OrganisationUnitJson> getPreselectedOrganisationUnits(List<String> organisationUnitIds) {

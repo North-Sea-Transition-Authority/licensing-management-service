@@ -1,7 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm;
 
-import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
-
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,8 +8,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/licence/schedule/term/{licenceScheduleTermId}/delete")
@@ -39,8 +35,7 @@ public class LicenceScheduleTermDeletionController {
     return new ModelAndView("lms/licence/schedule/deleteScheduleTerm")
         .addObject("pageTitle", PAGE_TITLE.formatted(term.getTermType().getDisplayName()))
         .addObject("licenceScheduleTermSummaryView", LicenceScheduleTermSummaryView.fromTerm(term))
-        .addObject("cancelUrl", ReverseRouter.route(on(LicenceScheduleTimelineController.class)
-            .renderLicenceScheduleTimeline(term.getLicenceScheduleDetail().getId(), null)));
+        .addObject("cancelUrl", term.getLicenceScheduleDetail().getScheduleTimelineRouteUrl());
   }
 
   @PostMapping
@@ -52,8 +47,7 @@ public class LicenceScheduleTermDeletionController {
     licenceScheduleTermService.deleteTerm(term);
 
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
-    return ReverseRouter.redirect(on(LicenceScheduleTimelineController.class)
-        .renderLicenceScheduleTimeline(licenceScheduleDetail.getId(), null));
+    return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
   }
 
 }

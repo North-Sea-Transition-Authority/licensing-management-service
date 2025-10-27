@@ -56,6 +56,7 @@ class LicenceFormServiceTest {
     licence.setPrefix("CS");
     licence.setLicenceNumber("001");
     licence.setLicenceReference("CS001");
+    licence.setStatus(LicenceStatus.EXTANT);
 
     licenceFormService.saveNewLicenceFromForm(form);
 

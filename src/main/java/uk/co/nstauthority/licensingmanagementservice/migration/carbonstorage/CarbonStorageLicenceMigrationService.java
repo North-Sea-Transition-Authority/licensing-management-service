@@ -128,7 +128,7 @@ public class CarbonStorageLicenceMigrationService {
     for (var migrationStartDate : migrationStartDates) {
       var licence = licenceService.findLicenceByReference(migrationStartDate.getLicenceRef());
       if (licence.isPresent()) {
-        var licenceScheduleDetail = licenceScheduleDetailService.getByScheduleDetailByLicenceOrThrow(licence.get());
+        var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceOrThrow(licence.get());
         var licenceStartDate = new LicenceStartDate();
         licenceStartDate.setLicenceScheduleDetail(licenceScheduleDetail);
         licenceStartDate.setStartDate(
@@ -146,7 +146,7 @@ public class CarbonStorageLicenceMigrationService {
     for (var migrationTerm : migrationTerms) {
       var licence = licenceService.findLicenceByReference(migrationTerm.getLicenceRef());
       if (licence.isPresent()) {
-        var licenceScheduleDetail = licenceScheduleDetailService.getByScheduleDetailByLicenceOrThrow(licence.get());
+        var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceOrThrow(licence.get());
         var term = new LicenceScheduleTerm();
         term.setLicenceScheduleDetail(licenceScheduleDetail);
         var termType = migrationTerm.getTerm().equals("Initial")

@@ -16,6 +16,7 @@ public class LicenceTestUtil {
     private String licencePrefix;
     private String licenceReference;
     private String roundIssuedOn;
+    private LicenceStatus status;
 
     private Builder() {}
 
@@ -49,6 +50,11 @@ public class LicenceTestUtil {
       return this;
     }
 
+    public Builder withStatus(LicenceStatus status) {
+      this.status = status;
+      return this;
+    }
+
     public Licence build() {
       var licence = new Licence();
       licence.setId(id);
@@ -57,6 +63,7 @@ public class LicenceTestUtil {
       licence.setPrefix(licencePrefix);
       licence.setLicenceReference(licenceReference);
       licence.setRoundIssuedOn(roundIssuedOn);
+      licence.setStatus(status);
 
       return licence;
     }

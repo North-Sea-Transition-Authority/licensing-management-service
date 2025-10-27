@@ -57,7 +57,7 @@ public enum LicenceType implements Displayable {
     return urlSlug;
   }
 
-  public Boolean getManagedByLms() {
+  public Boolean isManagedByLms() {
     return managedByLms;
   }
 
@@ -91,7 +91,7 @@ public enum LicenceType implements Displayable {
 
   public static List<LicenceType> getLicenceTypesManagedByLms() {
     return Arrays.stream(values())
-        .filter(LicenceType::getManagedByLms)
+        .filter(LicenceType::isManagedByLms)
         .toList();
   }
 

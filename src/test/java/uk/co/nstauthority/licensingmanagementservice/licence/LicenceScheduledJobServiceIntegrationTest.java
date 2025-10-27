@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.fivium.energyportalapi.client.licence.licence.LicenceApi;
 import uk.co.fivium.energyportalapi.client.licence.licence.LicenceSearchFilter;
+import uk.co.fivium.energyportalapi.generated.types.LicenceStatus;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationRepository;
@@ -61,6 +62,7 @@ class LicenceScheduledJobServiceIntegrationTest {
     portalLicence.setLicenceSubType("Frontier");
     portalLicence.setLicenceNo(1);
     portalLicence.setLicensees(List.of(orgUnit1, orgUnit2));
+    portalLicence.setLicenceStatus(LicenceStatus.EXTANT);
 
     var portalLicence2 = new uk.co.fivium.energyportalapi.generated.types.Licence();
     portalLicence2.setId(2);
@@ -68,6 +70,7 @@ class LicenceScheduledJobServiceIntegrationTest {
     portalLicence2.setLicenceSubType(null);
     portalLicence2.setLicenceNo(2);
     portalLicence2.setLicensees(List.of(orgUnit3));
+    portalLicence2.setLicenceStatus(LicenceStatus.EXTANT);
 
     var portalLicence3 = new uk.co.fivium.energyportalapi.generated.types.Licence();
     portalLicence3.setId(3);
@@ -75,6 +78,7 @@ class LicenceScheduledJobServiceIntegrationTest {
     portalLicence3.setLicenceSubType(null);
     portalLicence3.setLicenceNo(3);
     portalLicence3.setLicensees(List.of(orgUnit3));
+    portalLicence3.setLicenceStatus(LicenceStatus.EXTANT);
 
     var epaResult = List.of(portalLicence, portalLicence2, portalLicence3);
 
@@ -88,6 +92,7 @@ class LicenceScheduledJobServiceIntegrationTest {
     licence3.setSubtype(null);
     licence3.setLicenceNumber("3");
     licence3.setPrefix("EXL");
+    licence3.setStatus(uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus.EXTANT);
 
     var licencesResult = licenceRepository.findAll();
 
@@ -126,6 +131,7 @@ class LicenceScheduledJobServiceIntegrationTest {
     licence.setType(LicenceType.SEAWARD_PRODUCTION);
     licence.setSubtype(LicenceSubtype.FRONTIER);
     licence.setLicenceNumber("1");
+    licence.setStatus(uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus.EXTANT);
 
     entityManager.persist(licence);
 
@@ -134,6 +140,7 @@ class LicenceScheduledJobServiceIntegrationTest {
     licence2.setType(LicenceType.LANDWARD_PRODUCTION);
     licence2.setSubtype(null);
     licence2.setLicenceNumber("2");
+    licence2.setStatus(uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus.EXTANT);
 
     entityManager.persist(licence2);
 

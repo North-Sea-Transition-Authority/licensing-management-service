@@ -71,7 +71,11 @@ class LicenceControllerTest extends AbstractControllerTest {
 
   @SecurityTest
   void saveNewLicence_formIsValid() throws Exception {
+    var licence = new Licence();
+    licence.setId(1);
+
     when(newLicenceValidator.isValid(any(), any())).thenReturn(true);
+    when(licenceFormService.saveNewLicenceFromForm(any())).thenReturn(licence);
 
     mockMvc.perform(
         post(ReverseRouter.route(on(LicenceController.class).saveNewLicence(null, null)))

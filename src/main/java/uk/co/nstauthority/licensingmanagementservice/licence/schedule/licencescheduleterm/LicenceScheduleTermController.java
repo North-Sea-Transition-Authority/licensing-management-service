@@ -1,7 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm;
 
-import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
-
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
@@ -13,8 +11,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/licence/schedule")
@@ -55,8 +51,7 @@ public class LicenceScheduleTermController {
 
     licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail, new LicenceScheduleTerm());
 
-    return ReverseRouter.redirect(on(LicenceScheduleTimelineController.class)
-        .renderLicenceScheduleTimeline(licenceScheduleDetail.getId(), null));
+    return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
   }
 
   @GetMapping("/term/{licenceScheduleTermId}/update")
@@ -83,8 +78,7 @@ public class LicenceScheduleTermController {
 
     licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail, term);
 
-    return ReverseRouter.redirect(on(LicenceScheduleTimelineController.class)
-        .renderLicenceScheduleTimeline(licenceScheduleDetail.getId(), null));
+    return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
   }
 
   private ModelAndView getScheduleTermModelAndView(LicenceScheduleTermForm form, LicenceScheduleDetail licenceScheduleDetail) {
@@ -93,7 +87,6 @@ public class LicenceScheduleTermController {
     return new ModelAndView("lms/licence/schedule/createScheduleTerm")
         .addObject("form", form)
         .addObject("radioOptions", TermType.getTermRadioOptionsFor(licenceType))
-        .addObject("cancelUrl", ReverseRouter.route(on(LicenceScheduleTimelineController.class)
-                .renderLicenceScheduleTimeline(licenceScheduleDetail.getId(), null)));
+        .addObject("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl());
   }
 }

@@ -64,7 +64,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
   @Test
   void createNewScheduleWorkProgrammeApplicationForLicence_withValidLicenceAndPermissionTrue() {
-    when(licenceScheduleDetailService.getByScheduleDetailByLicenceOrThrow(licence)).thenReturn(licenceScheduleDetail);
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceOrThrow(licence)).thenReturn(licenceScheduleDetail);
 
     ScheduleWorkProgrammeApplicationDetail result = scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence, true);
 
@@ -83,7 +83,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
   @Test
   void createNewScheduleWorkProgrammeApplicationForLicence_withValidLicenceAndPermissionFalse() {
-    when(licenceScheduleDetailService.getByScheduleDetailByLicenceOrThrow(licence)).thenReturn(licenceScheduleDetail);
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceOrThrow(licence)).thenReturn(licenceScheduleDetail);
 
     ScheduleWorkProgrammeApplicationDetail result = scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence, false);
 

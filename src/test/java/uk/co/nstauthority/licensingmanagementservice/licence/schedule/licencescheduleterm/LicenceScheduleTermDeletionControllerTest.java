@@ -26,7 +26,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
@@ -80,8 +79,7 @@ class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
         .andExpect(view().name("lms/licence/schedule/deleteScheduleTerm"))
         .andExpect(model().attribute("pageTitle", "Do you want to delete the %s?".formatted(licenceScheduleTerm.getTermType().getDisplayName())))
         .andExpect(model().attribute("licenceScheduleTermSummaryView", LicenceScheduleTermSummaryView.fromTerm(licenceScheduleTerm)))
-        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceScheduleTimelineController.class)
-            .renderLicenceScheduleTimeline(licenceScheduleDetail.getId(), null))));
+        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
   }
 
   @Test

@@ -28,6 +28,9 @@ public class Licence {
 
   private String roundIssuedOn;
 
+  @Enumerated(EnumType.STRING)
+  private LicenceStatus status;
+
   public Licence() {
   }
 
@@ -89,6 +92,14 @@ public class Licence {
 
   public void setRoundIssuedOn(String roundNumber) {
     this.roundIssuedOn = roundNumber;
+  }
+
+  public LicenceStatus getStatus() {
+    return status;
+  }
+
+  public void setStatus(LicenceStatus status) {
+    this.status = status;
   }
 
   @Override

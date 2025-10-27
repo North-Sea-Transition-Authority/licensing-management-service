@@ -41,7 +41,8 @@ public class LicenceScheduleTimelineService {
 
     return new TimelineSummaryCardView(
         DateFormatUtil.convertToDisplayText(licenceStartDate.getStartDate()),
-        licence.getRoundIssuedOn()
+        licence.getRoundIssuedOn(),
+        licence.getStatus().getDisplayText()
     );
   }
 

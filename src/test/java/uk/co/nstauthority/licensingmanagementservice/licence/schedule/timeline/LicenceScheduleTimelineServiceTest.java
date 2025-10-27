@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeFeatureService;
@@ -53,6 +54,7 @@ class LicenceScheduleTimelineServiceTest {
   void setUp() {
     licence = LicenceTestUtil.builder()
         .withRoundIssuedOn("1")
+        .withStatus(LicenceStatus.EXTANT)
         .build();
 
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
@@ -70,11 +72,13 @@ class LicenceScheduleTimelineServiceTest {
     assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .extracting(
             TimelineSummaryCardView::licenceStartDate,
-            TimelineSummaryCardView::roundIssuedOn
+            TimelineSummaryCardView::roundIssuedOn,
+            TimelineSummaryCardView::status
         )
         .containsExactly(
             DateFormatUtil.convertToDisplayText(licenceStartDate.getStartDate()),
-            licence.getRoundIssuedOn()
+            licence.getRoundIssuedOn(),
+            licence.getStatus().getDisplayText()
         );
   }
 

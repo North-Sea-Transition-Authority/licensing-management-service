@@ -1,7 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase;
 
-import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
-
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
@@ -13,8 +11,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 
 @Controller
@@ -53,8 +49,7 @@ public class LicenceSchedulePhaseController {
 
     licenceSchedulePhaseFormService.savePhaseFromForm(form, licenceScheduleDetail);
 
-    return ReverseRouter.redirect(on(LicenceScheduleTimelineController.class)
-        .renderLicenceScheduleTimeline(licenceScheduleDetail.getId(), null));
+    return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
   }
 
   private ModelAndView getSchedulePhaseModelAndView(LicenceSchedulePhaseForm form, LicenceScheduleDetail licenceScheduleDetail) {
@@ -63,8 +58,7 @@ public class LicenceSchedulePhaseController {
     return new ModelAndView("lms/licence/schedule/createSchedulePhase")
         .addObject("form", form)
         .addObject("radioOptions", PhaseType.getPhaseRadioOptionsFor(licenceType))
-        .addObject("cancelUrl", ReverseRouter.route(on(LicenceScheduleTimelineController.class)
-            .renderLicenceScheduleTimeline(licenceScheduleDetail.getId(), null)));
+        .addObject("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl());
   }
 
 }

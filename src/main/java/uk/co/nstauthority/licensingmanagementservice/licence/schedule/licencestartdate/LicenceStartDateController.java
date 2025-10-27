@@ -15,7 +15,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculatio
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.LicenceScheduleSelectionController;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -74,7 +73,7 @@ public class LicenceStartDateController {
   ) {
     return getScheduleDetailsModelAndView(
         licenceStartDateService.getLicenceStartDateForm(licenceScheduleDetail),
-        getTimelineUrl(licenceScheduleDetailId)
+        licenceScheduleDetail.getScheduleTimelineRouteUrl()
     );
   }
 
@@ -88,15 +87,14 @@ public class LicenceStartDateController {
     if (!licenceStartDateValidator.isValid(form, bindingResult)) {
       return getScheduleDetailsModelAndView(
           form,
-          getTimelineUrl(licenceScheduleDetailId)
+          licenceScheduleDetail.getScheduleTimelineRouteUrl()
       );
     }
 
     licenceStartDateService.saveOrUpdateLicenceStartDateFromForm(form, licenceScheduleDetail);
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
 
-    return ReverseRouter.redirect(on(LicenceScheduleTimelineController.class)
-        .renderLicenceScheduleTimeline(licenceScheduleDetailId, null));
+    return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
   }
 
   private ModelAndView getScheduleDetailsModelAndView(LicenceStartDateForm form, String backUrl) {
@@ -104,10 +102,5 @@ public class LicenceStartDateController {
         .addObject("form", form)
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("backUrl", backUrl);
-  }
-
-  private String getTimelineUrl(UUID licenceScheduleDetailId) {
-    return ReverseRouter.route(on(LicenceScheduleTimelineController.class)
-        .renderLicenceScheduleTimeline(licenceScheduleDetailId, null));
   }
 }

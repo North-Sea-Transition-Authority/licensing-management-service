@@ -20,13 +20,16 @@ public class LicenceScheduleReviewAndSubmitController {
 
   private final LicenceService licenceService;
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
+  private final LicenceScheduleSummarySectionService licenceScheduleSummarySectionService;
 
   public LicenceScheduleReviewAndSubmitController(
       LicenceService licenceService,
-      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService
+      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
+      LicenceScheduleSummarySectionService licenceScheduleSummarySectionService
   ) {
     this.licenceService = licenceService;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
+    this.licenceScheduleSummarySectionService = licenceScheduleSummarySectionService;
   }
 
   @GetMapping
@@ -43,19 +46,19 @@ public class LicenceScheduleReviewAndSubmitController {
   ) {
 
     return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/reviewAndSubmit")
-        .addObject(
-            "cancelUrl",
-            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
+        .addObject("cancelUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
                 scheduleWorkProgrammeApplicationDetail.getId(),
                 null,
                 null
+            )))
+        .addObject("pageCaption", licenceService.getLicencePageCaption(
+            scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(
+                scheduleWorkProgrammeApplicationDetail
+            )))
+        .addObject("summarySections", licenceScheduleSummarySectionService.getSummarySections(
+                scheduleWorkProgrammeApplicationDetail,
+                null
             ))
-        )
-        .addObject(
-            "pageCaption",
-            licenceService.getLicencePageCaption(scheduleWorkProgrammeApplicationService
-                .getLicenceFromScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail))
-        );
-
+        .addObject("accordionId", scheduleWorkProgrammeApplicationDetail.getId());
   }
 }

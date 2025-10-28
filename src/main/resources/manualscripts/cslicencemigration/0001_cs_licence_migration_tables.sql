@@ -1,8 +1,9 @@
 CREATE TABLE lms.cs_licence_migration_extract (
     licence_ref TEXT,
-    prefix TEXT,
     licence_number TEXT,
-    responsible_orgs TEXT
+    responsible_orgs TEXT,
+    status TEXT,
+    status_date TEXT
 );
 
 CREATE TABLE lms.cs_licence_org_mapping (

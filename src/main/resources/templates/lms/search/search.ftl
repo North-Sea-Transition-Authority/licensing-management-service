@@ -22,7 +22,7 @@
 
         <@fdsSearch.searchPageContent>
             <#if searchResults?has_content>
-                <@fdsResultList.resultList>
+                <@fdsResultList.resultList resultCount=searchResults?size>
                     <#list searchResults as searchResult>
                       <@searchDataItem.resultListItem dataView=searchResult/>
                     </#list>

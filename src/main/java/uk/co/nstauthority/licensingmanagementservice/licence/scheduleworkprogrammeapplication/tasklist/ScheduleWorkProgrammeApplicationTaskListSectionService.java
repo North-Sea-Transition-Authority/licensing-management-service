@@ -41,7 +41,7 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
     this.licenceWorkProgrammeAmendmentSubmissionService = licenceWorkProgrammeAmendmentSubmissionService;
   }
 
-  static final String APPLICATION_DETAILS_SECTION_NAME = "Application details";
+  static final String APPLICATION_DETAILS_SECTION_NAME = "Schedule and work programme application details";
   static final String WHAT_ARE_YOU_REQUESTING_TO_DO = "What are you requesting to do?";
   static final String EXTENSION_DETAILS = "Extension Details";
   static final String AMENDMENT_DETAILS = "Work programme amendment details";

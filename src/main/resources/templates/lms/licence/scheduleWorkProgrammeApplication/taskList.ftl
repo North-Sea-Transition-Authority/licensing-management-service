@@ -4,7 +4,6 @@
 <@defaultPage
 htmlTitle="Application"
 pageHeading=pageTitle
-    pageHeadingClass="govuk-heading-l"
 caption=pageCaption
 pageSize=PageSize.TWO_THIRDS_COLUMN
 breadcrumbs=breadcrumbs>

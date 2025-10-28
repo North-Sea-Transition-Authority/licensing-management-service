@@ -29,7 +29,7 @@
                 </@fdsResultList.resultList>
             <#elseif !hasSearchBeenInvoked>
                 <@fdsInsetText.insetText>
-                    To search, add some filters and click the 'Filter' button.
+                    To search, add some filters and click the 'Filter results' button.
                 </@fdsInsetText.insetText>
             <#else>
                 <h3 class="govuk-heading-s">There are no matching results</h3>

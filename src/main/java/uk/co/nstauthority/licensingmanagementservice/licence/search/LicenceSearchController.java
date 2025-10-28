@@ -2,6 +2,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.search;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.util.Collections;
+import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -17,6 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @Controller
@@ -39,11 +42,15 @@ public class LicenceSearchController {
   public ModelAndView renderSearchPage(@ModelAttribute("licenceSearchSession") LicenceSearchSession searchSession) {
     var form = searchSession.getSearchFilterForm();
 
+    List<SearchResultItem> licenceSearchItems;
     if (!searchSession.hasSearchBeenInvoked()) {
       form.setLicenceTypes(LicenceType.getDisplayableLicenceTypesNames());
+      licenceSearchItems = Collections.emptyList();
+    } else {
+      licenceSearchItems = licenceSearchService.getSearchResultItems(form);
     }
 
-    return getLicenceSearchModelAndView(form);
+    return getLicenceSearchModelAndView(form, licenceSearchItems);
   }
 
   @PostMapping
@@ -77,7 +84,7 @@ public class LicenceSearchController {
         .addObject("licenceActions", licenceActionService.getAvailableUserActionItems(licence, null));
   }
 
-  private ModelAndView getLicenceSearchModelAndView(LicenceSearchFilterForm form) {
+  private ModelAndView getLicenceSearchModelAndView(LicenceSearchFilterForm form, List<SearchResultItem> searchItems) {
     return new ModelAndView("lms/licence/search/licenceSearch")
         .addObject("form", form)
         .addObject("clearFilterUrl", ReverseRouter.route(on(LicenceSearchController.class).clearSearchFilters(null, null)))
@@ -85,6 +92,6 @@ public class LicenceSearchController {
         .addObject("licenseeOrgUnitUrl",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
         .addObject("preSelectedLicenseeOrgUnit", licenceSearchService.getPreselectedOrganisationUnit(form.getLicenseeOrgUnitId()))
-        .addObject("searchItems", licenceSearchService.getSearchResultItems(form));
+        .addObject("searchItems", searchItems);
   }
 }

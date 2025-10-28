@@ -1,6 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.search;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -51,9 +51,8 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
   }
 
   @SecurityTest
-  void renderSearchPage() throws Exception {
-    when(licenceSearchService.getSearchResultItems(any(LicenceSearchFilterForm.class))).thenReturn(List.of());
-
+  void renderSearchPage_whenSessionHasNotBeenInvoked() throws Exception {
+    var form = new LicenceSearchFilterForm();
     mockMvc.perform(
             get(RENDER_SEARCH_PAGE_ROUTE)
                 .with(user(organisationUser))
@@ -64,12 +63,12 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("clearFilterUrl", CLEARED_SEARCH_FILTERS_ROUTE))
         .andExpect(model().attribute("licenceTypes",
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes())));
+
+    verify(licenceSearchService, never()).getSearchResultItems(form);
   }
 
   @SecurityTest
   void renderSearchPage_whenSessionHasBeenInvoked() throws Exception {
-    when(licenceSearchService.getSearchResultItems(any(LicenceSearchFilterForm.class))).thenReturn(List.of());
-
     var form = new LicenceSearchFilterForm();
     form.setReference("reference");
     var searchSession = new LicenceSearchSession(form);

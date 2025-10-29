@@ -12,7 +12,7 @@ extendContainerWidth=true
 >
     <@search.standardSearch
     searchResults=searchItems
-    hasSearchBeenInvoked=searchItems?has_content
+    hasSearchBeenInvoked=hasSearchBeenInvoked
     clearFilterUrl=clearFilterUrl
     >
         <@dataItemFilter.licenceTypeFilter

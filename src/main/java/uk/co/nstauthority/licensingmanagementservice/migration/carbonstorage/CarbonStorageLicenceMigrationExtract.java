@@ -12,11 +12,13 @@ public class CarbonStorageLicenceMigrationExtract {
   @Id
   private String licenceRef;
 
-  private String prefix;
-
   private String licenceNumber;
 
   private String responsibleOrgs;
+
+  private String status;
+
+  private String statusDate;
 
   public String getLicenceRef() {
     return licenceRef;
@@ -24,14 +26,6 @@ public class CarbonStorageLicenceMigrationExtract {
 
   public void setLicenceRef(String licenceRef) {
     this.licenceRef = licenceRef;
-  }
-
-  public String getPrefix() {
-    return prefix;
-  }
-
-  public void setPrefix(String prefix) {
-    this.prefix = prefix;
   }
 
   public String getLicenceNumber() {
@@ -48,5 +42,21 @@ public class CarbonStorageLicenceMigrationExtract {
 
   public void setResponsibleOrgs(String responsibleOrgs) {
     this.responsibleOrgs = responsibleOrgs;
+  }
+
+  public String getStatus() {
+    return status;
+  }
+
+  public void setStatus(String status) {
+    this.status = status;
+  }
+
+  public String getStatusDate() {
+    return statusDate;
+  }
+
+  public void setStatusDate(String statusDate) {
+    this.statusDate = statusDate;
   }
 }

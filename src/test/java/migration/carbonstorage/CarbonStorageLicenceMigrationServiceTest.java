@@ -100,7 +100,6 @@ class CarbonStorageLicenceMigrationServiceTest {
     CarbonStorageLicenceMigrationExtract extract = new CarbonStorageLicenceMigrationExtract();
     extract.setResponsibleOrgs("org1,org2");
     extract.setLicenceNumber("123");
-    extract.setPrefix("CS");
     extract.setLicenceRef("CS123");
 
     when(carbonStorageLicenceMigrationExtractRepository.findAll()).thenReturn(List.of(extract));

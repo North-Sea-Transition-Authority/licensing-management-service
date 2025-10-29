@@ -43,14 +43,15 @@ public class LicenceSearchController {
     var form = searchSession.getSearchFilterForm();
 
     List<SearchResultItem> licenceSearchItems;
-    if (!searchSession.hasSearchBeenInvoked()) {
+    boolean hasSearchBeenInvoked = searchSession.hasSearchBeenInvoked();
+    if (!hasSearchBeenInvoked) {
       form.setLicenceTypes(LicenceType.getDisplayableLicenceTypesNames());
       licenceSearchItems = Collections.emptyList();
     } else {
       licenceSearchItems = licenceSearchService.getSearchResultItems(form);
     }
 
-    return getLicenceSearchModelAndView(form, licenceSearchItems);
+    return getLicenceSearchModelAndView(form, licenceSearchItems, hasSearchBeenInvoked);
   }
 
   @PostMapping
@@ -84,7 +85,10 @@ public class LicenceSearchController {
         .addObject("licenceActions", licenceActionService.getAvailableUserActionItems(licence, null));
   }
 
-  private ModelAndView getLicenceSearchModelAndView(LicenceSearchFilterForm form, List<SearchResultItem> searchItems) {
+  private ModelAndView getLicenceSearchModelAndView(LicenceSearchFilterForm form,
+                                                    List<SearchResultItem> searchItems,
+                                                    boolean hasSearchBeenInvoked
+  ) {
     return new ModelAndView("lms/licence/search/licenceSearch")
         .addObject("form", form)
         .addObject("clearFilterUrl", ReverseRouter.route(on(LicenceSearchController.class).clearSearchFilters(null, null)))
@@ -92,6 +96,7 @@ public class LicenceSearchController {
         .addObject("licenseeOrgUnitUrl",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
         .addObject("preSelectedLicenseeOrgUnit", licenceSearchService.getPreselectedOrganisationUnit(form.getLicenseeOrgUnitId()))
-        .addObject("searchItems", searchItems);
+        .addObject("searchItems", searchItems)
+        .addObject("hasSearchBeenInvoked", hasSearchBeenInvoked);
   }
 }

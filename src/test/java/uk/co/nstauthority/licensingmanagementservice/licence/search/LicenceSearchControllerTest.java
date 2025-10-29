@@ -60,6 +60,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/search/licenceSearch"))
         .andExpect(model().attribute("searchItems", List.of()))
+        .andExpect(model().attribute("hasSearchBeenInvoked", false))
         .andExpect(model().attribute("clearFilterUrl", CLEARED_SEARCH_FILTERS_ROUTE))
         .andExpect(model().attribute("licenceTypes",
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes())));
@@ -82,6 +83,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/search/licenceSearch"))
         .andExpect(model().attribute("searchItems", List.of()))
+        .andExpect(model().attribute("hasSearchBeenInvoked", true))
         .andExpect(model().attribute("clearFilterUrl", CLEARED_SEARCH_FILTERS_ROUTE))
         .andExpect(model().attribute("licenceTypes",
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes())));

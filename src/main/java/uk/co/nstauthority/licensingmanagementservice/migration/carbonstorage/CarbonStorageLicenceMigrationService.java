@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
@@ -81,13 +82,15 @@ public class CarbonStorageLicenceMigrationService {
       licence.setPrefix(LicenceType.CARBON_STORAGE.getPrefix());
       licence.setLicenceNumber(migrationExtract.getLicenceNumber());
       licence.setLicenceReference(migrationExtract.getLicenceRef());
+      licence.setStatus(getLicenceStatusFromString(migrationExtract.getStatus()));
       licences.add(licence);
 
       String[] organisations = migrationExtract.getResponsibleOrgs().split(",");
       for (var responsibleOrg : organisations) {
 
-        var organisationUnitId = carbonStorageLicenceOrgMappingRepository.findByCsExtractResponsibleOrganisation(responsibleOrg)
-            .getOrganisationUnitId();
+        var organisationUnitId = carbonStorageLicenceOrgMappingRepository.findByCsExtractResponsibleOrganisation(
+            responsibleOrg.trim()
+        ).getOrganisationUnitId();
 
         if (organisationUnitId != null) {
           var licenceResponsibleOrganisation = new LicenceResponsibleOrganisation();
@@ -167,5 +170,16 @@ public class CarbonStorageLicenceMigrationService {
       var licenceScheduleDetail = term.getLicenceScheduleDetail();
       licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
     }
+  }
+
+  private LicenceStatus getLicenceStatusFromString(String status) {
+    return switch (status) {
+      case "Extant" -> LicenceStatus.EXTANT;
+      case "Expired" -> LicenceStatus.EXPIRED;
+      case "Revoked" -> LicenceStatus.REVOKED;
+      case "Surrendered" -> LicenceStatus.SURRENDERED;
+      case "Split" -> LicenceStatus.SPLIT_AND_TERMINATED;
+      default -> null;
+    };
   }
 }

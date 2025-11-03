@@ -1,0 +1,5 @@
+itportal-base-url:
+  http://localhost:8081
+
+saml:
+  entity-id: energy-portal-accounts-service-local

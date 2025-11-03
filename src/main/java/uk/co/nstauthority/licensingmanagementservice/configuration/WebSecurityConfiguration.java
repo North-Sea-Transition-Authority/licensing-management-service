@@ -27,7 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.RequestLogFilter;
 @Configuration
 public class WebSecurityConfiguration {
 
-  public static final String IDP_ACCESS_GRANTED_AUTHORITY_NAME = "XYZ_ACCESS_PRIVILEGE";
+  public static final String IDP_ACCESS_GRANTED_AUTHORITY_NAME = "LMS_ACCESS_PRIVILEGE";
 
   private final SamlProperties samlProperties;
   private final SamlResponseParser samlResponseParser;

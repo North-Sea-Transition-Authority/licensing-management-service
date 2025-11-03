@@ -73,3 +73,6 @@ CVE-2025-41249
 
 # ch.qos.logback:logback-core
 CVE-2025-11226
+
+# org.apache.tomcat.embed:tomcat-embed-core
+CVE-2025-49124

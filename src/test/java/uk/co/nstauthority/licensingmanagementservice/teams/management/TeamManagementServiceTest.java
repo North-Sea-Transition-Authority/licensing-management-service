@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,8 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.co.fivium.energyportal.accounts.starter.EnergyPortalServiceAccessService;
+import uk.co.fivium.energyportal.starter.accounts.EnergyPortalServiceAccessService;
+import uk.co.fivium.energyportal.starter.serviceproviders.EnergyPortalServiceProviderUserRolesService;
 import uk.co.fivium.energyportalapi.generated.types.User;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
@@ -63,6 +65,9 @@ class TeamManagementServiceTest {
 
   @Mock
   private EnergyPortalServiceAccessService energyPortalServiceAccessService;
+
+  @Mock
+  private EnergyPortalServiceProviderUserRolesService energyPortalServiceProviderUserRolesService;
 
   @InjectMocks
   private TeamManagementService teamManagementService;
@@ -382,6 +387,12 @@ class TeamManagementServiceTest {
     assertThat(teamRoleListCaptor.getValue()).extracting(TeamRole::getRole)
         .contains(Role.MANAGE_TEAM, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM);
 
+    verify(energyPortalServiceProviderUserRolesService).publishUsersRolesForTeam(
+        USER_1_WUA_ID,
+        regTeam.getId().toString(),
+        regTeam.getTeamType().name(),
+        Set.of(Role.MANAGE_TEAM.name(), Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM.name())
+    );
     verify(energyPortalServiceAccessService, never()).addUser(anyLong());
   }
 
@@ -397,6 +408,12 @@ class TeamManagementServiceTest {
     teamManagementService.setUserTeamRoles(USER_1_WUA_ID, regTeam,
         List.of(Role.MANAGE_TEAM, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM), userDetail);
 
+    verify(energyPortalServiceProviderUserRolesService).publishUsersRolesForTeam(
+        USER_1_WUA_ID,
+        regTeam.getId().toString(),
+        regTeam.getTeamType().name(),
+        Set.of(Role.MANAGE_TEAM.name(), Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM.name())
+    );
     verify(energyPortalServiceAccessService).addUser(USER_1_WUA_ID);
   }
 
@@ -411,6 +428,13 @@ class TeamManagementServiceTest {
     var roleList = List.of(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM);
     assertThatExceptionOfType(TeamManagementException.class)
         .isThrownBy(() -> teamManagementService.setUserTeamRoles(USER_1_WUA_ID, regTeam, roleList, userDetail));
+
+    verify(energyPortalServiceProviderUserRolesService, never()).publishUsersRolesForTeam(
+        anyLong(),
+        any(),
+        any(),
+        any()
+    );
   }
 
   @Test
@@ -422,6 +446,12 @@ class TeamManagementServiceTest {
 
     verify(teamRoleRepository, never()).deleteByWuaIdAndTeam(any(), any());
     verify(teamRoleRepository, never()).saveAll(any());
+    verify(energyPortalServiceProviderUserRolesService, never()).publishUsersRolesForTeam(
+        anyLong(),
+        any(),
+        any(),
+        any()
+    );
   }
 
   @Test
@@ -435,6 +465,12 @@ class TeamManagementServiceTest {
 
     verify(teamRoleRepository, never()).deleteByWuaIdAndTeam(any(), any());
     verify(teamRoleRepository, never()).saveAll(any());
+    verify(energyPortalServiceProviderUserRolesService, never()).publishUsersRolesForTeam(
+        anyLong(),
+        any(),
+        any(),
+        any()
+    );
   }
 
   @Test
@@ -451,6 +487,12 @@ class TeamManagementServiceTest {
 
     verify(teamRoleRepository, never()).deleteByWuaIdAndTeam(any(), any());
     verify(teamRoleRepository, never()).saveAll(any());
+    verify(energyPortalServiceProviderUserRolesService, never()).publishUsersRolesForTeam(
+        anyLong(),
+        any(),
+        any(),
+        any()
+    );
   }
 
   @Test
@@ -467,6 +509,12 @@ class TeamManagementServiceTest {
 
     verify(teamRoleRepository, never()).deleteByWuaIdAndTeam(any(), any());
     verify(teamRoleRepository, never()).saveAll(any());
+    verify(energyPortalServiceProviderUserRolesService, never()).publishUsersRolesForTeam(
+        anyLong(),
+        any(),
+        any(),
+        any()
+    );
   }
 
   @Test
@@ -478,6 +526,11 @@ class TeamManagementServiceTest {
 
     teamManagementService.removeUserFromTeam(USER_2_WUA_ID, regTeam, userDetail);
     verify(teamRoleRepository).deleteByWuaIdAndTeam(USER_2_WUA_ID, regTeam);
+
+    verify(energyPortalServiceProviderUserRolesService).publishRemoveUserFromTeam(
+        USER_2_WUA_ID,
+        regTeam.getId().toString()
+    );
     verify(energyPortalServiceAccessService, never()).removeUser(anyLong());
   }
 
@@ -490,6 +543,10 @@ class TeamManagementServiceTest {
 
     teamManagementService.removeUserFromTeam(USER_2_WUA_ID, regTeam, userDetail);
 
+    verify(energyPortalServiceProviderUserRolesService).publishRemoveUserFromTeam(
+        USER_2_WUA_ID,
+        regTeam.getId().toString()
+    );
     verify(energyPortalServiceAccessService).removeUser(USER_2_WUA_ID);
   }
 
@@ -501,7 +558,11 @@ class TeamManagementServiceTest {
     assertThatExceptionOfType(TeamManagementException.class)
         .isThrownBy(() -> teamManagementService.removeUserFromTeam(USER_1_WUA_ID, regTeam, userDetail));
 
-    verify(teamRoleRepository, never()).deleteByWuaIdAndTeam(USER_1_WUA_ID, regTeam);
+    verify(teamRoleRepository, never()).deleteByWuaIdAndTeam(anyLong(), any());
+    verify(energyPortalServiceProviderUserRolesService, never()).publishRemoveUserFromTeam(
+        anyLong(),
+        any()
+    );
   }
 
   @Test

@@ -33,6 +33,6 @@ public class AuditRevisionListener implements RevisionListener {
       return Optional.of(serviceUserDetail);
     }
 
-    return Optional.empty();
+    return Optional.ofNullable(AuditRevisionUtil.getFallbackAuditUser());
   }
 }

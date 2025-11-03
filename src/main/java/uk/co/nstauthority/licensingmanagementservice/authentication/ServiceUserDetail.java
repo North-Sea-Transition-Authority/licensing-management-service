@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.authentication;
 import java.io.Serializable;
 import java.util.Objects;
 import org.springframework.security.core.AuthenticatedPrincipal;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 
 public record ServiceUserDetail(Long wuaId,
                                 Long personId,
@@ -30,5 +31,17 @@ public record ServiceUserDetail(Long wuaId,
   public String displayNameIncludingAnyProxyUser() {
     var userDisplayName = displayName();
     return proxyWuaId != null ? String.format("%s as %s", proxyUsername, userDisplayName) : userDisplayName;
+  }
+
+  public static ServiceUserDetail from(EnergyPortalUserJson energyPortalUser) {
+    return new ServiceUserDetail(
+        energyPortalUser.webUserAccountId(),
+        null,
+        energyPortalUser.forename(),
+        energyPortalUser.surname(),
+        energyPortalUser.emailAddress(),
+        null,
+        null
+    );
   }
 }

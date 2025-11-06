@@ -2,7 +2,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesc
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -11,9 +13,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
+import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceSchedulePhaseFormServiceTest {
@@ -23,6 +28,9 @@ class LicenceSchedulePhaseFormServiceTest {
 
   @Mock
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
+
+  @Mock
+  private LicenceScheduleTermService licenceScheduleTermService;
 
   @InjectMocks
   private LicenceSchedulePhaseFormService licenceSchedulePhaseFormService;
@@ -41,6 +49,11 @@ class LicenceSchedulePhaseFormServiceTest {
     form.getPhaseDuration().setDays("0");
     form.setComments("comments");
 
+    var term = new LicenceScheduleTerm();
+    term.setTermType(TermType.INITIAL);
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+
     licenceSchedulePhaseFormService.savePhaseFromForm(form, licenceScheduleDetail);
 
     verify(licenceSchedulePhaseRepository).save(licenceSchedulePhaseArgumentCaptor.capture());
@@ -52,13 +65,15 @@ class LicenceSchedulePhaseFormServiceTest {
         LicenceSchedulePhase::getPhaseType,
         LicenceSchedulePhase::getPhaseDuration,
         LicenceSchedulePhase::getComments,
-        LicenceSchedulePhase::getStatus
+        LicenceSchedulePhase::getStatus,
+        LicenceSchedulePhase::getLicenceScheduleTerm
     ).containsExactly(
         licenceScheduleDetail,
         PhaseType.PHASE_A,
         form.getPhaseDuration().toThreeFieldDuration(),
         form.getComments(),
-        LicenceScheduleEventStatus.ACTIVE
+        LicenceScheduleEventStatus.ACTIVE,
+        term
     );
 
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);

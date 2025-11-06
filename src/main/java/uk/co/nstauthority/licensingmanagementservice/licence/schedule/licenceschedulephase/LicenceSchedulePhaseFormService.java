@@ -2,22 +2,29 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesc
 
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 
 @Service
 public class LicenceSchedulePhaseFormService {
 
   private final LicenceSchedulePhaseRepository licenceSchedulePhaseRepository;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
+  private final LicenceScheduleTermService licenceScheduleTermService;
 
   public LicenceSchedulePhaseFormService(
       LicenceSchedulePhaseRepository licenceSchedulePhaseRepository,
-      LicenceScheduleCalculationService licenceScheduleCalculationService
+      LicenceScheduleCalculationService licenceScheduleCalculationService,
+      LicenceScheduleTermService licenceScheduleTermService
   ) {
     this.licenceSchedulePhaseRepository = licenceSchedulePhaseRepository;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
+    this.licenceScheduleTermService = licenceScheduleTermService;
   }
 
   @Transactional
@@ -31,9 +38,21 @@ public class LicenceSchedulePhaseFormService {
     licenceSchedulePhase.setPhaseDuration(licenceSchedulePhaseForm.getPhaseDuration().toThreeFieldDuration());
     licenceSchedulePhase.setComments(licenceSchedulePhaseForm.getComments());
     licenceSchedulePhase.setStatus(LicenceScheduleEventStatus.ACTIVE);
+    licenceSchedulePhase.setLicenceScheduleTerm(getRelatedTerm(licenceScheduleDetail, licenceSchedulePhaseForm.getPhaseType()));
     licenceSchedulePhaseRepository.save(licenceSchedulePhase);
 
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
+  private LicenceScheduleTerm getRelatedTerm(
+      LicenceScheduleDetail licenceScheduleDetail,
+      PhaseType phaseType
+  ) {
+    return licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
+        .filter(term -> term.getTermType().equals(phaseType.getTermType()))
+        .findFirst()
+        .orElseThrow(
+            () -> new LmsEntityNotFoundException("Could not find related term for phase type: %s".formatted(phaseType.name()))
+        );
+  }
 }

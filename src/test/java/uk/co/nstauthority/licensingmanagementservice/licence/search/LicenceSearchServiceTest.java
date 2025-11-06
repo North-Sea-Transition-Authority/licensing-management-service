@@ -73,7 +73,7 @@ class LicenceSearchServiceTest {
     when(licenceService.getAllLicences()).thenReturn(List.of(licence, licence2, licence3));
 
     var filterForm = new LicenceSearchFilterForm();
-    filterForm.setReference("s");
+    filterForm.setLicenceReference("s");
 
     var result = licenceSearchService.getSearchResultItems(filterForm);
 

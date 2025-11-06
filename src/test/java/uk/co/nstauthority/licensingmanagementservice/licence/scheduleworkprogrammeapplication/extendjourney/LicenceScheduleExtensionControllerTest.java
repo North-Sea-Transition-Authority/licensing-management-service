@@ -3,7 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -16,10 +15,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -97,12 +96,9 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
 
   @SecurityTest
   void renderExtensionForm() throws Exception {
-    try (MockedStatic<DateFormatUtil> mockedStatic = mockStatic(DateFormatUtil.class)) {
-      mockedStatic.when(() -> DateFormatUtil.convertToDisplayText(any()))
-          .thenReturn("17 Sep 2025");
-
       LicenceScheduleTerm licenceScheduleTerm = new LicenceScheduleTerm();
       licenceScheduleTerm.setTermType(TermType.APPRAISAL);
+      licenceScheduleTerm.setEndDate(LocalDate.of(2025, 9, 17));
       when(licenceScheduleExtensionFormService.getCurrentTerm(any())).thenReturn(licenceScheduleTerm);
       when(licenceScheduleExtensionFormService.getLicenceScheduleExtensionForm(any())).thenReturn(
           new LicenceScheduleExtensionForm());
@@ -124,7 +120,6 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
           .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
               ScheduleWorkProgrammeApplicationTaskListController.class)
               .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
-    }
   }
 
   @Test
@@ -147,12 +142,9 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
 
   @Test
   void submitInvalidForm() throws Exception {
-    try (MockedStatic<DateFormatUtil> mockedStatic = mockStatic(DateFormatUtil.class)) {
-      mockedStatic.when(() -> DateFormatUtil.convertToDisplayText(any()))
-          .thenReturn("17 Sep 2025");
-
       LicenceScheduleTerm licenceScheduleTerm = new LicenceScheduleTerm();
       licenceScheduleTerm.setTermType(TermType.INITIAL);
+      licenceScheduleTerm.setEndDate(LocalDate.of(2025, 9, 17));
       when(licenceScheduleExtensionFormService.getCurrentTerm(any())).thenReturn(licenceScheduleTerm);
       when(licenceScheduleExtensionFormValidator.isValid(any(), any())).thenReturn(false);
 
@@ -175,7 +167,5 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
               .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
 
       verify(licenceScheduleExtensionFormService, never()).saveExtensionForm(any(), any());
-
-    }
   }
 }

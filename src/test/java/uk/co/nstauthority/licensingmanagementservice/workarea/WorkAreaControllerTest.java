@@ -72,7 +72,7 @@ class WorkAreaControllerTest extends AbstractControllerTest {
         searchResultItem3
     );
 
-    when(workAreaService.getSearchResultItems(any()))
+    when(workAreaService.getWorkAreaResults(any(), any()))
         .thenReturn(searchResultItems);
 
     var modelAndView = mockMvc.perform(

@@ -8,17 +8,17 @@ public class WorkAreaFilterForm implements Serializable {
   @Serial
   private static final long serialVersionUID = 5206043094614692850L;
 
-  private String reference;
+  private String licenceReference;
 
-  public String getReference() {
-    return reference;
+  public String getLicenceReference() {
+    return licenceReference;
   }
 
-  public void setReference(String reference) {
-    this.reference = reference;
+  public void setLicenceReference(String licenceReference) {
+    this.licenceReference = licenceReference;
   }
 
   public void clearFilter() {
-    setReference(null);
+    setLicenceReference(null);
   }
 }

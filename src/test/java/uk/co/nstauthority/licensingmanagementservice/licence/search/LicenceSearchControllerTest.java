@@ -71,7 +71,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
   @SecurityTest
   void renderSearchPage_whenSessionHasBeenInvoked() throws Exception {
     var form = new LicenceSearchFilterForm();
-    form.setReference("reference");
+    form.setLicenceReference("reference");
     var searchSession = new LicenceSearchSession(form);
     searchSession.update(form);
 

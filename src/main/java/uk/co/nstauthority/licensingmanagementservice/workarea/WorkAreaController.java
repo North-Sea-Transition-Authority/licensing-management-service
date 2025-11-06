@@ -29,7 +29,7 @@ public class WorkAreaController {
 
   @GetMapping
   public ModelAndView getWorkArea(@ModelAttribute("workAreaSession") WorkAreaSession workAreaSession, ServiceUserDetail user) {
-    return getModelAndView(workAreaSession.getWorkAreaFilterForm());
+    return getModelAndView(workAreaSession.getWorkAreaFilterForm(), user);
   }
 
   @PostMapping
@@ -52,10 +52,10 @@ public class WorkAreaController {
     return new WorkAreaSession(form);
   }
 
-  private @NotNull ModelAndView getModelAndView(WorkAreaFilterForm form) {
+  private @NotNull ModelAndView getModelAndView(WorkAreaFilterForm form, ServiceUserDetail user) {
     return new ModelAndView("lms/workarea/workArea")
         .addObject("pageTitle", WORK_AREA_PAGE_NAME)
-        .addObject("workAreaItems", workAreaService.getSearchResultItems(form))
+        .addObject("workAreaItems", workAreaService.getWorkAreaResults(form, user))
         .addObject("canStartApplication", true)
         .addObject("startApplicationUrl", ReverseRouter
                 .route(on(SelectScheduleWorkProgrammeApplicationLicenceTypeController.class).renderSelectLicenceType()))

@@ -38,11 +38,11 @@ public class LicenceSearchService {
   public List<SearchResultItem> getSearchResultItems(LicenceSearchFilterForm filterForm) {
     // get all licenses and apply simple filtering
     var filteredLicenses = licenceService.getAllLicences().stream()
-        .filter(licence -> FilterUtil.filterTextInput(licence.getLicenceReference(), filterForm.getReference()))
+        .filter(licence -> FilterUtil.filterTextInput(licence.getLicenceReference(), filterForm.getLicenceReference()))
         .filter(licence -> FilterUtil.filterEnum(LicenceType.class, licence.getType(), filterForm.getLicenceTypes()))
         .toList();
 
-    var licenceResponsibleOrganisations = licenceResponsibleOrganisationService.getAllByLicenceIn(filteredLicenses);
+    var licenceResponsibleOrganisations = getResponsibleOrganisationsForLicences(filteredLicenses);
 
     // apply batch filtering
     var responsibleOrganisationIds = getResponsibleOrganisationIds(licenceResponsibleOrganisations);
@@ -59,6 +59,10 @@ public class LicenceSearchService {
         .toList();
   }
 
+  public List<LicenceResponsibleOrganisation> getResponsibleOrganisationsForLicences(List<Licence> licences) {
+    return licenceResponsibleOrganisationService.getAllByLicenceIn(licences);
+  }
+
   Map<Licence, List<Integer>> getResponsibleOrganisationIds(
       List<LicenceResponsibleOrganisation> licenceResponsibleOrganisations) {
     return licenceResponsibleOrganisations.stream()
@@ -71,7 +75,7 @@ public class LicenceSearchService {
         ));
   }
 
-  Map<Licence, List<String>> getResponsibleOrganisationNamesByLicences(
+  public Map<Licence, List<String>> getResponsibleOrganisationNamesByLicences(
       List<LicenceResponsibleOrganisation> licenceResponsibleOrganisations) {
 
     var responsibleOrganisationIds = licenceResponsibleOrganisations.stream()

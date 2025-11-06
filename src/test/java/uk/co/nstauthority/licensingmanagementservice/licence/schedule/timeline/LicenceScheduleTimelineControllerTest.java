@@ -84,4 +84,32 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("updateLicenceStartDateUrl",
             ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateUpdateForm(licenceScheduleDetail.getId(), null))));
   }
+
+  @SecurityTest
+  void renderLicenceScheduleTimeline_withScheduleDetail() throws Exception {
+    when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
+    when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
+
+    var timelineSummaryCardView = new TimelineSummaryCardView("date", "1", LicenceStatus.EXTANT.getDisplayText());
+    var timelineActionViews = List.of(new TimelineActionView(LicenceScheduleTimelineAction.ADD_A_TERM, ""));
+    var scheduleEventViews = List.of(new TimelineTermView(List.of(), TermType.INITIAL, "", "", "", ""));
+
+    when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
+    when(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail)).thenReturn(timelineActionViews);
+    when(licenceScheduleTimelineService.getLicenceScheduleEventViews(licenceScheduleDetail)).thenReturn(scheduleEventViews);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceScheduleTimelineController.class)
+                .renderLicenceScheduleTimeline(licenceScheduleDetail.getId(), null)))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/licence/schedule/scheduleTimeline"))
+        .andExpect(model().attribute("pageTitle", LicenceScheduleTimelineController.PAGE_TITLE.formatted(licence.getLicenceReference())))
+        .andExpect(model().attribute("timelineSummaryCardView", timelineSummaryCardView))
+        .andExpect(model().attribute("actions", timelineActionViews))
+        .andExpect(model().attribute("scheduleEventViews", scheduleEventViews))
+        .andExpect(model().attribute("updateLicenceStartDateUrl",
+            ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateUpdateForm(licenceScheduleDetail.getId(), null))));
+  }
 }

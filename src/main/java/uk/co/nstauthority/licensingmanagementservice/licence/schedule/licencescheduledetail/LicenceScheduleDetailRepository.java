@@ -1,7 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
@@ -12,4 +14,7 @@ public interface LicenceScheduleDetailRepository extends JpaRepository<LicenceSc
   Optional<LicenceScheduleDetail> findByLicenceSchedule(LicenceSchedule licenceSchedule);
 
   Optional<LicenceScheduleDetail> findByLicenceSchedule_Licence(Licence licence);
+
+  @EntityGraph(attributePaths = "licenceSchedule.licence")
+  List<LicenceScheduleDetail> findAll();
 }

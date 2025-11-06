@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
@@ -33,6 +34,11 @@ public class LicenceScheduleDetailService {
   public LicenceScheduleDetail getScheduleDetailByLicenceOrThrow(Licence licence) {
     return licenceScheduleDetailRepository.findByLicenceSchedule_Licence(licence)
         .orElseThrow(() -> new LmsEntityNotFoundException("licence schedule detail", licence.getId()));
+  }
+
+  //TODO remove in place of draft schedules for the user
+  public List<LicenceScheduleDetail> getAllLicenceScheduleDetails(ServiceUserDetail serviceUserDetail) {
+    return licenceScheduleDetailRepository.findAll();
   }
 
   @Transactional

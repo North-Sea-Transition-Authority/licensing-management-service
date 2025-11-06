@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.query;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
@@ -11,7 +12,8 @@ public record SearchResultItem(
     String tagText,
     String tagClass,
     String captionText,
-    List<SummaryDataView> dataItemRows
+    List<SummaryDataView> dataItemRows,
+    Instant transactionDatetime
 ) {
 
   public static Builder newBuilder() {
@@ -26,6 +28,7 @@ public record SearchResultItem(
     private String tagClass;
     private String captionText;
     private final List<SummaryDataView> dataItemRows = new ArrayList<>();
+    private Instant transactionDatetime;
 
     public Builder withId(String id) {
       this.id = id;
@@ -62,6 +65,11 @@ public record SearchResultItem(
       return this;
     }
 
+    public Builder withTransactionDatetime(Instant transactionDatetime) {
+      this.transactionDatetime = transactionDatetime;
+      return this;
+    }
+
     public SearchResultItem build() {
       return new SearchResultItem(
           id,
@@ -70,7 +78,8 @@ public record SearchResultItem(
           tagText,
           tagClass,
           captionText,
-          dataItemRows
+          dataItemRows,
+          transactionDatetime
       );
     }
   }

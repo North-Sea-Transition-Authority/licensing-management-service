@@ -9,16 +9,16 @@ public class LicenceSearchFilterForm implements Serializable {
   @Serial
   private static final long serialVersionUID = 155413159338411457L;
 
-  private String reference;
+  private String licenceReference;
   private List<String> licenceTypes;
   private Integer licenseeOrgUnitId;
 
-  public String getReference() {
-    return reference;
+  public String getLicenceReference() {
+    return licenceReference;
   }
 
-  public void setReference(String reference) {
-    this.reference = reference;
+  public void setLicenceReference(String licenceReference) {
+    this.licenceReference = licenceReference;
   }
 
   public List<String> getLicenceTypes() {

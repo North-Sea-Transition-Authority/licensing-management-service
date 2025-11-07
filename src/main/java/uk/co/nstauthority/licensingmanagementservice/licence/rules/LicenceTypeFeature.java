@@ -17,7 +17,6 @@ public enum LicenceTypeFeature {
   )),
   PHASES(EnumSet.of(
       LicenceTypeGroup.PRODUCTION,
-      LicenceTypeGroup.CARBON_STORAGE,
       LicenceTypeGroup.GAS_STORAGE
   )),
   PHASES_CAPTURED(EnumSet.of(

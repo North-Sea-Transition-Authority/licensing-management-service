@@ -15,14 +15,14 @@ public enum LicenceActionItem implements Displayable {
   CREATE_LICENCE_SCHEDULE(
       "Create licence schedule",
       1,
-      true,
+      false,
           licence -> ReverseRouter.route(on(LicenceStartDateController.class)
               .renderLicenceStartDateForm(licence.getId(), null))
   ),
   EDIT_LICENCE_SCHEDULE(
       "Edit licence schedule",
       1,
-      true,
+      false,
           licence -> ReverseRouter.route(on(LicenceScheduleTimelineController.class)
               .renderLicenceScheduleTimeline(licence.getId(), null))
   ),
@@ -62,7 +62,7 @@ public enum LicenceActionItem implements Displayable {
   }
 
   public String getActionRedirectUrl(Licence licence) {
-    return redirectUrl == null ? null : redirectUrl.apply(licence);
+    return redirectUrl.apply(licence);
   }
 
   public ActionItemView toActionItemView(Licence licence) {

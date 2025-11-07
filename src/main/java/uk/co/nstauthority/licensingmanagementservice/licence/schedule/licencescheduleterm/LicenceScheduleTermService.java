@@ -26,7 +26,7 @@ public class LicenceScheduleTermService {
     return licenceScheduleTermRepository.saveAll(licenceScheduleTerms);
   }
 
-  LicenceScheduleTerm getTermByIdOrThrow(UUID id) {
+  public LicenceScheduleTerm getTermByIdOrThrow(UUID id) {
     return licenceScheduleTermRepository.findById(id)
         .orElseThrow(() -> new LmsEntityNotFoundException("LicenceScheduleTerm not found", id.toString()));
   }

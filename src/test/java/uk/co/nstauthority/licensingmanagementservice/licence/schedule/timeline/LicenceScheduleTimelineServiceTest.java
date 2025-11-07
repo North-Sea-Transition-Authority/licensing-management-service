@@ -29,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ExtendWith(MockitoExtension.class)
@@ -85,6 +86,7 @@ class LicenceScheduleTimelineServiceTest {
   @Test
   void getLicenceScheduleTimelineActions() {
     when(licenceTypeFeatureService.arePhasesCaptured(licence.getType())).thenReturn(true);
+    when(licenceTypeFeatureService.hasWorkProgramme(licence.getType())).thenReturn(true);
 
     var expectedResult = List.of(
         new TimelineActionView(
@@ -94,6 +96,10 @@ class LicenceScheduleTimelineServiceTest {
         new TimelineActionView(
             LicenceScheduleTimelineAction.ADD_A_PHASE,
             ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderAddNewPhaseForm(licenceScheduleDetail.getId(), null))
+        ),
+        new TimelineActionView(
+            LicenceScheduleTimelineAction.ADD_A_WORK_PROGRAMME_ACTIVITY,
+            ReverseRouter.route(on(WorkProgrammeActivityController.class).renderAddNewActivityForm(licenceScheduleDetail.getId(), null))
         )
     );
 

@@ -1,0 +1,137 @@
+package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import java.time.LocalDate;
+import java.util.UUID;
+import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
+
+@Audited
+@Entity(name = "work_programme_activities")
+public class WorkProgrammeActivity {
+
+  @Id
+  @UuidGenerator
+  private UUID id;
+
+  @ManyToOne
+  private LicenceScheduleDetail licenceScheduleDetail;
+
+  @Enumerated(EnumType.STRING)
+  private WorkProgrammeActivityCategory category;
+
+  private String otherCategoryName;
+
+  private String description;
+
+  @Enumerated(EnumType.STRING)
+  private WorkProgrammeActivityCommitment commitment;
+
+  @Enumerated(EnumType.STRING)
+  private WorkProgrammeActivityDateOption dateOption;
+
+  @ManyToOne
+  private LicenceScheduleTerm licenceScheduleTerm;
+
+  @ManyToOne
+  private LicenceSchedulePhase licenceSchedulePhase;
+
+  private LocalDate dueDate;
+
+  private String comments;
+
+  public UUID getId() {
+    return id;
+  }
+
+  public void setId(UUID id) {
+    this.id = id;
+  }
+
+  public LicenceScheduleDetail getLicenceScheduleDetail() {
+    return licenceScheduleDetail;
+  }
+
+  public void setLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
+    this.licenceScheduleDetail = licenceScheduleDetail;
+  }
+
+  public WorkProgrammeActivityCategory getCategory() {
+    return category;
+  }
+
+  public void setCategory(WorkProgrammeActivityCategory category) {
+    this.category = category;
+  }
+
+  public String getOtherCategoryName() {
+    return otherCategoryName;
+  }
+
+  public void setOtherCategoryName(String otherCategoryName) {
+    this.otherCategoryName = otherCategoryName;
+  }
+
+  public String getDescription() {
+    return description;
+  }
+
+  public void setDescription(String description) {
+    this.description = description;
+  }
+
+  public WorkProgrammeActivityCommitment getCommitment() {
+    return commitment;
+  }
+
+  public void setCommitment(WorkProgrammeActivityCommitment commitment) {
+    this.commitment = commitment;
+  }
+
+  public WorkProgrammeActivityDateOption getDateOption() {
+    return dateOption;
+  }
+
+  public void setDateOption(WorkProgrammeActivityDateOption dateOption) {
+    this.dateOption = dateOption;
+  }
+
+  public LicenceScheduleTerm getLicenceScheduleTerm() {
+    return licenceScheduleTerm;
+  }
+
+  public void setLicenceScheduleTerm(LicenceScheduleTerm licenceScheduleTerm) {
+    this.licenceScheduleTerm = licenceScheduleTerm;
+  }
+
+  public LicenceSchedulePhase getLicenceSchedulePhase() {
+    return licenceSchedulePhase;
+  }
+
+  public void setLicenceSchedulePhase(LicenceSchedulePhase licenceSchedulePhase) {
+    this.licenceSchedulePhase = licenceSchedulePhase;
+  }
+
+  public LocalDate getDueDate() {
+    return dueDate;
+  }
+
+  public void setDueDate(LocalDate dueDate) {
+    this.dueDate = dueDate;
+  }
+
+  public String getComments() {
+    return comments;
+  }
+
+  public void setComments(String comments) {
+    this.comments = comments;
+  }
+}

@@ -65,7 +65,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
 
     var timelineSummaryCardView = new TimelineSummaryCardView("date", "1", LicenceStatus.EXTANT.getDisplayText());
     var timelineActionViews = List.of(new TimelineActionView(LicenceScheduleTimelineAction.ADD_A_TERM, ""));
-    var scheduleEventViews = List.of(new TimelineTermView(List.of(), TermType.INITIAL, "", "", "", ""));
+    var scheduleEventViews = List.of(new TimelineTermView(List.of(), TermType.INITIAL, "", "", "", "", true));
 
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
     when(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail)).thenReturn(timelineActionViews);
@@ -76,7 +76,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
                 .with(user(organisationUser))
         )
         .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/schedule/scheduleTimeline"))
+        .andExpect(view().name("lms/licence/schedule/timeline/scheduleTimeline"))
         .andExpect(model().attribute("pageTitle", LicenceScheduleTimelineController.PAGE_TITLE.formatted(licence.getLicenceReference())))
         .andExpect(model().attribute("timelineSummaryCardView", timelineSummaryCardView))
         .andExpect(model().attribute("actions", timelineActionViews))
@@ -92,7 +92,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
 
     var timelineSummaryCardView = new TimelineSummaryCardView("date", "1", LicenceStatus.EXTANT.getDisplayText());
     var timelineActionViews = List.of(new TimelineActionView(LicenceScheduleTimelineAction.ADD_A_TERM, ""));
-    var scheduleEventViews = List.of(new TimelineTermView(List.of(), TermType.INITIAL, "", "", "", ""));
+    var scheduleEventViews = List.of(new TimelineTermView(List.of(), TermType.INITIAL, "", "", "", "", true));
 
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
     when(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail)).thenReturn(timelineActionViews);
@@ -104,7 +104,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
                 .with(user(organisationUser))
         )
         .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/schedule/scheduleTimeline"))
+        .andExpect(view().name("lms/licence/schedule/timeline/scheduleTimeline"))
         .andExpect(model().attribute("pageTitle", LicenceScheduleTimelineController.PAGE_TITLE.formatted(licence.getLicenceReference())))
         .andExpect(model().attribute("timelineSummaryCardView", timelineSummaryCardView))
         .andExpect(model().attribute("actions", timelineActionViews))

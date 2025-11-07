@@ -1,7 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline;
 
-public interface ScheduleEvent {
-
-  ScheduleEventType getEventType();
-
+public enum ScheduleEventType {
+  PHASE,
+  WORK_PROGRAMME_ACTIVITY,
+  OTHER
 }

@@ -48,7 +48,7 @@ public class LicenceScheduleTimelineController {
   }
 
   private ModelAndView getScheduleTimelineModelAndView(Licence licence, LicenceScheduleDetail licenceScheduleDetail) {
-    return new ModelAndView("lms/licence/schedule/scheduleTimeline")
+    return new ModelAndView("lms/licence/schedule/timeline/scheduleTimeline")
         .addObject("pageTitle", PAGE_TITLE.formatted(licence.getLicenceReference()))
         .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .addObject("actions", licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail))

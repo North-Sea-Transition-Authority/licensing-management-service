@@ -18,11 +18,14 @@ import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeFeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermDeletionController;
@@ -43,6 +46,9 @@ class LicenceScheduleTimelineServiceTest {
 
   @Mock
   private LicenceScheduleTermService licenceScheduleTermService;
+
+  @Mock
+  private LicenceSchedulePhaseService licenceSchedulePhaseService;
 
   @InjectMocks
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
@@ -117,6 +123,21 @@ class LicenceScheduleTimelineServiceTest {
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
 
+    var phase = new LicenceSchedulePhase();
+    phase.setPhaseType(PhaseType.PHASE_A);
+    phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
+    phase.setStartDate(LocalDate.of(2025, 1, 1));
+    phase.setEndDate(LocalDate.of(2025, 12, 31));
+
+    var phaseView = new TimelinePhaseView(
+        List.of(),
+        PhaseType.PHASE_A,
+        "1 January 2025 to 31 December 2025 (1 year)",
+        "31 December 2025",
+        "",
+        ""
+    );
+
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
     term2.setTermType(TermType.SECOND);
@@ -125,12 +146,13 @@ class LicenceScheduleTimelineServiceTest {
     term2.setEndDate(LocalDate.of(2026, 12, 31));
 
     var termView = new TimelineTermView(
-        List.of(),
+        List.of(phaseView),
         TermType.INITIAL,
         "1 January 2025 to 31 December 2025 (1 year)",
         "31 December 2025",
         ReverseRouter.route(on(LicenceScheduleTermController.class).renderUpdateTermForm(term.getId())),
-        ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term.getId()))
+        ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term.getId())),
+        true
     );
 
     var termView2 = new TimelineTermView(
@@ -139,10 +161,12 @@ class LicenceScheduleTimelineServiceTest {
         "1 January 2026 to 31 December 2026 (1 year)",
         "31 December 2026",
         ReverseRouter.route(on(LicenceScheduleTermController.class).renderUpdateTermForm(term2.getId())),
-        ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term2.getId()))
+        ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term2.getId())),
+        false
     );
 
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
+    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of(phase));
 
     assertThat(licenceScheduleTimelineService.getLicenceScheduleEventViews(licenceScheduleDetail))
         .usingRecursiveComparison()

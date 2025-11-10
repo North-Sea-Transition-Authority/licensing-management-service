@@ -19,4 +19,10 @@ public class LicenceScheduleExtensionService {
     return licenceScheduleExtensionRepository.findByScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail);
   }
+
+  public boolean isExtensionRequested(ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
+    return licenceScheduleExtensionRepository
+        .existsLicenceScheduleExtensionRequestByScheduleWorkProgrammeApplicationDetails(
+        scheduleWorkProgrammeApplicationDetail);
+  }
 }

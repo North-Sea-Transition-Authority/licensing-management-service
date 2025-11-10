@@ -12,4 +12,6 @@ public interface LicenceScheduleExtensionRepository extends JpaRepository<Licenc
   Optional<LicenceScheduleExtensionRequest> findByScheduleWorkProgrammeApplicationDetails(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail);
 
+  boolean existsLicenceScheduleExtensionRequestByScheduleWorkProgrammeApplicationDetails(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail);
 }

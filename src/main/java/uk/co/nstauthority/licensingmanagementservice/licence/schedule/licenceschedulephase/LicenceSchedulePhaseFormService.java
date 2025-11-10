@@ -30,9 +30,9 @@ public class LicenceSchedulePhaseFormService {
   @Transactional
   public void savePhaseFromForm(
       LicenceSchedulePhaseForm licenceSchedulePhaseForm,
-      LicenceScheduleDetail licenceScheduleDetail
+      LicenceScheduleDetail licenceScheduleDetail,
+      LicenceSchedulePhase licenceSchedulePhase
   ) {
-    var licenceSchedulePhase = new LicenceSchedulePhase();
     licenceSchedulePhase.setLicenceScheduleDetail(licenceScheduleDetail);
     licenceSchedulePhase.setPhaseType(licenceSchedulePhaseForm.getPhaseType());
     licenceSchedulePhase.setPhaseDuration(licenceSchedulePhaseForm.getPhaseDuration().toThreeFieldDuration());
@@ -42,6 +42,15 @@ public class LicenceSchedulePhaseFormService {
     licenceSchedulePhaseRepository.save(licenceSchedulePhase);
 
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  public LicenceSchedulePhaseForm getPhaseForm(LicenceSchedulePhase phase) {
+    var form = new LicenceSchedulePhaseForm();
+    form.setPhaseType(phase.getPhaseType());
+    form.getPhaseDuration().setFromThreeFieldDuration(phase.getPhaseDuration());
+    form.setComments(phase.getComments());
+
+    return form;
   }
 
   private LicenceScheduleTerm getRelatedTerm(

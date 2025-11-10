@@ -14,21 +14,24 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 
 
 @Controller
-@RequestMapping("/licence/schedule/{licenceScheduleDetailId}/phase")
+@RequestMapping("/licence/schedule")
 public class LicenceSchedulePhaseController {
 
   private final LicenceSchedulePhaseFormService licenceSchedulePhaseFormService;
   private final LicenceSchedulePhaseFormValidator licenceSchedulePhaseFormValidator;
+  private final LicenceSchedulePhaseService licenceSchedulePhaseService;
 
   public LicenceSchedulePhaseController(
       LicenceSchedulePhaseFormService licenceSchedulePhaseFormService,
-      LicenceSchedulePhaseFormValidator licenceSchedulePhaseFormValidator
+      LicenceSchedulePhaseFormValidator licenceSchedulePhaseFormValidator,
+      LicenceSchedulePhaseService licenceSchedulePhaseService
   ) {
     this.licenceSchedulePhaseFormService = licenceSchedulePhaseFormService;
     this.licenceSchedulePhaseFormValidator = licenceSchedulePhaseFormValidator;
+    this.licenceSchedulePhaseService = licenceSchedulePhaseService;
   }
 
-  @GetMapping("/create")
+  @GetMapping("/{licenceScheduleDetailId}/phase/create")
   public ModelAndView renderAddNewPhaseForm(
       @PathVariable UUID licenceScheduleDetailId,
       LicenceScheduleDetail licenceScheduleDetail
@@ -36,7 +39,7 @@ public class LicenceSchedulePhaseController {
     return getSchedulePhaseModelAndView(new LicenceSchedulePhaseForm(), licenceScheduleDetail);
   }
 
-  @PostMapping("/create")
+  @PostMapping("/{licenceScheduleDetailId}/phase/create")
   ModelAndView submitAddNewPhaseForm(
       @PathVariable UUID licenceScheduleDetailId,
       LicenceScheduleDetail licenceScheduleDetail,
@@ -47,11 +50,38 @@ public class LicenceSchedulePhaseController {
       return getSchedulePhaseModelAndView(form, licenceScheduleDetail);
     }
 
-    licenceSchedulePhaseFormService.savePhaseFromForm(form, licenceScheduleDetail);
+    licenceSchedulePhaseFormService.savePhaseFromForm(form, licenceScheduleDetail, new LicenceSchedulePhase());
 
     return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
   }
 
+  @GetMapping("/phase/{licenceSchedulePhaseId}/update")
+  public ModelAndView renderUpdatePhaseForm(
+      @PathVariable UUID licenceSchedulePhaseId
+  ) {
+    var phase = licenceSchedulePhaseService.getPhaseByIdOrThrow(licenceSchedulePhaseId);
+    var form = licenceSchedulePhaseFormService.getPhaseForm(phase);
+    return getSchedulePhaseModelAndView(form, phase.getLicenceScheduleDetail());
+  }
+
+  @PostMapping("/phase/{licenceSchedulePhaseId}/update")
+  ModelAndView submitUpdatePhaseForm(
+      @PathVariable UUID licenceSchedulePhaseId,
+      @ModelAttribute("form") LicenceSchedulePhaseForm form,
+      BindingResult bindingResult
+  ) {
+    var phase = licenceSchedulePhaseService.getPhaseByIdOrThrow(licenceSchedulePhaseId);
+    var licenceScheduleDetail = phase.getLicenceScheduleDetail();
+
+    if (!licenceSchedulePhaseFormValidator.isValidUpdate(form, bindingResult, licenceScheduleDetail, phase)) {
+      return getSchedulePhaseModelAndView(form, licenceScheduleDetail);
+    }
+
+    licenceSchedulePhaseFormService.savePhaseFromForm(form, licenceScheduleDetail, phase);
+
+    return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
+  }
+  
   private ModelAndView getSchedulePhaseModelAndView(LicenceSchedulePhaseForm form, LicenceScheduleDetail licenceScheduleDetail) {
     var licenceType = licenceScheduleDetail.getLicenceSchedule().getLicence().getType();
 

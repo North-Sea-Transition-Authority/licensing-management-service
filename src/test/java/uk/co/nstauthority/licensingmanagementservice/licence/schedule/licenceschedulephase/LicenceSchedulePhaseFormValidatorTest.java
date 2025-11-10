@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -103,6 +104,56 @@ class LicenceSchedulePhaseFormValidatorTest {
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
     assertThat(licenceSchedulePhaseFormValidator.isValid(form, bindingResult, new LicenceScheduleDetail())).isFalse();
+  }
+
+  @Test
+  void isValidUpdate() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    var licenceSchedulePhase = new LicenceSchedulePhase();
+    licenceSchedulePhase.setId(UUID.randomUUID());
+    licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
+
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceSchedulePhase));
+
+    var licenceScheduleTerm = new LicenceScheduleTerm();
+    licenceScheduleTerm.setTermType(TermType.INITIAL);
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceScheduleTerm));
+
+    var form = new LicenceSchedulePhaseForm();
+    form.setPhaseType(PhaseType.PHASE_A);
+    form.setPhaseDuration(getValidDuration());
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(licenceSchedulePhaseFormValidator.isValidUpdate(form, bindingResult, licenceScheduleDetail, licenceSchedulePhase)).isTrue();
+  }
+
+  @Test
+  void isValidUpdate_invalid_termTypeAlreadyExists() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    var licenceSchedulePhase = new LicenceSchedulePhase();
+    licenceSchedulePhase.setId(UUID.randomUUID());
+    licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
+
+    var licenceSchedulePhase2 = new LicenceSchedulePhase();
+    licenceSchedulePhase2.setId(UUID.randomUUID());
+    licenceSchedulePhase2.setPhaseType(PhaseType.PHASE_B);
+
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceSchedulePhase, licenceSchedulePhase2));
+
+    var licenceScheduleTerm = new LicenceScheduleTerm();
+    licenceScheduleTerm.setTermType(TermType.INITIAL);
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceScheduleTerm));
+
+    var form = new LicenceSchedulePhaseForm();
+    form.setPhaseType(PhaseType.PHASE_B);
+    form.setPhaseDuration(getValidDuration());
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(licenceSchedulePhaseFormValidator.isValidUpdate(form, bindingResult, licenceScheduleDetail, licenceSchedulePhase)).isFalse();
   }
 
   private ThreeFieldDurationInput getValidDuration() {

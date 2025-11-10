@@ -13,6 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeFeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
@@ -133,7 +134,7 @@ public class LicenceScheduleTimelineService {
         licenceSchedulePhase.getPhaseType(),
         dateDurationString,
         DateFormatUtil.convertToDisplayText(licenceSchedulePhase.getEndDate()),
-        "", //TODO: LMS-183 add link when implementing phase updates
+        ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderUpdatePhaseForm(licenceSchedulePhase.getId())),
         "" //TODO: LMS-188 add link when implementing phase deletion
     );
   }

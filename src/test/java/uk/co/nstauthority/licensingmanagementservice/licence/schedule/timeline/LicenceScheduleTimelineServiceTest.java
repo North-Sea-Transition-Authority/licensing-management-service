@@ -124,6 +124,7 @@ class LicenceScheduleTimelineServiceTest {
     term.setEndDate(LocalDate.of(2025, 12, 31));
 
     var phase = new LicenceSchedulePhase();
+    phase.setId(UUID.randomUUID());
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
     phase.setStartDate(LocalDate.of(2025, 1, 1));
@@ -134,7 +135,7 @@ class LicenceScheduleTimelineServiceTest {
         PhaseType.PHASE_A,
         "1 January 2025 to 31 December 2025 (1 year)",
         "31 December 2025",
-        "",
+        ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderUpdatePhaseForm(phase.getId())),
         ""
     );
 

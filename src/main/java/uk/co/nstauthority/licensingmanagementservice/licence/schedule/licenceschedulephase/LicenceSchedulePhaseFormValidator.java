@@ -1,9 +1,11 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase;
 
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationValidationUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
@@ -27,6 +29,43 @@ public class LicenceSchedulePhaseFormValidator {
       Errors errors,
       LicenceScheduleDetail licenceScheduleDetail
   ) {
+    var existingPhaseTypes = licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
+        .map(LicenceSchedulePhase::getPhaseType)
+        .toList();
+
+    return doValidation(
+        form,
+        errors,
+        licenceScheduleDetail,
+        existingPhaseTypes
+    );
+  }
+
+  boolean isValidUpdate(
+      LicenceSchedulePhaseForm form,
+      Errors errors,
+      LicenceScheduleDetail licenceScheduleDetail,
+      LicenceSchedulePhase licenceSchedulePhase
+  ) {
+    var existingPhaseTypes = licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
+        .filter(phase -> !licenceSchedulePhase.getId().equals(phase.getId()))
+        .map(LicenceSchedulePhase::getPhaseType)
+        .toList();
+
+    return doValidation(
+        form,
+        errors,
+        licenceScheduleDetail,
+        existingPhaseTypes
+    );
+  }
+
+  boolean doValidation(
+      LicenceSchedulePhaseForm form,
+      Errors errors,
+      LicenceScheduleDetail licenceScheduleDetail,
+      List<PhaseType> existingPhaseTypes
+  ) {
     ValidationUtils.rejectIfEmpty(errors, "phaseType", "phaseType.required", "Select a phase");
 
     if (form.getPhaseType() != null) {
@@ -44,10 +83,6 @@ public class LicenceSchedulePhaseFormValidator {
             )
         );
       }
-
-      var existingPhaseTypes = licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
-          .map(LicenceSchedulePhase::getPhaseType)
-          .toList();
 
       if (existingPhaseTypes.contains(form.getPhaseType())) {
         errors.rejectValue(

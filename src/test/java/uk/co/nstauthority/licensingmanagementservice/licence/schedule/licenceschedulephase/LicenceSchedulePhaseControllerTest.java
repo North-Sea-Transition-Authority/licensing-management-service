@@ -22,6 +22,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
@@ -38,12 +39,18 @@ class LicenceSchedulePhaseControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private LicenceSchedulePhaseFormValidator licenceSchedulePhaseFormValidator;
+  
+  @MockitoBean
+  private LicenceSchedulePhaseService  licenceSchedulePhaseService;
 
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
 
   private LicenceScheduleDetail licenceScheduleDetail;
   private static final UUID LICENCE_SCHEDULE_DETAIL_ID = UUID.randomUUID();
+
+  private LicenceSchedulePhase licenceSchedulePhase;
+  private static final UUID LICENCE_SCHEDULE_PHASE_ID = UUID.randomUUID();
 
   @BeforeEach
   void setUp() {
@@ -61,6 +68,12 @@ class LicenceSchedulePhaseControllerTest extends AbstractControllerTest {
         LicenceScheduleTestUtil.createLicenceSchedule(licence)
     );
 
+    licenceSchedulePhase = new LicenceSchedulePhase();
+    licenceSchedulePhase.setId(LICENCE_SCHEDULE_PHASE_ID);
+    licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
+    licenceSchedulePhase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
+    licenceSchedulePhase.setLicenceScheduleDetail(licenceScheduleDetail);
+    
     when(licenceScheduleDetailService.getByIdOrThrow(LICENCE_SCHEDULE_DETAIL_ID)).thenReturn(licenceScheduleDetail);
   }
 
@@ -87,7 +100,7 @@ class LicenceSchedulePhaseControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(licenceSchedulePhaseFormService).savePhaseFromForm(any(), eq(licenceScheduleDetail));
+    verify(licenceSchedulePhaseFormService).savePhaseFromForm(any(), eq(licenceScheduleDetail), any());
   }
 
   @Test
@@ -104,7 +117,54 @@ class LicenceSchedulePhaseControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("radioOptions", PhaseType.getPhaseRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
 
-    verify(licenceSchedulePhaseFormService, never()).savePhaseFromForm(any(), any());
+    verify(licenceSchedulePhaseFormService, never()).savePhaseFromForm(any(), any(), any());
   }
 
+  @SecurityTest
+  void renderUpdatePhaseForm() throws Exception {
+    when(licenceSchedulePhaseService.getPhaseByIdOrThrow(LICENCE_SCHEDULE_PHASE_ID)).thenReturn(licenceSchedulePhase);
+    when(licenceSchedulePhaseFormService.getPhaseForm(licenceSchedulePhase)).thenReturn(new LicenceSchedulePhaseForm());
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderUpdatePhaseForm(LICENCE_SCHEDULE_PHASE_ID)))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/licence/schedule/createSchedulePhase"))
+        .andExpect(model().attribute("radioOptions", PhaseType.getPhaseRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)))
+        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
+  }
+
+  @Test
+  void submitUpdatePhaseForm_validForm() throws Exception {
+    when(licenceSchedulePhaseService.getPhaseByIdOrThrow(LICENCE_SCHEDULE_PHASE_ID)).thenReturn(licenceSchedulePhase);
+    when(licenceSchedulePhaseFormValidator.isValidUpdate(any(), any(), any(), any())).thenReturn(true);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(LicenceSchedulePhaseController.class).submitUpdatePhaseForm(LICENCE_SCHEDULE_PHASE_ID, null, null)))
+                .with(user(organisationUser))
+                .with(csrf())
+        )
+        .andExpect(status().is3xxRedirection());
+
+    verify(licenceSchedulePhaseFormService).savePhaseFromForm(any(), eq(licenceScheduleDetail), eq(licenceSchedulePhase));
+  }
+
+  @Test
+  void submitUpdatePhaseForm_invalidForm() throws Exception {
+    when(licenceSchedulePhaseService.getPhaseByIdOrThrow(LICENCE_SCHEDULE_PHASE_ID)).thenReturn(licenceSchedulePhase);
+    when(licenceSchedulePhaseFormValidator.isValidUpdate(any(), any(), any(), any())).thenReturn(false);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(LicenceSchedulePhaseController.class).submitUpdatePhaseForm(LICENCE_SCHEDULE_PHASE_ID, null, null)))
+                .with(user(organisationUser))
+                .with(csrf())
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/licence/schedule/createSchedulePhase"))
+        .andExpect(model().attribute("radioOptions", PhaseType.getPhaseRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)));
+
+    verify(licenceSchedulePhaseFormService, never()).savePhaseFromForm(any(), any(), any());
+  }
+  
 }

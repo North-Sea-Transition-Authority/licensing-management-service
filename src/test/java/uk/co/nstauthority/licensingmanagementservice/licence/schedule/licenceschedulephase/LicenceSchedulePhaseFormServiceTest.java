@@ -54,7 +54,7 @@ class LicenceSchedulePhaseFormServiceTest {
 
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
 
-    licenceSchedulePhaseFormService.savePhaseFromForm(form, licenceScheduleDetail);
+    licenceSchedulePhaseFormService.savePhaseFromForm(form, licenceScheduleDetail, new LicenceSchedulePhase());
 
     verify(licenceSchedulePhaseRepository).save(licenceSchedulePhaseArgumentCaptor.capture());
 

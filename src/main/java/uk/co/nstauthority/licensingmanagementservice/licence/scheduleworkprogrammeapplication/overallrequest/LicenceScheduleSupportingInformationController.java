@@ -17,18 +17,19 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/supporting-information")
-public class LicenceScheduleSupportingRequestController {
+public class LicenceScheduleSupportingInformationController {
 
   public static final String PAGE_TITLE = "Supporting information";
-  private final LicenceScheduleSupportingRequestService licenceScheduleSupportingRequestService;
-  private final LicenceScheduleSupportingRequestFormValidator licenceScheduleSupportingRequestFormValidator;
+  private final LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService;
+  private final LicenceScheduleSupportingInformationFormValidator licenceScheduleSupportingInformationFormValidator;
 
-  public LicenceScheduleSupportingRequestController(
-      LicenceScheduleSupportingRequestService licenceScheduleSupportingRequestService,
-      LicenceScheduleSupportingRequestFormValidator licenceScheduleSupportingRequestFormValidator
+  public LicenceScheduleSupportingInformationController(
+
+      LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService,
+      LicenceScheduleSupportingInformationFormValidator licenceScheduleSupportingInformationFormValidator
   ) {
-    this.licenceScheduleSupportingRequestService = licenceScheduleSupportingRequestService;
-    this.licenceScheduleSupportingRequestFormValidator = licenceScheduleSupportingRequestFormValidator;
+    this.licenceScheduleSupportingInformationService = licenceScheduleSupportingInformationService;
+    this.licenceScheduleSupportingInformationFormValidator = licenceScheduleSupportingInformationFormValidator;
   }
 
   @GetMapping
@@ -37,7 +38,7 @@ public class LicenceScheduleSupportingRequestController {
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
     return getModelAndView(
-        licenceScheduleSupportingRequestService.getLicenceScheduleRequestForm(scheduleWorkProgrammeApplicationDetail),
+        licenceScheduleSupportingInformationService.getLicenceScheduleRequestForm(scheduleWorkProgrammeApplicationDetail),
         scheduleWorkProgrammeApplicationDetail
     );
   }
@@ -46,22 +47,22 @@ public class LicenceScheduleSupportingRequestController {
   ModelAndView submitForm(
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
-      @ModelAttribute("form") LicenceScheduleSupportingRequestForm form,
+      @ModelAttribute("form") LicenceScheduleSupportingInformationForm form,
       BindingResult bindingResult
   ) {
 
-    if (!licenceScheduleSupportingRequestFormValidator.isValid(bindingResult, scheduleWorkProgrammeApplicationDetail)) {
+    if (!licenceScheduleSupportingInformationFormValidator.isValid(bindingResult, scheduleWorkProgrammeApplicationDetail)) {
       return getModelAndView(form, scheduleWorkProgrammeApplicationDetail);
     }
 
-    licenceScheduleSupportingRequestService.saveRequestForm(form, scheduleWorkProgrammeApplicationDetail);
+    licenceScheduleSupportingInformationService.saveRequestForm(form, scheduleWorkProgrammeApplicationDetail);
 
     return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationTaskListController.class)
         .getTaskList(scheduleWorkProgrammeApplicationDetailId, scheduleWorkProgrammeApplicationDetail, null));
   }
 
   private ModelAndView getModelAndView(
-      LicenceScheduleSupportingRequestForm form,
+      LicenceScheduleSupportingInformationForm form,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
 
@@ -69,7 +70,7 @@ public class LicenceScheduleSupportingRequestController {
         "lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceSupportingInformationRequest");
     modelAndView.addObject("pageTitle", PAGE_TITLE)
                 .addObject("form", form)
-                .addObject("isExtension", licenceScheduleSupportingRequestService.isExtensionOrAmendment(
+                .addObject("isExtension", licenceScheduleSupportingInformationService.isExtensionOrAmendment(
                     scheduleWorkProgrammeApplicationDetail))
         .addObject("cancelUrl", ReverseRouter.route(
             on(ScheduleWorkProgrammeApplicationTaskListController.class)

@@ -8,50 +8,50 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionService;
 
 @Service
-public class LicenceScheduleSupportingRequestService {
+public class LicenceScheduleSupportingInformationService {
 
-  private final LicenceScheduleSupportingRequestRepository licenceScheduleSupportingRequestRepository;
+  private final LicenceScheduleSupportingInformationRepository licenceScheduleSupportingInformationRepository;
   private LicenceScheduleExtensionService licenceScheduleExtensionService;
   private LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
 
-  public LicenceScheduleSupportingRequestService(
-      LicenceScheduleSupportingRequestRepository licenceScheduleSupportingRequestRepository,
+  public LicenceScheduleSupportingInformationService(
+      LicenceScheduleSupportingInformationRepository licenceScheduleSupportingInformationRepository,
       LicenceScheduleExtensionService licenceScheduleExtensionService,
       LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService
   ) {
-    this.licenceScheduleSupportingRequestRepository = licenceScheduleSupportingRequestRepository;
+    this.licenceScheduleSupportingInformationRepository = licenceScheduleSupportingInformationRepository;
     this.licenceScheduleExtensionService = licenceScheduleExtensionService;
     this.licenceWorkProgrammeAmendmentService = licenceWorkProgrammeAmendmentService;
   }
 
-  public Optional<LicenceScheduleSupportingRequest> getRequestByScheduleWorkProgrammeApplicationDetail(
+  public Optional<LicenceScheduleSupportingInformation> getRequestByScheduleWorkProgrammeApplicationDetail(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
-    return licenceScheduleSupportingRequestRepository.findByScheduleWorkProgrammeApplicationDetails(
+    return licenceScheduleSupportingInformationRepository.findByScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail);
   }
 
   @Transactional
   public void saveRequestForm(
-      LicenceScheduleSupportingRequestForm form,
+      LicenceScheduleSupportingInformationForm form,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
-    var licenceScheduleRequest = licenceScheduleSupportingRequestRepository
+    var licenceScheduleRequest = licenceScheduleSupportingInformationRepository
         .findByScheduleWorkProgrammeApplicationDetails(scheduleWorkProgrammeApplicationDetail)
-        .orElse(new LicenceScheduleSupportingRequest());
+        .orElse(new LicenceScheduleSupportingInformation());
     licenceScheduleRequest.setScheduleWorkProgrammeApplicationDetails(scheduleWorkProgrammeApplicationDetail);
     licenceScheduleRequest.setLicenceProgress(form.getLicenceProgress());
     licenceScheduleRequest.setReasonForAmendment(form.getReasonForAmendment());
     licenceScheduleRequest.setImpactOnDeliverables(form.getImpactOnDeliverables());
     licenceScheduleRequest.setPlanDuringExtension(form.getPlanDuringExtension());
     licenceScheduleRequest.setScheduleWorkProgrammeApplicationDetails(scheduleWorkProgrammeApplicationDetail);
-    licenceScheduleSupportingRequestRepository.save(licenceScheduleRequest);
+    licenceScheduleSupportingInformationRepository.save(licenceScheduleRequest);
   }
 
-  private LicenceScheduleSupportingRequestForm licenceScheduleRequestForm(
-      LicenceScheduleSupportingRequest licenceScheduleExtensionRequest
+  private LicenceScheduleSupportingInformationForm licenceScheduleRequestForm(
+      LicenceScheduleSupportingInformation licenceScheduleExtensionRequest
   ) {
 
-    var form = new LicenceScheduleSupportingRequestForm();
+    var form = new LicenceScheduleSupportingInformationForm();
     form.setLicenceProgress(licenceScheduleExtensionRequest.getLicenceProgress());
     form.setImpactOnDeliverables(licenceScheduleExtensionRequest.getImpactOnDeliverables());
     form.setPlanDuringExtension(licenceScheduleExtensionRequest.getPlanDuringExtension());
@@ -60,11 +60,11 @@ public class LicenceScheduleSupportingRequestService {
     return form;
   }
 
-  public LicenceScheduleSupportingRequestForm getLicenceScheduleRequestForm(
+  public LicenceScheduleSupportingInformationForm getLicenceScheduleRequestForm(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
     return getRequestByScheduleWorkProgrammeApplicationDetail(
         scheduleWorkProgrammeApplicationDetail).map(
-        this::licenceScheduleRequestForm).orElse(new LicenceScheduleSupportingRequestForm());
+        this::licenceScheduleRequestForm).orElse(new LicenceScheduleSupportingInformationForm());
   }
 
   public boolean isExtensionOrAmendment(ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {

@@ -7,9 +7,10 @@ import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Repository
-public interface LicenceScheduleSupportingRequestRepository extends JpaRepository<LicenceScheduleSupportingRequest, UUID> {
+public interface LicenceScheduleSupportingInformationRepository
+    extends JpaRepository<LicenceScheduleSupportingInformation, UUID> {
 
-  Optional<LicenceScheduleSupportingRequest> findByScheduleWorkProgrammeApplicationDetails(
+  Optional<LicenceScheduleSupportingInformation> findByScheduleWorkProgrammeApplicationDetails(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail);
 
 }

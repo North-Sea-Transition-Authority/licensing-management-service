@@ -13,6 +13,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.SelectLicenceWorkAmendmentController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionSubmissionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationController;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose.SwpApplicationRequestPurposeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose.SwpApplicationRequestPurposeRepository;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -28,6 +30,7 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
   private final LicenceScheduleExtensionSubmissionService licenceScheduleExtensionSubmissionService;
   private final LicenceWorkProgrammeAmendmentSubmissionService licenceWorkProgrammeAmendmentSubmissionService;
   private final SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository;
+  private final LicenceScheduleSupportingInformationSubmissionService licenceScheduleSupportingInformationSubmissionService;
 
   private boolean extensionSelection;
   private boolean amendmentSelection;
@@ -35,15 +38,19 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
   public ScheduleWorkProgrammeApplicationTaskListSectionService(
       SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository,
       LicenceScheduleExtensionSubmissionService licenceScheduleExtensionSubmissionService,
-      LicenceWorkProgrammeAmendmentSubmissionService licenceWorkProgrammeAmendmentSubmissionService) {
+      LicenceWorkProgrammeAmendmentSubmissionService licenceWorkProgrammeAmendmentSubmissionService,
+      LicenceScheduleSupportingInformationSubmissionService licenceScheduleSupportingInformationSubmissionService
+  ) {
     this.licenceScheduleExtensionSubmissionService = licenceScheduleExtensionSubmissionService;
     this.swpApplicationRequestPurposeRepository = swpApplicationRequestPurposeRepository;
     this.licenceWorkProgrammeAmendmentSubmissionService = licenceWorkProgrammeAmendmentSubmissionService;
+    this.licenceScheduleSupportingInformationSubmissionService = licenceScheduleSupportingInformationSubmissionService;
   }
 
   static final String APPLICATION_DETAILS_SECTION_NAME = "Schedule and work programme application details";
   static final String WHAT_ARE_YOU_REQUESTING_TO_DO = "What are you requesting to do?";
   static final String EXTENSION_DETAILS = "Extension Details";
+  static final String SUPPORTING_INFORMATION = "Supporting information";
   static final String AMENDMENT_DETAILS = "Work programme amendment details";
   static final int SECTION_ORDER = 10;
 
@@ -92,6 +99,17 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
           scheduleWorkProgrammeApplicationDetail.getId(), scheduleWorkProgrammeApplicationDetail))
           : ReverseRouter.route(on(SelectLicenceWorkAmendmentController.class).renderForm(
           scheduleWorkProgrammeApplicationDetail.getId(), null))));
+    }
+
+    if (extensionSelection || amendmentSelection) {
+      items.add(new TaskListItem(
+          SUPPORTING_INFORMATION,
+          TaskListLabel.notStartedOrComplete(
+              licenceScheduleSupportingInformationSubmissionService.isSectionSubmittable(
+                  scheduleWorkProgrammeApplicationDetail)),
+          ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class)
+              .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null))
+      ));
     }
 
     return Optional.of(new TaskListSection(APPLICATION_DETAILS_SECTION_NAME, SECTION_ORDER, items));

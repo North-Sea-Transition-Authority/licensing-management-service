@@ -9,8 +9,8 @@ import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Audited
-@Entity(name = "licence_schedule_overall_request")
-public class LicenceScheduleSupportingRequest {
+@Entity(name = "licence_schedule_supporting_information")
+public class LicenceScheduleSupportingInformation {
 
   @Id
   @UuidGenerator

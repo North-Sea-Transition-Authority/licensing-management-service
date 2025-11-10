@@ -32,14 +32,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
-@ContextConfiguration(classes = LicenceScheduleSupportingRequestController.class)
-class LicenceScheduleSupportingRequestControllerTest extends AbstractControllerTest {
+@ContextConfiguration(classes = LicenceScheduleSupportingInformationController.class)
+class LicenceScheduleSupportingInformationControllerTest extends AbstractControllerTest {
 
   @MockitoBean
-  private LicenceScheduleSupportingRequestService licenceScheduleSupportingRequestService;
+  private LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService;
 
   @MockitoBean
-  private LicenceScheduleSupportingRequestFormValidator licenceScheduleSupportingRequestFormValidator;
+  private LicenceScheduleSupportingInformationFormValidator licenceScheduleSupportingInformationFormValidator;
 
   @MockitoBean
   private LicenceScheduleExtensionService licenceScheduleExtensionService;
@@ -81,13 +81,13 @@ class LicenceScheduleSupportingRequestControllerTest extends AbstractControllerT
     when(licenceScheduleExtensionService.isExtensionRequested(scheduleWorkProgrammeApplicationDetail)).thenReturn(true);
     when(licenceWorkProgrammeAmendmentService.isAmendmentRequested(scheduleWorkProgrammeApplicationDetail)).thenReturn(true);
 
-    when(licenceScheduleSupportingRequestService.getLicenceScheduleRequestForm(any())).thenReturn(
-        new LicenceScheduleSupportingRequestForm());
+    when(licenceScheduleSupportingInformationService.getLicenceScheduleRequestForm(any())).thenReturn(
+        new LicenceScheduleSupportingInformationForm());
 
     mockMvc.perform(
             get(ReverseRouter.route(
-                on(LicenceScheduleSupportingRequestController.class).renderForm(SCHEDULE_APPLICATION_DETAIL_ID,
-                    scheduleWorkProgrammeApplicationDetail)))
+                on(LicenceScheduleSupportingInformationController.class).renderForm(SCHEDULE_APPLICATION_DETAIL_ID,
+                                                                                    scheduleWorkProgrammeApplicationDetail)))
                 .with(user(organisationUser)
                 ).with(csrf())
         )
@@ -103,17 +103,17 @@ class LicenceScheduleSupportingRequestControllerTest extends AbstractControllerT
 
   @Test
   void submitValidForm() throws Exception {
-    when(licenceScheduleSupportingRequestFormValidator.isValid(any(), any())).thenReturn(true);
+    when(licenceScheduleSupportingInformationFormValidator.isValid(any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(
-                on(LicenceScheduleSupportingRequestController.class).submitForm(SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
+                on(LicenceScheduleSupportingInformationController.class).submitForm(SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(licenceScheduleSupportingRequestService).saveRequestForm(any(), eq(scheduleWorkProgrammeApplicationDetail));
+    verify(licenceScheduleSupportingInformationService).saveRequestForm(any(), eq(scheduleWorkProgrammeApplicationDetail));
   }
 
   @Test
@@ -121,7 +121,7 @@ class LicenceScheduleSupportingRequestControllerTest extends AbstractControllerT
 
     mockMvc.perform(
             post(ReverseRouter.route(
-                on(LicenceScheduleSupportingRequestController.class).submitForm(SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
+                on(LicenceScheduleSupportingInformationController.class).submitForm(SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
@@ -133,7 +133,7 @@ class LicenceScheduleSupportingRequestControllerTest extends AbstractControllerT
             ScheduleWorkProgrammeApplicationTaskListController.class)
             .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
 
-    verify(licenceScheduleSupportingRequestService, never()).saveRequestForm(any(), any());
+    verify(licenceScheduleSupportingInformationService, never()).saveRequestForm(any(), any());
 
   }
 }

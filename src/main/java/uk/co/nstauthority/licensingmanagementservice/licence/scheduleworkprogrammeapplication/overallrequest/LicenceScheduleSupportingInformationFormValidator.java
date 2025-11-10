@@ -8,12 +8,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionService;
 
 @Service
-public class LicenceScheduleSupportingRequestFormValidator {
+public class LicenceScheduleSupportingInformationFormValidator {
 
   private final LicenceScheduleExtensionService licenceScheduleExtensionService;
   private final LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
 
-  public LicenceScheduleSupportingRequestFormValidator(
+  public LicenceScheduleSupportingInformationFormValidator(
       LicenceScheduleExtensionService licenceScheduleExtensionService,
       LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService
   ) {

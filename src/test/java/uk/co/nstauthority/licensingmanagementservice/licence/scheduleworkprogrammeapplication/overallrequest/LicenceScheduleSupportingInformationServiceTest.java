@@ -18,37 +18,37 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @ExtendWith(MockitoExtension.class)
-class LicenceScheduleSupportingRequestServiceTest {
+class LicenceScheduleSupportingInformationServiceTest {
 
   @Mock
-  private LicenceScheduleSupportingRequestRepository licenceScheduleSupportingRequestRepository;
+  private LicenceScheduleSupportingInformationRepository licenceScheduleSupportingInformationRepository;
 
   @InjectMocks
-  private LicenceScheduleSupportingRequestService licenceScheduleSupportingRequestService;
+  private LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService;
 
   @Captor
-  private ArgumentCaptor<LicenceScheduleSupportingRequest> licenceScheduleSupportingRequestArgumentCaptor;
+  private ArgumentCaptor<LicenceScheduleSupportingInformation> licenceScheduleSupportingRequestArgumentCaptor;
 
   @Test
   void saveRequestForm_existingOverallRequest() {
     ScheduleWorkProgrammeApplicationDetail detail = new ScheduleWorkProgrammeApplicationDetail();
-    LicenceScheduleSupportingRequest existingRequest = new LicenceScheduleSupportingRequest();
+    LicenceScheduleSupportingInformation existingRequest = new LicenceScheduleSupportingInformation();
     existingRequest.setLicenceProgress("Old Info");
 
-    LicenceScheduleSupportingRequestForm form = new LicenceScheduleSupportingRequestForm();
+    LicenceScheduleSupportingInformationForm form = new LicenceScheduleSupportingInformationForm();
     form.setLicenceProgress("New Progress Info");
     form.setReasonForAmendment("New Reason");
     form.setImpactOnDeliverables("New Impact");
     form.setPlanDuringExtension("New Plan");
 
-    when(licenceScheduleSupportingRequestRepository.findByScheduleWorkProgrammeApplicationDetails(detail))
+    when(licenceScheduleSupportingInformationRepository.findByScheduleWorkProgrammeApplicationDetails(detail))
         .thenReturn(Optional.of(existingRequest));
 
-    licenceScheduleSupportingRequestService.saveRequestForm(form, detail);
+    licenceScheduleSupportingInformationService.saveRequestForm(form, detail);
 
-    verify(licenceScheduleSupportingRequestRepository).save(licenceScheduleSupportingRequestArgumentCaptor.capture());
+    verify(licenceScheduleSupportingInformationRepository).save(licenceScheduleSupportingRequestArgumentCaptor.capture());
 
-    LicenceScheduleSupportingRequest savedRequest = licenceScheduleSupportingRequestArgumentCaptor.getValue();
+    LicenceScheduleSupportingInformation savedRequest = licenceScheduleSupportingRequestArgumentCaptor.getValue();
     assertEquals("New Progress Info", savedRequest.getLicenceProgress());
     assertEquals("New Reason", savedRequest.getReasonForAmendment());
     assertEquals("New Impact", savedRequest.getImpactOnDeliverables());
@@ -61,20 +61,20 @@ class LicenceScheduleSupportingRequestServiceTest {
   void saveRequestForm_newOverallRequest() {
     ScheduleWorkProgrammeApplicationDetail detail = new ScheduleWorkProgrammeApplicationDetail();
 
-    LicenceScheduleSupportingRequestForm form = new LicenceScheduleSupportingRequestForm();
+    LicenceScheduleSupportingInformationForm form = new LicenceScheduleSupportingInformationForm();
     form.setLicenceProgress("New Progress Info");
     form.setReasonForAmendment("New Reason");
     form.setImpactOnDeliverables("New Impact");
     form.setPlanDuringExtension("New Plan");
 
-    when(licenceScheduleSupportingRequestRepository.findByScheduleWorkProgrammeApplicationDetails(detail))
+    when(licenceScheduleSupportingInformationRepository.findByScheduleWorkProgrammeApplicationDetails(detail))
         .thenReturn(Optional.empty());
 
-    licenceScheduleSupportingRequestService.saveRequestForm(form, detail);
+    licenceScheduleSupportingInformationService.saveRequestForm(form, detail);
 
-    verify(licenceScheduleSupportingRequestRepository).save(licenceScheduleSupportingRequestArgumentCaptor.capture());
+    verify(licenceScheduleSupportingInformationRepository).save(licenceScheduleSupportingRequestArgumentCaptor.capture());
 
-    LicenceScheduleSupportingRequest savedRequest = licenceScheduleSupportingRequestArgumentCaptor.getValue();
+    LicenceScheduleSupportingInformation savedRequest = licenceScheduleSupportingRequestArgumentCaptor.getValue();
     assertEquals("New Progress Info", savedRequest.getLicenceProgress());
     assertEquals("New Reason", savedRequest.getReasonForAmendment());
     assertEquals("New Impact", savedRequest.getImpactOnDeliverables());
@@ -86,16 +86,16 @@ class LicenceScheduleSupportingRequestServiceTest {
   @Test
   void getLicenceScheduleRequestForm_foundExistingRequest() {
     ScheduleWorkProgrammeApplicationDetail detail = new ScheduleWorkProgrammeApplicationDetail();
-    LicenceScheduleSupportingRequest existingRequest = new LicenceScheduleSupportingRequest();
+    LicenceScheduleSupportingInformation existingRequest = new LicenceScheduleSupportingInformation();
     existingRequest.setLicenceProgress("Progress Info");
     existingRequest.setReasonForAmendment("Reason");
     existingRequest.setImpactOnDeliverables("Impact");
     existingRequest.setPlanDuringExtension("Plan");
 
-    when(licenceScheduleSupportingRequestRepository.findByScheduleWorkProgrammeApplicationDetails(detail))
+    when(licenceScheduleSupportingInformationRepository.findByScheduleWorkProgrammeApplicationDetails(detail))
         .thenReturn(Optional.of(existingRequest));
 
-    LicenceScheduleSupportingRequestForm resultForm = licenceScheduleSupportingRequestService
+    LicenceScheduleSupportingInformationForm resultForm = licenceScheduleSupportingInformationService
         .getLicenceScheduleRequestForm(detail);
 
     assertNotNull(resultForm);
@@ -109,14 +109,14 @@ class LicenceScheduleSupportingRequestServiceTest {
   void getLicenceScheduleRequestForm_notFound() {
     ScheduleWorkProgrammeApplicationDetail detail = new ScheduleWorkProgrammeApplicationDetail();
 
-    when(licenceScheduleSupportingRequestRepository.findByScheduleWorkProgrammeApplicationDetails(detail))
+    when(licenceScheduleSupportingInformationRepository.findByScheduleWorkProgrammeApplicationDetails(detail))
         .thenReturn(Optional.empty());
 
-    LicenceScheduleSupportingRequestForm resultForm = licenceScheduleSupportingRequestService
+    LicenceScheduleSupportingInformationForm resultForm = licenceScheduleSupportingInformationService
         .getLicenceScheduleRequestForm(detail);
 
     assertNotNull(resultForm);
-    verify(licenceScheduleSupportingRequestRepository).findByScheduleWorkProgrammeApplicationDetails(detail);
-    verify(licenceScheduleSupportingRequestRepository, never()).save(any());
+    verify(licenceScheduleSupportingInformationRepository).findByScheduleWorkProgrammeApplicationDetails(detail);
+    verify(licenceScheduleSupportingInformationRepository, never()).save(any());
   }
 }

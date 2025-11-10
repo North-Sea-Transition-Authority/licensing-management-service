@@ -1,6 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest;
 
-public class LicenceScheduleSupportingRequestForm {
+public class LicenceScheduleSupportingInformationForm {
 
   private String licenceProgress;
   private String reasonForAmendment;

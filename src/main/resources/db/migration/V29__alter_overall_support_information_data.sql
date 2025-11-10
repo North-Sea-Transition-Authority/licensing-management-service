@@ -1,0 +1,14 @@
+ALTER TABLE licence_schedule_overall_request
+    RENAME TO licence_schedule_supporting_information;
+
+ALTER TABLE licence_schedule_overall_request_aud
+    RENAME TO licence_schedule_supporting_information_aud;
+
+ALTER TABLE licence_schedule_supporting_information
+    RENAME CONSTRAINT licence_schedule_overall_request_fk TO licence_schedule_supporting_information_fk;
+
+ALTER INDEX licence_schedule_overall_request_idx
+    RENAME TO licence_schedule_supporting_information_idx;
+
+ALTER INDEX licence_schedule_overall_request_aud_rev_idx
+    RENAME TO licence_schedule_supporting_information_aud_rev_idx;

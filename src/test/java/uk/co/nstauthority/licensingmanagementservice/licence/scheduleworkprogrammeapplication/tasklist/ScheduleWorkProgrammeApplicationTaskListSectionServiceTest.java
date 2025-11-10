@@ -19,6 +19,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.SelectLicenceWorkAmendmentController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionSubmissionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationController;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose.SwpApplicationRequestPurpose;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose.SwpApplicationRequestPurposeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose.SwpApplicationRequestPurposeRepository;
@@ -38,6 +40,9 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
 
   @Mock
   private LicenceWorkProgrammeAmendmentSubmissionService licenceWorkProgrammeAmendmentSubmissionService;
+
+  @Mock
+  private LicenceScheduleSupportingInformationSubmissionService licenceScheduleSupportingInformationSubmissionService;
 
   @InjectMocks
   private ScheduleWorkProgrammeApplicationTaskListSectionService scheduleWorkProgrammeApplicationTaskListSectionService;
@@ -76,6 +81,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
     when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
         Optional.of(swpApplicationRequestPurpose));
     when(licenceScheduleExtensionSubmissionService.isSectionSubmittable(any())).thenReturn(true);
+    when(licenceScheduleSupportingInformationSubmissionService.isSectionSubmittable(any())).thenReturn(true);
 
     var application = new ScheduleWorkProgrammeApplicationDetail();
     var user = ServiceUserDetailTestUtil.newBuilder().build();
@@ -100,10 +106,15 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                     ScheduleWorkProgrammeApplicationTaskListSectionService.EXTENSION_DETAILS,
                     TaskListLabel.COMPLETE,
                     ReverseRouter.route(on(LicenceScheduleExtensionController.class).renderForm(null, null))
+                ),
+                new TaskListItem(
+                    ScheduleWorkProgrammeApplicationTaskListSectionService.SUPPORTING_INFORMATION,
+                    TaskListLabel.COMPLETE,
+                    ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).renderForm(null, null))
                 )
             ),
-            ScheduleWorkProgrammeApplicationTaskListSectionService.APPLICATION_DETAILS_SECTION_NAME,
-            ScheduleWorkProgrammeApplicationTaskListSectionService.SECTION_ORDER
+    ScheduleWorkProgrammeApplicationTaskListSectionService.APPLICATION_DETAILS_SECTION_NAME,
+        ScheduleWorkProgrammeApplicationTaskListSectionService.SECTION_ORDER
         );
   }
 
@@ -138,6 +149,11 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                     ScheduleWorkProgrammeApplicationTaskListSectionService.EXTENSION_DETAILS,
                     TaskListLabel.NOT_COMPLETE,
                     ReverseRouter.route(on(LicenceScheduleExtensionController.class).renderForm(null, null))
+                ),
+                new TaskListItem(
+                    ScheduleWorkProgrammeApplicationTaskListSectionService.SUPPORTING_INFORMATION,
+                    TaskListLabel.NOT_COMPLETE,
+                    ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).renderForm(null, null))
                 )
             ),
             ScheduleWorkProgrammeApplicationTaskListSectionService.APPLICATION_DETAILS_SECTION_NAME,
@@ -181,6 +197,11 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                     ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class).renderForm(
                         null,
                         null))
+                ),
+                new TaskListItem(
+                    ScheduleWorkProgrammeApplicationTaskListSectionService.SUPPORTING_INFORMATION,
+                    TaskListLabel.NOT_COMPLETE,
+                    ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).renderForm(null, null))
                 )
             ),
             ScheduleWorkProgrammeApplicationTaskListSectionService.APPLICATION_DETAILS_SECTION_NAME,
@@ -220,6 +241,11 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                     ScheduleWorkProgrammeApplicationTaskListSectionService.AMENDMENT_DETAILS,
                     TaskListLabel.NOT_COMPLETE,
                     ReverseRouter.route(on(SelectLicenceWorkAmendmentController.class).renderForm(null, null))
+                ),
+                new TaskListItem(
+                    ScheduleWorkProgrammeApplicationTaskListSectionService.SUPPORTING_INFORMATION,
+                    TaskListLabel.NOT_COMPLETE,
+                    ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).renderForm(null, null))
                 )
             ),
             ScheduleWorkProgrammeApplicationTaskListSectionService.APPLICATION_DETAILS_SECTION_NAME,
@@ -259,6 +285,57 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                     ScheduleWorkProgrammeApplicationTaskListSectionService.AMENDMENT_DETAILS,
                     TaskListLabel.NOT_COMPLETE,
                     ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class).renderForm(null, null))
+                ),
+                new TaskListItem(
+                    ScheduleWorkProgrammeApplicationTaskListSectionService.SUPPORTING_INFORMATION,
+                    TaskListLabel.NOT_COMPLETE,
+                    ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).renderForm(null, null))
+                )
+            ),
+            ScheduleWorkProgrammeApplicationTaskListSectionService.APPLICATION_DETAILS_SECTION_NAME,
+            ScheduleWorkProgrammeApplicationTaskListSectionService.SECTION_ORDER
+        );
+  }
+
+  @Test
+  void getSection_withSupportingInformationComplete() {
+    SwpApplicationRequestPurpose swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
+    swpApplicationRequestPurpose.setAmendWorkProgramme(true);
+    when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
+        Optional.of(swpApplicationRequestPurpose));
+    when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionSubmittable(any())).thenReturn(true);
+    when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionComplete(any())).thenReturn(true);
+    when(licenceScheduleSupportingInformationSubmissionService.isSectionSubmittable(any())).thenReturn(true);
+
+
+    var application = new ScheduleWorkProgrammeApplicationDetail();
+    var user = ServiceUserDetailTestUtil.newBuilder().build();
+    var sectionOptional = scheduleWorkProgrammeApplicationTaskListSectionService.getSection(application, user);
+    assertThat(sectionOptional).isPresent();
+    var section = sectionOptional.get();
+
+    assertThat(section)
+        .extracting(
+            TaskListSection::items,
+            TaskListSection::displayName,
+            TaskListSection::displayOrder
+        )
+        .containsExactly(
+            List.of(
+                new TaskListItem(
+                    ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
+                    TaskListLabel.COMPLETE,
+                    ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).renderForm(null, null))
+                ),
+                new TaskListItem(
+                    ScheduleWorkProgrammeApplicationTaskListSectionService.AMENDMENT_DETAILS,
+                    TaskListLabel.COMPLETE,
+                    ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class).renderForm(null, null))
+                ),
+                new TaskListItem(
+                    ScheduleWorkProgrammeApplicationTaskListSectionService.SUPPORTING_INFORMATION,
+                    TaskListLabel.COMPLETE,
+                    ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).renderForm(null, null))
                 )
             ),
             ScheduleWorkProgrammeApplicationTaskListSectionService.APPLICATION_DETAILS_SECTION_NAME,

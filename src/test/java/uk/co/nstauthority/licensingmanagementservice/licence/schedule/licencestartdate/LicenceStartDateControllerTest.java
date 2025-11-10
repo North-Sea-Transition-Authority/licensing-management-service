@@ -25,7 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.LicenceScheduleSelectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.StartLicenceScheduleJourneyController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
@@ -73,7 +73,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/startDate"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
-        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(LicenceScheduleSelectionController.class).renderSelectLicenceForSchedule())));
+        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(StartLicenceScheduleJourneyController.class).renderStartLicenceScheduleJourney(LICENCE_ID))));
   }
 
   @SecurityTest
@@ -104,7 +104,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/startDate"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
-        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(LicenceScheduleSelectionController.class).renderSelectLicenceForSchedule())));
+        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(StartLicenceScheduleJourneyController.class).renderStartLicenceScheduleJourney(LICENCE_ID))));
   }
 
   @SecurityTest

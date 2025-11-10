@@ -26,25 +26,6 @@ class LicenceInternalApiRestControllerTest extends AbstractControllerTest {
   private SearchSelectorService searchSelectorService;
 
   @SecurityTest
-  void searchLicencesByReference() throws Exception {
-    var user = ServiceUserDetailTestUtil.newBuilder().build();
-
-    var searchTerm = "searchTerm";
-
-    var response = List.of(new LicenceJson(1, "CS001"));
-
-    when(licenceInternalApiService.searchLicencesByReference(searchTerm))
-        .thenReturn(response);
-
-    mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceInternalApiRestController.class).searchLicencesByReference(null)))
-                .with(user(user))
-                .param("term", searchTerm)
-        )
-        .andExpect(status().isOk());
-  }
-
-  @SecurityTest
   void searchLicencesByReferenceAndType() throws Exception {
     var user = ServiceUserDetailTestUtil.newBuilder().build();
 

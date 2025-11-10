@@ -6,7 +6,7 @@ import java.util.function.Function;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.StartLicenceScheduleJourneyController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
@@ -16,8 +16,8 @@ public enum LicenceActionItem implements Displayable {
       "Create licence schedule",
       1,
       false,
-          licence -> ReverseRouter.route(on(LicenceStartDateController.class)
-              .renderLicenceStartDateForm(licence.getId(), null))
+          licence -> ReverseRouter.route(on(StartLicenceScheduleJourneyController.class)
+              .renderStartLicenceScheduleJourney(licence.getId()))
   ),
   EDIT_LICENCE_SCHEDULE(
       "Edit licence schedule",

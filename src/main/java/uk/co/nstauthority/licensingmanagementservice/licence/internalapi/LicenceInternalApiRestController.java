@@ -22,14 +22,6 @@ public class LicenceInternalApiRestController {
     this.searchSelectorService = searchSelectorService;
   }
 
-  @GetMapping
-  public RestSearchResult searchLicencesByReference(@RequestParam(value = "term") String term) {
-    return searchSelectorService.search(
-        term,
-        licenceInternalApiService.searchLicencesByReference(term)
-    );
-  }
-
   @GetMapping("/{licenceTypeSlug}")
   public RestSearchResult searchLicencesByReferenceAndType(@PathVariable String licenceTypeSlug,
                                                            @RequestParam(value = "term") String term) {

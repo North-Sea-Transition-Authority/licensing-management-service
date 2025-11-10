@@ -4,7 +4,8 @@
 htmlTitle=pageTitle
 pageHeading=pageTitle
 pageSize=PageSize.TWO_THIRDS_COLUMN
-errorSummaryItems=errorSummaryItems>
+errorSummaryItems=errorSummaryItems
+backLinkUrl=springUrl(backUrl)>
 
     <@fdsStartPage.startPage startActionButton=false startActionUrl=springUrl(startUrl) startActionText="Start">
         <p class="govuk-body">Use this to create a new licence schedule:</p>

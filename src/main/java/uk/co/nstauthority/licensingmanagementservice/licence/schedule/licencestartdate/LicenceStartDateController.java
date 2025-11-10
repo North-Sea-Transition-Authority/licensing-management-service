@@ -14,7 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.LicenceScheduleSelectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.StartLicenceScheduleJourneyController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -43,7 +43,7 @@ public class LicenceStartDateController {
   ) {
     return getScheduleDetailsModelAndView(
         new LicenceStartDateForm(),
-        ReverseRouter.route(on(LicenceScheduleSelectionController.class).renderSelectLicenceForSchedule())
+        ReverseRouter.route(on(StartLicenceScheduleJourneyController.class).renderStartLicenceScheduleJourney(licenceId))
     );
   }
 
@@ -57,7 +57,7 @@ public class LicenceStartDateController {
     if (!licenceStartDateValidator.isValid(form, bindingResult)) {
       return getScheduleDetailsModelAndView(
           form,
-          ReverseRouter.route(on(LicenceScheduleSelectionController.class).renderSelectLicenceForSchedule())
+          ReverseRouter.route(on(StartLicenceScheduleJourneyController.class).renderStartLicenceScheduleJourney(licenceId))
       );
     }
     var scheduleDetailId = licenceStartDateService.saveNewLicenceStartDateFromForm(form, licence)

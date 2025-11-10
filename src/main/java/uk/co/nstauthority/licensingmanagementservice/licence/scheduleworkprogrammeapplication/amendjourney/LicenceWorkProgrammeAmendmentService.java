@@ -45,6 +45,12 @@ public class LicenceWorkProgrammeAmendmentService {
         .existsByScheduleWorkProgrammeApplicationDetails(scheduleWorkProgrammeApplicationDetail);
   }
 
+  public boolean isAmendmentRequested(ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
+    return licenceWorkProgrammeAmendmentRepository
+        .existsByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeCompletionDateChangeRequestedTrue(
+            scheduleWorkProgrammeApplicationDetail);
+  }
+
   @Transactional
   public void deleteWorkProgrammeAmendment(LicenceWorkProgrammeAmendmentRequest licenceWorkProgrammeAmendmentRequest,
                                            ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {

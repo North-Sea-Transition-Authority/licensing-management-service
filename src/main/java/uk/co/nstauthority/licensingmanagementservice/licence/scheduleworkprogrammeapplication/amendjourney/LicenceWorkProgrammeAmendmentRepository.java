@@ -19,5 +19,9 @@ public interface LicenceWorkProgrammeAmendmentRepository extends JpaRepository<L
   boolean existsByScheduleWorkProgrammeApplicationDetails(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetails);
 
+  boolean existsByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeCompletionDateChangeRequestedTrue(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  );
+
   boolean existsByWorkProgrammeActivityId(UUID workProgrammeActivityId);
 }

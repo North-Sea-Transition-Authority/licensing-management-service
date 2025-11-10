@@ -60,7 +60,10 @@ public class ScheduleWorkAreaService implements WorkAreaItemProvider {
 
     var licence = licenceScheduleDetail.getLicenceSchedule().getLicence();
     var createdDatetime = Instant.now(); //TODO add created datetime to schedule details
-    var licensees = responsibleOrganisationNamesByLicences.get(licenceScheduleDetail.getLicenceSchedule().getLicence())
+    var licensees = responsibleOrganisationNamesByLicences.getOrDefault(
+            licenceScheduleDetail.getLicenceSchedule().getLicence(),
+            List.of()
+        )
         .stream()
         .filter(Objects::nonNull)
         .toList();

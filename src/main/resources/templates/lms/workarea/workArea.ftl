@@ -15,6 +15,7 @@
   clearFilterUrl=clearFilterUrl
   searchResults=workAreaItems
   hasSearchBeenInvoked=workAreaItems?has_content
+  isFilterPrimaryButton=false
   >
     <@dataItemFilter.referenceFilter
     form=form

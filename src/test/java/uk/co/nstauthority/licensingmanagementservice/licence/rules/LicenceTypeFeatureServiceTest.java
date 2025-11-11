@@ -164,4 +164,14 @@ class LicenceTypeFeatureServiceTest {
     var events = underTest.getLicenceTypesThatCanCreateScheduleWorkProgrammeApplications();
     assertThat(events).contains(LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION, LicenceType.CARBON_STORAGE);
   }
+
+  @Test
+  void canShowLicenceRoundIssuedOn_whenEnabled_ReturnsTrue() {
+    assertThat(underTest.canShowLicenceRoundIssuedOn(LicenceType.SEAWARD_PRODUCTION)).isTrue();
+  }
+
+  @Test
+  void canShowLicenceRoundIssuedOn_whenNotEnabled_ReturnsFalse() {
+    assertThat(underTest.canShowLicenceRoundIssuedOn(LicenceType.A)).isFalse();
+  }
 }

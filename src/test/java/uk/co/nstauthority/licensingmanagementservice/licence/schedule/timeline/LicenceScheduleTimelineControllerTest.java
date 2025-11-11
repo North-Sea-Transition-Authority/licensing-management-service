@@ -20,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController;
@@ -31,6 +32,9 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
+
+  @MockitoBean
+  private LicenceTypeRulesResolver licenceTypeRulesResolver;
 
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
@@ -70,6 +74,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
     when(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail)).thenReturn(timelineActionViews);
     when(licenceScheduleTimelineService.getLicenceScheduleEventViews(licenceScheduleDetail)).thenReturn(scheduleEventViews);
+    when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(true);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceScheduleTimelineController.class).renderLicenceScheduleTimeline(licence.getId(), null)))
@@ -82,7 +87,8 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("actions", timelineActionViews))
         .andExpect(model().attribute("scheduleEventViews", scheduleEventViews))
         .andExpect(model().attribute("updateLicenceStartDateUrl",
-            ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateUpdateForm(licenceScheduleDetail.getId(), null))));
+            ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateUpdateForm(licenceScheduleDetail.getId(), null))))
+        .andExpect(model().attribute("showRoundIssuedOn", true));
   }
 
   @SecurityTest
@@ -97,6 +103,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
     when(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail)).thenReturn(timelineActionViews);
     when(licenceScheduleTimelineService.getLicenceScheduleEventViews(licenceScheduleDetail)).thenReturn(scheduleEventViews);
+    when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(false);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceScheduleTimelineController.class)
@@ -110,6 +117,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("actions", timelineActionViews))
         .andExpect(model().attribute("scheduleEventViews", scheduleEventViews))
         .andExpect(model().attribute("updateLicenceStartDateUrl",
-            ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateUpdateForm(licenceScheduleDetail.getId(), null))));
+            ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateUpdateForm(licenceScheduleDetail.getId(), null))))
+        .andExpect(model().attribute("showRoundIssuedOn", false));
   }
 }

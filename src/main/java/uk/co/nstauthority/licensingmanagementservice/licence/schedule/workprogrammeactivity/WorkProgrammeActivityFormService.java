@@ -7,7 +7,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
-import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeFeatureService;
+import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
@@ -20,18 +20,18 @@ public class WorkProgrammeActivityFormService {
   private final WorkProgrammeActivityRepository workProgrammeActivityRepository;
   private final LicenceScheduleTermService licenceScheduleTermService;
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
-  private final LicenceTypeFeatureService licenceTypeFeatureService;
+  private final LicenceTypeRulesResolver licenceTypeRulesResolver;
 
   public WorkProgrammeActivityFormService(
       WorkProgrammeActivityRepository workProgrammeActivityRepository,
       LicenceScheduleTermService licenceScheduleTermService,
       LicenceSchedulePhaseService licenceSchedulePhaseService,
-      LicenceTypeFeatureService licenceTypeFeatureService
+      LicenceTypeRulesResolver licenceTypeRulesResolver
   ) {
     this.workProgrammeActivityRepository = workProgrammeActivityRepository;
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
-    this.licenceTypeFeatureService = licenceTypeFeatureService;
+    this.licenceTypeRulesResolver = licenceTypeRulesResolver;
   }
 
   public Map<String, String> getScheduleTermOptions(LicenceScheduleDetail licenceScheduleDetail) {
@@ -57,7 +57,7 @@ public class WorkProgrammeActivityFormService {
 
     var licenceType = licenceScheduleDetail.getLicenceSchedule().getLicence().getType();
 
-    if (!licenceTypeFeatureService.arePhasesCaptured(licenceType) || getSchedulePhaseOptions(licenceScheduleDetail).isEmpty()) {
+    if (!licenceTypeRulesResolver.arePhasesCaptured(licenceType) || getSchedulePhaseOptions(licenceScheduleDetail).isEmpty()) {
       options.remove(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
     }
 

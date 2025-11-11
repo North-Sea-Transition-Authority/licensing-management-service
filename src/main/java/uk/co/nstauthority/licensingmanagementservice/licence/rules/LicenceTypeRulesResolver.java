@@ -36,4 +36,6 @@ public interface LicenceTypeRulesResolver {
   Set<EventType> getSupportedEvents(@NotNull LicenceType licenceType);
 
   List<LicenceType> getLicenceTypesThatCanCreateScheduleWorkProgrammeApplications();
+
+  boolean canShowLicenceRoundIssuedOn(LicenceType licenceType);
 }

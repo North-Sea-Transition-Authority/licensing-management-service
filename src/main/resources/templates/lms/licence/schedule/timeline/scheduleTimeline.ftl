@@ -14,9 +14,11 @@ extendContainerWidth=true>
         <@fdsSummaryList.summaryListRowNoAction keyText="Status">
             ${timelineSummaryCardView.status()!""}
         </@fdsSummaryList.summaryListRowNoAction>
-        <@fdsSummaryList.summaryListRowNoAction keyText="Round number">
-            ${timelineSummaryCardView.roundIssuedOn()!""}
-        </@fdsSummaryList.summaryListRowNoAction>
+        <#if showRoundIssuedOn>
+            <@fdsSummaryList.summaryListRowNoAction keyText="Round number">
+                ${timelineSummaryCardView.roundIssuedOn()!""}
+            </@fdsSummaryList.summaryListRowNoAction>
+        </#if>
     </@fdsSummaryList.summaryListCard>
 
     <@fdsActionDropdown.actionDropdown dropdownButtonText="Add an event">

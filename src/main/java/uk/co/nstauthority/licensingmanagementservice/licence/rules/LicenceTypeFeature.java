@@ -52,6 +52,9 @@ public enum LicenceTypeFeature {
       LicenceTypeGroup.PRODUCTION,
       LicenceTypeGroup.CARBON_STORAGE
   )),
+  SHOW_ROUND_ISSUED_ON(EnumSet.of(
+      LicenceTypeGroup.PRODUCTION
+  ))
   ;
 
   private final Set<LicenceType> supportingLicenceTypes;

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController;
@@ -20,13 +21,16 @@ public class LicenceScheduleTimelineController {
 
   private final LicenceScheduleTimelineService licenceScheduleTimelineService;
   private final LicenceScheduleDetailService licenceScheduleDetailService;
+  private final LicenceTypeRulesResolver licenceTypeRulesResolver;
 
   public LicenceScheduleTimelineController(
       LicenceScheduleTimelineService licenceScheduleTimelineService,
-      LicenceScheduleDetailService licenceScheduleDetailService
+      LicenceScheduleDetailService licenceScheduleDetailService,
+      LicenceTypeRulesResolver licenceTypeRulesResolver
   ) {
     this.licenceScheduleTimelineService = licenceScheduleTimelineService;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
+    this.licenceTypeRulesResolver = licenceTypeRulesResolver;
   }
 
   @GetMapping("/licence/{licenceId}/schedule")
@@ -55,7 +59,8 @@ public class LicenceScheduleTimelineController {
         .addObject("scheduleEventViews", licenceScheduleTimelineService.getLicenceScheduleEventViews(licenceScheduleDetail))
         .addObject("updateLicenceStartDateUrl", ReverseRouter.route(on(LicenceStartDateController.class)
             .renderLicenceStartDateUpdateForm(licenceScheduleDetail.getId(), null))
-        );
+        )
+        .addObject("showRoundIssuedOn", licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType()));
   }
 
 }

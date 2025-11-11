@@ -22,7 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
-import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeFeatureService;
+import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
@@ -44,7 +44,7 @@ class WorkProgrammeActivityFormServiceTest {
   private LicenceSchedulePhaseService licenceSchedulePhaseService;
 
   @Mock
-  private LicenceTypeFeatureService licenceTypeFeatureService;
+  private LicenceTypeRulesResolver licenceTypeRulesResolver;
 
   @InjectMocks
   private WorkProgrammeActivityFormService workProgrammeActivityFormService;
@@ -114,7 +114,7 @@ class WorkProgrammeActivityFormServiceTest {
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(phase));
 
-    when(licenceTypeFeatureService.arePhasesCaptured(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
+    when(licenceTypeRulesResolver.arePhasesCaptured(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
 
     assertThat(workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail))
         .isEqualTo(DisplayableEnumOptionUtil.getDisplayableOptions(WorkProgrammeActivityDateOption.class));
@@ -125,7 +125,7 @@ class WorkProgrammeActivityFormServiceTest {
     var options = new ArrayList<>(Arrays.asList(WorkProgrammeActivityDateOption.values()));
     options.remove(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
 
-    when(licenceTypeFeatureService.arePhasesCaptured(LicenceType.SEAWARD_PRODUCTION)).thenReturn(false);
+    when(licenceTypeRulesResolver.arePhasesCaptured(LicenceType.SEAWARD_PRODUCTION)).thenReturn(false);
 
     assertThat(workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail))
         .isEqualTo(DisplayableEnumOptionUtil.getDisplayableOptions(options));
@@ -136,7 +136,7 @@ class WorkProgrammeActivityFormServiceTest {
     var options = new ArrayList<>(Arrays.asList(WorkProgrammeActivityDateOption.values()));
     options.remove(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
 
-    when(licenceTypeFeatureService.arePhasesCaptured(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
+    when(licenceTypeRulesResolver.arePhasesCaptured(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
 
     assertThat(workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail))
         .isEqualTo(DisplayableEnumOptionUtil.getDisplayableOptions(options));

@@ -5,19 +5,19 @@ import java.util.EnumSet;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeFeatureService;
+import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Service
 public class SwpApplicationRequestPurposeService {
 
-  private final LicenceTypeFeatureService licenceTypeFeatureService;
+  private final LicenceTypeRulesResolver licenceTypeRulesResolver;
   private final SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository;
 
   public SwpApplicationRequestPurposeService(
-      LicenceTypeFeatureService licenceTypeFeatureService,
+      LicenceTypeRulesResolver licenceTypeRulesResolver,
       SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository) {
-    this.licenceTypeFeatureService = licenceTypeFeatureService;
+    this.licenceTypeRulesResolver = licenceTypeRulesResolver;
     this.swpApplicationRequestPurposeRepository = swpApplicationRequestPurposeRepository;
   }
 
@@ -26,9 +26,9 @@ public class SwpApplicationRequestPurposeService {
 
     var licenceType = getLicenceType(scheduleWorkProgrammeApplicationDetail);
 
-    var hasTerms = licenceTypeFeatureService.hasTerms(licenceType);
-    var phasesCaptured = licenceTypeFeatureService.arePhasesCaptured(licenceType);
-    var hasWorkProgramme = licenceTypeFeatureService.hasWorkProgramme(licenceType);
+    var hasTerms = licenceTypeRulesResolver.hasTerms(licenceType);
+    var phasesCaptured = licenceTypeRulesResolver.arePhasesCaptured(licenceType);
+    var hasWorkProgramme = licenceTypeRulesResolver.hasWorkProgramme(licenceType);
 
     var options = EnumSet.noneOf(SwpApplicationRequestPurposeOption.class);
 

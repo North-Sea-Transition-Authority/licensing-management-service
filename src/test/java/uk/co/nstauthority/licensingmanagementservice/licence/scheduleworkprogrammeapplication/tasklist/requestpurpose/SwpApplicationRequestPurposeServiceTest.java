@@ -15,14 +15,14 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeFeatureService;
+import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @ExtendWith(MockitoExtension.class)
 class SwpApplicationRequestPurposeServiceTest {
 
   @Mock
-  private LicenceTypeFeatureService licenceTypeFeatureService;
+  private LicenceTypeRulesResolver licenceTypeRulesResolver;
 
   @Mock
   private SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository;

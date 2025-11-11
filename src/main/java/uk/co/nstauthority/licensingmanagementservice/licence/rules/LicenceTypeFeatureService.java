@@ -85,4 +85,9 @@ public class LicenceTypeFeatureService implements LicenceTypeRulesResolver {
         .filter(LicenceTypeFeature.CAN_CREATE_SCHEDULE_WORK_PROGRAMME_APPLICATIONS::isEnabledFor)
         .toList();
   }
+
+  @Override
+  public boolean canShowLicenceRoundIssuedOn(LicenceType licenceType) {
+    return LicenceTypeFeature.SHOW_ROUND_ISSUED_ON.isEnabledFor(licenceType);
+  }
 }

@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationDisplayUtil;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeFeatureService;
+import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseController;
@@ -26,18 +26,18 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 public class LicenceScheduleTimelineService {
 
   private final LicenceStartDateService licenceStartDateService;
-  private final LicenceTypeFeatureService licenceTypeFeatureService;
+  private final LicenceTypeRulesResolver licenceTypeRulesResolver;
   private final LicenceScheduleTermService licenceScheduleTermService;
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
 
   public LicenceScheduleTimelineService(
       LicenceStartDateService licenceStartDateService,
-      LicenceTypeFeatureService licenceTypeFeatureService,
+      LicenceTypeRulesResolver licenceTypeRulesResolver,
       LicenceScheduleTermService licenceScheduleTermService,
       LicenceSchedulePhaseService licenceSchedulePhaseService
   ) {
     this.licenceStartDateService = licenceStartDateService;
-    this.licenceTypeFeatureService = licenceTypeFeatureService;
+    this.licenceTypeRulesResolver = licenceTypeRulesResolver;
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
   }
@@ -60,11 +60,11 @@ public class LicenceScheduleTimelineService {
 
     actions.add(LicenceScheduleTimelineAction.ADD_A_TERM);
 
-    if (licenceTypeFeatureService.arePhasesCaptured(licenceType)) {
+    if (licenceTypeRulesResolver.arePhasesCaptured(licenceType)) {
       actions.add(LicenceScheduleTimelineAction.ADD_A_PHASE);
     }
 
-    if (licenceTypeFeatureService.hasWorkProgramme(licenceType)) {
+    if (licenceTypeRulesResolver.hasWorkProgramme(licenceType)) {
       actions.add(LicenceScheduleTimelineAction.ADD_A_WORK_PROGRAMME_ACTIVITY);
     }
 

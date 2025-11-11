@@ -20,7 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
-import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeFeatureService;
+import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
@@ -42,7 +42,7 @@ class LicenceScheduleTimelineServiceTest {
   private LicenceStartDateService licenceStartDateService;
 
   @Mock
-  private LicenceTypeFeatureService licenceTypeFeatureService;
+  private LicenceTypeRulesResolver licenceTypeRulesResolver;
 
   @Mock
   private LicenceScheduleTermService licenceScheduleTermService;
@@ -91,8 +91,8 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getLicenceScheduleTimelineActions() {
-    when(licenceTypeFeatureService.arePhasesCaptured(licence.getType())).thenReturn(true);
-    when(licenceTypeFeatureService.hasWorkProgramme(licence.getType())).thenReturn(true);
+    when(licenceTypeRulesResolver.arePhasesCaptured(licence.getType())).thenReturn(true);
+    when(licenceTypeRulesResolver.hasWorkProgramme(licence.getType())).thenReturn(true);
 
     var expectedResult = List.of(
         new TimelineActionView(

@@ -29,7 +29,7 @@ public class LicenceSchedulePhaseFormValidator {
       Errors errors,
       LicenceScheduleDetail licenceScheduleDetail
   ) {
-    var existingPhaseTypes = licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
+    var existingPhaseTypes = licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
         .map(LicenceSchedulePhase::getPhaseType)
         .toList();
 
@@ -47,7 +47,7 @@ public class LicenceSchedulePhaseFormValidator {
       LicenceScheduleDetail licenceScheduleDetail,
       LicenceSchedulePhase licenceSchedulePhase
   ) {
-    var existingPhaseTypes = licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
+    var existingPhaseTypes = licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
         .filter(phase -> !licenceSchedulePhase.getId().equals(phase.getId()))
         .map(LicenceSchedulePhase::getPhaseType)
         .toList();

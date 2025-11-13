@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 
 @Controller
@@ -17,13 +18,16 @@ public class LicenceScheduleTermDeletionController {
 
   private final LicenceScheduleTermService licenceScheduleTermService;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
+  private final LicenceService licenceService;
 
   public LicenceScheduleTermDeletionController(
       LicenceScheduleTermService licenceScheduleTermService,
-      LicenceScheduleCalculationService licenceScheduleCalculationService
+      LicenceScheduleCalculationService licenceScheduleCalculationService,
+      LicenceService licenceService
   ) {
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
+    this.licenceService = licenceService;
   }
 
   @GetMapping
@@ -35,7 +39,9 @@ public class LicenceScheduleTermDeletionController {
     return new ModelAndView("lms/licence/schedule/deleteScheduleTerm")
         .addObject("pageTitle", PAGE_TITLE.formatted(term.getTermType().getDisplayName()))
         .addObject("licenceScheduleTermSummaryView", LicenceScheduleTermSummaryView.fromTerm(term))
-        .addObject("cancelUrl", term.getLicenceScheduleDetail().getScheduleTimelineRouteUrl());
+        .addObject("cancelUrl", term.getLicenceScheduleDetail().getScheduleTimelineRouteUrl())
+        .addObject("pageCaption",
+            licenceService.getLicencePageCaption(term.getLicenceScheduleDetail().getLicenceSchedule().getLicence()));
   }
 
   @PostMapping

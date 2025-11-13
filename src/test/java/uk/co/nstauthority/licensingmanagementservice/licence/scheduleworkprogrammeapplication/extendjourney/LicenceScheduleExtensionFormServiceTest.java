@@ -115,7 +115,7 @@ class LicenceScheduleExtensionFormServiceTest {
     laterPhase.setStartDate(LocalDate.now(clock).plusYears(1));
     laterPhase.setEndDate(LocalDate.now(clock).plusYears(3));
 
-    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(any()))
+    when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(any()))
         .thenReturn(List.of(currentPhase, laterPhase));
 
     assertThat(licenceScheduleExtensionFormService.getCurrentPhase(licenceScheduleDetail)).isEqualTo(currentPhase);

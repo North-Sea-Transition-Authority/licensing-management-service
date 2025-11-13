@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
@@ -22,8 +23,11 @@ public class LicenceSchedulePhaseService {
         .orElseThrow(() -> new LmsEntityNotFoundException("LicenceSchedulePhase not found", id.toString()));
   }
 
-  public List<LicenceSchedulePhase> getPhasesByLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
-    return licenceSchedulePhaseRepository.findByLicenceScheduleDetail(licenceScheduleDetail);
+  public List<LicenceSchedulePhase> getActivePhasesByLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
+    return licenceSchedulePhaseRepository.findByLicenceScheduleDetailAndStatus(
+        licenceScheduleDetail,
+        LicenceScheduleEventStatus.ACTIVE
+    );
   }
 
   @Transactional
@@ -31,7 +35,16 @@ public class LicenceSchedulePhaseService {
     licenceSchedulePhaseRepository.saveAll(licenceSchedulePhase);
   }
 
-  public List<LicenceSchedulePhase> getPhasesByTerm(LicenceScheduleTerm licenceScheduleTerm) {
-    return licenceSchedulePhaseRepository.findByLicenceScheduleTerm(licenceScheduleTerm);
+  public List<LicenceSchedulePhase> getActivePhasesByTerm(LicenceScheduleTerm licenceScheduleTerm) {
+    return licenceSchedulePhaseRepository.findByLicenceScheduleTermAndStatus(
+        licenceScheduleTerm,
+        LicenceScheduleEventStatus.ACTIVE
+    );
+  }
+
+  @Transactional
+  void deletePhase(LicenceSchedulePhase licenceSchedulePhase) {
+    licenceSchedulePhase.setStatus(LicenceScheduleEventStatus.DELETED);
+    licenceSchedulePhaseRepository.save(licenceSchedulePhase);
   }
 }

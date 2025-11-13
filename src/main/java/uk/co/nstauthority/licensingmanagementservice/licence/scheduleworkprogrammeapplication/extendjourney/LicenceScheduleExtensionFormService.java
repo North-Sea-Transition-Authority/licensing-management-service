@@ -46,7 +46,7 @@ public class LicenceScheduleExtensionFormService {
 
   public LicenceSchedulePhase getCurrentPhase(LicenceScheduleDetail licenceScheduleDetail) {
     List<LicenceSchedulePhase> licenceSchedulePhases =
-        licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail);
+        licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail);
 
     return licenceSchedulePhases.stream()
         .filter(phase -> isCurrentlyActive(phase.getStartDate(), phase.getEndDate()))

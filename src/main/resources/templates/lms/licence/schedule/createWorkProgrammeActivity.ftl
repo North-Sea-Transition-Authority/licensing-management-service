@@ -22,6 +22,7 @@ errorSummaryItems=errorSummaryItems
                         <@fdsTextInput.textInput
                             path="form.otherCategoryName"
                             labelText="Other category"
+                            nestingPath="form.workProgrammeActivityCategory"
                         />
                     </#if>
                 </@fdsRadio.radioItem>

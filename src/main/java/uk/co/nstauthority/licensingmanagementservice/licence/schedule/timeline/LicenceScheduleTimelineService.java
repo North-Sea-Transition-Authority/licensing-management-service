@@ -14,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRu
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
@@ -116,7 +117,7 @@ public class LicenceScheduleTimelineService {
   }
 
   private List<ScheduleEvent> getScheduleEventsForTerm(LicenceScheduleTerm licenceScheduleTerm) {
-    return licenceSchedulePhaseService.getPhasesByTerm(licenceScheduleTerm).stream()
+    return licenceSchedulePhaseService.getActivePhasesByTerm(licenceScheduleTerm).stream()
         .sorted(Comparator.comparing(phase -> phase.getPhaseType().getDisplayOrder()))
         .map(this::convertToTimelinePhaseView)
         .toList();
@@ -135,7 +136,7 @@ public class LicenceScheduleTimelineService {
         dateDurationString,
         DateFormatUtil.convertToDisplayText(licenceSchedulePhase.getEndDate()),
         ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderUpdatePhaseForm(licenceSchedulePhase.getId())),
-        "" //TODO: LMS-188 add link when implementing phase deletion
+        ReverseRouter.route(on(LicenceSchedulePhaseDeletionController.class).renderDeletePhasePage(licenceSchedulePhase.getId()))
     );
   }
 

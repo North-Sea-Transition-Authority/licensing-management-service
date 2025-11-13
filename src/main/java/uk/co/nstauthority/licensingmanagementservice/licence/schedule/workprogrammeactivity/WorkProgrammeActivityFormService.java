@@ -44,7 +44,7 @@ public class WorkProgrammeActivityFormService {
   }
 
   public Map<String, String> getSchedulePhaseOptions(LicenceScheduleDetail licenceScheduleDetail) {
-    return licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
+    return licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
         .sorted(Comparator.comparingInt(phase -> phase.getPhaseType().getDisplayOrder()))
         .collect(StreamUtil.toLinkedHashMap(
             phase -> phase.getId().toString(),

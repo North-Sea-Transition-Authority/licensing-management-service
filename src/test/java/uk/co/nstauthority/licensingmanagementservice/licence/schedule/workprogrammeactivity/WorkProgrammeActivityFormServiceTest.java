@@ -95,7 +95,7 @@ class WorkProgrammeActivityFormServiceTest {
     phase2.setId(UUID.randomUUID());
     phase2.setPhaseType(PhaseType.PHASE_B);
 
-    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase, phase2));
+    when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase, phase2));
 
     var expectedResult = Map.of(
         phase.getId().toString(), phase.getPhaseType().getDisplayName(),
@@ -111,7 +111,7 @@ class WorkProgrammeActivityFormServiceTest {
     phase.setId(UUID.randomUUID());
     phase.setPhaseType(PhaseType.PHASE_A);
 
-    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
+    when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(phase));
 
     when(licenceTypeRulesResolver.arePhasesCaptured(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);

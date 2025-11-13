@@ -88,7 +88,7 @@ class LicenceSchedulePhaseFormValidatorTest {
     licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
 
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceScheduleTerm));
-    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceSchedulePhase));
+    when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceSchedulePhase));
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
@@ -113,7 +113,7 @@ class LicenceSchedulePhaseFormValidatorTest {
     licenceSchedulePhase.setId(UUID.randomUUID());
     licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
 
-    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceSchedulePhase));
+    when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceSchedulePhase));
 
     var licenceScheduleTerm = new LicenceScheduleTerm();
     licenceScheduleTerm.setTermType(TermType.INITIAL);
@@ -140,7 +140,7 @@ class LicenceSchedulePhaseFormValidatorTest {
     licenceSchedulePhase2.setId(UUID.randomUUID());
     licenceSchedulePhase2.setPhaseType(PhaseType.PHASE_B);
 
-    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceSchedulePhase, licenceSchedulePhase2));
+    when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceSchedulePhase, licenceSchedulePhase2));
 
     var licenceScheduleTerm = new LicenceScheduleTerm();
     licenceScheduleTerm.setTermType(TermType.INITIAL);

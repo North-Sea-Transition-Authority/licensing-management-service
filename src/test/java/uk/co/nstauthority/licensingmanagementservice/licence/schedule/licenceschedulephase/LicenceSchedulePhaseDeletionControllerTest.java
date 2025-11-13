@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm;
+package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,18 +23,18 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
-@ContextConfiguration(classes = LicenceScheduleTermDeletionController.class)
-class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
+@ContextConfiguration(classes = LicenceSchedulePhaseDeletionController.class)
+class LicenceSchedulePhaseDeletionControllerTest extends AbstractControllerTest {
 
   @MockitoBean
-  private LicenceScheduleTermService licenceScheduleTermService;
+  private LicenceSchedulePhaseService licenceSchedulePhaseService;
 
   @MockitoBean
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
@@ -45,8 +45,8 @@ class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
   private Licence licence;
   private LicenceScheduleDetail licenceScheduleDetail;
 
-  private LicenceScheduleTerm licenceScheduleTerm;
-  private static final UUID LICENCE_SCHEDULE_TERM_ID = UUID.randomUUID();
+  private LicenceSchedulePhase licenceSchedulePhase;
+  private static final UUID LICENCE_SCHEDULE_PHASE_ID = UUID.randomUUID();
 
   @BeforeEach
   void setUp() {
@@ -60,44 +60,45 @@ class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
 
     licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
 
-    licenceScheduleTerm = new LicenceScheduleTerm();
-    licenceScheduleTerm.setId(LICENCE_SCHEDULE_TERM_ID);
-    licenceScheduleTerm.setLicenceScheduleDetail(licenceScheduleDetail);
-    licenceScheduleTerm.setTermType(TermType.INITIAL);
-    licenceScheduleTerm.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    licenceScheduleTerm.setStartDate(LocalDate.of(2025, 1, 1));
-    licenceScheduleTerm.setEndDate(LocalDate.of(2025, 12, 31));
+    licenceSchedulePhase = new LicenceSchedulePhase();
+    licenceSchedulePhase.setId(LICENCE_SCHEDULE_PHASE_ID);
+    licenceSchedulePhase.setLicenceScheduleDetail(licenceScheduleDetail);
+    licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
+    licenceSchedulePhase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
+    licenceSchedulePhase.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceSchedulePhase.setEndDate(LocalDate.of(2025, 12, 31));
+    licenceSchedulePhase.setComments("comments");
   }
 
   @SecurityTest
-  void renderDeleteTermPage() throws Exception {
-    when(licenceScheduleTermService.getTermByIdOrThrow(LICENCE_SCHEDULE_TERM_ID)).thenReturn(licenceScheduleTerm);
+  void renderDeletePhasePage() throws Exception {
+    when(licenceSchedulePhaseService.getPhaseByIdOrThrow(LICENCE_SCHEDULE_PHASE_ID)).thenReturn(licenceSchedulePhase);
     when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(LICENCE_SCHEDULE_TERM_ID)))
+            get(ReverseRouter.route(on(LicenceSchedulePhaseDeletionController.class).renderDeletePhasePage(LICENCE_SCHEDULE_PHASE_ID)))
                 .with(user(organisationUser))
         )
         .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/schedule/deleteScheduleTerm"))
-        .andExpect(model().attribute("pageTitle", "Do you want to delete the %s?".formatted(licenceScheduleTerm.getTermType().getDisplayName())))
-        .andExpect(model().attribute("licenceScheduleTermSummaryView", LicenceScheduleTermSummaryView.fromTerm(licenceScheduleTerm)))
+        .andExpect(view().name("lms/licence/schedule/deleteSchedulePhase"))
+        .andExpect(model().attribute("pageTitle", "Do you want to delete the %s?".formatted(licenceSchedulePhase.getPhaseType().getDisplayName())))
+        .andExpect(model().attribute("licenceSchedulePhaseSummaryView", LicenceSchedulePhaseSummaryView.fromPhase(licenceSchedulePhase)))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
         .andExpect(model().attribute("pageCaption", "caption"));
   }
 
   @Test
-  void submitDeleteTermPage() throws Exception {
-    when(licenceScheduleTermService.getTermByIdOrThrow(LICENCE_SCHEDULE_TERM_ID)).thenReturn(licenceScheduleTerm);
+  void submitDeletePhasePage() throws Exception {
+    when(licenceSchedulePhaseService.getPhaseByIdOrThrow(LICENCE_SCHEDULE_PHASE_ID)).thenReturn(licenceSchedulePhase);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).submitDeleteTermPage(LICENCE_SCHEDULE_TERM_ID)))
+            post(ReverseRouter.route(on(LicenceSchedulePhaseDeletionController.class).submitDeletePhasePage(LICENCE_SCHEDULE_PHASE_ID)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(licenceScheduleTermService).deleteTerm(licenceScheduleTerm);
+    verify(licenceSchedulePhaseService).deletePhase(licenceSchedulePhase);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 }

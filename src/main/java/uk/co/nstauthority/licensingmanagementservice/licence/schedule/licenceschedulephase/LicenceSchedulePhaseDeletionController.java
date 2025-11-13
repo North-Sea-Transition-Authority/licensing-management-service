@@ -1,0 +1,59 @@
+package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase;
+
+import java.util.UUID;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
+
+@Controller
+@RequestMapping("/licence/schedule/phase/{licenceSchedulePhaseId}/delete")
+public class LicenceSchedulePhaseDeletionController {
+
+  private static final String PAGE_TITLE = "Do you want to delete the %s?";
+
+  private final LicenceSchedulePhaseService licenceSchedulePhaseService;
+  private final LicenceScheduleCalculationService licenceScheduleCalculationService;
+  private final LicenceService licenceService;
+
+  public LicenceSchedulePhaseDeletionController(
+      LicenceSchedulePhaseService licenceSchedulePhaseService,
+      LicenceScheduleCalculationService licenceScheduleCalculationService,
+      LicenceService licenceService
+  ) {
+    this.licenceSchedulePhaseService = licenceSchedulePhaseService;
+    this.licenceScheduleCalculationService = licenceScheduleCalculationService;
+    this.licenceService = licenceService;
+  }
+
+  @GetMapping
+  public ModelAndView renderDeletePhasePage(
+      @PathVariable UUID licenceSchedulePhaseId
+  ) {
+    var phase = licenceSchedulePhaseService.getPhaseByIdOrThrow(licenceSchedulePhaseId);
+
+    return new ModelAndView("lms/licence/schedule/deleteSchedulePhase")
+        .addObject("pageTitle", PAGE_TITLE.formatted(phase.getPhaseType().getDisplayName()))
+        .addObject("licenceSchedulePhaseSummaryView", LicenceSchedulePhaseSummaryView.fromPhase(phase))
+        .addObject("cancelUrl", phase.getLicenceScheduleDetail().getScheduleTimelineRouteUrl())
+        .addObject("pageCaption",
+            licenceService.getLicencePageCaption(phase.getLicenceScheduleDetail().getLicenceSchedule().getLicence()));
+  }
+
+  @PostMapping
+  public ModelAndView submitDeletePhasePage(
+      @PathVariable UUID licenceSchedulePhaseId
+  ) {
+    var phase = licenceSchedulePhaseService.getPhaseByIdOrThrow(licenceSchedulePhaseId);
+    var licenceScheduleDetail = phase.getLicenceScheduleDetail();
+    licenceSchedulePhaseService.deletePhase(phase);
+
+    licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+    return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
+  }
+
+}

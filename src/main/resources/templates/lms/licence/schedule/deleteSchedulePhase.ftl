@@ -9,13 +9,16 @@ errorSummaryItems=errorSummaryItems>
   <@fdsForm.htmlForm>
     <@fdsSummaryList.summaryList>
       <@fdsSummaryList.summaryListRowNoAction keyText="Duration">
-        ${licenceScheduleTermSummaryView.duration()}
+        ${licenceSchedulePhaseSummaryView.duration()}
       </@fdsSummaryList.summaryListRowNoAction>
       <@fdsSummaryList.summaryListRowNoAction keyText="Start date">
-        ${licenceScheduleTermSummaryView.startDate()}
+        ${licenceSchedulePhaseSummaryView.startDate()}
       </@fdsSummaryList.summaryListRowNoAction>
       <@fdsSummaryList.summaryListRowNoAction keyText="End date">
-        ${licenceScheduleTermSummaryView.endDate()}
+        ${licenceSchedulePhaseSummaryView.endDate()}
+      </@fdsSummaryList.summaryListRowNoAction>
+      <@fdsSummaryList.summaryListRowNoAction keyText="Comments">
+        ${licenceSchedulePhaseSummaryView.comments()!""}
       </@fdsSummaryList.summaryListRowNoAction>
     </@fdsSummaryList.summaryList>
 

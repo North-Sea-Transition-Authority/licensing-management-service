@@ -12,7 +12,7 @@ import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionIt
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 
@@ -28,26 +28,26 @@ public class LicenceActionService {
       = new EnumMap<>(LicenceActionItem.class);
 
   private final TeamQueryService teamQueryService;
-  private final LicenceScheduleService licenceScheduleService;
+  private final LicenceScheduleDetailService licenceScheduleDetailService;
 
   public LicenceActionService(
       TeamQueryService teamQueryService,
-      LicenceScheduleService licenceScheduleService
+      LicenceScheduleDetailService licenceScheduleDetailService
   ) {
     this.teamQueryService = teamQueryService;
-    this.licenceScheduleService = licenceScheduleService;
+    this.licenceScheduleDetailService = licenceScheduleDetailService;
 
     var registeredActions = LicenceActionBuilder.newBuilder()
         .registerAction(LicenceActionItem.CREATE_LICENCE_SCHEDULE)
           .requiresAnyRole()
           .requiresAnyStatus()
           .requiresAnytype()
-          .withLicenceScheduleRequirement(LicenceScheduleRequirement.DOES_NOT_EXIST)
+          .withLicenceScheduleRequirement(LicenceScheduleRequirement.NO_OPEN_DRAFT)
         .registerAction(LicenceActionItem.EDIT_LICENCE_SCHEDULE)
           .requiresAnyRole()
           .requiresAnyStatus()
           .requiresAnytype()
-          .withLicenceScheduleRequirement(LicenceScheduleRequirement.EXISTS)
+          .withLicenceScheduleRequirement(LicenceScheduleRequirement.HAS_OPEN_DRAFT)
         .registerAction(LicenceActionItem.MANAGE_LICENSEES)
           .requiresAnyRole()
           .requiresAnyStatus()
@@ -89,9 +89,9 @@ public class LicenceActionService {
       Licence licence,
       Set<LicenceScheduleRequirement> requirements
   ) {
-    var scheduleExists = licenceScheduleService.doesLicenceScheduleExistForLicence(licence);
+    var scheduleExists = licenceScheduleDetailService.draftScheduleExistsForLicence(licence);
 
-    return scheduleExists && requirements.contains(LicenceScheduleRequirement.EXISTS)
-        || !scheduleExists && requirements.contains(LicenceScheduleRequirement.DOES_NOT_EXIST);
+    return scheduleExists && requirements.contains(LicenceScheduleRequirement.HAS_OPEN_DRAFT)
+        || !scheduleExists && requirements.contains(LicenceScheduleRequirement.NO_OPEN_DRAFT);
   }
 }

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 
 @Service
 public class ScheduleWorkProgrammeApplicationService {
@@ -52,7 +53,10 @@ public class ScheduleWorkProgrammeApplicationService {
   }
 
   private ScheduleWorkProgrammeApplication createScheduleWorkProgrammeApplication(Licence licence) {
-    var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceOrThrow(licence);
+    var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
+        licence,
+        LicenceScheduleDetailStatus.ACTIVE
+    );
 
     var scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
     scheduleWorkProgrammeApplication.setLicenceScheduleDetail(licenceScheduleDetail);

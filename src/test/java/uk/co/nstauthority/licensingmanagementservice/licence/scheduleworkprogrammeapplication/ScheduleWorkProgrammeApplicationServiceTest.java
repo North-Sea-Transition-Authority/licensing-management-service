@@ -18,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 
 @ExtendWith(MockitoExtension.class)
 class ScheduleWorkProgrammeApplicationServiceTest {
@@ -64,7 +65,8 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
   @Test
   void createNewScheduleWorkProgrammeApplicationForLicence_withValidLicenceAndPermissionTrue() {
-    when(licenceScheduleDetailService.getScheduleDetailByLicenceOrThrow(licence)).thenReturn(licenceScheduleDetail);
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(licenceScheduleDetail);
 
     ScheduleWorkProgrammeApplicationDetail result = scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence, true);
 
@@ -83,7 +85,8 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
   @Test
   void createNewScheduleWorkProgrammeApplicationForLicence_withValidLicenceAndPermissionFalse() {
-    when(licenceScheduleDetailService.getScheduleDetailByLicenceOrThrow(licence)).thenReturn(licenceScheduleDetail);
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(licenceScheduleDetail);
 
     ScheduleWorkProgrammeApplicationDetail result = scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence, false);
 

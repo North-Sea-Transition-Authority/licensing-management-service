@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail;
 
 import jakarta.transaction.Transactional;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -31,27 +32,29 @@ public class LicenceScheduleDetailService {
         );
   }
 
-  public LicenceScheduleDetail getScheduleDetailByLicenceOrThrow(Licence licence) {
-    return licenceScheduleDetailRepository.findByLicenceSchedule_Licence(licence)
+  public LicenceScheduleDetail getScheduleDetailByLicenceAndStatusOrThrow(Licence licence, LicenceScheduleDetailStatus status) {
+    return licenceScheduleDetailRepository.findByLicenceSchedule_LicenceAndStatus(licence, status)
         .orElseThrow(() -> new LmsEntityNotFoundException("licence schedule detail", licence.getId()));
   }
 
   //TODO remove in place of draft schedules for the user
-  public List<LicenceScheduleDetail> getAllLicenceScheduleDetails(ServiceUserDetail serviceUserDetail) {
-    return licenceScheduleDetailRepository.findAll();
+  public List<LicenceScheduleDetail> getAllDraftLicenceScheduleDetails(ServiceUserDetail serviceUserDetail) {
+    return licenceScheduleDetailRepository.findAllByStatus(LicenceScheduleDetailStatus.DRAFT);
   }
 
   @Transactional
   public LicenceScheduleDetail createNewLicenceScheduleEntitiesForLicence(Licence licence) {
-    var licenceSchedule = licenceScheduleService.createNewLicenceScheduleForLicence(licence);
+    var licenceSchedule = licenceScheduleService.getOrCreateNewLicenceScheduleForLicence(licence);
 
-    return createNewLicenceScheduleDetail(licenceSchedule);
+    return createNewDraftLicenceScheduleDetail(licenceSchedule);
   }
 
   @Transactional
-  LicenceScheduleDetail createNewLicenceScheduleDetail(LicenceSchedule licenceSchedule) {
+  LicenceScheduleDetail createNewDraftLicenceScheduleDetail(LicenceSchedule licenceSchedule) {
     var licenceScheduleDetail = new LicenceScheduleDetail();
     licenceScheduleDetail.setLicenceSchedule(licenceSchedule);
+    licenceScheduleDetail.setStatus(LicenceScheduleDetailStatus.DRAFT);
+    licenceScheduleDetail.setCreatedInstant(Instant.now());
 
     return licenceScheduleDetailRepository.save(licenceScheduleDetail);
   }
@@ -59,5 +62,9 @@ public class LicenceScheduleDetailService {
   @Transactional
   public void saveLicenceScheduleDetails(List<LicenceScheduleDetail> licenceScheduleDetails) {
     licenceScheduleDetailRepository.saveAll(licenceScheduleDetails);
+  }
+
+  public boolean draftScheduleExistsForLicence(Licence licence) {
+    return licenceScheduleDetailRepository.existsByLicenceSchedule_LicenceAndStatus(licence, LicenceScheduleDetailStatus.DRAFT);
   }
 }

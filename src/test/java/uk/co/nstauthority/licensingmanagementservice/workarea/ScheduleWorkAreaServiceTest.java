@@ -5,14 +5,18 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
@@ -38,8 +42,8 @@ class ScheduleWorkAreaServiceTest {
 
   @Test
   void getWorkAreaItemsUnfiltered() {
-
     var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
+    var testInstant = Instant.now();
 
     var licence1 = LicenceTestUtil.builder()
         .withId(1)
@@ -47,7 +51,10 @@ class ScheduleWorkAreaServiceTest {
         .withLicenceReference("CS001")
         .build();
     var licenceSchedule1 = LicenceScheduleTestUtil.createLicenceSchedule(licence1);
-    var licenceScheduleDetail1 =  LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule1);
+    var licenceScheduleDetail1 = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule1)
+        .withId(UUID.randomUUID())
+        .withCreatedInstant(testInstant)
+        .build();
 
     var licence2 = LicenceTestUtil.builder()
         .withId(2)
@@ -55,9 +62,12 @@ class ScheduleWorkAreaServiceTest {
         .withLicenceReference("CS002")
         .build();
     var licenceSchedule2 = LicenceScheduleTestUtil.createLicenceSchedule(licence2);
-    var licenceScheduleDetail2 =  LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule2);
+    var licenceScheduleDetail2 = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule2)
+        .withId(UUID.randomUUID())
+        .withCreatedInstant(testInstant.minus(1, ChronoUnit.HOURS))
+        .build();
 
-    when(licenceScheduleDetailService.getAllLicenceScheduleDetails(serviceUserDetail)).thenReturn(
+    when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetails(serviceUserDetail)).thenReturn(
         List.of(licenceScheduleDetail1, licenceScheduleDetail2)
     );
 
@@ -86,9 +96,10 @@ class ScheduleWorkAreaServiceTest {
             SearchResultItem::id,
             SearchResultItem::linkHeadingText,
             SearchResultItem::linkHeadingUrl,
-            SearchResultItem::dataItemRows // TODO add caption and transaction datetime once created datetime added
+            SearchResultItem::dataItemRows,
+            SearchResultItem::captionText
         )
-        .containsExactlyInAnyOrder( //TODO remove any order check once created datetime added to schedule detail
+        .containsExactly(
             tuple(
                 licenceScheduleDetail1.getId().toString(),
                 String.format("%s - draft schedule", licence1.getLicenceReference()),
@@ -97,7 +108,8 @@ class ScheduleWorkAreaServiceTest {
                 List.of(SummaryDataView.newBuilder()
                     .addStringValue("Licence type", licence1.getType().getDisplayName())
                     .addStringValue("Licensees", String.join(", ", orgList1))
-                    .build())
+                    .build()),
+                String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(licenceScheduleDetail1.getCreatedInstant()))
             ),
             tuple(
                 licenceScheduleDetail2.getId().toString(),
@@ -107,14 +119,15 @@ class ScheduleWorkAreaServiceTest {
             List.of(SummaryDataView.newBuilder()
                 .addStringValue("Licence type", licence2.getType().getDisplayName())
                 .addStringValue("Licensees", String.join(", ", orgList2))
-                .build())
+                .build()),
+                String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(licenceScheduleDetail2.getCreatedInstant()))
             )
         );
   }
   @Test
   void getWorkAreaItems_filteredByLicenceReference() {
-
     var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
+    var testInstant = Instant.now();
 
     var licence1 = LicenceTestUtil.builder()
         .withId(1)
@@ -122,7 +135,10 @@ class ScheduleWorkAreaServiceTest {
         .withLicenceReference("CS001")
         .build();
     var licenceSchedule1 = LicenceScheduleTestUtil.createLicenceSchedule(licence1);
-    var licenceScheduleDetail1 =  LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule1);
+    var licenceScheduleDetail1 = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule1)
+        .withId(UUID.randomUUID())
+        .withCreatedInstant(testInstant)
+        .build();
 
     var licence2 = LicenceTestUtil.builder()
         .withId(2)
@@ -130,9 +146,12 @@ class ScheduleWorkAreaServiceTest {
         .withLicenceReference("CS002")
         .build();
     var licenceSchedule2 = LicenceScheduleTestUtil.createLicenceSchedule(licence2);
-    var licenceScheduleDetail2 =  LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule2);
+    var licenceScheduleDetail2 = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule2)
+        .withId(UUID.randomUUID())
+        .withCreatedInstant(testInstant)
+        .build();
 
-    when(licenceScheduleDetailService.getAllLicenceScheduleDetails(serviceUserDetail)).thenReturn(
+    when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetails(serviceUserDetail)).thenReturn(
         List.of(licenceScheduleDetail1, licenceScheduleDetail2)
     );
 
@@ -160,9 +179,10 @@ class ScheduleWorkAreaServiceTest {
             SearchResultItem::id,
             SearchResultItem::linkHeadingText,
             SearchResultItem::linkHeadingUrl,
-            SearchResultItem::dataItemRows // TODO add caption and transaction datetime once created datetime added
+            SearchResultItem::dataItemRows,
+            SearchResultItem::captionText
         )
-        .containsExactlyInAnyOrder( //TODO remove any order check once created datetime added to schedule detail
+        .containsExactly(
             tuple(
                 licenceScheduleDetail2.getId().toString(),
                 String.format("%s - draft schedule", licence2.getLicenceReference()),
@@ -171,7 +191,8 @@ class ScheduleWorkAreaServiceTest {
                 List.of(SummaryDataView.newBuilder()
                     .addStringValue("Licence type", licence2.getType().getDisplayName())
                     .addStringValue("Licensees", String.join(", ", org1))
-                    .build())
+                    .build()),
+                String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(licenceScheduleDetail2.getCreatedInstant()))
             )
         );
   }

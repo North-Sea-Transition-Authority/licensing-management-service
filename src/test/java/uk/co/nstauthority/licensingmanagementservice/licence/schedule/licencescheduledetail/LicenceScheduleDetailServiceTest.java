@@ -59,7 +59,7 @@ class LicenceScheduleDetailServiceTest {
     var licence = new Licence();
     var licenceSchedule = new LicenceSchedule();
 
-    when(licenceScheduleService.createNewLicenceScheduleForLicence(licence)).thenReturn(licenceSchedule);
+    when(licenceScheduleService.getOrCreateNewLicenceScheduleForLicence(licence)).thenReturn(licenceSchedule);
 
     licenceScheduleDetailService.createNewLicenceScheduleEntitiesForLicence(licence);
 
@@ -69,13 +69,23 @@ class LicenceScheduleDetailServiceTest {
   }
 
   @Test
-  void createNewLicenceScheduleDetail() {
+  void createNewDraftLicenceScheduleDetail() {
     var licenceSchedule = new LicenceSchedule();
 
-    licenceScheduleDetailService.createNewLicenceScheduleDetail(licenceSchedule);
+    licenceScheduleDetailService.createNewDraftLicenceScheduleDetail(licenceSchedule);
 
     verify(licenceScheduleDetailRepository).save(licenceScheduleDetailArgumentCaptor.capture());
 
     assertThat(licenceScheduleDetailArgumentCaptor.getValue().getLicenceSchedule()).isEqualTo(licenceSchedule);
+  }
+
+  @Test
+  void draftScheduleExistsForLicence() {
+    var licence = new Licence();
+
+    when(licenceScheduleDetailRepository.existsByLicenceSchedule_LicenceAndStatus(licence, LicenceScheduleDetailStatus.DRAFT))
+        .thenReturn(true);
+
+    assertThat(licenceScheduleDetailService.draftScheduleExistsForLicence(licence)).isTrue();
   }
 }

@@ -7,14 +7,17 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 
 @Repository
 public interface LicenceScheduleDetailRepository extends JpaRepository<LicenceScheduleDetail, UUID> {
-  Optional<LicenceScheduleDetail> findByLicenceSchedule(LicenceSchedule licenceSchedule);
 
-  Optional<LicenceScheduleDetail> findByLicenceSchedule_Licence(Licence licence);
+  Optional<LicenceScheduleDetail> findByLicenceSchedule_LicenceAndStatus(
+      Licence licence,
+      LicenceScheduleDetailStatus licenceScheduleDetailStatus
+  );
 
   @EntityGraph(attributePaths = "licenceSchedule.licence")
-  List<LicenceScheduleDetail> findAll();
+  List<LicenceScheduleDetail> findAllByStatus(LicenceScheduleDetailStatus licenceScheduleDetailStatus);
+
+  boolean existsByLicenceSchedule_LicenceAndStatus(Licence licence, LicenceScheduleDetailStatus licenceScheduleDetailStatus);
 }

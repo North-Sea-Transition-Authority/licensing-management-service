@@ -30,15 +30,6 @@ class LicenceScheduleServiceTest {
   private ArgumentCaptor<LicenceSchedule> licenceScheduleArgumentCaptor;
 
   @Test
-  void doesLicenceScheduleExistForLicence() {
-    var licence = new Licence();
-
-    licenceScheduleService.doesLicenceScheduleExistForLicence(licence);
-
-    verify(licenceScheduleRepository).existsByLicence(licence);
-  }
-
-  @Test
   void searchAllSchedulesByLicenceRefAndType() {
     var searchTerm = "term";
     var licenceType = LicenceType.CARBON_STORAGE;
@@ -49,10 +40,10 @@ class LicenceScheduleServiceTest {
   }
 
   @Test
-  void createNewLicenceScheduleForLicence() {
+  void getOrCreateNewLicenceScheduleForLicence() {
     var licence = new Licence();
 
-    licenceScheduleService.createNewLicenceScheduleForLicence(licence);
+    licenceScheduleService.getOrCreateNewLicenceScheduleForLicence(licence);
 
     verify(licenceScheduleRepository).save(licenceScheduleArgumentCaptor.capture());
 

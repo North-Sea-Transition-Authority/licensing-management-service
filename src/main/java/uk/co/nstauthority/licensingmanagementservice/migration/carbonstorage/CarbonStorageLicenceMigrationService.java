@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.migration.carbonstorage;
 
 import jakarta.transaction.Transactional;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
@@ -120,6 +122,8 @@ public class CarbonStorageLicenceMigrationService {
     for (var licenceSchedule : saveLicenceSchedules) {
       var licenceScheduleDetail = new LicenceScheduleDetail();
       licenceScheduleDetail.setLicenceSchedule(licenceSchedule);
+      licenceScheduleDetail.setStatus(LicenceScheduleDetailStatus.ACTIVE);
+      licenceScheduleDetail.setCreatedInstant(Instant.now());
       licenceScheduleDetails.add(licenceScheduleDetail);
     }
 
@@ -131,7 +135,10 @@ public class CarbonStorageLicenceMigrationService {
     for (var migrationStartDate : migrationStartDates) {
       var licence = licenceService.findLicenceByReference(migrationStartDate.getLicenceRef());
       if (licence.isPresent()) {
-        var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceOrThrow(licence.get());
+        var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
+            licence.get(),
+            LicenceScheduleDetailStatus.ACTIVE
+        );
         var licenceStartDate = new LicenceStartDate();
         licenceStartDate.setLicenceScheduleDetail(licenceScheduleDetail);
         licenceStartDate.setStartDate(
@@ -149,7 +156,10 @@ public class CarbonStorageLicenceMigrationService {
     for (var migrationTerm : migrationTerms) {
       var licence = licenceService.findLicenceByReference(migrationTerm.getLicenceRef());
       if (licence.isPresent()) {
-        var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceOrThrow(licence.get());
+        var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
+            licence.get(),
+            LicenceScheduleDetailStatus.ACTIVE
+        );
         var term = new LicenceScheduleTerm();
         term.setLicenceScheduleDetail(licenceScheduleDetail);
         var termType = migrationTerm.getTerm().equals("Initial")

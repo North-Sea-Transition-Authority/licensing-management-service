@@ -17,10 +17,6 @@ public class LicenceScheduleService {
     this.licenceScheduleRepository = licenceScheduleRepository;
   }
 
-  public boolean doesLicenceScheduleExistForLicence(Licence licence) {
-    return licenceScheduleRepository.existsByLicence(licence);
-  }
-
   public List<LicenceSchedule> searchAllSchedulesByLicenceRefAndType(String searchTerm, LicenceType licenceType) {
     return licenceScheduleRepository.findAllByLicence_LicenceReferenceContainingIgnoreCaseAndLicence_Type(
         searchTerm,
@@ -29,7 +25,12 @@ public class LicenceScheduleService {
   }
 
   @Transactional
-  public LicenceSchedule createNewLicenceScheduleForLicence(Licence licence) {
+  public LicenceSchedule getOrCreateNewLicenceScheduleForLicence(Licence licence) {
+    return licenceScheduleRepository.findByLicence(licence)
+        .orElseGet(() -> saveNewLicenceSchedule(licence));
+  }
+
+  private LicenceSchedule saveNewLicenceSchedule(Licence licence) {
     var licenceSchedule = new LicenceSchedule();
     licenceSchedule.setLicence(licence);
 

@@ -11,6 +11,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -38,7 +39,10 @@ public class LicenceScheduleTimelineController {
       @PathVariable("licenceId") Integer licenceId,
       Licence licence
   ) {
-    var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceOrThrow(licence);
+    var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
+        licence,
+        LicenceScheduleDetailStatus.DRAFT
+    );
 
     return getScheduleTimelineModelAndView(licence, licenceScheduleDetail);
   }

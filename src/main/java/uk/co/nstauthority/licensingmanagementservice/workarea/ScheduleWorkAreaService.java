@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.workarea;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -34,8 +33,8 @@ public class ScheduleWorkAreaService implements WorkAreaItemProvider {
   @Override
   public List<SearchResultItem> getWorkAreaItems(WorkAreaFilterForm workAreaFilterForm,
                                                  ServiceUserDetail serviceUserDetail) {
-    //TODO filter correctly by form, user, and draft only
-    var licenceSchedules = licenceScheduleDetailService.getAllLicenceScheduleDetails(serviceUserDetail).stream()
+    //TODO filter correctly by form and user
+    var licenceSchedules = licenceScheduleDetailService.getAllDraftLicenceScheduleDetails(serviceUserDetail).stream()
         .filter(licenceScheduleDetail -> FilterUtil.filterTextInput(
             licenceScheduleDetail.getLicenceSchedule().getLicence().getLicenceReference(),
             workAreaFilterForm.getLicenceReference()
@@ -59,7 +58,7 @@ public class ScheduleWorkAreaService implements WorkAreaItemProvider {
                                                    Map<Licence, List<String>> responsibleOrganisationNamesByLicences) {
 
     var licence = licenceScheduleDetail.getLicenceSchedule().getLicence();
-    var createdDatetime = Instant.now(); //TODO add created datetime to schedule details
+    var createdDatetime = licenceScheduleDetail.getCreatedInstant();
     var licensees = responsibleOrganisationNamesByLicences.getOrDefault(
             licenceScheduleDetail.getLicenceSchedule().getLicence(),
             List.of()

@@ -11,9 +11,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 @Repository
 public interface LicenceScheduleRepository extends JpaRepository<LicenceSchedule, UUID> {
 
-  boolean existsByLicence(Licence licence);
-
-
   Optional<LicenceSchedule> findByLicence(Licence licence);
 
   List<LicenceSchedule> findAllByLicence_LicenceReferenceContainingIgnoreCaseAndLicence_Type(

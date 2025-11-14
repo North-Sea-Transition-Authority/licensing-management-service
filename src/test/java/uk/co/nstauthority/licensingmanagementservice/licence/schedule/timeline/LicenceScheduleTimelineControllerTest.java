@@ -23,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
@@ -65,7 +66,8 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
   @SecurityTest
   void renderLicenceScheduleTimeline() throws Exception {
     when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
-    when(licenceScheduleDetailService.getScheduleDetailByLicenceOrThrow(licence)).thenReturn(licenceScheduleDetail);
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.DRAFT))
+        .thenReturn(licenceScheduleDetail);
 
     var timelineSummaryCardView = new TimelineSummaryCardView("date", "1", LicenceStatus.EXTANT.getDisplayText());
     var timelineActionViews = List.of(new TimelineActionView(LicenceScheduleTimelineAction.ADD_A_TERM, ""));

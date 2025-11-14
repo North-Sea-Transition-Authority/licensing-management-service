@@ -74,7 +74,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
   @BeforeAll
   static void setUp() {
     regTeam = new Team(UUID.randomUUID());
-    regTeam.setTeamType(TeamType.REGULATOR);
+    regTeam.setTeamType(TeamType.LICENCE_MAINTENANCE);
     regTeam.setName("reg team one");
 
     organisationTeam = new Team(UUID.randomUUID());
@@ -100,7 +100,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
   @Test
   void renderTeamTypeList() throws Exception {
     when(teamManagementService.getTeamTypesUserIsMemberOf(invokingUser.wuaId()))
-        .thenReturn(Set.of(TeamType.ORGANISATION, TeamType.REGULATOR));
+        .thenReturn(Set.of(TeamType.ORGANISATION, TeamType.LICENCE_MAINTENANCE));
 
     var modelAndView = mockMvc.perform(
             get(ReverseRouter.route(on(TeamManagementController.class).renderTeamTypeList(null)))
@@ -112,7 +112,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
 
     assertThat(teamTypeViews)
         .extracting(TeamTypeView::teamTypeName)
-        .containsExactly(TeamType.ORGANISATION.getDisplayName(), TeamType.REGULATOR.getDisplayName());
+        .containsExactly(TeamType.LICENCE_MAINTENANCE.getDisplayName(), TeamType.ORGANISATION.getDisplayName());
   }
 
   @Test
@@ -130,9 +130,9 @@ class TeamManagementControllerTest extends AbstractControllerTest {
   @Test
   void renderTeamTypeList_regWithOrgManageCanSeeOrgTeams() throws Exception {
     when(teamManagementService.getTeamTypesUserIsMemberOf(invokingUser.wuaId()))
-        .thenReturn(Set.of(TeamType.REGULATOR));
+        .thenReturn(Set.of(TeamType.LICENCE_MAINTENANCE));
 
-    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.REGULATOR,
+    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.LICENCE_MAINTENANCE,
         Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
         .thenReturn(true);
 
@@ -146,7 +146,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
 
     assertThat(teamTypeViews)
         .extracting(TeamTypeView::teamTypeName)
-        .containsExactly(TeamType.ORGANISATION.getDisplayName(), TeamType.REGULATOR.getDisplayName());
+        .containsExactly(TeamType.LICENCE_MAINTENANCE.getDisplayName(), TeamType.ORGANISATION.getDisplayName());
   }
 
   @SecurityTest
@@ -161,11 +161,11 @@ class TeamManagementControllerTest extends AbstractControllerTest {
 
   @Test
   void renderTeamsOfType_staticTeamRedirectsToSingleInstance() throws Exception {
-    when(teamManagementService.getStaticTeamOfTypeUserIsMemberOf(TeamType.REGULATOR, invokingUser.wuaId()))
+    when(teamManagementService.getStaticTeamOfTypeUserIsMemberOf(TeamType.LICENCE_MAINTENANCE, invokingUser.wuaId()))
         .thenReturn(Optional.of(regTeam));
 
     mockMvc.perform(get(ReverseRouter.route(
-            on(TeamManagementController.class).renderTeamsOfType(TeamType.REGULATOR.getUrlSlug(), null)))
+            on(TeamManagementController.class).renderTeamsOfType(TeamType.LICENCE_MAINTENANCE.getUrlSlug(), null)))
             .with(user(invokingUser)))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(
@@ -177,7 +177,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
     when(teamManagementService.getScopedTeamsOfTypeUserIsMemberOf(TeamType.ORGANISATION, invokingUser.wuaId()))
         .thenReturn(Set.of(organisationTeam));
 
-    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.REGULATOR,
+    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.LICENCE_MAINTENANCE,
         Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
         .thenReturn(false);
 
@@ -194,7 +194,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
     when(teamManagementService.getScopedTeamsOfTypeUserIsMemberOf(TeamType.ORGANISATION, invokingUser.wuaId()))
         .thenReturn(Set.of(organisationTeam));
 
-    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.REGULATOR,
+    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.LICENCE_MAINTENANCE,
         Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
         .thenReturn(true);
 
@@ -257,7 +257,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
     when(teamManagementService.getScopedTeamsOfTypeUserIsMemberOf(TeamType.ORGANISATION, invokingUser.wuaId()))
         .thenReturn(Set.of());
 
-    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.REGULATOR,
+    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.LICENCE_MAINTENANCE,
         Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
         .thenReturn(true);
 
@@ -628,9 +628,9 @@ class TeamManagementControllerTest extends AbstractControllerTest {
     assertThat(roleMap)
         .containsExactly(
             Map.entry(Role.MANAGE_TEAM.name(), Role.MANAGE_TEAM.getName()),
+            Map.entry(Role.VIEW_ANY_LICENCE.name(), Role.VIEW_ANY_LICENCE.getName()),
             Map.entry(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM.name(),
-                Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM.getName()),
-            Map.entry(Role.VIEW_ANY_APPLICATION.name(), Role.VIEW_ANY_APPLICATION.getName())
+                Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM.getName())
         );
 
     var teamMemberViewModel = (TeamMemberView) modelAndView.getModel().get("teamMemberView");
@@ -641,8 +641,8 @@ class TeamManagementControllerTest extends AbstractControllerTest {
     assertThat(rolesInTeam)
         .containsExactly(
             Role.MANAGE_TEAM,
-            Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM,
-            Role.VIEW_ANY_APPLICATION
+            Role.VIEW_ANY_LICENCE,
+            Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM
         );
   }
 

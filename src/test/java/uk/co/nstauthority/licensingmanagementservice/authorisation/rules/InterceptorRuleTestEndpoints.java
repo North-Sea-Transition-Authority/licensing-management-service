@@ -17,34 +17,36 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
 public class InterceptorRuleTestEndpoints {
 
   @GetMapping("has-any-role-in-team-type")
-  @HasAnyRoleInTeamTypeInterceptorRule.HasAnyRoleInTeamType(TeamType.REGULATOR)
+  @HasAnyRoleInTeamTypeInterceptorRule.HasAnyRoleInTeamType(TeamType.LICENCE_MAINTENANCE)
   public ResponseEntity<String> hasAnyRoleInTeamType() {
     return ResponseEntity.ok("has any role in team type test endpoint");
   }
 
   @GetMapping("has-role-in-static-team")
-  @HasRoleInStaticTeamInterceptorRule.HasRoleInStaticTeam(@HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.REGULATOR, roles = {Role.MANAGE_TEAM, Role.VIEW_APPLICATION}))
+  @HasRoleInStaticTeamInterceptorRule.HasRoleInStaticTeam(@HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.LICENCE_MAINTENANCE, roles = {Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE}))
   public ResponseEntity<String> hasRoleInStaticTeam() {
     return ResponseEntity.ok("has role in static team test endpoint");
   }
 
   @GetMapping("has-role-in-static-team-multiple-teams")
   @HasRoleInStaticTeamInterceptorRule.HasRoleInStaticTeam({
-      @HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.REGULATOR, roles = {Role.MANAGE_TEAM, Role.VIEW_APPLICATION}),
-      @HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.CONSULTEE, roles = {Role.VIEW_ANY_APPLICATION})
+      @HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.LICENCE_MAINTENANCE, roles = {Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE}),
+      @HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.PRODUCTION, roles = {Role.MANAGE_TEAM})
   })
   public ResponseEntity<String> hasRoleInStaticTeam_multipleTeams() {
     return ResponseEntity.ok("has role in static team multiple teams test endpoint");
   }
 
   @GetMapping("has-role-in-static-team-scoped-team")
-  @HasRoleInStaticTeamInterceptorRule.HasRoleInStaticTeam(@HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.ORGANISATION, roles = {Role.MANAGE_TEAM, Role.VIEW_APPLICATION}))
+  @HasRoleInStaticTeamInterceptorRule.HasRoleInStaticTeam(
+      @HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.ORGANISATION, roles = {Role.MANAGE_TEAM, Role.VIEW_ORGANISATION_LICENCES})
+  )
   public ResponseEntity<String> hasRoleInStaticTeam_scopedTeam() {
     return ResponseEntity.ok("has role in static team scoped team test endpoint");
   }
 
   @GetMapping("has-role-in-static-team-no-roles")
-  @HasRoleInStaticTeamInterceptorRule.HasRoleInStaticTeam(@HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.REGULATOR, roles = {}))
+  @HasRoleInStaticTeamInterceptorRule.HasRoleInStaticTeam(@HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.LICENCE_MAINTENANCE, roles = {}))
   public ResponseEntity<String> hasRoleInStaticTeam_noProvidedRoles() {
     return ResponseEntity.ok("has role in static team no provided roles test endpoint");
   }

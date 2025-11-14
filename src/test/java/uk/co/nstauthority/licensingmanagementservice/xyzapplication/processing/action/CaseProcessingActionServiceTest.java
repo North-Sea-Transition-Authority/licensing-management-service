@@ -32,7 +32,7 @@ class CaseProcessingActionServiceTest {
 
     var user = ServiceUserDetailTestUtil.newBuilder().build();
     var teamRole = new TeamRole();
-    teamRole.setRole(Role.EDIT_APPLICATION);
+    teamRole.setRole(Role.APPLICATION_EDITOR);
 
     when(teamQueryService.getTeamRolesForUser(user.wuaId()))
         .thenReturn(Set.of(teamRole));
@@ -48,7 +48,7 @@ class CaseProcessingActionServiceTest {
 
     var user = ServiceUserDetailTestUtil.newBuilder().build();
     var teamRole = new TeamRole();
-    teamRole.setRole(Role.VIEW_APPLICATION);
+    teamRole.setRole(Role.VIEW_ORGANISATION_LICENCES);
 
     when(teamQueryService.getTeamRolesForUser(user.wuaId()))
         .thenReturn(Set.of(teamRole));
@@ -64,7 +64,7 @@ class CaseProcessingActionServiceTest {
 
     var user = ServiceUserDetailTestUtil.newBuilder().build();
     var teamRole = new TeamRole();
-    teamRole.setRole(Role.VIEW_APPLICATION);
+    teamRole.setRole(Role.VIEW_ORGANISATION_LICENCES);
 
     when(teamQueryService.getTeamRolesForUser(user.wuaId()))
         .thenReturn(Set.of(teamRole));

@@ -53,7 +53,7 @@ class HasRolesInTeamTypeInterceptorRuleTest extends AbstractInterceptorRuleTest 
     when(teamQueryService.userHasRoleInTeamType(
         1L,
         TeamType.ORGANISATION,
-        Set.of(Role.EDIT_APPLICATION))
+        Set.of(Role.APPLICATION_EDITOR))
     ).thenReturn(true);
 
     var annotation = getAnnotation(
@@ -78,7 +78,7 @@ class HasRolesInTeamTypeInterceptorRuleTest extends AbstractInterceptorRuleTest 
     when(teamQueryService.userHasRoleInTeamType(
         1L,
         TeamType.ORGANISATION,
-        Set.of(Role.EDIT_APPLICATION))
+        Set.of(Role.APPLICATION_EDITOR))
     ).thenReturn(false);
 
     var annotation = getAnnotation(
@@ -106,7 +106,7 @@ class HasRolesInTeamTypeInterceptorRuleTest extends AbstractInterceptorRuleTest 
     when(teamQueryService.userHasRoleInTeamType(
         1L,
         TeamType.ORGANISATION,
-        Set.of(Role.EDIT_APPLICATION, Role.VIEW_APPLICATION))
+        Set.of(Role.APPLICATION_EDITOR, Role.VIEW_ORGANISATION_LICENCES))
     ).thenReturn(true);
 
     var annotation = getAnnotation(
@@ -129,7 +129,7 @@ class HasRolesInTeamTypeInterceptorRuleTest extends AbstractInterceptorRuleTest 
     when(teamQueryService.userHasRoleInTeamType(
         1L,
         TeamType.ORGANISATION,
-        Set.of(Role.EDIT_APPLICATION, Role.VIEW_APPLICATION))
+        Set.of(Role.APPLICATION_EDITOR, Role.VIEW_ORGANISATION_LICENCES))
     ).thenReturn(false);
 
     var annotation = getAnnotation(
@@ -157,11 +157,11 @@ class HasRolesInTeamTypeInterceptorRuleTest extends AbstractInterceptorRuleTest 
     when(teamQueryService.userHasRoleInTeamType(
         1L,
         TeamType.ORGANISATION,
-        Set.of(Role.EDIT_APPLICATION, Role.VIEW_APPLICATION))
+        Set.of(Role.APPLICATION_EDITOR, Role.VIEW_ORGANISATION_LICENCES))
     ).thenReturn(false);
     when(teamQueryService.userHasRoleInTeamType(
         1L,
-        TeamType.REGULATOR,
+        TeamType.LICENCE_MAINTENANCE,
         Set.of(Role.MANAGE_TEAM))
     ).thenReturn(true);
 

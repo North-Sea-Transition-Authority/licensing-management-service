@@ -11,25 +11,32 @@ import uk.co.nstauthority.licensingmanagementservice.teams.management.ScopedTeam
 
 public enum TeamType {
 
-  REGULATOR(
-      "Regulator",
-      "regulator",
+  LICENCE_MAINTENANCE(
+      "Licence maintenance",
+      "licence-maintenance",
       false,
-      List.of(Role.MANAGE_TEAM, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM, Role.VIEW_ANY_APPLICATION),
+      List.of(Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM),
       null
   ),
-  CONSULTEE(
-      "Consultees",
-      "consultee",
+  PRODUCTION(
+      "Production",
+      "production",
       false,
-      List.of(Role.MANAGE_TEAM, Role.VIEW_ANY_APPLICATION),
+      List.of(Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE),
+      null
+  ),
+  CARBON_STORAGE(
+      "Carbon storage",
+      "carbon-storage",
+      false,
+      List.of(Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE),
       null
   ),
   ORGANISATION(
       "Organisations",
       "organisation",
       true,
-      List.of(Role.MANAGE_TEAM, Role.EDIT_APPLICATION, Role.VIEW_APPLICATION),
+      List.of(Role.MANAGE_TEAM, Role.APPLICATION_EDITOR, Role.APPLICATION_SUBMITTER, Role.VIEW_ORGANISATION_LICENCES),
           () ->
               ReverseRouter.route(on(ScopedTeamManagementController.class).renderCreateNewOrgTeam(null))
   );

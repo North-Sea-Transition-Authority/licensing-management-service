@@ -12,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.validation.BeanPropertyBindingResult;
+import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
@@ -37,8 +38,9 @@ class NewOrganisationTeamFormValidatorTest {
   void validate() {
     form.setOrgGroupId("50");
 
-    when(teamManagementService.doesScopedTeamWithReferenceExist(eq(TeamType.ORGANISATION), refEq(TeamScopeReference.from("50", "ORGGRP"))))
-        .thenReturn(false);
+    when(teamManagementService.doesScopedTeamWithReferenceExist(eq(TeamType.ORGANISATION),
+        refEq(TeamScopeReference.from("50", ScopeType.ORGANISATION_GROUP.name())))
+    ).thenReturn(false);
 
     assertThat(newOrganisationTeamFormValidator.validate(form, errors)).isTrue();
     assertThat(errors.hasErrors()).isFalse();
@@ -56,8 +58,9 @@ class NewOrganisationTeamFormValidatorTest {
   void validate_orgTeamAlreadyExists() {
     form.setOrgGroupId("50");
 
-    when(teamManagementService.doesScopedTeamWithReferenceExist(eq(TeamType.ORGANISATION), refEq(TeamScopeReference.from("50", "ORGGRP"))))
-        .thenReturn(true);
+    when(teamManagementService.doesScopedTeamWithReferenceExist(eq(TeamType.ORGANISATION),
+        refEq(TeamScopeReference.from("50", ScopeType.ORGANISATION_GROUP.name())))
+    ).thenReturn(true);
 
     assertThat(newOrganisationTeamFormValidator.validate(form, errors)).isFalse();
     assertThat(errors.hasErrors()).isTrue();

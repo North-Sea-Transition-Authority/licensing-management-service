@@ -54,28 +54,35 @@ class EnergyPortalDataServiceTest {
 
   @Test
   void getTeamTypeToServiceProviderTeamTypeRoleDtos() {
-    var regulatorServiceRoleDtos = Set.of(
+    var licenceMaintainenceRoleDtos = Set.of(
         createServiceRoleDto(Role.MANAGE_TEAM, true),
         createServiceRoleDto(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM, false),
-        createServiceRoleDto(Role.VIEW_ANY_APPLICATION, false)
+        createServiceRoleDto(Role.VIEW_ANY_LICENCE, false)
     );
 
-    var consulteeServiceRoleDtos = Set.of(
+    var productionRoleDtos = Set.of(
         createServiceRoleDto(Role.MANAGE_TEAM, true),
-        createServiceRoleDto(Role.VIEW_ANY_APPLICATION, false)
+        createServiceRoleDto(Role.VIEW_ANY_LICENCE, false)
+    );
+
+    var carbonStorageRoleDtos = Set.of(
+        createServiceRoleDto(Role.MANAGE_TEAM, true),
+        createServiceRoleDto(Role.VIEW_ANY_LICENCE, false)
     );
 
     var organisationServiceRoleDtos = Set.of(
         createServiceRoleDto(Role.MANAGE_TEAM, true),
-        createServiceRoleDto(Role.EDIT_APPLICATION, false),
-        createServiceRoleDto(Role.VIEW_APPLICATION, false)
+        createServiceRoleDto(Role.APPLICATION_EDITOR, false),
+        createServiceRoleDto(Role.APPLICATION_SUBMITTER, false),
+        createServiceRoleDto(Role.VIEW_ORGANISATION_LICENCES, false)
     );
 
     assertThat(energyPortalDataService.getTeamTypeToServiceProviderTeamTypeRoleDtos())
         .isEqualTo(
             Map.of(
-                TeamType.REGULATOR.name(), regulatorServiceRoleDtos,
-                TeamType.CONSULTEE.name(), consulteeServiceRoleDtos,
+                TeamType.LICENCE_MAINTENANCE.name(), licenceMaintainenceRoleDtos,
+                TeamType.PRODUCTION.name(), productionRoleDtos,
+                TeamType.CARBON_STORAGE.name(), carbonStorageRoleDtos,
                 TeamType.ORGANISATION.name(), organisationServiceRoleDtos
             )
         );
@@ -84,8 +91,9 @@ class EnergyPortalDataServiceTest {
   @Test
   void getTeamTypes() {
     assertThat(energyPortalDataService.getTeamTypes()).isEqualTo(Set.of(
-        TeamType.REGULATOR.name(),
-        TeamType.CONSULTEE.name(),
+        TeamType.LICENCE_MAINTENANCE.name(),
+        TeamType.PRODUCTION.name(),
+        TeamType.CARBON_STORAGE.name(),
         TeamType.ORGANISATION.name()
     ));
   }
@@ -104,7 +112,7 @@ class EnergyPortalDataServiceTest {
     var wuaId1Team2TeamRole = TeamRoleTestUtil.newBuilder()
         .withWuaId(1L)
         .withTeam(team2)
-        .withRole(Role.VIEW_ANY_APPLICATION)
+        .withRole(Role.VIEW_ANY_LICENCE)
         .build();
 
     var wuaId2Team2TeamRole1 = TeamRoleTestUtil.newBuilder()
@@ -116,7 +124,7 @@ class EnergyPortalDataServiceTest {
     var wuaId2Team2TeamRole2 = TeamRoleTestUtil.newBuilder()
         .withWuaId(2L)
         .withTeam(team2)
-        .withRole(Role.VIEW_ANY_APPLICATION)
+        .withRole(Role.VIEW_ANY_LICENCE)
         .build();
 
     when(teamRoleRepository.findAll()).thenReturn(List.of(
@@ -138,13 +146,13 @@ class EnergyPortalDataServiceTest {
                 1L,
                 team2.getId().toString(),
                 team2.getTeamType().name(),
-                Set.of(Role.VIEW_ANY_APPLICATION.name())
+                Set.of(Role.VIEW_ANY_LICENCE.name())
             ),
             new ServiceProviderUserTeamRolesDto(
                 2L,
                 team2.getId().toString(),
                 team2.getTeamType().name(),
-                Set.of(Role.MANAGE_TEAM.name(), Role.VIEW_ANY_APPLICATION.name())
+                Set.of(Role.MANAGE_TEAM.name(), Role.VIEW_ANY_LICENCE.name())
             )
         );
   }

@@ -44,7 +44,7 @@ class StartXyzApplicationControllerTest extends AbstractControllerTest {
     when(teamQueryService.userHasRoleInTeamType(
         organisationUser.wuaId(),
         TeamType.ORGANISATION,
-        Set.of(Role.EDIT_APPLICATION))
+        Set.of(Role.APPLICATION_EDITOR))
     ).thenReturn(true);
     mockMvc.perform(
         get(ReverseRouter.route(on(StartXyzApplicationController.class).startApplication()))
@@ -63,7 +63,7 @@ class StartXyzApplicationControllerTest extends AbstractControllerTest {
     when(teamQueryService.userHasRoleInTeamType(
         organisationUser.wuaId(),
         TeamType.ORGANISATION,
-        Set.of(Role.EDIT_APPLICATION))
+        Set.of(Role.APPLICATION_EDITOR))
     ).thenReturn(false);
     mockMvc.perform(
         get(ReverseRouter.route(on(StartXyzApplicationController.class).startApplication()))
@@ -76,7 +76,7 @@ class StartXyzApplicationControllerTest extends AbstractControllerTest {
     when(teamQueryService.userHasRoleInTeamType(
         organisationUser.wuaId(),
         TeamType.ORGANISATION,
-        Set.of(Role.EDIT_APPLICATION))
+        Set.of(Role.APPLICATION_EDITOR))
     ).thenReturn(true);
     var application = new XyzApplication(UUID.randomUUID(), "ref", "type", XyzApplicationStatus.DRAFT);
     when(xyzApplicationService.finalAllMockedApplications()).thenReturn(List.of(application));
@@ -95,7 +95,7 @@ class StartXyzApplicationControllerTest extends AbstractControllerTest {
     when(teamQueryService.userHasRoleInTeamType(
         organisationUser.wuaId(),
         TeamType.ORGANISATION,
-        Set.of(Role.EDIT_APPLICATION))
+        Set.of(Role.APPLICATION_EDITOR))
     ).thenReturn(false);
     mockMvc.perform(
         post(ReverseRouter.route(on(StartXyzApplicationController.class).createApplication()))

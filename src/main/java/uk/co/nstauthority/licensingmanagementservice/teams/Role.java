@@ -1,12 +1,12 @@
 package uk.co.nstauthority.licensingmanagementservice.teams;
 
-// TODO XYZ - Replace with your roles
 public enum Role {
   CREATE_MANAGE_ANY_ORGANISATION_TEAM("Organisation access manager", "Create and edit any organisation team"),
   MANAGE_TEAM("Access manager", "Add, remove and update members of this team"),
-  VIEW_ANY_APPLICATION("Application viewer", "View any application"),
-  VIEW_APPLICATION("Application viewer", "View applications"),
-  EDIT_APPLICATION("Application editor", "Edit applications");
+  VIEW_ANY_LICENCE("Application viewer", "View any licence and licence applications"),
+  VIEW_ORGANISATION_LICENCES("Licence viewer", "Can view licences and applications this organisation has access to"),
+  APPLICATION_EDITOR("Application editor", "Can view and edit applications on behalf of this organisation"),
+  APPLICATION_SUBMITTER("Application submitter", "Can submit applications on behalf of this organisation");
 
   private final String name;
 

@@ -59,7 +59,7 @@ class ScopedTeamManagementControllerTest extends AbstractControllerTest {
 
   @Test
   void renderCreateNewOrgTeam() throws Exception {
-    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.REGULATOR, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
+    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.LICENCE_MAINTENANCE, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
         .thenReturn(true);
 
     mockMvc.perform(get(ReverseRouter.route(on(ScopedTeamManagementController.class).renderCreateNewOrgTeam(null)))
@@ -69,7 +69,7 @@ class ScopedTeamManagementControllerTest extends AbstractControllerTest {
 
   @SecurityTest
   void renderCreateNewOrgTeam_noAccess() throws Exception {
-    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.REGULATOR, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
+    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.LICENCE_MAINTENANCE, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
         .thenReturn(false);
 
     mockMvc.perform(get(ReverseRouter.route(on(ScopedTeamManagementController.class).renderCreateNewOrgTeam(null)))
@@ -87,7 +87,7 @@ class ScopedTeamManagementControllerTest extends AbstractControllerTest {
     newTeam.setName("New Team");
     newTeam.setTeamType(TeamType.ORGANISATION);
 
-    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.REGULATOR, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
+    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.LICENCE_MAINTENANCE, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
         .thenReturn(true);
 
     when(newOrganisationTeamFormValidator.validate(any(), any()))
@@ -96,7 +96,7 @@ class ScopedTeamManagementControllerTest extends AbstractControllerTest {
     when(organisationApi.findOrganisationGroup(eq(50), any(), any()))
         .thenReturn(Optional.of(orgGroup));
 
-    when(teamManagementService.createScopedTeam(eq(orgGroup.getName()), eq(TeamType.ORGANISATION), refEq(TeamScopeReference.from("50", "ORGGRP"))))
+    when(teamManagementService.createScopedTeam(eq(orgGroup.getName()), eq(TeamType.ORGANISATION), refEq(TeamScopeReference.from("50", ScopeType.ORGANISATION_GROUP.name()))))
         .thenReturn(newTeam);
 
     mockMvc.perform(post(ReverseRouter.route(on(ScopedTeamManagementController.class).handleCreateNewOrgTeam(null, null)))
@@ -120,7 +120,7 @@ class ScopedTeamManagementControllerTest extends AbstractControllerTest {
 
   @Test
   void handleCreateNewOrgTeam_invalidForm() throws Exception {
-    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.REGULATOR, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
+    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.LICENCE_MAINTENANCE, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
         .thenReturn(true);
 
     when(newOrganisationTeamFormValidator.validate(any(), any()))
@@ -138,7 +138,7 @@ class ScopedTeamManagementControllerTest extends AbstractControllerTest {
 
   @SecurityTest
   void handleCreateNewOrgTeam_noAccess() throws Exception {
-    when(teamQueryService.userHasStaticRole(1L, TeamType.REGULATOR, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
+    when(teamQueryService.userHasStaticRole(1L, TeamType.LICENCE_MAINTENANCE, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
         .thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(ScopedTeamManagementController.class).handleCreateNewOrgTeam(null, null)))

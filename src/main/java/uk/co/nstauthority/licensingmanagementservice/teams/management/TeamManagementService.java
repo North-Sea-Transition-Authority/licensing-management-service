@@ -323,7 +323,7 @@ public class TeamManagementService {
   }
 
   public boolean userCanManageAnyOrganisationTeam(long wuaId) {
-    return teamQueryService.userHasStaticRole(wuaId, TeamType.REGULATOR, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM);
+    return teamQueryService.userHasStaticRole(wuaId, TeamType.LICENCE_MAINTENANCE, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM);
   }
 
   public Map<String, String> getReassignUserOptions(Role role, Long currentAssigneeWuaId, TeamType teamType) {

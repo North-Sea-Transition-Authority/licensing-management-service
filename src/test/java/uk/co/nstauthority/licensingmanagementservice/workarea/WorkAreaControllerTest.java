@@ -98,7 +98,7 @@ class WorkAreaControllerTest extends AbstractControllerTest {
   @Test
   void getWorkArea_canStartApplication() throws Exception {
     var applicationUser = ServiceUserDetailTestUtil.newBuilder().build();
-    when(teamQueryService.userHasAtLeastOneRoleIn(applicationUser.wuaId(), Set.of(Role.EDIT_APPLICATION))).thenReturn(true);
+    when(teamQueryService.userHasAtLeastOneRoleIn(applicationUser.wuaId(), Set.of(Role.APPLICATION_EDITOR))).thenReturn(true);
     var modelAndView = mockMvc.perform(
             get(ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)))
                 .with(user(applicationUser))

@@ -22,7 +22,7 @@ public class NewOrganisationTeamFormValidator {
 
     if (teamManagementService.doesScopedTeamWithReferenceExist(
         TeamType.ORGANISATION,
-        TeamScopeReference.from(form.getOrgGroupId(), "ORGGRP"))
+        TeamScopeReference.from(form.getOrgGroupId(), TeamType.ORGANISATION.name()))
     ) {
       errors.rejectValue(
           "orgGroupId",

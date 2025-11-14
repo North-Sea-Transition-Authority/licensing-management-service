@@ -20,13 +20,14 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 public class DataBootstrapper {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DataBootstrapper.class);
-
+  private static final String INDUSTRY_TEAM_NAME = "BP EXPLORATION";
 
   private final EnergyPortalUserService energyPortalUserService;
   private final EntityManager entityManager;
   private final TeamQueryService teamQueryService;
 
-  public DataBootstrapper(EnergyPortalUserService energyPortalUserService, EntityManager entityManager,
+  public DataBootstrapper(EnergyPortalUserService energyPortalUserService,
+                          EntityManager entityManager,
                           TeamQueryService teamQueryService) {
     this.energyPortalUserService = energyPortalUserService;
     this.entityManager = entityManager;
@@ -37,15 +38,16 @@ public class DataBootstrapper {
   @Transactional
   public void loadData() {
 
-    //TODO replace dev set up once team structure is determined
     Integer regulatorTeamCount = (Integer) entityManager.createNativeQuery(
-        "SELECT COUNT(*) FROM lms.teams t WHERE t.type = 'REGULATOR'", Integer.class).getSingleResult();
+        "SELECT COUNT(*) FROM lms.teams t WHERE t.type = :type",
+        Integer.class
+    ).setParameter("type", TeamType.LICENCE_MAINTENANCE.name()).getSingleResult();
 
     if (regulatorTeamCount == 0) {
       LOGGER.info("Bootstrapping regulator team");
       var team = new Team();
-      team.setName("Regulator");
-      team.setTeamType(TeamType.REGULATOR);
+      team.setName(TeamType.LICENCE_MAINTENANCE.getDisplayName());
+      team.setTeamType(TeamType.LICENCE_MAINTENANCE);
       entityManager.persist(team);
       entityManager.flush();
     }
@@ -53,22 +55,68 @@ public class DataBootstrapper {
     Integer regulatorTeamUserCount = (Integer) entityManager.createNativeQuery(
         "SELECT COUNT(*) FROM lms.team_roles tr " +
             "JOIN lms.teams t ON t.id = tr.team_id " +
-            "WHERE t.type = 'REGULATOR'",
-        Integer.class).getSingleResult();
+            "WHERE t.type = :type",
+        Integer.class
+    ).setParameter("type", TeamType.LICENCE_MAINTENANCE.name()).getSingleResult();
 
     if (regulatorTeamUserCount == 0) {
       LOGGER.info("Bootstrapping regulator users");
 
       var regulatorAdmin = energyPortalUserService.findUsersByEmail(
           "administrator@lms.co.uk",
-          "Bootstrapping LMS admin for local dev")
+          "Bootstrapping LMS regulator admin for local dev")
           .getFirst();
 
       var teamRole = new TeamRole();
-      var regulatorTeam = teamQueryService.getStaticTeam(TeamType.REGULATOR);
+      var regulatorTeam = teamQueryService.getStaticTeam(TeamType.LICENCE_MAINTENANCE);
       teamRole.setTeam(regulatorTeam);
       teamRole.setRole(Role.MANAGE_TEAM);
       teamRole.setWuaId(regulatorAdmin.webUserAccountId());
+      entityManager.persist(teamRole);
+      entityManager.flush();
+    }
+
+    Integer industryTeamCount = (Integer) entityManager.createNativeQuery(
+        "SELECT COUNT(*) FROM lms.teams t WHERE t.type = :type AND t.name = :name",
+        Integer.class
+    ).setParameter("type", TeamType.ORGANISATION.name()).setParameter("name", INDUSTRY_TEAM_NAME).getSingleResult();
+
+    if (industryTeamCount == 0) {
+      LOGGER.info("Bootstrapping industry team");
+      var team = new Team();
+      team.setName(INDUSTRY_TEAM_NAME);
+      team.setTeamType(TeamType.ORGANISATION);
+      team.setScopeType(TeamType.ORGANISATION.name());
+      team.setScopeId("50");
+      entityManager.persist(team);
+      entityManager.flush();
+    }
+
+    Integer industryTeamUserCount = (Integer) entityManager.createNativeQuery(
+        "SELECT COUNT(*) FROM lms.team_roles tr " +
+            "JOIN lms.teams t ON t.id = tr.team_id " +
+            "WHERE t.type = :type " +
+            "AND t.name = :name",
+        Integer.class
+    ).setParameter("type", TeamType.ORGANISATION.name()).setParameter("name", INDUSTRY_TEAM_NAME).getSingleResult();
+
+    if (industryTeamUserCount == 0) {
+      LOGGER.info("Bootstrapping industry users");
+
+      var industryAdmin = energyPortalUserService.findUsersByEmail(
+              "bp.administrator@lms.co.uk",
+              "Bootstrapping LMS BP admin for local dev")
+          .getFirst();
+
+      var teamRole = new TeamRole();
+
+      Team industryTeam = (Team) entityManager.createNativeQuery(
+          "SELECT * FROM lms.teams t WHERE type = :type AND t.name = :name",
+          Team.class
+      ).setParameter("type", TeamType.ORGANISATION.name()).setParameter("name", INDUSTRY_TEAM_NAME).getSingleResult();
+      teamRole.setTeam(industryTeam);
+      teamRole.setRole(Role.MANAGE_TEAM);
+      teamRole.setWuaId(industryAdmin.webUserAccountId());
       entityManager.persist(teamRole);
       entityManager.flush();
     }

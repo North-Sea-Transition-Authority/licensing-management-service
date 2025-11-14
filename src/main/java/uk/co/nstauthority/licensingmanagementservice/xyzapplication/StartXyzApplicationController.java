@@ -18,7 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.tasklist.Xyz
 @Controller
 @RequestMapping("/start-application")
 @HasRolesInTeamType(value = {
-    @RolesAndTeamType(roles = {Role.EDIT_APPLICATION}, teamType = TeamType.ORGANISATION)
+    @RolesAndTeamType(roles = {Role.APPLICATION_EDITOR}, teamType = TeamType.ORGANISATION)
 })
 public class StartXyzApplicationController {
 

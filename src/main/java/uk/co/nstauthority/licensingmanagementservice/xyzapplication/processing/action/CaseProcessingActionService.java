@@ -1,8 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.xyzapplication.processing.action;
 
 import static java.util.stream.Collectors.toSet;
-import static uk.co.nstauthority.licensingmanagementservice.teams.Role.EDIT_APPLICATION;
-import static uk.co.nstauthority.licensingmanagementservice.teams.Role.VIEW_APPLICATION;
+import static uk.co.nstauthority.licensingmanagementservice.teams.Role.APPLICATION_EDITOR;
+import static uk.co.nstauthority.licensingmanagementservice.teams.Role.VIEW_ORGANISATION_LICENCES;
 import static uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationStatus.DRAFT;
 import static uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationStatus.SUBMITTED;
 import static uk.co.nstauthority.licensingmanagementservice.xyzapplication.processing.action.CaseProcessingActionItem.PROGRESS_APPLICATION;
@@ -36,12 +36,12 @@ public class CaseProcessingActionService {
 
     var registeredActions = RegisterAndSetPermissionsForAnActionBuilder.newBuilder()
         .registerAction(PROGRESS_APPLICATION)
-        .requiresAnyRoleFrom(EDIT_APPLICATION)
+        .requiresAnyRoleFrom(APPLICATION_EDITOR)
         .requiresAnyStatusFrom(
             DRAFT
         )
         .registerAction(VERIFY_APPLICATION)
-        .requiresAnyRoleFrom(VIEW_APPLICATION)
+        .requiresAnyRoleFrom(VIEW_ORGANISATION_LICENCES)
         .requiresAnyStatusFrom(
             SUBMITTED
         )

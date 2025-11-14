@@ -46,8 +46,8 @@ class HasRoleInStaticTeamInterceptorRuleTest extends AbstractInterceptorRuleTest
     when(userDetailService.getUserDetail()).thenReturn(serviceUserDetail);
     when(teamQueryService.userHasAtLeastOneStaticRole(
         1L,
-        TeamType.REGULATOR,
-        Set.of(Role.MANAGE_TEAM, Role.VIEW_APPLICATION))
+        TeamType.LICENCE_MAINTENANCE,
+        Set.of(Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE))
     ).thenReturn(true);
 
     var annotation = getAnnotation(
@@ -69,8 +69,8 @@ class HasRoleInStaticTeamInterceptorRuleTest extends AbstractInterceptorRuleTest
     when(userDetailService.getUserDetail()).thenReturn(serviceUserDetail);
     when(teamQueryService.userHasAtLeastOneStaticRole(
         1L,
-        TeamType.REGULATOR,
-        Set.of(Role.MANAGE_TEAM, Role.VIEW_APPLICATION))
+        TeamType.LICENCE_MAINTENANCE,
+        Set.of(Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE))
     ).thenReturn(false);
 
     var annotation = getAnnotation(
@@ -97,8 +97,8 @@ class HasRoleInStaticTeamInterceptorRuleTest extends AbstractInterceptorRuleTest
     when(userDetailService.getUserDetail()).thenReturn(serviceUserDetail);
     when(teamQueryService.userHasAtLeastOneStaticRole(
         1L,
-        TeamType.REGULATOR,
-        Set.of(Role.MANAGE_TEAM, Role.VIEW_APPLICATION))
+        TeamType.LICENCE_MAINTENANCE,
+        Set.of(Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE))
     ).thenReturn(true);
 
     var annotation = getAnnotation(
@@ -120,13 +120,13 @@ class HasRoleInStaticTeamInterceptorRuleTest extends AbstractInterceptorRuleTest
     when(userDetailService.getUserDetail()).thenReturn(serviceUserDetail);
     when(teamQueryService.userHasAtLeastOneStaticRole(
         1L,
-        TeamType.REGULATOR,
-        Set.of(Role.MANAGE_TEAM, Role.VIEW_APPLICATION))
+        TeamType.LICENCE_MAINTENANCE,
+        Set.of(Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE))
     ).thenReturn(false);
     when(teamQueryService.userHasAtLeastOneStaticRole(
         1L,
-        TeamType.CONSULTEE,
-        Set.of(Role.VIEW_ANY_APPLICATION))
+        TeamType.PRODUCTION,
+        Set.of(Role.MANAGE_TEAM))
     ).thenReturn(false);
 
     var annotation = getAnnotation(

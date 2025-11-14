@@ -76,7 +76,7 @@ class TeamManagementHandlerInterceptorTest {
     var method = TestController.class.getDeclaredMethod("invokingUserHasStaticRole", UUID.class);
     when(handlerMethod.getMethod()).thenReturn(method);
 
-    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.REGULATOR, Role.MANAGE_TEAM))
+    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.LICENCE_MAINTENANCE, Role.MANAGE_TEAM))
         .thenReturn(true);
 
     assertThat(teamManagementHandlerInterceptor.preHandle(request, response, handlerMethod))
@@ -88,7 +88,7 @@ class TeamManagementHandlerInterceptorTest {
     var method = TestController.class.getDeclaredMethod("invokingUserHasStaticRole", UUID.class);
     when(handlerMethod.getMethod()).thenReturn(method);
 
-    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.REGULATOR, Role.MANAGE_TEAM))
+    when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.LICENCE_MAINTENANCE, Role.MANAGE_TEAM))
         .thenReturn(false);
 
     assertThatExceptionOfType(ResponseStatusException.class)
@@ -103,7 +103,7 @@ class TeamManagementHandlerInterceptorTest {
     when(handlerMethod.getMethod()).thenReturn(method);
 
     var regTeam = new Team(UUID.randomUUID());
-    regTeam.setTeamType(TeamType.REGULATOR);
+    regTeam.setTeamType(TeamType.LICENCE_MAINTENANCE);
 
     when(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE))
         .thenReturn(Map.of("teamId", regTeam.getId().toString()));
@@ -124,7 +124,7 @@ class TeamManagementHandlerInterceptorTest {
     when(handlerMethod.getMethod()).thenReturn(method);
 
     var regTeam = new Team(UUID.randomUUID());
-    regTeam.setTeamType(TeamType.REGULATOR);
+    regTeam.setTeamType(TeamType.LICENCE_MAINTENANCE);
 
     when(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE))
         .thenReturn(Map.of("teamId", regTeam.getId().toString()));
@@ -350,7 +350,7 @@ class TeamManagementHandlerInterceptorTest {
   static class TestController {
 
     @GetMapping("/{teamId}/foo")
-    @InvokingUserHasStaticRole(teamType = TeamType.REGULATOR, role = Role.MANAGE_TEAM)
+    @InvokingUserHasStaticRole(teamType = TeamType.LICENCE_MAINTENANCE, role = Role.MANAGE_TEAM)
     String invokingUserHasStaticRole(@PathVariable UUID teamId) {
       return "ok";
     }

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 
 @ExtendWith(MockitoExtension.class)
 class TeamQueryServiceTest {
@@ -29,147 +30,146 @@ class TeamQueryServiceTest {
 
   @Test
   void userHasStaticRole_hasRole() {
-    setupStaticTeamAndRoles(1L, TeamType.REGULATOR, List.of(
-        Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM,
+    setupStaticTeamAndRoles(1L, TeamType.LICENCE_MAINTENANCE, List.of(
+        Role.VIEW_ANY_LICENCE,
         Role.MANAGE_TEAM
     ));
 
-    assertThat(teamQueryService.userHasStaticRole(1L, TeamType.REGULATOR, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
+    assertThat(teamQueryService.userHasStaticRole(1L, TeamType.LICENCE_MAINTENANCE, Role.VIEW_ANY_LICENCE))
         .isTrue();
   }
 
   @Test
   void userHasStaticRole_doesNotHaveRole() {
-    setupStaticTeamAndRoles(1L, TeamType.REGULATOR, List.of(
-        Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM,
+    setupStaticTeamAndRoles(1L, TeamType.LICENCE_MAINTENANCE, List.of(
         Role.MANAGE_TEAM
     ));
 
-    assertThat(teamQueryService.userHasStaticRole(1L, TeamType.REGULATOR, Role.VIEW_ANY_APPLICATION))
+    assertThat(teamQueryService.userHasStaticRole(1L, TeamType.LICENCE_MAINTENANCE, Role.VIEW_ANY_LICENCE))
         .isFalse();
   }
 
   @Test
   void userHasStaticRole_invalidRole() {
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(() -> teamQueryService.userHasStaticRole(1L, TeamType.REGULATOR, Role.EDIT_APPLICATION));
+        .isThrownBy(() -> teamQueryService.userHasStaticRole(1L, TeamType.LICENCE_MAINTENANCE, Role.APPLICATION_EDITOR));
   }
 
   @Test
   void userHasStaticRole_noTeamInstance() {
-    when(teamRepository.findByTeamType(TeamType.REGULATOR)).thenReturn(List.of());
-    assertThat(teamQueryService.userHasStaticRole(1L, TeamType.REGULATOR, Role.VIEW_ANY_APPLICATION))
+    when(teamRepository.findByTeamType(TeamType.LICENCE_MAINTENANCE)).thenReturn(List.of());
+    assertThat(teamQueryService.userHasStaticRole(1L, TeamType.LICENCE_MAINTENANCE, Role.VIEW_ANY_LICENCE))
         .isFalse();
   }
 
   @Test
   void userHasAtLeastOneStaticRole_hasRole() {
-    setupStaticTeamAndRoles(1L, TeamType.REGULATOR, List.of(
-        Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM,
+    setupStaticTeamAndRoles(1L, TeamType.LICENCE_MAINTENANCE, List.of(
+        Role.VIEW_ANY_LICENCE,
         Role.MANAGE_TEAM
     ));
 
-    assertThat(teamQueryService.userHasAtLeastOneStaticRole(1L, TeamType.REGULATOR, Set.of(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM, Role.VIEW_ANY_APPLICATION)))
+    assertThat(teamQueryService.userHasAtLeastOneStaticRole(1L, TeamType.LICENCE_MAINTENANCE, Set.of(Role.VIEW_ANY_LICENCE)))
         .isTrue();
   }
 
   @Test
   void userHasAtLeastOneStaticRole_doesNotHaveRole() {
-    setupStaticTeamAndRoles(1L, TeamType.REGULATOR, List.of(
+    setupStaticTeamAndRoles(1L, TeamType.LICENCE_MAINTENANCE, List.of(
         Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM,
         Role.MANAGE_TEAM
     ));
 
-    assertThat(teamQueryService.userHasAtLeastOneStaticRole(1L, TeamType.REGULATOR, Set.of(Role.VIEW_ANY_APPLICATION)))
+    assertThat(teamQueryService.userHasAtLeastOneStaticRole(1L, TeamType.LICENCE_MAINTENANCE, Set.of(Role.VIEW_ANY_LICENCE)))
         .isFalse();
   }
 
   @Test
   void userHasAtLeastOneStaticRole_invalidRole() {
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(() -> teamQueryService.userHasAtLeastOneStaticRole(1L, TeamType.REGULATOR, Set.of(Role.EDIT_APPLICATION)));
+        .isThrownBy(() -> teamQueryService.userHasAtLeastOneStaticRole(1L, TeamType.LICENCE_MAINTENANCE, Set.of(Role.APPLICATION_EDITOR)));
   }
 
   @Test
   void userHasAtLeastOneStaticRole_noTeamInstance() {
-    when(teamRepository.findByTeamType(TeamType.REGULATOR)).thenReturn(List.of());
-    assertThat(teamQueryService.userHasAtLeastOneStaticRole(1L, TeamType.REGULATOR, Set.of(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM)))
+    when(teamRepository.findByTeamType(TeamType.LICENCE_MAINTENANCE)).thenReturn(List.of());
+    assertThat(teamQueryService.userHasAtLeastOneStaticRole(1L, TeamType.LICENCE_MAINTENANCE, Set.of(Role.VIEW_ANY_LICENCE)))
         .isFalse();
   }
 
   @Test
   void userHasScopedRole_hasRole() {
-    var scope = TeamScopeReference.from("123", "ORGGRP");
+    var scope = TeamScopeReference.from("123", ScopeType.ORGANISATION_GROUP.name());
     setupScopedTeamAndRoles(1L, TeamType.ORGANISATION, scope, List.of(
         Role.MANAGE_TEAM,
-        Role.VIEW_APPLICATION
+        Role.VIEW_ORGANISATION_LICENCES
     ));
 
-    assertThat(teamQueryService.userHasScopedRole(1L, TeamType.ORGANISATION, scope, Role.VIEW_APPLICATION))
+    assertThat(teamQueryService.userHasScopedRole(1L, TeamType.ORGANISATION, scope, Role.VIEW_ORGANISATION_LICENCES))
         .isTrue();
   }
 
   @Test
   void userHasScopedRole_doesNotHaveRole() {
-    var scope = TeamScopeReference.from("123", "ORGGRP");
+    var scope = TeamScopeReference.from("123", ScopeType.ORGANISATION_GROUP.name());
     setupScopedTeamAndRoles(1L, TeamType.ORGANISATION, scope, List.of(
         Role.MANAGE_TEAM,
-        Role.VIEW_APPLICATION
+        Role.VIEW_ORGANISATION_LICENCES
     ));
 
-    assertThat(teamQueryService.userHasScopedRole(1L, TeamType.ORGANISATION, scope, Role.EDIT_APPLICATION))
+    assertThat(teamQueryService.userHasScopedRole(1L, TeamType.ORGANISATION, scope, Role.APPLICATION_EDITOR))
         .isFalse();
   }
 
   @Test
   void userHasScopedRole_invalidRole() {
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(() -> teamQueryService.userHasScopedRole(1L, TeamType.ORGANISATION, TeamScopeReference.from("1", "ORGGRP"), Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM));
+        .isThrownBy(() -> teamQueryService.userHasScopedRole(1L, TeamType.ORGANISATION, TeamScopeReference.from("1", ScopeType.ORGANISATION_GROUP.name()), Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM));
   }
 
   @Test
   void userHasScopedRole_noTeamInstance() {
-    when(teamRepository.findByTeamTypeAndScopeTypeAndScopeId(TeamType.ORGANISATION, "ORGGRP", "1")).thenReturn(Optional.empty());
-    assertThat(teamQueryService.userHasScopedRole(1L, TeamType.ORGANISATION, TeamScopeReference.from("1", "ORGGRP"), Role.VIEW_APPLICATION))
+    when(teamRepository.findByTeamTypeAndScopeTypeAndScopeId(TeamType.ORGANISATION, ScopeType.ORGANISATION_GROUP.name(), "1")).thenReturn(Optional.empty());
+    assertThat(teamQueryService.userHasScopedRole(1L, TeamType.ORGANISATION, TeamScopeReference.from("1", ScopeType.ORGANISATION_GROUP.name()), Role.VIEW_ORGANISATION_LICENCES))
         .isFalse();
   }
 
   @Test
   void userHasAtLeastOneScopedRole_hasRole() {
-    var scope = TeamScopeReference.from("123", "ORGGRP");
+    var scope = TeamScopeReference.from("123", ScopeType.ORGANISATION_GROUP.name());
     setupScopedTeamAndRoles(1L, TeamType.ORGANISATION, scope, List.of(
         Role.MANAGE_TEAM,
-        Role.VIEW_APPLICATION
+        Role.VIEW_ORGANISATION_LICENCES
     ));
 
-    assertThat(teamQueryService.userHasAtLeastOneScopedRole(1L, TeamType.ORGANISATION, scope, Set.of(Role.EDIT_APPLICATION, Role.VIEW_APPLICATION)))
+    assertThat(teamQueryService.userHasAtLeastOneScopedRole(1L, TeamType.ORGANISATION, scope, Set.of(Role.APPLICATION_EDITOR, Role.VIEW_ORGANISATION_LICENCES)))
         .isTrue();
   }
 
   @Test
   void userHasAtLeastOneScopedRole_doesNotHaveRole() {
-    var scope = TeamScopeReference.from("123", "ORGGRP");
+    var scope = TeamScopeReference.from("123", ScopeType.ORGANISATION_GROUP.name());
     setupScopedTeamAndRoles(1L, TeamType.ORGANISATION, scope, List.of(
         Role.MANAGE_TEAM,
-        Role.VIEW_APPLICATION
+        Role.VIEW_ORGANISATION_LICENCES
     ));
 
-    assertThat(teamQueryService.userHasAtLeastOneScopedRole(1L, TeamType.ORGANISATION, scope, Set.of(Role.EDIT_APPLICATION)))
+    assertThat(teamQueryService.userHasAtLeastOneScopedRole(1L, TeamType.ORGANISATION, scope, Set.of(Role.APPLICATION_EDITOR)))
         .isFalse();
   }
 
   @Test
   void userHasAtLeastOneScopedRole_invalidRole() {
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(() -> teamQueryService.userHasScopedRole(1L, TeamType.ORGANISATION, TeamScopeReference.from("1", "ORGGRP"), Role.VIEW_ANY_APPLICATION));
+        .isThrownBy(() -> teamQueryService.userHasScopedRole(1L, TeamType.ORGANISATION, TeamScopeReference.from("1", ScopeType.ORGANISATION_GROUP.name()), Role.VIEW_ANY_LICENCE));
   }
 
   @Test
   void userHasAtLeastOneScopedRole_noTeamInstance() {
-    when(teamRepository.findByTeamTypeAndScopeTypeAndScopeId(TeamType.ORGANISATION, "ORGGRP", "1"))
+    when(teamRepository.findByTeamTypeAndScopeTypeAndScopeId(TeamType.ORGANISATION, ScopeType.ORGANISATION_GROUP.name(), "1"))
         .thenReturn(Optional.empty());
 
-    assertThat(teamQueryService.userHasAtLeastOneScopedRole(1L, TeamType.ORGANISATION, TeamScopeReference.from("1", "ORGGRP"), Set.of(Role.VIEW_APPLICATION)))
+    assertThat(teamQueryService.userHasAtLeastOneScopedRole(1L, TeamType.ORGANISATION, TeamScopeReference.from("1", ScopeType.ORGANISATION_GROUP.name()), Set.of(Role.VIEW_ORGANISATION_LICENCES)))
         .isFalse();
   }
 

@@ -66,7 +66,7 @@ public class TeamManagementController {
 
     var teamTypes = new HashSet<>(teamManagementService.getTeamTypesUserIsMemberOf(user.wuaId()));
 
-    if (teamQueryService.userHasStaticRole(user.wuaId(), TeamType.REGULATOR,
+    if (teamQueryService.userHasStaticRole(user.wuaId(), TeamType.LICENCE_MAINTENANCE,
         Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM)) {
       // regulator with priv can manage org teams
       teamTypes.add(TeamType.ORGANISATION);
@@ -108,7 +108,7 @@ public class TeamManagementController {
 
       boolean userCanCreateOrgs = teamQueryService.userHasStaticRole(
           user.wuaId(),
-          TeamType.REGULATOR,
+          TeamType.LICENCE_MAINTENANCE,
           Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM
       );
 

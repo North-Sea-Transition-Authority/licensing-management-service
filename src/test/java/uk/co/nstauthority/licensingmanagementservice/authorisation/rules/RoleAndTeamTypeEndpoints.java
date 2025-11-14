@@ -15,7 +15,7 @@ public class RoleAndTeamTypeEndpoints {
 
   @GetMapping("/has-role-in-team-type")
   @HasRolesInTeamType(value = {
-      @RolesAndTeamType(roles = Role.EDIT_APPLICATION, teamType = TeamType.ORGANISATION)
+      @RolesAndTeamType(roles = Role.APPLICATION_EDITOR, teamType = TeamType.ORGANISATION)
   })
   public ResponseEntity<String> hasRoleWithTeamType() {
     return ResponseEntity.ok("role in team type test endpoint");
@@ -23,7 +23,7 @@ public class RoleAndTeamTypeEndpoints {
 
   @GetMapping("/has-multiple-roles-in-team-type")
   @HasRolesInTeamType(value = {
-      @RolesAndTeamType(roles = {Role.EDIT_APPLICATION, Role.VIEW_APPLICATION}, teamType = TeamType.ORGANISATION)
+      @RolesAndTeamType(roles = {Role.APPLICATION_EDITOR, Role.VIEW_ORGANISATION_LICENCES}, teamType = TeamType.ORGANISATION)
   })
   public ResponseEntity<String> hasMultipleRolesInTeamType() {
     return ResponseEntity.ok("multiple role and team type test endpoint");
@@ -31,8 +31,8 @@ public class RoleAndTeamTypeEndpoints {
 
   @GetMapping("/has-multiple-roles-in-multiple-team-types")
   @HasRolesInTeamType(value = {
-      @RolesAndTeamType(roles = {Role.EDIT_APPLICATION, Role.VIEW_APPLICATION}, teamType = TeamType.ORGANISATION),
-      @RolesAndTeamType(roles = {Role.MANAGE_TEAM}, teamType = TeamType.REGULATOR)
+      @RolesAndTeamType(roles = {Role.APPLICATION_EDITOR, Role.VIEW_ORGANISATION_LICENCES}, teamType = TeamType.ORGANISATION),
+      @RolesAndTeamType(roles = {Role.MANAGE_TEAM}, teamType = TeamType.LICENCE_MAINTENANCE)
   })
   public ResponseEntity<String> hasMultipleRolesInMultipleTeamTypes() {
     return ResponseEntity.ok("multiple role in multiple team type test endpoint");

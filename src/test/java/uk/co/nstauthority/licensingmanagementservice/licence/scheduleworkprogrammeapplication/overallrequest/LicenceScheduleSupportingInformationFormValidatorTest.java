@@ -11,18 +11,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentService;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionService;
 import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceScheduleSupportingInformationFormValidatorTest {
 
   @Mock
-  private LicenceScheduleExtensionService licenceScheduleExtensionService;
-
-  @Mock
-  private LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
+  private LicenceScheduleSupportingInformationHelperService licenceScheduleSupportingInformationHelperService;
 
   @InjectMocks
   private LicenceScheduleSupportingInformationFormValidator licenceScheduleSupportingInformationFormValidator;
@@ -39,10 +34,8 @@ class LicenceScheduleSupportingInformationFormValidatorTest {
 
   @Test
   void isValid_AllMandatoryFieldsPresent_NoExtensionOrAmendment() {
-    when(licenceScheduleExtensionService.isExtensionRequested(scheduleWorkProgrammeApplicationDetail))
-        .thenReturn(false);
-    when(licenceWorkProgrammeAmendmentService.isAmendmentRequested(scheduleWorkProgrammeApplicationDetail))
-        .thenReturn(false);
+    when(licenceScheduleSupportingInformationHelperService.isExtensionOrAmendment(scheduleWorkProgrammeApplicationDetail)).thenReturn(false);
+
 
     form.setLicenceProgress("Some progress info");
     form.setReasonForAmendment("Some reason");
@@ -56,8 +49,8 @@ class LicenceScheduleSupportingInformationFormValidatorTest {
 
   @Test
   void isValid_AllFieldsPresent_WithExtensionAndAmendment() {
-    when(licenceScheduleExtensionService.isExtensionRequested(scheduleWorkProgrammeApplicationDetail))
-        .thenReturn(true);
+    when(licenceScheduleSupportingInformationHelperService.isExtensionOrAmendment(scheduleWorkProgrammeApplicationDetail)).thenReturn(false);
+
 
     form.setLicenceProgress("Some progress info");
     form.setReasonForAmendment("Some reason");
@@ -73,10 +66,7 @@ class LicenceScheduleSupportingInformationFormValidatorTest {
 
   @Test
   void isInvalid_MissingLicenceProgress_NoExtensionOrAmendment() {
-    when(licenceScheduleExtensionService.isExtensionRequested(scheduleWorkProgrammeApplicationDetail))
-        .thenReturn(false);
-    when(licenceWorkProgrammeAmendmentService.isAmendmentRequested(scheduleWorkProgrammeApplicationDetail))
-        .thenReturn(false);
+    when(licenceScheduleSupportingInformationHelperService.isExtensionOrAmendment(scheduleWorkProgrammeApplicationDetail)).thenReturn(false);
 
     form.setReasonForAmendment("Some reason");
     form.setImpactOnDeliverables("Some impact");
@@ -90,7 +80,7 @@ class LicenceScheduleSupportingInformationFormValidatorTest {
 
   @Test
   void isInvalid_MissingPlanDuringExtension_WithExtensionAndAmendment() {
-    when(licenceScheduleExtensionService.isExtensionRequested(scheduleWorkProgrammeApplicationDetail)).thenReturn(true);
+    when(licenceScheduleSupportingInformationHelperService.isExtensionOrAmendment(scheduleWorkProgrammeApplicationDetail)).thenReturn(true);
 
     form.setLicenceProgress("Some progress info");
     form.setReasonForAmendment("Some reason");
@@ -106,8 +96,7 @@ class LicenceScheduleSupportingInformationFormValidatorTest {
 
   @Test
   void isInvalid_MissingAllFields_WithExtensionAndAmendment() {
-    when(licenceScheduleExtensionService.isExtensionRequested(scheduleWorkProgrammeApplicationDetail))
-        .thenReturn(true);
+    when(licenceScheduleSupportingInformationHelperService.isExtensionOrAmendment(scheduleWorkProgrammeApplicationDetail)).thenReturn(true);
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 

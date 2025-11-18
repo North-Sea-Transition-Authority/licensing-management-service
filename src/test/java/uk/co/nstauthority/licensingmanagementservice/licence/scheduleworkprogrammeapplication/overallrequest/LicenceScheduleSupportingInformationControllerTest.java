@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
@@ -14,14 +15,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.co.fivium.fileuploadlibrary.fds.FileUploadComponentAttributes;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileUsage;
+import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
+import uk.co.nstauthority.licensingmanagementservice.file.FileUploadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
@@ -46,6 +57,16 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
 
   @MockitoBean
   private LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
+
+  @MockitoBean
+  private FileControllerHelperService fileControllerHelperService;
+
+  @Captor
+  private ArgumentCaptor<Supplier<ApplicationFileUsage>> fileUsageSupplierCaptor;
+
+  @MockitoBean
+  private LicenceScheduleSupportingInformationHelperService licenceScheduleSupportingInformationHelperService;
+
 
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
@@ -79,10 +100,13 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
     swpApplicationRequestPurpose.setExtendTerm(true);
 
     when(licenceScheduleExtensionService.isExtensionRequested(scheduleWorkProgrammeApplicationDetail)).thenReturn(true);
-    when(licenceWorkProgrammeAmendmentService.isAmendmentRequested(scheduleWorkProgrammeApplicationDetail)).thenReturn(true);
 
     when(licenceScheduleSupportingInformationService.getLicenceScheduleRequestForm(any())).thenReturn(
         new LicenceScheduleSupportingInformationForm());
+
+    FileUploadComponentAttributes fileUploadComponentAttributes = FileUploadTestUtil.FILE_UPLOAD_COMPONENT_ATTRIBUTES;
+
+    when(fileControllerHelperService.fileUploadComponentAttributes(any(List.class), any(Class.class), any(Function.class), any(Function.class))).thenReturn(fileUploadComponentAttributes);
 
     mockMvc.perform(
             get(ReverseRouter.route(
@@ -95,6 +119,7 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
         .andExpect(status().isOk())
         .andExpect(model().attribute("pageTitle", "Supporting information"))
         .andExpect(model().attribute("isExtension", false))
+        .andExpect(model().attribute("fileUploadAttributes", fileUploadComponentAttributes))
         .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
             ScheduleWorkProgrammeApplicationTaskListController.class)
             .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
@@ -119,21 +144,68 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
   @Test
   void submitInvalidForm() throws Exception {
 
+    FileUploadComponentAttributes fileUploadComponentAttributes = FileUploadTestUtil.FILE_UPLOAD_COMPONENT_ATTRIBUTES;
+    when(fileControllerHelperService.fileUploadComponentAttributes(any(List.class), any(Class.class), any(Function.class), any(Function.class))).thenReturn(fileUploadComponentAttributes);
+
+
     mockMvc.perform(
             post(ReverseRouter.route(
                 on(LicenceScheduleSupportingInformationController.class).submitForm(SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
-        .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceSupportingInformationRequest"))
-        .andExpect(model().attribute("pageTitle", "Supporting information"))
-        .andExpect(model().attribute("isExtension", false))
-        .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
-            ScheduleWorkProgrammeApplicationTaskListController.class)
-            .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
+           .andExpect(status().isOk())
+           .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceSupportingInformationRequest"))
+           .andExpect(model().attribute("pageTitle", "Supporting information"))
+           .andExpect(model().attribute("isExtension", false))
+           .andExpect(model().attribute("fileUploadAttributes", fileUploadComponentAttributes))
+           .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
+                   ScheduleWorkProgrammeApplicationTaskListController.class)
+                   .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
 
     verify(licenceScheduleSupportingInformationService, never()).saveRequestForm(any(), any());
 
   }
+
+  @Test
+  void download() throws Exception {
+    when(fileControllerHelperService.download(any(UUID.class), any(Supplier.class), any(ServiceUserDetail.class))).thenReturn(ResponseEntity.ok().build());
+
+    mockMvc.perform(
+               get(ReverseRouter.route(
+                   on(LicenceScheduleSupportingInformationController.class).downloadFile(
+                       scheduleWorkProgrammeApplicationDetail.getId(),
+                       scheduleWorkProgrammeApplicationDetail, organisationUser,
+                       scheduleWorkProgrammeApplicationDetail.getId())))
+                   .with(user(organisationUser))
+                   .with(csrf())
+           )
+           .andExpect(status().isOk());
+
+    verify(fileControllerHelperService).download(any(), fileUsageSupplierCaptor.capture(), any());
+    assertThat(fileUsageSupplierCaptor.getValue().get()).isEqualTo(
+        LicenceScheduleSupportingInformationFileUsages.fromApplication(scheduleWorkProgrammeApplicationDetail));
+  }
+
+  @Test
+  void delete() throws Exception {
+    when(fileControllerHelperService.delete(any(UUID.class), any(Supplier.class), any(ServiceUserDetail.class))).thenReturn(ResponseEntity.ok().build());
+
+    mockMvc.perform(
+               post(ReverseRouter.route(
+                   on(LicenceScheduleSupportingInformationController.class).deleteFile(
+                                                UUID.randomUUID(),
+                                                scheduleWorkProgrammeApplicationDetail,
+                                                organisationUser,
+                                                scheduleWorkProgrammeApplicationDetail.getId())))
+                   .with(user(organisationUser))
+                   .with(csrf()))
+           .andExpect(status().isOk());
+
+    verify(fileControllerHelperService).delete(any(), fileUsageSupplierCaptor.capture(), any());
+    assertThat(fileUsageSupplierCaptor.getValue().get()).isEqualTo(
+        LicenceScheduleSupportingInformationFileUsages.fromApplication(scheduleWorkProgrammeApplicationDetail));
+  }
+
+
 }

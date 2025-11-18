@@ -24,7 +24,7 @@
           </ul>
         </@fdsDetails.summaryDetails>
 
-        <#if (isExtension??)>
+        <#if (isExtension)>
             <@fdsTextarea.textarea
             path="form.planDuringExtension"
             labelText="What do you plan to do during the period of extension?"
@@ -36,7 +36,20 @@
         labelText="How do your requested changes impact on current or future deliverables?"
         />
 
-        <@fdsDetails.summaryDetails summaryTitle="What information do I need to provide?">
+        <@fdsFieldset.fieldset
+        legendHeading="Provide documents supporting your request"
+        legendHeadingClass="govuk-heading-m">
+            <@fdsFileUpload.fileUpload
+            path=fileUploadAttributes.path()
+            allowedExtensions=fileUploadAttributes.allowedExtensions()
+            uploadUrl=fileUploadAttributes.uploadUrl()
+            downloadUrl=fileUploadAttributes.downloadUrl()
+            deleteUrl=fileUploadAttributes.deleteUrl()
+            existingFiles=fileUploadAttributes.existingFiles()
+            maxAllowedSize=fileUploadAttributes.maxAllowedSize()/>
+        </@fdsFieldset.fieldset>
+
+        <@fdsDetails.summaryDetails summaryTitle="What documents do I need to provide?">
           <p class="govuk-body">You must demonstrate that the proposed timeline is capable of delivering the licence
             work programme and any required investment decisions.</p>
           <p class="govuk-body">Example documents include:</p>

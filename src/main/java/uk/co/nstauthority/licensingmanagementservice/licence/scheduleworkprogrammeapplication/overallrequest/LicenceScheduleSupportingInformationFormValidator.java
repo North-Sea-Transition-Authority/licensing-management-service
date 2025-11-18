@@ -4,21 +4,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ValidationUtils;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentService;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionService;
 
 @Service
 public class LicenceScheduleSupportingInformationFormValidator {
 
-  private final LicenceScheduleExtensionService licenceScheduleExtensionService;
-  private final LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
+  private final LicenceScheduleSupportingInformationHelperService  licenceScheduleSupportingInformationHelperService;
 
   public LicenceScheduleSupportingInformationFormValidator(
-      LicenceScheduleExtensionService licenceScheduleExtensionService,
-      LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService
+      LicenceScheduleSupportingInformationHelperService licenceScheduleSupportingInformationHelperService
   ) {
-    this.licenceScheduleExtensionService = licenceScheduleExtensionService;
-    this.licenceWorkProgrammeAmendmentService = licenceWorkProgrammeAmendmentService;
+    this.licenceScheduleSupportingInformationHelperService = licenceScheduleSupportingInformationHelperService;
   }
 
   public boolean isValid(
@@ -39,8 +34,7 @@ public class LicenceScheduleSupportingInformationFormValidator {
         "Enter the progress on the licence work programme to date");
 
 
-    if (licenceScheduleExtensionService.isExtensionRequested(scheduleWorkProgrammeApplicationDetail)
-        || licenceWorkProgrammeAmendmentService.isAmendmentRequested(scheduleWorkProgrammeApplicationDetail)) {
+    if (licenceScheduleSupportingInformationHelperService.isExtensionOrAmendment(scheduleWorkProgrammeApplicationDetail)) {
       ValidationUtils.rejectIfEmptyOrWhitespace(
           bindingResult,
           "planDuringExtension",

@@ -20,14 +20,17 @@ services:
     ports:
       - "3310:3310"
 
-  s3mock:
-    image: adobe/s3mock:latest
+  minio:
+    image: minio/minio:latest
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     environment:
-      initialBuckets: lms-bucket
-      retainFilesOnExit: true
-      root: ./s3data
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    entrypoint: sh
+    command:
+      -c "mkdir -p /data/lms-bucket && /usr/bin/minio server /data --console-address ':9001'"
 
 volumes:
   lms-db-volume:

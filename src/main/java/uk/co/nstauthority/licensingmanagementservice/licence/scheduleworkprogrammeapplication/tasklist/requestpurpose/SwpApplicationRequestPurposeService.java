@@ -7,18 +7,26 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationService;
 
 @Service
 public class SwpApplicationRequestPurposeService {
 
   private final LicenceTypeRulesResolver licenceTypeRulesResolver;
   private final SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository;
+  private final LicenceScheduleExtensionRepository licenceScheduleExtensionRepository;
+  private final LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService;
 
   public SwpApplicationRequestPurposeService(
       LicenceTypeRulesResolver licenceTypeRulesResolver,
-      SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository) {
+      SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository,
+      LicenceScheduleExtensionRepository licenceScheduleExtensionRepository,
+      LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService) {
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
     this.swpApplicationRequestPurposeRepository = swpApplicationRequestPurposeRepository;
+    this.licenceScheduleExtensionRepository = licenceScheduleExtensionRepository;
+    this.licenceScheduleSupportingInformationService = licenceScheduleSupportingInformationService;
   }
 
   public Set<SwpApplicationRequestPurposeOption> getPageOptions(
@@ -58,7 +66,21 @@ public class SwpApplicationRequestPurposeService {
           return purpose;
         });
 
-    setRequestPurposes(swpApplicationRequestPurpose, form.getRequestPurposes());
+    var requestPurposes = form.getRequestPurposes();
+
+    boolean extendOptionNotSelected =
+        !requestPurposes.contains(SwpApplicationRequestPurposeOption.EXTEND_A_PHASE_OR_TERM)
+        || !requestPurposes.contains(SwpApplicationRequestPurposeOption.EXTEND_A_TERM);
+
+    if (extendOptionNotSelected) {
+      licenceScheduleExtensionRepository.deleteByScheduleWorkProgrammeApplicationDetails(
+          scheduleWorkProgrammeApplicationDetail);
+
+      licenceScheduleSupportingInformationService.handleSupportingInformationExtensionRemoval(
+          scheduleWorkProgrammeApplicationDetail);
+    }
+
+    setRequestPurposes(swpApplicationRequestPurpose, requestPurposes);
 
     swpApplicationRequestPurposeRepository.save(swpApplicationRequestPurpose);
 

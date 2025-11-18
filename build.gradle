@@ -16,7 +16,7 @@ java {
 	}
 }
 
-def fileUploadLibraryVersion = 'v2.9.0'
+def fileUploadLibraryVersion = 'v3.0.0'
 
 repositories {
 	mavenCentral()
@@ -49,8 +49,6 @@ dependencies {
 // TODO re-add when payments required
 //	implementation 'uk.co.fivium:digital-payments-library-spring-boot-starter:1.0.0'
 	implementation 'uk.co.fivium.feedbackmanagementservice:client:v2.3.0'
-	implementation "uk.co.fivium:file-upload-spring-boot-starter:v2.6.0"
-
 	implementation 'org.apache.commons:commons-lang3:3.17.0'
 	implementation 'org.apache.commons:commons-collections4:4.4'
 	implementation 'org.apache.commons:commons-text:1.13.0'

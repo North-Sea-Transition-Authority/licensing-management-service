@@ -21,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationService;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceWorkProgrammeAmendmentServiceTest {
@@ -30,6 +31,9 @@ class LicenceWorkProgrammeAmendmentServiceTest {
 
   @Mock
   private LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator;
+
+  @Mock
+  private LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService;
 
   @InjectMocks
   private LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
@@ -92,6 +96,8 @@ class LicenceWorkProgrammeAmendmentServiceTest {
 
     licenceWorkProgrammeAmendmentService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail,UUID.randomUUID());
 
+    verify(licenceScheduleSupportingInformationService).handleSupportingInformationExtensionRemoval(scheduleWorkProgrammeApplicationDetail);
+
     verify(licenceWorkProgrammeAmendmentRepository,times(2)).save(licenceWorkProgrammeAmendmentRequestArgumentCaptor.capture());
 
     var updatedResult = licenceWorkProgrammeAmendmentRequestArgumentCaptor.getValue();
@@ -141,6 +147,8 @@ class LicenceWorkProgrammeAmendmentServiceTest {
     form.setAdditionalInfoRequired(true);
 
     licenceWorkProgrammeAmendmentService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail,UUID.randomUUID());
+
+    verify(licenceScheduleSupportingInformationService).handleSupportingInformationExtensionRemoval(scheduleWorkProgrammeApplicationDetail);
 
     verify(licenceWorkProgrammeAmendmentRepository).save(licenceWorkProgrammeAmendmentRequestArgumentCaptor.capture());
 

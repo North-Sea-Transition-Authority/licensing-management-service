@@ -10,19 +10,23 @@ import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationService;
 
 @Service
 public class LicenceWorkProgrammeAmendmentService {
 
   private final LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
   private final LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator;
+  private final LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService;
 
   public LicenceWorkProgrammeAmendmentService(
       LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository,
-      LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator
+      LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator,
+      LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService
   ) {
     this.licenceWorkProgrammeAmendmentRepository = licenceWorkProgrammeAmendmentRepository;
     this.licenceWorkProgrammeAmendmentFormValidator = licenceWorkProgrammeAmendmentFormValidator;
+    this.licenceScheduleSupportingInformationService = licenceScheduleSupportingInformationService;
   }
 
   public Optional<LicenceWorkProgrammeAmendmentRequest> getAmendmentRequestByScheduleWorkProgrammeApplicationDetail(
@@ -43,12 +47,6 @@ public class LicenceWorkProgrammeAmendmentService {
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
     return licenceWorkProgrammeAmendmentRepository
         .existsByScheduleWorkProgrammeApplicationDetails(scheduleWorkProgrammeApplicationDetail);
-  }
-
-  public boolean isAmendmentRequested(ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
-    return licenceWorkProgrammeAmendmentRepository
-        .existsByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeCompletionDateChangeRequestedTrue(
-            scheduleWorkProgrammeApplicationDetail);
   }
 
   @Transactional
@@ -76,6 +74,8 @@ public class LicenceWorkProgrammeAmendmentService {
 
     if (BooleanUtils.isNotTrue(licenceScheduleExtensionForm.getDurationExtensionRequired())) {
       licenceWorkProgrammeAmendmentRequest.setWorkProgrammeExtensionDuration(null);
+      licenceScheduleSupportingInformationService
+          .handleSupportingInformationExtensionRemoval(scheduleWorkProgrammeApplicationDetail);
     } else {
       licenceWorkProgrammeAmendmentRequest.setWorkProgrammeExtensionDuration(
           licenceScheduleExtensionForm.getWorkProgrammeExtensionDuration().toThreeFieldDuration());

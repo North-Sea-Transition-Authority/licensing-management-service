@@ -17,9 +17,17 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationService;
 
 @ExtendWith(MockitoExtension.class)
 class SwpApplicationRequestPurposeServiceTest {
+
+  @Mock
+  private LicenceScheduleExtensionRepository licenceScheduleExtensionRepository;
+
+  @Mock
+  private LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService;
 
   @Mock
   private LicenceTypeRulesResolver licenceTypeRulesResolver;
@@ -235,4 +243,27 @@ class SwpApplicationRequestPurposeServiceTest {
     );
     assertThat(result).isEqualTo(expected);
   }
+  @Test
+  void saveOrUpdateRequestPurpose_RemovesPhaseOrTermExtension_TriggersCleanup() {
+    var form = new SwpApplicationRequestPurposeForm();
+    form.setRequestPurposes(Set.of(SwpApplicationRequestPurposeOption.AMEND_THE_WORK_PROGRAMME));
+
+    var detail = new ScheduleWorkProgrammeApplicationDetail();
+    var existingPurpose = new SwpApplicationRequestPurpose(UUID.randomUUID());
+
+    existingPurpose.setExtendPhaseOrTerm(true);
+
+    when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(detail))
+        .thenReturn(Optional.of(existingPurpose));
+
+    underTest.saveOrUpdateRequestPurpose(detail, form);
+
+    verify(swpApplicationRequestPurposeRepository).save(swpApplicationRequestPurposeArgumentCaptor.capture());
+    assertThat(swpApplicationRequestPurposeArgumentCaptor.getValue().getExtendPhaseOrTerm()).isFalse();
+
+    verify(licenceScheduleExtensionRepository).deleteByScheduleWorkProgrammeApplicationDetails(detail);
+
+    verify(licenceScheduleSupportingInformationService).handleSupportingInformationExtensionRemoval(detail);
+  }
+
 }

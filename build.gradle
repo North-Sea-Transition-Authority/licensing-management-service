@@ -43,7 +43,7 @@ dependencies {
 	implementation 'org.flywaydb:flyway-database-postgresql'
 	implementation 'uk.co.fivium.energyportalapi:client:v15.2.0'
 	implementation 'uk.co.fivium.energyportalmessagequeue:spring-boot-starter:v4.3.0'
-	implementation 'uk.co.fivium.energyportal.accounts:energy-portal-accounts-spring-boot-starter:v2.0.0'
+	implementation 'uk.co.fivium.energyportal.accounts:energy-portal-accounts-spring-boot-starter:v3.0.0'
 	implementation 'uk.co.fivium.digitalformlibrary:digital-form-library:v3.0.0'
 	implementation "uk.co.fivium:file-upload-spring-boot-starter:${fileUploadLibraryVersion}"
 // TODO re-add when payments required

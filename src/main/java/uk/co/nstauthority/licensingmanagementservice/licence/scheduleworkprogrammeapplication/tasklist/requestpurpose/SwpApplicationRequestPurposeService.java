@@ -68,11 +68,11 @@ public class SwpApplicationRequestPurposeService {
 
     var requestPurposes = form.getRequestPurposes();
 
-    boolean extendOptionNotSelected =
-        !requestPurposes.contains(SwpApplicationRequestPurposeOption.EXTEND_A_PHASE_OR_TERM)
-        || !requestPurposes.contains(SwpApplicationRequestPurposeOption.EXTEND_A_TERM);
+    boolean extendOptionSelected =
+        requestPurposes.contains(SwpApplicationRequestPurposeOption.EXTEND_A_PHASE_OR_TERM)
+        || requestPurposes.contains(SwpApplicationRequestPurposeOption.EXTEND_A_TERM);
 
-    if (extendOptionNotSelected) {
+    if (!extendOptionSelected) {
       licenceScheduleExtensionRepository.deleteByScheduleWorkProgrammeApplicationDetails(
           scheduleWorkProgrammeApplicationDetail);
 

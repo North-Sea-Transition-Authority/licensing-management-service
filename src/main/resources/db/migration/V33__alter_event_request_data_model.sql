@@ -1,0 +1,11 @@
+ALTER TABLE licence_schedule_extension_request_aud
+ALTER COLUMN schedule_work_programme_application_details_id DROP NOT NULL;
+
+ALTER TABLE licence_schedule_extension_request_aud
+ALTER COLUMN extension_duration_days DROP NOT NULL;
+
+ALTER TABLE licence_schedule_extension_request_aud
+ALTER COLUMN extension_duration_months DROP NOT NULL;
+
+ALTER TABLE licence_schedule_extension_request_aud
+ALTER COLUMN extension_duration_years DROP NOT NULL;

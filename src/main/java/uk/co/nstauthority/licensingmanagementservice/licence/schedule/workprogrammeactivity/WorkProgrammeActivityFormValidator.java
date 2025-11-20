@@ -10,7 +10,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesta
 @Service
 public class WorkProgrammeActivityFormValidator {
 
-  LicenceStartDateService licenceStartDateService;
+  private final LicenceStartDateService licenceStartDateService;
 
   public WorkProgrammeActivityFormValidator(LicenceStartDateService licenceStartDateService) {
     this.licenceStartDateService = licenceStartDateService;

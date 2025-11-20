@@ -27,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermDeletionController;
@@ -94,6 +95,7 @@ class LicenceScheduleTimelineServiceTest {
   void getLicenceScheduleTimelineActions() {
     when(licenceTypeRulesResolver.arePhasesCaptured(licence.getType())).thenReturn(true);
     when(licenceTypeRulesResolver.hasWorkProgramme(licence.getType())).thenReturn(true);
+    when(licenceTypeRulesResolver.hasRentalRate(licence.getType())).thenReturn(true);
 
     var expectedResult = List.of(
         new TimelineActionView(
@@ -107,6 +109,28 @@ class LicenceScheduleTimelineServiceTest {
         new TimelineActionView(
             LicenceScheduleTimelineAction.ADD_A_WORK_PROGRAMME_ACTIVITY,
             ReverseRouter.route(on(WorkProgrammeActivityController.class).renderAddNewActivityForm(licenceScheduleDetail.getId(), null))
+        ),
+        new TimelineActionView(
+            LicenceScheduleTimelineAction.ADD_A_RATE,
+            ReverseRouter.route(on(LicenceScheduleRateController.class).renderNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null))
+        )
+    );
+
+    assertThat(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail))
+        .usingRecursiveComparison()
+        .isEqualTo(expectedResult);
+  }
+
+  @Test
+  void getLicenceScheduleTimelineActions_actionsDisabled() {
+    when(licenceTypeRulesResolver.arePhasesCaptured(licence.getType())).thenReturn(false);
+    when(licenceTypeRulesResolver.hasWorkProgramme(licence.getType())).thenReturn(false);
+    when(licenceTypeRulesResolver.hasRentalRate(licence.getType())).thenReturn(false);
+
+    var expectedResult = List.of(
+        new TimelineActionView(
+            LicenceScheduleTimelineAction.ADD_A_TERM,
+            ReverseRouter.route(on(LicenceScheduleTermController.class).renderAddNewTermForm(licenceScheduleDetail.getId(), null))
         )
     );
 

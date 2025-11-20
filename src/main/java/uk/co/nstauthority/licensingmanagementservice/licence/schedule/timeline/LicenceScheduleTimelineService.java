@@ -69,6 +69,10 @@ public class LicenceScheduleTimelineService {
       actions.add(LicenceScheduleTimelineAction.ADD_A_WORK_PROGRAMME_ACTIVITY);
     }
 
+    if (licenceTypeRulesResolver.hasRentalRate(licenceType)) {
+      actions.add(LicenceScheduleTimelineAction.ADD_A_RATE);
+    }
+
     return actions.stream()
         .sorted(Comparator.comparing(LicenceScheduleTimelineAction::getDisplayOrder))
         .map(action -> toTimelineActionView(action, licenceScheduleDetail))

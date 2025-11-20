@@ -52,6 +52,7 @@ errorSummaryItems=errorSummaryItems
                             yearPath="form.dueDateInput.yearInput.inputValue"
                             labelText="Due date"
                             formId="due-date-input"
+                            nestingPath="form.workProgrammeActivityDateOption"
                         />
                     </#if>
 
@@ -60,6 +61,7 @@ errorSummaryItems=errorSummaryItems
                             path="form.licenceScheduleTermId"
                             options=termOptions
                             labelText="Term work programme activity must be completed within"
+                            nestingPath="form.workProgrammeActivityDateOption"
                         />
                     </#if>
 
@@ -68,6 +70,7 @@ errorSummaryItems=errorSummaryItems
                             path="form.licenceSchedulePhaseId"
                             options=phaseOptions
                             labelText="Phase work programme activity must be completed within"
+                            nestingPath="form.workProgrammeActivityDateOption"
                         />
                     </#if>
                 </@fdsRadio.radioItem>
@@ -80,7 +83,7 @@ errorSummaryItems=errorSummaryItems
             labelText="Comments"
         />
 
-        <@fdsAction.submitButtons primaryButtonText="Save" secondaryLinkText="Cancel" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>
+        <@fdsAction.submitButtons primaryButtonText="Save and complete" secondaryLinkText="Cancel" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>
 
     </@fdsForm.htmlForm>
 </@defaultPage>

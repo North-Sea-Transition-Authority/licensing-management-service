@@ -5,6 +5,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.util.function.Function;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -27,6 +28,12 @@ ADD_A_WORK_PROGRAMME_ACTIVITY(
     3,
         licenceScheduleDetail -> ReverseRouter.route(on(WorkProgrammeActivityController.class)
         .renderAddNewActivityForm(licenceScheduleDetail.getId(), null))
+),
+ADD_A_RATE(
+    "Add a rate",
+    4,
+        licenceScheduleDetail -> ReverseRouter.route(on(LicenceScheduleRateController.class)
+            .renderNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null))
 );
 
   private final String displayText;

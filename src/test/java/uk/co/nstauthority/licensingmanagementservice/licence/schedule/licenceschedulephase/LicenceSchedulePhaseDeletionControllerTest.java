@@ -92,7 +92,7 @@ class LicenceSchedulePhaseDeletionControllerTest extends AbstractControllerTest 
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(LICENCE_SCHEDULE_PHASE_ID)).thenReturn(licenceSchedulePhase);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceSchedulePhaseDeletionController.class).submitDeletePhasePage(LICENCE_SCHEDULE_PHASE_ID)))
+            post(ReverseRouter.route(on(LicenceSchedulePhaseDeletionController.class).submitDeletePhasePage(LICENCE_SCHEDULE_PHASE_ID, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )

@@ -6,6 +6,7 @@
 <@defaultPage
 htmlTitle=pageTitle
 pageHeading=pageTitle
+caption=pageCaption
 pageSize=PageSize.TWO_THIRDS_COLUMN
 errorSummaryItems=errorSummaryItems>
     <@fdsForm.htmlForm>

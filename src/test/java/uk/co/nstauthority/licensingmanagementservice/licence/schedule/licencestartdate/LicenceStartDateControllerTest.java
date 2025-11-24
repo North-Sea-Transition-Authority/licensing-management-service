@@ -50,6 +50,8 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
   private LicenceScheduleDetail licenceScheduleDetail;
   private static final UUID LICENCE_SCHEDULE_DETAIL_ID = UUID.randomUUID();
 
+  private static final String PAGE_CAPTION = "pageCaption";
+
   @BeforeEach
   void setUp() {
     organisationUser = ServiceUserDetailTestUtil.newBuilder()
@@ -66,6 +68,8 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
 
   @SecurityTest
   void renderLicenceStartDateForm() throws Exception {
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
+
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateForm(LICENCE_ID, null)))
                 .with(user(organisationUser))
@@ -73,7 +77,8 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/startDate"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
-        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(StartLicenceScheduleJourneyController.class).renderStartLicenceScheduleJourney(LICENCE_ID))));
+        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(StartLicenceScheduleJourneyController.class).renderStartLicenceScheduleJourney(LICENCE_ID, null))))
+        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
   }
 
   @SecurityTest
@@ -95,6 +100,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
   @SecurityTest
   void submitLicenceStartDateForm_invalidForm() throws Exception {
     when(licenceStartDateValidator.isValid(any(), any())).thenReturn(false);
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceStartDateController.class).submitLicenceStartDateForm(LICENCE_ID, null, null, null)))
@@ -104,12 +110,13 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/startDate"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
-        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(StartLicenceScheduleJourneyController.class).renderStartLicenceScheduleJourney(LICENCE_ID))));
+        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(StartLicenceScheduleJourneyController.class).renderStartLicenceScheduleJourney(LICENCE_ID, null))));
   }
 
   @SecurityTest
   void renderLicenceStartDateUpdateForm() throws Exception {
     when(licenceStartDateService.getLicenceStartDateForm(licenceScheduleDetail)).thenReturn(new LicenceStartDateForm());
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateUpdateForm(LICENCE_SCHEDULE_DETAIL_ID, null)))
@@ -118,7 +125,8 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/startDate"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
-        .andExpect(model().attribute("backUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
+        .andExpect(model().attribute("backUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
+        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
   }
 
   @SecurityTest
@@ -142,6 +150,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
   @SecurityTest
   void submitLicenceStartDateUpdateForm_invalidForm() throws Exception {
     when(licenceStartDateValidator.isValid(any(), any())).thenReturn(false);
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceStartDateController.class).submitLicenceStartDateUpdateForm(LICENCE_SCHEDULE_DETAIL_ID, null, null, null)))
@@ -151,6 +160,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/startDate"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
-        .andExpect(model().attribute("backUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
+        .andExpect(model().attribute("backUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
+        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
   }
 }

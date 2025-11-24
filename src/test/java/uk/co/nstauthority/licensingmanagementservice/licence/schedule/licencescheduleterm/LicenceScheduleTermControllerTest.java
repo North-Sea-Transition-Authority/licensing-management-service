@@ -52,13 +52,16 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
   private LicenceScheduleTerm licenceScheduleTerm;
   private static final UUID LICENCE_SCHEDULE_TERM_ID = UUID.randomUUID();
 
+  private Licence licence;
+  private static final String PAGE_CAPTION = "page caption";
+
   @BeforeEach
   void setUp() {
     organisationUser = ServiceUserDetailTestUtil.newBuilder()
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
 
-    var licence = new Licence();
+    licence = new Licence();
     licence.setType(LicenceType.SEAWARD_PRODUCTION);
 
     var licenceSchedule = new LicenceSchedule();
@@ -77,6 +80,7 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
 
   @SecurityTest
   void renderAddNewTermForm() throws Exception {
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(licenceScheduleDetailService.getByIdOrThrow(LICENCE_SCHEDULE_DETAIL_ID)).thenReturn(licenceScheduleDetail);
 
     mockMvc.perform(
@@ -86,7 +90,8 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createScheduleTerm"))
         .andExpect(model().attribute("radioOptions", TermType.getTermRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)))
-        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
+        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
+        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
   }
 
   @Test
@@ -106,6 +111,7 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
 
   @Test
   void submitAddNewTermForm_invalidForm() throws Exception {
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(licenceScheduleDetailService.getByIdOrThrow(LICENCE_SCHEDULE_DETAIL_ID)).thenReturn(licenceScheduleDetail);
     when(licenceScheduleTermFormValidator.isValid(any(), any(), any())).thenReturn(false);
 
@@ -116,13 +122,15 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createScheduleTerm"))
-        .andExpect(model().attribute("radioOptions", TermType.getTermRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)));
+        .andExpect(model().attribute("radioOptions", TermType.getTermRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)))
+        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
 
     verify(licenceScheduleTermFormService, never()).saveTermFromForm(any(), any(), any());
   }
 
   @SecurityTest
   void renderUpdateTermForm() throws Exception {
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(licenceScheduleTermService.getTermByIdOrThrow(LICENCE_SCHEDULE_TERM_ID)).thenReturn(licenceScheduleTerm);
     when(licenceScheduleTermFormService.getTermForm(licenceScheduleTerm)).thenReturn(new LicenceScheduleTermForm());
 
@@ -133,7 +141,8 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createScheduleTerm"))
         .andExpect(model().attribute("radioOptions", TermType.getTermRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)))
-        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
+        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
+        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
   }
 
   @Test
@@ -153,6 +162,7 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
 
   @Test
   void submitUpdateTermForm_invalidForm() throws Exception {
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(licenceScheduleTermService.getTermByIdOrThrow(LICENCE_SCHEDULE_TERM_ID)).thenReturn(licenceScheduleTerm);
     when(licenceScheduleTermFormValidator.isValidUpdate(any(), any(), any(), any())).thenReturn(false);
 
@@ -163,7 +173,8 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createScheduleTerm"))
-        .andExpect(model().attribute("radioOptions", TermType.getTermRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)));
+        .andExpect(model().attribute("radioOptions", TermType.getTermRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)))
+        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
 
     verify(licenceScheduleTermFormService, never()).saveTermFromForm(any(), any(), any());
   }

@@ -44,6 +44,8 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
 
   private Licence licence;
+  private static final String PAGE_CAPTION = "page caption";
+
   private LicenceScheduleDetail licenceScheduleDetail;
 
   @BeforeEach
@@ -65,6 +67,7 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
 
   @SecurityTest
   void renderAddNewActivityForm() throws Exception {
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(workProgrammeActivityFormService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(workProgrammeActivityFormService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
@@ -81,7 +84,8 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("activityDateRadioOptions", Map.of()))
         .andExpect(model().attribute("termOptions", Map.of()))
         .andExpect(model().attribute("phaseOptions", Map.of()))
-        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
+        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
+        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
   }
 
   @Test
@@ -101,6 +105,7 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
 
   @Test
   void submitAddNewActivityForm_invalid() throws Exception {
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(workProgrammeActivityFormValidator.isValid(any(), any(), eq(licenceScheduleDetail))).thenReturn(false);
     when(workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(workProgrammeActivityFormService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
@@ -119,7 +124,8 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("activityDateRadioOptions", Map.of()))
         .andExpect(model().attribute("termOptions", Map.of()))
         .andExpect(model().attribute("phaseOptions", Map.of()))
-        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
+        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
+        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
 
     verify(workProgrammeActivityFormService, never()).saveActivityFromForm(any(), any());
   }

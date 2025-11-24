@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
@@ -20,15 +21,18 @@ public class LicenceSchedulePhaseController {
   private final LicenceSchedulePhaseFormService licenceSchedulePhaseFormService;
   private final LicenceSchedulePhaseFormValidator licenceSchedulePhaseFormValidator;
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
+  private final LicenceService licenceService;
 
   public LicenceSchedulePhaseController(
       LicenceSchedulePhaseFormService licenceSchedulePhaseFormService,
       LicenceSchedulePhaseFormValidator licenceSchedulePhaseFormValidator,
-      LicenceSchedulePhaseService licenceSchedulePhaseService
+      LicenceSchedulePhaseService licenceSchedulePhaseService,
+      LicenceService licenceService
   ) {
     this.licenceSchedulePhaseFormService = licenceSchedulePhaseFormService;
     this.licenceSchedulePhaseFormValidator = licenceSchedulePhaseFormValidator;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
+    this.licenceService = licenceService;
   }
 
   @GetMapping("/{licenceScheduleDetailId}/phase/create")
@@ -83,12 +87,13 @@ public class LicenceSchedulePhaseController {
   }
   
   private ModelAndView getSchedulePhaseModelAndView(LicenceSchedulePhaseForm form, LicenceScheduleDetail licenceScheduleDetail) {
-    var licenceType = licenceScheduleDetail.getLicenceSchedule().getLicence().getType();
+    var licence = licenceScheduleDetail.getLicenceSchedule().getLicence();
 
     return new ModelAndView("lms/licence/schedule/createSchedulePhase")
         .addObject("form", form)
-        .addObject("radioOptions", PhaseType.getPhaseRadioOptionsFor(licenceType))
-        .addObject("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl());
+        .addObject("radioOptions", PhaseType.getPhaseRadioOptionsFor(licence.getType()))
+        .addObject("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl())
+        .addObject("pageCaption", licenceService.getLicencePageCaption(licence));
   }
 
 }

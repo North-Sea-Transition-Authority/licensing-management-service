@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 
@@ -46,13 +48,19 @@ public class LicenceScheduleTermDeletionController {
 
   @PostMapping
   public ModelAndView submitDeleteTermPage(
-      @PathVariable UUID licenceScheduleTermId
+      @PathVariable UUID licenceScheduleTermId,
+      RedirectAttributes redirectAttributes
   ) {
     var term = licenceScheduleTermService.getTermByIdOrThrow(licenceScheduleTermId);
     var licenceScheduleDetail = term.getLicenceScheduleDetail();
     licenceScheduleTermService.deleteTerm(term);
 
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+
+    NotificationBanner.newSuccessBanner()
+        .withHeadingContent(String.format("%s has been deleted", term.getTermType().getDisplayName()))
+        .applyTo(redirectAttributes);
+
     return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
   }
 

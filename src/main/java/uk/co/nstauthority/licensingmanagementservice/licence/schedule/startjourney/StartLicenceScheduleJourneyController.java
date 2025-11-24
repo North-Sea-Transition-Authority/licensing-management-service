@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -15,10 +17,20 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @RequestMapping("licence/{licenceId}/schedule/start")
 public class StartLicenceScheduleJourneyController {
 
+  private final LicenceService licenceService;
+
+  public StartLicenceScheduleJourneyController(LicenceService licenceService) {
+    this.licenceService = licenceService;
+  }
+
   @GetMapping
-  public ModelAndView renderStartLicenceScheduleJourney(@PathVariable Integer licenceId) {
+  public ModelAndView renderStartLicenceScheduleJourney(
+      @PathVariable Integer licenceId,
+      Licence licence
+  ) {
     return new ModelAndView("lms/licence/schedule/startScheduleJourney")
         .addObject("pageTitle", "Create a new licence schedule")
+        .addObject("pageCaption", licenceService.getLicencePageCaption(licence))
         .addObject("startUrl",
             ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateForm(licenceId, null)))
         .addObject("backUrl",

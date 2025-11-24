@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
@@ -19,15 +20,18 @@ public class LicenceScheduleTermController {
   private final LicenceScheduleTermFormService licenceScheduleTermFormService;
   private final LicenceScheduleTermFormValidator licenceScheduleTermFormValidator;
   private final LicenceScheduleTermService licenceScheduleTermService;
+  private final LicenceService licenceService;
 
   public LicenceScheduleTermController(
       LicenceScheduleTermFormService licenceScheduleTermFormService,
       LicenceScheduleTermFormValidator licenceScheduleTermFormValidator,
-      LicenceScheduleTermService licenceScheduleTermService
+      LicenceScheduleTermService licenceScheduleTermService,
+      LicenceService licenceService
   ) {
     this.licenceScheduleTermFormService = licenceScheduleTermFormService;
     this.licenceScheduleTermFormValidator = licenceScheduleTermFormValidator;
     this.licenceScheduleTermService = licenceScheduleTermService;
+    this.licenceService = licenceService;
   }
 
   @GetMapping("/{licenceScheduleDetailId}/term/create")
@@ -82,11 +86,12 @@ public class LicenceScheduleTermController {
   }
 
   private ModelAndView getScheduleTermModelAndView(LicenceScheduleTermForm form, LicenceScheduleDetail licenceScheduleDetail) {
-    var licenceType = licenceScheduleDetail.getLicenceSchedule().getLicence().getType();
+    var licence = licenceScheduleDetail.getLicenceSchedule().getLicence();
 
     return new ModelAndView("lms/licence/schedule/createScheduleTerm")
         .addObject("form", form)
-        .addObject("radioOptions", TermType.getTermRadioOptionsFor(licenceType))
-        .addObject("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl());
+        .addObject("radioOptions", TermType.getTermRadioOptionsFor(licence.getType()))
+        .addObject("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl())
+        .addObject("pageCaption", licenceService.getLicencePageCaption(licence));
   }
 }

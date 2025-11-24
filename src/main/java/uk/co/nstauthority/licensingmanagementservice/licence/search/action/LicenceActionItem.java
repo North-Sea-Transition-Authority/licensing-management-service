@@ -17,7 +17,7 @@ public enum LicenceActionItem implements Displayable {
       1,
       false,
           licence -> ReverseRouter.route(on(StartLicenceScheduleJourneyController.class)
-              .renderStartLicenceScheduleJourney(licence.getId()))
+              .renderStartLicenceScheduleJourney(licence.getId(), null))
   ),
   EDIT_LICENCE_SCHEDULE(
       "Edit licence schedule",

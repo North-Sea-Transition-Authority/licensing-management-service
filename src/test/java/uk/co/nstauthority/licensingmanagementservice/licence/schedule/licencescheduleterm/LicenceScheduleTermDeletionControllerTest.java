@@ -91,7 +91,7 @@ class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
     when(licenceScheduleTermService.getTermByIdOrThrow(LICENCE_SCHEDULE_TERM_ID)).thenReturn(licenceScheduleTerm);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).submitDeleteTermPage(LICENCE_SCHEDULE_TERM_ID)))
+            post(ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).submitDeleteTermPage(LICENCE_SCHEDULE_TERM_ID, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )

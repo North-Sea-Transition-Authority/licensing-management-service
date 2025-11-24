@@ -23,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
@@ -52,13 +53,16 @@ class LicenceSchedulePhaseControllerTest extends AbstractControllerTest {
   private LicenceSchedulePhase licenceSchedulePhase;
   private static final UUID LICENCE_SCHEDULE_PHASE_ID = UUID.randomUUID();
 
+  private Licence licence;
+  private static final String PAGE_CAPTION = "page caption";
+
   @BeforeEach
   void setUp() {
     organisationUser = ServiceUserDetailTestUtil.newBuilder()
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
 
-    var licence = LicenceTestUtil.builder()
+   licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
         .build();
@@ -79,6 +83,8 @@ class LicenceSchedulePhaseControllerTest extends AbstractControllerTest {
 
   @SecurityTest
   void renderAddNewPhaseForm() throws Exception {
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
+
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderAddNewPhaseForm(LICENCE_SCHEDULE_DETAIL_ID, null)))
                 .with(user(organisationUser))
@@ -86,7 +92,8 @@ class LicenceSchedulePhaseControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createSchedulePhase"))
         .andExpect(model().attribute("radioOptions", PhaseType.getPhaseRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)))
-        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
+        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
+        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
   }
 
   @Test
@@ -105,6 +112,7 @@ class LicenceSchedulePhaseControllerTest extends AbstractControllerTest {
 
   @Test
   void submitAddNewPhaseForm_invalidForm() throws Exception {
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(licenceSchedulePhaseFormValidator.isValid(any(), any(), any())).thenReturn(false);
 
     mockMvc.perform(
@@ -115,13 +123,15 @@ class LicenceSchedulePhaseControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createSchedulePhase"))
         .andExpect(model().attribute("radioOptions", PhaseType.getPhaseRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)))
-        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
+        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
+        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
 
     verify(licenceSchedulePhaseFormService, never()).savePhaseFromForm(any(), any(), any());
   }
 
   @SecurityTest
   void renderUpdatePhaseForm() throws Exception {
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(LICENCE_SCHEDULE_PHASE_ID)).thenReturn(licenceSchedulePhase);
     when(licenceSchedulePhaseFormService.getPhaseForm(licenceSchedulePhase)).thenReturn(new LicenceSchedulePhaseForm());
 
@@ -132,7 +142,8 @@ class LicenceSchedulePhaseControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createSchedulePhase"))
         .andExpect(model().attribute("radioOptions", PhaseType.getPhaseRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)))
-        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
+        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
+        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
   }
 
   @Test

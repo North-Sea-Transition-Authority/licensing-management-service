@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
@@ -25,15 +26,18 @@ public class LicenceStartDateController {
   private final LicenceStartDateValidator licenceStartDateValidator;
   private final LicenceStartDateService licenceStartDateService;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
+  private final LicenceService licenceService;
 
   public LicenceStartDateController(
       LicenceStartDateValidator licenceStartDateValidator,
       LicenceStartDateService licenceStartDateService,
-      LicenceScheduleCalculationService licenceScheduleCalculationService
+      LicenceScheduleCalculationService licenceScheduleCalculationService,
+      LicenceService licenceService
   ) {
     this.licenceStartDateValidator = licenceStartDateValidator;
     this.licenceStartDateService = licenceStartDateService;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
+    this.licenceService = licenceService;
   }
 
   @GetMapping("/licence/{licenceId}/schedule/start-date")
@@ -43,7 +47,8 @@ public class LicenceStartDateController {
   ) {
     return getScheduleDetailsModelAndView(
         new LicenceStartDateForm(),
-        ReverseRouter.route(on(StartLicenceScheduleJourneyController.class).renderStartLicenceScheduleJourney(licenceId))
+        ReverseRouter.route(on(StartLicenceScheduleJourneyController.class).renderStartLicenceScheduleJourney(licenceId, null)),
+        licence
     );
   }
 
@@ -57,8 +62,8 @@ public class LicenceStartDateController {
     if (!licenceStartDateValidator.isValid(form, bindingResult)) {
       return getScheduleDetailsModelAndView(
           form,
-          ReverseRouter.route(on(StartLicenceScheduleJourneyController.class).renderStartLicenceScheduleJourney(licenceId))
-      );
+          ReverseRouter.route(on(StartLicenceScheduleJourneyController.class).renderStartLicenceScheduleJourney(licenceId, null)),
+          licence);
     }
     var scheduleDetailId = licenceStartDateService.saveNewLicenceStartDateFromForm(form, licence)
         .getLicenceScheduleDetail().getId();
@@ -73,8 +78,8 @@ public class LicenceStartDateController {
   ) {
     return getScheduleDetailsModelAndView(
         licenceStartDateService.getLicenceStartDateForm(licenceScheduleDetail),
-        licenceScheduleDetail.getScheduleTimelineRouteUrl()
-    );
+        licenceScheduleDetail.getScheduleTimelineRouteUrl(),
+        licenceScheduleDetail.getLicenceSchedule().getLicence());
   }
 
   @PostMapping("/licence/schedule/{licenceScheduleDetailId}/start-date")
@@ -87,8 +92,8 @@ public class LicenceStartDateController {
     if (!licenceStartDateValidator.isValid(form, bindingResult)) {
       return getScheduleDetailsModelAndView(
           form,
-          licenceScheduleDetail.getScheduleTimelineRouteUrl()
-      );
+          licenceScheduleDetail.getScheduleTimelineRouteUrl(),
+          licenceScheduleDetail.getLicenceSchedule().getLicence());
     }
 
     licenceStartDateService.saveOrUpdateLicenceStartDateFromForm(form, licenceScheduleDetail);
@@ -97,10 +102,15 @@ public class LicenceStartDateController {
     return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
   }
 
-  private ModelAndView getScheduleDetailsModelAndView(LicenceStartDateForm form, String backUrl) {
+  private ModelAndView getScheduleDetailsModelAndView(
+      LicenceStartDateForm form,
+      String backUrl,
+      Licence licence
+  ) {
     return new ModelAndView("lms/licence/schedule/startDate")
         .addObject("form", form)
         .addObject("pageTitle", PAGE_TITLE)
-        .addObject("backUrl", backUrl);
+        .addObject("backUrl", backUrl)
+        .addObject("pageCaption", licenceService.getLicencePageCaption(licence));
   }
 }

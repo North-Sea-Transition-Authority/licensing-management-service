@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
@@ -18,13 +19,16 @@ public class WorkProgrammeActivityController {
 
   private WorkProgrammeActivityFormService workProgrammeActivityFormService;
   private WorkProgrammeActivityFormValidator workProgrammeActivityFormValidator;
+  private LicenceService licenceService;
 
   public WorkProgrammeActivityController(
       WorkProgrammeActivityFormService workProgrammeActivityFormService,
-      WorkProgrammeActivityFormValidator workProgrammeActivityFormValidator
+      WorkProgrammeActivityFormValidator workProgrammeActivityFormValidator,
+      LicenceService licenceService
   ) {
     this.workProgrammeActivityFormService = workProgrammeActivityFormService;
     this.workProgrammeActivityFormValidator = workProgrammeActivityFormValidator;
+    this.licenceService = licenceService;
   }
 
   @GetMapping("/create")
@@ -52,17 +56,18 @@ public class WorkProgrammeActivityController {
   }
 
   private ModelAndView getActivityModelAndView(WorkProgrammeActivityForm form, LicenceScheduleDetail licenceScheduleDetail) {
-    var licenceType = licenceScheduleDetail.getLicenceSchedule().getLicence().getType();
+    var licence = licenceScheduleDetail.getLicenceSchedule().getLicence();
 
     return new ModelAndView("lms/licence/schedule/createWorkProgrammeActivity")
         .addObject("form", form)
-        .addObject("categoryRadioOptions", WorkProgrammeActivityCategory.getCategoriesForLicenceType(licenceType))
+        .addObject("categoryRadioOptions", WorkProgrammeActivityCategory.getCategoriesForLicenceType(licence.getType()))
         .addObject("commitmentRadioOptions",
             DisplayableEnumOptionUtil.getDisplayableOptions(WorkProgrammeActivityCommitment.class))
         .addObject("activityDateRadioOptions", workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail))
         .addObject("termOptions", workProgrammeActivityFormService.getScheduleTermOptions(licenceScheduleDetail))
         .addObject("phaseOptions", workProgrammeActivityFormService.getSchedulePhaseOptions(licenceScheduleDetail))
-        .addObject("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl());
+        .addObject("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl())
+        .addObject("pageCaption", licenceService.getLicencePageCaption(licence));
   }
 
 }

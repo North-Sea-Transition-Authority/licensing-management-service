@@ -38,7 +38,8 @@
 
         <@fdsFieldset.fieldset
         legendHeading="Provide documents supporting your request"
-        legendHeadingClass="govuk-heading-m">
+        legendHeadingClass="govuk-heading-m"
+        optionalLabel=true>
             <@fdsFileUpload.fileUpload
             path=fileUploadAttributes.path()
             allowedExtensions=fileUploadAttributes.allowedExtensions()

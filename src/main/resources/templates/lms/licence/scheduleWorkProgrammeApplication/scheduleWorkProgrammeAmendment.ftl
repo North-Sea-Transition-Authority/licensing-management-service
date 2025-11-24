@@ -19,6 +19,8 @@
                     dayPath="form.workProgrammeExtensionDuration.days"
                     monthPath="form.workProgrammeExtensionDuration.months"
                     yearPath="form.workProgrammeExtensionDuration.years"
+                    fieldNamePath="form.workProgrammeExtensionDuration.fieldName"
+                    fieldDisplayTextPath="form.workProgrammeExtensionDuration.fieldDisplayText"
                     labelText="How long would you like to request the completion date to be extended by?"
                     formId="amendment-duration"/>
                 </@fdsRadio.radioYes>

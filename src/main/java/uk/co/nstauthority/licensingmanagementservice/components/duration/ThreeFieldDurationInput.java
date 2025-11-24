@@ -2,11 +2,14 @@ package uk.co.nstauthority.licensingmanagementservice.components.duration;
 
 public class ThreeFieldDurationInput {
 
-  private final String fieldName;
-  private final String fieldDisplayText;
+  private String fieldName;
+  private String fieldDisplayText;
   private String days;
   private String months;
   private String years;
+
+  public ThreeFieldDurationInput() {
+  }
 
   public ThreeFieldDurationInput(String fieldName,
                                  String fieldDisplayText

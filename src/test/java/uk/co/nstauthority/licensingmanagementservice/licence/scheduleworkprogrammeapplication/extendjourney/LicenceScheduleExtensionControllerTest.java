@@ -16,6 +16,8 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +32,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
@@ -41,9 +46,6 @@ import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceScheduleExtensionController.class)
 class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
-
-  @MockitoBean
-  private LicenceScheduleExtensionFormService licenceScheduleExtensionFormService;
 
   @MockitoBean
   private LicenceScheduleExtensionService licenceScheduleExtensionService;
@@ -57,15 +59,24 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
   @MockitoBean
   private ScheduleWorkProgrammeApplicationTaskListSectionService scheduleWorkProgrammeApplicationTaskListSectionService;
 
+  @MockitoBean
+  private LicenceSchedulePhaseRepository licenceSchedulePhaseRepository;
+
+  @MockitoBean
+  private LicenceScheduleTermRepository licenceScheduleTermRepository;
+
+
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
 
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail;
+  private LicenceScheduleTermAndPhases validTermAndPhases;
 
   private static final UUID SCHEDULE_APPLICATION_DETAIL_ID = UUID.randomUUID();
 
   @BeforeEach
   void setUp() {
+    validTermAndPhases = new LicenceScheduleTermAndPhases("1", "Term A", Collections.emptyList());
     organisationUser = ServiceUserDetailTestUtil.newBuilder()
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
@@ -88,43 +99,87 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
     scheduleWorkProgrammeApplicationDetail.setId(SCHEDULE_APPLICATION_DETAIL_ID);
     scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(true);
 
-
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(SCHEDULE_APPLICATION_DETAIL_ID)).thenReturn(
         scheduleWorkProgrammeApplicationDetail);
   }
-
 
   @SecurityTest
   void renderExtensionForm() throws Exception {
       LicenceScheduleTerm licenceScheduleTerm = new LicenceScheduleTerm();
       licenceScheduleTerm.setTermType(TermType.APPRAISAL);
-      licenceScheduleTerm.setEndDate(LocalDate.of(2025, 9, 17));
-      when(licenceScheduleExtensionFormService.getCurrentTerm(any())).thenReturn(licenceScheduleTerm);
-      when(licenceScheduleExtensionFormService.getLicenceScheduleExtensionForm(any())).thenReturn(
-          new LicenceScheduleExtensionForm());
+      licenceScheduleTerm.setId(UUID.randomUUID());
+    licenceScheduleTerm.setEndDate(LocalDate.of(1,1,1));
+
+      when(licenceScheduleExtensionService.getCurrentTerm(any())).thenReturn(licenceScheduleTerm);
+      when(licenceScheduleExtensionService.getlicenceScheduleExtensionForm(any())).thenReturn(new LicenceScheduleExtensionForm());
+    when(licenceScheduleExtensionService.getExtendableTermAndPhases(any())).thenReturn(List.of(validTermAndPhases));
+    when(licenceScheduleExtensionService.canExtendMoreThanOneOption(any())).thenReturn(false);
+
       mockMvc.perform(
               get(ReverseRouter.route(
                   on(LicenceScheduleExtensionController.class).renderForm(SCHEDULE_APPLICATION_DETAIL_ID,
                       scheduleWorkProgrammeApplicationDetail)))
                   .with(user(organisationUser)
                   ).with(csrf())
-
           )
-          .andExpect(status().isOk())
-          .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceExtension"))
-          .andExpect(model().attribute("pageTitle", "Extension Details"))
-          .andExpect(model().attribute("currentTerm", licenceScheduleTerm))
-          .andExpect(model().attribute("currentPhase", nullValue()))
-          .andExpect(model().attribute("currentTermEndDate",
-              DateFormatUtil.convertToDisplayText(licenceScheduleTerm.getEndDate())))
+             .andExpect(status().isOk())
+             .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceExtension"))
+             .andExpect(model().attribute("pageTitle", "Extension Details"))
+             .andExpect(model().attribute("validTermsAndPhases", List.of(validTermAndPhases)))
+             .andExpect(model().attribute("canExtendMoreThanOneOption", false))
+             .andExpect(model().attribute("currentTerm", licenceScheduleTerm))
+             .andExpect(model().attribute("currentPhase", nullValue()))
+             .andExpect(model().attribute("currentTermEndDate",
+                 DateFormatUtil.convertToDisplayText(licenceScheduleTerm.getEndDate())))
           .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
               ScheduleWorkProgrammeApplicationTaskListController.class)
               .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
   }
 
+  @SecurityTest
+  void renderExtensionForm_withCurrentPhase() throws Exception {
+    LicenceScheduleTerm licenceScheduleTerm = new LicenceScheduleTerm();
+    licenceScheduleTerm.setTermType(TermType.APPRAISAL);
+    licenceScheduleTerm.setId(UUID.randomUUID());
+    licenceScheduleTerm.setEndDate(LocalDate.of(1,1,1));
+
+    LicenceSchedulePhase currentPhase = new LicenceSchedulePhase();
+    LocalDate phaseEndDate = LocalDate.of(2026, 12, 31);
+    currentPhase.setEndDate(phaseEndDate);
+
+    String expectedPhaseEndDateDisplay = DateFormatUtil.convertToDisplayText(phaseEndDate);
+
+    when(licenceScheduleExtensionService.getCurrentTerm(any())).thenReturn(licenceScheduleTerm);
+
+    when(licenceScheduleExtensionService.getCurrentPhase(licenceScheduleTerm)).thenReturn(currentPhase);
+
+    when(licenceScheduleExtensionService.getlicenceScheduleExtensionForm(any())).thenReturn(new LicenceScheduleExtensionForm());
+    when(licenceScheduleExtensionService.getExtendableTermAndPhases(any())).thenReturn(List.of(validTermAndPhases));
+    when(licenceScheduleExtensionService.canExtendMoreThanOneOption(any())).thenReturn(false);
+
+    mockMvc.perform(
+               get(ReverseRouter.route(
+                   on(LicenceScheduleExtensionController.class).renderForm(SCHEDULE_APPLICATION_DETAIL_ID,
+                                                                           scheduleWorkProgrammeApplicationDetail)))
+                   .with(user(organisationUser)
+                   ).with(csrf())
+           )
+           .andExpect(status().isOk())
+           .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceExtension"))
+           .andExpect(model().attribute("pageTitle", "Extension Details"))
+           .andExpect(model().attribute("currentTerm", licenceScheduleTerm))
+           .andExpect(model().attribute("currentPhase", currentPhase))
+           .andExpect(model().attribute("currentPhaseEndDate", expectedPhaseEndDateDisplay)) // 🚨 NEW ASSERTION
+           .andExpect(model().attribute("currentTermEndDate",
+            DateFormatUtil.convertToDisplayText(licenceScheduleTerm.getEndDate())))
+           .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
+               ScheduleWorkProgrammeApplicationTaskListController.class)
+                .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
+  }
+
   @Test
   void submitValidForm() throws Exception {
-    when(licenceScheduleExtensionFormValidator.isValid(any(), any())).thenReturn(true);
+    when(licenceScheduleExtensionFormValidator.isValid(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(
@@ -135,8 +190,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(licenceScheduleExtensionFormService).saveExtensionForm(any(),
-        eq(scheduleWorkProgrammeApplicationDetail));
+    verify(licenceScheduleExtensionService).saveExtensionForm(any(), eq(scheduleWorkProgrammeApplicationDetail));
   }
 
 
@@ -144,9 +198,13 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
   void submitInvalidForm() throws Exception {
       LicenceScheduleTerm licenceScheduleTerm = new LicenceScheduleTerm();
       licenceScheduleTerm.setTermType(TermType.INITIAL);
-      licenceScheduleTerm.setEndDate(LocalDate.of(2025, 9, 17));
-      when(licenceScheduleExtensionFormService.getCurrentTerm(any())).thenReturn(licenceScheduleTerm);
-      when(licenceScheduleExtensionFormValidator.isValid(any(), any())).thenReturn(false);
+      licenceScheduleTerm.setId(UUID.randomUUID());
+      licenceScheduleTerm.setEndDate(LocalDate.of(1,1,1));
+
+    when(licenceScheduleExtensionService.getCurrentTerm(any())).thenReturn(licenceScheduleTerm);
+    when(licenceScheduleExtensionFormValidator.isValid(any(), any(), any())).thenReturn(false);
+    when(licenceScheduleExtensionService.getExtendableTermAndPhases(any())).thenReturn(List.of(validTermAndPhases));
+    when(licenceScheduleExtensionService.canExtendMoreThanOneOption(any())).thenReturn(false);
 
       mockMvc.perform(
               post(ReverseRouter.route(
@@ -156,16 +214,19 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
                   .with(csrf())
           )
           .andExpect(status().isOk())
-          .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceExtension"))
-          .andExpect(model().attribute("pageTitle", "Extension Details"))
-          .andExpect(model().attribute("currentTerm", licenceScheduleTerm))
-          .andExpect(model().attribute("currentPhase", nullValue()))
-          .andExpect(model().attribute("currentTermEndDate",
-              DateFormatUtil.convertToDisplayText(licenceScheduleTerm.getEndDate())))
-          .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
-              ScheduleWorkProgrammeApplicationTaskListController.class)
-              .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
+             .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceExtension"))
+             .andExpect(model().attribute("pageTitle", "Extension Details"))
+             .andExpect(model().attribute("validTermsAndPhases", List.of(validTermAndPhases)))
+             .andExpect(model().attribute("canExtendMoreThanOneOption", false))
+             .andExpect(model().attribute("currentTerm", licenceScheduleTerm))
+             .andExpect(model().attribute("currentPhase", nullValue()))
+             .andExpect(model().attribute("currentTermEndDate", DateFormatUtil.convertToDisplayText(licenceScheduleTerm.getEndDate())))
+             .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
+                     ScheduleWorkProgrammeApplicationTaskListController.class)
+                                                       .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))
+             ));
 
-      verify(licenceScheduleExtensionFormService, never()).saveExtensionForm(any(), any());
+    verify(licenceScheduleExtensionService, never()).saveExtensionForm(any(), any());
+
+    }
   }
-}

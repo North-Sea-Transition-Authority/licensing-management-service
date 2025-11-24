@@ -20,6 +20,8 @@ errorSummaryItems=errorSummaryItems>
             dayPath="form.termDuration.days"
             monthPath="form.termDuration.months"
             yearPath="form.termDuration.years"
+            fieldNamePath="form.termDuration.fieldName"
+            fieldDisplayTextPath="form.termDuration.fieldDisplayText"
             labelText="How long is the term?"
             formId="licence-term-duration"
         />

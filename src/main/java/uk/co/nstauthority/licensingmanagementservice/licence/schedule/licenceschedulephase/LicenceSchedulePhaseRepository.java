@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -20,4 +21,8 @@ public interface LicenceSchedulePhaseRepository extends JpaRepository<LicenceSch
       LicenceScheduleTerm licenceScheduleTerm,
       LicenceScheduleEventStatus licenceScheduleEventStatus
   );
+
+  boolean existsByLicenceScheduleTermId(UUID id);
+
+  Optional<LicenceSchedulePhase> findById(UUID id);
 }

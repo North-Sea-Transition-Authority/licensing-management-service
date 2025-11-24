@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,8 +10,17 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 @Repository
 public interface LicenceScheduleExtensionRepository extends JpaRepository<LicenceScheduleExtensionRequest, UUID> {
 
-  Optional<LicenceScheduleExtensionRequest> findByScheduleWorkProgrammeApplicationDetails(
+  List<LicenceScheduleExtensionRequest> findAllByScheduleWorkProgrammeApplicationDetails(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail);
+
+  Optional<LicenceScheduleExtensionRequest> findByScheduleWorkProgrammeApplicationDetailsAndLicenceSchedulePhaseId(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
+      UUID phaseId
+  );
+
+  Optional<LicenceScheduleExtensionRequest> findByScheduleWorkProgrammeApplicationDetailsAndLicenceScheduleTermId(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
+      UUID termId);
 
   boolean existsLicenceScheduleExtensionRequestByScheduleWorkProgrammeApplicationDetails(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail);

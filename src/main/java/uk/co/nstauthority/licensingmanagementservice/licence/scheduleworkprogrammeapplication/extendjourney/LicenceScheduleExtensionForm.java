@@ -1,28 +1,38 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney;
 
+import java.util.HashMap;
+import java.util.Map;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationInput;
 
 public class LicenceScheduleExtensionForm {
 
-  private ThreeFieldDurationInput extensionDuration = new ThreeFieldDurationInput("extensionDuration",
-      "extension");
+  private Map<String, ThreeFieldDurationInput> extensionDuration = new HashMap<>();
 
-  private String explanation;
+  private Map<String, Boolean> selectedPhase = new HashMap<>();
 
-  public String getExplanation() {
-    return explanation;
-  }
+  private Map<String, Boolean> selectedTerm = new HashMap<>();
 
-  public void setExplanation(String explanation) {
-    this.explanation = explanation;
-  }
-
-  public ThreeFieldDurationInput getExtensionDuration() {
+  public Map<String, ThreeFieldDurationInput> getExtensionDuration() {
     return extensionDuration;
   }
 
-  public void setExtensionDuration(
-      ThreeFieldDurationInput extensionDuration) {
+  public void setExtensionDuration(Map<String, ThreeFieldDurationInput> extensionDuration) {
     this.extensionDuration = extensionDuration;
+  }
+
+  public Map<String, Boolean> getSelectedPhase() {
+    return selectedPhase;
+  }
+
+  public void setSelectedPhase(Map<String, Boolean> selectedPhase) {
+    this.selectedPhase = selectedPhase;
+  }
+
+  public Map<String, Boolean> getSelectedTerm() {
+    return selectedTerm;
+  }
+
+  public void setSelectedTerm(Map<String, Boolean> selectedTerm) {
+    this.selectedTerm = selectedTerm;
   }
 }

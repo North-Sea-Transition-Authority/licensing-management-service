@@ -7,6 +7,8 @@
 dayPath
 monthPath
 yearPath
+fieldNamePath
+fieldDisplayTextPath
 labelText
 formId
 hintText=""
@@ -40,6 +42,19 @@ moreNestedContent="">
     <#local yearName=fdsUtil.getSpringStatusExpression()>
     <#local yearValue=fdsUtil.getSpringStatusValue()>
     <#local hasYearError=fdsUtil.hasSpringStatusErrors()>
+
+    <@spring.bind fieldNamePath/>
+    <#local fieldNameId=fdsUtil.sanitiseId(spring.status.expression)>
+    <#local fieldName=fdsUtil.getSpringStatusExpression()>
+    <#local fieldNameValue=fdsUtil.getSpringStatusValue()>
+    <#local hasFieldNameError=fdsUtil.hasSpringStatusErrors()>
+
+    <@spring.bind fieldDisplayTextPath/>
+    <#local fieldDisplayTextId=fdsUtil.sanitiseId(spring.status.expression)>
+    <#local fieldDisplayText=fdsUtil.getSpringStatusExpression()>
+    <#local fieldDisplayTextValue=fdsUtil.getSpringStatusValue()>
+    <#local hasFieldDisplayTextError=fdsUtil.hasSpringStatusErrors()>
+
 
 <#--Assign variable, left hand red border styling-->
     <#local hasError = hasDayError || hasMonthError || hasYearError>
@@ -93,6 +108,10 @@ moreNestedContent="">
                     <input class="govuk-input ${inputClass}<#if hasDayError> govuk-input--error</#if> govuk-date-input__input govuk-input--width-2" id="${dayId}" name="${dayName}" type="text" value="${dayValue}">
                 </div>
             </div>
+
+            <input id="${fieldNameId}" name="${fieldName}" type="hidden" value="${fieldNameValue}">
+            <input id="${fieldDisplayTextId}" name="${fieldDisplayText}" type="hidden" value="${fieldDisplayTextValue}">
+
         </div>
     </@dateFieldset.fieldset>
 

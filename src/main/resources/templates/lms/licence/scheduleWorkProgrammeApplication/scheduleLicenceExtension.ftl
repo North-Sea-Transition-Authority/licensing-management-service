@@ -24,18 +24,77 @@
             </#if>
         </@fdsSummaryList.summaryListCard>
 
-        <@duration.threeFieldDuration
-        dayPath="form.extensionDuration.days"
-        monthPath="form.extensionDuration.months"
-        yearPath="form.extensionDuration.years"
-        labelText="How long are you requesting this to be extended by?"
-        formId="extension"
-        />
+        <#if canExtendMoreThanOneOption>
+            <@fdsCheckbox.checkboxGroup
+            path="form.selectedTerm"
+            fieldsetHeadingText="Select the terms and phases you want to extend"
+            fieldsetHeadingSize="h2"
+            fieldsetHeadingClass="govuk-label govuk-label--l"
+            hiddenContent=true>
 
-        <@fdsTextarea.textarea
-        path="form.explanation"
-        labelText="Provide detailed reasons for the extension(s) requested"
-        />
+                <#list validTermsAndPhases as term>
+                    <#if term.termId()??>
+                        <@fdsCheckbox.checkboxItem
+                        path="form.selectedTerm[${term.termId()}]"
+                        labelText="${term.termName()}">
+                            <@duration.threeFieldDuration
+                            dayPath="form.extensionDuration[${term.termId()}].days"
+                            monthPath="form.extensionDuration[${term.termId()}].months"
+                            yearPath="form.extensionDuration[${term.termId()}].years"
+                            nestingPath="form.selectedTerm[${term.termId()}]"
+                            fieldNamePath="form.extensionDuration[${term.termId()}].fieldName"
+                            fieldDisplayTextPath="form.extensionDuration[${term.termId()}].fieldDisplayText"
+                            labelText="How long are you requesting this term to be extended by?"
+                            formId="term-${term.termId()}"/>
+                        </@fdsCheckbox.checkboxItem>
+                    </#if>
+
+                    <#if term.phases()?has_content>
+                        <#list term.phases() as phase>
+                            <@fdsCheckbox.checkboxItem
+                            path="form.selectedPhase[${phase.phaseId()}]"
+                            labelText="${phase.phaseName()}">
+                                <@duration.threeFieldDuration
+                                dayPath="form.extensionDuration[${phase.phaseId()}].days"
+                                monthPath="form.extensionDuration[${phase.phaseId()}].months"
+                                yearPath="form.extensionDuration[${phase.phaseId()}].years"
+                                nestingPath="form.selectedPhase[${phase.phaseId()}]"
+                                fieldNamePath="form.extensionDuration[${phase.phaseId()}].fieldName"
+                                fieldDisplayTextPath="form.extensionDuration[${phase.phaseId()}].fieldDisplayText"
+                                labelText="How long are you requesting this phase to be extended by?"
+                                formId="phase-${phase.phaseId()}"/>
+                            </@fdsCheckbox.checkboxItem>
+                        </#list>
+                    </#if>
+                </#list>
+            </@fdsCheckbox.checkboxGroup>
+        <#else>
+            <#list validTermsAndPhases as term>
+
+                <#if term.termId()??>
+                    <@duration.threeFieldDuration
+                    dayPath="form.extensionDuration[${term.termId()}].days"
+                    monthPath="form.extensionDuration[${term.termId()}].months"
+                    yearPath="form.extensionDuration[${term.termId()}].years"
+                    fieldNamePath="form.extensionDuration[${term.termId()}].fieldName"
+                    fieldDisplayTextPath="form.extensionDuration[${term.termId()}].fieldDisplayText"
+                    labelText="How long are you requesting this term to be extended by?"
+                    formId="term-${term.termId()}"/>
+                </#if>
+
+                <#if term.phases()?size == 1>
+                    <#assign phase = term.phases()[0]>
+                    <@duration.threeFieldDuration
+                    dayPath="form.extensionDuration[${phase.phaseId()}].days"
+                    monthPath="form.extensionDuration[${phase.phaseId()}].months"
+                    yearPath="form.extensionDuration[${phase.phaseId()}].years"
+                    fieldNamePath="form.extensionDuration[${phase.phaseId()}].fieldName"
+                    fieldDisplayTextPath="form.extensionDuration[${phase.phaseId()}].fieldDisplayText"
+                    labelText="How long are you requesting this phase to be extended by?"
+                    formId="phase-${phase.phaseId()}"/>
+                </#if>
+            </#list>
+        </#if>
 
         <@fdsDetails.summaryDetails summaryTitle="What do I need to provide?">
           <p class="govuk-body">Provide detailed reason(s) for requiring an extension, including:</p>

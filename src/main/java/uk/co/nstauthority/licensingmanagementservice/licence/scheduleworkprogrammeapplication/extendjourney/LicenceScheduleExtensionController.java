@@ -23,11 +23,11 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 public class LicenceScheduleExtensionController {
 
   public static final String PAGE_TITLE = "Extension Details";
-  private final LicenceScheduleExtensionFormService licenceScheduleExtensionFormService;
+  private final LicenceScheduleExtensionService licenceScheduleExtensionFormService;
   private final LicenceScheduleExtensionFormValidator licenceScheduleExtensionFormValidator;
 
   public LicenceScheduleExtensionController(
-      LicenceScheduleExtensionFormService licenceScheduleExtensionFormService,
+      LicenceScheduleExtensionService licenceScheduleExtensionFormService,
       LicenceScheduleExtensionFormValidator licenceScheduleExtensionFormValidator
   ) {
     this.licenceScheduleExtensionFormService = licenceScheduleExtensionFormService;
@@ -40,7 +40,7 @@ public class LicenceScheduleExtensionController {
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
     return getModelAndView(
-        licenceScheduleExtensionFormService.getLicenceScheduleExtensionForm(scheduleWorkProgrammeApplicationDetail),
+        licenceScheduleExtensionFormService.getlicenceScheduleExtensionForm(scheduleWorkProgrammeApplicationDetail),
         scheduleWorkProgrammeApplicationDetail
     );
   }
@@ -52,7 +52,7 @@ public class LicenceScheduleExtensionController {
       @ModelAttribute("form") LicenceScheduleExtensionForm form,
       BindingResult bindingResult
   ) {
-    if (!licenceScheduleExtensionFormValidator.isValid(form, bindingResult)) {
+    if (!licenceScheduleExtensionFormValidator.isValid(form, bindingResult, scheduleWorkProgrammeApplicationDetail)) {
       return getModelAndView(form, scheduleWorkProgrammeApplicationDetail);
     }
 
@@ -68,25 +68,40 @@ public class LicenceScheduleExtensionController {
     ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationDetail
         .getScheduleWorkProgrammeApplication();
 
-    var currentTerm = licenceScheduleExtensionFormService.getCurrentTerm(
-        scheduleWorkProgrammeApplication.getLicenceScheduleDetail());
-    var currentPhase = licenceScheduleExtensionFormService.getCurrentPhase(
-        scheduleWorkProgrammeApplication.getLicenceScheduleDetail());
-
     var scheduleWorkProgrammeApplicationDetailId = scheduleWorkProgrammeApplicationDetail.getId();
     var modelAndView = new ModelAndView(
-        "lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceExtension");
-    modelAndView.addObject("pageTitle", PAGE_TITLE)
-        .addObject("form", form)
-        .addObject("currentTerm", currentTerm)
-        .addObject("currentPhase", currentPhase)
-        .addObject("currentTermEndDate", DateFormatUtil.convertToDisplayText(currentTerm.getEndDate()))
-        .addObject("cancelUrl", ReverseRouter.route(
-            on(ScheduleWorkProgrammeApplicationTaskListController.class)
-                .getTaskList(scheduleWorkProgrammeApplicationDetailId, null, null
-                )));
-    if (currentPhase != null) {
-      modelAndView.addObject("currentPhaseEndDate", DateFormatUtil.convertToDisplayText(currentPhase.getEndDate()));
+        "lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceExtension")
+                .addObject("pageTitle", PAGE_TITLE)
+                .addObject("form", form)
+                .addObject("currentTerm", licenceScheduleExtensionFormService.getCurrentTerm(
+                        scheduleWorkProgrammeApplication.getLicenceScheduleDetail()))
+                .addObject("currentPhase", licenceScheduleExtensionFormService.getCurrentPhase(
+                        licenceScheduleExtensionFormService.getCurrentTerm(
+                            scheduleWorkProgrammeApplication.getLicenceScheduleDetail())))
+                .addObject("validTermsAndPhases", licenceScheduleExtensionFormService.getExtendableTermAndPhases(
+                        scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getLicenceScheduleDetail()))
+                .addObject("canExtendMoreThanOneOption", licenceScheduleExtensionFormService.canExtendMoreThanOneOption(
+                        licenceScheduleExtensionFormService.getExtendableTermAndPhases(
+                        scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getLicenceScheduleDetail())))
+                .addObject("cancelUrl", ReverseRouter.route(
+                        on(ScheduleWorkProgrammeApplicationTaskListController.class)
+                            .getTaskList(scheduleWorkProgrammeApplicationDetailId, null, null)));
+
+    if (licenceScheduleExtensionFormService.getCurrentTerm(
+        scheduleWorkProgrammeApplication.getLicenceScheduleDetail()) != null) {
+      modelAndView.addObject("currentTermEndDate", DateFormatUtil.convertToDisplayText(
+          licenceScheduleExtensionFormService.getCurrentTerm(
+              scheduleWorkProgrammeApplication.getLicenceScheduleDetail())
+                                             .getEndDate()));
+    }
+    if (licenceScheduleExtensionFormService.getCurrentPhase(
+        licenceScheduleExtensionFormService.getCurrentTerm(
+            scheduleWorkProgrammeApplication.getLicenceScheduleDetail())) != null) {
+      modelAndView.addObject("currentPhaseEndDate", DateFormatUtil.convertToDisplayText(
+          licenceScheduleExtensionFormService.getCurrentPhase(
+              licenceScheduleExtensionFormService.getCurrentTerm(
+                  scheduleWorkProgrammeApplication.getLicenceScheduleDetail()))
+                                             .getEndDate()));
     }
     return modelAndView;
   }

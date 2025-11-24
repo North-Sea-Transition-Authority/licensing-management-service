@@ -20,6 +20,8 @@ errorSummaryItems=errorSummaryItems>
             dayPath="form.phaseDuration.days"
             monthPath="form.phaseDuration.months"
             yearPath="form.phaseDuration.years"
+            fieldNamePath="form.phaseDuration.fieldName"
+            fieldDisplayTextPath="form.phaseDuration.fieldDisplayText"
             labelText="How long is the phase?"
             formId="licence-phase-duration"
         />

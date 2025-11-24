@@ -7,20 +7,20 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 
 @Service
 public class LicenceScheduleExtensionSubmissionService {
-  private final LicenceScheduleExtensionFormService licenceScheduleExtensionFormService;
+  private final LicenceScheduleExtensionService licenceScheduleExtensionFormService;
   private final LicenceScheduleExtensionFormValidator licenceScheduleExtensionFormValidator;
 
   public LicenceScheduleExtensionSubmissionService(
-      LicenceScheduleExtensionFormService licenceScheduleExtensionFormService,
+      LicenceScheduleExtensionService licenceScheduleExtensionFormService,
       LicenceScheduleExtensionFormValidator licenceScheduleExtensionFormValidator) {
     this.licenceScheduleExtensionFormService = licenceScheduleExtensionFormService;
     this.licenceScheduleExtensionFormValidator = licenceScheduleExtensionFormValidator;
   }
 
   public boolean isSectionSubmittable(ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
-    var form = licenceScheduleExtensionFormService.getLicenceScheduleExtensionForm(
+    var form = licenceScheduleExtensionFormService.getlicenceScheduleExtensionForm(
         scheduleWorkProgrammeApplicationDetail);
     BindingResult bindingResult = new BeanPropertyBindingResult(form, "form");
-    return licenceScheduleExtensionFormValidator.isValid(form, bindingResult);
+    return licenceScheduleExtensionFormValidator.isValid(form, bindingResult, scheduleWorkProgrammeApplicationDetail);
   }
 }

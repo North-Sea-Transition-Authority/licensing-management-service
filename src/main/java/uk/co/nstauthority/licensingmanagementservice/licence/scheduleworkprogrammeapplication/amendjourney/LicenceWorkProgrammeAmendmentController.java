@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -23,24 +25,29 @@ public class LicenceWorkProgrammeAmendmentController {
   public static final String PAGE_TITLE = "Work programme amendments";
   private final LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
   private final LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator;
+  private final WorkProgrammeActivityService workProgrammeActivityService;
 
   public LicenceWorkProgrammeAmendmentController(
       LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService,
-      LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator
+      LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator,
+      WorkProgrammeActivityService workProgrammeActivityService
   ) {
     this.licenceWorkProgrammeAmendmentService = licenceWorkProgrammeAmendmentService;
     this.licenceWorkProgrammeAmendmentFormValidator = licenceWorkProgrammeAmendmentFormValidator;
+    this.workProgrammeActivityService = workProgrammeActivityService;
   }
 
   @GetMapping
   public ModelAndView renderForm(
       @PathVariable UUID workProgrammeActivityId,
+      WorkProgrammeActivity workProgrammeActivity,
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
     return getModelAndView(
+        workProgrammeActivityId,
         licenceWorkProgrammeAmendmentService.getLicenceWorkProgrammeActivityAmendmentForm(
-            workProgrammeActivityId,
+            workProgrammeActivity,
             scheduleWorkProgrammeApplicationDetail),
             scheduleWorkProgrammeApplicationDetail
     );
@@ -49,36 +56,37 @@ public class LicenceWorkProgrammeAmendmentController {
   @PostMapping
   ModelAndView submitForm(
       @PathVariable UUID workProgrammeActivityId,
+      WorkProgrammeActivity workProgrammeActivity,
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
       @ModelAttribute("form") LicenceWorkProgrammeAmendmentForm form,
       BindingResult bindingResult
   ) {
     if (!licenceWorkProgrammeAmendmentFormValidator.isValid(form, bindingResult)) {
-      return getModelAndView(form, scheduleWorkProgrammeApplicationDetail);
+      return getModelAndView(workProgrammeActivityId, form, scheduleWorkProgrammeApplicationDetail);
     }
 
-    licenceWorkProgrammeAmendmentService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail,
-        workProgrammeActivityId);
+    licenceWorkProgrammeAmendmentService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail, workProgrammeActivity);
 
     return ReverseRouter.redirect(on(LicenceWorkProgrammeAmendmentSummaryController.class)
         .renderForm(scheduleWorkProgrammeApplicationDetailId, null));
   }
 
-  private ModelAndView getModelAndView(LicenceWorkProgrammeAmendmentForm form,
-                                       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
+  private ModelAndView getModelAndView(
+      UUID workProgrammeActivityId,
+      LicenceWorkProgrammeAmendmentForm form,
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  ) {
 
-    UUID scheduleWorkProgrammeApplicationDetailId = scheduleWorkProgrammeApplicationDetail.getId();
     return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeAmendment")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("form", form)
-        .addObject("isLinkedToPhaseOrTerm", isLinkedToPhaseOrTerm())
+        .addObject("workProgrammeActivityDetails", licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentView(
+                scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getLicenceScheduleDetail(),
+                workProgrammeActivityId.toString()))
+        .addObject("isLinkedFixedDate", workProgrammeActivityService.isLinkedToFixedDate(workProgrammeActivityId))
         .addObject("cancelUrl", ReverseRouter.route(
             on(LicenceWorkProgrammeAmendmentSummaryController.class)
-                .renderForm(scheduleWorkProgrammeApplicationDetailId, null)));
-  }
-
-  public boolean isLinkedToPhaseOrTerm() {
-    return true;
+                .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null)));
   }
 }

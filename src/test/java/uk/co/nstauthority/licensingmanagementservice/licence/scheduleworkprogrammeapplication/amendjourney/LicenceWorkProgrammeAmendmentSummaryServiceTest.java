@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,6 +21,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCategory;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,18 +35,22 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
   @Mock
   private LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
 
+  @Mock
+  private WorkProgrammeActivityService workProgrammeActivityService;
+
+
   @InjectMocks
   private LicenceWorkProgrammeAmendmentSummaryService licenceWorkProgrammeAmendmentSummaryService;
 
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail;
   private LicenceWorkProgrammeAmendmentSummary licenceWorkProgrammeAmendmentSummary;
   private LicenceWorkProgrammeAmendmentRequest licenceWorkProgrammeAmendmentRequest;
-  private UUID workProgrammeActivityId;
+  private WorkProgrammeActivity workProgrammeActivity;
 
   @BeforeEach
   void setUp() {
-    workProgrammeActivityId = UUID.randomUUID();
-
+    workProgrammeActivity = new WorkProgrammeActivity();
+    workProgrammeActivity.setId(UUID.randomUUID());
     scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setId(UUID.randomUUID());
 
@@ -52,7 +60,7 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
     licenceWorkProgrammeAmendmentSummary.setLicenceWorkProgrammeAmendmentSummaryOptions(LicenceWorkProgrammeAmendmentSummaryOptions.YES_LATER);
 
     licenceWorkProgrammeAmendmentRequest = new LicenceWorkProgrammeAmendmentRequest();
-    licenceWorkProgrammeAmendmentRequest.setWorkProgrammeActivityId(workProgrammeActivityId);
+    licenceWorkProgrammeAmendmentRequest.setWorkProgrammeActivity(workProgrammeActivity);
     licenceWorkProgrammeAmendmentRequest.setScheduleWorkProgrammeApplicationDetails(scheduleWorkProgrammeApplicationDetail);
     licenceWorkProgrammeAmendmentRequest.setWorkProgrammeExtensionDuration(new ThreeFieldDuration(1, 2, 3));
     licenceWorkProgrammeAmendmentRequest.setWorkProgrammeChangeRequested(true);
@@ -88,6 +96,11 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
 
   @Test
   void createSummaryViewFromWorkProgrammeAmendments_ValidFields() {
+    workProgrammeActivity.setId(UUID.randomUUID());
+    workProgrammeActivity.setCategory(WorkProgrammeActivityCategory.WELL_TEST);
+
+    when(workProgrammeActivityService.findWorkProgrammeActivityByIdOrThrow(any())).thenReturn(workProgrammeActivity);
+
     LicenceWorkProgrammeAmendmentSummaryView result =
         licenceWorkProgrammeAmendmentSummaryService.createSummaryViewFromWorkProgrammeAmendments(
             licenceWorkProgrammeAmendmentRequest, LicenceWorkProgrammeAmendmentSummaryMode.EDIT);
@@ -95,7 +108,7 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
     assertThat(result.summaryMode()).isEqualTo(LicenceWorkProgrammeAmendmentSummaryMode.EDIT);
     assertTrue(result.workProgrammeChangeRequested());
     assertFalse(result.workProgrammeCompletionDateChangeRequested());
-    assertThat(result.workProgrammeAmendmentLabel()).isEqualTo(workProgrammeActivityId.toString());
+    assertThat(result.workProgrammeAmendmentLabel()).isEqualTo(WorkProgrammeActivityCategory.WELL_TEST.getDisplayName());
     assertThat(result.workProgrammeAmendmentInformation()).isEqualTo("Test amendment info");
 
     licenceWorkProgrammeAmendmentRequest.setWorkProgrammeChangeRequested(null);
@@ -114,10 +127,15 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
   @Test
   void getWorkProgrammeAmendmentResultSummaryViews_ReturnsValidViews() {
     LicenceWorkProgrammeAmendmentRequest workProgrammeAmendmentRequest = new LicenceWorkProgrammeAmendmentRequest();
-    workProgrammeAmendmentRequest.setWorkProgrammeActivityId(UUID.randomUUID());
+    workProgrammeAmendmentRequest.setWorkProgrammeActivity(workProgrammeActivity);
     workProgrammeAmendmentRequest.setScheduleWorkProgrammeApplicationDetails(scheduleWorkProgrammeApplicationDetail);
     workProgrammeAmendmentRequest.setWorkProgrammeChangeRequested(false);
     workProgrammeAmendmentRequest.setWorkProgrammeCompletionDateChangeRequested(true);
+
+    workProgrammeActivity.setId(UUID.randomUUID());
+    workProgrammeActivity.setCategory(WorkProgrammeActivityCategory.WELL_TEST);
+
+    when(workProgrammeActivityService.findWorkProgrammeActivityByIdOrThrow(any())).thenReturn(workProgrammeActivity);
 
     when(licenceWorkProgrammeAmendmentService.getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(
         scheduleWorkProgrammeApplicationDetail))

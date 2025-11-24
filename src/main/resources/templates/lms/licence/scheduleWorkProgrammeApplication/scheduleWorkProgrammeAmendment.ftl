@@ -8,7 +8,19 @@
 
     <@fdsForm.htmlForm>
 
-        <#if (isLinkedToPhaseOrTerm)>
+        <@fdsSummaryList.summaryListCard headingText=workProgrammeActivityDetails.category() summaryListId="Work programme amendment activity detail" >
+
+            <@fdsSummaryList.summaryListRowNoAction keyText="Description">
+                ${workProgrammeActivityDetails.description()}
+            </@fdsSummaryList.summaryListRowNoAction>
+
+            <@fdsSummaryList.summaryListRowNoAction  keyText="Due date">
+                ${workProgrammeActivityDetails.dueDate()}
+            </@fdsSummaryList.summaryListRowNoAction>
+
+        </@fdsSummaryList.summaryListCard>
+
+        <#if (!isLinkedFixedDate)>
             <@fdsRadio.radioGroup
             path="form.durationExtensionRequired"
             labelText="Are you requesting an extension to the work programme completion date?"

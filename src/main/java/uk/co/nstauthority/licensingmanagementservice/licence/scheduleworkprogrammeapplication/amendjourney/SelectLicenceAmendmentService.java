@@ -3,53 +3,38 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Service
 public class SelectLicenceAmendmentService {
 
   private final LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
-  private final LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
-  UUID workProgrammeAmendmentId;
+  private final WorkProgrammeActivityService workProgrammeActivityService;
+
 
   public SelectLicenceAmendmentService(
       LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository,
-      LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService) {
+      WorkProgrammeActivityService workProgrammeActivityService
+  ) {
     this.licenceWorkProgrammeAmendmentRepository = licenceWorkProgrammeAmendmentRepository;
-    this.licenceWorkProgrammeAmendmentService = licenceWorkProgrammeAmendmentService;
+    this.workProgrammeActivityService = workProgrammeActivityService;
   }
 
   @Transactional
   public void saveAmendmentForm(UUID workProgrammeActivityId,
                                 SelectLicenceAmendmentForm licenceScheduleAmendmentForm,
                                 ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
-    workProgrammeAmendmentId = workProgrammeActivityId;
     var licenceWorkProgrammeAmendmentRequest = licenceWorkProgrammeAmendmentRepository
-        .findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivityId(scheduleWorkProgrammeApplicationDetail,
-            workProgrammeActivityId)
+        .findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivity(
+            scheduleWorkProgrammeApplicationDetail,
+            workProgrammeActivityService.findWorkProgrammeActivityByIdOrThrow(workProgrammeActivityId))
         .orElse(new LicenceWorkProgrammeAmendmentRequest());
 
     licenceWorkProgrammeAmendmentRequest.setScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail);
-    licenceWorkProgrammeAmendmentRequest.setWorkProgrammeActivityId(
-        licenceScheduleAmendmentForm.getSelectedWorkProgrammeActivityAmendmentId());
+    licenceWorkProgrammeAmendmentRequest.setWorkProgrammeActivity(
+        workProgrammeActivityService.findWorkProgrammeActivityByIdOrThrow(workProgrammeActivityId));
     licenceWorkProgrammeAmendmentRepository.save(licenceWorkProgrammeAmendmentRequest);
   }
-
-  private SelectLicenceAmendmentForm licenceWorkProgramAmendmentToForm(
-      LicenceWorkProgrammeAmendmentRequest licenceWorkProgrammeAmendmentRequest) {
-    var form = new SelectLicenceAmendmentForm();
-    form.setSelectedWorkProgrammeActivityAmendmentId(licenceWorkProgrammeAmendmentRequest.getWorkProgrammeActivityId());
-    return form;
-  }
-
-  public SelectLicenceAmendmentForm getLicenceSelectWorkProgramAmendmentForm(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
-    return licenceWorkProgrammeAmendmentService
-        .getAmendmentRequestByScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail,
-            workProgrammeAmendmentId)
-        .map(this::licenceWorkProgramAmendmentToForm)
-        .orElse(new SelectLicenceAmendmentForm());
-  }
-
 }

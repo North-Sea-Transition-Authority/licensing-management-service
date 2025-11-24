@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Audited
@@ -20,7 +21,8 @@ public class LicenceWorkProgrammeAmendmentRequest {
   @UuidGenerator
   private UUID id;
 
-  private UUID workProgrammeActivityId;
+  @ManyToOne
+  private WorkProgrammeActivity workProgrammeActivity;
 
   @ManyToOne
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetails;
@@ -69,12 +71,12 @@ public class LicenceWorkProgrammeAmendmentRequest {
     this.scheduleWorkProgrammeApplicationDetails = scheduleWorkProgrammeApplicationDetails;
   }
 
-  public UUID getWorkProgrammeActivityId() {
-    return workProgrammeActivityId;
+  public WorkProgrammeActivity getWorkProgrammeActivity() {
+    return workProgrammeActivity;
   }
 
-  public void setWorkProgrammeActivityId(UUID workProgrammeActivityId) {
-    this.workProgrammeActivityId = workProgrammeActivityId;
+  public void setWorkProgrammeActivity(WorkProgrammeActivity workProgrammeActivity) {
+    this.workProgrammeActivity = workProgrammeActivity;
   }
 
   public Boolean getWorkProgrammeCompletionDateChangeRequested() {

@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,14 +22,16 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = SelectLicenceWorkAmendmentController.class)
 class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
-
 
   public static final String PAGE_TITLE = "What work programme activity are you requesting to amend?";
 
@@ -38,6 +41,8 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
   @MockitoBean
   private SelectLicenceAmendmentService selectLicenceAmendmentService;
 
+  @MockitoBean
+  private LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
 
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
@@ -52,10 +57,14 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
 
+    ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication =
+        ScheduleWorkProgrammeApplicationTestUtil.createScheduleWorkProgrammeApplication(new LicenceScheduleDetail());
+
     scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setVersionNumber(1);
     scheduleWorkProgrammeApplicationDetail.setId(SCHEDULE_APPLICATION_DETAIL_ID);
     scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(true);
+    scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
 
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(SCHEDULE_APPLICATION_DETAIL_ID)).thenReturn(
         scheduleWorkProgrammeApplicationDetail);
@@ -65,7 +74,10 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
   @SecurityTest
   void renderSelectAmendmentForm() throws Exception {
     when(selectLicenceAmendmentFormValidator.isValid(any(),any())).thenReturn(true);
-    when(selectLicenceAmendmentService.getLicenceSelectWorkProgramAmendmentForm(scheduleWorkProgrammeApplicationDetail)).thenReturn((new SelectLicenceAmendmentForm()));
+
+    var mockWorkProgrammeActivityAmendmentViews = getMockWorkProgrammeActivityAmendmentViews();
+
+    when(licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentViews(any())).thenReturn(mockWorkProgrammeActivityAmendmentViews);
 
     mockMvc.perform(
             get(ReverseRouter.route(
@@ -75,10 +87,11 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
                 ).with(csrf())
 
         )
-        .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/selectScheduleWorkProgrammeToAmend"))
-        .andExpect(model().attribute("pageTitle", PAGE_TITLE))
-        .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
+           .andExpect(status().isOk())
+           .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/selectScheduleWorkProgrammeToAmend"))
+           .andExpect(model().attribute("pageTitle", PAGE_TITLE))
+           .andExpect(model().attribute("workProgrammeAmendmentViews", mockWorkProgrammeActivityAmendmentViews))
+           .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
             ScheduleWorkProgrammeApplicationTaskListController.class)
             .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
   }
@@ -104,6 +117,12 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
   void submitInvalidForm() throws Exception {
 
     when(selectLicenceAmendmentFormValidator.isValid(any(),any())).thenReturn(false);
+
+    var mockWorkProgrammeActivityAmendmentViews = getMockWorkProgrammeActivityAmendmentViews();
+
+    when(
+        licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentViews(any())).thenReturn(mockWorkProgrammeActivityAmendmentViews);
+
     mockMvc.perform(
             post(ReverseRouter.route(
                 on(SelectLicenceWorkAmendmentController.class).submitForm(SCHEDULE_APPLICATION_DETAIL_ID,
@@ -112,14 +131,27 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
                 ).with(csrf())
 
         )
-        .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/selectScheduleWorkProgrammeToAmend"))
-        .andExpect(model().attribute("pageTitle", PAGE_TITLE))
-        .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
+           .andExpect(status().isOk())
+           .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/selectScheduleWorkProgrammeToAmend"))
+           .andExpect(model().attribute("pageTitle", PAGE_TITLE))
+           .andExpect(model().attribute("workProgrammeAmendmentViews", mockWorkProgrammeActivityAmendmentViews))
+           .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
             ScheduleWorkProgrammeApplicationTaskListController.class)
             .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
 
-    verify(selectLicenceAmendmentService, never()).saveAmendmentForm(any(), any(),any());
+    verify(selectLicenceAmendmentService, never()).saveAmendmentForm(any(), any(), any());
 
+  }
+
+  private List<WorkProgrammeActivityAmendmentView> getMockWorkProgrammeActivityAmendmentViews() {
+    WorkProgrammeActivityAmendmentView mockView = new WorkProgrammeActivityAmendmentView(
+        UUID.randomUUID().toString(),
+        "12/12/2025",
+        "Category A",
+        "Description 1",
+        "Category A Due Date"
+    );
+
+    return List.of(mockView);
   }
 }

@@ -9,6 +9,7 @@ public class DateFormatUtil {
 
   private static final String DISPLAY_DATE_FORMAT = "d MMMM yyyy";
   private static final String DISPLAY_TIME_FORMAT = "HH:mm:ss";
+  public static final String DUE_DATE = "Due date:";
 
   private DateFormatUtil() {
   }
@@ -21,6 +22,10 @@ public class DateFormatUtil {
     return DateTimeFormatter.ofPattern(String.format("%s %s", DISPLAY_DATE_FORMAT, DISPLAY_TIME_FORMAT))
         .withZone(ZoneId.systemDefault())
         .format(instant);
+  }
+
+  public static String convertToDisplayTextWithDueDateLabel(LocalDate date) {
+    return "(" + DUE_DATE + " " + convertToDisplayText(date) + ")";
   }
 
 }

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -24,7 +25,8 @@ public class LicenceWorkProgrammeAmendmentDeleteController {
 
   LicenceWorkProgrammeAmendmentDeleteController(
       LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService,
-      LicenceWorkProgrammeAmendmentSummaryService licenceWorkProgrammeAmendmentSummaryService) {
+      LicenceWorkProgrammeAmendmentSummaryService licenceWorkProgrammeAmendmentSummaryService
+  ) {
     this.licenceWorkProgrammeAmendmentService = licenceWorkProgrammeAmendmentService;
     this.licenceWorkProgrammeAmendmentSummaryService = licenceWorkProgrammeAmendmentSummaryService;
   }
@@ -32,29 +34,29 @@ public class LicenceWorkProgrammeAmendmentDeleteController {
   @GetMapping("/delete")
   public ModelAndView renderForm(
       @PathVariable UUID workProgrammeActivityId,
+      WorkProgrammeActivity workProgrammeActivity,
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
     var licenceWorkProgrammeAmendment =
         licenceWorkProgrammeAmendmentService.getAmendmentRequestByScheduleWorkProgrammeApplicationDetail(
-            scheduleWorkProgrammeApplicationDetail, workProgrammeActivityId).orElse(null);
+            scheduleWorkProgrammeApplicationDetail, workProgrammeActivity).orElse(null);
     return getModelAndView(workProgrammeActivityId, scheduleWorkProgrammeApplicationDetailId, licenceWorkProgrammeAmendment);
   }
 
   @PostMapping("/delete")
   public ModelAndView deleteLicenceWorkProgrammeAmendment(
       @PathVariable UUID workProgrammeActivityId,
+      WorkProgrammeActivity workProgrammeActivity,
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
       RedirectAttributes redirectAttributes
   ) {
     var licenceWorkProgrammeAmendmentRequest = licenceWorkProgrammeAmendmentService
         .getAmendmentRequestByScheduleWorkProgrammeApplicationDetailElseThrow(
-        scheduleWorkProgrammeApplicationDetail, workProgrammeActivityId);
+        scheduleWorkProgrammeApplicationDetail, workProgrammeActivity);
 
-    addRedirectNotification(licenceWorkProgrammeAmendmentRequest.getWorkProgrammeActivityId()
-            .toString(),
-          redirectAttributes);
+    addRedirectNotification(workProgrammeActivity, redirectAttributes);
 
     licenceWorkProgrammeAmendmentService.deleteWorkProgrammeAmendment(licenceWorkProgrammeAmendmentRequest,
           scheduleWorkProgrammeApplicationDetail);
@@ -82,16 +84,18 @@ public class LicenceWorkProgrammeAmendmentDeleteController {
         .addObject("backToSummaryUrl", ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class)
             .renderForm(scheduleWorkProgrammeApplicationDetailId, null)))
         .addObject("actionUrl", ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class)
-            .deleteLicenceWorkProgrammeAmendment(workProgrammeActivityId, scheduleWorkProgrammeApplicationDetailId,
+            .deleteLicenceWorkProgrammeAmendment(workProgrammeActivityId, null, scheduleWorkProgrammeApplicationDetailId,
                 null, null)))
         .addObject("LicenceWorkProgrammeAmendmentSummaryView",
             licenceWorkProgrammeAmendmentSummaryService.createSummaryViewFromWorkProgrammeAmendments(
                 licenceWorkProgrammeAmendmentRequest, LicenceWorkProgrammeAmendmentSummaryMode.VIEW));
   }
 
-  private void addRedirectNotification(String workProgrammeTitle, RedirectAttributes redirectAttributes) {
+  private void addRedirectNotification(WorkProgrammeActivity workProgrammeActivity, RedirectAttributes redirectAttributes) {
+    var workProgrammeActivityCategory = workProgrammeActivity.getCategory().getDisplayName();
+
     NotificationBanner.newSuccessBanner()
-          .withHeadingContent(String.format("Your work programme %s has been deleted", workProgrammeTitle))
+          .withHeadingContent(String.format("Work programme amendment for %s has been deleted", workProgrammeActivityCategory))
           .applyTo(redirectAttributes);
   }
 }

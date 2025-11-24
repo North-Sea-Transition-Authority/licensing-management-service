@@ -15,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authorisation.AccessHandlerInterceptor;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailArgumentResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.mvc.error.ErrorSummaryItemsHandlerInterceptor;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.access.TeamManagementHandlerInterceptor;
@@ -32,6 +33,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
   private final ErrorSummaryItemsHandlerInterceptor errorSummaryItemsHandlerInterceptor;
   private final LicenceArgumentResolver licenceArgumentResolver;
   private final ScheduleWorkProgrammeApplicationDetailArgumentResolver scheduleWorkProgrammeApplicationDetailArgumentResolver;
+  private final WorkProgrammeActivityArgumentResolver workProgrammeActivityArgumentResolver;
   private final LicenceScheduleDetailArgumentResolver licenceScheduleDetailArgumentResolver;
 
   public WebMvcConfiguration(
@@ -42,6 +44,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
       ErrorSummaryItemsHandlerInterceptor errorSummaryItemsHandlerInterceptor,
       LicenceArgumentResolver licenceArgumentResolver,
       ScheduleWorkProgrammeApplicationDetailArgumentResolver scheduleWorkProgrammeApplicationDetailArgumentResolver,
+      WorkProgrammeActivityArgumentResolver workProgrammeActivityArgumentResolver,
       LicenceScheduleDetailArgumentResolver licenceScheduleDetailArgumentResolver
   ) {
     this.serviceUserDetailArgumentResolver = serviceUserDetailArgumentResolver;
@@ -51,6 +54,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
     this.errorSummaryItemsHandlerInterceptor = errorSummaryItemsHandlerInterceptor;
     this.licenceArgumentResolver = licenceArgumentResolver;
     this.scheduleWorkProgrammeApplicationDetailArgumentResolver = scheduleWorkProgrammeApplicationDetailArgumentResolver;
+    this.workProgrammeActivityArgumentResolver = workProgrammeActivityArgumentResolver;
     this.licenceScheduleDetailArgumentResolver = licenceScheduleDetailArgumentResolver;
   }
 
@@ -88,5 +92,6 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
     resolvers.add(licenceArgumentResolver);
     resolvers.add(scheduleWorkProgrammeApplicationDetailArgumentResolver);
     resolvers.add(licenceScheduleDetailArgumentResolver);
+    resolvers.add(workProgrammeActivityArgumentResolver);
   }
 }

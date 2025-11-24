@@ -22,6 +22,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCategory;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListSectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
@@ -50,6 +52,8 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
 
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail;
+  private  WorkProgrammeActivity workProgrammeActivity;
+
 
   private static final UUID SCHEDULE_APPLICATION_DETAIL_ID = UUID.randomUUID();
   private static final UUID WORK_PROGRAMME_ACTIVITY_ID = UUID.randomUUID();
@@ -58,9 +62,10 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
 
   @BeforeEach
   void setUp() {
-
+    workProgrammeActivity = new WorkProgrammeActivity();
+    workProgrammeActivity.setId(WORK_PROGRAMME_ACTIVITY_ID);
     amendmentRequest = new LicenceWorkProgrammeAmendmentRequest();
-    amendmentRequest.setWorkProgrammeActivityId(WORK_PROGRAMME_ACTIVITY_ID);
+    amendmentRequest.setWorkProgrammeActivity(workProgrammeActivity);
 
     organisationUser = ServiceUserDetailTestUtil.newBuilder()
         .withWuaId(ORGANISATION_USER_WUA_ID)
@@ -70,6 +75,9 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
     scheduleWorkProgrammeApplicationDetail.setVersionNumber(1);
     scheduleWorkProgrammeApplicationDetail.setId(SCHEDULE_APPLICATION_DETAIL_ID);
     scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(true);
+
+    workProgrammeActivity.setCategory(WorkProgrammeActivityCategory.WELL_TEST);
+    when(workProgrammeActivityService.findWorkProgrammeActivityByIdOrThrow(any())).thenReturn(workProgrammeActivity);
 
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(SCHEDULE_APPLICATION_DETAIL_ID)).thenReturn(
         scheduleWorkProgrammeApplicationDetail);
@@ -85,8 +93,9 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
 
     mockMvc.perform(
             get(ReverseRouter.route(
-                on(LicenceWorkProgrammeAmendmentDeleteController.class).renderForm(WORK_PROGRAMME_ACTIVITY_ID,SCHEDULE_APPLICATION_DETAIL_ID,
-                    scheduleWorkProgrammeApplicationDetail)))
+                on(LicenceWorkProgrammeAmendmentDeleteController.class).renderForm(WORK_PROGRAMME_ACTIVITY_ID,
+                                                                                   workProgrammeActivity, SCHEDULE_APPLICATION_DETAIL_ID,
+                                                                                   scheduleWorkProgrammeApplicationDetail)))
                 .with(user(organisationUser)
                 ).with(csrf())
         )
@@ -97,7 +106,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
         .andExpect(model().attributeExists("LicenceWorkProgrammeAmendmentSummaryView"));
 
     verify(licenceWorkProgrammeAmendmentService).getAmendmentRequestByScheduleWorkProgrammeApplicationDetail(
-        scheduleWorkProgrammeApplicationDetail, WORK_PROGRAMME_ACTIVITY_ID);
+        scheduleWorkProgrammeApplicationDetail, workProgrammeActivity);
   }
 
   @SecurityTest
@@ -110,8 +119,9 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
 
     mockMvc.perform(
             get(ReverseRouter.route(
-                on(LicenceWorkProgrammeAmendmentDeleteController.class).renderForm(WORK_PROGRAMME_ACTIVITY_ID,SCHEDULE_APPLICATION_DETAIL_ID,
-                    scheduleWorkProgrammeApplicationDetail)))
+                on(LicenceWorkProgrammeAmendmentDeleteController.class).renderForm(WORK_PROGRAMME_ACTIVITY_ID,
+                                                                                   workProgrammeActivity, SCHEDULE_APPLICATION_DETAIL_ID,
+                                                                                   scheduleWorkProgrammeApplicationDetail)))
                 .with(user(organisationUser)
                 ).with(csrf())
         )
@@ -124,7 +134,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
     LicenceWorkProgrammeAmendmentRequest remainingAmendment = new LicenceWorkProgrammeAmendmentRequest();
 
     when(licenceWorkProgrammeAmendmentService.getAmendmentRequestByScheduleWorkProgrammeApplicationDetailElseThrow(
-        scheduleWorkProgrammeApplicationDetail, WORK_PROGRAMME_ACTIVITY_ID))
+        scheduleWorkProgrammeApplicationDetail, workProgrammeActivity))
         .thenReturn(amendmentRequest);
     when(licenceWorkProgrammeAmendmentService.getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(
         scheduleWorkProgrammeApplicationDetail))
@@ -133,7 +143,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
     mockMvc.perform(
             post(ReverseRouter.route(
                 on(LicenceWorkProgrammeAmendmentDeleteController.class).deleteLicenceWorkProgrammeAmendment(
-                    WORK_PROGRAMME_ACTIVITY_ID, SCHEDULE_APPLICATION_DETAIL_ID,
+                    WORK_PROGRAMME_ACTIVITY_ID, workProgrammeActivity, SCHEDULE_APPLICATION_DETAIL_ID,
                     scheduleWorkProgrammeApplicationDetail, null)))
                 .with(user(organisationUser))
                 .with(csrf())
@@ -148,7 +158,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
   @Test
   void deleteWorkProgrammeAmendment_withNoRemainingAmendments() throws Exception {
     when(licenceWorkProgrammeAmendmentService.getAmendmentRequestByScheduleWorkProgrammeApplicationDetailElseThrow(
-        scheduleWorkProgrammeApplicationDetail, WORK_PROGRAMME_ACTIVITY_ID))
+        scheduleWorkProgrammeApplicationDetail, workProgrammeActivity))
         .thenReturn(amendmentRequest);
     when(licenceWorkProgrammeAmendmentService.getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(
         scheduleWorkProgrammeApplicationDetail))
@@ -157,7 +167,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
     mockMvc.perform(
             post(ReverseRouter.route(
                 on(LicenceWorkProgrammeAmendmentDeleteController.class).deleteLicenceWorkProgrammeAmendment(
-                    WORK_PROGRAMME_ACTIVITY_ID, SCHEDULE_APPLICATION_DETAIL_ID,
+                    WORK_PROGRAMME_ACTIVITY_ID, workProgrammeActivity, SCHEDULE_APPLICATION_DETAIL_ID,
                     scheduleWorkProgrammeApplicationDetail, null)))
                 .with(user(organisationUser))
                 .with(csrf())
@@ -173,7 +183,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
 
 
     when(licenceWorkProgrammeAmendmentService.getAmendmentRequestByScheduleWorkProgrammeApplicationDetailElseThrow(
-        scheduleWorkProgrammeApplicationDetail, WORK_PROGRAMME_ACTIVITY_ID))
+        scheduleWorkProgrammeApplicationDetail, workProgrammeActivity))
         .thenReturn(amendmentRequest);
     when(licenceWorkProgrammeAmendmentService.getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(
         scheduleWorkProgrammeApplicationDetail))
@@ -182,7 +192,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
     mockMvc.perform(
             post(ReverseRouter.route(
                 on(LicenceWorkProgrammeAmendmentDeleteController.class).deleteLicenceWorkProgrammeAmendment(
-                    WORK_PROGRAMME_ACTIVITY_ID, SCHEDULE_APPLICATION_DETAIL_ID,
+                    WORK_PROGRAMME_ACTIVITY_ID, workProgrammeActivity, SCHEDULE_APPLICATION_DETAIL_ID,
                     scheduleWorkProgrammeApplicationDetail, null)))
                 .with(user(organisationUser))
                 .with(csrf())

@@ -39,6 +39,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceArgumentReso
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityArgumentResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ControllerAdviceService;
@@ -64,6 +66,7 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     DefaultPageControllerAdvice.class,
     ErrorService.class,
     ServiceUserDetailArgumentResolver.class,
+    WorkProgrammeActivityArgumentResolver.class,
     XyzApplicationArgumentResolver.class,
     WebSecurityConfiguration.class,
     WebMvcConfiguration.class,
@@ -106,6 +109,9 @@ public abstract class AbstractControllerTest {
 
   @MockitoBean
   protected XyzApplicationService xyzApplicationService;
+
+  @MockitoBean
+  protected WorkProgrammeActivityService workProgrammeActivityService;
 
   @MockitoBean
   protected LicenceService licenceService;

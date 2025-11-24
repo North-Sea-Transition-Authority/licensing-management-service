@@ -23,13 +23,16 @@ public class SelectLicenceWorkAmendmentController {
   public static final String PAGE_TITLE = "What work programme activity are you requesting to amend?";
   private final SelectLicenceAmendmentFormValidator selectLicenceAmendmentFormValidator;
   private final SelectLicenceAmendmentService selectLicenceAmendmentService;
+  private final LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
 
   public SelectLicenceWorkAmendmentController(
       SelectLicenceAmendmentFormValidator selectLicenceAmendmentFormValidator,
-      SelectLicenceAmendmentService selectLicenceAmendmentService
+      SelectLicenceAmendmentService selectLicenceAmendmentService,
+      LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService
   ) {
     this.selectLicenceAmendmentFormValidator = selectLicenceAmendmentFormValidator;
     this.selectLicenceAmendmentService = selectLicenceAmendmentService;
+    this.licenceWorkProgrammeAmendmentService = licenceWorkProgrammeAmendmentService;
   }
 
   @GetMapping("/create")
@@ -37,10 +40,7 @@ public class SelectLicenceWorkAmendmentController {
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
-    return getModelAndView(
-        selectLicenceAmendmentService.getLicenceSelectWorkProgramAmendmentForm(scheduleWorkProgrammeApplicationDetail),
-        scheduleWorkProgrammeApplicationDetail
-    );
+    return getModelAndView(new SelectLicenceAmendmentForm(), scheduleWorkProgrammeApplicationDetail);
   }
 
   @PostMapping("/create")
@@ -59,20 +59,22 @@ public class SelectLicenceWorkAmendmentController {
         scheduleWorkProgrammeApplicationDetail);
 
     return ReverseRouter.redirect(on(LicenceWorkProgrammeAmendmentController.class)
-        .renderForm(form.selectedWorkProgrammeActivityAmendmentId, scheduleWorkProgrammeApplicationDetailId, null));
+        .renderForm(form.selectedWorkProgrammeActivityAmendmentId, null, scheduleWorkProgrammeApplicationDetailId, null));
   }
 
-  private ModelAndView getModelAndView(SelectLicenceAmendmentForm form,
-                                       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
+  private ModelAndView getModelAndView(
+      SelectLicenceAmendmentForm form,
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  ) {
 
-
-    UUID scheduleWorkProgrammeApplicationDetailId = scheduleWorkProgrammeApplicationDetail.getId();
     return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/selectScheduleWorkProgrammeToAmend")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("form", form)
-        .addObject("workProgrammeAmendments", MockWorkAmendment.getMockWorkAmendments())
+        .addObject("workProgrammeAmendmentViews", licenceWorkProgrammeAmendmentService
+            .getLicenceWorkProgramAmendmentViews(scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication()
+                                                                                               .getLicenceScheduleDetail()))
         .addObject("cancelUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
-            .getTaskList(scheduleWorkProgrammeApplicationDetailId, null, null
+            .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null
             )));
 
   }

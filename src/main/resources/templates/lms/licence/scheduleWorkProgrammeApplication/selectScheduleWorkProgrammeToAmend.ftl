@@ -5,8 +5,11 @@
         <@fdsRadio.radioGroup path="form.selectedWorkProgrammeActivityAmendmentId" labelText=pageTitle hiddenContent=false fieldsetHeadingSize="h1"
         fieldsetHeadingClass="govuk-fieldset__legend--l"
         noFieldsetHeadingSize="--l">
-            <#list workProgrammeAmendments as wp>
-                <@fdsRadio.radioItem path="form.selectedWorkProgrammeActivityAmendmentId"  itemMap={wp.id : wp.label} itemHintText = wp.description >
+            <#list workProgrammeAmendmentViews as workProgrammeAmendmentView>
+                <@fdsRadio.radioItem
+                path="form.selectedWorkProgrammeActivityAmendmentId"
+                itemMap={workProgrammeAmendmentView.id() : workProgrammeAmendmentView.categoryWithDueDate() }
+                itemHintText=workProgrammeAmendmentView.description()>
                 </@fdsRadio.radioItem>
             </#list>
         </@fdsRadio.radioGroup>

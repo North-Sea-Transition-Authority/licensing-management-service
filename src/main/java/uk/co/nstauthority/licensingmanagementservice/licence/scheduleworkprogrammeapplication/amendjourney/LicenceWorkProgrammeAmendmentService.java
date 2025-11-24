@@ -1,14 +1,19 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationService;
 
@@ -17,23 +22,28 @@ public class LicenceWorkProgrammeAmendmentService {
 
   private final LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
   private final LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator;
+  private final WorkProgrammeActivityService  workProgrammeActivityService;
   private final LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService;
 
   public LicenceWorkProgrammeAmendmentService(
       LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository,
       LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator,
+      WorkProgrammeActivityService workProgrammeActivityService,
       LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService
   ) {
     this.licenceWorkProgrammeAmendmentRepository = licenceWorkProgrammeAmendmentRepository;
     this.licenceWorkProgrammeAmendmentFormValidator = licenceWorkProgrammeAmendmentFormValidator;
+    this.workProgrammeActivityService = workProgrammeActivityService;
     this.licenceScheduleSupportingInformationService = licenceScheduleSupportingInformationService;
   }
 
   public Optional<LicenceWorkProgrammeAmendmentRequest> getAmendmentRequestByScheduleWorkProgrammeApplicationDetail(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail, UUID workProgrammeActivityId) {
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
+      WorkProgrammeActivity workProgrammeActivity
+  ) {
     return licenceWorkProgrammeAmendmentRepository
-        .findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivityId(
-            scheduleWorkProgrammeApplicationDetail, workProgrammeActivityId);
+        .findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivity(
+            scheduleWorkProgrammeApplicationDetail, workProgrammeActivity);
   }
 
   public List<LicenceWorkProgrammeAmendmentRequest> getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(
@@ -59,10 +69,10 @@ public class LicenceWorkProgrammeAmendmentService {
   @Transactional
   public void saveAmendmentForm(LicenceWorkProgrammeAmendmentForm licenceScheduleExtensionForm,
                                 ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
-                                UUID workProgrammeActivityId) {
+                                WorkProgrammeActivity workProgrammeActivity) {
     var licenceWorkProgrammeAmendmentRequest = licenceWorkProgrammeAmendmentRepository
-        .findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivityId(
-            scheduleWorkProgrammeApplicationDetail, workProgrammeActivityId)
+        .findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivity(
+            scheduleWorkProgrammeApplicationDetail, workProgrammeActivity)
         .orElse(new LicenceWorkProgrammeAmendmentRequest());
 
     licenceWorkProgrammeAmendmentRequest.setScheduleWorkProgrammeApplicationDetails(
@@ -91,23 +101,28 @@ public class LicenceWorkProgrammeAmendmentService {
   }
 
   public LicenceWorkProgrammeAmendmentForm getLicenceWorkProgrammeActivityAmendmentForm(
-      UUID workProgrammeActivityId,
+      WorkProgrammeActivity workProgrammeActivity,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
 
     return getAmendmentRequestByScheduleWorkProgrammeApplicationDetail(
-        scheduleWorkProgrammeApplicationDetail, workProgrammeActivityId)
+        scheduleWorkProgrammeApplicationDetail, workProgrammeActivity)
         .map(this::licenceWorkProgramAmendmentToForm)
         .orElse(new LicenceWorkProgrammeAmendmentForm());
   }
 
   public LicenceWorkProgrammeAmendmentRequest getAmendmentRequestByScheduleWorkProgrammeApplicationDetailElseThrow(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail, UUID workProgrammeActivityId) {
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
+      WorkProgrammeActivity workProgrammeActivity
+  ) {
     return licenceWorkProgrammeAmendmentRepository
-        .findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivityId(
-            scheduleWorkProgrammeApplicationDetail, workProgrammeActivityId)
+        .findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivity(
+            scheduleWorkProgrammeApplicationDetail, workProgrammeActivity)
         .orElseThrow(() ->
-            new LmsEntityNotFoundException(
-                String.format("Licence work programme amendment %s request not found", workProgrammeActivityId.toString())));
+                         new LmsEntityNotFoundException(
+                             String.format(
+                                 "Licence work programme amendment %s request not found",
+                                 workProgrammeActivity.getId().toString()
+                             )));
   }
 
   private LicenceWorkProgrammeAmendmentForm licenceWorkProgramAmendmentToForm(
@@ -145,5 +160,60 @@ public class LicenceWorkProgrammeAmendmentService {
               bindingResult
           );
         });
+  }
+
+  public List<WorkProgrammeActivityAmendmentView> getLicenceWorkProgramAmendmentViews(
+      LicenceScheduleDetail licenceScheduleDetail
+  ) {
+    List<WorkProgrammeActivity> workProgrammeActivities = workProgrammeActivityService.getWorkProgrammeActivities(
+        licenceScheduleDetail
+    );
+
+    return workProgrammeActivities
+        .stream()
+        .map(workProgrammeActivity -> {
+          LocalDate dueDate = resolveWorkProgrammeActivityDueDate(workProgrammeActivity);
+          return new WorkProgrammeActivityAmendmentView(
+              workProgrammeActivity.getId().toString(),
+              DateFormatUtil.convertToDisplayText(dueDate),
+              resolveCategory(workProgrammeActivity),
+              workProgrammeActivity.getDescription(),
+              getCategoryWithDueDate(workProgrammeActivity, dueDate)
+          );
+        })
+        .toList();
+  }
+
+  public WorkProgrammeActivityAmendmentView getLicenceWorkProgramAmendmentView(
+      LicenceScheduleDetail licenceScheduleDetail,
+      String workProgrammeActivityId) {
+    return getLicenceWorkProgramAmendmentViews(licenceScheduleDetail)
+        .stream()
+        .filter(workProgrammeActivityAmendmentView -> workProgrammeActivityAmendmentView.id().equals(workProgrammeActivityId))
+        .findFirst()
+        .orElse(null);
+  }
+
+  public String getCategoryWithDueDate(WorkProgrammeActivity activity, LocalDate dueDate) {
+    return resolveCategory(activity) + " " + DateFormatUtil.convertToDisplayTextWithDueDateLabel(dueDate);
+  }
+
+  public LocalDate resolveWorkProgrammeActivityDueDate(WorkProgrammeActivity activity) {
+    WorkProgrammeActivityDateOption dateOption = activity.getDateOption();
+
+    if (dateOption.equals(WorkProgrammeActivityDateOption.WITHIN_A_PHASE)) {
+      return activity.getLicenceSchedulePhase().getEndDate();
+    }
+    if (dateOption.equals(WorkProgrammeActivityDateOption.WITHIN_A_TERM)) {
+      return activity.getLicenceScheduleTerm().getEndDate();
+    }
+    return activity.getDueDate();
+  }
+
+  public String resolveCategory(WorkProgrammeActivity workProgrammeActivity) {
+    if (workProgrammeActivity.getOtherCategoryName() == null) {
+      return workProgrammeActivity.getCategory().getDisplayName();
+    }
+    return workProgrammeActivity.getOtherCategoryName();
   }
 }

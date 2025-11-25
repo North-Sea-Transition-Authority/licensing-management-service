@@ -20,7 +20,7 @@
 
         </@fdsSummaryList.summaryListCard>
 
-        <#if (!isLinkedFixedDate)>
+        <#if (isLinkedFixedDate)>
             <@fdsRadio.radioGroup
             path="form.durationExtensionRequired"
             labelText="Are you requesting an extension to the work programme completion date?"

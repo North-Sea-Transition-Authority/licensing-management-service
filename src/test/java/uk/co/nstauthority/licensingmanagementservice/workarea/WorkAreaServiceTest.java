@@ -22,7 +22,10 @@ class WorkAreaServiceTest {
   private static final Instant INSTANT = Instant.now();
 
   @Mock
-  ScheduleWorkAreaService scheduleWorkAreaService;
+  private ScheduleWorkAreaService scheduleWorkAreaService;
+
+  @Mock
+  private WorkProgrammeApplicationWorkAreaService workProgrammeApplicationWorkAreaService;
 
   Clock clock;
 
@@ -31,7 +34,7 @@ class WorkAreaServiceTest {
   @BeforeEach
   void setUp() {
     clock = Clock.fixed(Instant.from(INSTANT), ZoneId.systemDefault());
-    workAreaService = new WorkAreaService(List.of(scheduleWorkAreaService));
+    workAreaService = new WorkAreaService(List.of(scheduleWorkAreaService, workProgrammeApplicationWorkAreaService));
   }
 
   @Test
@@ -39,13 +42,15 @@ class WorkAreaServiceTest {
     var form = new WorkAreaFilterForm();
     var user = ServiceUserDetailTestUtil.newBuilder().build();
     var oldestItem = SearchResultItem.newBuilder().withTransactionDatetime(clock.instant().minus(2L, ChronoUnit.DAYS)).build();
+    var middleItem = SearchResultItem.newBuilder().withTransactionDatetime(clock.instant().minus(1L, ChronoUnit.DAYS)).build();
     var newestItem = SearchResultItem.newBuilder().withTransactionDatetime(clock.instant()).build();
 
     when(scheduleWorkAreaService.getWorkAreaItems(form, user)).thenReturn(List.of(oldestItem, newestItem));
+    when(workProgrammeApplicationWorkAreaService.getWorkAreaItems(form, user)).thenReturn(List.of(middleItem));
 
     var workAreaResults = workAreaService.getWorkAreaResults(form, user);
 
-    assertThat(workAreaResults).containsExactly(newestItem, oldestItem);
+    assertThat(workAreaResults).containsExactly(newestItem, middleItem, oldestItem);
 
   }
 }

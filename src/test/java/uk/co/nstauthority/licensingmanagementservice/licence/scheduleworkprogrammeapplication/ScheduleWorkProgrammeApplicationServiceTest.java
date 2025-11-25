@@ -77,6 +77,13 @@ class ScheduleWorkProgrammeApplicationServiceTest {
   }
 
   @Test
+  void getAllScheduleWorkProgrammeApplicationDetailsByStatus() {
+    scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT);
+
+    verify(scheduleWorkProgrammeApplicationDetailRepository).findAllByStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT);
+  }
+
+  @Test
   void createNewScheduleWorkProgrammeApplicationForLicence_withValidLicenceAndPermissionTrue() {
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
         .thenReturn(licenceScheduleDetail);

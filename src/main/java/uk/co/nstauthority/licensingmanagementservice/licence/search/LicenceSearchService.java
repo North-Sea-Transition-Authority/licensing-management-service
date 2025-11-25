@@ -63,6 +63,12 @@ public class LicenceSearchService {
     return licenceResponsibleOrganisationService.getAllByLicenceIn(licences);
   }
 
+  public Map<Licence, List<String>> getLicenceToResponsibleOrganisationNameMap(List<Licence> licences) {
+    var responsibleOrganisations = getResponsibleOrganisationsForLicences(licences);
+
+    return getResponsibleOrganisationNamesByLicences(responsibleOrganisations);
+  }
+
   Map<Licence, List<Integer>> getResponsibleOrganisationIds(
       List<LicenceResponsibleOrganisation> licenceResponsibleOrganisations) {
     return licenceResponsibleOrganisations.stream()

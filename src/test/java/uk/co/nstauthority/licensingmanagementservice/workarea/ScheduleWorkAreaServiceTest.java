@@ -19,7 +19,6 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
@@ -71,21 +70,12 @@ class ScheduleWorkAreaServiceTest {
         List.of(licenceScheduleDetail1, licenceScheduleDetail2)
     );
 
-    var responsibleOrg1 = new LicenceResponsibleOrganisation();
-    var responsibleOrg2 = new LicenceResponsibleOrganisation();
-
-    var responsibleOrganisations = List.of(responsibleOrg1, responsibleOrg2);
-
-    when(licenceSearchService.getResponsibleOrganisationsForLicences(List.of(licence1, licence2))).thenReturn(
-        responsibleOrganisations
-    );
-
     var org1 = "Org 1";
     var org2 = "Org 2";
     var orgList1 = List.of(org1, org2);
     var orgList2 = List.of(org1);
     var licenceResponsibleOrgMap = Map.of(licence1, orgList1, licence2, orgList2);
-    when(licenceSearchService.getResponsibleOrganisationNamesByLicences(responsibleOrganisations)).thenReturn(
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence1, licence2))).thenReturn(
         licenceResponsibleOrgMap
     );
 
@@ -155,18 +145,9 @@ class ScheduleWorkAreaServiceTest {
         List.of(licenceScheduleDetail1, licenceScheduleDetail2)
     );
 
-    var responsibleOrg1 = new LicenceResponsibleOrganisation();
-    var responsibleOrg2 = new LicenceResponsibleOrganisation();
-
-    var responsibleOrganisations = List.of(responsibleOrg1, responsibleOrg2);
-
-    when(licenceSearchService.getResponsibleOrganisationsForLicences(List.of(licence2))).thenReturn(
-        responsibleOrganisations
-    );
-
     var org1 = "Org 1";
     var licenceResponsibleOrgMap = Map.of(licence2, List.of(org1));
-    when(licenceSearchService.getResponsibleOrganisationNamesByLicences(responsibleOrganisations)).thenReturn(
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence2))).thenReturn(
         licenceResponsibleOrgMap
     );
 

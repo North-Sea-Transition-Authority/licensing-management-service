@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,9 @@ public class ScheduleWorkProgrammeApplicationService {
   public ScheduleWorkProgrammeApplicationService(
       ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository,
       ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository,
-      LicenceScheduleDetailService licenceScheduleDetailService, Clock clock) {
+      LicenceScheduleDetailService licenceScheduleDetailService,
+      Clock clock
+  ) {
     this.scheduleWorkProgrammeApplicationRepository = scheduleWorkProgrammeApplicationRepository;
     this.scheduleWorkProgrammeApplicationDetailRepository = scheduleWorkProgrammeApplicationDetailRepository;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
@@ -52,7 +55,6 @@ public class ScheduleWorkProgrammeApplicationService {
   public Licence getLicenceFromScheduleWorkProgrammeApplicationDetail(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
-
     return scheduleWorkProgrammeApplicationDetail
         .getScheduleWorkProgrammeApplication()
         .getLicenceScheduleDetail()
@@ -86,6 +88,12 @@ public class ScheduleWorkProgrammeApplicationService {
   public ScheduleWorkProgrammeApplicationDetail getDetailByIdOrThrow(UUID detailId) {
     return scheduleWorkProgrammeApplicationDetailRepository.findById(detailId).orElseThrow(
         () -> new LmsEntityNotFoundException("schedule work programme application detail", detailId));
+  }
+
+  public List<ScheduleWorkProgrammeApplicationDetail> getAllScheduleWorkProgrammeApplicationDetailsByStatus(
+      ScheduleWorkProgrammeApplicationStatus status
+  ) {
+    return scheduleWorkProgrammeApplicationDetailRepository.findAllByStatus(status);
   }
 
   @Transactional
@@ -127,5 +135,4 @@ public class ScheduleWorkProgrammeApplicationService {
         endOfYear
     );
   }
-
 }

@@ -45,9 +45,7 @@ public class ScheduleWorkAreaService implements WorkAreaItemProvider {
         .map(licenceScheduleDetail -> licenceScheduleDetail.getLicenceSchedule().getLicence())
         .toList();
 
-    var responsibleOrganisations = licenceSearchService.getResponsibleOrganisationsForLicences(licences);
-
-    var responsibleOrganisationNames = licenceSearchService.getResponsibleOrganisationNamesByLicences(responsibleOrganisations);
+    var responsibleOrganisationNames = licenceSearchService.getLicenceToResponsibleOrganisationNameMap(licences);
 
     return licenceSchedules.stream()
         .map(licenceScheduleDetail -> getScheduleWorkAreaItem(licenceScheduleDetail, responsibleOrganisationNames))
@@ -60,7 +58,7 @@ public class ScheduleWorkAreaService implements WorkAreaItemProvider {
     var licence = licenceScheduleDetail.getLicenceSchedule().getLicence();
     var createdDatetime = licenceScheduleDetail.getCreatedInstant();
     var licensees = responsibleOrganisationNamesByLicences.getOrDefault(
-            licenceScheduleDetail.getLicenceSchedule().getLicence(),
+            licence,
             List.of()
         )
         .stream()

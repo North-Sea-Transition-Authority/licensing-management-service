@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -22,6 +23,9 @@ public class ScheduleWorkProgrammeApplication {
   @JoinColumn(name = "licence_schedule_detail_id")
   private LicenceScheduleDetail licenceScheduleDetail;
 
+  @Column
+  private String applicationReference;
+
   public UUID getId() {
     return id;
   }
@@ -36,5 +40,13 @@ public class ScheduleWorkProgrammeApplication {
 
   public void setLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
     this.licenceScheduleDetail = licenceScheduleDetail;
+  }
+
+  public String getApplicationReference() {
+    return applicationReference;
+  }
+
+  public void setApplicationReference(String applicationReference) {
+    this.applicationReference = applicationReference;
   }
 }

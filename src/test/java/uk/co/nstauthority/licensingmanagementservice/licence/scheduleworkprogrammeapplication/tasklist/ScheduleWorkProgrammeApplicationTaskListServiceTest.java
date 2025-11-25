@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -21,11 +22,17 @@ class ScheduleWorkProgrammeApplicationTaskListServiceTest {
   @Mock
   private ScheduleWorkProgrammeApplicationTaskListSectionService scheduleWorkProgrammeApplicationTaskListSectionService;
 
+  @Mock
+  private LicenceScheduleReviewAndSubmitTaskListSectionService licenceScheduleReviewAndSubmitTaskListSectionService;
+
   private ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService;
 
   @BeforeEach
   void setUp() {
-    List<TaskListSectionService<ScheduleWorkProgrammeApplicationDetail>> taskListSections = List.of(scheduleWorkProgrammeApplicationTaskListSectionService);
+    List<TaskListSectionService<ScheduleWorkProgrammeApplicationDetail>> taskListSections = List.of(
+        scheduleWorkProgrammeApplicationTaskListSectionService,
+        licenceScheduleReviewAndSubmitTaskListSectionService
+    );
     scheduleWorkProgrammeApplicationTaskListService = new ScheduleWorkProgrammeApplicationTaskListService(taskListSections);
   }
 
@@ -35,8 +42,50 @@ class ScheduleWorkProgrammeApplicationTaskListServiceTest {
     var user = ServiceUserDetailTestUtil.newBuilder().build();
     var section1 = Optional.of(new TaskListSection("Application details", 10, List.of()));
     when(scheduleWorkProgrammeApplicationTaskListSectionService.getSection(applicationDetail, user)).thenReturn(section1);
+    var section2 = Optional.of(new TaskListSection("Review and submit", 20, List.of()));
+    when(licenceScheduleReviewAndSubmitTaskListSectionService.getSection(applicationDetail, user)).thenReturn(section2);
 
     var sections = scheduleWorkProgrammeApplicationTaskListService.getAllSections(applicationDetail, user);
-    assertThat(sections).containsExactly(section1.get());
+    assertThat(sections)
+        .containsExactly(
+            section1.get(),
+            section2.get()
+        );
+  }
+
+  @Test
+  void isSubmittable_allSectionsCompleted_returnsTrue() {
+    var applicationDetail = new ScheduleWorkProgrammeApplicationDetail();
+    var user = ServiceUserDetailTestUtil.newBuilder().build();
+
+    TaskListSection section1 = mock(TaskListSection.class);
+    when(section1.isCompleted()).thenReturn(true);
+    TaskListSection section2 = mock(TaskListSection.class);
+    when(section2.isCompleted()).thenReturn(true);
+
+    when(scheduleWorkProgrammeApplicationTaskListSectionService.getSection(applicationDetail, user)).thenReturn(Optional.of(section1));
+    when(licenceScheduleReviewAndSubmitTaskListSectionService.getSection(applicationDetail, user)).thenReturn(Optional.of(section2));
+
+    boolean result = scheduleWorkProgrammeApplicationTaskListService.isSubmittable(applicationDetail, user);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void isSubmittable_sectionNotCompleted_returnsFalse() {
+    var applicationDetail = new ScheduleWorkProgrammeApplicationDetail();
+    var user = ServiceUserDetailTestUtil.newBuilder().build();
+
+    TaskListSection section1 = mock(TaskListSection.class);
+    when(section1.isCompleted()).thenReturn(true);
+    TaskListSection section2 = mock(TaskListSection.class);
+    when(section2.isCompleted()).thenReturn(false);
+
+    when(scheduleWorkProgrammeApplicationTaskListSectionService.getSection(applicationDetail, user)).thenReturn(Optional.of(section1));
+    when(licenceScheduleReviewAndSubmitTaskListSectionService.getSection(applicationDetail, user)).thenReturn(Optional.of(section2));
+
+    boolean result = scheduleWorkProgrammeApplicationTaskListService.isSubmittable(applicationDetail, user);
+
+    assertThat(result).isFalse();
   }
 }

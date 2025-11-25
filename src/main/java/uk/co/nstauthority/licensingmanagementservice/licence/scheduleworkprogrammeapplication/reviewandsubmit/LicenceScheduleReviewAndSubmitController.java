@@ -6,14 +6,21 @@ import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
+// TODO: LMS1-276 - restrict to applications in DRAFT
 @Controller
 @RequestMapping("/licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/review-and-submit")
 public class LicenceScheduleReviewAndSubmitController {
@@ -21,28 +28,36 @@ public class LicenceScheduleReviewAndSubmitController {
   private final LicenceService licenceService;
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final LicenceScheduleSummarySectionService licenceScheduleSummarySectionService;
+  private final ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService;
 
   public LicenceScheduleReviewAndSubmitController(
       LicenceService licenceService,
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
-      LicenceScheduleSummarySectionService licenceScheduleSummarySectionService
-  ) {
+      LicenceScheduleSummarySectionService licenceScheduleSummarySectionService,
+      ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService) {
     this.licenceService = licenceService;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.licenceScheduleSummarySectionService = licenceScheduleSummarySectionService;
+    this.scheduleWorkProgrammeApplicationTaskListService = scheduleWorkProgrammeApplicationTaskListService;
   }
 
   @GetMapping
   public ModelAndView getReviewAndSubmit(
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
+      ServiceUserDetail user
   ) {
+    var submittable = scheduleWorkProgrammeApplicationTaskListService.isSubmittable(
+        scheduleWorkProgrammeApplicationDetail,
+        user
+    );
 
-    return getModelAndView(scheduleWorkProgrammeApplicationDetail);
+    return getReviewAndSubmitModelAndView(scheduleWorkProgrammeApplicationDetail, submittable);
   }
 
-  private ModelAndView getModelAndView(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  private ModelAndView getReviewAndSubmitModelAndView(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
+      boolean isSubmittable
   ) {
 
     return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/reviewAndSubmit")
@@ -59,6 +74,32 @@ public class LicenceScheduleReviewAndSubmitController {
                 scheduleWorkProgrammeApplicationDetail,
                 null
             ))
-        .addObject("accordionId", scheduleWorkProgrammeApplicationDetail.getId());
+        .addObject("accordionId", scheduleWorkProgrammeApplicationDetail.getId())
+        .addObject("isSubmittable", isSubmittable);
+  }
+
+  @PostMapping
+  public ModelAndView submitApplication(
+      @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
+      ServiceUserDetail user,
+      RedirectAttributes redirectAttributes
+  ) {
+    var submittable = scheduleWorkProgrammeApplicationTaskListService.isSubmittable(
+        scheduleWorkProgrammeApplicationDetail,
+        user
+    );
+
+    if (!submittable) {
+      return getReviewAndSubmitModelAndView(scheduleWorkProgrammeApplicationDetail, submittable);
+    }
+
+    var scheduleWorkProgrammeApplication
+        = scheduleWorkProgrammeApplicationService.submitApplication(scheduleWorkProgrammeApplicationDetail, user);
+
+    return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/submissionConfirmation")
+        .addObject("feedbackUrl", ReverseRouter.route(on(FeedbackController.class).getFeedback(null)))
+        .addObject("workAreaUrl", ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)))
+        .addObject("applicationReference", scheduleWorkProgrammeApplication.getApplicationReference());
   }
 }

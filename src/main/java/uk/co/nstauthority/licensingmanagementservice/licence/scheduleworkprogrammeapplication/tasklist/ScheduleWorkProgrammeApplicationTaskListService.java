@@ -29,4 +29,11 @@ public class ScheduleWorkProgrammeApplicationTaskListService {
         .sorted(Comparator.comparing(TaskListSection::displayOrder))
         .toList();
   }
+
+  public boolean isSubmittable(ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplication,
+                               ServiceUserDetail user) {
+    return getAllSections(scheduleWorkProgrammeApplication, user)
+        .stream()
+        .allMatch(TaskListSection::isCompleted);
+  }
 }

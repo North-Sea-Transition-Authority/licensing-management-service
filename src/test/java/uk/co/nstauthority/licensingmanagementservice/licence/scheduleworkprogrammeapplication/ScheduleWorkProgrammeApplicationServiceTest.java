@@ -1,9 +1,16 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +20,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
@@ -23,6 +31,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 @ExtendWith(MockitoExtension.class)
 class ScheduleWorkProgrammeApplicationServiceTest {
 
+  private static final Instant CURRENT_INSTANT = Instant.now();
+
   @Mock
   private ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository;
 
@@ -31,6 +41,9 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
   @Mock
   private LicenceScheduleDetailService licenceScheduleDetailService;
+
+  @Mock
+  private Clock clock;
 
   @InjectMocks
   private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
@@ -101,5 +114,37 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     assertThat(savedDetail.getAllLicenseesPermissionConfirmed()).isFalse();
 
     assertThat(result).isEqualTo(savedDetail);
+  }
+
+  @Test
+  void submitApplication_withValidDetail_setsReferenceStatusSubmitted() {
+    when(clock.instant()).thenReturn(CURRENT_INSTANT);
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
+    when(scheduleWorkProgrammeApplicationDetailRepository.countByVersionNumberAndStatusAndSubmittedDatetimeBetween(
+        eq(1),
+        eq(ScheduleWorkProgrammeApplicationStatus.SUBMITTED),
+        any(Instant.class),
+        any(Instant.class)
+    )).thenReturn(2);
+
+    var currentYear = LocalDate.now(clock).getYear();
+
+    var user = mock(ServiceUserDetail.class);
+    when(user.wuaId()).thenReturn(1L);
+
+    var result = scheduleWorkProgrammeApplicationService.submitApplication(scheduleWorkProgrammeApplicationDetail, user);
+
+    verify(scheduleWorkProgrammeApplicationRepository).save(scheduleWorkProgrammeApplicationCaptor.capture());
+    ScheduleWorkProgrammeApplication savedApplication = scheduleWorkProgrammeApplicationCaptor.getValue();
+
+    verify(scheduleWorkProgrammeApplicationDetailRepository).save(scheduleWorkProgrammeApplicationDetailCaptor.capture());
+    ScheduleWorkProgrammeApplicationDetail savedDetail = scheduleWorkProgrammeApplicationDetailCaptor.getValue();
+
+    assertThat(savedApplication.getApplicationReference()).isEqualTo(String.format("LMS/EAA/%d/%d", currentYear, 3));
+    assertThat(result).isEqualTo(savedApplication);
+    assertThat(savedDetail.getStatus()).isEqualTo(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    assertThat(savedDetail.getSubmittedByWuaId()).isEqualTo(1L);
+    assertThat(savedDetail.getSubmittedDatetime()).isEqualTo(Instant.now(clock));
   }
 }

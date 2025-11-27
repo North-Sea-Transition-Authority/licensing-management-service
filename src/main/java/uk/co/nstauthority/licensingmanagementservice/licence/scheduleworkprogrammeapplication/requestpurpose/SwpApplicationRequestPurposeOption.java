@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose;
+package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose;
 
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 

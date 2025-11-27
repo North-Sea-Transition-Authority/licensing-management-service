@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose;
+package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose;
 
 import org.springframework.stereotype.Service;
 import org.springframework.validation.Errors;

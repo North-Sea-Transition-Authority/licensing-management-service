@@ -24,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailSe
 import uk.co.nstauthority.licensingmanagementservice.authentication.saml.SamlResponseParser;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.AccessHandlerInterceptor;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasRolesInTeamTypeInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatusInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.branding.CustomerConfigurationProperties;
 import uk.co.nstauthority.licensingmanagementservice.branding.ServiceConfigurationProperties;
 import uk.co.nstauthority.licensingmanagementservice.configuration.AnalyticsConfiguration;
@@ -78,6 +79,7 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     RequestLogFilter.class,
     PostAuthenticationRequestMdcFilter.class,
     HasRolesInTeamTypeInterceptorRule.class,
+    ScheduleAmendmentApplicationHasStatusInterceptorRule.class,
     XyzApplicationArgumentResolver.class,
     AnalyticsConfiguration.class,
     LicenceArgumentResolver.class,

@@ -9,8 +9,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplication;
-import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationStatus;
 
 @Controller
 @RequestMapping("/interceptor-rule-test")
@@ -55,23 +53,5 @@ public class InterceptorRuleTestEndpoints {
   @ActionEndPointInterceptorRule.ActionEndPoint(PROGRESS_APPLICATION)
   String getAction() {
     return "some data action";
-  }
-
-  @GetMapping("xyzapplication-has-status-one-status/{applicationId}")
-  @XyzApplicationHasStatusInterceptorRule.XyzApplicationHasStatus(XyzApplicationStatus.APPROVED)
-  public ResponseEntity<String> xyzApplicationHasStatus_oneStatus(XyzApplication xyzApplication) {
-    return ResponseEntity.ok("xyzApplication has status one status test endpoint");
-  }
-
-  @GetMapping("xyzapplication-has-status-many-statuses/{applicationId}")
-  @XyzApplicationHasStatusInterceptorRule.XyzApplicationHasStatus({XyzApplicationStatus.APPROVED, XyzApplicationStatus.SUBMITTED})
-  public ResponseEntity<String> xyzApplicationHasStatus_manyStatuses(XyzApplication xyzApplication) {
-    return ResponseEntity.ok("xyzApplication has status many statuses test endpoint");
-  }
-
-  @GetMapping("xyzapplication-has-status-no-status/{applicationId}")
-  @XyzApplicationHasStatusInterceptorRule.XyzApplicationHasStatus({})
-  public ResponseEntity<String> xyzApplicationHasStatus_noStatus(XyzApplication xyzApplication) {
-    return ResponseEntity.ok("xyzApplication has status no statuses test endpoint");
   }
 }

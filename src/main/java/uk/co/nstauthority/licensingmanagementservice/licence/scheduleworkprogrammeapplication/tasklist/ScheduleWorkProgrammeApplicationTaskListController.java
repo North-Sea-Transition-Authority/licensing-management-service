@@ -7,24 +7,31 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 
 @Controller
 @RequestMapping("licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/task-list")
+@ScheduleAmendmentApplicationHasStatus(value = ScheduleWorkProgrammeApplicationStatus.DRAFT)
 public class ScheduleWorkProgrammeApplicationTaskListController {
 
   public static final String PAGE_TITLE = "Task list";
 
   private final ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService;
+  private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final LicenceService licenceService;
 
   public ScheduleWorkProgrammeApplicationTaskListController(
       ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService,
+      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
       LicenceService licenceService) {
     this.scheduleWorkProgrammeApplicationTaskListService = scheduleWorkProgrammeApplicationTaskListService;
+    this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.licenceService = licenceService;
   }
 
@@ -39,11 +46,9 @@ public class ScheduleWorkProgrammeApplicationTaskListController {
         serviceUserDetail
     );
 
-    var licence = scheduleWorkProgrammeApplicationDetail
-        .getScheduleWorkProgrammeApplication()
-        .getLicenceScheduleDetail()
-        .getLicenceSchedule()
-        .getLicence();
+    var licence = scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(
+        scheduleWorkProgrammeApplicationDetail
+    );
 
     var modelAndView = new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/taskList")
         .addObject("taskListSections", sections)

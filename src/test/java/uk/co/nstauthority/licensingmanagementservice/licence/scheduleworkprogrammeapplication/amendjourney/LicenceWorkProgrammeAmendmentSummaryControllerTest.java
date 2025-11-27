@@ -20,12 +20,16 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListSectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
@@ -65,6 +69,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
 
     scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setVersionNumber(1);
+    scheduleWorkProgrammeApplicationDetail.setStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT);
     scheduleWorkProgrammeApplicationDetail.setId(SCHEDULE_APPLICATION_DETAIL_ID);
     scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(true);
 
@@ -98,9 +103,8 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
     mockMvc.perform(
             get(ReverseRouter.route(
                 on(LicenceWorkProgrammeAmendmentSummaryController.class).renderForm(
-                    SCHEDULE_APPLICATION_DETAIL_ID, scheduleWorkProgrammeApplicationDetail)))
+                    SCHEDULE_APPLICATION_DETAIL_ID, null)))
                 .with(user(organisationUser))
-                .with(csrf())
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeAmendmentSummary"))
@@ -126,9 +130,8 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
     mockMvc.perform(
             get(ReverseRouter.route(
                 on(LicenceWorkProgrammeAmendmentSummaryController.class).renderForm(
-                    SCHEDULE_APPLICATION_DETAIL_ID, scheduleWorkProgrammeApplicationDetail)))
+                    SCHEDULE_APPLICATION_DETAIL_ID, null)))
                 .with(user(organisationUser))
-                .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
 
@@ -143,7 +146,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
 
     mockMvc.perform(post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class).submitForm(
             SCHEDULE_APPLICATION_DETAIL_ID,
-               scheduleWorkProgrammeApplicationDetail,
+               null,
                null,
                null
            )))
@@ -155,7 +158,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
             .with(csrf()))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(SelectLicenceWorkAmendmentController.class)
-            .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), scheduleWorkProgrammeApplicationDetail))));
+            .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null))));
     verify(licenceWorkProgrammeAmendmentSummaryService).saveWorkProgrammeAmendmentSummaryForm(any(), any());
   }
 
@@ -166,7 +169,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
     mockMvc.perform(
                post(ReverseRouter.route(
                    on(LicenceWorkProgrammeAmendmentSummaryController.class).submitForm(
-                       SCHEDULE_APPLICATION_DETAIL_ID, scheduleWorkProgrammeApplicationDetail, null, null)))
+                       SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
                    .param(
                        "licenceWorkProgrammeAmendmentSummaryOptions",
                        LicenceWorkProgrammeAmendmentSummaryOptions.NO.getEnumName()
@@ -186,7 +189,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
     mockMvc.perform(
                post(ReverseRouter.route(
                    on(LicenceWorkProgrammeAmendmentSummaryController.class).submitForm(
-                       SCHEDULE_APPLICATION_DETAIL_ID, scheduleWorkProgrammeApplicationDetail, null, null)))
+                       SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
                    .param(
                        "licenceWorkProgrammeAmendmentSummaryOptions",
                        LicenceWorkProgrammeAmendmentSummaryOptions.YES_LATER.getEnumName()
@@ -222,7 +225,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
     mockMvc.perform(
             post(ReverseRouter.route(
                 on(LicenceWorkProgrammeAmendmentSummaryController.class).submitForm(
-                    SCHEDULE_APPLICATION_DETAIL_ID, scheduleWorkProgrammeApplicationDetail, form, null)))
+                    SCHEDULE_APPLICATION_DETAIL_ID, null, form, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
@@ -276,9 +279,8 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
     mockMvc.perform(
             get(ReverseRouter.route(
                 on(LicenceWorkProgrammeAmendmentSummaryController.class).renderForm(
-                    SCHEDULE_APPLICATION_DETAIL_ID, scheduleWorkProgrammeApplicationDetail)))
+                    SCHEDULE_APPLICATION_DETAIL_ID, null)))
                 .with(user(organisationUser))
-                .with(csrf())
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeAmendmentSummary"))
@@ -288,5 +290,38 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
 
     verify(licenceWorkProgrammeAmendmentRepository).findAllByScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail);
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void renderPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
+    var id = UUID.randomUUID();
+    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+        .withId(id)
+        .withStatus(status)
+        .build();
+
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class).renderForm(
+        id, null))).with(user(organisationUser))).andExpect(status().isForbidden());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void submitPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
+    var id = UUID.randomUUID();
+    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+        .withId(id)
+        .withStatus(status)
+        .build();
+
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class).submitForm(
+            id, null, null, null)))
+            .with(user(organisationUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden());
   }
 }

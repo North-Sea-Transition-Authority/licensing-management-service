@@ -13,10 +13,14 @@ import jakarta.persistence.ManyToOne;
 import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEntity;
 
 @Audited
 @Entity(name = "schedule_work_programme_application_details")
+@PathVariableEntity(pathVariableName = ScheduleWorkProgrammeApplicationDetail.SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL_ID)
 public class ScheduleWorkProgrammeApplicationDetail {
+
+  public static final String SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL_ID = "scheduleWorkProgrammeApplicationDetailId";
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)

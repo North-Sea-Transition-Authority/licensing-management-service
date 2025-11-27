@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -38,6 +40,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListSectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
@@ -96,6 +100,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
     scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
     scheduleWorkProgrammeApplicationDetail.setVersionNumber(1);
+    scheduleWorkProgrammeApplicationDetail.setStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT);
     scheduleWorkProgrammeApplicationDetail.setId(SCHEDULE_APPLICATION_DETAIL_ID);
     scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(true);
 
@@ -120,7 +125,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
                   on(LicenceScheduleExtensionController.class).renderForm(SCHEDULE_APPLICATION_DETAIL_ID,
                       scheduleWorkProgrammeApplicationDetail)))
                   .with(user(organisationUser)
-                  ).with(csrf())
+                  )
           )
              .andExpect(status().isOk())
              .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceExtension"))
@@ -162,7 +167,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
                    on(LicenceScheduleExtensionController.class).renderForm(SCHEDULE_APPLICATION_DETAIL_ID,
                                                                            scheduleWorkProgrammeApplicationDetail)))
                    .with(user(organisationUser)
-                   ).with(csrf())
+                   )
            )
            .andExpect(status().isOk())
            .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceExtension"))
@@ -229,4 +234,37 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
     verify(licenceScheduleExtensionService, never()).saveExtensionForm(any(), any());
 
     }
+
+  @ParameterizedTest
+  @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void renderPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
+    var id = UUID.randomUUID();
+    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+        .withId(id)
+        .withStatus(status)
+        .build();
+
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceScheduleExtensionController.class).renderForm(
+        id, null))).with(user(organisationUser))).andExpect(status().isForbidden());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void submitPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
+    var id = UUID.randomUUID();
+    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+        .withId(id)
+        .withStatus(status)
+        .build();
+
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicenceScheduleExtensionController.class).submitForm(
+            id, null, null, null)))
+            .with(user(organisationUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden());
+  }
   }

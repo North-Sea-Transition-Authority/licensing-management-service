@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -25,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -47,8 +50,6 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
 
-  private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail;
-
   private static final UUID SCHEDULE_APPLICATION_DETAIL_ID = UUID.randomUUID();
 
   @BeforeEach
@@ -60,9 +61,10 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
     ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication =
         ScheduleWorkProgrammeApplicationTestUtil.createScheduleWorkProgrammeApplication(new LicenceScheduleDetail());
 
-    scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
+    var scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setVersionNumber(1);
     scheduleWorkProgrammeApplicationDetail.setId(SCHEDULE_APPLICATION_DETAIL_ID);
+    scheduleWorkProgrammeApplicationDetail.setStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT);
     scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(true);
     scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
 
@@ -81,10 +83,9 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             get(ReverseRouter.route(
-                on(SelectLicenceWorkAmendmentController.class).renderForm(SCHEDULE_APPLICATION_DETAIL_ID,
-                    scheduleWorkProgrammeApplicationDetail)))
+                on(SelectLicenceWorkAmendmentController.class).renderForm(SCHEDULE_APPLICATION_DETAIL_ID, null)))
                 .with(user(organisationUser)
-                ).with(csrf())
+                )
 
         )
            .andExpect(status().isOk())
@@ -103,7 +104,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
     mockMvc.perform(
             post(ReverseRouter.route(
                 on(SelectLicenceWorkAmendmentController.class).submitForm(SCHEDULE_APPLICATION_DETAIL_ID,
-                    scheduleWorkProgrammeApplicationDetail, null, null)))
+                    null, null, null)))
                 .with(user(organisationUser)
                 ).with(csrf())
 
@@ -125,8 +126,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(
-                on(SelectLicenceWorkAmendmentController.class).submitForm(SCHEDULE_APPLICATION_DETAIL_ID,
-                    scheduleWorkProgrammeApplicationDetail, null, null)))
+                on(SelectLicenceWorkAmendmentController.class).submitForm(SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
                 .with(user(organisationUser)
                 ).with(csrf())
 
@@ -141,6 +141,39 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
 
     verify(selectLicenceAmendmentService, never()).saveAmendmentForm(any(), any(), any());
 
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void renderPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
+    var id = UUID.randomUUID();
+    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+        .withId(id)
+        .withStatus(status)
+        .build();
+
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
+
+    mockMvc.perform(get(ReverseRouter.route(on(SelectLicenceWorkAmendmentController.class).renderForm(
+        id, null))).with(user(organisationUser))).andExpect(status().isForbidden());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void submitPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
+    var id = UUID.randomUUID();
+    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+        .withId(id)
+        .withStatus(status)
+        .build();
+
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
+
+    mockMvc.perform(post(ReverseRouter.route(on(SelectLicenceWorkAmendmentController.class).submitForm(
+            id, null, null, null)))
+            .with(user(organisationUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden());
   }
 
   private List<WorkProgrammeActivityAmendmentView> getMockWorkProgrammeActivityAmendmentViews() {

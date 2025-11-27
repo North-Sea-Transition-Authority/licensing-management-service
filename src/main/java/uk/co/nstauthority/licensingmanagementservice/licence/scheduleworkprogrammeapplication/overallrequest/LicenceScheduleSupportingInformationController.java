@@ -15,8 +15,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.fivium.fileuploadlibrary.fds.FileDeleteResponse;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -44,6 +46,7 @@ public class LicenceScheduleSupportingInformationController {
   }
 
   @GetMapping
+  @ScheduleAmendmentApplicationHasStatus(value = ScheduleWorkProgrammeApplicationStatus.DRAFT)
   public ModelAndView renderForm(
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
@@ -55,6 +58,7 @@ public class LicenceScheduleSupportingInformationController {
   }
 
   @PostMapping
+  @ScheduleAmendmentApplicationHasStatus(value = ScheduleWorkProgrammeApplicationStatus.DRAFT)
   ModelAndView submitForm(
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
@@ -79,8 +83,8 @@ public class LicenceScheduleSupportingInformationController {
     var fileUploadAttributes = fileControllerHelperService.fileUploadComponentAttributes(
         form.getDocuments(),
         this.getClass(),
-        controller -> controller.downloadFile(null, null, null, scheduleWorkProgrammeApplicationDetail.getId()),
-        controller -> controller.deleteFile(null, null, null, scheduleWorkProgrammeApplicationDetail.getId())
+        controller -> controller.downloadFile(null, scheduleWorkProgrammeApplicationDetail.getId(), null, null),
+        controller -> controller.deleteFile(null, scheduleWorkProgrammeApplicationDetail.getId(), null, null)
     );
 
     var modelAndView = new ModelAndView(
@@ -104,9 +108,9 @@ public class LicenceScheduleSupportingInformationController {
   @GetMapping("/files/{fileId}")
   ResponseEntity<InputStreamResource> downloadFile(
       @PathVariable UUID fileId,
+      @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
-      ServiceUserDetail userDetail,
-      @PathVariable UUID scheduleWorkProgrammeApplicationDetailId
+      ServiceUserDetail userDetail
   ) {
     return fileControllerHelperService.download(
         fileId,
@@ -116,11 +120,12 @@ public class LicenceScheduleSupportingInformationController {
   }
 
   @PostMapping("/files/delete/{fileId}")
+  @ScheduleAmendmentApplicationHasStatus(value = ScheduleWorkProgrammeApplicationStatus.DRAFT)
   ResponseEntity<FileDeleteResponse> deleteFile(
       @PathVariable UUID fileId,
+      @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
-      ServiceUserDetail userDetail,
-      @PathVariable UUID scheduleWorkProgrammeApplicationDetailId
+      ServiceUserDetail userDetail
   ) {
     return fileControllerHelperService.delete(
         fileId,

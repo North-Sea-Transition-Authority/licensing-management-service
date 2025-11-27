@@ -14,8 +14,6 @@ import uk.co.nstauthority.licensingmanagementservice.util.RequestUtil;
 @Component
 public class ScheduleWorkProgrammeApplicationDetailArgumentResolver implements HandlerMethodArgumentResolver {
 
-  static final String SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL_ID = "scheduleWorkProgrammeApplicationDetailId";
-
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
 
   public ScheduleWorkProgrammeApplicationDetailArgumentResolver(
@@ -34,10 +32,12 @@ public class ScheduleWorkProgrammeApplicationDetailArgumentResolver implements H
                                 NativeWebRequest webRequest,
                                 WebDataBinderFactory binderFactory) {
     var scheduleWorkProgrammeApplicationDetailId = RequestUtil.getId(((ServletWebRequest) webRequest).getRequest(),
-            SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL_ID)
+            ScheduleWorkProgrammeApplicationDetail.SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL_ID)
         .orElseThrow(() -> new ResponseStatusException(
             HttpStatus.NOT_FOUND,
-            "Missing required %s param".formatted(SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL_ID)
+            "Missing required %s param".formatted(
+                ScheduleWorkProgrammeApplicationDetail.SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL_ID
+            )
         ));
 
     return scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(scheduleWorkProgrammeApplicationDetailId);

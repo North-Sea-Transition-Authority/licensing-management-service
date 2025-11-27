@@ -15,6 +15,7 @@ public class ScheduleWorkProgrammeApplicationTestUtil {
     private UUID id;
     private ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication;
     private Integer versionNumber;
+    private ScheduleWorkProgrammeApplicationStatus status;
     private Boolean allLicenseesPermissionConfirmed;
 
     private Builder() {}
@@ -34,6 +35,11 @@ public class ScheduleWorkProgrammeApplicationTestUtil {
       return this;
     }
 
+    public Builder withStatus(ScheduleWorkProgrammeApplicationStatus status) {
+      this.status = status;
+      return this;
+    }
+
     public Builder withAllLicenseesPermissionConfirmed(Boolean allLicenseesPermissionConfirmed) {
       this.allLicenseesPermissionConfirmed = allLicenseesPermissionConfirmed;
       return this;
@@ -44,6 +50,7 @@ public class ScheduleWorkProgrammeApplicationTestUtil {
       scheduleWorkProgrammeApplicationDetail.setId(id);
       scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
       scheduleWorkProgrammeApplicationDetail.setVersionNumber(versionNumber);
+      scheduleWorkProgrammeApplicationDetail.setStatus(status);
       scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(allLicenseesPermissionConfirmed);
 
       return scheduleWorkProgrammeApplicationDetail;

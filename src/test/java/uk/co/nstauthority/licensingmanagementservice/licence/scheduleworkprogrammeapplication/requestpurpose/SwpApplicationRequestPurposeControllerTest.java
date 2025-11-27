@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose;
+package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.ResultActions;
@@ -25,6 +27,8 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
@@ -56,7 +60,10 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
 
   @BeforeEach
   void setUp() {
-    scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail(SWP_APPLICATION_DETAIL_ID);
+    scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+        .withId(SWP_APPLICATION_DETAIL_ID)
+        .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
+        .build();
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(SWP_APPLICATION_DETAIL_ID)).thenReturn(
         scheduleWorkProgrammeApplicationDetail);
   }
@@ -109,6 +116,39 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
     .andExpect(status().isOk());
 
     expectStandardModelExists(resultActions);
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void renderPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
+    var id = UUID.randomUUID();
+    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+        .withId(id)
+        .withStatus(status)
+        .build();
+
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
+
+    mockMvc.perform(get(ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).renderForm(
+        id, null))).with(user(USER))).andExpect(status().isForbidden());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void submitPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
+    var id = UUID.randomUUID();
+    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+        .withId(id)
+        .withStatus(status)
+        .build();
+
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
+
+    mockMvc.perform(post(ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).submitForm(
+            id, null, null, null)))
+            .with(user(USER))
+            .with(csrf()))
+        .andExpect(status().isForbidden());
   }
 
   private void expectStandardModelExists(ResultActions resultActions) throws Exception {

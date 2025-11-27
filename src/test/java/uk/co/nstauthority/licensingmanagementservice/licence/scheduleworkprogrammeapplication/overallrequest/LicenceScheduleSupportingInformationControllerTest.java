@@ -21,6 +21,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.springframework.http.ResponseEntity;
@@ -35,11 +37,11 @@ import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperSe
 import uk.co.nstauthority.licensingmanagementservice.file.FileUploadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.requestpurpose.SwpApplicationRequestPurpose;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
@@ -86,6 +88,7 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
     scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
     scheduleWorkProgrammeApplicationDetail.setVersionNumber(1);
+    scheduleWorkProgrammeApplicationDetail.setStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT);
     scheduleWorkProgrammeApplicationDetail.setId(SCHEDULE_APPLICATION_DETAIL_ID);
     scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(true);
 
@@ -95,10 +98,6 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
 
   @SecurityTest
   void renderOverallRequestForm() throws Exception {
-    SwpApplicationRequestPurpose swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
-    swpApplicationRequestPurpose.setExtendPhaseOrTerm(true);
-    swpApplicationRequestPurpose.setExtendTerm(true);
-
     when(licenceScheduleExtensionService.isExtensionRequested(scheduleWorkProgrammeApplicationDetail)).thenReturn(true);
 
     when(licenceScheduleSupportingInformationService.getLicenceScheduleRequestForm(any())).thenReturn(
@@ -113,7 +112,7 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
                 on(LicenceScheduleSupportingInformationController.class).renderForm(SCHEDULE_APPLICATION_DETAIL_ID,
                                                                                     scheduleWorkProgrammeApplicationDetail)))
                 .with(user(organisationUser)
-                ).with(csrf())
+                )
         )
         .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceSupportingInformationRequest"))
         .andExpect(status().isOk())
@@ -171,16 +170,9 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
   void download() throws Exception {
     when(fileControllerHelperService.download(any(UUID.class), any(Supplier.class), any(ServiceUserDetail.class))).thenReturn(ResponseEntity.ok().build());
 
-    mockMvc.perform(
-               get(ReverseRouter.route(
-                   on(LicenceScheduleSupportingInformationController.class).downloadFile(
-                       scheduleWorkProgrammeApplicationDetail.getId(),
-                       scheduleWorkProgrammeApplicationDetail, organisationUser,
-                       scheduleWorkProgrammeApplicationDetail.getId())))
-                   .with(user(organisationUser))
-                   .with(csrf())
-           )
-           .andExpect(status().isOk());
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).downloadFile(
+        UUID.randomUUID(), scheduleWorkProgrammeApplicationDetail.getId(), null, null)))
+            .with(user(organisationUser)).with(csrf())).andExpect(status().isOk());
 
     verify(fileControllerHelperService).download(any(), fileUsageSupplierCaptor.capture(), any());
     assertThat(fileUsageSupplierCaptor.getValue().get()).isEqualTo(
@@ -191,20 +183,64 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
   void delete() throws Exception {
     when(fileControllerHelperService.delete(any(UUID.class), any(Supplier.class), any(ServiceUserDetail.class))).thenReturn(ResponseEntity.ok().build());
 
-    mockMvc.perform(
-               post(ReverseRouter.route(
-                   on(LicenceScheduleSupportingInformationController.class).deleteFile(
-                                                UUID.randomUUID(),
-                                                scheduleWorkProgrammeApplicationDetail,
-                                                organisationUser,
-                                                scheduleWorkProgrammeApplicationDetail.getId())))
-                   .with(user(organisationUser))
-                   .with(csrf()))
-           .andExpect(status().isOk());
+    mockMvc.perform(post(ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).deleteFile(
+        UUID.randomUUID(), scheduleWorkProgrammeApplicationDetail.getId(), null, null)))
+        .with(user(organisationUser)).with(csrf())).andExpect(status().isOk());
 
     verify(fileControllerHelperService).delete(any(), fileUsageSupplierCaptor.capture(), any());
     assertThat(fileUsageSupplierCaptor.getValue().get()).isEqualTo(
         LicenceScheduleSupportingInformationFileUsages.fromApplication(scheduleWorkProgrammeApplicationDetail));
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void renderPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
+    var id = UUID.randomUUID();
+    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+        .withId(id)
+        .withStatus(status)
+        .build();
+
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).renderForm(
+        id, null))).with(user(organisationUser))).andExpect(status().isForbidden());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void submitPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
+    var id = UUID.randomUUID();
+    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+        .withId(id)
+        .withStatus(status)
+        .build();
+
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).submitForm(
+            id, null, null, null)))
+            .with(user(organisationUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void deleteFile_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
+    var id = UUID.randomUUID();
+    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+        .withId(id)
+        .withStatus(status)
+        .build();
+
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).deleteFile(
+            UUID.randomUUID(), id, null, null)))
+            .with(user(organisationUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden());
   }
 
 

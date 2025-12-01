@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -13,10 +14,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 @Service
 public class LicenceScheduleExtensionFormValidator {
 
-  private final LicenceScheduleExtensionService licenceScheduleExtensionFormService;
+  private final LicenceScheduleExtensionService licenceScheduleExtensionService;
 
-  public LicenceScheduleExtensionFormValidator(LicenceScheduleExtensionService licenceScheduleExtensionFormService) {
-    this.licenceScheduleExtensionFormService = licenceScheduleExtensionFormService;
+  public LicenceScheduleExtensionFormValidator(LicenceScheduleExtensionService licenceScheduleExtensionService) {
+    this.licenceScheduleExtensionService = licenceScheduleExtensionService;
   }
 
   boolean isValid(
@@ -55,10 +56,8 @@ public class LicenceScheduleExtensionFormValidator {
 
     Map<String, ThreeFieldDurationInput> submittedDurationMap = form.getExtensionDuration();
 
-    var validSchedule = licenceScheduleExtensionFormService.getExtendableTermAndPhases(
-        scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getLicenceScheduleDetail());
-
-    var newLicenceScheduleExtensionForm = licenceScheduleExtensionFormService.getNewLicenceScheduleExtensionForm(validSchedule);
+    List<LicenceScheduleExtensionRequestView> views = licenceScheduleExtensionService
+        .getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail);
 
     if (form.getSelectedPhase() == null) {
       form.setSelectedPhase(new HashMap<>());
@@ -67,11 +66,13 @@ public class LicenceScheduleExtensionFormValidator {
       form.setSelectedTerm(new HashMap<>());
     }
 
-    newLicenceScheduleExtensionForm.getSelectedPhase()
-                                   .forEach((key, defaultValue) -> form.getSelectedPhase().putIfAbsent(key, defaultValue));
-
-    newLicenceScheduleExtensionForm.getSelectedTerm()
-                                   .forEach((key, defaultValue) -> form.getSelectedTerm().putIfAbsent(key, defaultValue));
+    for (LicenceScheduleExtensionRequestView view : views) {
+      if (view.isPhase()) {
+        form.getSelectedPhase().putIfAbsent(view.id(), false);
+      } else {
+        form.getSelectedTerm().putIfAbsent(view.id(), false);
+      }
+    }
 
     form.setExtensionDuration(submittedDurationMap);
   }
@@ -81,16 +82,16 @@ public class LicenceScheduleExtensionFormValidator {
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
 
-    var validSchedule = licenceScheduleExtensionFormService.getExtendableTermAndPhases(
-        scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getLicenceScheduleDetail());
+    var extensionRequestViews = licenceScheduleExtensionService
+        .getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail);
 
     var hasSelectedPhase = form.getSelectedPhase() != null
         && form.getSelectedPhase().values().stream().anyMatch(Boolean.TRUE::equals);
     var hasSelectedTerm = form.getSelectedTerm() != null
         && form.getSelectedTerm().values().stream().anyMatch(Boolean.TRUE::equals);
 
-    var onlyTermsOptionsAvailable = validSchedule.stream().anyMatch(term -> term.termId() != null);
-    var onlyPhaseOptionsAvailable = validSchedule.stream().anyMatch(term -> !term.phases().isEmpty());
+    var onlyTermsOptionsAvailable = extensionRequestViews.stream().anyMatch(view -> !view.isPhase());
+    var onlyPhaseOptionsAvailable = extensionRequestViews.stream().anyMatch(LicenceScheduleExtensionRequestView::isPhase);
 
     var selectionMade = hasSelectedTerm || hasSelectedPhase;
     var bothOptionsAvailable = onlyTermsOptionsAvailable && onlyPhaseOptionsAvailable;

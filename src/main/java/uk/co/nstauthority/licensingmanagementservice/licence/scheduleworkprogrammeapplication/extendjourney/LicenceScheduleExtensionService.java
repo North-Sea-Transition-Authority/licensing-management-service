@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -11,6 +12,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -103,7 +105,7 @@ public class LicenceScheduleExtensionService {
 
     return currentOrFutureTerms
         .stream()
-        .map(term -> mapTermToExtendableTermAndPhases(term, currentOrFutureTerms, today)) // Extracted to private method
+        .map(term -> mapTermToExtendableTermAndPhases(term, currentOrFutureTerms, today))
         .filter(Objects::nonNull)
         .toList();
   }
@@ -179,24 +181,94 @@ public class LicenceScheduleExtensionService {
                                       .toList();
   }
 
+  public List<LicenceScheduleExtensionRequest> getAllExtensionRequestByScheduleWorkProgrammeApplicationDetails(
+      ScheduleWorkProgrammeApplicationDetail detail
+  ) {
+    return licenceScheduleExtensionRepository
+        .findAllByScheduleWorkProgrammeApplicationDetails(detail);
+  }
+
+  public List<LicenceScheduleExtensionRequestView> getLicenceScheduleExtensionViews(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplication
+  ) {
+    var licenceScheduleExtensionRequestMap =
+        getAllExtensionRequestByScheduleWorkProgrammeApplicationDetails(scheduleWorkProgrammeApplication)
+        .stream()
+        .collect(Collectors.toMap(this::getRequestIdString, licenceScheduleExtensionRequest -> licenceScheduleExtensionRequest));
+
+    var extendableTermAndPhases = getExtendableTermAndPhases(
+        scheduleWorkProgrammeApplication.getScheduleWorkProgrammeApplication().getLicenceScheduleDetail()
+    );
+
+    List<LicenceScheduleExtensionRequestView> licenceScheduleExtensionRequestViews = new ArrayList<>();
+
+    extendableTermAndPhases.forEach(licenceScheduleTermAndPhases -> {
+      if (licenceScheduleTermAndPhases.termId() != null) {
+        licenceScheduleExtensionRequestViews.add(createExtensionRequestViewItem(
+            licenceScheduleTermAndPhases.termId(),
+            licenceScheduleTermAndPhases.termName(),
+            false,
+            licenceScheduleExtensionRequestMap
+        ));
+      }
+      if (licenceScheduleTermAndPhases.phases() != null) {
+        for (var phaseItem : licenceScheduleTermAndPhases.phases()) {
+          licenceScheduleExtensionRequestViews.add(createExtensionRequestViewItem(
+              phaseItem.phaseId(),
+              phaseItem.phaseName(),
+              true,
+              licenceScheduleExtensionRequestMap
+          ));
+        }
+      }
+    });
+
+    return licenceScheduleExtensionRequestViews;
+  }
+
   public LicenceScheduleExtensionForm getlicenceScheduleExtensionForm(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
+    var form = new LicenceScheduleExtensionForm();
 
-    var requests = licenceScheduleExtensionRepository
-        .findAllByScheduleWorkProgrammeApplicationDetails(scheduleWorkProgrammeApplicationDetail);
+    getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail).forEach(
+        licenceScheduleExtensionRequestView -> {
+          if (licenceScheduleExtensionRequestView.isPhase()) {
+            form.getSelectedPhase()
+                .put(licenceScheduleExtensionRequestView.id(), licenceScheduleExtensionRequestView.isRequested());
+          } else {
+            form.getSelectedTerm()
+                .put(licenceScheduleExtensionRequestView.id(), licenceScheduleExtensionRequestView.isRequested());
+          }
+          populateExtensionDurationMap(
+              form,
+              licenceScheduleExtensionRequestView.id(),
+              licenceScheduleExtensionRequestView.duration()
+          );
+        });
 
-    var validTermsAndPhases = getExtendableTermAndPhases(
-        scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication()
-                                              .getLicenceScheduleDetail());
-
-    if (requests.isEmpty()) {
-      return getNewLicenceScheduleExtensionForm(validTermsAndPhases);
-    }
-
-    return extensionRequestsToForm(requests, validTermsAndPhases);
+    return form;
   }
 
+  private LicenceScheduleExtensionRequestView createExtensionRequestViewItem(
+      String id, String displayName, boolean isPhase,
+      Map<String, LicenceScheduleExtensionRequest> requestMap
+  ) {
+    var licenceScheduleExtensionRequest = requestMap.get(id);
+    return new LicenceScheduleExtensionRequestView(
+        id,
+        displayName,
+        isPhase,
+        licenceScheduleExtensionRequest != null,
+        licenceScheduleExtensionRequest != null ? licenceScheduleExtensionRequest.getExtensionDuration() : null
+    );
+  }
+
+  private String getRequestIdString(LicenceScheduleExtensionRequest request) {
+    return request.getLicenceSchedulePhase() != null
+           ? request.getLicenceSchedulePhase().getId().toString()
+           : request.getLicenceScheduleTerm().getId().toString();
+  }
 
   public boolean canExtendMoreThanOneOption(List<LicenceScheduleTermAndPhases> validTermsAndPhases) {
     if (validTermsAndPhases == null) {
@@ -369,8 +441,7 @@ public class LicenceScheduleExtensionService {
   private void deleteUnselectedExtensionRequest(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail, Set<String> selectedIds) {
     List<LicenceScheduleExtensionRequest> existingRequests =
-        licenceScheduleExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetails(
-            scheduleWorkProgrammeApplicationDetail);
+        getAllExtensionRequestByScheduleWorkProgrammeApplicationDetails(scheduleWorkProgrammeApplicationDetail);
 
     existingRequests.stream()
                     .filter(extensionRequest -> {
@@ -402,56 +473,4 @@ public class LicenceScheduleExtensionService {
 
     form.getExtensionDuration().put(id, durationInput);
   }
-
-  public LicenceScheduleExtensionForm getNewLicenceScheduleExtensionForm(
-      List<LicenceScheduleTermAndPhases> validTermsAndPhases
-  ) {
-    var form = new LicenceScheduleExtensionForm();
-
-    for (LicenceScheduleTermAndPhases term : validTermsAndPhases) {
-      if (term.termId() != null) {
-        String termKey = term.termId();
-
-        form.getSelectedTerm().put(termKey, false);
-
-        populateExtensionDurationMap(form, termKey, null);
-      }
-
-      if (term.phases() != null) {
-        for (LicenceScheduleTermAndPhases.PhaseDetails phase : term.phases()) {
-          String phaseKey = phase.phaseId();
-
-          form.getSelectedPhase().put(phaseKey, false);
-
-          populateExtensionDurationMap(form, phaseKey, null);
-        }
-      }
-    }
-    return form;
-  }
-
-  private LicenceScheduleExtensionForm extensionRequestsToForm(
-      List<LicenceScheduleExtensionRequest> requests,
-      List<LicenceScheduleTermAndPhases> validTermsAndPhases
-  ) {
-    var form = getNewLicenceScheduleExtensionForm(validTermsAndPhases);
-
-    for (LicenceScheduleExtensionRequest request : requests) {
-      String termOrPhaseId = "";
-
-      if (request.getLicenceSchedulePhase() != null) {
-        termOrPhaseId = request.getLicenceSchedulePhase().getId().toString();
-        form.getSelectedPhase().put(termOrPhaseId, true);
-      } else if (request.getLicenceScheduleTerm() != null) {
-        termOrPhaseId = request.getLicenceScheduleTerm().getId().toString();
-        form.getSelectedTerm().put(termOrPhaseId, true);
-      }
-      populateExtensionDurationMap(form, termOrPhaseId, request.getExtensionDuration());
-    }
-    return form;
-  }
-
-
-
-
 }

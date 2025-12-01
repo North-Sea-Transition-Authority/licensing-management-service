@@ -2,9 +2,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,8 +39,9 @@ class LicenceScheduleExtensionFormValidatorTest {
 
   @Test
   void isValid_whenSinglePhaseIsSelected() {
-
-    when(licenceScheduleExtensionFormService.getNewLicenceScheduleExtensionForm(any())).thenReturn(new LicenceScheduleExtensionForm());
+    LicenceScheduleExtensionRequestView licenceScheduleExtensionRequestView = createMockView("test", true);
+    when(licenceScheduleExtensionFormService.getLicenceScheduleExtensionViews(any()))
+        .thenReturn(List.of(licenceScheduleExtensionRequestView));
 
     var form = new LicenceScheduleExtensionForm();
     Map<String, ThreeFieldDurationInput> durationMap = new HashMap<>();
@@ -48,7 +49,7 @@ class LicenceScheduleExtensionFormValidatorTest {
     durationMap.put("test", createValidDurationInput("extensionDuration[test]"));
     form.setExtensionDuration(durationMap);
 
-    form.setSelectedPhase(Map.of("test", true));
+    form.setSelectedPhase(new HashMap<>(Map.of("test", true)));
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
@@ -61,7 +62,9 @@ class LicenceScheduleExtensionFormValidatorTest {
 
   @Test
   void isValid_whenSingleTermIsSelected() {
-    when(licenceScheduleExtensionFormService.getNewLicenceScheduleExtensionForm(any())).thenReturn(new LicenceScheduleExtensionForm());
+    LicenceScheduleExtensionRequestView licenceScheduleExtensionRequestView = createMockView("test", false);
+    when(licenceScheduleExtensionFormService.getLicenceScheduleExtensionViews(any()))
+        .thenReturn(List.of(licenceScheduleExtensionRequestView));
 
     var form = new LicenceScheduleExtensionForm();
     Map<String, ThreeFieldDurationInput> durationMap = new HashMap<>();
@@ -69,7 +72,7 @@ class LicenceScheduleExtensionFormValidatorTest {
     durationMap.put("test", createValidDurationInput("extensionDuration[test]"));
     form.setExtensionDuration(durationMap);
 
-    form.setSelectedTerm(Map.of("test", true));
+    form.setSelectedTerm(new HashMap<>(Map.of("test", true)));
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
@@ -82,10 +85,11 @@ class LicenceScheduleExtensionFormValidatorTest {
 
   @Test
   void InValid_whenMultipleDurationsButNoSelection() {
-    when(licenceScheduleExtensionFormService.getExtendableTermAndPhases(
-        any())).thenReturn(List.of(new LicenceScheduleTermAndPhases("1", "Term A", Collections.emptyList())));
+    LicenceScheduleExtensionRequestView termView1 = createMockView("test", false);
+    LicenceScheduleExtensionRequestView termView2 = createMockView("test1", false);
 
-    when(licenceScheduleExtensionFormService.getNewLicenceScheduleExtensionForm(any())).thenReturn(new LicenceScheduleExtensionForm());
+    when(licenceScheduleExtensionFormService.getLicenceScheduleExtensionViews(any()))
+        .thenReturn(List.of(termView1, termView2));
 
     var form = new LicenceScheduleExtensionForm();
     Map<String, ThreeFieldDurationInput> durationMap = new HashMap<>();
@@ -102,7 +106,9 @@ class LicenceScheduleExtensionFormValidatorTest {
 
   @Test
   void InValid_whenMultipleDurationsNotFilled() {
-    when(licenceScheduleExtensionFormService.getNewLicenceScheduleExtensionForm(any())).thenReturn(new LicenceScheduleExtensionForm());
+    LicenceScheduleExtensionRequestView licenceScheduleExtensionRequestView = createMockView("test", true);
+    when(licenceScheduleExtensionFormService.getLicenceScheduleExtensionViews(any()))
+        .thenReturn(List.of(licenceScheduleExtensionRequestView));
 
     var form = new LicenceScheduleExtensionForm();
     String key = "test";
@@ -127,7 +133,9 @@ class LicenceScheduleExtensionFormValidatorTest {
 
   @Test
   void isValid_whenMultipleItemsAreSelected_shouldBeTrue() {
-    when(licenceScheduleExtensionFormService.getNewLicenceScheduleExtensionForm(any())).thenReturn(new LicenceScheduleExtensionForm());
+    LicenceScheduleExtensionRequestView licenceScheduleExtensionRequestView = createMockView("test", true);
+    when(licenceScheduleExtensionFormService.getLicenceScheduleExtensionViews(any()))
+        .thenReturn(List.of(licenceScheduleExtensionRequestView));
 
     var form = new LicenceScheduleExtensionForm();
     Map<String, ThreeFieldDurationInput> durationMap = new HashMap<>();
@@ -136,8 +144,8 @@ class LicenceScheduleExtensionFormValidatorTest {
     durationMap.put(key, createValidDurationInput("extensionDuration[" + key + "]"));
     form.setExtensionDuration(durationMap);
 
-    form.setSelectedPhase(Map.of(key, true));
-    form.setSelectedTerm(Map.of(key, true));
+    form.setSelectedPhase(new HashMap<>(Map.of(key, true)));
+    form.setSelectedTerm(new HashMap<>(Map.of(key, true)));
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
@@ -154,5 +162,12 @@ class LicenceScheduleExtensionFormValidatorTest {
     durationInput.setMonths("1");
     durationInput.setDays("1");
     return durationInput;
+  }
+
+  private LicenceScheduleExtensionRequestView createMockView(String id, boolean isPhase) {
+    LicenceScheduleExtensionRequestView licenceScheduleExtensionRequestView = mock(LicenceScheduleExtensionRequestView.class);
+    when(licenceScheduleExtensionRequestView.id()).thenReturn(id);
+    when(licenceScheduleExtensionRequestView.isPhase()).thenReturn(isPhase);
+    return licenceScheduleExtensionRequestView;
   }
 }

@@ -193,8 +193,32 @@ class LicenceScheduleExtensionServiceTest {
     var termId = UUID.randomUUID();
     var phaseId = UUID.randomUUID();
 
-    LicenceScheduleTerm licenceScheduleTerm = LicenceScheduleTermTestUtil.builder().withId(termId).build();
-    LicenceSchedulePhase licenceSchedulePhase = LicenceSchedulePhaseTestUtil.builder().withId(phaseId).build();
+    var licenceScheduleTerm = LicenceScheduleTermTestUtil.builder()
+                                                         .withId(termId)
+                                                         .withTermType(TermType.INITIAL)
+                                                         .withStartDate(LocalDate.now(clock).minusDays(1))
+                                                         .withEndDate(LocalDate.now(clock).plusDays(1))
+                                                         .build();
+
+    var licenceSchedulePhase = LicenceSchedulePhaseTestUtil.builder()
+                                                           .withId(phaseId)
+                                                           .withPhaseType(PhaseType.PHASE_A)
+                                                           .withStartDate(LocalDate.now(clock).minusDays(1))
+                                                           .withEndDate(LocalDate.now(clock).plusDays(1))
+                                                           .build();
+
+    var parentTermForPhase = LicenceScheduleTermTestUtil.builder()
+                                                        .withId(UUID.randomUUID())
+                                                        .withTermType(TermType.INITIAL)
+                                                        .withStartDate(LocalDate.now(clock).minusDays(1))
+                                                        .withEndDate(LocalDate.now(clock).plusDays(1))
+                                                        .build();
+
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(any())).thenReturn(List.of(licenceScheduleTerm, parentTermForPhase));
+    when(licenceSchedulePhaseRepository.existsByLicenceScheduleTermId(termId)).thenReturn(false);
+    when(licenceSchedulePhaseRepository.existsByLicenceScheduleTermId(parentTermForPhase.getId())).thenReturn(true);
+    when(licenceSchedulePhaseService.getActivePhasesByTerm(parentTermForPhase)).thenReturn(List.of(licenceSchedulePhase));
 
     var termRequest = new LicenceScheduleExtensionRequest();
     termRequest.setLicenceScheduleTerm(licenceScheduleTerm);

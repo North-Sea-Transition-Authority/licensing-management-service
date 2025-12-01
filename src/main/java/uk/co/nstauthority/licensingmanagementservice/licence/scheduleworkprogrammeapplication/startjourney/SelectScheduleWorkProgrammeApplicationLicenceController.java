@@ -64,7 +64,7 @@ public class SelectScheduleWorkProgrammeApplicationLicenceController {
         .addObject("pageCaption", licenceType.getDisplayName())
         .addObject("searchUrl",
             SearchSelectorService.route(on(LicenceInternalApiRestController.class)
-                .searchLicencesByReferenceAndType(licenceTypeSlug, null))
+                .searchActiveLicenceSchedulesByReferenceAndType(licenceTypeSlug, null))
         )
         .addObject("backUrl", ReverseRouter.route(on(StartScheduleWorkProgrammeApplicationJourneyController.class)
             .renderStartScheduleWorkProgrammeApplicationJourney(licenceType.getUrlSlug()))

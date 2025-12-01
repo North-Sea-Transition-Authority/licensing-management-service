@@ -6,22 +6,33 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 
 @Service
 public class LicenceInternalApiService {
 
 
-  private final LicenceScheduleService licenceScheduleService;
+  private final LicenceScheduleDetailService licenceScheduleDetailService;
 
   public LicenceInternalApiService(
-      LicenceScheduleService licenceScheduleService
+      LicenceScheduleDetailService licenceScheduleDetailService
   ) {
-    this.licenceScheduleService = licenceScheduleService;
+    this.licenceScheduleDetailService = licenceScheduleDetailService;
   }
 
-  List<LicenceJson> searchLicencesWithSchedulesByReferenceAndType(String searchTerm, LicenceType type) {
-    return licenceScheduleService.searchAllSchedulesByLicenceRefAndType(searchTerm, type).stream()
+  List<LicenceJson> searchLicencesWithSchedulesByReferenceTypeAndStatus(
+      String searchTerm,
+      LicenceType type,
+      LicenceScheduleDetailStatus status
+  ) {
+    return licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
+          searchTerm,
+          type,
+          status
+        ).stream()
+        .map(LicenceScheduleDetail::getLicenceSchedule)
         .map(LicenceSchedule::getLicence)
         .sorted(Comparator.comparing(Licence::getPrefix).thenComparing(Licence::getLicenceNumber))
         .map(this::toLicenceJson)

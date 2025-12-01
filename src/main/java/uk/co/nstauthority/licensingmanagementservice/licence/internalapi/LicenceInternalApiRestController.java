@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.RestSearchResult;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 
 @RestController("/internal/api/licences")
 public class LicenceInternalApiRestController {
@@ -23,13 +24,19 @@ public class LicenceInternalApiRestController {
   }
 
   @GetMapping("/{licenceTypeSlug}")
-  public RestSearchResult searchLicencesByReferenceAndType(@PathVariable String licenceTypeSlug,
-                                                           @RequestParam(value = "term") String term) {
+  public RestSearchResult searchActiveLicenceSchedulesByReferenceAndType(
+      @PathVariable String licenceTypeSlug,
+      @RequestParam(value = "term") String term
+  ) {
     var licenceType = LicenceType.getFromSlugOrThrow(licenceTypeSlug);
 
     return searchSelectorService.search(
         term,
-        licenceInternalApiService.searchLicencesWithSchedulesByReferenceAndType(term, licenceType)
+        licenceInternalApiService.searchLicencesWithSchedulesByReferenceTypeAndStatus(
+            term,
+            licenceType,
+            LicenceScheduleDetailStatus.ACTIVE
+        )
     );
   }
 

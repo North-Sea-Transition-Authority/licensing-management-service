@@ -13,6 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
@@ -26,7 +27,7 @@ class LicenceInternalApiRestControllerTest extends AbstractControllerTest {
   private SearchSelectorService searchSelectorService;
 
   @SecurityTest
-  void searchLicencesByReferenceAndType() throws Exception {
+  void searchActiveLicenceSchedulesByReferenceAndType() throws Exception {
     var user = ServiceUserDetailTestUtil.newBuilder().build();
 
     var licenceType = LicenceType.CARBON_STORAGE;
@@ -34,11 +35,11 @@ class LicenceInternalApiRestControllerTest extends AbstractControllerTest {
 
     var response = List.of(new LicenceJson(1, "CS001"));
 
-    when(licenceInternalApiService.searchLicencesWithSchedulesByReferenceAndType(searchTerm, licenceType))
+    when(licenceInternalApiService.searchLicencesWithSchedulesByReferenceTypeAndStatus(searchTerm, licenceType, LicenceScheduleDetailStatus.ACTIVE))
         .thenReturn(response);
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceInternalApiRestController.class).searchLicencesByReferenceAndType(licenceType.getUrlSlug(), null)))
+            get(ReverseRouter.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndType(licenceType.getUrlSlug(), null)))
                 .with(user(user))
                 .param("term", searchTerm)
         )

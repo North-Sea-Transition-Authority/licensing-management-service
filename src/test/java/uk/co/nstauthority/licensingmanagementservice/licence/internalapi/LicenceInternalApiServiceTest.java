@@ -11,20 +11,21 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceInternalApiServiceTest {
 
   @Mock
-  private LicenceScheduleService licenceScheduleService;
+  private LicenceScheduleDetailService licenceScheduleDetailService;
 
   @InjectMocks
   private LicenceInternalApiService licenceInternalApiService;
 
   @Test
-  void searchLicencesWithSchedulesByReferenceAndType() {
+  void searchLicencesWithSchedulesByReferenceTypeAndStatus() {
     var searchTerm = "term";
     var licenceType = LicenceType.GAS_STORAGE;
 
@@ -37,12 +38,17 @@ class LicenceInternalApiServiceTest {
         .build();
 
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+    var licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
 
-    when(licenceScheduleService.searchAllSchedulesByLicenceRefAndType(searchTerm, licenceType)).thenReturn(List.of(licenceSchedule));
+    when(licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
+        searchTerm,
+        licenceType,
+        LicenceScheduleDetailStatus.ACTIVE)
+    ).thenReturn(List.of(licenceScheduleDetail));
 
     var licenceJson = new LicenceJson(id, licenceReference);
 
-    assertThat(licenceInternalApiService.searchLicencesWithSchedulesByReferenceAndType(searchTerm, licenceType))
+    assertThat(licenceInternalApiService.searchLicencesWithSchedulesByReferenceTypeAndStatus(searchTerm, licenceType, LicenceScheduleDetailStatus.ACTIVE))
         .usingRecursiveComparison()
         .isEqualTo(List.of(licenceJson));
   }

@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 
@@ -87,5 +88,22 @@ class LicenceScheduleDetailServiceTest {
         .thenReturn(true);
 
     assertThat(licenceScheduleDetailService.draftScheduleExistsForLicence(licence)).isTrue();
+  }
+
+  @Test
+  void searchByLicenceReferenceLicenceTypeAndStatus() {
+    var searchTerm = "searchTerm";
+
+    licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
+        searchTerm,
+        LicenceType.CARBON_STORAGE,
+        LicenceScheduleDetailStatus.ACTIVE
+    );
+
+    verify(licenceScheduleDetailRepository).searchByLicenceReferenceLicenceTypeAndStatus(
+      searchTerm,
+      LicenceType.CARBON_STORAGE,
+      LicenceScheduleDetailStatus.ACTIVE
+    );
   }
 }

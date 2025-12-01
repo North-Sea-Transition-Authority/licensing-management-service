@@ -12,7 +12,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceScheduleServiceTest {
@@ -28,16 +27,6 @@ class LicenceScheduleServiceTest {
 
   @Captor
   private ArgumentCaptor<LicenceSchedule> licenceScheduleArgumentCaptor;
-
-  @Test
-  void searchAllSchedulesByLicenceRefAndType() {
-    var searchTerm = "term";
-    var licenceType = LicenceType.CARBON_STORAGE;
-
-    licenceScheduleService.searchAllSchedulesByLicenceRefAndType(searchTerm, licenceType);
-
-    verify(licenceScheduleRepository).findAllByLicence_LicenceReferenceContainingIgnoreCaseAndLicence_Type(searchTerm, licenceType);
-  }
 
   @Test
   void getOrCreateNewLicenceScheduleForLicence() {

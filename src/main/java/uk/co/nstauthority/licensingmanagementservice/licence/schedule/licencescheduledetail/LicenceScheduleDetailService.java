@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 
@@ -66,5 +67,17 @@ public class LicenceScheduleDetailService {
 
   public boolean draftScheduleExistsForLicence(Licence licence) {
     return licenceScheduleDetailRepository.existsByLicenceSchedule_LicenceAndStatus(licence, LicenceScheduleDetailStatus.DRAFT);
+  }
+
+  public List<LicenceScheduleDetail> searchByLicenceReferenceLicenceTypeAndStatus(
+      String searchTerm,
+      LicenceType licenceType,
+      LicenceScheduleDetailStatus status
+  ) {
+    return licenceScheduleDetailRepository.searchByLicenceReferenceLicenceTypeAndStatus(
+        searchTerm,
+        licenceType,
+        status
+    );
   }
 }

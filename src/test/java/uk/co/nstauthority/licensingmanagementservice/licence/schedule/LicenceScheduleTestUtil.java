@@ -17,6 +17,13 @@ public class LicenceScheduleTestUtil {
     return licenceSchedule;
   }
 
+  public static LicenceSchedule createLicenceSchedule(UUID id, Licence licence) {
+    var licenceSchedule = new LicenceSchedule();
+    licenceSchedule.setId(id);
+    licenceSchedule.setLicence(licence);
+    return licenceSchedule;
+  }
+
   public static LicenceScheduleDetail createLicenceScheduleDetail(UUID id, LicenceSchedule licenceSchedule) {
     var licenceScheduleDetail = new LicenceScheduleDetail();
     licenceScheduleDetail.setId(id);

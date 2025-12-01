@@ -4,7 +4,6 @@ import jakarta.transaction.Transactional;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 
 @Service
 public class LicenceScheduleService {
@@ -15,13 +14,6 @@ public class LicenceScheduleService {
       LicenceScheduleRepository licenceScheduleRepository
   ) {
     this.licenceScheduleRepository = licenceScheduleRepository;
-  }
-
-  public List<LicenceSchedule> searchAllSchedulesByLicenceRefAndType(String searchTerm, LicenceType licenceType) {
-    return licenceScheduleRepository.findAllByLicence_LicenceReferenceContainingIgnoreCaseAndLicence_Type(
-        searchTerm,
-        licenceType
-    );
   }
 
   @Transactional

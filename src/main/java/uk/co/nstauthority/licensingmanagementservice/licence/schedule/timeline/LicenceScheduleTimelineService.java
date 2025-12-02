@@ -43,12 +43,13 @@ public class LicenceScheduleTimelineService {
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
   }
 
-  TimelineSummaryCardView getTimelineSummaryCardView(LicenceScheduleDetail licenceScheduleDetail) {
+  public TimelineSummaryCardView getTimelineSummaryCardView(LicenceScheduleDetail licenceScheduleDetail) {
     var licence = licenceScheduleDetail.getLicenceSchedule().getLicence();
     var licenceStartDate = licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail);
 
     return new TimelineSummaryCardView(
         DateFormatUtil.convertToDisplayText(licenceStartDate.getStartDate()),
+        licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType()),
         licence.getRoundIssuedOn(),
         licence.getStatus().getDisplayText()
     );

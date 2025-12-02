@@ -80,4 +80,24 @@ public class LicenceScheduleDetailService {
         status
     );
   }
+
+  @Transactional
+  public void applyAndReplaceActiveScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
+    var previousActiveDetail = licenceScheduleDetailRepository.findByLicenceSchedule_LicenceAndStatus(
+        licenceScheduleDetail.getLicenceSchedule().getLicence(),
+        LicenceScheduleDetailStatus.ACTIVE
+    );
+
+    previousActiveDetail.ifPresent(this::replaceScheduleDetail);
+
+    licenceScheduleDetail.setStatus(LicenceScheduleDetailStatus.ACTIVE);
+
+    licenceScheduleDetailRepository.save(licenceScheduleDetail);
+  }
+
+  @Transactional
+  public void replaceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
+    licenceScheduleDetail.setStatus(LicenceScheduleDetailStatus.REPLACED);
+    licenceScheduleDetailRepository.save(licenceScheduleDetail);
+  }
 }

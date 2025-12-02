@@ -18,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
@@ -62,6 +63,7 @@ class LicenceScheduleTimelineServiceTest {
   @BeforeEach
   void setUp() {
     licence = LicenceTestUtil.builder()
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
         .withRoundIssuedOn("1")
         .withStatus(LicenceStatus.EXTANT)
         .build();
@@ -77,15 +79,18 @@ class LicenceScheduleTimelineServiceTest {
     licenceStartDate.setStartDate(LocalDate.of(2025, 1, 1));
 
     when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail)).thenReturn(licenceStartDate);
+    when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(true);
 
     assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .extracting(
             TimelineSummaryCardView::licenceStartDate,
+            TimelineSummaryCardView::showRoundIssuedOn,
             TimelineSummaryCardView::roundIssuedOn,
             TimelineSummaryCardView::status
         )
         .containsExactly(
             DateFormatUtil.convertToDisplayText(licenceStartDate.getStartDate()),
+            true,
             licence.getRoundIssuedOn(),
             licence.getStatus().getDisplayText()
         );

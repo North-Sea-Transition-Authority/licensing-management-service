@@ -14,7 +14,7 @@ extendContainerWidth=true>
         <@fdsSummaryList.summaryListRowNoAction keyText="Status">
             ${timelineSummaryCardView.status()!""}
         </@fdsSummaryList.summaryListRowNoAction>
-        <#if showRoundIssuedOn>
+        <#if timelineSummaryCardView.showRoundIssuedOn()>
             <@fdsSummaryList.summaryListRowNoAction keyText="Round number">
                 ${timelineSummaryCardView.roundIssuedOn()!""}
             </@fdsSummaryList.summaryListRowNoAction>
@@ -40,4 +40,6 @@ extendContainerWidth=true>
             </@fdsAccordion.accordionSection>
         </#list>
     </@fdsAccordion.accordion>
+
+    <@fdsAction.link linkText="Review and apply" linkUrl=springUrl(reviewAndApplyUrl) linkClass="govuk-button"/>
 </@defaultPage>

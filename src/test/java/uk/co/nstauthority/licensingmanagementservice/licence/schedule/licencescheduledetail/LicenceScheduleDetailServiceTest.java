@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesc
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -16,9 +17,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceScheduleDetailServiceTest {
@@ -104,6 +107,45 @@ class LicenceScheduleDetailServiceTest {
       searchTerm,
       LicenceType.CARBON_STORAGE,
       LicenceScheduleDetailStatus.ACTIVE
+    );
+  }
+
+  @Test
+  void applyAndReplaceActiveScheduleDetail() {
+    var licence = LicenceTestUtil.builder().build();
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+
+    var currentDetail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule)
+        .withId(UUID.randomUUID())
+        .withStatus(LicenceScheduleDetailStatus.DRAFT)
+        .build();
+
+    var previousDetail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule)
+        .withId(UUID.randomUUID())
+        .withStatus(LicenceScheduleDetailStatus.ACTIVE)
+        .build();
+
+    when(licenceScheduleDetailRepository.findByLicenceSchedule_LicenceAndStatus(licence, LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(Optional.of(previousDetail));
+
+    licenceScheduleDetailService.applyAndReplaceActiveScheduleDetail(currentDetail);
+
+    verify(licenceScheduleDetailRepository, times(2)).save(licenceScheduleDetailArgumentCaptor.capture());
+
+    assertThat(licenceScheduleDetailArgumentCaptor.getAllValues().getFirst()).extracting(
+        LicenceScheduleDetail::getId,
+        LicenceScheduleDetail::getStatus
+    ).containsExactly(
+        previousDetail.getId(),
+        LicenceScheduleDetailStatus.REPLACED
+    );
+
+    assertThat(licenceScheduleDetailArgumentCaptor.getAllValues().get(1)).extracting(
+        LicenceScheduleDetail::getId,
+        LicenceScheduleDetail::getStatus
+    ).containsExactly(
+        currentDetail.getId(),
+        LicenceScheduleDetailStatus.ACTIVE
     );
   }
 }

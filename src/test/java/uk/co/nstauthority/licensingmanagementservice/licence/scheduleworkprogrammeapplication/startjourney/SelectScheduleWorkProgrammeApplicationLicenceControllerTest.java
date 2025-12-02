@@ -82,8 +82,8 @@ class SelectScheduleWorkProgrammeApplicationLicenceControllerTest extends Abstra
                 .flashAttr("form", form)
         )
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(ConfirmLicenseePermissionController.class)
-            .renderConfirmLicenseePermission(licenceType.getUrlSlug(), licenceId, null))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenseeInformationController.class)
+            .renderConfirmLicenseePermission(licenceType.getUrlSlug(), licenceId, null, null))));
   }
 
   @SecurityTest

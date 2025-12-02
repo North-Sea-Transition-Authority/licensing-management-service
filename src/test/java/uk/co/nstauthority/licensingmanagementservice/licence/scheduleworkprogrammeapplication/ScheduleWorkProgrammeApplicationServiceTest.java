@@ -27,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.LicenseeInformationForm;
 
 @ExtendWith(MockitoExtension.class)
 class ScheduleWorkProgrammeApplicationServiceTest {
@@ -88,7 +89,12 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
         .thenReturn(licenceScheduleDetail);
 
-    ScheduleWorkProgrammeApplicationDetail result = scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence, true);
+    LicenseeInformationForm licenseeInformationForm = new LicenseeInformationForm();
+    licenseeInformationForm.setAllLicenseesPermissionConfirmed(true);
+    licenseeInformationForm.setResponsibleOrganisationUnitId(1);
+
+    ScheduleWorkProgrammeApplicationDetail result = scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence,
+        licenseeInformationForm);
 
     verify(scheduleWorkProgrammeApplicationRepository).save(scheduleWorkProgrammeApplicationCaptor.capture());
     ScheduleWorkProgrammeApplication savedScheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationCaptor.getValue();
@@ -99,6 +105,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     assertThat(savedDetail.getScheduleWorkProgrammeApplication()).isEqualTo(savedScheduleWorkProgrammeApplication);
     assertThat(savedDetail.getVersionNumber()).isEqualTo(1);
     assertThat(savedDetail.getAllLicenseesPermissionConfirmed()).isTrue();
+    assertThat(savedDetail.getResponsibleOrganisationUnitId()).isEqualTo(1);
 
     assertThat(result).isEqualTo(savedDetail);
   }
@@ -108,7 +115,10 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
         .thenReturn(licenceScheduleDetail);
 
-    ScheduleWorkProgrammeApplicationDetail result = scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence, false);
+    LicenseeInformationForm licenseeInformationForm = new LicenseeInformationForm();
+    licenseeInformationForm.setAllLicenseesPermissionConfirmed(false);
+    licenseeInformationForm.setResponsibleOrganisationUnitId(1);
+    ScheduleWorkProgrammeApplicationDetail result = scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence, licenseeInformationForm);
 
     verify(scheduleWorkProgrammeApplicationRepository).save(scheduleWorkProgrammeApplicationCaptor.capture());
     var savedScheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationCaptor.getValue();
@@ -119,6 +129,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     assertThat(savedDetail.getScheduleWorkProgrammeApplication()).isEqualTo(savedScheduleWorkProgrammeApplication);
     assertThat(savedDetail.getVersionNumber()).isEqualTo(1);
     assertThat(savedDetail.getAllLicenseesPermissionConfirmed()).isFalse();
+    assertThat(savedDetail.getResponsibleOrganisationUnitId()).isEqualTo(1);
 
     assertThat(result).isEqualTo(savedDetail);
   }

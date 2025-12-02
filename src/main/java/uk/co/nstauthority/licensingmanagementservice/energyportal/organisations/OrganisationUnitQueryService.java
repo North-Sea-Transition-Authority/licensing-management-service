@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.energyportal.organisations
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,13 @@ public class OrganisationUnitQueryService {
   public Map<Integer, String> getOrganisationUnitNamesByIds(List<Integer> responsibleOrganisationIds) {
     return getOrganisationUnitsByIdsFromEpa(responsibleOrganisationIds).stream()
         .collect(Collectors.toMap(OrganisationUnit::getOrganisationUnitId, OrganisationUnit::getName));
+  }
+
+  public Optional<String> getOrganisationUnitNameById(Integer responsibleOrganisationUnitId) {
+    return getOrganisationUnitsByIdsFromEpa(List.of(responsibleOrganisationUnitId))
+        .stream()
+        .findFirst()
+        .map(OrganisationUnit::getName);
   }
 
   private List<OrganisationUnit> getOrganisationUnitsByIdsFromEpa(List<Integer> organisationUnitIds) {

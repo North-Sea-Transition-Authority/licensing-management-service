@@ -10,39 +10,41 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurposeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
-@RequestMapping("licence/{licenceId}/schedule-work-programme-application/{licenceTypeSlug}/confirm-licensee-permission")
-public class ConfirmLicenseePermissionController {
-  public static final String PAGE_TITLE = "Have you confirmed this request is made on behalf of all licensees?";
+@RequestMapping("licence/{licenceId}/schedule-work-programme-application/{licenceTypeSlug}/licensee-information")
+public class LicenseeInformationController {
+  public static final String PAGE_TITLE = "Licensee information";
 
-  private final ConfirmLicenseePermissionFormValidator confirmLicenseePermissionFormValidator;
+  private final LicenseeInformationFormValidator licenseeInformationFormValidator;
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
-  private final SwpApplicationRequestPurposeService swpApplicationRequestPurposeService;
   private final LicenceService licenceService;
+  private final LicenseeInformationService licenseeInformationService;
 
-  public ConfirmLicenseePermissionController(
-      ConfirmLicenseePermissionFormValidator confirmLicenseePermissionFormValidator,
+  public LicenseeInformationController(
+      LicenseeInformationFormValidator licenseeInformationFormValidator,
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
-      SwpApplicationRequestPurposeService swpApplicationRequestPurposeService, LicenceService licenceService) {
-    this.confirmLicenseePermissionFormValidator = confirmLicenseePermissionFormValidator;
+      LicenceService licenceService,
+      LicenseeInformationService licenseeInformationService) {
+    this.licenseeInformationFormValidator = licenseeInformationFormValidator;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
-    this.swpApplicationRequestPurposeService = swpApplicationRequestPurposeService;
     this.licenceService = licenceService;
+    this.licenseeInformationService = licenseeInformationService;
   }
 
   @GetMapping
   ModelAndView renderConfirmLicenseePermission(@PathVariable String licenceTypeSlug,
                                                @PathVariable Integer licenceId,
-                                               Licence licence) {
-    return getLicenseePermissionConfirmationModelAndView(new ConfirmLicenseePermissionForm(), licenceTypeSlug, licence);
+                                               Licence licence,
+                                               ServiceUserDetail user) {
+    return getLicenseePermissionConfirmationModelAndView(new LicenseeInformationForm(), licenceTypeSlug, licence, user);
   }
 
   @PostMapping
@@ -50,36 +52,35 @@ public class ConfirmLicenseePermissionController {
       @PathVariable String licenceTypeSlug,
       @PathVariable Integer licenceId,
       Licence licence,
-      @ModelAttribute("form") ConfirmLicenseePermissionForm form,
-      BindingResult bindingResult
+      @ModelAttribute("form") LicenseeInformationForm form,
+      BindingResult bindingResult,
+      ServiceUserDetail user
   ) {
 
-    if (!confirmLicenseePermissionFormValidator.isValid(form, bindingResult)) {
-      return getLicenseePermissionConfirmationModelAndView(form, licenceTypeSlug, licence);
+    if (!licenseeInformationFormValidator.isValid(form, bindingResult)) {
+      return getLicenseePermissionConfirmationModelAndView(form, licenceTypeSlug, licence, user);
     }
 
     var applicationDetail = scheduleWorkProgrammeApplicationService
-        .createNewScheduleWorkProgrammeApplicationForLicence(licence, form.getAllLicenseesPermissionConfirmed());
-
-    swpApplicationRequestPurposeService.saveOrUpdateRequestPurpose(applicationDetail,
-        swpApplicationRequestPurposeService.getFilledSwpApplicationRequestPurposeForm(
-            applicationDetail));
+        .createNewScheduleWorkProgrammeApplicationForLicence(licence, form);
 
     return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationTaskListController.class)
         .getTaskList(applicationDetail.getId(), null, null));
   }
 
   private ModelAndView getLicenseePermissionConfirmationModelAndView(
-      ConfirmLicenseePermissionForm selectLicenceTypeForm,
+      LicenseeInformationForm selectLicenceTypeForm,
       String licenceTypeSlug,
-      Licence licence) {
+      Licence licence,
+      ServiceUserDetail user) {
     var licenceType = LicenceType.getFromSlugOrThrow(licenceTypeSlug);
     var caption = licenceService.getLicencePageCaption(licence);
 
-    return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/confirmLicenseePermission")
+    return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/licenseeInformation")
         .addObject("form", selectLicenceTypeForm)
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("pageCaption", caption)
+        .addObject("responsibleOrgUnitOptions", licenseeInformationService.getResponsibleOrgUnitOptions(licence, user))
         .addObject("backUrl", ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class)
             .renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))
         );

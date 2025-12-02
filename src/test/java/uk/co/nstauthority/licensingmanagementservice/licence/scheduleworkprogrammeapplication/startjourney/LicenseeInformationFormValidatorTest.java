@@ -11,15 +11,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 
 @ExtendWith(MockitoExtension.class)
-class ConfirmLicenseePermissionFormValidatorTest {
+class LicenseeInformationFormValidatorTest {
 
   @InjectMocks
-  private ConfirmLicenseePermissionFormValidator validator;
+  private LicenseeInformationFormValidator validator;
 
   @Test
   void isValid_validForm() {
-    var form = new ConfirmLicenseePermissionForm();
-    form.setAllLicenseesPermissionConfirmed(true);
+    var form = validForm();
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
@@ -28,7 +27,8 @@ class ConfirmLicenseePermissionFormValidatorTest {
 
   @Test
   void isValid_invalidForm_NoValueForallLicenseesPermissionConfirmed() {
-    var form = new ConfirmLicenseePermissionForm();
+    var form = validForm();
+    form.setAllLicenseesPermissionConfirmed(null);
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
@@ -36,5 +36,25 @@ class ConfirmLicenseePermissionFormValidatorTest {
 
     assertThat(ValidatorTestingUtil.extractErrors(bindingResult))
         .containsExactly(entry("allLicenseesPermissionConfirmed", Set.of("allLicenseesPermissionConfirmed.required")));
+  }
+
+  @Test
+  void isValid_invalidForm_NoValueForResponsibleOrganisationUnitId() {
+    var form = validForm();
+    form.setResponsibleOrganisationUnitId(null);
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(validator.isValid(form, bindingResult)).isFalse();
+
+    assertThat(ValidatorTestingUtil.extractErrors(bindingResult))
+        .containsExactly(entry("responsibleOrganisationUnitId", Set.of("responsibleOrganisationUnitId.required")));
+  }
+
+  private LicenseeInformationForm validForm() {
+    var form = new LicenseeInformationForm();
+    form.setAllLicenseesPermissionConfirmed(true);
+    form.setResponsibleOrganisationUnitId(1);
+    return form;
   }
 }

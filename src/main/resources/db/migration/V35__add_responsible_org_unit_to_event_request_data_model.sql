@@ -1,0 +1,5 @@
+ALTER TABLE schedule_work_programme_application_details
+  ADD COLUMN responsible_organisation_unit_id INTEGER;
+
+ALTER TABLE schedule_work_programme_application_details_aud
+  ADD COLUMN responsible_organisation_unit_id INTEGER;

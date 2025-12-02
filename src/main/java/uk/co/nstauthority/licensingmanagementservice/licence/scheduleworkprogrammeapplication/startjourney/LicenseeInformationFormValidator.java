@@ -6,9 +6,12 @@ import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
 
 @Service
-public class ConfirmLicenseePermissionFormValidator {
+public class LicenseeInformationFormValidator {
 
-  boolean isValid(ConfirmLicenseePermissionForm form, Errors errors) {
+  boolean isValid(LicenseeInformationForm form, Errors errors) {
+    ValidationUtils.rejectIfEmpty(errors, "responsibleOrganisationUnitId", "responsibleOrganisationUnitId.required",
+        "Select the licensee for this application");
+
     ValidationUtils.rejectIfEmpty(errors, "allLicenseesPermissionConfirmed", "allLicenseesPermissionConfirmed.required",
         "Select if you have confirmed this request is made on behalf of all licensees");
 

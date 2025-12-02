@@ -46,6 +46,9 @@ public class ScheduleWorkProgrammeApplicationDetail {
   @Column
   private Long submittedByWuaId;
 
+  @Column
+  private Integer responsibleOrganisationUnitId;
+
   public ScheduleWorkProgrammeApplicationDetail() {
   }
 
@@ -109,5 +112,13 @@ public class ScheduleWorkProgrammeApplicationDetail {
 
   public void setSubmittedByWuaId(Long submittedByWuaId) {
     this.submittedByWuaId = submittedByWuaId;
+  }
+
+  public Integer getResponsibleOrganisationUnitId() {
+    return responsibleOrganisationUnitId;
+  }
+
+  public void setResponsibleOrganisationUnitId(Integer responsibleOrganisationUnitId) {
+    this.responsibleOrganisationUnitId = responsibleOrganisationUnitId;
   }
 }

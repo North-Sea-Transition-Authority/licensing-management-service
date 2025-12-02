@@ -13,6 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.LicenseeInformationForm;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
 @Service
@@ -39,11 +40,13 @@ public class ScheduleWorkProgrammeApplicationService {
   @Transactional
   public ScheduleWorkProgrammeApplicationDetail createNewScheduleWorkProgrammeApplicationForLicence(
       @NotNull Licence licence,
-      boolean allLicenseesPermissionConfirmed) {
+      LicenseeInformationForm licenseeInformationForm) {
     var scheduleWorkProgrammeApplication = createScheduleWorkProgrammeApplication(licence);
+    var responsibleOrganisationUnitId = licenseeInformationForm.getResponsibleOrganisationUnitId();
     var scheduleWorkProgrammeApplicationDetail = createScheduleWorkProgrammeApplicationDetail(
         scheduleWorkProgrammeApplication,
-        allLicenseesPermissionConfirmed
+        licenseeInformationForm.getAllLicenseesPermissionConfirmed(),
+        responsibleOrganisationUnitId
     );
 
     scheduleWorkProgrammeApplicationRepository.save(scheduleWorkProgrammeApplication);
@@ -74,13 +77,16 @@ public class ScheduleWorkProgrammeApplicationService {
   }
 
   private ScheduleWorkProgrammeApplicationDetail createScheduleWorkProgrammeApplicationDetail(
-      ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication, Boolean allLicenseesPermissionConfirmed) {
+      ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication,
+      Boolean allLicenseesPermissionConfirmed,
+      Integer responsibleOrganisationUnitId) {
     var scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
     scheduleWorkProgrammeApplicationDetail.setVersionNumber(1);
     scheduleWorkProgrammeApplicationDetail.setStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT);
 
     scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(allLicenseesPermissionConfirmed);
+    scheduleWorkProgrammeApplicationDetail.setResponsibleOrganisationUnitId(responsibleOrganisationUnitId);
 
     return scheduleWorkProgrammeApplicationDetail;
   }

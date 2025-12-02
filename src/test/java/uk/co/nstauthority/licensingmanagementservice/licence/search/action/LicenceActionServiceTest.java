@@ -65,6 +65,20 @@ class LicenceActionServiceTest {
   }
 
   @Test
+  void getAvailableUserActionItems_licenceScheduleExists_licenceTypeNotSetupForSchedules() {
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.METHANE_DRAINAGE)
+        .withStatus(LicenceStatus.EXTANT)
+        .build();
+
+    when(licenceScheduleDetailService.draftScheduleExistsForLicence(licence)).thenReturn(true);
+
+    assertThat(licenceActionService.getAvailableUserActionItems(licence, null))
+        .doesNotContain(LicenceActionItem.EDIT_LICENCE_SCHEDULE.toActionItemView(licence));
+  }
+
+  @Test
   void getAvailableUserActionItems_licenceScheduleDoesNotExist() {
     var licence = LicenceTestUtil.builder()
         .withId(1)
@@ -76,5 +90,19 @@ class LicenceActionServiceTest {
 
     assertThat(licenceActionService.getAvailableUserActionItems(licence, null))
         .contains(LicenceActionItem.CREATE_LICENCE_SCHEDULE.toActionItemView(licence));
+  }
+
+  @Test
+  void getAvailableUserActionItems_licenceScheduleDoesNotExist_licenceTypeNotSetupForSchedules() {
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.METHANE_DRAINAGE)
+        .withStatus(LicenceStatus.EXTANT)
+        .build();
+
+    when(licenceScheduleDetailService.draftScheduleExistsForLicence(licence)).thenReturn(false);
+
+    assertThat(licenceActionService.getAvailableUserActionItems(licence, null))
+        .doesNotContain(LicenceActionItem.CREATE_LICENCE_SCHEDULE.toActionItemView(licence));
   }
 }

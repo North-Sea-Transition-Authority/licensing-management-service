@@ -54,9 +54,7 @@ public class FeedbackController {
 
     feedbackService.saveFeedback(form.getServiceRating(), form.getFeedback().getInputValue(), userDetailService.getUserDetail());
 
-    NotificationBanner.newSuccessBanner()
-        .withHeadingContent("Your feedback has been submitted")
-        .applyTo(redirectAttributes);
+    NotificationBanner.newSuccessBannerWithHeader("Your feedback has been submitted", redirectAttributes);
 
     return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
   }
@@ -84,9 +82,7 @@ public class FeedbackController {
         form.getFeedback().getInputValue(),
         userDetailService.getUserDetail());
 
-    NotificationBanner.newSuccessBanner()
-        .withHeadingContent("Your feedback has been submitted")
-        .applyTo(redirectAttributes);
+    NotificationBanner.newSuccessBannerWithHeader("Your feedback has been submitted", redirectAttributes);
 
     return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
   }

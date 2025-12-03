@@ -91,6 +91,14 @@ public class ScheduleWorkProgrammeApplicationService {
     return scheduleWorkProgrammeApplicationDetail;
   }
 
+  @Transactional
+  public void deleteScheduleWorkProgrammeApplication(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  ) {
+    scheduleWorkProgrammeApplicationDetail.setStatus(ScheduleWorkProgrammeApplicationStatus.DELETED);
+    scheduleWorkProgrammeApplicationDetailRepository.save(scheduleWorkProgrammeApplicationDetail);
+  }
+
   public ScheduleWorkProgrammeApplicationDetail getDetailByIdOrThrow(UUID detailId) {
     return scheduleWorkProgrammeApplicationDetailRepository.findById(detailId).orElseThrow(
         () -> new LmsEntityNotFoundException("schedule work programme application detail", detailId));

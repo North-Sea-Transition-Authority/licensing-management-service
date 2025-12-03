@@ -96,9 +96,8 @@ public class LicenceWorkProgrammeAmendmentDeleteController {
 
   private void addRedirectNotification(WorkProgrammeActivity workProgrammeActivity, RedirectAttributes redirectAttributes) {
     var workProgrammeActivityCategory = workProgrammeActivity.getCategory().getDisplayName();
-
-    NotificationBanner.newSuccessBanner()
-          .withHeadingContent(String.format("Work programme amendment for %s has been deleted", workProgrammeActivityCategory))
-          .applyTo(redirectAttributes);
+    NotificationBanner.newSuccessBannerWithHeader(
+        String.format("Work programme amendment for %s has been deleted", workProgrammeActivityCategory), redirectAttributes
+    );
   }
 }

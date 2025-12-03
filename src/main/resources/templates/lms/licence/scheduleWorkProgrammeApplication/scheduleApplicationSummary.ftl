@@ -1,7 +1,7 @@
 <#include '../../layout/layout.ftl'>
 <#import '../../summary/_summaryDetails.ftl' as summaryDetails>
 
-<#macro scheduleSummary accordionId summarySections>
+<#macro scheduleApplicationSummary accordionId summarySections>
   <@fdsAccordion.accordion accordionId="summaryaccordion-${accordionId}">
     <#list summarySections as summarySection>
       <#list summarySection.summaryItems() as summaryItem>

@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDeleteController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
@@ -76,6 +77,8 @@ class ScheduleWorkProgrammeApplicationTaskListControllerTest extends AbstractCon
         .andExpect(model().attribute("taskListSections", sections))
         .andExpect(model().attribute("pageTitle", ScheduleWorkProgrammeApplicationTaskListController.PAGE_TITLE))
         .andExpect(model().attribute("pageCaption", CAPTION))
+        .andExpect(model().attribute("deleteScheduleWorkProgrammeApplicationUrl", ReverseRouter.route(on(
+               ScheduleWorkProgrammeApplicationDeleteController.class).renderForm(id, null))))
         .andExpect(model().attribute("breadcrumbs", Map.of(
             ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)),
             "Work area"

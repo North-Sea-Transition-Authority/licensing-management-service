@@ -57,9 +57,9 @@ public class LicenceSchedulePhaseDeletionController {
 
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
 
-    NotificationBanner.newSuccessBanner()
-        .withHeadingContent(String.format("%s has been deleted", phase.getPhaseType().getDisplayName()))
-        .applyTo(redirectAttributes);
+    NotificationBanner.newSuccessBannerWithHeader(
+        String.format("%s has been deleted", phase.getPhaseType().getDisplayName()), redirectAttributes
+    );
 
     return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
   }

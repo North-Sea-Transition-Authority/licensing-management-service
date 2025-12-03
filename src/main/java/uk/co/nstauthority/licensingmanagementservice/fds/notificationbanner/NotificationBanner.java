@@ -38,6 +38,10 @@ public record NotificationBanner(
     return new Builder(NotificationBannerType.SUCCESS, "Success");
   }
 
+  public static void newSuccessBannerWithHeader(String headingContent, RedirectAttributes redirectAttributes) {
+    new Builder(NotificationBannerType.SUCCESS, "Success").withHeadingContent(headingContent).applyTo(redirectAttributes);
+  }
+
   public static Builder newInfoBanner() {
     return new Builder(NotificationBannerType.INFO, "Information");
   }

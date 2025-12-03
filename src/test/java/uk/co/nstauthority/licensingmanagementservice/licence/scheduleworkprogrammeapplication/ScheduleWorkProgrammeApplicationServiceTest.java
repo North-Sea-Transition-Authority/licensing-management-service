@@ -59,6 +59,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
   private LicenceScheduleDetail licenceScheduleDetail;
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail;
 
+
   @BeforeEach
   void setUp() {
     licence = LicenceTestUtil.builder().build();
@@ -165,4 +166,15 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     assertThat(savedDetail.getSubmittedByWuaId()).isEqualTo(1L);
     assertThat(savedDetail.getSubmittedDatetime()).isEqualTo(Instant.now(clock));
   }
+
+  @Test
+  void deleteScheduleWorkProgrammeApplication_setsStatusToDeletedAndSaves() {
+    scheduleWorkProgrammeApplicationDetail.setStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT);
+    scheduleWorkProgrammeApplicationService.deleteScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplicationDetail);
+
+    verify(scheduleWorkProgrammeApplicationDetailRepository).save(scheduleWorkProgrammeApplicationDetailCaptor.capture());
+    ScheduleWorkProgrammeApplicationDetail savedEntity = scheduleWorkProgrammeApplicationDetailCaptor.getValue();
+    assertThat(savedEntity.getStatus()).isEqualTo(ScheduleWorkProgrammeApplicationStatus.DELETED);
+  }
+
 }

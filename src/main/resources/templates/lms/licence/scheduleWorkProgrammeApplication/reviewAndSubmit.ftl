@@ -1,6 +1,6 @@
 <#include '../../layout/layout.ftl'>
 <#import '../../summary/_summaryMissingInformationNotificationBanner.ftl' as banner>
-<#import 'scheduleSummary.ftl' as scheduleSummary>
+<#import 'scheduleApplicationSummary.ftl' as scheduleApplicationSummary>
 
 <#assign pageTitle = "Review your submission before submitting"/>
 
@@ -19,7 +19,7 @@ backLinkUrl=springUrl(cancelUrl)>
     </#if>
 
     <@fdsForm.htmlForm>
-        <@scheduleSummary.scheduleSummary accordionId=accordionId summarySections=summarySections/>
+        <@scheduleApplicationSummary.scheduleApplicationSummary accordionId=accordionId summarySections=summarySections/>
 
         <#if isSubmittable>
             <@fdsAction.submitButtons

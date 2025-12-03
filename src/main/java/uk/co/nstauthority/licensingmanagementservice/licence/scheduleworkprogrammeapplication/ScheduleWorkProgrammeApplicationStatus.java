@@ -2,5 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 public enum ScheduleWorkProgrammeApplicationStatus {
   DRAFT,
+  DELETED,
   SUBMITTED
 }

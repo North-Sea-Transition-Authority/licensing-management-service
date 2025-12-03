@@ -57,9 +57,9 @@ public class LicenceScheduleTermDeletionController {
 
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
 
-    NotificationBanner.newSuccessBanner()
-        .withHeadingContent(String.format("%s has been deleted", term.getTermType().getDisplayName()))
-        .applyTo(redirectAttributes);
+    NotificationBanner.newSuccessBannerWithHeader(
+        String.format("%s has been deleted", term.getTermType().getDisplayName()), redirectAttributes
+    );
 
     return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
   }

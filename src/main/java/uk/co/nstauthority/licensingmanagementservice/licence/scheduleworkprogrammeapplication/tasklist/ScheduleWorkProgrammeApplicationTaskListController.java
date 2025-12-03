@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,9 +13,11 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.schedul
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDeleteController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/task-list")
@@ -53,7 +57,11 @@ public class ScheduleWorkProgrammeApplicationTaskListController {
     var modelAndView = new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/taskList")
         .addObject("taskListSections", sections)
         .addObject("pageTitle", PAGE_TITLE)
-        .addObject("pageCaption", licenceService.getLicencePageCaption(licence));
+        .addObject("pageCaption", licenceService.getLicencePageCaption(licence))
+        .addObject("deleteScheduleWorkProgrammeApplicationUrl", ReverseRouter.route(on(
+            ScheduleWorkProgrammeApplicationDeleteController.class).renderForm(
+                scheduleWorkProgrammeApplicationDetailId,
+                null)));
 
     var breadcrumbs = Breadcrumbs.builder(PAGE_TITLE)
         .addWorkAreaBreadcrumb()

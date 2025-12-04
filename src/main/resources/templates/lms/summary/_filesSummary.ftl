@@ -8,15 +8,17 @@
     headingSize="h3"
     summaryListId="files-summary-card-list">
     <#list fileViews as fileView>
+        <#list fileView.uploadedFileViews() as uploadedFile>
       <@fdsSummaryList.summaryListRow
-        keyText=fileView.filename()
+        keyText=uploadedFile.fileName()
         actionText="Download"
-        actionUrl=springUrl(fileView.downloadUrl())
-        screenReaderActionText="Download ${fileView.filename()}">
+        actionUrl=springUrl(uploadedFile.downloadUrl())
+        screenReaderActionText="Download ${uploadedFile.fileName()}">
         <p class="govuk-body">
-          <@multiLineText.multiLineText contentText=fileView.description()/>
+          <@multiLineText.multiLineText contentText=uploadedFile.fileDescription()!/>
         </p>
       </@fdsSummaryList.summaryListRow>
+    </#list>
     </#list>
   </@fdsSummaryList.summaryListCard>
 </#macro>

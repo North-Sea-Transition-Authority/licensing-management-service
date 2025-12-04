@@ -106,7 +106,7 @@ public class LicenceScheduleSupportingInformationController {
   }
 
   @GetMapping("/files/{fileId}")
-  ResponseEntity<InputStreamResource> downloadFile(
+  public ResponseEntity<InputStreamResource> downloadFile(
       @PathVariable UUID fileId,
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,

@@ -23,8 +23,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.fileuploadlibrary.core.UploadedFileFormTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentRepository;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionService;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceScheduleSupportingInformationServiceTest {
@@ -40,12 +38,6 @@ class LicenceScheduleSupportingInformationServiceTest {
 
   @Captor
   private ArgumentCaptor<LicenceScheduleSupportingInformation> licenceScheduleSupportingRequestArgumentCaptor;
-
-  @Mock
-  private LicenceScheduleExtensionService licenceScheduleExtensionService;
-
-  @Mock
-  private LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
 
   @Mock
   private ApplicationFileService licenceScheduleApplicationFileService;

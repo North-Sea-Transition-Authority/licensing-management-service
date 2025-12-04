@@ -18,7 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.summary.SummarySectionServi
 public class WorkProgrammeAmendmentSummarySectionService
     implements SummarySectionService<ScheduleWorkProgrammeApplicationDetail> {
 
-  public static final String LICENCE_SECTION_NAME = "Work programme amendment summary";
+  public static final String LICENCE_SECTION_NAME = "Work programme amendments";
   public static final String COMPLETION_DATE_CHANGE_REQUESTED = "Completion date change requested";
   public static final String REQUESTED_EXTENSION_TO_COMPLETION_DATE = "Requested extension to completion date";
   public static final String WORK_PROGRAMME_CONTENT_CHANGE_REQUESTED = "Work programme content change requested";

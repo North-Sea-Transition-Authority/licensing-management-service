@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSummaryController;
@@ -22,6 +24,10 @@ import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSectionService;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
+import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementController;
+import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
 
 @Service
 public class ScheduleWorkProgrammeApplicationTaskListSectionService
@@ -31,6 +37,7 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
   private final LicenceWorkProgrammeAmendmentSubmissionService licenceWorkProgrammeAmendmentSubmissionService;
   private final SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository;
   private final LicenceScheduleSupportingInformationSubmissionService licenceScheduleSupportingInformationSubmissionService;
+  private final TeamManagementService teamManagementService;
 
   private boolean extensionSelection;
   private boolean amendmentSelection;
@@ -39,16 +46,19 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
       SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository,
       LicenceScheduleExtensionSubmissionService licenceScheduleExtensionSubmissionService,
       LicenceWorkProgrammeAmendmentSubmissionService licenceWorkProgrammeAmendmentSubmissionService,
-      LicenceScheduleSupportingInformationSubmissionService licenceScheduleSupportingInformationSubmissionService
+      LicenceScheduleSupportingInformationSubmissionService licenceScheduleSupportingInformationSubmissionService,
+      TeamManagementService teamManagementService
   ) {
     this.licenceScheduleExtensionSubmissionService = licenceScheduleExtensionSubmissionService;
     this.swpApplicationRequestPurposeRepository = swpApplicationRequestPurposeRepository;
     this.licenceWorkProgrammeAmendmentSubmissionService = licenceWorkProgrammeAmendmentSubmissionService;
     this.licenceScheduleSupportingInformationSubmissionService = licenceScheduleSupportingInformationSubmissionService;
+    this.teamManagementService = teamManagementService;
   }
 
   static final String APPLICATION_DETAILS_SECTION_NAME = "Schedule and work programme application details";
   static final String WHAT_ARE_YOU_REQUESTING_TO_DO = "What are you requesting to do?";
+  static final String EXTERNAL_CONTRIBUTORS = "External contributors";
   static final String EXTENSION_DETAILS = "Extension Details";
   static final String SUPPORTING_INFORMATION = "Supporting information";
   static final String AMENDMENT_DETAILS = "Work programme amendment details";
@@ -67,7 +77,26 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
           amendmentSelection = purpose.getAmendWorkProgramme();
         });
 
+    var scopeRef = TeamScopeReference.from(
+        scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getId().toString(),
+        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name()
+    );
+
+    var externalContributors = teamManagementService.getScopedTeam(
+        TeamType.EXTERNAL_CONTRIBUTORS,
+        scopeRef
+    ).orElseThrow(() -> new LmsEntityNotFoundException(
+        String.format("No external contacts team found for application with id : %s ",
+        scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getId()
+    )));
+
     var items = new ArrayList<>(List.of(
+        new TaskListItem(
+            EXTERNAL_CONTRIBUTORS,
+            TaskListLabel.notStartedOrComplete(true),
+            ReverseRouter.route(on(TeamManagementController.class)
+                .renderScheduleExternalContributorsTeamList(externalContributors.getId(), null))
+        ),
         new TaskListItem(
             WHAT_ARE_YOU_REQUESTING_TO_DO,
             TaskListLabel.notStartedOrComplete(extensionSelection || amendmentSelection),

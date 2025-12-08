@@ -15,12 +15,14 @@ public enum TeamType {
       "Licence maintenance",
       "licence-maintenance",
       false,
+      false,
       List.of(Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM),
       null
   ),
   PRODUCTION(
       "Production",
       "production",
+      false,
       false,
       List.of(Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE),
       null
@@ -29,6 +31,7 @@ public enum TeamType {
       "Carbon storage",
       "carbon-storage",
       false,
+      false,
       List.of(Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE),
       null
   ),
@@ -36,14 +39,24 @@ public enum TeamType {
       "Organisations",
       "organisation",
       true,
+      false,
       List.of(Role.MANAGE_TEAM, Role.APPLICATION_EDITOR, Role.APPLICATION_SUBMITTER, Role.VIEW_ORGANISATION_LICENCES),
           () ->
               ReverseRouter.route(on(ScopedTeamManagementController.class).renderCreateNewOrgTeam(null))
+  ),
+  EXTERNAL_CONTRIBUTORS(
+      "External contributors",
+      "external-contributors",
+      true,
+      true,
+      List.of(Role.MANAGE_TEAM, Role.EXTERNAL_APPLICATION_EDITOR, Role.EXTERNAL_APPLICATION_VIEWER),
+      null
   );
 
   private final String displayName;
   private final String urlSlug;
   private final boolean isScoped;
+  private final boolean isApplicationScoped;
   private final List<Role> allowedRoles;
   private final Supplier<String> createNewInstanceRoute;
 
@@ -51,12 +64,14 @@ public enum TeamType {
       String displayName,
       String urlSlug,
       boolean isScoped,
+      boolean isApplicationScoped,
       List<Role> allowedRoles,
       Supplier<String> createNewInstanceRoute
   ) {
     this.displayName = displayName;
     this.urlSlug = urlSlug;
     this.isScoped = isScoped;
+    this.isApplicationScoped = isApplicationScoped;
     this.allowedRoles = allowedRoles;
     this.createNewInstanceRoute = createNewInstanceRoute;
   }
@@ -71,6 +86,10 @@ public enum TeamType {
 
   public boolean isScoped() {
     return isScoped;
+  }
+
+  public boolean isApplicationScoped() {
+    return isApplicationScoped;
   }
 
   public List<Role> getAllowedRoles() {

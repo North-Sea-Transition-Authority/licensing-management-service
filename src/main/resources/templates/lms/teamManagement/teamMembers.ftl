@@ -88,5 +88,5 @@
             ${teamName} has no members.
         </@fdsInsetText.insetText>
     </#if>
-
+    <@fdsBackLink.backLink backLinkUrl=springUrl(backUrl)/>
 </@defaultPage>

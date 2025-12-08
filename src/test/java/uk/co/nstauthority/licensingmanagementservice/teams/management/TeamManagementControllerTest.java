@@ -39,6 +39,12 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.configuration.EnergyPortalConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
@@ -49,6 +55,7 @@ import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamM
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamTypeView;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamView;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
 @ContextConfiguration(classes = TeamManagementController.class)
@@ -66,10 +73,18 @@ class TeamManagementControllerTest extends AbstractControllerTest {
   @MockitoBean
   private EnergyPortalUserService energyPortalUserService;
 
+  @MockitoBean
+  private ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository;
+
+  @MockitoBean
+  private ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository;
+
   private static Team regTeam;
+  private static Team externalContributors;
   private static Team organisationTeam;
   private static TeamMemberView regTeamMemberView;
   private static ServiceUserDetail invokingUser;
+  private static TeamMemberView applicationScopedTeamMemberView;
 
   @BeforeAll
   static void setUp() {
@@ -89,8 +104,27 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         "test@example.com",
         "020123456",
         regTeam.getId(),
-        List.of(Role.MANAGE_TEAM)
+        List.of(Role.MANAGE_TEAM),
+        false
     );
+
+    externalContributors = new Team(UUID.randomUUID());
+    externalContributors.setTeamType(TeamType.EXTERNAL_CONTRIBUTORS);
+    externalContributors.setName("EXTERNAL CONTRIBUTORS");
+    externalContributors.setScopeId(UUID.randomUUID().toString());
+
+    applicationScopedTeamMemberView = new TeamMemberView(
+        1L,
+        "Ms",
+        "Test",
+        "User",
+        "test@example.com",
+        "020123456",
+        regTeam.getId(),
+        List.of(Role.MANAGE_TEAM),
+        true
+    );
+
 
     invokingUser = ServiceUserDetailTestUtil.newBuilder()
         .withWuaId(1L)
@@ -385,6 +419,9 @@ class TeamManagementControllerTest extends AbstractControllerTest {
 
   @Test
   void renderTeamMemberList_whenIsMemberOfTeamAndTeamManager_thenAssetModelProperties() throws Exception {
+    var scopeId = UUID.randomUUID();
+    regTeam.setScopeId(scopeId.toString());
+    regTeam.setTeamType(TeamType.LICENCE_MAINTENANCE);
 
     when(teamManagementService.canManageTeam(regTeam, invokingUser.wuaId()))
         .thenReturn(true);
@@ -406,7 +443,8 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("teamName", regTeam.getName()))
         .andExpect(model().attribute("teamMemberViews", List.of(regTeamMemberView)))
         .andExpect(model().attribute("canManageTeam", true))
-        .andExpect(model().attribute(
+           .andExpect(model().attribute("backUrl", ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))))
+           .andExpect(model().attribute(
             "addMemberUrl",
             ReverseRouter.route(on(TeamManagementController.class).renderAddMemberToTeam(regTeam.getId(), null))
         ))
@@ -436,6 +474,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("teamName", regTeam.getName()))
         .andExpect(model().attribute("teamMemberViews", List.of(regTeamMemberView)))
         .andExpect(model().attribute("canManageTeam", false))
+        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))))
         .andExpect(model().attribute(
             "addMemberUrl",
             ReverseRouter.route(on(TeamManagementController.class).renderAddMemberToTeam(regTeam.getId(), null))
@@ -802,6 +841,408 @@ class TeamManagementControllerTest extends AbstractControllerTest {
                 .with(csrf())
                 .with(user(invokingUser)))
         .andExpect(status().isForbidden());
+
+    verify(teamManagementService, never()).removeUserFromTeam(any(), any(), any());
+  }
+
+  @Test
+  void renderScheduleExternalContributorsTeamList() throws Exception {
+    var id = UUID.fromString(externalContributors.getScopeId());
+
+    ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
+    scheduleWorkProgrammeApplication.setId(id);
+
+    ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationTestUtil
+        .builder()
+        .withId(UUID.randomUUID())
+        .withScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication)
+        .build();
+
+    when(teamManagementService.canManageTeam(externalContributors, invokingUser.wuaId())).thenReturn(false);
+    when(teamManagementService.isMemberOfTeam(externalContributors, invokingUser.wuaId())).thenReturn(true);
+    when(teamManagementService.getTeam(externalContributors.getId())).thenReturn(externalContributors);
+
+    when(teamManagementService.getTeamMemberViewsForTeam(externalContributors))
+        .thenReturn(List.of(applicationScopedTeamMemberView));
+
+    when(scheduleWorkProgrammeApplicationService.getScheduleWorkProgrammeApplicationById(id))
+        .thenReturn(scheduleWorkProgrammeApplication);
+
+    when(scheduleWorkProgrammeApplicationService.getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication))
+        .thenReturn(scheduleWorkProgrammeApplicationDetail);
+
+    mockMvc
+        .perform(get(ReverseRouter.route(on(TeamManagementController.class).renderScheduleExternalContributorsTeamList(
+            externalContributors.getId(), null))).with(
+            user(invokingUser)))
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/teamManagement/teamMembers"))
+        .andExpect(model().attribute("teamName", externalContributors.getName()))
+        .andExpect(model().attribute("teamMemberViews", List.of(applicationScopedTeamMemberView)))
+        .andExpect(model().attribute("canManageTeam", false))
+        .andExpect(model().attribute("backUrl",
+            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
+                scheduleWorkProgrammeApplicationDetail.getId(), null, null))
+        ))
+        .andExpect(model().attribute("currentEndPoint",
+            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(null, null, null))
+        ))
+        .andExpect(model().attribute("addMemberUrl",
+            ReverseRouter.route(on(TeamManagementController.class).renderAddMemberToScheduleExternalContributorsTeam(
+                externalContributors.getId(), null))
+        ));
+  }
+
+  @Test
+  void renderAddMemberToScheduleExternalContributorsTeam() throws Exception {
+    when(teamManagementService.getTeam(externalContributors.getId()))
+        .thenReturn(externalContributors);
+
+    when(teamManagementService.getScopedTeamsOfTypeUserCanManage(externalContributors.getTeamType(), invokingUser.wuaId()))
+        .thenReturn(List.of(externalContributors));
+
+    when(energyPortalConfiguration.registrationUrl())
+        .thenReturn("https://example.com");
+
+    var modelAndView = mockMvc.perform(get(ReverseRouter.route(
+                                  on(TeamManagementController.class).renderAddMemberToScheduleExternalContributorsTeam(
+                                      externalContributors.getId(), null)))
+                                  .with(user(invokingUser)))
+                              .andExpect(status().isOk())
+                              .andReturn().getModelAndView();
+
+    var registerUrl = (String) modelAndView.getModel().get("registerUrl");
+
+    assertThat(registerUrl)
+        .isEqualTo("https://example.com");
+  }
+
+  @Test
+  void renderAddMemberToScheduleExternalContributorsTeam_noTeamFound() throws Exception {
+    var nonExistentTeamId = UUID.randomUUID();
+    when(teamManagementService.getTeam(nonExistentTeamId))
+        .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Team with id %s not found".formatted(nonExistentTeamId)));
+
+    mockMvc.perform(
+               get(ReverseRouter.route(on(TeamManagementController.class).renderAddMemberToScheduleExternalContributorsTeam(nonExistentTeamId, null)))
+                   .with(user(invokingUser)))
+           .andExpect(status().isNotFound());
+  }
+
+  @SecurityTest
+  void renderAddMemberToScheduleExternalContributorsTeam_noAccess() throws Exception {
+    when(teamManagementService.getTeam(organisationTeam.getId()))
+        .thenReturn(organisationTeam);
+
+    when(teamManagementService.canManageTeam(externalContributors, invokingUser.wuaId()))
+        .thenReturn(true);
+
+    when(energyPortalConfiguration.registrationUrl())
+        .thenReturn("https://example.com");
+
+    mockMvc.perform(get(ReverseRouter.route(
+               on(TeamManagementController.class).renderAddMemberToScheduleExternalContributorsTeam(organisationTeam.getId(), null)))
+               .with(user(invokingUser)))
+           .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void handleAddMemberToScheduleExternalContributorsTeam() throws Exception {
+    var epaUser = new User.Builder()
+        .webUserAccountId(999L)
+        .isAccountShared(false)
+        .canLogin(true)
+        .build();
+
+    when(addMemberFormValidator.isValid(any(), any())).thenReturn(true);
+
+    when(teamManagementService.getTeam(externalContributors.getId()))
+        .thenReturn(externalContributors);
+
+    when(teamManagementService.getScopedTeamsOfTypeUserCanManage(externalContributors.getTeamType(), invokingUser.wuaId()))
+        .thenReturn(List.of(externalContributors));
+
+    when(energyPortalUserService.findUsersByEmail("test@email", "Find user to add to team"))
+        .thenReturn(List.of(EnergyPortalUserJson.from(epaUser)));
+
+    mockMvc.perform(
+               post(ReverseRouter.route(on(TeamManagementController.class).handleAddMemberToScheduleExternalContributorsTeam(
+                   externalContributors.getId(), null, null)))
+                   .with(csrf())
+                   .with(user(invokingUser))
+                   .param("emailAddress", "test@email" ))
+           .andExpect(status().is3xxRedirection())
+           .andExpect(redirectedUrl(
+               ReverseRouter.route(on(TeamManagementController.class).renderUserScheduleExternalContributorsTeamRoles(
+                   externalContributors.getId(), 999L, null))));
+  }
+
+  @Test
+  void handleAddMemberToScheduleExternalContributorsTeam_invalidForm() throws Exception {
+    when(teamManagementService.getTeam(externalContributors.getId()))
+        .thenReturn(externalContributors);
+
+    when(teamManagementService.getScopedTeamsOfTypeUserCanManage(TeamType.EXTERNAL_CONTRIBUTORS, invokingUser.wuaId()))
+        .thenReturn(List.of(externalContributors));
+
+    when(addMemberFormValidator.isValid(any(), any())).thenReturn(false);
+
+    when(energyPortalConfiguration.registrationUrl())
+        .thenReturn("https://example.com");
+
+    mockMvc.perform(
+               post(ReverseRouter.route(on(TeamManagementController.class).handleAddMemberToScheduleExternalContributorsTeam(
+                   externalContributors.getId(), null, null)))
+                   .with(csrf())
+                   .with(user(invokingUser)))
+           .andExpect(status().isOk());
+  }
+
+  @Test
+  void handleAddMemberToScheduleExternalContributorsTeam_invalidUser() throws Exception {
+    when(addMemberFormValidator.isValid(any(), any())).thenReturn(true);
+
+    when(teamManagementService.getTeam(externalContributors.getId()))
+        .thenReturn(externalContributors);
+
+    when(teamManagementService.getScopedTeamsOfTypeUserCanManage(externalContributors.getTeamType(), invokingUser.wuaId()))
+        .thenReturn(List.of(externalContributors));
+
+    when(energyPortalUserService.findUsersByEmail("foo", "Find user to add to team"))
+        .thenReturn(List.of());
+
+    mockMvc.perform(
+               post(ReverseRouter.route(on(TeamManagementController.class).handleAddMemberToScheduleExternalContributorsTeam(
+                   externalContributors.getId(), null, null)))
+                   .with(csrf())
+                   .with(user(invokingUser))
+                   .param("email", "foo"))
+           .andExpect(status().isBadRequest());
+  }
+
+  @SecurityTest
+  void handleAddMemberToScheduleExternalContributorsTeam_noAccess() throws Exception {
+    when(teamManagementService.getTeam(externalContributors.getId()))
+        .thenReturn(externalContributors);
+
+    when(teamManagementService.getScopedTeamsOfTypeUserCanManage(externalContributors.getTeamType(), invokingUser.wuaId()))
+        .thenReturn(List.of());
+
+    mockMvc.perform(
+               post(ReverseRouter.route(on(TeamManagementController.class).handleAddMemberToScheduleExternalContributorsTeam(
+                   externalContributors.getId(), null, null)))
+                   .with(csrf())
+                   .with(user(invokingUser))
+                   .param("email", "foo"))
+           .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderUserScheduleExternalContributorsTeamRoles() throws Exception {
+    when(teamManagementService.getTeam(externalContributors.getId()))
+        .thenReturn(externalContributors);
+
+    when(teamManagementService.getScopedTeamsOfTypeUserCanManage(externalContributors.getTeamType(), invokingUser.wuaId()))
+        .thenReturn(List.of(externalContributors));
+
+    when(teamManagementService.getTeamMemberView(externalContributors, 999L))
+        .thenReturn(applicationScopedTeamMemberView);
+
+    var modelAndView = mockMvc.perform(
+                                  get(ReverseRouter.route(on(TeamManagementController.class).renderUserScheduleExternalContributorsTeamRoles(
+                                      externalContributors.getId(), 999L, null)))
+                                      .with(user(invokingUser)))
+                              .andExpect(status().isOk())
+                              .andReturn().getModelAndView();
+
+    var roleMap = (Map<String, String>) modelAndView.getModel().get("rolesNamesMap");
+
+    assertThat(roleMap)
+        .containsExactly(
+            Map.entry(Role.MANAGE_TEAM.name(), Role.MANAGE_TEAM.getName()),
+            Map.entry(Role.EXTERNAL_APPLICATION_EDITOR.name(), Role.EXTERNAL_APPLICATION_EDITOR.getName()),
+            Map.entry(Role.EXTERNAL_APPLICATION_VIEWER.name(),
+                Role.EXTERNAL_APPLICATION_VIEWER.getName())
+        );
+
+    var teamMemberViewModel = modelAndView.getModel().get("teamMemberView");
+    assertThat(teamMemberViewModel).isEqualTo(applicationScopedTeamMemberView);
+
+    var rolesInTeam = (List<Role>) modelAndView.getModel().get("rolesInTeam");
+
+    assertThat(rolesInTeam)
+        .containsExactly(
+            Role.MANAGE_TEAM,
+            Role.EXTERNAL_APPLICATION_EDITOR,
+            Role.EXTERNAL_APPLICATION_VIEWER
+        );
+  }
+
+  @SecurityTest
+  void renderUserScheduleExternalContributorsTeamRoles_noAccess() throws Exception {
+    when(teamManagementService.getTeam(externalContributors.getId()))
+        .thenReturn(externalContributors);
+
+    when(teamManagementService.getScopedTeamsOfTypeUserCanManage(externalContributors.getTeamType(), invokingUser.wuaId()))
+        .thenReturn(List.of());
+
+    mockMvc.perform(
+               get(ReverseRouter.route(on(TeamManagementController.class).renderUserScheduleExternalContributorsTeamRoles(
+                   externalContributors.getId(), 999L, null)))
+                   .with(user(invokingUser)))
+           .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void updateUserScheduleExternalContributorsTeamRoles() throws Exception {
+    when(teamManagementService.getTeam(externalContributors.getId()))
+        .thenReturn(externalContributors);
+
+    when(teamManagementService.getScopedTeamsOfTypeUserCanManage(externalContributors.getTeamType(), invokingUser.wuaId()))
+        .thenReturn(List.of(externalContributors));
+
+    mockMvc.perform(post(
+               ReverseRouter.route(on(TeamManagementController.class).updateUserScheduleExternalContributorsTeamRoles(
+                   externalContributors.getId(), 999L, null, null, null)))
+               .with(csrf())
+               .with(user(invokingUser))
+               .param("roles", "MANAGE_TEAM"))
+           .andExpect(status().is3xxRedirection())
+           .andExpect(redirectedUrl(
+               ReverseRouter.route(on(TeamManagementController.class).renderScheduleExternalContributorsTeamList(
+                   externalContributors.getId(), null))));
+
+    verify(teamManagementService).setUserTeamRoles(999L, externalContributors, List.of(Role.MANAGE_TEAM), invokingUser);
+  }
+
+  @Test
+  void updateUserScheduleExternalContributorsTeamRoles_invalidForm() throws Exception {
+    when(teamManagementService.getTeam(externalContributors.getId()))
+        .thenReturn(externalContributors);
+
+    when(teamManagementService.getScopedTeamsOfTypeUserCanManage(externalContributors.getTeamType(), invokingUser.wuaId()))
+        .thenReturn(List.of(externalContributors));
+
+    doAnswer( invocation -> {
+          BindingResult bindingResult = invocation.getArgument(3);
+          bindingResult.addError(new ObjectError("Error", "error"));
+          return invocation;
+        }
+    ).when(memberRolesFormValidator).validate(any(), eq(999L), eq(externalContributors), any());
+
+    when(teamManagementService.getTeamMemberView(externalContributors, 999L))
+        .thenReturn(applicationScopedTeamMemberView);
+
+    mockMvc.perform(post(
+               ReverseRouter.route(on(TeamManagementController.class).updateUserScheduleExternalContributorsTeamRoles(
+                   externalContributors.getId(), 999L, null, null, null)))
+               .with(csrf())
+               .with(user(invokingUser))
+               .param("roles", "MANAGE_TEAM"))
+           .andExpect(status().isOk());
+
+    verify(teamManagementService, never()).setUserTeamRoles(any(), any(), any(), any());
+  }
+
+  @Test
+  void updateUserScheduleExternalContributorsTeamRoles_noAccess() throws Exception {
+    when(teamManagementService.getTeam(externalContributors.getId()))
+        .thenReturn(externalContributors);
+
+    when(teamManagementService.getScopedTeamsOfTypeUserCanManage(externalContributors.getTeamType(), invokingUser.wuaId()))
+        .thenReturn(List.of());
+
+    mockMvc.perform(post(
+               ReverseRouter.route(on(TeamManagementController.class).updateUserScheduleExternalContributorsTeamRoles(
+                   externalContributors.getId(), 999L, null, null, null)))
+               .with(csrf())
+               .with(user(invokingUser))
+               .param("roles", "MANAGE_TEAM"))
+           .andExpect(status().isForbidden());
+
+    verify(teamManagementService, never()).setUserTeamRoles(any(), any(), any(), any());
+  }
+
+  @Test
+  void renderRemoveScheduleExternalContributorsTeamMember() throws Exception {
+    when(teamManagementService.getTeam(externalContributors.getId()))
+        .thenReturn(externalContributors);
+
+    when(teamManagementService.getScopedTeamsOfTypeUserCanManage(externalContributors.getTeamType(), invokingUser.wuaId()))
+        .thenReturn(List.of(externalContributors));
+
+    when(teamManagementService.getTeamMemberView(externalContributors, 999L))
+        .thenReturn(applicationScopedTeamMemberView);
+
+    when(teamManagementService.willManageTeamRoleBePresentAfterMemberRemoval(externalContributors, 999L))
+        .thenReturn(true);
+
+    var modelAndView = mockMvc.perform(
+                                  get(ReverseRouter.route(on(TeamManagementController.class).renderRemoveScheduleExternalContributorsTeamMember(
+                                      externalContributors.getId(), 999L)))
+                                      .with(user(invokingUser)))
+                              .andExpect(status().isOk())
+                              .andReturn().getModelAndView();
+
+    var teamMemberViewModel = (TeamMemberView) modelAndView.getModel().get("teamMemberView");
+    var teamName = (String) modelAndView.getModel().get("teamName");
+    var canRemoveTeamMember = (boolean) modelAndView.getModel().get("canRemoveTeamMember");
+
+    assertThat(teamMemberViewModel).isEqualTo(applicationScopedTeamMemberView);
+    assertThat(teamName).isEqualTo(externalContributors.getName());
+    assertThat(canRemoveTeamMember).isTrue();
+  }
+
+  @SecurityTest
+  void renderRemoveScheduleExternalContributorsTeamMember_noAccess() throws Exception {
+    when(teamManagementService.getTeam(externalContributors.getId()))
+        .thenReturn(externalContributors);
+
+    when(teamManagementService.getScopedTeamsOfTypeUserCanManage(externalContributors.getTeamType(), invokingUser.wuaId()))
+        .thenReturn(List.of());
+
+    mockMvc.perform(
+               get(ReverseRouter.route(on(TeamManagementController.class).renderRemoveScheduleExternalContributorsTeamMember(
+                   externalContributors.getId(), 999L)))
+                   .with(user(invokingUser)))
+           .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void handleRemoveScheduleExternalContributorsTeamMember() throws Exception {
+    when(teamManagementService.getTeam(externalContributors.getId()))
+        .thenReturn(externalContributors);
+
+    when(teamManagementService.getScopedTeamsOfTypeUserCanManage(externalContributors.getTeamType(), invokingUser.wuaId()))
+        .thenReturn(List.of(externalContributors));
+
+    mockMvc.perform(
+               post(ReverseRouter.route(on(TeamManagementController.class).handleRemoveScheduleExternalContributorsTeamMember(
+                   externalContributors.getId(), 999L, null)))
+                   .with(csrf())
+                   .with(user(invokingUser)))
+           .andExpect(status().is3xxRedirection())
+           .andExpect(redirectedUrl(
+               ReverseRouter.route(on(TeamManagementController.class).renderScheduleExternalContributorsTeamList(
+                   externalContributors.getId(), null))));
+
+    verify(teamManagementService).removeUserFromTeam(999L, externalContributors, invokingUser);
+  }
+
+  @Test
+  void handleRemoveScheduleExternalContributorsTeamMember_noAccess() throws Exception {
+    when(teamManagementService.getTeam(externalContributors.getId()))
+        .thenReturn(externalContributors);
+
+    when(teamManagementService.getScopedTeamsOfTypeUserCanManage(externalContributors.getTeamType(), invokingUser.wuaId()))
+        .thenReturn(List.of());
+
+    mockMvc.perform(
+               post(ReverseRouter.route(on(TeamManagementController.class).handleRemoveScheduleExternalContributorsTeamMember(
+                   externalContributors.getId(), 999L, null)))
+                   .with(csrf())
+                   .with(user(invokingUser)))
+           .andExpect(status().isForbidden());
 
     verify(teamManagementService, never()).removeUserFromTeam(any(), any(), any());
   }

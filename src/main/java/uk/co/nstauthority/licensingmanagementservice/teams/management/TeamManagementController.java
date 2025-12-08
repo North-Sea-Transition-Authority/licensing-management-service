@@ -7,6 +7,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +23,8 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.configuration.EnergyPortalConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
@@ -32,9 +36,11 @@ import uk.co.nstauthority.licensingmanagementservice.teams.management.form.AddMe
 import uk.co.nstauthority.licensingmanagementservice.teams.management.form.AddMemberFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.form.MemberRolesForm;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.form.MemberRolesFormValidator;
+import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamMemberView;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamTypeView;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamView;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @RestController
 @RequestMapping("/team-management")
@@ -46,25 +52,33 @@ public class TeamManagementController {
   private final AddMemberFormValidator addMemberFormValidator;
   private final EnergyPortalConfiguration energyPortalConfiguration;
   private final EnergyPortalUserService energyPortalUserService;
-  private static final String CANCEL_URL_ATTRIBUTE_NAME = "cancelUrl";
+  private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
 
-  public TeamManagementController(TeamManagementService teamManagementService, TeamQueryService teamQueryService,
-                                  MemberRolesFormValidator memberRolesFormValidator,
-                                  AddMemberFormValidator addMemberFormValidator,
-                                  EnergyPortalConfiguration energyPortalConfiguration,
-                                  EnergyPortalUserService energyPortalUserService) {
+  public TeamManagementController(
+      TeamManagementService teamManagementService,
+      TeamQueryService teamQueryService,
+      MemberRolesFormValidator memberRolesFormValidator,
+      AddMemberFormValidator addMemberFormValidator,
+      EnergyPortalConfiguration energyPortalConfiguration,
+      EnergyPortalUserService energyPortalUserService,
+      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService
+  ) {
     this.teamManagementService = teamManagementService;
     this.teamQueryService = teamQueryService;
     this.memberRolesFormValidator = memberRolesFormValidator;
     this.addMemberFormValidator = addMemberFormValidator;
     this.energyPortalConfiguration = energyPortalConfiguration;
     this.energyPortalUserService = energyPortalUserService;
+    this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
   }
 
   @GetMapping
   public ModelAndView renderTeamTypeList(ServiceUserDetail user) {
-
-    var teamTypes = new HashSet<>(teamManagementService.getTeamTypesUserIsMemberOf(user.wuaId()));
+    var teamTypes = teamManagementService
+        .getTeamTypesUserIsMemberOf(user.wuaId())
+        .stream()
+        .filter(teamType -> !teamType.isApplicationScoped())
+        .collect(Collectors.toCollection(HashSet::new));
 
     if (teamQueryService.userHasStaticRole(user.wuaId(), TeamType.LICENCE_MAINTENANCE,
         Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM)) {
@@ -158,32 +172,14 @@ public class TeamManagementController {
   @GetMapping("/team/{teamId}")
   @InvokingUserCanViewTeam
   public ModelAndView renderTeamMemberList(@PathVariable UUID teamId, ServiceUserDetail user) {
-
-    var team = teamManagementService.getTeam(teamId);
-    var teamMemberViews = teamManagementService.getTeamMemberViewsForTeam(team);
-
-    return new ModelAndView("lms/teamManagement/teamMembers")
-        .addObject("teamName", team.getName())
-        .addObject("teamMemberViews", teamMemberViews)
-        .addObject("rolesInTeam", team.getTeamType().getAllowedRoles())
-        .addObject("canManageTeam", teamManagementService.canManageTeam(team, user.wuaId()))
-        .addObject(
-            "addMemberUrl",
-            ReverseRouter.route(on(TeamManagementController.class).renderAddMemberToTeam(team.getId(), null))
-        );
+    return buildTeamListView(teamManagementService.getTeam(teamId), user.wuaId());
   }
 
   @GetMapping("/team/{teamId}/add-member")
   @InvokingUserCanManageTeam
   public ModelAndView renderAddMemberToTeam(@PathVariable UUID teamId,
                                             @ModelAttribute("form") AddMemberForm form) {
-    var team = teamManagementService.getTeam(teamId);
-    return new ModelAndView("lms/teamManagement/addMember")
-        .addObject(
-            CANCEL_URL_ATTRIBUTE_NAME,
-            ReverseRouter.route(on(TeamManagementController.class).renderTeamMemberList(team.getId(), null))
-        )
-        .addObject("registerUrl", energyPortalConfiguration.registrationUrl());
+    return buildAddMemberView(teamManagementService.getTeam(teamId));
   }
 
   @PostMapping("/team/{teamId}/add-member")
@@ -192,24 +188,9 @@ public class TeamManagementController {
                                             @ModelAttribute("form") AddMemberForm form,
                                             BindingResult bindingResult) {
     if (!addMemberFormValidator.isValid(form, bindingResult)) {
-      return new ModelAndView("lms/teamManagement/addMember")
-          .addObject(
-              CANCEL_URL_ATTRIBUTE_NAME,
-              ReverseRouter.route(on(TeamManagementController.class).renderTeamMemberList(teamId, null))
-          )
-          .addObject("registerUrl", energyPortalConfiguration.registrationUrl());
+      return buildAddMemberView(teamManagementService.getTeam(teamId));
     }
-
-    var wuaId = energyPortalUserService.findUsersByEmail(form.getEmailAddress(), "Find user to add to team").stream()
-        .filter(user -> !user.sharedAccount() && user.canLogin())
-        .map(EnergyPortalUserJson::webUserAccountId)
-        .findFirst()
-        .orElseThrow(() -> new ResponseStatusException(
-            HttpStatus.BAD_REQUEST,
-            "user with email address %s does not exist".formatted(form.getEmailAddress()))
-        );
-
-
+    Long wuaId = findUserOrThrow(form.getEmailAddress());
     return ReverseRouter.redirect(on(TeamManagementController.class).renderUserTeamRoles(teamId, wuaId, null));
   }
 
@@ -218,12 +199,7 @@ public class TeamManagementController {
   public ModelAndView renderUserTeamRoles(@PathVariable UUID teamId,
                                           @PathVariable Long wuaId,
                                           @ModelAttribute("form") MemberRolesForm form) {
-    var team = teamManagementService.getTeam(teamId);
-    var teamMemberView = teamManagementService.getTeamMemberView(team, wuaId);
-
-    form.setRoles(teamMemberView.roles().stream().map(Role::name).toList());
-
-    return getUserTeamRolesModelAndView(team, wuaId);
+    return buildEditRolesView(teamManagementService.getTeam(teamId), wuaId, form);
   }
 
   @PostMapping("/team/{teamId}/member/{wuaId}/")
@@ -234,36 +210,18 @@ public class TeamManagementController {
                                           BindingResult bindingResult,
                                           ServiceUserDetail userDetail) {
     var team = teamManagementService.getTeam(teamId);
-
     memberRolesFormValidator.validate(form, wuaId, team, bindingResult);
     if (bindingResult.hasErrors()) {
-      return getUserTeamRolesModelAndView(team, wuaId);
+      return buildEditRolesView(team, wuaId, form);
     }
-
-    var roles = form.getRoles().stream()
-        .map(Role::valueOf)
-        .toList();
-
-    teamManagementService.setUserTeamRoles(wuaId, team, roles, userDetail);
+    updateRoles(wuaId, team, form, userDetail);
     return ReverseRouter.redirect(on(TeamManagementController.class).renderTeamMemberList(team.getId(), null));
   }
 
   @GetMapping("/team/{teamId}/member/{wuaId}/remove")
   @InvokingUserCanManageTeam
   public ModelAndView renderRemoveTeamMember(@PathVariable UUID teamId, @PathVariable Long wuaId) {
-    var team = teamManagementService.getTeam(teamId);
-
-    var teamMemberView = teamManagementService.getTeamMemberView(team, wuaId);
-    var canRemoveTeamMember = teamManagementService.willManageTeamRoleBePresentAfterMemberRemoval(team, wuaId);
-
-    return new ModelAndView("lms/teamManagement/removeMember")
-        .addObject("teamMemberView", teamMemberView)
-        .addObject("teamName", team.getName())
-        .addObject("canRemoveTeamMember", canRemoveTeamMember)
-        .addObject(
-            CANCEL_URL_ATTRIBUTE_NAME,
-            ReverseRouter.route(on(TeamManagementController.class).renderTeamMemberList(team.getId(), null))
-        );
+    return buildRemoveView(teamManagementService.getTeam(teamId), wuaId);
   }
 
   @PostMapping("/team/{teamId}/member/{wuaId}/remove")
@@ -276,20 +234,208 @@ public class TeamManagementController {
     return ReverseRouter.redirect(on(TeamManagementController.class).renderTeamMemberList(team.getId(), null));
   }
 
-  private ModelAndView getUserTeamRolesModelAndView(Team team, Long wuaId) {
-    var teamMemberView = teamManagementService.getTeamMemberView(team, wuaId);
+  @GetMapping("/externalContributors/{teamId}")
+  @InvokingUserCanViewTeam
+  public ModelAndView renderScheduleExternalContributorsTeamList(
+      @PathVariable UUID teamId,
+      ServiceUserDetail user
+  ) {
+    return buildTeamListView(teamManagementService.getTeam(teamId), user.wuaId());
+  }
+
+  @GetMapping("/externalContributors/{teamId}/add-member")
+  @InvokingUserCanManageTeam
+  public ModelAndView renderAddMemberToScheduleExternalContributorsTeam(
+      @PathVariable UUID teamId,
+      @ModelAttribute("form") AddMemberForm form
+  ) {
+    return buildAddMemberView(teamManagementService.getTeam(teamId));
+  }
+
+  @PostMapping("/externalContributors/{teamId}/add-member")
+  @InvokingUserCanManageTeam
+  public ModelAndView handleAddMemberToScheduleExternalContributorsTeam(
+      @PathVariable UUID teamId,
+      @ModelAttribute("form") AddMemberForm form,
+      BindingResult bindingResult
+  ) {
+    if (!addMemberFormValidator.isValid(form, bindingResult)) {
+      return buildAddMemberView(teamManagementService.getTeam(teamId));
+    }
+    Long wuaId = findUserOrThrow(form.getEmailAddress());
+    return ReverseRouter.redirect(on(TeamManagementController.class)
+        .renderUserScheduleExternalContributorsTeamRoles(teamId, wuaId, null));
+  }
+
+  @GetMapping("/externalContributors/{teamId}/member/{wuaId}/")
+  @InvokingUserCanManageTeam
+  public ModelAndView renderUserScheduleExternalContributorsTeamRoles(
+      @PathVariable UUID teamId,
+      @PathVariable Long wuaId,
+      @ModelAttribute("form") MemberRolesForm form
+  ) {
+    return buildEditRolesView(teamManagementService.getTeam(teamId), wuaId, form);
+  }
+
+  @PostMapping("/externalContributors/{teamId}/member/{wuaId}/")
+  @InvokingUserCanManageTeam
+  public ModelAndView updateUserScheduleExternalContributorsTeamRoles(
+      @PathVariable UUID teamId,
+      @PathVariable Long wuaId,
+      @ModelAttribute("form") MemberRolesForm form,
+      BindingResult bindingResult,
+      ServiceUserDetail userDetail
+  ) {
+    var team = teamManagementService.getTeam(teamId);
+    memberRolesFormValidator.validate(form, wuaId, team, bindingResult);
+
+    if (bindingResult.hasErrors()) {
+      return buildEditRolesView(team, wuaId, form);
+    }
+
+    updateRoles(wuaId, team, form, userDetail);
+    return ReverseRouter.redirect(on(TeamManagementController.class)
+        .renderScheduleExternalContributorsTeamList(team.getId(), null));
+  }
+
+  @GetMapping("/externalContributors/{teamId}/member/{wuaId}/remove")
+  @InvokingUserCanManageTeam
+  public ModelAndView renderRemoveScheduleExternalContributorsTeamMember(
+      @PathVariable UUID teamId,
+      @PathVariable Long wuaId
+  ) {
+    return buildRemoveView(teamManagementService.getTeam(teamId), wuaId);
+  }
+
+  @PostMapping("/externalContributors/{teamId}/member/{wuaId}/remove")
+  @InvokingUserCanManageTeam
+  public ModelAndView handleRemoveScheduleExternalContributorsTeamMember(
+      @PathVariable UUID teamId,
+      @PathVariable Long wuaId,
+      ServiceUserDetail userDetail
+  ) {
+    var team = teamManagementService.getTeam(teamId);
+    teamManagementService.removeUserFromTeam(wuaId, team, userDetail);
+    return ReverseRouter.redirect(on(TeamManagementController.class)
+        .renderScheduleExternalContributorsTeamList(team.getId(), null));
+  }
+
+  private ModelAndView buildTeamListView(Team team, Long wuaId) {
+    var modelAndView = new ModelAndView("lms/teamManagement/teamMembers")
+        .addObject("teamName", team.getName())
+        .addObject("rolesInTeam", team.getTeamType().getAllowedRoles())
+        .addObject("canManageTeam", teamManagementService.canManageTeam(team, wuaId))
+        .addObject("backUrl", getBackUrl(team.getScopeId(), team))
+        .addObject("teamMemberViews", teamManagementService.getTeamMemberViewsForTeam(team));
+
+    if (team.getTeamType().isApplicationScoped()) {
+      modelAndView
+          .addObject(
+              "currentEndPoint",
+              ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+                  .getTaskList(null, null, null)))
+          .addObject("addMemberUrl",
+              ReverseRouter.route(on(TeamManagementController.class)
+                  .renderAddMemberToScheduleExternalContributorsTeam(team.getId(), null)));
+    } else {
+      modelAndView
+          .addObject("addMemberUrl",
+              ReverseRouter.route(on(TeamManagementController.class).renderAddMemberToTeam(team.getId(), null)));
+    }
+
+    return modelAndView;
+  }
+
+  private ModelAndView buildAddMemberView(Team team) {
+    ModelAndView modelAndView = new ModelAndView("lms/teamManagement/addMember")
+        .addObject("registerUrl", energyPortalConfiguration.registrationUrl());
+
+    return addNavigationAttributes(team, modelAndView);
+  }
+
+  private ModelAndView buildEditRolesView(Team team, Long wuaId, MemberRolesForm form) {
+    TeamMemberView teamMemberView;
+
+    teamMemberView = teamManagementService.getTeamMemberView(team, wuaId);
+
+    if (form.getRoles() == null || form.getRoles().isEmpty()) {
+      form.setRoles(teamMemberView.roles().stream().map(Role::name).toList());
+    }
+
     var availableRoles = team.getTeamType().getAllowedRoles();
-
     Map<String, String> rolesNamesMap = availableRoles.stream()
-        .collect(StreamUtil.toLinkedHashMap(Enum::name, Role::getName));
+                                                      .collect(StreamUtil.toLinkedHashMap(Enum::name, Role::getName));
 
-    return new ModelAndView("lms/teamManagement/editMemberRoles")
+    ModelAndView modelAndView = new ModelAndView("lms/teamManagement/editMemberRoles")
         .addObject("rolesNamesMap", rolesNamesMap)
         .addObject("rolesInTeam", availableRoles)
-        .addObject("teamMemberView", teamMemberView)
-        .addObject(
-            CANCEL_URL_ATTRIBUTE_NAME,
-            ReverseRouter.route(on(TeamManagementController.class).renderTeamMemberList(team.getId(), null))
-        );
+        .addObject("teamMemberView", teamMemberView);
+
+    return addNavigationAttributes(team, modelAndView);
+  }
+
+  private ModelAndView buildRemoveView(Team team, Long wuaId) {
+    boolean canRemoveTeamMember = teamManagementService.willManageTeamRoleBePresentAfterMemberRemoval(team, wuaId);
+
+    ModelAndView modelAndView = new ModelAndView("lms/teamManagement/removeMember")
+        .addObject("teamName", team.getName())
+        .addObject("canRemoveTeamMember", canRemoveTeamMember)
+        .addObject("teamMemberView", teamManagementService.getTeamMemberView(team, wuaId));
+
+    return addNavigationAttributes(team, modelAndView);
+  }
+
+  @NotNull
+  private ModelAndView addNavigationAttributes(Team team, ModelAndView modelAndView) {
+
+    if (team.getTeamType().isApplicationScoped()) {
+      modelAndView
+          .addObject(
+              "currentEndPoint",
+              ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(null, null, null)))
+          .addObject(
+              "cancelUrl",
+              ReverseRouter.route(on(TeamManagementController.class)
+                  .renderScheduleExternalContributorsTeamList(team.getId(), null)));
+    } else {
+      modelAndView
+          .addObject(
+              "cancelUrl",
+              ReverseRouter.route(on(TeamManagementController.class).renderTeamMemberList(team.getId(), null)));
+    }
+    return modelAndView;
+  }
+
+  private String getBackUrl(String scopeId, Team team) {
+    if (!team.getTeamType().isApplicationScoped()) {
+      return ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null));
+    }
+
+    var scheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationService
+        .getScheduleWorkProgrammeApplicationById(UUID.fromString(scopeId));
+
+    var scheduleWorkProgrammeApplicationDetail = scheduleWorkProgrammeApplicationService
+        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication);
+
+    return ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
+        scheduleWorkProgrammeApplicationDetail.getId(), null, null));
+  }
+
+  private Long findUserOrThrow(String email) {
+    return energyPortalUserService.findUsersByEmail(email, "Find user to add to team").stream()
+                                  .filter(user -> !user.sharedAccount() && user.canLogin())
+                                  .map(EnergyPortalUserJson::webUserAccountId)
+                                  .findFirst()
+                                  .orElseThrow(() -> new ResponseStatusException(
+                                      HttpStatus.BAD_REQUEST,
+                                      "user with email address %s does not exist".formatted(email))
+                                  );
+  }
+
+  private void updateRoles(Long wuaId, Team team, MemberRolesForm form, ServiceUserDetail userDetail) {
+    var roles = form.getRoles().stream()
+                    .map(Role::valueOf)
+                    .toList();
+    teamManagementService.setUserTeamRoles(wuaId, team, roles, userDetail);
   }
 }

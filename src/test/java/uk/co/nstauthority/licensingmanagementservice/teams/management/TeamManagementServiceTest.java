@@ -957,9 +957,10 @@ class TeamManagementServiceTest {
   void getActiveTeamMembersViewsForTeamAndRole_whenActiveMembersExist_thenReturnList() {
     var teamId = UUID.randomUUID();
     var team = new Team(teamId);
+    team.setTeamType(TeamType.LICENCE_MAINTENANCE);
     var teamRole = TeamRoleTestUtil.newBuilder().withWuaId(1L).build();
     var user = EnergyPortalUserJson.from(EnergyPortalUserTestUtil.newBuilder().canLogin(true).build());
-    var expectedTeamMemberView = TeamMemberView.fromEpaUser(user, teamId, List.of(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM));
+    var expectedTeamMemberView = TeamMemberView.fromEpaUser(user, teamId, List.of(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM),regTeam);
 
     when(teamRoleRepository.findAllByTeamAndRole(team, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
         .thenReturn(List.of(teamRole));

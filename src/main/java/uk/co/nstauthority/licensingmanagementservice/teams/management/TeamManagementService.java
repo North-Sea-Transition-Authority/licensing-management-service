@@ -171,7 +171,7 @@ public class TeamManagementService {
     var user = energyPortalUserService.findByWuaId(WebUserAccountId.from(wuaId), PORTAL_USER_LOOKUP_PURPOSE)
         .orElseThrow(() -> new TeamManagementException("WuaId %s not found via EPA".formatted(wuaId)));
 
-    return TeamMemberView.fromEpaUser(user, team.getId(), teamRoles);
+    return TeamMemberView.fromEpaUser(user, team.getId(), teamRoles, team);
   }
 
   public List<TeamMemberView> getTeamMemberViewsForTeam(Team team) {
@@ -205,7 +205,7 @@ public class TeamManagementService {
               .filter(userRoles::contains)
               .toList();
 
-          return TeamMemberView.fromEpaUser(epaUser, team.getId(), orderedUserRoles);
+          return TeamMemberView.fromEpaUser(epaUser, team.getId(), orderedUserRoles, team);
         })
         .sorted(Comparator.comparing(TeamMemberView::forename, String::compareToIgnoreCase)
             .thenComparing(TeamMemberView::surname, String::compareToIgnoreCase))
@@ -356,7 +356,7 @@ public class TeamManagementService {
             PORTAL_USER_LOOKUP_PURPOSE)
         )
         .filter(EnergyPortalUserJson::canLogin)
-        .map(user -> TeamMemberView.fromEpaUser(user, team.getId(), List.of(role)))
+        .map(user -> TeamMemberView.fromEpaUser(user, team.getId(), List.of(role), team))
         .toList();
   }
 

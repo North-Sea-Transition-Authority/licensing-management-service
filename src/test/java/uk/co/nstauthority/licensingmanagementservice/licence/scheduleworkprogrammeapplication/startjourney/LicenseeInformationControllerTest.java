@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -15,6 +16,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 import static uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.LicenseeInformationController.PAGE_TITLE;
 
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.test.context.ContextConfiguration;
@@ -25,10 +27,14 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurpose;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurposeService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.Team;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenseeInformationController.class)
@@ -51,7 +57,8 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
 
   @BeforeEach
   void setUp() {
-    organisationUser = ServiceUserDetailTestUtil.newBuilder()
+    organisationUser = ServiceUserDetailTestUtil
+        .newBuilder()
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
 
@@ -75,8 +82,6 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("pageCaption", CAPTION))
         .andExpect(model().attribute("backUrl",  ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class)
             .renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))));
-
-
   }
 
   @SecurityTest
@@ -91,9 +96,17 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
     var form = new LicenseeInformationForm();
     form.setAllLicenseesPermissionConfirmed(true);
 
-    var scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
-    var uuid = UUID.randomUUID();
-    scheduleWorkProgrammeApplicationDetail.setId(uuid);
+    var team = new Team(UUID.randomUUID());
+    when(teamManagementService.createScopedTeam(any(), any(), any())).thenReturn(team);
+
+    ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
+    scheduleWorkProgrammeApplication.setId(UUID.randomUUID());
+
+    var scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationTestUtil
+        .builder()
+        .withId(UUID.randomUUID())
+        .withScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication)
+        .build();
 
     when(scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence, form))
         .thenReturn(scheduleWorkProgrammeApplicationDetail);
@@ -106,11 +119,13 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().is3xxRedirection());
 
+    verify(teamManagementService).createScopedTeam(eq(TeamType.EXTERNAL_CONTRIBUTORS.getDisplayName()), eq(TeamType.EXTERNAL_CONTRIBUTORS), any());
+    verify(teamManagementService).setUserTeamRoles(eq(organisationUser.wuaId()), eq(team), eq(List.of(Role.MANAGE_TEAM)), any());
     verify(scheduleWorkProgrammeApplicationService).createNewScheduleWorkProgrammeApplicationForLicence(licence, form);
   }
 
   @SecurityTest
-  void submit_invalid() throws Exception {
+  void submitLicenseePermissionConfirmation_invalid() throws Exception {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
 
     when(licenseeInformationFormValidator.isValid(any(), any())).thenReturn(false);

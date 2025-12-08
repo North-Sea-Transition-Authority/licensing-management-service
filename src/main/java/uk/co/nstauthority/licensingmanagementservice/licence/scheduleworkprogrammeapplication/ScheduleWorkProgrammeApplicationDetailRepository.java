@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 public interface ScheduleWorkProgrammeApplicationDetailRepository
     extends JpaRepository<ScheduleWorkProgrammeApplicationDetail, UUID> {
 
-  Optional<ScheduleWorkProgrammeApplicationDetail> getScheduleWorkProgrammeApplicationDetailByScheduleWorkProgrammeApplication(
+  Optional<ScheduleWorkProgrammeApplicationDetail> getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(
       ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication);
 
   int countByVersionNumberAndStatusAndSubmittedDatetimeBetween(Integer versionNumber,

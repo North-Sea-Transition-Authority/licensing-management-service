@@ -104,6 +104,25 @@ public class ScheduleWorkProgrammeApplicationService {
         () -> new LmsEntityNotFoundException("schedule work programme application detail", detailId));
   }
 
+  public ScheduleWorkProgrammeApplicationDetail getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(
+      ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication
+  ) {
+    return scheduleWorkProgrammeApplicationDetailRepository
+        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication)
+        .orElseThrow(() -> new LmsEntityNotFoundException(
+            "Schedule Work Programme Application Details not found",
+            scheduleWorkProgrammeApplication.getId()
+        ));
+  }
+
+  public ScheduleWorkProgrammeApplication getScheduleWorkProgrammeApplicationById(UUID scheduleWorkProgrammeApplicationId) {
+    return scheduleWorkProgrammeApplicationRepository.findById(scheduleWorkProgrammeApplicationId)
+        .orElseThrow(() -> new LmsEntityNotFoundException(
+            "Schedule Work Programme Application not found",
+            scheduleWorkProgrammeApplicationId
+        ));
+  }
+
   public List<ScheduleWorkProgrammeApplicationDetail> getAllScheduleWorkProgrammeApplicationDetailsByStatus(
       ScheduleWorkProgrammeApplicationStatus status
   ) {

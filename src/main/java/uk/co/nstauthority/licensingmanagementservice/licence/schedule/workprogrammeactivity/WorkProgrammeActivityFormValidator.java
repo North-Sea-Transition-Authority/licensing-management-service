@@ -3,23 +3,14 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogr
 import org.springframework.stereotype.Service;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
-import uk.co.fivium.formlibrary.validator.date.ThreeFieldDateInputValidator;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
+import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationValidationUtil;
 
 @Service
 public class WorkProgrammeActivityFormValidator {
 
-  private final LicenceStartDateService licenceStartDateService;
-
-  public WorkProgrammeActivityFormValidator(LicenceStartDateService licenceStartDateService) {
-    this.licenceStartDateService = licenceStartDateService;
-  }
-
   boolean isValid(
       WorkProgrammeActivityForm form,
-      Errors errors,
-      LicenceScheduleDetail licenceScheduleDetail
+      Errors errors
   ) {
     ValidationUtils.rejectIfEmpty(
         errors,
@@ -60,16 +51,6 @@ public class WorkProgrammeActivityFormValidator {
     );
 
     if (form.getWorkProgrammeActivityDateOption() != null) {
-      if (form.getWorkProgrammeActivityDateOption().equals(WorkProgrammeActivityDateOption.FIXED_DATE)) {
-        var licenceStartDate = licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail);
-
-        ThreeFieldDateInputValidator.builder()
-            .emptyInputErrorMessage("Provide the due date")
-            .mustBeAfterDate(licenceStartDate.getStartDate())
-            .mustBeAfterDateErrorMessage("The due date must be after the licence start date")
-            .validate(form.getDueDateInput(), errors);
-      }
-
       if (form.getWorkProgrammeActivityDateOption().equals(WorkProgrammeActivityDateOption.WITHIN_A_TERM)) {
         ValidationUtils.rejectIfEmpty(
             errors,
@@ -86,6 +67,17 @@ public class WorkProgrammeActivityFormValidator {
             "licenceSchedulePhaseId.required",
             "Select a phase"
         );
+      }
+
+      if (form.getWorkProgrammeActivityDateOption().equals(WorkProgrammeActivityDateOption.RELATIVE_DATE)) {
+        ValidationUtils.rejectIfEmpty(
+            errors,
+            "relativeEventId",
+            "relativeEventId.required",
+            "Select an event"
+        );
+
+        ThreeFieldDurationValidationUtil.validate(form.getRelativeDuration(), errors);
       }
     }
 

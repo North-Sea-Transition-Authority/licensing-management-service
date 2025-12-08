@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -26,6 +27,8 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
@@ -57,7 +60,11 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
 
   private static final UUID SCHEDULE_APPLICATION_DETAIL_ID = UUID.randomUUID();
 
+  private WorkProgrammeActivity workProgrammeActivity;
+
   private static final UUID WORK_PROGRAMME_ACTIVITY_ID = UUID.randomUUID();
+  @Autowired
+  private WorkProgrammeActivityService workProgrammeActivityService;
 
   @BeforeEach
   void setUp() {
@@ -75,8 +82,15 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
     scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(true);
     scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
 
-    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(SCHEDULE_APPLICATION_DETAIL_ID)).thenReturn(
-        scheduleWorkProgrammeApplicationDetail);
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(SCHEDULE_APPLICATION_DETAIL_ID))
+        .thenReturn(scheduleWorkProgrammeApplicationDetail);
+
+    workProgrammeActivity = new WorkProgrammeActivity();
+    workProgrammeActivity.setId(WORK_PROGRAMME_ACTIVITY_ID);
+    workProgrammeActivity.setDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
+
+    when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(WORK_PROGRAMME_ACTIVITY_ID))
+        .thenReturn(workProgrammeActivity);
   }
 
   @SecurityTest
@@ -86,24 +100,24 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
 
     var mockWorkProgrammeActivityAmendmentView = getMockWorkProgrammeActivityAmendmentView();
 
-    when(licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentView(any(), any())).thenReturn(
+    when(licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentView(any())).thenReturn(
         mockWorkProgrammeActivityAmendmentView);
 
     mockMvc.perform(
-            get(ReverseRouter.route(
-                on(LicenceWorkProgrammeAmendmentController.class).renderForm(
-                    UUID.randomUUID(), new WorkProgrammeActivity(), SCHEDULE_APPLICATION_DETAIL_ID,
-                    scheduleWorkProgrammeApplicationDetail
+            get(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentController.class).renderForm(
+                    WORK_PROGRAMME_ACTIVITY_ID,
+                    null,
+                    SCHEDULE_APPLICATION_DETAIL_ID,
+                    null
                 )))
-                .with(user(organisationUser)
-                )
+                .with(user(organisationUser))
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeAmendment"))
         .andExpect(model().attribute("pageTitle", "Work programme amendments"))
         .andExpect(model().attribute("workProgrammeActivityDetails", mockWorkProgrammeActivityAmendmentView))
-           .andExpect(model().attribute("isLinkedFixedDate", false))
-           .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class)
+        .andExpect(model().attribute("isLinkedRelativeDate", true))
+        .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class)
             .renderForm(scheduleWorkProgrammeApplicationDetail.getId(),null)))));
   }
 
@@ -111,14 +125,18 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
   void submitValidForm() throws Exception {
     when(licenceWorkProgrammeAmendmentFormValidator.isValid(any(), any()))
         .thenReturn(true);
+
     mockMvc.perform(
-               post(ReverseRouter.route(
-                   on(LicenceWorkProgrammeAmendmentController.class).submitForm(
-                       WORK_PROGRAMME_ACTIVITY_ID, new WorkProgrammeActivity(), SCHEDULE_APPLICATION_DETAIL_ID, null, null,
-                       null
-                   )))
-                .with(user(organisationUser))
-                .with(csrf())
+            post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentController.class).submitForm(
+                     WORK_PROGRAMME_ACTIVITY_ID,
+                     null,
+                     SCHEDULE_APPLICATION_DETAIL_ID,
+                null,
+                null,
+                    null
+                )))
+             .with(user(organisationUser))
+             .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
 
@@ -128,34 +146,35 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
 
   @Test
   void submitInvalidForm() throws Exception {
-
     when(licenceWorkProgrammeAmendmentService.getLicenceWorkProgrammeActivityAmendmentForm(any(), any())).thenReturn(
         new LicenceWorkProgrammeAmendmentForm());
 
     var mockWorkProgrammeActivityAmendmentView = getMockWorkProgrammeActivityAmendmentView();
 
-    when(licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentView(any(), any())).thenReturn(
+    when(licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentView(any())).thenReturn(
         mockWorkProgrammeActivityAmendmentView);
 
     mockMvc.perform(
-               post(ReverseRouter.route(
-                   on(LicenceWorkProgrammeAmendmentController.class).submitForm(
-                       WORK_PROGRAMME_ACTIVITY_ID, new WorkProgrammeActivity(), SCHEDULE_APPLICATION_DETAIL_ID, null,
-                       null, null
-                   )))
-                  .with(user(organisationUser))
-                  .with(csrf())
+            post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentController.class).submitForm(
+                    WORK_PROGRAMME_ACTIVITY_ID,
+                    null,
+                    SCHEDULE_APPLICATION_DETAIL_ID,
+                    null,
+                    null,
+                    null
+                )))
+                .with(user(organisationUser))
+                .with(csrf())
           )
           .andExpect(status().isOk())
           .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeAmendment"))
           .andExpect(model().attribute("pageTitle", "Work programme amendments"))
           .andExpect(model().attribute("workProgrammeActivityDetails", mockWorkProgrammeActivityAmendmentView))
-             .andExpect(model().attribute("isLinkedFixedDate", false))
-             .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class)
+          .andExpect(model().attribute("isLinkedRelativeDate", true))
+          .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class)
               .renderForm(scheduleWorkProgrammeApplicationDetail.getId(),null)))));
 
       verify(licenceWorkProgrammeAmendmentService, never()).saveAmendmentForm(any(), any(), any());
-
   }
 
   @ParameterizedTest

@@ -28,13 +28,13 @@ public class SelectLicenceAmendmentService {
     var licenceWorkProgrammeAmendmentRequest = licenceWorkProgrammeAmendmentRepository
         .findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivity(
             scheduleWorkProgrammeApplicationDetail,
-            workProgrammeActivityService.findWorkProgrammeActivityByIdOrThrow(workProgrammeActivityId))
+            workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(workProgrammeActivityId))
         .orElse(new LicenceWorkProgrammeAmendmentRequest());
 
     licenceWorkProgrammeAmendmentRequest.setScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail);
     licenceWorkProgrammeAmendmentRequest.setWorkProgrammeActivity(
-        workProgrammeActivityService.findWorkProgrammeActivityByIdOrThrow(workProgrammeActivityId));
+        workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(workProgrammeActivityId));
     licenceWorkProgrammeAmendmentRepository.save(licenceWorkProgrammeAmendmentRequest);
   }
 }

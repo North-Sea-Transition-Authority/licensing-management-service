@@ -1,5 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity;
 
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -9,6 +12,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -42,6 +46,12 @@ public class WorkProgrammeActivity {
 
   @ManyToOne
   private LicenceSchedulePhase licenceSchedulePhase;
+
+  @Embedded
+  @AttributeOverride(name = "days", column = @Column(name = "relative_duration_days"))
+  @AttributeOverride(name = "months", column = @Column(name = "relative_duration_months"))
+  @AttributeOverride(name = "years", column = @Column(name = "relative_duration_years"))
+  private ThreeFieldDuration relativeDuration;
 
   private LocalDate dueDate;
 
@@ -117,6 +127,14 @@ public class WorkProgrammeActivity {
 
   public void setLicenceSchedulePhase(LicenceSchedulePhase licenceSchedulePhase) {
     this.licenceSchedulePhase = licenceSchedulePhase;
+  }
+
+  public ThreeFieldDuration getRelativeDuration() {
+    return relativeDuration;
+  }
+
+  public void setRelativeDuration(ThreeFieldDuration relativeDuration) {
+    this.relativeDuration = relativeDuration;
   }
 
   public LocalDate getDueDate() {

@@ -71,6 +71,7 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
     when(workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(workProgrammeActivityFormService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(workProgrammeActivityFormService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(workProgrammeActivityFormService.getRelativeDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
 
     mockMvc.perform(
             get(ReverseRouter.route(on(WorkProgrammeActivityController.class)
@@ -84,13 +85,14 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("activityDateRadioOptions", Map.of()))
         .andExpect(model().attribute("termOptions", Map.of()))
         .andExpect(model().attribute("phaseOptions", Map.of()))
+        .andExpect(model().attribute("relativeOptions", Map.of()))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
   }
 
   @Test
   void submitAddNewActivityForm() throws Exception {
-    when(workProgrammeActivityFormValidator.isValid(any(), any(), eq(licenceScheduleDetail))).thenReturn(true);
+    when(workProgrammeActivityFormValidator.isValid(any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(WorkProgrammeActivityController.class)
@@ -106,10 +108,11 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
   @Test
   void submitAddNewActivityForm_invalid() throws Exception {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
-    when(workProgrammeActivityFormValidator.isValid(any(), any(), eq(licenceScheduleDetail))).thenReturn(false);
+    when(workProgrammeActivityFormValidator.isValid(any(), any())).thenReturn(false);
     when(workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(workProgrammeActivityFormService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(workProgrammeActivityFormService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(workProgrammeActivityFormService.getRelativeDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
 
     mockMvc.perform(
             post(ReverseRouter.route(on(WorkProgrammeActivityController.class)
@@ -124,6 +127,7 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("activityDateRadioOptions", Map.of()))
         .andExpect(model().attribute("termOptions", Map.of()))
         .andExpect(model().attribute("phaseOptions", Map.of()))
+        .andExpect(model().attribute("relativeOptions", Map.of()))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
 

@@ -3,9 +3,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogr
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
 public enum WorkProgrammeActivityDateOption implements Displayable {
-  FIXED_DATE("A fixed date", 1),
-  WITHIN_A_TERM("Within a licence term", 2),
-  WITHIN_A_PHASE("Within a licence phase", 3);
+  WITHIN_A_TERM("Within a licence term", 1),
+  WITHIN_A_PHASE("Within a licence phase", 2),
+  RELATIVE_DATE("A date relative to another schedule event", 3);
 
   private final String displayName;
   private final Integer displayOrder;

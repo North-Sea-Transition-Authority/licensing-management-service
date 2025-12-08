@@ -45,7 +45,7 @@ public class LicenceWorkProgrammeAmendmentSummaryService {
       LicenceWorkProgrammeAmendmentRequest amendmentRequest,
       LicenceWorkProgrammeAmendmentSummaryMode summaryMode) {
 
-    WorkProgrammeActivity workProgrammeActivity = workProgrammeActivityService.findWorkProgrammeActivityByIdOrThrow(
+    WorkProgrammeActivity workProgrammeActivity = workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(
         amendmentRequest.getWorkProgrammeActivity().getId());
 
     String summaryCardTitle = resolveCategoryDisplay(workProgrammeActivity);

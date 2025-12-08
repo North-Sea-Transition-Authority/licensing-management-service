@@ -40,6 +40,6 @@ public class WorkProgrammeActivityArgumentResolver implements HandlerMethodArgum
                                                  "Missing required %s param".formatted(WORK_PROGRAMME_ACTIVITY_ID)
                                              ));
 
-    return workProgrammeActivityService.findWorkProgrammeActivityByIdOrThrow(workProgrammeActivityId);
+    return workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(workProgrammeActivityId);
   }
 }

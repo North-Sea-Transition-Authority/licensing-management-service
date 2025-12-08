@@ -47,7 +47,7 @@ class SelectLicenceAmendmentServiceTest {
 
     licenceScheduleAmendmentForm.setSelectedWorkProgrammeActivityAmendmentId(workProgrammeActivityId);
 
-    when(workProgrammeActivityService.findWorkProgrammeActivityByIdOrThrow(workProgrammeActivityId))
+    when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(workProgrammeActivityId))
         .thenReturn(workProgrammeActivity);
 
     when(licenceWorkProgrammeAmendmentRepository.findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivity(
@@ -74,5 +74,5 @@ class SelectLicenceAmendmentServiceTest {
     );
 
     verify(workProgrammeActivityService, times(2))
-        .findWorkProgrammeActivityByIdOrThrow(workProgrammeActivityId);  }
+        .getWorkProgrammeActivityByIdOrThrow(workProgrammeActivityId);  }
 }

@@ -212,13 +212,12 @@ class LicenceWorkProgrammeAmendmentServiceTest {
     WorkProgrammeActivity workProgrammeActivity = mock(WorkProgrammeActivity.class);
 
     when(workProgrammeActivity.getId()).thenReturn(ACTIVITY_ID);
-    when(workProgrammeActivity.getDateOption()).thenReturn(WorkProgrammeActivityDateOption.FIXED_DATE);
+    when(workProgrammeActivity.getDateOption()).thenReturn(WorkProgrammeActivityDateOption.RELATIVE_DATE);
     when(workProgrammeActivity.getCategory()).thenReturn(WorkProgrammeActivityCategory.WELL_TEST);
     when(workProgrammeActivity.getOtherCategoryName()).thenReturn(null);
     when(workProgrammeActivity.getDueDate()).thenReturn(fixedDate);
     when(workProgrammeActivity.getDescription()).thenReturn("Test Description");
     when(workProgrammeActivityService.getWorkProgrammeActivities(any())).thenReturn(List.of(workProgrammeActivity));
-
 
     List<WorkProgrammeActivityAmendmentView> result = licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentViews(any());
 
@@ -262,11 +261,11 @@ class LicenceWorkProgrammeAmendmentServiceTest {
   }
 
   @Test
-  void resolveDueDate_whenFixedDate_returnsDueDate() {
+  void resolveDueDate_whenRelativeDate_returnsDueDate() {
     LocalDate fixedDate = LocalDate.of(2026, 12, 31);
     WorkProgrammeActivity workProgrammeActivity = mock(WorkProgrammeActivity.class);
 
-    when(workProgrammeActivity.getDateOption()).thenReturn(WorkProgrammeActivityDateOption.FIXED_DATE);
+    when(workProgrammeActivity.getDateOption()).thenReturn(WorkProgrammeActivityDateOption.RELATIVE_DATE);
     when(workProgrammeActivity.getDueDate()).thenReturn(fixedDate);
 
     LocalDate result = licenceWorkProgrammeAmendmentService.resolveWorkProgrammeActivityDueDate(workProgrammeActivity);
@@ -280,7 +279,6 @@ class LicenceWorkProgrammeAmendmentServiceTest {
     WorkProgrammeActivity workProgrammeActivity = mock(WorkProgrammeActivity.class);
 
     when(workProgrammeActivity.getOtherCategoryName()).thenReturn(customName);
-
 
     String result = licenceWorkProgrammeAmendmentService.resolveCategory(workProgrammeActivity);
 
@@ -303,16 +301,14 @@ class LicenceWorkProgrammeAmendmentServiceTest {
 
     WorkProgrammeActivity workProgrammeActivity = mock(WorkProgrammeActivity.class);
     when(workProgrammeActivity.getId()).thenReturn(ACTIVITY_ID);
-    when(workProgrammeActivity.getDateOption()).thenReturn(WorkProgrammeActivityDateOption.FIXED_DATE);
+    when(workProgrammeActivity.getDateOption()).thenReturn(WorkProgrammeActivityDateOption.RELATIVE_DATE);
     when(workProgrammeActivity.getCategory()).thenReturn(WorkProgrammeActivityCategory.WELL_TEST);
     when(workProgrammeActivity.getOtherCategoryName()).thenReturn(null);
     when(workProgrammeActivity.getDueDate()).thenReturn(LocalDate.of(2026, 5, 10));
     when(workProgrammeActivity.getDescription()).thenReturn("Test Description");
 
-    when(workProgrammeActivityService.getWorkProgrammeActivities(any())).thenReturn(List.of(workProgrammeActivity));
-
-    WorkProgrammeActivityAmendmentView result = licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentView(
-        any(), targetId);
+    WorkProgrammeActivityAmendmentView result =
+        licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentView(workProgrammeActivity);
 
     assertThat(result.id()).isEqualTo(targetId);
     assertThat(result.dueDate()).isEqualTo(DUE_DATE_DISPLAY);

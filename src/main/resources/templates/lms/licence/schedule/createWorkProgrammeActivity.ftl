@@ -1,4 +1,5 @@
 <#include '../../layout/layout.ftl'>
+<#import '../../component/duration/threeFieldDuration.ftl' as duration>
 
 <#assign pageTitle = "Work programme activity" />
 
@@ -46,17 +47,6 @@ errorSummaryItems=errorSummaryItems
             <#assign firstItem=true/>
             <#list activityDateRadioOptions as key, value>
                 <@fdsRadio.radioItem path="form.workProgrammeActivityDateOption" itemMap={key : value} isFirstItem=firstItem>
-                    <#if key = "FIXED_DATE">
-                        <@fdsDateInput.dateInput
-                            dayPath="form.dueDateInput.dayInput.inputValue"
-                            monthPath="form.dueDateInput.monthInput.inputValue"
-                            yearPath="form.dueDateInput.yearInput.inputValue"
-                            labelText="Due date"
-                            formId="due-date-input"
-                            nestingPath="form.workProgrammeActivityDateOption"
-                        />
-                    </#if>
-
                     <#if key = "WITHIN_A_TERM">
                         <@fdsSelect.select
                             path="form.licenceScheduleTermId"
@@ -72,6 +62,25 @@ errorSummaryItems=errorSummaryItems
                             options=phaseOptions
                             labelText="Phase work programme activity must be completed within"
                             nestingPath="form.workProgrammeActivityDateOption"
+                        />
+                    </#if>
+
+                    <#if key = "RELATIVE_DATE">
+                        <@fdsSelect.select
+                            path="form.relativeEventId"
+                            options=relativeOptions
+                            labelText="What is the due date relative to?"
+                            nestingPath="form.workProgrammeActivityDateOption"
+                        />
+
+                        <@duration.threeFieldDuration
+                            dayPath="form.relativeDuration.days"
+                            monthPath="form.relativeDuration.months"
+                            yearPath="form.relativeDuration.years"
+                            fieldNamePath="form.relativeDuration.fieldName"
+                            fieldDisplayTextPath="form.relativeDuration.fieldDisplayText"
+                            labelText="The relative period by which the activity must be completed"
+                            formId="activity-relative-duration"
                         />
                     </#if>
                 </@fdsRadio.radioItem>

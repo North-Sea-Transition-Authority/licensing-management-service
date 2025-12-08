@@ -26,6 +26,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceScheduleCalculationServiceTest {
@@ -39,6 +42,9 @@ class LicenceScheduleCalculationServiceTest {
   @Mock
   private LicenceSchedulePhaseService licenceSchedulePhaseService;
 
+  @Mock
+  private WorkProgrammeActivityService workProgrammeActivityService;
+
   @InjectMocks
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
 
@@ -47,6 +53,9 @@ class LicenceScheduleCalculationServiceTest {
 
   @Captor
   private ArgumentCaptor<List<LicenceSchedulePhase>> licenceSchedulePhaseArgumentCaptor;
+
+  @Captor
+  private ArgumentCaptor<List<WorkProgrammeActivity>> workProgrammeActivityArgumentCaptor;
 
   @Test
   void calculateAndSaveLicenceScheduleDates() {
@@ -190,30 +199,141 @@ class LicenceScheduleCalculationServiceTest {
   }
 
   @Test
-  void calculateEndDate_yearDuration() {
+  void calculateAndSaveWorkProgrammeActivityDatesForTerm() {
+    var licenceScheduleTerm = new LicenceScheduleTerm();
+    licenceScheduleTerm.setStartDate(LocalDate.of(2025, 1, 1));
+
+    var activity = new WorkProgrammeActivity();
+    activity.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
+
+    var activity2 = new WorkProgrammeActivity();
+    activity2.setRelativeDuration(new ThreeFieldDuration(1, 0, 1));
+
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(
+        licenceScheduleTerm,
+        WorkProgrammeActivityDateOption.RELATIVE_DATE
+    ))
+        .thenReturn(List.of(activity, activity2));
+
+    licenceScheduleCalculationService.calculateAndSaveWorkProgrammeActivityDatesForTerm(licenceScheduleTerm);
+
+    verify(workProgrammeActivityService).saveWorkProgrammeActivities(workProgrammeActivityArgumentCaptor.capture());
+
+    var result = workProgrammeActivityArgumentCaptor.getValue();
+
+    assertThat(result.getFirst()).extracting(WorkProgrammeActivity::getDueDate).isEqualTo(LocalDate.of(2025, 2, 1));
+    assertThat(result.get(1)).extracting(WorkProgrammeActivity::getDueDate).isEqualTo(LocalDate.of(2026, 1, 2));
+  }
+
+  @Test
+  void calculateAndSaveWorkProgrammeActivityDatesForTerm_noActivitiesToCalculate() {
+    var licenceScheduleTerm = new LicenceScheduleTerm();
+
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(
+        licenceScheduleTerm,
+        WorkProgrammeActivityDateOption.RELATIVE_DATE
+    ))
+        .thenReturn(List.of());
+
+    licenceScheduleCalculationService.calculateAndSaveWorkProgrammeActivityDatesForTerm(licenceScheduleTerm);
+
+    verify(workProgrammeActivityService, never()).saveWorkProgrammeActivities(any());
+  }
+
+  @Test
+  void calculateAndSaveWorkProgrammeActivityDatesForPhase() {
+    var licenceSchedulePhase = new LicenceSchedulePhase();
+    licenceSchedulePhase.setStartDate(LocalDate.of(2025, 1, 1));
+
+    var activity = new WorkProgrammeActivity();
+    activity.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
+
+    var activity2 = new WorkProgrammeActivity();
+    activity2.setRelativeDuration(new ThreeFieldDuration(0, 0, 1));
+
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(
+        licenceSchedulePhase,
+        WorkProgrammeActivityDateOption.RELATIVE_DATE
+    ))
+        .thenReturn(List.of(activity, activity2));
+
+    licenceScheduleCalculationService.calculateAndSaveWorkProgrammeActivityDatesForPhase(licenceSchedulePhase);
+
+    verify(workProgrammeActivityService).saveWorkProgrammeActivities(workProgrammeActivityArgumentCaptor.capture());
+
+    var result = workProgrammeActivityArgumentCaptor.getValue();
+
+    assertThat(result.getFirst()).extracting(WorkProgrammeActivity::getDueDate).isEqualTo(LocalDate.of(2025, 2, 1));
+    assertThat(result.get(1)).extracting(WorkProgrammeActivity::getDueDate).isEqualTo(LocalDate.of(2025, 1, 2));
+  }
+
+  @Test
+  void calculateAndSaveWorkProgrammeActivityDatesForPhase_noActivitiesToCalculate() {
+    var licenceSchedulePhase = new LicenceSchedulePhase();
+
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(
+        licenceSchedulePhase,
+        WorkProgrammeActivityDateOption.RELATIVE_DATE
+    ))
+        .thenReturn(List.of());
+
+    licenceScheduleCalculationService.calculateAndSaveWorkProgrammeActivityDatesForPhase(licenceSchedulePhase);
+
+    verify(workProgrammeActivityService, never()).saveWorkProgrammeActivities(any());
+  }
+
+  @Test
+  void calculateDurationEndDate_yearDuration() {
     var startDate = LocalDate.of(2025, 1, 1);
 
     var duration = new ThreeFieldDuration(1, 0, 0);
 
-    assertThat(licenceScheduleCalculationService.calculateEndDate(startDate, duration)).isEqualTo(LocalDate.of(2025, 12, 31));
+    assertThat(licenceScheduleCalculationService.calculateDurationEndDate(startDate, duration)).isEqualTo(LocalDate.of(2025, 12, 31));
   }
 
   @Test
-  void calculateEndDate_monthDuration() {
+  void calculateDurationEndDate_monthDuration() {
     var startDate = LocalDate.of(2025, 1, 1);
 
     var duration = new ThreeFieldDuration(0, 1, 0);
 
-    assertThat(licenceScheduleCalculationService.calculateEndDate(startDate, duration)).isEqualTo(LocalDate.of(2025, 1, 31));
+    assertThat(licenceScheduleCalculationService.calculateDurationEndDate(startDate, duration)).isEqualTo(LocalDate.of(2025, 1, 31));
   }
 
   @Test
-  void calculateEndDate_dayDuration() {
+  void calculateDurationEndDate_dayDuration() {
     var startDate = LocalDate.of(2025, 1, 1);
 
     var duration = new ThreeFieldDuration(0, 0, 1);
 
-    assertThat(licenceScheduleCalculationService.calculateEndDate(startDate, duration)).isEqualTo(LocalDate.of(2025, 1, 2));
+    assertThat(licenceScheduleCalculationService.calculateDurationEndDate(startDate, duration)).isEqualTo(LocalDate.of(2025, 1, 2));
+  }
+
+  @Test
+  void calculateRelativeStartDueDate_yearDuration() {
+    var startDate = LocalDate.of(2025, 1, 1);
+
+    var duration = new ThreeFieldDuration(1, 0, 0);
+
+    assertThat(licenceScheduleCalculationService.calculateRelativeStartDueDate(startDate, duration)).isEqualTo(LocalDate.of(2026, 1, 1));
+  }
+
+  @Test
+  void calculateRelativeStartDueDate_monthDuration() {
+    var startDate = LocalDate.of(2025, 1, 1);
+
+    var duration = new ThreeFieldDuration(0, 1, 0);
+
+    assertThat(licenceScheduleCalculationService.calculateRelativeStartDueDate(startDate, duration)).isEqualTo(LocalDate.of(2025, 2, 1));
+  }
+
+  @Test
+  void calculateRelativeStartDueDate_dayDuration() {
+    var startDate = LocalDate.of(2025, 1, 1);
+
+    var duration = new ThreeFieldDuration(0, 0, 1);
+
+    assertThat(licenceScheduleCalculationService.calculateRelativeStartDueDate(startDate, duration)).isEqualTo(LocalDate.of(2025, 1, 2));
   }
 
 }

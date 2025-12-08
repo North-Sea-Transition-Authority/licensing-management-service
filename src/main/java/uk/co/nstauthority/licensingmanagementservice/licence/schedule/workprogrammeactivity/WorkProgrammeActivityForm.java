@@ -1,6 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity;
 
-import uk.co.fivium.formlibrary.input.ThreeFieldDateInput;
+import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationInput;
 
 public class WorkProgrammeActivityForm {
 
@@ -18,7 +18,9 @@ public class WorkProgrammeActivityForm {
 
   private String licenceSchedulePhaseId;
 
-  private ThreeFieldDateInput dueDateInput = new ThreeFieldDateInput("dueDateInput", "Due date");
+  private ThreeFieldDurationInput relativeDuration = new ThreeFieldDurationInput("relativeDuration", "relative duration");
+
+  private String relativeEventId;
 
   private String comments;
 
@@ -78,12 +80,20 @@ public class WorkProgrammeActivityForm {
     this.licenceSchedulePhaseId = licenceSchedulePhaseId;
   }
 
-  public ThreeFieldDateInput getDueDateInput() {
-    return dueDateInput;
+  public ThreeFieldDurationInput getRelativeDuration() {
+    return relativeDuration;
   }
 
-  public void setDueDateInput(ThreeFieldDateInput dueDateInput) {
-    this.dueDateInput = dueDateInput;
+  public void setRelativeDuration(ThreeFieldDurationInput relativeDuration) {
+    this.relativeDuration = relativeDuration;
+  }
+
+  public String getRelativeEventId() {
+    return relativeEventId;
+  }
+
+  public void setRelativeEventId(String relativeEventId) {
+    this.relativeEventId = relativeEventId;
   }
 
   public String getComments() {

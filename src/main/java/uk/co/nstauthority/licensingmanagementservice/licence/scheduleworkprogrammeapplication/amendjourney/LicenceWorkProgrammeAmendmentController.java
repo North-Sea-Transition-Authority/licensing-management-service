@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -28,16 +28,13 @@ public class LicenceWorkProgrammeAmendmentController {
   public static final String PAGE_TITLE = "Work programme amendments";
   private final LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
   private final LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator;
-  private final WorkProgrammeActivityService workProgrammeActivityService;
 
   public LicenceWorkProgrammeAmendmentController(
       LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService,
-      LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator,
-      WorkProgrammeActivityService workProgrammeActivityService
+      LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator
   ) {
     this.licenceWorkProgrammeAmendmentService = licenceWorkProgrammeAmendmentService;
     this.licenceWorkProgrammeAmendmentFormValidator = licenceWorkProgrammeAmendmentFormValidator;
-    this.workProgrammeActivityService = workProgrammeActivityService;
   }
 
   @GetMapping
@@ -48,11 +45,12 @@ public class LicenceWorkProgrammeAmendmentController {
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
     return getModelAndView(
-        workProgrammeActivityId,
+        workProgrammeActivity,
         licenceWorkProgrammeAmendmentService.getLicenceWorkProgrammeActivityAmendmentForm(
             workProgrammeActivity,
-            scheduleWorkProgrammeApplicationDetail),
             scheduleWorkProgrammeApplicationDetail
+        ),
+        scheduleWorkProgrammeApplicationDetail
     );
   }
 
@@ -66,7 +64,7 @@ public class LicenceWorkProgrammeAmendmentController {
       BindingResult bindingResult
   ) {
     if (!licenceWorkProgrammeAmendmentFormValidator.isValid(form, bindingResult)) {
-      return getModelAndView(workProgrammeActivityId, form, scheduleWorkProgrammeApplicationDetail);
+      return getModelAndView(workProgrammeActivity, form, scheduleWorkProgrammeApplicationDetail);
     }
 
     licenceWorkProgrammeAmendmentService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail, workProgrammeActivity);
@@ -76,18 +74,19 @@ public class LicenceWorkProgrammeAmendmentController {
   }
 
   private ModelAndView getModelAndView(
-      UUID workProgrammeActivityId,
+      WorkProgrammeActivity workProgrammeActivity,
       LicenceWorkProgrammeAmendmentForm form,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
-
     return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeAmendment")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("form", form)
-        .addObject("workProgrammeActivityDetails", licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentView(
-                scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getLicenceScheduleDetail(),
-                workProgrammeActivityId.toString()))
-        .addObject("isLinkedFixedDate", workProgrammeActivityService.isLinkedToFixedDate(workProgrammeActivityId))
+        .addObject("workProgrammeActivityDetails",
+            licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentView(workProgrammeActivity)
+        )
+        .addObject("isLinkedRelativeDate",
+            workProgrammeActivity.getDateOption().equals(WorkProgrammeActivityDateOption.RELATIVE_DATE)
+        )
         .addObject("cancelUrl", ReverseRouter.route(
             on(LicenceWorkProgrammeAmendmentSummaryController.class)
                 .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null)));

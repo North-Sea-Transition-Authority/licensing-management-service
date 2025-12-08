@@ -99,7 +99,7 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
     workProgrammeActivity.setId(UUID.randomUUID());
     workProgrammeActivity.setCategory(WorkProgrammeActivityCategory.WELL_TEST);
 
-    when(workProgrammeActivityService.findWorkProgrammeActivityByIdOrThrow(any())).thenReturn(workProgrammeActivity);
+    when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(any())).thenReturn(workProgrammeActivity);
 
     LicenceWorkProgrammeAmendmentSummaryView result =
         licenceWorkProgrammeAmendmentSummaryService.createSummaryViewFromWorkProgrammeAmendments(
@@ -135,7 +135,7 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
     workProgrammeActivity.setId(UUID.randomUUID());
     workProgrammeActivity.setCategory(WorkProgrammeActivityCategory.WELL_TEST);
 
-    when(workProgrammeActivityService.findWorkProgrammeActivityByIdOrThrow(any())).thenReturn(workProgrammeActivity);
+    when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(any())).thenReturn(workProgrammeActivity);
 
     when(licenceWorkProgrammeAmendmentService.getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(
         scheduleWorkProgrammeApplicationDetail))

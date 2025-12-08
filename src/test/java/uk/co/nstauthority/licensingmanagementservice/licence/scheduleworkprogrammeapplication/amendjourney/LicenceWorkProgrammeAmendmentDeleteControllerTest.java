@@ -82,7 +82,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
     scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(true);
 
     workProgrammeActivity.setCategory(WorkProgrammeActivityCategory.WELL_TEST);
-    when(workProgrammeActivityService.findWorkProgrammeActivityByIdOrThrow(any())).thenReturn(workProgrammeActivity);
+    when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(any())).thenReturn(workProgrammeActivity);
 
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(SCHEDULE_APPLICATION_DETAIL_ID)).thenReturn(
         scheduleWorkProgrammeApplicationDetail);

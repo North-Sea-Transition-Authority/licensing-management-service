@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -18,6 +17,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
@@ -106,6 +106,37 @@ class WorkProgrammeActivityFormServiceTest {
   }
 
   @Test
+  void getRelativeDateOptions() {
+    var term = new LicenceScheduleTerm();
+    term.setId(UUID.randomUUID());
+    term.setTermType(TermType.INITIAL);
+
+    var term2 = new LicenceScheduleTerm();
+    term2.setId(UUID.randomUUID());
+    term2.setTermType(TermType.SECOND);
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
+
+    var phase = new LicenceSchedulePhase();
+    phase.setId(UUID.randomUUID());
+    phase.setPhaseType(PhaseType.PHASE_A);
+
+    var phase2 = new LicenceSchedulePhase();
+    phase2.setId(UUID.randomUUID());
+    phase2.setPhaseType(PhaseType.PHASE_B);
+
+    when(licenceSchedulePhaseService.getActivePhasesByTerm(term)).thenReturn(List.of(phase, phase2));
+
+    var expectedResult = Map.of(
+        phase.getId().toString(), "Start of %s".formatted(phase.getPhaseType().getDisplayName()),
+        phase2.getId().toString(), "Start of %s".formatted(phase2.getPhaseType().getDisplayName()),
+        term2.getId().toString(), "Start of %s".formatted(term2.getTermType().getDisplayName())
+    );
+
+    assertThat(workProgrammeActivityFormService.getRelativeDateOptions(licenceScheduleDetail)).isEqualTo(expectedResult);
+  }
+
+  @Test
   void getDateOptions() {
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
@@ -143,16 +174,25 @@ class WorkProgrammeActivityFormServiceTest {
   }
 
   @Test
-  void saveActivityFromForm_fixedDate() {
+  void saveActivityFromForm_relativeDate_relatedToTerm() {
     var form = new WorkProgrammeActivityForm();
     form.setWorkProgrammeActivityCategory(WorkProgrammeActivityCategory.WELL_TEST);
     form.setDescription("description");
     form.setWorkProgrammeActivityCommitment(WorkProgrammeActivityCommitment.FIRM);
-    form.setWorkProgrammeActivityDateOption(WorkProgrammeActivityDateOption.FIXED_DATE);
+    form.setWorkProgrammeActivityDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
 
-    var testDate = LocalDate.of(2025, 1, 1);
+    var termId = UUID.randomUUID();
 
-    form.getDueDateInput().setDate(testDate);
+    form.setRelativeEventId(String.valueOf(termId));
+
+    var term = new LicenceScheduleTerm();
+    term.setId(termId);
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+
+    var testDuration = new ThreeFieldDuration(1,0,0);
+
+    form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
 
     workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail);
 
@@ -168,7 +208,8 @@ class WorkProgrammeActivityFormServiceTest {
             WorkProgrammeActivity::getDateOption,
             WorkProgrammeActivity::getDueDate,
             WorkProgrammeActivity::getLicenceScheduleTerm,
-            WorkProgrammeActivity::getLicenceSchedulePhase
+            WorkProgrammeActivity::getLicenceSchedulePhase,
+            WorkProgrammeActivity::getRelativeDuration
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -177,9 +218,62 @@ class WorkProgrammeActivityFormServiceTest {
             form.getDescription(),
             form.getWorkProgrammeActivityCommitment(),
             form.getWorkProgrammeActivityDateOption(),
-            testDate,
             null,
-            null
+            term,
+            null,
+            testDuration
+        );
+  }
+
+  @Test
+  void saveActivityFromForm_relativeDate_relatedToPhase() {
+    var form = new WorkProgrammeActivityForm();
+    form.setWorkProgrammeActivityCategory(WorkProgrammeActivityCategory.WELL_TEST);
+    form.setDescription("description");
+    form.setWorkProgrammeActivityCommitment(WorkProgrammeActivityCommitment.FIRM);
+    form.setWorkProgrammeActivityDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
+
+    var phaseId = UUID.randomUUID();
+
+    form.setRelativeEventId(String.valueOf(phaseId));
+
+    var phase = new LicenceSchedulePhase();
+
+    when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
+
+    var testDuration = new ThreeFieldDuration(1,0,0);
+
+    form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
+
+    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail);
+
+    verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
+
+    assertThat(workProgrammeActivityArgumentCaptor.getValue())
+        .extracting(
+            WorkProgrammeActivity::getLicenceScheduleDetail,
+            WorkProgrammeActivity::getCategory,
+            WorkProgrammeActivity::getOtherCategoryName,
+            WorkProgrammeActivity::getDescription,
+            WorkProgrammeActivity::getCommitment,
+            WorkProgrammeActivity::getDateOption,
+            WorkProgrammeActivity::getDueDate,
+            WorkProgrammeActivity::getLicenceScheduleTerm,
+            WorkProgrammeActivity::getLicenceSchedulePhase,
+            WorkProgrammeActivity::getRelativeDuration
+        )
+        .containsExactly(
+            licenceScheduleDetail,
+            form.getWorkProgrammeActivityCategory(),
+            null,
+            form.getDescription(),
+            form.getWorkProgrammeActivityCommitment(),
+            form.getWorkProgrammeActivityDateOption(),
+            null,
+            null,
+            phase,
+            testDuration
         );
   }
 

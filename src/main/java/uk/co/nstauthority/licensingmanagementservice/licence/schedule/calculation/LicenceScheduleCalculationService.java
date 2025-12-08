@@ -13,6 +13,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 
 @Service
 public class LicenceScheduleCalculationService {
@@ -20,15 +22,18 @@ public class LicenceScheduleCalculationService {
   private final LicenceStartDateService licenceStartDateService;
   private final LicenceScheduleTermService licenceScheduleTermService;
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
+  private final WorkProgrammeActivityService workProgrammeActivityService;
 
   public LicenceScheduleCalculationService(
       LicenceStartDateService licenceStartDateService,
       LicenceScheduleTermService licenceScheduleTermService,
-      LicenceSchedulePhaseService licenceSchedulePhaseService
+      LicenceSchedulePhaseService licenceSchedulePhaseService,
+      WorkProgrammeActivityService workProgrammeActivityService
   ) {
     this.licenceStartDateService = licenceStartDateService;
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
+    this.workProgrammeActivityService = workProgrammeActivityService;
   }
 
   @Transactional
@@ -43,12 +48,13 @@ public class LicenceScheduleCalculationService {
     var nextStartDate = licenceStartDate;
 
     for (var term : terms) {
-      var endDate = calculateEndDate(nextStartDate, term.getTermDuration());
+      var endDate = calculateDurationEndDate(nextStartDate, term.getTermDuration());
 
       term.setStartDate(nextStartDate);
       term.setEndDate(endDate);
 
       calculateAndSavePhaseDatesForTerm(phases, term);
+      calculateAndSaveWorkProgrammeActivityDatesForTerm(term);
 
       nextStartDate = endDate.plusDays(1);
     }
@@ -74,10 +80,12 @@ public class LicenceScheduleCalculationService {
     var nextStartDate = licenceScheduleTerm.getStartDate();
 
     for (var phase : phasesToCalculate) {
-      var endDate = calculateEndDate(nextStartDate, phase.getPhaseDuration());
+      var endDate = calculateDurationEndDate(nextStartDate, phase.getPhaseDuration());
 
       phase.setStartDate(nextStartDate);
       phase.setEndDate(endDate);
+
+      calculateAndSaveWorkProgrammeActivityDatesForPhase(phase);
 
       nextStartDate = endDate.plusDays(1);
     }
@@ -85,7 +93,45 @@ public class LicenceScheduleCalculationService {
     licenceSchedulePhaseService.saveLicenceSchedulePhases(phasesToCalculate);
   }
 
-  LocalDate calculateEndDate(LocalDate startDate, ThreeFieldDuration duration) {
+  void calculateAndSaveWorkProgrammeActivityDatesForTerm(LicenceScheduleTerm licenceScheduleTerm) {
+    var activities = workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(
+        licenceScheduleTerm,
+        WorkProgrammeActivityDateOption.RELATIVE_DATE
+    );
+
+    if (activities.isEmpty()) {
+      return;
+    }
+
+    var termStartDate = licenceScheduleTerm.getStartDate();
+
+    for (var activity : activities) {
+      activity.setDueDate(calculateRelativeStartDueDate(termStartDate, activity.getRelativeDuration()));
+    }
+
+    workProgrammeActivityService.saveWorkProgrammeActivities(activities);
+  }
+
+  void calculateAndSaveWorkProgrammeActivityDatesForPhase(LicenceSchedulePhase licenceSchedulePhase) {
+    var activities = workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(
+        licenceSchedulePhase,
+        WorkProgrammeActivityDateOption.RELATIVE_DATE
+    );
+
+    if (activities.isEmpty()) {
+      return;
+    }
+
+    var phaseStartDate = licenceSchedulePhase.getStartDate();
+
+    for (var activity : activities) {
+      activity.setDueDate(calculateRelativeStartDueDate(phaseStartDate, activity.getRelativeDuration()));
+    }
+
+    workProgrammeActivityService.saveWorkProgrammeActivities(activities);
+  }
+
+  LocalDate calculateDurationEndDate(LocalDate startDate, ThreeFieldDuration duration) {
     var endDate = startDate
         .plusYears(duration.years())
         .plusMonths(duration.months())
@@ -96,6 +142,13 @@ public class LicenceScheduleCalculationService {
     return yearOrMonthDuration
         ? endDate.minusDays(1)
         : endDate;
+  }
+
+  LocalDate calculateRelativeStartDueDate(LocalDate startDate, ThreeFieldDuration duration) {
+    return startDate
+        .plusYears(duration.years())
+        .plusMonths(duration.months())
+        .plusDays(duration.days());
   }
 
 }

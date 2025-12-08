@@ -46,7 +46,7 @@ public class WorkProgrammeActivityController {
       @ModelAttribute("form") WorkProgrammeActivityForm form,
       BindingResult bindingResult
   ) {
-    if (!workProgrammeActivityFormValidator.isValid(form, bindingResult, licenceScheduleDetail)) {
+    if (!workProgrammeActivityFormValidator.isValid(form, bindingResult)) {
       return getActivityModelAndView(form, licenceScheduleDetail);
     }
 
@@ -66,6 +66,7 @@ public class WorkProgrammeActivityController {
         .addObject("activityDateRadioOptions", workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail))
         .addObject("termOptions", workProgrammeActivityFormService.getScheduleTermOptions(licenceScheduleDetail))
         .addObject("phaseOptions", workProgrammeActivityFormService.getSchedulePhaseOptions(licenceScheduleDetail))
+        .addObject("relativeOptions", workProgrammeActivityFormService.getRelativeDateOptions(licenceScheduleDetail))
         .addObject("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl())
         .addObject("pageCaption", licenceService.getLicencePageCaption(licence));
   }

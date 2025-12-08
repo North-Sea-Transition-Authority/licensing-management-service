@@ -171,27 +171,28 @@ public class LicenceWorkProgrammeAmendmentService {
 
     return workProgrammeActivities
         .stream()
-        .map(workProgrammeActivity -> {
-          LocalDate dueDate = resolveWorkProgrammeActivityDueDate(workProgrammeActivity);
-          return new WorkProgrammeActivityAmendmentView(
-              workProgrammeActivity.getId().toString(),
-              DateFormatUtil.convertToDisplayText(dueDate),
-              resolveCategory(workProgrammeActivity),
-              workProgrammeActivity.getDescription(),
-              getCategoryWithDueDate(workProgrammeActivity, dueDate)
-          );
-        })
+        .map(this::createWorkProgrammeActivityAmendmentView)
         .toList();
   }
 
   public WorkProgrammeActivityAmendmentView getLicenceWorkProgramAmendmentView(
-      LicenceScheduleDetail licenceScheduleDetail,
-      String workProgrammeActivityId) {
-    return getLicenceWorkProgramAmendmentViews(licenceScheduleDetail)
-        .stream()
-        .filter(workProgrammeActivityAmendmentView -> workProgrammeActivityAmendmentView.id().equals(workProgrammeActivityId))
-        .findFirst()
-        .orElse(null);
+      WorkProgrammeActivity workProgrammeActivity
+  ) {
+    return createWorkProgrammeActivityAmendmentView(workProgrammeActivity);
+  }
+
+  private WorkProgrammeActivityAmendmentView createWorkProgrammeActivityAmendmentView(
+      WorkProgrammeActivity workProgrammeActivity
+  ) {
+    LocalDate dueDate = resolveWorkProgrammeActivityDueDate(workProgrammeActivity);
+
+    return new WorkProgrammeActivityAmendmentView(
+        workProgrammeActivity.getId().toString(),
+        DateFormatUtil.convertToDisplayText(dueDate),
+        resolveCategory(workProgrammeActivity),
+        workProgrammeActivity.getDescription(),
+        getCategoryWithDueDate(workProgrammeActivity, dueDate)
+    );
   }
 
   public String getCategoryWithDueDate(WorkProgrammeActivity activity, LocalDate dueDate) {

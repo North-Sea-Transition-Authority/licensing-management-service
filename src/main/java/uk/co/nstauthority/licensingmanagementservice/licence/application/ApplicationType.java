@@ -4,14 +4,17 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
 public enum ApplicationType implements Displayable {
 
-  SCHEDULE_AMENDMENT_APPLICATION("Schedule and work programme amendment application", 10);
+  SCHEDULE_AMENDMENT_APPLICATION("Schedule and work programme amendment application", 10),
+  CONTINUATION_APPLICATION("Licence continuation application", 20),
+  ;
+
 
   private final String displayName;
-  private final Integer displayOrder;
+  private final int displayOrder;
 
   ApplicationType(
       String displayName,
-      Integer displayOrder
+      int displayOrder
   ) {
     this.displayName = displayName;
     this.displayOrder = displayOrder;

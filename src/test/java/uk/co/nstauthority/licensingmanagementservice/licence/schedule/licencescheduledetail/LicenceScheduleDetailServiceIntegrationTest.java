@@ -7,8 +7,10 @@ import jakarta.transaction.Transactional;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
@@ -31,88 +33,58 @@ class LicenceScheduleDetailServiceIntegrationTest {
 
   @Test
   void searchByLicenceReferenceLicenceTypeAndStatus() {
-    var licence = LicenceTestUtil.builder()
-        .withId(1)
-        .withLicenceReference("CS001")
-        .withLicenceType(LicenceType.CARBON_STORAGE)
-        .build();
-
-    em.persist(licence);
-
-    var licence2 = LicenceTestUtil.builder()
-        .withId(2)
-        .withLicenceReference("CS002")
-        .withLicenceType(LicenceType.CARBON_STORAGE)
-        .build();
-
-    em.persist(licence2);
-
-    var licence3 = LicenceTestUtil.builder()
-        .withId(3)
-        .withLicenceReference("CS011")
-        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
-        .build();
-
-    em.persist(licence3);
-
-    var licence4 = LicenceTestUtil.builder()
-        .withId(4)
-        .withLicenceReference("P001")
-        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
-        .build();
-
-    em.persist(licence4);
-
-    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(null, licence);
-
-    em.persist(licenceSchedule);
-
-    var licenceSchedule2 = LicenceScheduleTestUtil.createLicenceSchedule(null, licence2);
-
-    em.persist(licenceSchedule2);
-
-    var licenceSchedule3 = LicenceScheduleTestUtil.createLicenceSchedule(null, licence3);
-
-    em.persist(licenceSchedule3);
-
-    var licenceSchedule4 = LicenceScheduleTestUtil.createLicenceSchedule(null, licence4);
-
-    em.persist(licenceSchedule4);
-
-    var licenceScheduleDetail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule)
-        .withStatus(LicenceScheduleDetailStatus.ACTIVE)
-        .build();
-
-    em.persist(licenceScheduleDetail);
-
-    var licenceScheduleDetail2 = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule2)
-        .withStatus(LicenceScheduleDetailStatus.ACTIVE)
-        .build();
-
-    em.persist(licenceScheduleDetail2);
-
-    var licenceScheduleDetail3 = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule3)
-        .withStatus(LicenceScheduleDetailStatus.DRAFT)
-        .build();
-
-    em.persist(licenceScheduleDetail3);
-
-    var licenceScheduleDetail4 = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule3)
-        .withStatus(LicenceScheduleDetailStatus.ACTIVE)
-        .build();
-
-    em.persist(licenceScheduleDetail4);
+    var licenceScheduleDetail = createLicenceAndScheduleDetail(1, "CS001", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE);
+    createLicenceAndScheduleDetail(2, "CS002", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE);
+    var licenceScheduleDetail3 = createLicenceAndScheduleDetail(4, "EX011", LicenceType.LANDWARD_PRODUCTION, LicenceScheduleDetailStatus.ACTIVE);
+    createLicenceAndScheduleDetail(5, "EX012", LicenceType.LANDWARD_PRODUCTION, LicenceScheduleDetailStatus.DRAFT);
+    createLicenceAndScheduleDetail(6, "P001", LicenceType.SEAWARD_PRODUCTION, LicenceScheduleDetailStatus.ACTIVE);
 
     em.flush();
 
     var result = licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
         "1",
-        LicenceType.CARBON_STORAGE,
+        List.of(LicenceType.CARBON_STORAGE, LicenceType.LANDWARD_PRODUCTION),
         LicenceScheduleDetailStatus.ACTIVE
     );
 
     assertThat(result).usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
-        .isEqualTo(List.of(licenceScheduleDetail));
+        .isEqualTo(List.of(licenceScheduleDetail, licenceScheduleDetail3));
+  }
+
+  private LicenceScheduleDetail createLicenceAndScheduleDetail(int id,
+                                                               String licenceReference,
+                                                               LicenceType licenceType,
+                                                               LicenceScheduleDetailStatus licenceScheduleDetailStatus) {
+    var licence = createLicence(id, licenceReference, licenceType);
+    var licenceSchedule = createLicenceSchedule(licence);
+    return createLicenceScheduleDetail(licenceSchedule, licenceScheduleDetailStatus);
+  }
+
+  private LicenceScheduleDetail createLicenceScheduleDetail(LicenceSchedule licenceSchedule, LicenceScheduleDetailStatus active) {
+    var licenceScheduleDetail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule)
+        .withStatus(active)
+        .build();
+
+    em.persist(licenceScheduleDetail);
+    return licenceScheduleDetail;
+  }
+
+  private LicenceSchedule createLicenceSchedule(Licence licence) {
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(null, licence);
+
+    em.persist(licenceSchedule);
+    return licenceSchedule;
+  }
+
+  private Licence createLicence(int id, String licenceReference, LicenceType licenceType) {
+    var licence = LicenceTestUtil.builder()
+        .withId(id)
+        .withLicenceReference(licenceReference)
+        .withLicenceType(licenceType)
+        .build();
+
+    em.persist(licence);
+    return licence;
   }
 
 }

@@ -23,7 +23,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.SelectScheduleWorkProgrammeApplicationLicenceTypeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -109,7 +109,7 @@ class WorkAreaControllerTest extends AbstractControllerTest {
             ReverseRouter.route(on(WorkAreaController.class).clearWorkAreaFilters(null, null))))
         .andExpect(model().attribute("canStartApplication", true))
         .andExpect(model().attribute("startApplicationUrl",
-            ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceTypeController.class).renderSelectLicenceType())))
+            ReverseRouter.route(on(SelectApplicationTypeController.class).render())))
         .andReturn()
         .getModelAndView();
 

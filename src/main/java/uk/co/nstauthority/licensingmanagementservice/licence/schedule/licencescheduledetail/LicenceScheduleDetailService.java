@@ -71,14 +71,13 @@ public class LicenceScheduleDetailService {
 
   public List<LicenceScheduleDetail> searchByLicenceReferenceLicenceTypeAndStatus(
       String searchTerm,
-      LicenceType licenceType,
+      List<LicenceType> licenceTypes,
       LicenceScheduleDetailStatus status
   ) {
-    return licenceScheduleDetailRepository.searchByLicenceReferenceLicenceTypeAndStatus(
-        searchTerm,
-        licenceType,
-        status
-    );
+    return licenceScheduleDetailRepository
+        .searchByLicenceReferenceLicenceTypesAndStatus(
+            searchTerm, licenceTypes, status
+        );
   }
 
   @Transactional

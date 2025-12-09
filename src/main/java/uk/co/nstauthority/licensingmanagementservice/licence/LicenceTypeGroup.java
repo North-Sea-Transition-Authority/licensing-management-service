@@ -27,6 +27,12 @@ public enum LicenceTypeGroup {
     return licenceTypes;
   }
 
+  public String getUrlSlugList() {
+    return licenceTypes.stream()
+        .map(LicenceType::getUrlSlug)
+        .collect(Collectors.joining(","));
+  }
+
   public static LicenceTypeGroup getGroupBy(LicenceType licenceType) {
     return Arrays.stream(values())
         .filter(group -> group.getLicenceTypes().contains(licenceType))

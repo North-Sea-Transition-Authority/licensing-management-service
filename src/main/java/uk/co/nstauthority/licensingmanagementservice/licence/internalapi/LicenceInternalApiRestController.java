@@ -23,18 +23,18 @@ public class LicenceInternalApiRestController {
     this.searchSelectorService = searchSelectorService;
   }
 
-  @GetMapping("/{licenceTypeSlug}")
+  @GetMapping("/{licenceTypeSlugList}")
   public RestSearchResult searchActiveLicenceSchedulesByReferenceAndType(
-      @PathVariable String licenceTypeSlug,
+      @PathVariable String licenceTypeSlugList,
       @RequestParam(value = "term") String term
   ) {
-    var licenceType = LicenceType.getFromSlugOrThrow(licenceTypeSlug);
+    var licenceTypes = LicenceType.getFromSlugListOrThrow(licenceTypeSlugList);
 
     return searchSelectorService.search(
         term,
         licenceInternalApiService.searchLicencesWithSchedulesByReferenceTypeAndStatus(
             term,
-            licenceType,
+            licenceTypes,
             LicenceScheduleDetailStatus.ACTIVE
         )
     );

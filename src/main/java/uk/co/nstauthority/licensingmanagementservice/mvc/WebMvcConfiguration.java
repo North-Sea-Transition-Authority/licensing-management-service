@@ -14,6 +14,7 @@ import org.springframework.web.servlet.resource.VersionResourceResolver;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.AccessHandlerInterceptor;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceArgumentResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailArgumentResolver;
@@ -35,6 +36,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
   private final ScheduleWorkProgrammeApplicationDetailArgumentResolver scheduleWorkProgrammeApplicationDetailArgumentResolver;
   private final WorkProgrammeActivityArgumentResolver workProgrammeActivityArgumentResolver;
   private final LicenceScheduleDetailArgumentResolver licenceScheduleDetailArgumentResolver;
+  private final LicenceContinuationApplicationDetailArgumentResolver licenceContinuationApplicationDetailArgumentResolver;
 
   public WebMvcConfiguration(
       ServiceUserDetailArgumentResolver serviceUserDetailArgumentResolver,
@@ -45,7 +47,8 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
       LicenceArgumentResolver licenceArgumentResolver,
       ScheduleWorkProgrammeApplicationDetailArgumentResolver scheduleWorkProgrammeApplicationDetailArgumentResolver,
       WorkProgrammeActivityArgumentResolver workProgrammeActivityArgumentResolver,
-      LicenceScheduleDetailArgumentResolver licenceScheduleDetailArgumentResolver
+      LicenceScheduleDetailArgumentResolver licenceScheduleDetailArgumentResolver,
+      LicenceContinuationApplicationDetailArgumentResolver licenceContinuationApplicationDetailArgumentResolver
   ) {
     this.serviceUserDetailArgumentResolver = serviceUserDetailArgumentResolver;
     this.xyzApplicationArgumentResolver = xyzApplicationArgumentResolver;
@@ -56,6 +59,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
     this.scheduleWorkProgrammeApplicationDetailArgumentResolver = scheduleWorkProgrammeApplicationDetailArgumentResolver;
     this.workProgrammeActivityArgumentResolver = workProgrammeActivityArgumentResolver;
     this.licenceScheduleDetailArgumentResolver = licenceScheduleDetailArgumentResolver;
+    this.licenceContinuationApplicationDetailArgumentResolver = licenceContinuationApplicationDetailArgumentResolver;
   }
 
   @Override
@@ -93,5 +97,6 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
     resolvers.add(scheduleWorkProgrammeApplicationDetailArgumentResolver);
     resolvers.add(licenceScheduleDetailArgumentResolver);
     resolvers.add(workProgrammeActivityArgumentResolver);
+    resolvers.add(licenceContinuationApplicationDetailArgumentResolver);
   }
 }

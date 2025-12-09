@@ -42,13 +42,13 @@ class LicenceInternalApiServiceTest {
 
     when(licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
         searchTerm,
-        licenceType,
+        List.of(licenceType),
         LicenceScheduleDetailStatus.ACTIVE)
     ).thenReturn(List.of(licenceScheduleDetail));
 
     var licenceJson = new LicenceJson(id, licenceReference);
 
-    assertThat(licenceInternalApiService.searchLicencesWithSchedulesByReferenceTypeAndStatus(searchTerm, licenceType, LicenceScheduleDetailStatus.ACTIVE))
+    assertThat(licenceInternalApiService.searchLicencesWithSchedulesByReferenceTypeAndStatus(searchTerm, List.of(licenceType), LicenceScheduleDetailStatus.ACTIVE))
         .usingRecursiveComparison()
         .isEqualTo(List.of(licenceJson));
   }

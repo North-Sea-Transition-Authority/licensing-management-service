@@ -38,6 +38,8 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgr
 import uk.co.nstauthority.licensingmanagementservice.hibernate.HibernateQueryCounter;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetailArgumentResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityArgumentResolver;
@@ -84,6 +86,7 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     AnalyticsConfiguration.class,
     LicenceArgumentResolver.class,
     ScheduleWorkProgrammeApplicationDetailArgumentResolver.class,
+    LicenceContinuationApplicationDetailArgumentResolver.class,
     LicenceScheduleDetailArgumentResolver.class
 })
 @EnableConfigurationProperties({
@@ -123,6 +126,9 @@ public abstract class AbstractControllerTest {
 
   @MockitoBean
   protected LicenceScheduleDetailService licenceScheduleDetailService;
+
+  @MockitoBean
+  protected LicenceContinuationService licenceContinuationService;
 
   @Autowired
   protected TeamManagementHandlerInterceptor teamManagementHandlerInterceptor;

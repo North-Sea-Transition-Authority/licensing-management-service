@@ -61,6 +61,13 @@ public enum LicenceType implements Displayable {
     return managedByLms;
   }
 
+  public static List<LicenceType> getFromSlugListOrThrow(@NotNull String slugList) {
+    return Arrays.stream(slugList.split(","))
+        .map(String::trim)
+        .map(LicenceType::getFromSlugOrThrow)
+        .toList();
+  }
+
   public static LicenceType getFromSlugOrThrow(@NotNull String slug) {
     return Arrays.stream(values())
         .filter(lt -> lt.getUrlSlug().equals(slug))

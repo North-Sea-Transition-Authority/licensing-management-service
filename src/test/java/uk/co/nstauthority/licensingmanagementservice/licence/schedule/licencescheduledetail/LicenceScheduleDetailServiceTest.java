@@ -6,6 +6,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -99,14 +100,12 @@ class LicenceScheduleDetailServiceTest {
 
     licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
         searchTerm,
-        LicenceType.CARBON_STORAGE,
+        List.of(LicenceType.CARBON_STORAGE),
         LicenceScheduleDetailStatus.ACTIVE
     );
 
-    verify(licenceScheduleDetailRepository).searchByLicenceReferenceLicenceTypeAndStatus(
-      searchTerm,
-      LicenceType.CARBON_STORAGE,
-      LicenceScheduleDetailStatus.ACTIVE
+    verify(licenceScheduleDetailRepository).searchByLicenceReferenceLicenceTypesAndStatus(
+        searchTerm, List.of(LicenceType.CARBON_STORAGE), LicenceScheduleDetailStatus.ACTIVE
     );
   }
 

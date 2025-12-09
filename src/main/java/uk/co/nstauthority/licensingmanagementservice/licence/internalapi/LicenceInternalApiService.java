@@ -24,12 +24,12 @@ public class LicenceInternalApiService {
 
   List<LicenceJson> searchLicencesWithSchedulesByReferenceTypeAndStatus(
       String searchTerm,
-      LicenceType type,
+      List<LicenceType> types,
       LicenceScheduleDetailStatus status
   ) {
     return licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
           searchTerm,
-          type,
+          types,
           status
         ).stream()
         .map(LicenceScheduleDetail::getLicenceSchedule)

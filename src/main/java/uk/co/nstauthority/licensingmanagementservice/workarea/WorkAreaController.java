@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.SelectScheduleWorkProgrammeApplicationLicenceTypeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -58,7 +58,7 @@ public class WorkAreaController {
         .addObject("workAreaItems", workAreaService.getWorkAreaResults(form, user))
         .addObject("canStartApplication", true)
         .addObject("startApplicationUrl", ReverseRouter
-                .route(on(SelectScheduleWorkProgrammeApplicationLicenceTypeController.class).renderSelectLicenceType()))
+                .route(on(SelectApplicationTypeController.class).render()))
         .addObject("form", form)
         .addObject("clearFilterUrl",
         ReverseRouter.route(on(WorkAreaController.class).clearWorkAreaFilters(null, null)));

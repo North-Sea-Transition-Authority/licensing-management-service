@@ -28,12 +28,9 @@ public interface LicenceScheduleDetailRepository extends JpaRepository<LicenceSc
         SELECT lsd FROM licence_schedule_details lsd
         WHERE lsd.status = (:status)
         AND upper(lsd.licenceSchedule.licence.licenceReference) LIKE '%' || upper(:searchTerm) || '%'
-        AND lsd.licenceSchedule.licence.type = (:licenceType)
+        AND lsd.licenceSchedule.licence.type IN (:licenceTypes)
         """
   )
-  List<LicenceScheduleDetail> searchByLicenceReferenceLicenceTypeAndStatus(
-      String searchTerm,
-      LicenceType licenceType,
-      LicenceScheduleDetailStatus status
-  );
+  List<LicenceScheduleDetail> searchByLicenceReferenceLicenceTypesAndStatus(
+      String searchTerm, List<LicenceType> licenceTypes, LicenceScheduleDetailStatus status);
 }

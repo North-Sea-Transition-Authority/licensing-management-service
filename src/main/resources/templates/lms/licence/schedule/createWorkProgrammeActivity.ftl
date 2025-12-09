@@ -81,6 +81,7 @@ errorSummaryItems=errorSummaryItems
                             fieldDisplayTextPath="form.relativeDuration.fieldDisplayText"
                             labelText="The relative period by which the activity must be completed"
                             formId="activity-relative-duration"
+                            nestingPath="form.workProgrammeActivityDateOption"
                         />
                     </#if>
                 </@fdsRadio.radioItem>

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Controller
@@ -19,15 +20,18 @@ public class LicenceScheduleRateController {
   private final LicenceScheduleRateFormService licenceScheduleRateFormService;
   private final LicenceScheduleRateFormValidator licenceScheduleRateFormValidator;
   private final LicenceService licenceService;
+  private final LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
 
   public LicenceScheduleRateController(
       LicenceScheduleRateFormService licenceScheduleRateFormService,
       LicenceScheduleRateFormValidator licenceScheduleRateFormValidator,
-      LicenceService licenceService
+      LicenceService licenceService,
+      LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService
   ) {
     this.licenceScheduleRateFormService = licenceScheduleRateFormService;
     this.licenceScheduleRateFormValidator = licenceScheduleRateFormValidator;
     this.licenceService = licenceService;
+    this.licenceScheduleRelativeOptionsService = licenceScheduleRelativeOptionsService;
   }
 
   @GetMapping
@@ -45,7 +49,7 @@ public class LicenceScheduleRateController {
       @ModelAttribute("form") LicenceScheduleRateForm form,
       BindingResult bindingResult
   ) {
-    if (!licenceScheduleRateFormValidator.isValid(form, bindingResult, licenceScheduleDetail)) {
+    if (!licenceScheduleRateFormValidator.isValid(form, bindingResult)) {
       return getScheduleRateModelAndView(form, licenceScheduleDetail);
     }
 
@@ -57,9 +61,11 @@ public class LicenceScheduleRateController {
   private ModelAndView getScheduleRateModelAndView(LicenceScheduleRateForm form, LicenceScheduleDetail licenceScheduleDetail) {
     return new ModelAndView("lms/licence/schedule/createScheduleRate")
         .addObject("form", form)
-        .addObject("termOptions", licenceScheduleRateFormService.getScheduleTermOptions(licenceScheduleDetail))
-        .addObject("phaseOptions", licenceScheduleRateFormService.getSchedulePhaseOptions(licenceScheduleDetail))
+        .addObject("termOptions", licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail))
+        .addObject("phaseOptions", licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail))
         .addObject("rateDefinitionOptions", licenceScheduleRateFormService.getRateDefinitionOptions(licenceScheduleDetail))
+        .addObject("relativeEventOptions", licenceScheduleRelativeOptionsService.getRelativeEventOptions(licenceScheduleDetail))
+        .addObject("relativeDateOptions", RateRelativeDateOption.getRateRelativeDateOptions())
         .addObject("pageCaption", licenceService.getLicencePageCaption(licenceScheduleDetail.getLicenceSchedule().getLicence()))
         .addObject("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl());
   }

@@ -1,44 +1,19 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
-import java.time.LocalDate;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
+import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceScheduleRateFormValidatorTest {
 
-  @Mock
-  private LicenceStartDateService licenceStartDateService;
-
   @InjectMocks
   private LicenceScheduleRateFormValidator validator;
-
-  private LicenceScheduleDetail licenceScheduleDetail;
-
-  @BeforeEach
-  void setUp() {
-    var licence = LicenceTestUtil.builder()
-        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
-        .build();
-
-    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
-
-    licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
-  }
 
   @Test
   void isValid_termOption() {
@@ -46,7 +21,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, new LicenceScheduleDetail())).isTrue();
+    assertThat(validator.isValid(form, bindingResult)).isTrue();
   }
 
   @Test
@@ -57,23 +32,32 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, new LicenceScheduleDetail())).isTrue();
+    assertThat(validator.isValid(form, bindingResult)).isTrue();
   }
 
   @Test
-  void isValid_customPeriodOption() {
+  void isValid_customPeriodOption_startOnEventStartDate() {
     var form = createValidForm();
     form.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
-    form.getStartDate().setDate(LocalDate.of(2025, 1, 1));
-
-    var licenceStartDate = new LicenceStartDate();
-    licenceStartDate.setStartDate(LocalDate.of(2024, 1, 1));
-
-    when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail)).thenReturn(licenceStartDate);
+    form.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
+    form.setRelativeEventId("relativeEventId");
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isTrue();
+    assertThat(validator.isValid(form, bindingResult)).isTrue();
+  }
+
+  @Test
+  void isValid_customPeriodOption_startRelativeToEventStartDate() {
+    var form = createValidForm();
+    form.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
+    form.setRateRelativeDateOption(RateRelativeDateOption.RELATIVE_TO_START_DATE);
+    form.setRelativeEventId("relativeEventId");
+    form.getRelativeDuration().setFromThreeFieldDuration(new ThreeFieldDuration(1, 0, 0));
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(validator.isValid(form, bindingResult)).isTrue();
   }
 
   @Test
@@ -83,7 +67,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, new LicenceScheduleDetail())).isFalse();
+    assertThat(validator.isValid(form, bindingResult)).isFalse();
   }
 
   @Test
@@ -93,7 +77,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, new LicenceScheduleDetail())).isFalse();
+    assertThat(validator.isValid(form, bindingResult)).isFalse();
   }
 
   @Test
@@ -103,38 +87,42 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, new LicenceScheduleDetail())).isFalse();
+    assertThat(validator.isValid(form, bindingResult)).isFalse();
   }
 
   @Test
-  void isValid_invalidForm_customPeriodOption_missingStartDate() {
+  void isValid_invalidForm_customPeriodOption_missingRelativeDateOption() {
     var form = createValidForm();
     form.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
-
-    var licenceStartDate = new LicenceStartDate();
-    licenceStartDate.setStartDate(LocalDate.of(2026, 1, 1));
-
-    when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail)).thenReturn(licenceStartDate);
+    form.setRelativeEventId("relativeEventId");
+    form.getRelativeDuration().setFromThreeFieldDuration(new ThreeFieldDuration(1, 0, 0));
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
+    assertThat(validator.isValid(form, bindingResult)).isFalse();
   }
 
   @Test
-  void isValid_invalidForm_customPeriodOption_rateStartDateBeforeLicenceStartDate() {
+  void isValid_invalidForm_customPeriodOption_missingRelativeEventId() {
     var form = createValidForm();
     form.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
-    form.getStartDate().setDate(LocalDate.of(2025, 1, 1));
-
-    var licenceStartDate = new LicenceStartDate();
-    licenceStartDate.setStartDate(LocalDate.of(2026, 1, 1));
-
-    when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail)).thenReturn(licenceStartDate);
+    form.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
+    assertThat(validator.isValid(form, bindingResult)).isFalse();
+  }
+
+  @Test
+  void isValid_invalidForm_customPeriodOption_startRelativeToEventStartDate_missingRelativeDuration() {
+    var form = createValidForm();
+    form.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
+    form.setRateRelativeDateOption(RateRelativeDateOption.RELATIVE_TO_START_DATE);
+    form.setRelativeEventId("relativeEventId");
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(validator.isValid(form, bindingResult)).isFalse();
   }
 
   @Test
@@ -144,7 +132,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, new LicenceScheduleDetail())).isFalse();
+    assertThat(validator.isValid(form, bindingResult)).isFalse();
   }
 
   @Test
@@ -154,7 +142,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, new LicenceScheduleDetail())).isFalse();
+    assertThat(validator.isValid(form, bindingResult)).isFalse();
   }
 
   @Test
@@ -164,7 +152,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, new LicenceScheduleDetail())).isFalse();
+    assertThat(validator.isValid(form, bindingResult)).isFalse();
   }
 
   @Test
@@ -174,7 +162,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, new LicenceScheduleDetail())).isFalse();
+    assertThat(validator.isValid(form, bindingResult)).isFalse();
   }
 
   private LicenceScheduleRateForm createValidForm() {

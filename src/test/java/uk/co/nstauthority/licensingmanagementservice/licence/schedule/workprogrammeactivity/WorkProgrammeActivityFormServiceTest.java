@@ -21,9 +21,9 @@ import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFi
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
-import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
@@ -46,6 +46,9 @@ class WorkProgrammeActivityFormServiceTest {
   @Mock
   private LicenceTypeRulesResolver licenceTypeRulesResolver;
 
+  @Mock
+  private LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
+
   @InjectMocks
   private WorkProgrammeActivityFormService workProgrammeActivityFormService;
 
@@ -66,84 +69,16 @@ class WorkProgrammeActivityFormServiceTest {
   }
 
   @Test
-  void getScheduleTermOptions() {
-    var term = new LicenceScheduleTerm();
-    term.setId(UUID.randomUUID());
-    term.setTermType(TermType.INITIAL);
-
-    var term2 = new LicenceScheduleTerm();
-    term2.setId(UUID.randomUUID());
-    term2.setTermType(TermType.SECOND);
-
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
-
-    var expectedResult = Map.of(
-        term.getId().toString(), term.getTermType().getDisplayName(),
-        term2.getId().toString(), term2.getTermType().getDisplayName()
-    );
-    
-    assertThat(workProgrammeActivityFormService.getScheduleTermOptions(licenceScheduleDetail)).isEqualTo(expectedResult);
-  }
-
-  @Test
-  void getSchedulePhaseOptions() {
-    var phase = new LicenceSchedulePhase();
-    phase.setId(UUID.randomUUID());
-    phase.setPhaseType(PhaseType.PHASE_A);
-
-    var phase2 = new LicenceSchedulePhase();
-    phase2.setId(UUID.randomUUID());
-    phase2.setPhaseType(PhaseType.PHASE_B);
-
-    when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase, phase2));
-
-    var expectedResult = Map.of(
-        phase.getId().toString(), phase.getPhaseType().getDisplayName(),
-        phase2.getId().toString(), phase2.getPhaseType().getDisplayName()
-    );
-
-    assertThat(workProgrammeActivityFormService.getSchedulePhaseOptions(licenceScheduleDetail)).isEqualTo(expectedResult);
-  }
-
-  @Test
-  void getRelativeDateOptions() {
-    var term = new LicenceScheduleTerm();
-    term.setId(UUID.randomUUID());
-    term.setTermType(TermType.INITIAL);
-
-    var term2 = new LicenceScheduleTerm();
-    term2.setId(UUID.randomUUID());
-    term2.setTermType(TermType.SECOND);
-
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
-
-    var phase = new LicenceSchedulePhase();
-    phase.setId(UUID.randomUUID());
-    phase.setPhaseType(PhaseType.PHASE_A);
-
-    var phase2 = new LicenceSchedulePhase();
-    phase2.setId(UUID.randomUUID());
-    phase2.setPhaseType(PhaseType.PHASE_B);
-
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(term)).thenReturn(List.of(phase, phase2));
-
-    var expectedResult = Map.of(
-        phase.getId().toString(), "Start of %s".formatted(phase.getPhaseType().getDisplayName()),
-        phase2.getId().toString(), "Start of %s".formatted(phase2.getPhaseType().getDisplayName()),
-        term2.getId().toString(), "Start of %s".formatted(term2.getTermType().getDisplayName())
-    );
-
-    assertThat(workProgrammeActivityFormService.getRelativeDateOptions(licenceScheduleDetail)).isEqualTo(expectedResult);
-  }
-
-  @Test
   void getDateOptions() {
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
     phase.setPhaseType(PhaseType.PHASE_A);
 
-    when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail))
-        .thenReturn(List.of(phase));
+
+    when(licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(
+        Map.of(phase.getId().toString(),
+        phase.getPhaseType().getDisplayName())
+    );
 
     when(licenceTypeRulesResolver.arePhasesCaptured(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
 
@@ -167,6 +102,7 @@ class WorkProgrammeActivityFormServiceTest {
     var options = new ArrayList<>(Arrays.asList(WorkProgrammeActivityDateOption.values()));
     options.remove(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
 
+    when(licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceTypeRulesResolver.arePhasesCaptured(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
 
     assertThat(workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail))

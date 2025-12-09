@@ -1,5 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate;
 
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -10,6 +13,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -33,6 +37,15 @@ public class LicenceScheduleRate {
 
   @ManyToOne
   private LicenceSchedulePhase licenceSchedulePhase;
+
+  @Enumerated(value = EnumType.STRING)
+  private RateRelativeDateOption rateRelativeDateOption;
+
+  @Embedded
+  @AttributeOverride(name = "days", column = @Column(name = "relative_duration_days"))
+  @AttributeOverride(name = "months", column = @Column(name = "relative_duration_months"))
+  @AttributeOverride(name = "years", column = @Column(name = "relative_duration_years"))
+  private ThreeFieldDuration relativeDuration;
 
   private LocalDate startDate;
 
@@ -78,6 +91,22 @@ public class LicenceScheduleRate {
 
   public void setLicenceSchedulePhase(LicenceSchedulePhase licenceSchedulePhase) {
     this.licenceSchedulePhase = licenceSchedulePhase;
+  }
+
+  public RateRelativeDateOption getRateRelativeDateOption() {
+    return rateRelativeDateOption;
+  }
+
+  public void setRateRelativeDateOption(RateRelativeDateOption rateRelativeDateOption) {
+    this.rateRelativeDateOption = rateRelativeDateOption;
+  }
+
+  public ThreeFieldDuration getRelativeDuration() {
+    return relativeDuration;
+  }
+
+  public void setRelativeDuration(ThreeFieldDuration relativeDuration) {
+    this.relativeDuration = relativeDuration;
   }
 
   public LocalDate getStartDate() {

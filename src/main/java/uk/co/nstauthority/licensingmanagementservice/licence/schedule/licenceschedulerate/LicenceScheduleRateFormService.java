@@ -3,13 +3,15 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesc
 import jakarta.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
@@ -21,17 +23,20 @@ public class LicenceScheduleRateFormService {
   private final LicenceScheduleTermService licenceScheduleTermService;
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
   private final LicenceTypeRulesResolver licenceTypeRulesResolver;
+  private final LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
 
   public LicenceScheduleRateFormService(
       LicenceScheduleRateRepository licenceScheduleRateRepository,
       LicenceScheduleTermService licenceScheduleTermService,
       LicenceSchedulePhaseService licenceSchedulePhaseService,
-      LicenceTypeRulesResolver licenceTypeRulesResolver
+      LicenceTypeRulesResolver licenceTypeRulesResolver,
+      LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService
   ) {
     this.licenceScheduleRateRepository = licenceScheduleRateRepository;
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
+    this.licenceScheduleRelativeOptionsService = licenceScheduleRelativeOptionsService;
   }
 
   @Transactional
@@ -57,9 +62,14 @@ public class LicenceScheduleRateFormService {
     }
 
     if (form.getRateDefinitionOption().equals(RateDefinitionOption.CUSTOM_PERIOD)) {
-      licenceScheduleRate.setStartDate(form.getStartDate().getAsLocalDate().orElse(null));
+      setRelativeEvent(form, licenceScheduleDetail, licenceScheduleRate);
+      licenceScheduleRate.setRateRelativeDateOption(form.getRateRelativeDateOption());
+      if (form.getRateRelativeDateOption().equals(RateRelativeDateOption.RELATIVE_TO_START_DATE)) {
+        licenceScheduleRate.setRelativeDuration(form.getRelativeDuration().toThreeFieldDuration());
+      }
     } else {
-      licenceScheduleRate.setStartDate(null);
+      licenceScheduleRate.setRateRelativeDateOption(null);
+      licenceScheduleRate.setRelativeDuration(null);
     }
 
     licenceScheduleRate.setRentalRate(form.getRentalRate().getAsBigDecimal().orElse(null));
@@ -68,22 +78,23 @@ public class LicenceScheduleRateFormService {
     licenceScheduleRateRepository.save(licenceScheduleRate);
   }
 
-  public Map<String, String> getScheduleTermOptions(LicenceScheduleDetail licenceScheduleDetail) {
-    return licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
-        .sorted(Comparator.comparingInt(term -> term.getTermType().getDisplayOrder()))
-        .collect(StreamUtil.toLinkedHashMap(
-            term -> term.getId().toString(),
-            term -> term.getTermType().getDisplayName())
-        );
-  }
+  private void setRelativeEvent(
+      LicenceScheduleRateForm form,
+      LicenceScheduleDetail licenceScheduleDetail,
+      LicenceScheduleRate rate
+  ) {
+    var eventId = UUID.fromString(form.getRelativeEventId());
 
-  public Map<String, String> getSchedulePhaseOptions(LicenceScheduleDetail licenceScheduleDetail) {
-    return licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
-        .sorted(Comparator.comparingInt(phase -> phase.getPhaseType().getDisplayOrder()))
-        .collect(StreamUtil.toLinkedHashMap(
-            phase -> phase.getId().toString(),
-            phase -> phase.getPhaseType().getDisplayName())
-        );
+    var termMap = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
+        .collect(StreamUtil.toLinkedHashMap(LicenceScheduleTerm::getId, Function.identity()));
+
+    if (termMap.containsKey(eventId)) {
+      rate.setLicenceScheduleTerm(termMap.get(eventId));
+      rate.setLicenceSchedulePhase(null);
+    } else {
+      rate.setLicenceScheduleTerm(null);
+      rate.setLicenceSchedulePhase(licenceSchedulePhaseService.getPhaseByIdOrThrow(eventId));
+    }
   }
 
   public Map<String, String> getRateDefinitionOptions(LicenceScheduleDetail licenceScheduleDetail) {
@@ -91,7 +102,8 @@ public class LicenceScheduleRateFormService {
 
     var licenceType = licenceScheduleDetail.getLicenceSchedule().getLicence().getType();
 
-    if (!licenceTypeRulesResolver.arePhasesCaptured(licenceType) || getSchedulePhaseOptions(licenceScheduleDetail).isEmpty()) {
+    if (!licenceTypeRulesResolver.arePhasesCaptured(licenceType)
+        || licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail).isEmpty()) {
       options.remove(RateDefinitionOption.PHASE);
     }
 

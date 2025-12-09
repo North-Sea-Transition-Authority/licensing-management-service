@@ -26,6 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
@@ -39,6 +40,9 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private WorkProgrammeActivityFormValidator workProgrammeActivityFormValidator;
+
+  @MockitoBean
+  private LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
 
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
@@ -69,9 +73,9 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
   void renderAddNewActivityForm() throws Exception {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
-    when(workProgrammeActivityFormService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
-    when(workProgrammeActivityFormService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
-    when(workProgrammeActivityFormService.getRelativeDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getRelativeEventOptions(licenceScheduleDetail)).thenReturn(Map.of());
 
     mockMvc.perform(
             get(ReverseRouter.route(on(WorkProgrammeActivityController.class)
@@ -110,9 +114,9 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(workProgrammeActivityFormValidator.isValid(any(), any())).thenReturn(false);
     when(workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
-    when(workProgrammeActivityFormService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
-    when(workProgrammeActivityFormService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
-    when(workProgrammeActivityFormService.getRelativeDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getRelativeEventOptions(licenceScheduleDetail)).thenReturn(Map.of());
 
     mockMvc.perform(
             post(ReverseRouter.route(on(WorkProgrammeActivityController.class)

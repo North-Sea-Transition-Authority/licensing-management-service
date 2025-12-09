@@ -1,4 +1,5 @@
 <#include '../../layout/layout.ftl'>
+<#import '../../component/duration/threeFieldDuration.ftl' as duration>
 
 <#assign pageTitle = "Schedule rate" />
 
@@ -34,14 +35,33 @@ errorSummaryItems=errorSummaryItems
                     </#if>
 
                     <#if key = "CUSTOM_PERIOD">
-                        <@fdsDateInput.dateInput
-                            dayPath="form.startDate.dayInput.inputValue"
-                            monthPath="form.startDate.monthInput.inputValue"
-                            yearPath="form.startDate.yearInput.inputValue"
-                            labelText="Rate start date"
-                            formId="start-date-input"
+                        <@fdsSelect.select
+                            path="form.relativeEventId"
+                            options=relativeEventOptions
+                            labelText="What is the due date relative to?"
                             nestingPath="form.rateDefinitionOption"
                         />
+
+                        <@fdsRadio.radioGroup path="form.rateRelativeDateOption" labelText="When does the rate start?" hiddenContent=true>
+                            <#assign firstRelativeOption = true>
+                            <#list relativeDateOptions as key, value>
+                                <@fdsRadio.radioItem path="form.rateRelativeDateOption" itemMap={key : value} isFirstItem=firstItem>
+                                    <#if key = "RELATIVE_TO_START_DATE">
+                                        <@duration.threeFieldDuration
+                                            dayPath="form.relativeDuration.days"
+                                            monthPath="form.relativeDuration.months"
+                                            yearPath="form.relativeDuration.years"
+                                            fieldNamePath="form.relativeDuration.fieldName"
+                                            fieldDisplayTextPath="form.relativeDuration.fieldDisplayText"
+                                            labelText="The relative period by which the rate starts from"
+                                            formId="rate-relative-duration"
+                                            nestingPath="form.rateRelativeDateOption"
+                                        />
+                                    </#if>
+                                </@fdsRadio.radioItem>
+                                <#assign firstRelativeOption = false>
+                            </#list>
+                        </@fdsRadio.radioGroup>
                     </#if>
                 </@fdsRadio.radioItem>
                 <#assign firstItem=false/>

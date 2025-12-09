@@ -1,7 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate;
 
 import uk.co.fivium.formlibrary.input.DecimalInput;
-import uk.co.fivium.formlibrary.input.ThreeFieldDateInput;
+import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationInput;
 
 public class LicenceScheduleRateForm {
 
@@ -11,7 +11,11 @@ public class LicenceScheduleRateForm {
 
   private String licenceSchedulePhaseId;
 
-  private ThreeFieldDateInput startDate = new ThreeFieldDateInput("startDate", "Start date");
+  private RateRelativeDateOption rateRelativeDateOption;
+
+  private ThreeFieldDurationInput relativeDuration = new ThreeFieldDurationInput("relativeDuration", "relative duration");
+
+  private String relativeEventId;
 
   private DecimalInput rentalRate = new DecimalInput("rentalRate", "Rental rate");
 
@@ -41,12 +45,28 @@ public class LicenceScheduleRateForm {
     this.licenceSchedulePhaseId = licenceSchedulePhaseId;
   }
 
-  public ThreeFieldDateInput getStartDate() {
-    return startDate;
+  public RateRelativeDateOption getRateRelativeDateOption() {
+    return rateRelativeDateOption;
   }
 
-  public void setStartDate(ThreeFieldDateInput startDate) {
-    this.startDate = startDate;
+  public void setRateRelativeDateOption(RateRelativeDateOption rateRelativeDateOption) {
+    this.rateRelativeDateOption = rateRelativeDateOption;
+  }
+
+  public ThreeFieldDurationInput getRelativeDuration() {
+    return relativeDuration;
+  }
+
+  public void setRelativeDuration(ThreeFieldDurationInput relativeDuration) {
+    this.relativeDuration = relativeDuration;
+  }
+
+  public String getRelativeEventId() {
+    return relativeEventId;
+  }
+
+  public void setRelativeEventId(String relativeEventId) {
+    this.relativeEventId = relativeEventId;
   }
 
   public DecimalInput getRentalRate() {

@@ -4,21 +4,13 @@ import java.math.BigDecimal;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
-import uk.co.fivium.formlibrary.validator.date.ThreeFieldDateInputValidator;
 import uk.co.fivium.formlibrary.validator.decimal.DecimalInputValidator;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
+import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationValidationUtil;
 
 @Service
 public class LicenceScheduleRateFormValidator {
 
-  private final LicenceStartDateService licenceStartDateService;
-
-  public LicenceScheduleRateFormValidator(LicenceStartDateService licenceStartDateService) {
-    this.licenceStartDateService = licenceStartDateService;
-  }
-
-  boolean isValid(LicenceScheduleRateForm form, Errors errors, LicenceScheduleDetail licenceScheduleDetail) {
+  boolean isValid(LicenceScheduleRateForm form, Errors errors) {
     ValidationUtils.rejectIfEmpty(
         errors,
         "rateDefinitionOption",
@@ -46,13 +38,24 @@ public class LicenceScheduleRateFormValidator {
       }
 
       if (form.getRateDefinitionOption().equals(RateDefinitionOption.CUSTOM_PERIOD)) {
-        var licenceStartDate = licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail);
+        ValidationUtils.rejectIfEmpty(
+            errors,
+            "rateRelativeDateOption",
+            "rateRelativeDateOption.required",
+            "Select an option"
+        );
 
-        ThreeFieldDateInputValidator.builder()
-            .emptyInputErrorMessage("Provide the start date")
-            .mustBeAfterOrEqualTo(licenceStartDate.getStartDate())
-            .mustBeAfterOrEqualToErrorMessage("The start date of the rate must be on or after the licence start date")
-            .validate(form.getStartDate(), errors);
+        ValidationUtils.rejectIfEmpty(
+            errors,
+            "relativeEventId",
+            "relativeEventId.required",
+            "Select an event"
+        );
+
+        if (form.getRateRelativeDateOption() != null
+            && form.getRateRelativeDateOption().equals(RateRelativeDateOption.RELATIVE_TO_START_DATE)) {
+          ThreeFieldDurationValidationUtil.validate(form.getRelativeDuration(), errors);
+        }
       }
     }
 

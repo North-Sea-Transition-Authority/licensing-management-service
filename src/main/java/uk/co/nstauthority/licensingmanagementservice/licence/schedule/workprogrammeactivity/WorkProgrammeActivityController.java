@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
@@ -20,15 +21,18 @@ public class WorkProgrammeActivityController {
   private WorkProgrammeActivityFormService workProgrammeActivityFormService;
   private WorkProgrammeActivityFormValidator workProgrammeActivityFormValidator;
   private LicenceService licenceService;
+  private LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
 
   public WorkProgrammeActivityController(
       WorkProgrammeActivityFormService workProgrammeActivityFormService,
       WorkProgrammeActivityFormValidator workProgrammeActivityFormValidator,
-      LicenceService licenceService
+      LicenceService licenceService,
+      LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService
   ) {
     this.workProgrammeActivityFormService = workProgrammeActivityFormService;
     this.workProgrammeActivityFormValidator = workProgrammeActivityFormValidator;
     this.licenceService = licenceService;
+    this.licenceScheduleRelativeOptionsService = licenceScheduleRelativeOptionsService;
   }
 
   @GetMapping("/create")
@@ -64,9 +68,9 @@ public class WorkProgrammeActivityController {
         .addObject("commitmentRadioOptions",
             DisplayableEnumOptionUtil.getDisplayableOptions(WorkProgrammeActivityCommitment.class))
         .addObject("activityDateRadioOptions", workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail))
-        .addObject("termOptions", workProgrammeActivityFormService.getScheduleTermOptions(licenceScheduleDetail))
-        .addObject("phaseOptions", workProgrammeActivityFormService.getSchedulePhaseOptions(licenceScheduleDetail))
-        .addObject("relativeOptions", workProgrammeActivityFormService.getRelativeDateOptions(licenceScheduleDetail))
+        .addObject("termOptions", licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail))
+        .addObject("phaseOptions", licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail))
+        .addObject("relativeOptions", licenceScheduleRelativeOptionsService.getRelativeEventOptions(licenceScheduleDetail))
         .addObject("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl())
         .addObject("pageCaption", licenceService.getLicencePageCaption(licence));
   }

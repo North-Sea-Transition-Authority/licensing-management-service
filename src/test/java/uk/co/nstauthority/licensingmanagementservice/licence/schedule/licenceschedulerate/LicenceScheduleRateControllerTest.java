@@ -27,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
@@ -39,6 +40,9 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private LicenceScheduleRateFormValidator licenceScheduleRateFormValidator;
+
+  @MockitoBean
+  private LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
 
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
@@ -68,9 +72,10 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
   void renderNewLicenceScheduleRateForm() throws Exception {
     var pageCaption = "P001";
 
-    when(licenceScheduleRateFormService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
-    when(licenceScheduleRateFormService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceScheduleRateFormService.getRateDefinitionOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getRelativeEventOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceService.getLicencePageCaption(licence)).thenReturn(pageCaption);
 
     mockMvc.perform(
@@ -82,13 +87,15 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("termOptions", Map.of()))
         .andExpect(model().attribute("phaseOptions", Map.of()))
         .andExpect(model().attribute("rateDefinitionOptions", Map.of()))
+        .andExpect(model().attribute("relativeEventOptions", Map.of()))
+        .andExpect(model().attribute("relativeDateOptions", RateRelativeDateOption.getRateRelativeDateOptions()))
         .andExpect(model().attribute("pageCaption", pageCaption))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
   }
 
   @Test
   void submitNewLicenceScheduleRateForm() throws Exception {
-    when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class), eq(licenceScheduleDetail))).thenReturn(true);
+    when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class))).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceScheduleRateController.class).renderNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null)))
@@ -102,12 +109,12 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
 
   @Test
   void submitNewLicenceScheduleRateForm_invalid() throws Exception {
-    when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class), eq(licenceScheduleDetail))).thenReturn(false);
+    when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class))).thenReturn(false);
 
     var pageCaption = "P001";
 
-    when(licenceScheduleRateFormService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
-    when(licenceScheduleRateFormService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceScheduleRateFormService.getRateDefinitionOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceService.getLicencePageCaption(licence)).thenReturn(pageCaption);
 
@@ -121,6 +128,8 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("termOptions", Map.of()))
         .andExpect(model().attribute("phaseOptions", Map.of()))
         .andExpect(model().attribute("rateDefinitionOptions", Map.of()))
+        .andExpect(model().attribute("relativeEventOptions", Map.of()))
+        .andExpect(model().attribute("relativeDateOptions", RateRelativeDateOption.getRateRelativeDateOptions()))
         .andExpect(model().attribute("pageCaption", pageCaption))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
 

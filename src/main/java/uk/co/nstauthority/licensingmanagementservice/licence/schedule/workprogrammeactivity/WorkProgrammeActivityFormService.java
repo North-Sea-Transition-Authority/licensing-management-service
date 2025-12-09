@@ -3,13 +3,12 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogr
 import jakarta.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -24,67 +23,20 @@ public class WorkProgrammeActivityFormService {
   private final LicenceScheduleTermService licenceScheduleTermService;
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
   private final LicenceTypeRulesResolver licenceTypeRulesResolver;
+  private final LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
 
   public WorkProgrammeActivityFormService(
       WorkProgrammeActivityRepository workProgrammeActivityRepository,
       LicenceScheduleTermService licenceScheduleTermService,
       LicenceSchedulePhaseService licenceSchedulePhaseService,
-      LicenceTypeRulesResolver licenceTypeRulesResolver
+      LicenceTypeRulesResolver licenceTypeRulesResolver,
+      LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService
   ) {
     this.workProgrammeActivityRepository = workProgrammeActivityRepository;
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
-  }
-
-  public Map<String, String> getScheduleTermOptions(LicenceScheduleDetail licenceScheduleDetail) {
-    return licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
-        .sorted(Comparator.comparingInt(term -> term.getTermType().getDisplayOrder()))
-        .collect(StreamUtil.toLinkedHashMap(
-            term -> term.getId().toString(),
-            term -> term.getTermType().getDisplayName())
-        );
-  }
-
-  public Map<String, String> getSchedulePhaseOptions(LicenceScheduleDetail licenceScheduleDetail) {
-    return licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
-        .sorted(Comparator.comparingInt(phase -> phase.getPhaseType().getDisplayOrder()))
-        .collect(StreamUtil.toLinkedHashMap(
-            phase -> phase.getId().toString(),
-            phase -> phase.getPhaseType().getDisplayName())
-        );
-  }
-
-  public Map<String, String> getRelativeDateOptions(LicenceScheduleDetail licenceScheduleDetail) {
-    var termPhaseMap = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
-        .sorted(Comparator.comparingInt(term -> term.getTermType().getDisplayOrder()))
-        .collect(StreamUtil.toLinkedHashMap(Function.identity(), this::getPhaseMap));
-
-    HashMap<String, String> combinedOptions = new HashMap<>();
-
-    for (var termPhase : termPhaseMap.entrySet()) {
-      var phases = termPhase.getValue();
-
-      if (phases.isEmpty()) {
-        combinedOptions.put(
-            termPhase.getKey().getId().toString(),
-            "Start of %s".formatted(termPhase.getKey().getTermType().getDisplayName())
-        );
-      } else {
-        combinedOptions.putAll(phases);
-      }
-    }
-
-    return combinedOptions;
-  }
-
-  private Map<String, String> getPhaseMap(LicenceScheduleTerm term) {
-    return licenceSchedulePhaseService.getActivePhasesByTerm(term).stream()
-        .sorted(Comparator.comparingInt(phase -> phase.getPhaseType().getDisplayOrder()))
-        .collect(StreamUtil.toLinkedHashMap(
-            phase -> phase.getId().toString(),
-            phase -> "Start of %s".formatted(phase.getPhaseType().getDisplayName()))
-        );
+    this.licenceScheduleRelativeOptionsService = licenceScheduleRelativeOptionsService;
   }
 
   public Map<String, String> getDateOptions(LicenceScheduleDetail licenceScheduleDetail) {
@@ -92,7 +44,8 @@ public class WorkProgrammeActivityFormService {
 
     var licenceType = licenceScheduleDetail.getLicenceSchedule().getLicence().getType();
 
-    if (!licenceTypeRulesResolver.arePhasesCaptured(licenceType) || getSchedulePhaseOptions(licenceScheduleDetail).isEmpty()) {
+    if (!licenceTypeRulesResolver.arePhasesCaptured(licenceType)
+        || licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail).isEmpty()) {
       options.remove(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
     }
 

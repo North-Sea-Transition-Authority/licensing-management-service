@@ -40,16 +40,16 @@ public class LicenceScheduleRateFormValidator {
       if (form.getRateDefinitionOption().equals(RateDefinitionOption.CUSTOM_PERIOD)) {
         ValidationUtils.rejectIfEmpty(
             errors,
-            "rateRelativeDateOption",
-            "rateRelativeDateOption.required",
-            "Select an option"
+            "relativeEventId",
+            "relativeEventId.required",
+            "Select an event"
         );
 
         ValidationUtils.rejectIfEmpty(
             errors,
-            "relativeEventId",
-            "relativeEventId.required",
-            "Select an event"
+            "rateRelativeDateOption",
+            "rateRelativeDateOption.required",
+            "Select an option"
         );
 
         if (form.getRateRelativeDateOption() != null

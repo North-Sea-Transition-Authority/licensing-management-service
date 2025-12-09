@@ -45,7 +45,7 @@ errorSummaryItems=errorSummaryItems
                         <@fdsRadio.radioGroup path="form.rateRelativeDateOption" labelText="When does the rate start?" hiddenContent=true nestingPath="form.rateDefinitionOption">
                             <#assign firstRelativeOption = true>
                             <#list relativeDateOptions as key, value>
-                                <@fdsRadio.radioItem path="form.rateRelativeDateOption" itemMap={key : value} isFirstItem=firstItem>
+                                <@fdsRadio.radioItem path="form.rateRelativeDateOption" itemMap={key : value} isFirstItem=firstRelativeOption>
                                     <#if key = "RELATIVE_TO_START_DATE">
                                         <@duration.threeFieldDuration
                                             dayPath="form.relativeDuration.days"

@@ -20,7 +20,7 @@ public class ExtensionRequestDetailsSummarySectionService
 
   public static final String LICENCE_SECTION_NAME = "Extension details";
   public static final String EXTENSION_DURATION = "%s extension duration";
-  public static final int SECTION_DISPLAY_ORDER = 10;
+  public static final int SECTION_DISPLAY_ORDER = 20;
 
   private final LicenceScheduleExtensionService licenceScheduleExtensionService;
 

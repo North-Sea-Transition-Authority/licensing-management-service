@@ -36,7 +36,7 @@ public class SupportingInformationSummarySectionService
   public static final String IMPACT_ON_DELIVERABLES = "Impact on deliverables";
   public static final String PLAN_DURING_EXTENSION = "Plan during extension";
 
-  public static final int SECTION_DISPLAY_ORDER = 30;
+  public static final int SECTION_DISPLAY_ORDER = 40;
 
   private final LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService;
   private final LicenceScheduleSupportingInformationHelperService licenceScheduleSupportingInformationHelperService;

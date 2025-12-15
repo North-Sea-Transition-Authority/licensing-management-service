@@ -23,7 +23,7 @@ public class WorkProgrammeAmendmentSummarySectionService
   public static final String REQUESTED_EXTENSION_TO_COMPLETION_DATE = "Requested extension to completion date";
   public static final String WORK_PROGRAMME_CONTENT_CHANGE_REQUESTED = "Work programme content change requested";
   public static final String REQUESTED_CHANGE_TO_CONTENT = "Requested change to content";
-  public static final int SECTION_DISPLAY_ORDER = 20;
+  public static final int SECTION_DISPLAY_ORDER = 30;
 
   private final LicenceWorkProgrammeAmendmentSummaryService licenceWorkProgrammeAmendmentSummaryService;
 

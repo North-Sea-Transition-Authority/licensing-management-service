@@ -3,5 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesc
 public enum LicenceScheduleDetailStatus {
   ACTIVE,
   DRAFT,
-  REPLACED
+  REPLACED,
+  DELETED
 }

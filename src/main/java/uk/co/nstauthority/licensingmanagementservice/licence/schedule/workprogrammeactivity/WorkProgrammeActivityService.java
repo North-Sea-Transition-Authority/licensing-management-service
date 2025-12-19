@@ -61,7 +61,23 @@ public class WorkProgrammeActivityService {
     workProgrammeActivityRepository.saveAll(workProgrammeActivities);
   }
 
-  public List<WorkProgrammeActivity> getActiveWorkProgrammeActivitiesByDateRange(
+  public List<WorkProgrammeActivity> getActiveWorkProgrammeActivitiesByDateRangeFor(LicenceScheduleTerm licenceScheduleTerm) {
+    return getActiveWorkProgrammeActivitiesByDateRange(
+        licenceScheduleTerm.getLicenceScheduleDetail(),
+        licenceScheduleTerm.getStartDate(),
+        licenceScheduleTerm.getEndDate()
+    );
+  }
+
+  public List<WorkProgrammeActivity> getActiveWorkProgrammeActivitiesByDateRangeFor(LicenceSchedulePhase licenceSchedulePhase) {
+    return getActiveWorkProgrammeActivitiesByDateRange(
+        licenceSchedulePhase.getLicenceScheduleDetail(),
+        licenceSchedulePhase.getStartDate(),
+        licenceSchedulePhase.getEndDate()
+    );
+  }
+
+  private List<WorkProgrammeActivity> getActiveWorkProgrammeActivitiesByDateRange(
       LicenceScheduleDetail licenceScheduleDetail,
       LocalDate from,
       LocalDate to

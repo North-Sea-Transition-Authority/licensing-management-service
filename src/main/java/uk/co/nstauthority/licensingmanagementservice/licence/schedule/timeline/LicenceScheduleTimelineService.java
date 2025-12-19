@@ -6,25 +6,26 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationDisplayUtil;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -36,19 +37,22 @@ public class LicenceScheduleTimelineService {
   private final LicenceScheduleTermService licenceScheduleTermService;
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
   private final WorkProgrammeActivityService workProgrammeActivityService;
+  private final LicenceScheduleRateService licenceScheduleRateService;
 
   public LicenceScheduleTimelineService(
       LicenceStartDateService licenceStartDateService,
       LicenceTypeRulesResolver licenceTypeRulesResolver,
       LicenceScheduleTermService licenceScheduleTermService,
       LicenceSchedulePhaseService licenceSchedulePhaseService,
-      WorkProgrammeActivityService workProgrammeActivityService
+      WorkProgrammeActivityService workProgrammeActivityService,
+      LicenceScheduleRateService licenceScheduleRateService
   ) {
     this.licenceStartDateService = licenceStartDateService;
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
     this.workProgrammeActivityService = workProgrammeActivityService;
+    this.licenceScheduleRateService = licenceScheduleRateService;
   }
 
   public TimelineSummaryCardView getTimelineSummaryCardView(LicenceScheduleDetail licenceScheduleDetail) {
@@ -133,25 +137,36 @@ public class LicenceScheduleTimelineService {
   }
 
   private List<ScheduleEvent> getScheduleEventsForTerm(LicenceScheduleTerm licenceScheduleTerm) {
-    var phaseViews = licenceSchedulePhaseService.getActivePhasesByTerm(licenceScheduleTerm).stream()
+    var phases =  licenceSchedulePhaseService.getActivePhasesByTerm(licenceScheduleTerm);
+
+    var firstPhaseType = phases.stream()
+        .min(Comparator.comparing(phase -> phase.getPhaseType().getDisplayOrder()))
+        .map(LicenceSchedulePhase::getPhaseType)
+        .orElse(null);
+
+    var phaseViews = phases.stream()
         .sorted(Comparator.comparing(phase -> phase.getPhaseType().getDisplayOrder()))
-        .map(this::convertToTimelinePhaseView)
+        .map(phase -> convertToTimelinePhaseView(phase, firstPhaseType))
         .toList();
 
     if (!phaseViews.isEmpty()) {
       return phaseViews;
     }
 
-    return workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRange(
-        licenceScheduleTerm.getLicenceScheduleDetail(),
-        licenceScheduleTerm.getStartDate(),
-        licenceScheduleTerm.getEndDate()
-    ).stream()
+    var workProgrammeActivities = workProgrammeActivityService
+        .getActiveWorkProgrammeActivitiesByDateRangeFor(licenceScheduleTerm).stream()
         .sorted(
             Comparator.comparing(WorkProgrammeActivity::getDueDate)
-            .thenComparing(WorkProgrammeActivity::getCategoryString)
-        )
-        .map(this::convertToWorkProgrammeActivityView)
+            .thenComparing(WorkProgrammeActivity::getCategoryString))
+        .map(TimelineWorkProgrammeActivityView::getScheduleEventFrom);
+
+    var rates = licenceScheduleRateService.getLicenceScheduleRatesByTerm(licenceScheduleTerm)
+        .stream()
+        .map(TimelineRateView::getScheduleEventFrom);
+
+    return Stream.concat(workProgrammeActivities, rates)
+        .sorted(Comparator.comparing(ScheduleEvent::getSortingDate)
+            .thenComparing(event -> event.getEventType().getEventTypeOrder()))
         .toList();
   }
 
@@ -161,11 +176,11 @@ public class LicenceScheduleTimelineService {
         WorkProgrammeActivityDateOption.WITHIN_A_TERM
     ).stream()
         .sorted(Comparator.comparing(WorkProgrammeActivity::getCategoryString))
-        .map(this::convertToWorkProgrammeActivityView)
+        .map(TimelineWorkProgrammeActivityView::getScheduleEventFrom)
         .toList();
   }
 
-  private ScheduleEvent convertToTimelinePhaseView(LicenceSchedulePhase licenceSchedulePhase) {
+  private ScheduleEvent convertToTimelinePhaseView(LicenceSchedulePhase licenceSchedulePhase, PhaseType firstPhaseType) {
     var dateDurationString = getDateDurationString(
         licenceSchedulePhase.getStartDate(),
         licenceSchedulePhase.getEndDate(),
@@ -173,7 +188,7 @@ public class LicenceScheduleTimelineService {
     );
 
     return new TimelinePhaseView(
-        getScheduleEventsForPhase(licenceSchedulePhase),
+        getScheduleEventsForPhase(licenceSchedulePhase, firstPhaseType),
         getEndOfPhaseRequirementEvents(licenceSchedulePhase),
         licenceSchedulePhase.getPhaseType(),
         dateDurationString,
@@ -183,17 +198,25 @@ public class LicenceScheduleTimelineService {
     );
   }
 
-  private List<ScheduleEvent> getScheduleEventsForPhase(LicenceSchedulePhase licenceSchedulePhase) {
-    return workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRange(
-            licenceSchedulePhase.getLicenceScheduleDetail(),
-            licenceSchedulePhase.getStartDate(),
-            licenceSchedulePhase.getEndDate()
-        ).stream()
+  private List<ScheduleEvent> getScheduleEventsForPhase(
+      LicenceSchedulePhase licenceSchedulePhase,
+      PhaseType firstPhaseType
+  ) {
+    var workProgrammeActivities = workProgrammeActivityService
+        .getActiveWorkProgrammeActivitiesByDateRangeFor(licenceSchedulePhase).stream()
         .sorted(
             Comparator.comparing(WorkProgrammeActivity::getDueDate)
                 .thenComparing(WorkProgrammeActivity::getCategoryString)
         )
-        .map(this::convertToWorkProgrammeActivityView)
+        .map(TimelineWorkProgrammeActivityView::getScheduleEventFrom);
+
+    var rates = licenceScheduleRateService.getLicenceScheduleRatesByPhase(licenceSchedulePhase, firstPhaseType)
+        .stream()
+        .map(TimelineRateView::getScheduleEventFrom);
+
+    return Stream.concat(workProgrammeActivities, rates)
+        .sorted(Comparator.comparing(ScheduleEvent::getSortingDate)
+            .thenComparing(event -> event.getEventType().getEventTypeOrder()))
         .toList();
   }
 
@@ -203,24 +226,8 @@ public class LicenceScheduleTimelineService {
             WorkProgrammeActivityDateOption.WITHIN_A_PHASE
         ).stream()
         .sorted(Comparator.comparing(WorkProgrammeActivity::getCategoryString))
-        .map(this::convertToWorkProgrammeActivityView)
+        .map(TimelineWorkProgrammeActivityView::getScheduleEventFrom)
         .toList();
-  }
-
-  private ScheduleEvent convertToWorkProgrammeActivityView(WorkProgrammeActivity workProgrammeActivity) {
-    var dueDateString = workProgrammeActivity.getDueDate() != null
-        ? DateFormatUtil.convertToDisplayText(workProgrammeActivity.getDueDate())
-        : "";
-
-    return new TimelineWorkProgrammeActivityView(
-        workProgrammeActivity.getCategoryString(),
-        workProgrammeActivity.getDescription(),
-        dueDateString,
-        ReverseRouter.route(on(WorkProgrammeActivityController.class)
-            .renderUpdateActivityForm(workProgrammeActivity.getId(), null)),
-        ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
-            .renderDeleteActivityPage(workProgrammeActivity.getId(), null))
-    );
   }
 
   private String getDateDurationString(

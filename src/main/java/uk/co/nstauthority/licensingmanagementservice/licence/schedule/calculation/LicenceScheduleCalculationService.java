@@ -10,6 +10,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateDefinitionOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateRelativeDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
@@ -23,17 +26,20 @@ public class LicenceScheduleCalculationService {
   private final LicenceScheduleTermService licenceScheduleTermService;
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
   private final WorkProgrammeActivityService workProgrammeActivityService;
+  private final LicenceScheduleRateService licenceScheduleRateService;
 
   public LicenceScheduleCalculationService(
       LicenceStartDateService licenceStartDateService,
       LicenceScheduleTermService licenceScheduleTermService,
       LicenceSchedulePhaseService licenceSchedulePhaseService,
-      WorkProgrammeActivityService workProgrammeActivityService
+      WorkProgrammeActivityService workProgrammeActivityService,
+      LicenceScheduleRateService licenceScheduleRateService
   ) {
     this.licenceStartDateService = licenceStartDateService;
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
     this.workProgrammeActivityService = workProgrammeActivityService;
+    this.licenceScheduleRateService = licenceScheduleRateService;
   }
 
   @Transactional
@@ -55,6 +61,7 @@ public class LicenceScheduleCalculationService {
 
       calculateAndSavePhaseDatesForTerm(phases, term);
       calculateAndSaveWorkProgrammeActivityDatesForTerm(term);
+      calculateAndSaveRateStartDatesForTerm(term);
 
       nextStartDate = endDate.plusDays(1);
     }
@@ -86,6 +93,7 @@ public class LicenceScheduleCalculationService {
       phase.setEndDate(endDate);
 
       calculateAndSaveWorkProgrammeActivityDatesForPhase(phase);
+      calculateAndSaveRateStartDatesForPhase(phase);
 
       nextStartDate = endDate.plusDays(1);
     }
@@ -129,6 +137,64 @@ public class LicenceScheduleCalculationService {
     }
 
     workProgrammeActivityService.saveWorkProgrammeActivities(activities);
+  }
+
+  void calculateAndSaveRateStartDatesForTerm(LicenceScheduleTerm licenceScheduleTerm) {
+    var termStartDate = licenceScheduleTerm.getStartDate();
+
+    var linkedRates = licenceScheduleRateService.getLicenceScheduleRatesForTermAndDefinitionOption(
+        licenceScheduleTerm,
+        RateDefinitionOption.TERM
+    );
+
+    for (var linkedRate : linkedRates) {
+      linkedRate.setStartDate(termStartDate);
+    }
+
+    var relativeRates = licenceScheduleRateService.getLicenceScheduleRatesForTermAndDefinitionOption(
+        licenceScheduleTerm,
+        RateDefinitionOption.CUSTOM_PERIOD
+    );
+
+    for (var relativeRate : relativeRates) {
+      if (relativeRate.getRateRelativeDateOption().equals(RateRelativeDateOption.ON_START_DATE)) {
+        relativeRate.setStartDate(termStartDate);
+      } else {
+        relativeRate.setStartDate(calculateRelativeStartDueDate(termStartDate, relativeRate.getRelativeDuration()));
+      }
+    }
+
+    licenceScheduleRateService.saveLicenceScheduleRates(linkedRates);
+    licenceScheduleRateService.saveLicenceScheduleRates(relativeRates);
+  }
+
+  void calculateAndSaveRateStartDatesForPhase(LicenceSchedulePhase licenceSchedulePhase) {
+    var phaseStartDate = licenceSchedulePhase.getStartDate();
+
+    var linkedRates = licenceScheduleRateService.getLicenceScheduleRatesForPhaseAndDefinitionOption(
+        licenceSchedulePhase,
+        RateDefinitionOption.PHASE
+    );
+
+    for (var linkedRate : linkedRates) {
+      linkedRate.setStartDate(phaseStartDate);
+    }
+
+    var relativeRates = licenceScheduleRateService.getLicenceScheduleRatesForPhaseAndDefinitionOption(
+        licenceSchedulePhase,
+        RateDefinitionOption.CUSTOM_PERIOD
+    );
+
+    for (var relativeRate : relativeRates) {
+      if (relativeRate.getRateRelativeDateOption().equals(RateRelativeDateOption.ON_START_DATE)) {
+        relativeRate.setStartDate(phaseStartDate);
+      } else {
+        relativeRate.setStartDate(calculateRelativeStartDueDate(phaseStartDate, relativeRate.getRelativeDuration()));
+      }
+    }
+
+    licenceScheduleRateService.saveLicenceScheduleRates(linkedRates);
+    licenceScheduleRateService.saveLicenceScheduleRates(relativeRates);
   }
 
   LocalDate calculateDurationEndDate(LocalDate startDate, ThreeFieldDuration duration) {

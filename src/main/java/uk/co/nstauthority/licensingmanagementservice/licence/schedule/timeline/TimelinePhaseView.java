@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline;
 
+import java.time.LocalDate;
 import java.util.List;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 
@@ -16,5 +17,10 @@ public record TimelinePhaseView(
   @Override
   public ScheduleEventType getEventType() {
     return ScheduleEventType.PHASE;
+  }
+
+  @Override
+  public LocalDate getSortingDate() {
+    return null;
   }
 }

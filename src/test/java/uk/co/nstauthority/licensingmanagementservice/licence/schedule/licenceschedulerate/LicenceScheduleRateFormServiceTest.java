@@ -23,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
@@ -47,6 +48,9 @@ class LicenceScheduleRateFormServiceTest {
 
   @Mock
   private LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
+
+  @Mock
+  private LicenceScheduleCalculationService licenceScheduleCalculationService;
 
   @InjectMocks
   private LicenceScheduleRateFormService licenceScheduleRateFormService;
@@ -106,6 +110,8 @@ class LicenceScheduleRateFormServiceTest {
         null,
         BigDecimal.ONE
     );
+
+    verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
   @Test
@@ -145,6 +151,8 @@ class LicenceScheduleRateFormServiceTest {
         null,
         BigDecimal.ONE
     );
+
+    verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
   @Test
@@ -185,6 +193,8 @@ class LicenceScheduleRateFormServiceTest {
         null,
         BigDecimal.ONE
     );
+
+    verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
   @Test
@@ -226,6 +236,8 @@ class LicenceScheduleRateFormServiceTest {
         null,
         BigDecimal.ONE
     );
+
+    verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
   @Test
@@ -269,6 +281,8 @@ class LicenceScheduleRateFormServiceTest {
         null,
         BigDecimal.ONE
     );
+
+    verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
   @Test
@@ -313,6 +327,8 @@ class LicenceScheduleRateFormServiceTest {
         null,
         BigDecimal.ONE
     );
+
+    verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
   @Test

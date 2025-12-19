@@ -14,6 +14,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateDefinitionOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateRelativeDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
@@ -39,6 +43,9 @@ class LicenceScheduleCalculationServiceIntegrationTest {
   private WorkProgrammeActivityRepository workProgrammeActivityRepository;
 
   @Autowired
+  private LicenceScheduleRateRepository licenceScheduleRateRepository;
+
+  @Autowired
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
 
   private LicenceScheduleDetail licenceScheduleDetail;
@@ -60,6 +67,12 @@ class LicenceScheduleCalculationServiceIntegrationTest {
   private WorkProgrammeActivity workProgrammeActivity;
 
   private WorkProgrammeActivity workProgrammeActivity2;
+
+  private LicenceScheduleRate linkedRate;
+
+  private LicenceScheduleRate startDateRate;
+
+  private LicenceScheduleRate relativeRate;
 
   @Test
   void calculateAndSaveLicenceScheduleDates() {
@@ -86,11 +99,13 @@ class LicenceScheduleCalculationServiceIntegrationTest {
     licenceSchedulePhase3.setEndDate(licenceSchedulePhase2.getEndDate().plusMonths(1));
 
     workProgrammeActivity.setDueDate(licenceScheduleTerm.getStartDate().plusYears(1));
-
     workProgrammeActivity2.setDueDate(licenceSchedulePhase2.getStartDate().plusMonths(1));
 
-    var expectedTermResult = List.of(licenceScheduleTerm, licenceScheduleTerm2, licenceScheduleTerm3);
+    linkedRate.setStartDate(licenceScheduleTerm2.getStartDate());
+    startDateRate.setStartDate(licenceSchedulePhase.getStartDate());
+    relativeRate.setStartDate(licenceSchedulePhase.getStartDate().plusMonths(1));
 
+    var expectedTermResult = List.of(licenceScheduleTerm, licenceScheduleTerm2, licenceScheduleTerm3);
     var actualTermResult = licenceScheduleTermRepository.findAll();
 
     assertThat(actualTermResult)
@@ -99,7 +114,6 @@ class LicenceScheduleCalculationServiceIntegrationTest {
         .isEqualTo(expectedTermResult);
 
     var expectedPhaseResult = List.of(licenceSchedulePhase, licenceSchedulePhase2, licenceSchedulePhase3);
-
     var actualPhaseResult = licenceSchedulePhaseRepository.findAll();
 
     assertThat(actualPhaseResult)
@@ -108,13 +122,20 @@ class LicenceScheduleCalculationServiceIntegrationTest {
         .isEqualTo(expectedPhaseResult);
 
     var expectedActivityResult = List.of(workProgrammeActivity, workProgrammeActivity2);
-
     var actualActivityResult = workProgrammeActivityRepository.findAll();
 
     assertThat(actualActivityResult)
         .usingRecursiveComparison()
         .ignoringFields("id")
         .isEqualTo(expectedActivityResult);
+
+    var expectedRateResult = List.of(linkedRate, startDateRate, relativeRate);
+    var actualRateResult = licenceScheduleRateRepository.findAll();
+
+    assertThat(actualRateResult)
+        .usingRecursiveComparison()
+        .ignoringFields("id")
+        .isEqualTo(expectedRateResult);
   }
 
   private void createDbBaseline() {
@@ -185,6 +206,30 @@ class LicenceScheduleCalculationServiceIntegrationTest {
     workProgrammeActivity2.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
 
     em.persist(workProgrammeActivity2);
+
+    linkedRate = new LicenceScheduleRate();
+    linkedRate.setLicenceScheduleDetail(licenceScheduleDetail);
+    linkedRate.setLicenceScheduleTerm(licenceScheduleTerm2);
+    linkedRate.setRateDefinitionOption(RateDefinitionOption.TERM);
+
+    em.persist(linkedRate);
+
+    startDateRate = new LicenceScheduleRate();
+    startDateRate.setLicenceScheduleDetail(licenceScheduleDetail);
+    startDateRate.setLicenceSchedulePhase(licenceSchedulePhase);
+    startDateRate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
+    startDateRate.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
+
+    em.persist(startDateRate);
+
+    relativeRate = new LicenceScheduleRate();
+    relativeRate.setLicenceScheduleDetail(licenceScheduleDetail);
+    relativeRate.setLicenceSchedulePhase(licenceSchedulePhase);
+    relativeRate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
+    relativeRate.setRateRelativeDateOption(RateRelativeDateOption.RELATIVE_TO_START_DATE);
+    relativeRate.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
+
+    em.persist(relativeRate);
     em.flush();
   }
 }

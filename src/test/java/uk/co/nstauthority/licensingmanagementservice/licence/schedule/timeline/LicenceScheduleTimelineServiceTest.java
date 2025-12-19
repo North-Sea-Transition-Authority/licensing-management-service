@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -28,7 +29,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateDefinitionOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermDeletionController;
@@ -60,6 +64,9 @@ class LicenceScheduleTimelineServiceTest {
 
   @Mock
   private WorkProgrammeActivityService workProgrammeActivityService;
+
+  @Mock
+  private LicenceScheduleRateService licenceScheduleRateService;
 
   @InjectMocks
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
@@ -163,6 +170,7 @@ class LicenceScheduleTimelineServiceTest {
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName(),
         "description",
+        LocalDate.of(2025, 2, 1),
         "1 February 2025",
         ReverseRouter.route(on(WorkProgrammeActivityController.class)
             .renderUpdateActivityForm(midPhaseActivity.getId(), null)),
@@ -178,6 +186,7 @@ class LicenceScheduleTimelineServiceTest {
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL.getDisplayName(),
         "description",
+        null,
         "",
         ReverseRouter.route(on(WorkProgrammeActivityController.class)
             .renderUpdateActivityForm(endOfPhaseActivity.getId(), null)),
@@ -194,6 +203,7 @@ class LicenceScheduleTimelineServiceTest {
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT.getDisplayName(),
         "description",
+        LocalDate.of(2026, 2, 1),
         "1 February 2026",
         ReverseRouter.route(on(WorkProgrammeActivityController.class)
             .renderUpdateActivityForm(midTerm2Activity.getId(), null)),
@@ -209,6 +219,7 @@ class LicenceScheduleTimelineServiceTest {
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA.getDisplayName(),
         "description",
+        null,
         "",
         ReverseRouter.route(on(WorkProgrammeActivityController.class)
             .renderUpdateActivityForm(endOfTerm2Activity.getId(), null)),
@@ -224,8 +235,24 @@ class LicenceScheduleTimelineServiceTest {
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
 
+    var phaseRate = new LicenceScheduleRate();
+    phaseRate.setId(UUID.randomUUID());
+    phaseRate.setRateDefinitionOption(RateDefinitionOption.PHASE);
+    phaseRate.setLicenceSchedulePhase(phase);
+    phaseRate.setRentalRate(new BigDecimal("1.00"));
+    phaseRate.setStartDate(phase.getStartDate());
+
+    var phaseRateView = new TimelineRateView(
+        "Phase A rate",
+        phase.getStartDate(),
+        "1 January 2025",
+        "£1.00",
+        "",
+        ""
+    );
+
     var phaseView = new TimelinePhaseView(
-        List.of(midPhaseActivityView),
+        List.of(phaseRateView, midPhaseActivityView),
         List.of(endOfPhaseActivityView),
         PhaseType.PHASE_A,
         "1 January 2025 to 31 December 2025 (1 year)",
@@ -261,8 +288,24 @@ class LicenceScheduleTimelineServiceTest {
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
 
+    var term2Rate = new LicenceScheduleRate();
+    term2Rate.setId(UUID.randomUUID());
+    term2Rate.setRateDefinitionOption(RateDefinitionOption.TERM);
+    term2Rate.setLicenceScheduleTerm(term2);
+    term2Rate.setRentalRate(new BigDecimal("2.00"));
+    term2Rate.setStartDate(term2.getStartDate());
+
+    var term2RateView = new TimelineRateView(
+        "Second Term rate",
+        term2.getStartDate(),
+        "1 January 2026",
+        "£2.00",
+        "",
+        ""
+    );
+
     var termView2 = new TimelineTermView(
-        List.of(midTerm2ActivityView),
+        List.of(term2RateView, midTerm2ActivityView),
         List.of(endOfTerm2ActivityView),
         TermType.SECOND,
         "1 January 2026 to 31 December 2026 (1 year)",
@@ -275,17 +318,8 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
     when(licenceSchedulePhaseService.getActivePhasesByTerm(term)).thenReturn(List.of(phase));
 
-    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRange(
-        licenceScheduleDetail,
-        phase.getStartDate(),
-        phase.getEndDate())
-    ).thenReturn(List.of(midPhaseActivity));
-
-    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRange(
-        licenceScheduleDetail,
-        term2.getStartDate(),
-        term2.getEndDate()
-    )).thenReturn(List.of(midTerm2Activity));
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRangeFor(phase)).thenReturn(List.of(midPhaseActivity));
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRangeFor(term2)).thenReturn(List.of(midTerm2Activity));
 
     when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByPhaseAndDateOption(phase, WorkProgrammeActivityDateOption.WITHIN_A_PHASE))
         .thenReturn(List.of(endOfPhaseActivity));
@@ -293,6 +327,9 @@ class LicenceScheduleTimelineServiceTest {
         .thenReturn(List.of());
     when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(term2, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
         .thenReturn(List.of(endOfTerm2Activity));
+
+    when(licenceScheduleRateService.getLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
+    when(licenceScheduleRateService.getLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
 
     assertThat(licenceScheduleTimelineService.getLicenceScheduleEventViews(licenceScheduleDetail))
         .usingRecursiveComparison()

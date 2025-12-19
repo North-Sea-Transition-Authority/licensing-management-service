@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculati
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,6 +23,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateDefinitionOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateRelativeDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
@@ -45,6 +50,9 @@ class LicenceScheduleCalculationServiceTest {
   @Mock
   private WorkProgrammeActivityService workProgrammeActivityService;
 
+  @Mock
+  private LicenceScheduleRateService licenceScheduleRateService;
+
   @InjectMocks
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
 
@@ -56,6 +64,9 @@ class LicenceScheduleCalculationServiceTest {
 
   @Captor
   private ArgumentCaptor<List<WorkProgrammeActivity>> workProgrammeActivityArgumentCaptor;
+
+  @Captor
+  private ArgumentCaptor<List<LicenceScheduleRate>> licenceScheduleRateArgumentCaptor;
 
   @Test
   void calculateAndSaveLicenceScheduleDates() {
@@ -280,6 +291,122 @@ class LicenceScheduleCalculationServiceTest {
     licenceScheduleCalculationService.calculateAndSaveWorkProgrammeActivityDatesForPhase(licenceSchedulePhase);
 
     verify(workProgrammeActivityService, never()).saveWorkProgrammeActivities(any());
+  }
+
+  @Test
+  void calculateAndSaveRateStartDatesForTerm_linkedDates() {
+    var licenceScheduleTerm = new LicenceScheduleTerm();
+    licenceScheduleTerm.setStartDate(LocalDate.of(2025, 1, 1));
+
+    var rate = new LicenceScheduleRate();
+
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermAndDefinitionOption(licenceScheduleTerm, RateDefinitionOption.TERM))
+        .thenReturn(List.of(rate));
+
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermAndDefinitionOption(licenceScheduleTerm, RateDefinitionOption.CUSTOM_PERIOD))
+        .thenReturn(List.of());
+
+    licenceScheduleCalculationService.calculateAndSaveRateStartDatesForTerm(licenceScheduleTerm);
+
+    verify(licenceScheduleRateService, times(2)).saveLicenceScheduleRates(licenceScheduleRateArgumentCaptor.capture());
+
+    var result = licenceScheduleRateArgumentCaptor.getAllValues();
+
+    var firstResult = result.getFirst();
+    assertThat(firstResult.getFirst()).extracting(LicenceScheduleRate::getStartDate).isEqualTo(licenceScheduleTerm.getStartDate());
+
+    var secondResult = result.get(1);
+    assertThat(secondResult).isEmpty();
+  }
+
+  @Test
+  void calculateAndSaveRateStartDatesForTerm_relativeDates() {
+    var licenceScheduleTerm = new LicenceScheduleTerm();
+    licenceScheduleTerm.setStartDate(LocalDate.of(2025, 1, 1));
+
+    var startDateRate = new LicenceScheduleRate();
+    startDateRate.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
+
+    var relativeDateRate = new LicenceScheduleRate();
+    relativeDateRate.setRateRelativeDateOption(RateRelativeDateOption.RELATIVE_TO_START_DATE);
+    relativeDateRate.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
+
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermAndDefinitionOption(licenceScheduleTerm, RateDefinitionOption.TERM))
+        .thenReturn(List.of());
+
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermAndDefinitionOption(licenceScheduleTerm, RateDefinitionOption.CUSTOM_PERIOD))
+        .thenReturn(List.of(startDateRate, relativeDateRate));
+
+    licenceScheduleCalculationService.calculateAndSaveRateStartDatesForTerm(licenceScheduleTerm);
+
+    verify(licenceScheduleRateService, times(2)).saveLicenceScheduleRates(licenceScheduleRateArgumentCaptor.capture());
+
+    var result = licenceScheduleRateArgumentCaptor.getAllValues();
+
+    var firstResult = result.getFirst();
+    assertThat(firstResult).isEmpty();
+
+    var secondResult = result.get(1);
+    assertThat(secondResult.getFirst()).extracting(LicenceScheduleRate::getStartDate).isEqualTo(licenceScheduleTerm.getStartDate());
+    assertThat(secondResult.get(1)).extracting(LicenceScheduleRate::getStartDate).isEqualTo(licenceScheduleTerm.getStartDate().plusMonths(1));
+  }
+
+  @Test
+  void calculateAndSaveRateStartDatesForPhase_linkedDates() {
+    var licenceSchedulePhase = new LicenceSchedulePhase();
+    licenceSchedulePhase.setStartDate(LocalDate.of(2025, 1, 1));
+
+    var rate = new LicenceScheduleRate();
+
+    when(licenceScheduleRateService.getLicenceScheduleRatesForPhaseAndDefinitionOption(licenceSchedulePhase, RateDefinitionOption.PHASE))
+        .thenReturn(List.of(rate));
+
+    when(licenceScheduleRateService.getLicenceScheduleRatesForPhaseAndDefinitionOption(licenceSchedulePhase, RateDefinitionOption.CUSTOM_PERIOD))
+        .thenReturn(List.of());
+
+    licenceScheduleCalculationService.calculateAndSaveRateStartDatesForPhase(licenceSchedulePhase);
+
+    verify(licenceScheduleRateService, times(2)).saveLicenceScheduleRates(licenceScheduleRateArgumentCaptor.capture());
+
+    var result = licenceScheduleRateArgumentCaptor.getAllValues();
+
+    var firstResult = result.getFirst();
+    assertThat(firstResult.getFirst()).extracting(LicenceScheduleRate::getStartDate).isEqualTo(licenceSchedulePhase.getStartDate());
+
+    var secondResult = result.get(1);
+    assertThat(secondResult).isEmpty();
+  }
+
+  @Test
+  void calculateAndSaveRateStartDatesForPhase_relativeDates() {
+    var licenceSchedulePhase = new LicenceSchedulePhase();
+    licenceSchedulePhase.setStartDate(LocalDate.of(2025, 1, 1));
+
+    var startDateRate = new LicenceScheduleRate();
+    startDateRate.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
+
+    var relativeDateRate = new LicenceScheduleRate();
+    relativeDateRate.setRateRelativeDateOption(RateRelativeDateOption.RELATIVE_TO_START_DATE);
+    relativeDateRate.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
+
+    when(licenceScheduleRateService.getLicenceScheduleRatesForPhaseAndDefinitionOption(licenceSchedulePhase, RateDefinitionOption.PHASE))
+        .thenReturn(List.of());
+
+    when(licenceScheduleRateService.getLicenceScheduleRatesForPhaseAndDefinitionOption(licenceSchedulePhase, RateDefinitionOption.CUSTOM_PERIOD))
+        .thenReturn(List.of(startDateRate, relativeDateRate));
+
+    licenceScheduleCalculationService.calculateAndSaveRateStartDatesForPhase(licenceSchedulePhase);
+
+    verify(licenceScheduleRateService, times(2)).saveLicenceScheduleRates(licenceScheduleRateArgumentCaptor.capture());
+
+    var result = licenceScheduleRateArgumentCaptor.getAllValues();
+
+    var firstResult = result.getFirst();
+    assertThat(firstResult).isEmpty();
+
+    var secondResult = result.get(1);
+    assertThat(secondResult.getFirst()).extracting(LicenceScheduleRate::getStartDate).isEqualTo(licenceSchedulePhase.getStartDate());
+    assertThat(secondResult.get(1)).extracting(LicenceScheduleRate::getStartDate).isEqualTo(licenceSchedulePhase.getStartDate().plusMonths(1));
   }
 
   @Test

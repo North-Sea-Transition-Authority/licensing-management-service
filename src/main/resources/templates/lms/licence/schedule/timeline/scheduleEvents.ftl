@@ -35,8 +35,12 @@
             timelineActionContent=timelineActions
         />
 
-        <#list termView.events() as activityView>
-            <@workProgrammeActivity activityView=activityView/>
+        <#list termView.events() as eventView>
+            <#if eventView.getEventType() = "WORK_PROGRAMME_ACTIVITY">
+                <@workProgrammeActivity activityView=eventView/>
+            <#else>
+                <@rate eventView/>
+            </#if>
         </#list>
 
 
@@ -72,8 +76,12 @@
         timelineActionContent=timelineActions
     />
 
-    <#list phaseView.events() as activityView>
-        <@workProgrammeActivity activityView=activityView/>
+    <#list phaseView.events() as eventView>
+        <#if eventView.getEventType() = "WORK_PROGRAMME_ACTIVITY">
+            <@workProgrammeActivity activityView=eventView/>
+        <#else>
+            <@rate eventView/>
+        </#if>
     </#list>
 
     <#if phaseView.endOfPhaseEvents()?has_content>
@@ -128,6 +136,26 @@
         <@fdsTimeline.timelineEvent>
             <p class="govuk-body">
                 ${activityView.description()}
+            </p>
+        </@fdsTimeline.timelineEvent>
+    </@lmsTimeStamp.lmsTimeStamp>
+</#macro>
+
+<#macro rate rateView>
+    <#assign timelineActions>
+        <@fdsAction.link linkText="Edit" linkUrl=springUrl(rateView.updateUrl()) linkClass="govuk-link"/>
+        <@fdsAction.link linkText="Remove" linkUrl=springUrl(rateView.deleteUrl()) linkClass="govuk-link"/>
+    </#assign>
+
+    <@lmsTimeStamp.lmsTimeStamp
+    timeStampHeading=rateView.title()
+    timeStampHeadingHint=rateView.startDateString()
+    timelineActionContent=timelineActions
+    nodeNumberClass="fds-timeline__node-number--small-dot"
+    >
+        <@fdsTimeline.timelineEvent>
+            <p class="govuk-body">
+                ${rateView.rentalRateString()} per km<sup>2</sup>
             </p>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>

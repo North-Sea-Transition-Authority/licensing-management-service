@@ -90,14 +90,45 @@ class WorkProgrammeActivityServiceTest {
   }
 
   @Test
-  void getActiveWorkProgrammeActivitiesByDateRange() {
+  void getActiveWorkProgrammeActivitiesByDateRangeFor_term() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
     var startDate = LocalDate.now();
     var endDate = LocalDate.now();
 
-    workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRange(licenceScheduleDetail, startDate, endDate);
+    var term = new LicenceScheduleTerm();
+    term.setLicenceScheduleDetail(licenceScheduleDetail);
+    term.setStartDate(startDate);
+    term.setEndDate(endDate);
 
-    verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndDueDateBetweenAndStatus(licenceScheduleDetail, startDate, endDate, LicenceScheduleEventStatus.ACTIVE);
+    workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRangeFor(term);
+
+    verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndDueDateBetweenAndStatus(
+        licenceScheduleDetail,
+        startDate,
+        endDate,
+        LicenceScheduleEventStatus.ACTIVE
+    );
+  }
+
+  @Test
+  void getActiveWorkProgrammeActivitiesByDateRangeFor_phase() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    var startDate = LocalDate.now();
+    var endDate = LocalDate.now();
+
+    var phase = new LicenceSchedulePhase();
+    phase.setLicenceScheduleDetail(licenceScheduleDetail);
+    phase.setStartDate(startDate);
+    phase.setEndDate(endDate);
+
+    workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRangeFor(phase);
+
+    verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndDueDateBetweenAndStatus(
+        licenceScheduleDetail,
+        startDate,
+        endDate,
+        LicenceScheduleEventStatus.ACTIVE
+    );
   }
 
   @Test

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -26,22 +27,33 @@ public class WorkProgrammeActivityService {
           .orElseThrow(() -> new LmsEntityNotFoundException("WorkProgrammeActivity not found", id.toString()));
   }
 
-  public List<WorkProgrammeActivity> getWorkProgrammeActivities(LicenceScheduleDetail licenceScheduleDetail) {
-    return workProgrammeActivityRepository.findAllByLicenceScheduleDetail(licenceScheduleDetail);
+  public List<WorkProgrammeActivity> getActiveWorkProgrammeActivities(LicenceScheduleDetail licenceScheduleDetail) {
+    return workProgrammeActivityRepository.findAllByLicenceScheduleDetailAndStatus(
+        licenceScheduleDetail,
+        LicenceScheduleEventStatus.ACTIVE
+    );
   }
 
-  public List<WorkProgrammeActivity> getWorkProgrammeActivitiesByTermAndDateOption(
+  public List<WorkProgrammeActivity> getActiveWorkProgrammeActivitiesByTermAndDateOption(
       LicenceScheduleTerm licenceScheduleTerm,
       WorkProgrammeActivityDateOption dateOption
   ) {
-    return workProgrammeActivityRepository.findAllByLicenceScheduleTermAndDateOption(licenceScheduleTerm, dateOption);
+    return workProgrammeActivityRepository.findAllByLicenceScheduleTermAndDateOptionAndStatus(
+        licenceScheduleTerm,
+        dateOption,
+        LicenceScheduleEventStatus.ACTIVE
+    );
   }
 
-  public List<WorkProgrammeActivity> getWorkProgrammeActivitiesByPhaseAndDateOption(
+  public List<WorkProgrammeActivity> getActiveWorkProgrammeActivitiesByPhaseAndDateOption(
       LicenceSchedulePhase licenceSchedulePhase,
       WorkProgrammeActivityDateOption dateOption
   ) {
-    return workProgrammeActivityRepository.findAllByLicenceSchedulePhaseAndDateOption(licenceSchedulePhase, dateOption);
+    return workProgrammeActivityRepository.findAllByLicenceSchedulePhaseAndDateOptionAndStatus(
+        licenceSchedulePhase,
+        dateOption,
+        LicenceScheduleEventStatus.ACTIVE
+    );
   }
 
   @Transactional
@@ -49,11 +61,22 @@ public class WorkProgrammeActivityService {
     workProgrammeActivityRepository.saveAll(workProgrammeActivities);
   }
 
-  public List<WorkProgrammeActivity> getWorkProgrammeActivitiesByDateRange(
+  public List<WorkProgrammeActivity> getActiveWorkProgrammeActivitiesByDateRange(
       LicenceScheduleDetail licenceScheduleDetail,
       LocalDate from,
       LocalDate to
   ) {
-    return workProgrammeActivityRepository.findAllByLicenceScheduleDetailAndDueDateBetween(licenceScheduleDetail, from, to);
+    return workProgrammeActivityRepository.findAllByLicenceScheduleDetailAndDueDateBetweenAndStatus(
+        licenceScheduleDetail,
+        from,
+        to,
+        LicenceScheduleEventStatus.ACTIVE
+    );
+  }
+
+  @Transactional
+  public void deleteWorkProgrammeActivity(WorkProgrammeActivity workProgrammeActivity) {
+    workProgrammeActivity.setStatus(LicenceScheduleEventStatus.DELETED);
+    workProgrammeActivityRepository.save(workProgrammeActivity);
   }
 }

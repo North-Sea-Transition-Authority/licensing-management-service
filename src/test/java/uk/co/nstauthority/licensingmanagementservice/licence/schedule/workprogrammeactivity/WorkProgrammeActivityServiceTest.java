@@ -12,10 +12,13 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -28,6 +31,9 @@ class WorkProgrammeActivityServiceTest {
 
   @InjectMocks
   private WorkProgrammeActivityService workProgrammeActivityService;
+
+  @Captor
+  private ArgumentCaptor<WorkProgrammeActivity> workProgrammeActivityArgumentCaptor;
 
   @Test
   void getWorkProgrammeActivityByIdOrThrow() {
@@ -48,30 +54,30 @@ class WorkProgrammeActivityServiceTest {
   }
 
   @Test
-  void getWorkProgrammeActivities() {
+  void getActiveWorkProgrammeActivities() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
 
-    workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail);
+    workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail);
 
-    verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetail(licenceScheduleDetail);
+    verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndStatus(licenceScheduleDetail, LicenceScheduleEventStatus.ACTIVE);
   }
 
   @Test
-  void getWorkProgrammeActivitiesByTermAndDateOption() {
+  void getActiveWorkProgrammeActivitiesByTermAndDateOption() {
     var term = new LicenceScheduleTerm();
 
-    workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.RELATIVE_DATE);
+    workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.RELATIVE_DATE);
 
-    verify(workProgrammeActivityRepository).findAllByLicenceScheduleTermAndDateOption(term, WorkProgrammeActivityDateOption.RELATIVE_DATE);
+    verify(workProgrammeActivityRepository).findAllByLicenceScheduleTermAndDateOptionAndStatus(term, WorkProgrammeActivityDateOption.RELATIVE_DATE, LicenceScheduleEventStatus.ACTIVE);
   }
 
   @Test
-  void getWorkProgrammeActivitiesByPhaseAndDateOption() {
+  void getActiveWorkProgrammeActivitiesByPhaseAndDateOption() {
     var phase = new LicenceSchedulePhase();
 
-    workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(phase, WorkProgrammeActivityDateOption.RELATIVE_DATE);
+    workProgrammeActivityService.getActiveWorkProgrammeActivitiesByPhaseAndDateOption(phase, WorkProgrammeActivityDateOption.RELATIVE_DATE);
 
-    verify(workProgrammeActivityRepository).findAllByLicenceSchedulePhaseAndDateOption(phase, WorkProgrammeActivityDateOption.RELATIVE_DATE);
+    verify(workProgrammeActivityRepository).findAllByLicenceSchedulePhaseAndDateOptionAndStatus(phase, WorkProgrammeActivityDateOption.RELATIVE_DATE, LicenceScheduleEventStatus.ACTIVE);
   }
 
   @Test
@@ -84,14 +90,28 @@ class WorkProgrammeActivityServiceTest {
   }
 
   @Test
-  void getWorkProgrammeActivitiesByDateRange() {
+  void getActiveWorkProgrammeActivitiesByDateRange() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
     var startDate = LocalDate.now();
     var endDate = LocalDate.now();
 
-    workProgrammeActivityService.getWorkProgrammeActivitiesByDateRange(licenceScheduleDetail, startDate, endDate);
+    workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRange(licenceScheduleDetail, startDate, endDate);
 
-    verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndDueDateBetween(licenceScheduleDetail, startDate, endDate);
+    verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndDueDateBetweenAndStatus(licenceScheduleDetail, startDate, endDate, LicenceScheduleEventStatus.ACTIVE);
+  }
+
+  @Test
+  void deleteWorkProgrammeActivity() {
+    var workProgrammeActivity = new WorkProgrammeActivity();
+    workProgrammeActivity.setStatus(LicenceScheduleEventStatus.ACTIVE);
+
+    workProgrammeActivityService.deleteWorkProgrammeActivity(workProgrammeActivity);
+
+    verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
+
+    assertThat(workProgrammeActivityArgumentCaptor.getValue())
+        .extracting(WorkProgrammeActivity::getStatus)
+        .isEqualTo(LicenceScheduleEventStatus.DELETED);
   }
 
 }

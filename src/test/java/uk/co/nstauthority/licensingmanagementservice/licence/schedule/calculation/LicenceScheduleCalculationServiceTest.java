@@ -209,7 +209,7 @@ class LicenceScheduleCalculationServiceTest {
     var activity2 = new WorkProgrammeActivity();
     activity2.setRelativeDuration(new ThreeFieldDuration(1, 0, 1));
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(
         licenceScheduleTerm,
         WorkProgrammeActivityDateOption.RELATIVE_DATE
     ))
@@ -229,7 +229,7 @@ class LicenceScheduleCalculationServiceTest {
   void calculateAndSaveWorkProgrammeActivityDatesForTerm_noActivitiesToCalculate() {
     var licenceScheduleTerm = new LicenceScheduleTerm();
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(
         licenceScheduleTerm,
         WorkProgrammeActivityDateOption.RELATIVE_DATE
     ))
@@ -251,7 +251,7 @@ class LicenceScheduleCalculationServiceTest {
     var activity2 = new WorkProgrammeActivity();
     activity2.setRelativeDuration(new ThreeFieldDuration(0, 0, 1));
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByPhaseAndDateOption(
         licenceSchedulePhase,
         WorkProgrammeActivityDateOption.RELATIVE_DATE
     ))
@@ -271,7 +271,7 @@ class LicenceScheduleCalculationServiceTest {
   void calculateAndSaveWorkProgrammeActivityDatesForPhase_noActivitiesToCalculate() {
     var licenceSchedulePhase = new LicenceSchedulePhase();
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByPhaseAndDateOption(
         licenceSchedulePhase,
         WorkProgrammeActivityDateOption.RELATIVE_DATE
     ))

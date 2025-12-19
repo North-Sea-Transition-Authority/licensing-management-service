@@ -94,7 +94,7 @@ public class LicenceScheduleCalculationService {
   }
 
   void calculateAndSaveWorkProgrammeActivityDatesForTerm(LicenceScheduleTerm licenceScheduleTerm) {
-    var activities = workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(
+    var activities = workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(
         licenceScheduleTerm,
         WorkProgrammeActivityDateOption.RELATIVE_DATE
     );
@@ -113,7 +113,7 @@ public class LicenceScheduleCalculationService {
   }
 
   void calculateAndSaveWorkProgrammeActivityDatesForPhase(LicenceSchedulePhase licenceSchedulePhase) {
-    var activities = workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(
+    var activities = workProgrammeActivityService.getActiveWorkProgrammeActivitiesByPhaseAndDateOption(
         licenceSchedulePhase,
         WorkProgrammeActivityDateOption.RELATIVE_DATE
     );

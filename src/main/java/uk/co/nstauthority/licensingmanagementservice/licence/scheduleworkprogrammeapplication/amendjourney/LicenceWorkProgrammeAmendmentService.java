@@ -165,7 +165,7 @@ public class LicenceWorkProgrammeAmendmentService {
   public List<WorkProgrammeActivityAmendmentView> getLicenceWorkProgramAmendmentViews(
       LicenceScheduleDetail licenceScheduleDetail
   ) {
-    List<WorkProgrammeActivity> workProgrammeActivities = workProgrammeActivityService.getWorkProgrammeActivities(
+    List<WorkProgrammeActivity> workProgrammeActivities = workProgrammeActivityService.getActiveWorkProgrammeActivities(
         licenceScheduleDetail
     );
 

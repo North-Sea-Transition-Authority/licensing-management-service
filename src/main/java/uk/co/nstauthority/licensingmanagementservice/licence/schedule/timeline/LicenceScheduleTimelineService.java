@@ -24,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesta
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -141,7 +142,7 @@ public class LicenceScheduleTimelineService {
       return phaseViews;
     }
 
-    return workProgrammeActivityService.getWorkProgrammeActivitiesByDateRange(
+    return workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRange(
         licenceScheduleTerm.getLicenceScheduleDetail(),
         licenceScheduleTerm.getStartDate(),
         licenceScheduleTerm.getEndDate()
@@ -155,7 +156,7 @@ public class LicenceScheduleTimelineService {
   }
 
   private List<ScheduleEvent> getEndOfTermRequirementEvents(LicenceScheduleTerm licenceScheduleTerm) {
-    return workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(
+    return workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(
         licenceScheduleTerm,
         WorkProgrammeActivityDateOption.WITHIN_A_TERM
     ).stream()
@@ -183,7 +184,7 @@ public class LicenceScheduleTimelineService {
   }
 
   private List<ScheduleEvent> getScheduleEventsForPhase(LicenceSchedulePhase licenceSchedulePhase) {
-    return workProgrammeActivityService.getWorkProgrammeActivitiesByDateRange(
+    return workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRange(
             licenceSchedulePhase.getLicenceScheduleDetail(),
             licenceSchedulePhase.getStartDate(),
             licenceSchedulePhase.getEndDate()
@@ -197,7 +198,7 @@ public class LicenceScheduleTimelineService {
   }
 
   private List<ScheduleEvent> getEndOfPhaseRequirementEvents(LicenceSchedulePhase licenceSchedulePhase) {
-    return workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(
+    return workProgrammeActivityService.getActiveWorkProgrammeActivitiesByPhaseAndDateOption(
             licenceSchedulePhase,
             WorkProgrammeActivityDateOption.WITHIN_A_PHASE
         ).stream()
@@ -217,7 +218,8 @@ public class LicenceScheduleTimelineService {
         dueDateString,
         ReverseRouter.route(on(WorkProgrammeActivityController.class)
             .renderUpdateActivityForm(workProgrammeActivity.getId(), null)),
-        ""
+        ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
+            .renderDeleteActivityPage(workProgrammeActivity.getId(), null))
     );
   }
 

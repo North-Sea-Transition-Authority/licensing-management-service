@@ -39,6 +39,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCategory;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -165,7 +166,8 @@ class LicenceScheduleTimelineServiceTest {
         "1 February 2025",
         ReverseRouter.route(on(WorkProgrammeActivityController.class)
             .renderUpdateActivityForm(midPhaseActivity.getId(), null)),
-        ""
+        ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
+            .renderDeleteActivityPage(midPhaseActivity.getId(), null))
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
@@ -179,7 +181,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         ReverseRouter.route(on(WorkProgrammeActivityController.class)
             .renderUpdateActivityForm(endOfPhaseActivity.getId(), null)),
-        ""
+        ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
+            .renderDeleteActivityPage(endOfPhaseActivity.getId(), null))
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -194,7 +197,8 @@ class LicenceScheduleTimelineServiceTest {
         "1 February 2026",
         ReverseRouter.route(on(WorkProgrammeActivityController.class)
             .renderUpdateActivityForm(midTerm2Activity.getId(), null)),
-        ""
+        ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
+            .renderDeleteActivityPage(midTerm2Activity.getId(), null))
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
@@ -208,7 +212,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         ReverseRouter.route(on(WorkProgrammeActivityController.class)
             .renderUpdateActivityForm(endOfTerm2Activity.getId(), null)),
-        ""
+        ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
+            .renderDeleteActivityPage(endOfTerm2Activity.getId(), null))
     );
 
     var phase = new LicenceSchedulePhase();
@@ -270,23 +275,23 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
     when(licenceSchedulePhaseService.getActivePhasesByTerm(term)).thenReturn(List.of(phase));
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRange(
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRange(
         licenceScheduleDetail,
         phase.getStartDate(),
         phase.getEndDate())
     ).thenReturn(List.of(midPhaseActivity));
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRange(
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRange(
         licenceScheduleDetail,
         term2.getStartDate(),
         term2.getEndDate()
     )).thenReturn(List.of(midTerm2Activity));
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(phase, WorkProgrammeActivityDateOption.WITHIN_A_PHASE))
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByPhaseAndDateOption(phase, WorkProgrammeActivityDateOption.WITHIN_A_PHASE))
         .thenReturn(List.of(endOfPhaseActivity));
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
         .thenReturn(List.of());
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term2, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(term2, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
         .thenReturn(List.of(endOfTerm2Activity));
 
     assertThat(licenceScheduleTimelineService.getLicenceScheduleEventViews(licenceScheduleDetail))

@@ -217,7 +217,7 @@ class LicenceWorkProgrammeAmendmentServiceTest {
     when(workProgrammeActivity.getOtherCategoryName()).thenReturn(null);
     when(workProgrammeActivity.getDueDate()).thenReturn(fixedDate);
     when(workProgrammeActivity.getDescription()).thenReturn("Test Description");
-    when(workProgrammeActivityService.getWorkProgrammeActivities(any())).thenReturn(List.of(workProgrammeActivity));
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivities(any())).thenReturn(List.of(workProgrammeActivity));
 
     List<WorkProgrammeActivityAmendmentView> result = licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentViews(any());
 

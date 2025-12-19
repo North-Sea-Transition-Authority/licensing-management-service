@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -12,23 +13,27 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 @Repository
 public interface WorkProgrammeActivityRepository extends JpaRepository<WorkProgrammeActivity, UUID> {
 
-  List<WorkProgrammeActivity> findAllByLicenceScheduleDetail(
-      LicenceScheduleDetail licenceScheduleDetail
+  List<WorkProgrammeActivity> findAllByLicenceScheduleDetailAndStatus(
+      LicenceScheduleDetail licenceScheduleDetail,
+      LicenceScheduleEventStatus status
   );
 
-  List<WorkProgrammeActivity> findAllByLicenceScheduleTermAndDateOption(
+  List<WorkProgrammeActivity> findAllByLicenceScheduleTermAndDateOptionAndStatus(
       LicenceScheduleTerm licenceScheduleTerm,
-      WorkProgrammeActivityDateOption dateOption
+      WorkProgrammeActivityDateOption dateOption,
+      LicenceScheduleEventStatus status
   );
 
-  List<WorkProgrammeActivity> findAllByLicenceSchedulePhaseAndDateOption(
+  List<WorkProgrammeActivity> findAllByLicenceSchedulePhaseAndDateOptionAndStatus(
       LicenceSchedulePhase licenceSchedulePhase,
-      WorkProgrammeActivityDateOption dateOption
+      WorkProgrammeActivityDateOption dateOption,
+      LicenceScheduleEventStatus status
   );
 
-  List<WorkProgrammeActivity> findAllByLicenceScheduleDetailAndDueDateBetween(
+  List<WorkProgrammeActivity> findAllByLicenceScheduleDetailAndDueDateBetweenAndStatus(
       LicenceScheduleDetail licenceScheduleDetail,
       LocalDate startDate,
-      LocalDate endDate
+      LocalDate endDate,
+      LicenceScheduleEventStatus status
   );
 }

@@ -15,13 +15,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @Controller
-@RequestMapping("/licence/schedule/{licenceScheduleDetailId}/work-programme-activity")
+@RequestMapping("/licence/schedule")
 public class WorkProgrammeActivityController {
 
-  private WorkProgrammeActivityFormService workProgrammeActivityFormService;
-  private WorkProgrammeActivityFormValidator workProgrammeActivityFormValidator;
-  private LicenceService licenceService;
-  private LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
+  private final WorkProgrammeActivityFormService workProgrammeActivityFormService;
+  private final WorkProgrammeActivityFormValidator workProgrammeActivityFormValidator;
+  private final LicenceService licenceService;
+  private final LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
 
   public WorkProgrammeActivityController(
       WorkProgrammeActivityFormService workProgrammeActivityFormService,
@@ -35,7 +35,7 @@ public class WorkProgrammeActivityController {
     this.licenceScheduleRelativeOptionsService = licenceScheduleRelativeOptionsService;
   }
 
-  @GetMapping("/create")
+  @GetMapping("/{licenceScheduleDetailId}/work-programme-activity/create")
   public ModelAndView renderAddNewActivityForm(
       @PathVariable UUID licenceScheduleDetailId,
       LicenceScheduleDetail licenceScheduleDetail
@@ -43,7 +43,7 @@ public class WorkProgrammeActivityController {
     return getActivityModelAndView(new WorkProgrammeActivityForm(), licenceScheduleDetail);
   }
 
-  @PostMapping("/create")
+  @PostMapping("/{licenceScheduleDetailId}/work-programme-activity/create")
   ModelAndView submitAddNewActivityForm(
       @PathVariable UUID licenceScheduleDetailId,
       LicenceScheduleDetail licenceScheduleDetail,
@@ -54,7 +54,43 @@ public class WorkProgrammeActivityController {
       return getActivityModelAndView(form, licenceScheduleDetail);
     }
 
-    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail);
+    workProgrammeActivityFormService.saveActivityFromForm(
+        form,
+        licenceScheduleDetail,
+        new WorkProgrammeActivity()
+    );
+
+    return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
+  }
+
+  @GetMapping("work-programme-activity/{workProgrammeActivityId}/update")
+  public ModelAndView renderUpdateActivityForm(
+      @PathVariable UUID workProgrammeActivityId,
+      WorkProgrammeActivity workProgrammeActivity
+  ) {
+    return getActivityModelAndView(
+        workProgrammeActivityFormService.getActivityForm(workProgrammeActivity),
+        workProgrammeActivity.getLicenceScheduleDetail()
+    );
+  }
+
+  @PostMapping("work-programme-activity/{workProgrammeActivityId}/update")
+  ModelAndView submitUpdateActivityForm(
+      @PathVariable UUID workProgrammeActivityId,
+      WorkProgrammeActivity workProgrammeActivity,
+      @ModelAttribute("form") WorkProgrammeActivityForm form,
+      BindingResult bindingResult
+  ) {
+    var licenceScheduleDetail = workProgrammeActivity.getLicenceScheduleDetail();
+
+    if (!workProgrammeActivityFormValidator.isValid(form, bindingResult)) {
+      return getActivityModelAndView(form, licenceScheduleDetail);
+    }
+    workProgrammeActivityFormService.saveActivityFromForm(
+        form,
+        licenceScheduleDetail,
+        workProgrammeActivity
+    );
 
     return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
   }

@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -214,7 +215,8 @@ public class LicenceScheduleTimelineService {
         workProgrammeActivity.getCategoryString(),
         workProgrammeActivity.getDescription(),
         dueDateString,
-        "",
+        ReverseRouter.route(on(WorkProgrammeActivityController.class)
+            .renderUpdateActivityForm(workProgrammeActivity.getId(), null)),
         ""
     );
   }

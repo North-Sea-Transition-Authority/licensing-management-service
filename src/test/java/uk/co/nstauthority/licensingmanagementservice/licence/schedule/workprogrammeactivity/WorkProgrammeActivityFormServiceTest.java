@@ -134,7 +134,7 @@ class WorkProgrammeActivityFormServiceTest {
 
     form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
 
-    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail);
+    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, new WorkProgrammeActivity());
 
     verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
 
@@ -188,7 +188,7 @@ class WorkProgrammeActivityFormServiceTest {
 
     form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
 
-    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail);
+    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, new WorkProgrammeActivity());
 
     verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
 
@@ -238,7 +238,7 @@ class WorkProgrammeActivityFormServiceTest {
 
     when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
 
-    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail);
+    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, new WorkProgrammeActivity());
 
     verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
 
@@ -286,7 +286,7 @@ class WorkProgrammeActivityFormServiceTest {
 
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
 
-    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail);
+    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, new WorkProgrammeActivity());
 
     verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
 
@@ -315,5 +315,131 @@ class WorkProgrammeActivityFormServiceTest {
         );
 
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  @Test
+  void getActivityForm_termOption() {
+    var term = new LicenceScheduleTerm();
+    term.setId(UUID.randomUUID());
+
+    var workProgrammeActivity = new WorkProgrammeActivity();
+    workProgrammeActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
+    workProgrammeActivity.setOtherCategoryName("otherCategoryName");
+    workProgrammeActivity.setDescription("description");
+    workProgrammeActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
+    workProgrammeActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
+    workProgrammeActivity.setLicenceScheduleTerm(term);
+    workProgrammeActivity.setComments("comments");
+
+    assertThat(workProgrammeActivityFormService.getActivityForm(workProgrammeActivity))
+        .extracting(
+            WorkProgrammeActivityForm::getWorkProgrammeActivityCategory,
+            WorkProgrammeActivityForm::getOtherCategoryName,
+            WorkProgrammeActivityForm::getDescription,
+            WorkProgrammeActivityForm::getWorkProgrammeActivityCommitment,
+            WorkProgrammeActivityForm::getWorkProgrammeActivityDateOption,
+            WorkProgrammeActivityForm::getLicenceScheduleTermId,
+            WorkProgrammeActivityForm::getLicenceSchedulePhaseId,
+            WorkProgrammeActivityForm::getRelativeEventId,
+            WorkProgrammeActivityForm::getComments
+        )
+        .containsExactly(
+            workProgrammeActivity.getCategory(),
+            workProgrammeActivity.getOtherCategoryName(),
+            workProgrammeActivity.getDescription(),
+            workProgrammeActivity.getCommitment(),
+            workProgrammeActivity.getDateOption(),
+            String.valueOf(workProgrammeActivity.getLicenceScheduleTerm().getId()),
+            null,
+            null,
+            workProgrammeActivity.getComments()
+    );
+  }
+
+  @Test
+  void getActivityForm_phaseOption() {
+    var phase = new LicenceSchedulePhase();
+    phase.setId(UUID.randomUUID());
+
+    var workProgrammeActivity = new WorkProgrammeActivity();
+    workProgrammeActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
+    workProgrammeActivity.setOtherCategoryName("otherCategoryName");
+    workProgrammeActivity.setDescription("description");
+    workProgrammeActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
+    workProgrammeActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
+    workProgrammeActivity.setLicenceSchedulePhase(phase);
+    workProgrammeActivity.setComments("comments");
+
+    assertThat(workProgrammeActivityFormService.getActivityForm(workProgrammeActivity))
+        .extracting(
+            WorkProgrammeActivityForm::getWorkProgrammeActivityCategory,
+            WorkProgrammeActivityForm::getOtherCategoryName,
+            WorkProgrammeActivityForm::getDescription,
+            WorkProgrammeActivityForm::getWorkProgrammeActivityCommitment,
+            WorkProgrammeActivityForm::getWorkProgrammeActivityDateOption,
+            WorkProgrammeActivityForm::getLicenceScheduleTermId,
+            WorkProgrammeActivityForm::getLicenceSchedulePhaseId,
+            WorkProgrammeActivityForm::getRelativeEventId,
+            WorkProgrammeActivityForm::getComments
+        )
+        .containsExactly(
+            workProgrammeActivity.getCategory(),
+            workProgrammeActivity.getOtherCategoryName(),
+            workProgrammeActivity.getDescription(),
+            workProgrammeActivity.getCommitment(),
+            workProgrammeActivity.getDateOption(),
+            null,
+            String.valueOf(workProgrammeActivity.getLicenceSchedulePhase().getId()),
+            null,
+            workProgrammeActivity.getComments()
+        );
+  }
+
+  @Test
+  void getActivityForm_relativeOption() {
+    var phase = new LicenceSchedulePhase();
+    phase.setId(UUID.randomUUID());
+
+    var workProgrammeActivity = new WorkProgrammeActivity();
+    workProgrammeActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
+    workProgrammeActivity.setOtherCategoryName("otherCategoryName");
+    workProgrammeActivity.setDescription("description");
+    workProgrammeActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
+    workProgrammeActivity.setDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
+    workProgrammeActivity.setRelativeDuration(new ThreeFieldDuration(1, 2, 3));
+    workProgrammeActivity.setLicenceSchedulePhase(phase);
+    workProgrammeActivity.setComments("comments");
+
+    var result = workProgrammeActivityFormService.getActivityForm(workProgrammeActivity);
+
+    assertThat(result)
+        .extracting(
+            WorkProgrammeActivityForm::getWorkProgrammeActivityCategory,
+            WorkProgrammeActivityForm::getOtherCategoryName,
+            WorkProgrammeActivityForm::getDescription,
+            WorkProgrammeActivityForm::getWorkProgrammeActivityCommitment,
+            WorkProgrammeActivityForm::getWorkProgrammeActivityDateOption,
+            WorkProgrammeActivityForm::getLicenceScheduleTermId,
+            WorkProgrammeActivityForm::getLicenceSchedulePhaseId,
+            WorkProgrammeActivityForm::getRelativeEventId,
+            WorkProgrammeActivityForm::getComments
+        )
+        .containsExactly(
+            workProgrammeActivity.getCategory(),
+            workProgrammeActivity.getOtherCategoryName(),
+            workProgrammeActivity.getDescription(),
+            workProgrammeActivity.getCommitment(),
+            workProgrammeActivity.getDateOption(),
+            null,
+            null,
+            String.valueOf(workProgrammeActivity.getLicenceSchedulePhase().getId()),
+            workProgrammeActivity.getComments()
+        );
+
+    var duration = result.getRelativeDuration().toThreeFieldDuration();
+
+    assertThat(duration.days()).isEqualTo(workProgrammeActivity.getRelativeDuration().days());
+    assertThat(duration.months()).isEqualTo(workProgrammeActivity.getRelativeDuration().months());
+    assertThat(duration.years()).isEqualTo(workProgrammeActivity.getRelativeDuration().years());
   }
 }

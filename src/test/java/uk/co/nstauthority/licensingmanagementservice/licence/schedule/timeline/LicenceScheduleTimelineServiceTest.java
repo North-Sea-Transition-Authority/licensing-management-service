@@ -154,6 +154,7 @@ class LicenceScheduleTimelineServiceTest {
   @Test
   void getLicenceScheduleEventViews() {
     var midPhaseActivity = new WorkProgrammeActivity();
+    midPhaseActivity.setId(UUID.randomUUID());
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
@@ -162,11 +163,13 @@ class LicenceScheduleTimelineServiceTest {
         WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName(),
         "description",
         "1 February 2025",
-        "",
+        ReverseRouter.route(on(WorkProgrammeActivityController.class)
+            .renderUpdateActivityForm(midPhaseActivity.getId(), null)),
         ""
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
+    endOfPhaseActivity.setId(UUID.randomUUID());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
     endOfPhaseActivity.setDescription("description");
 
@@ -174,11 +177,13 @@ class LicenceScheduleTimelineServiceTest {
         WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL.getDisplayName(),
         "description",
         "",
-        "",
+        ReverseRouter.route(on(WorkProgrammeActivityController.class)
+            .renderUpdateActivityForm(endOfPhaseActivity.getId(), null)),
         ""
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
+    midTerm2Activity.setId(UUID.randomUUID());
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
@@ -187,11 +192,13 @@ class LicenceScheduleTimelineServiceTest {
         WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT.getDisplayName(),
         "description",
         "1 February 2026",
-        "",
+        ReverseRouter.route(on(WorkProgrammeActivityController.class)
+            .renderUpdateActivityForm(midTerm2Activity.getId(), null)),
         ""
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
+    endOfTerm2Activity.setId(UUID.randomUUID());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
     endOfTerm2Activity.setDescription("description");
 
@@ -199,7 +206,8 @@ class LicenceScheduleTimelineServiceTest {
         WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA.getDisplayName(),
         "description",
         "",
-        "",
+        ReverseRouter.route(on(WorkProgrammeActivityController.class)
+            .renderUpdateActivityForm(endOfTerm2Activity.getId(), null)),
         ""
     );
 

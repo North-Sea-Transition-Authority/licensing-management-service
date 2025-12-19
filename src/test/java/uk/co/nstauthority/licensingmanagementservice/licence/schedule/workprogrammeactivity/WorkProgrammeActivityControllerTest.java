@@ -15,6 +15,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
@@ -51,6 +52,7 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
   private static final String PAGE_CAPTION = "page caption";
 
   private LicenceScheduleDetail licenceScheduleDetail;
+  private WorkProgrammeActivity workProgrammeActivity;
 
   @BeforeEach
   void setUp() {
@@ -66,11 +68,14 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
 
     licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
 
-    when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
+    workProgrammeActivity = new WorkProgrammeActivity();
+    workProgrammeActivity.setId(UUID.randomUUID());
+    workProgrammeActivity.setLicenceScheduleDetail(licenceScheduleDetail);
   }
 
   @SecurityTest
   void renderAddNewActivityForm() throws Exception {
+    when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
@@ -96,6 +101,7 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
 
   @Test
   void submitAddNewActivityForm() throws Exception {
+    when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
     when(workProgrammeActivityFormValidator.isValid(any(), any())).thenReturn(true);
 
     mockMvc.perform(
@@ -106,11 +112,12 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(workProgrammeActivityFormService).saveActivityFromForm(any(), eq(licenceScheduleDetail));
+    verify(workProgrammeActivityFormService).saveActivityFromForm(any(), eq(licenceScheduleDetail), any());
   }
 
   @Test
   void submitAddNewActivityForm_invalid() throws Exception {
+    when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(workProgrammeActivityFormValidator.isValid(any(), any())).thenReturn(false);
     when(workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
@@ -135,6 +142,80 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
 
-    verify(workProgrammeActivityFormService, never()).saveActivityFromForm(any(), any());
+    verify(workProgrammeActivityFormService, never()).saveActivityFromForm(any(), any(), any());
+  }
+
+  @SecurityTest
+  void renderUpdateActivityForm() throws Exception {
+    when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(workProgrammeActivity.getId())).thenReturn(workProgrammeActivity);
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
+    when(workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getRelativeEventOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(workProgrammeActivityFormService.getActivityForm(workProgrammeActivity)).thenReturn(new WorkProgrammeActivityForm());
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(WorkProgrammeActivityController.class)
+                .renderUpdateActivityForm(workProgrammeActivity.getId(), null)))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/licence/schedule/createWorkProgrammeActivity"))
+        .andExpect(model().attribute("categoryRadioOptions", WorkProgrammeActivityCategory.getCategoriesForLicenceType(licence.getType())))
+        .andExpect(model().attribute("commitmentRadioOptions", DisplayableEnumOptionUtil.getDisplayableOptions(WorkProgrammeActivityCommitment.class)))
+        .andExpect(model().attribute("activityDateRadioOptions", Map.of()))
+        .andExpect(model().attribute("termOptions", Map.of()))
+        .andExpect(model().attribute("phaseOptions", Map.of()))
+        .andExpect(model().attribute("relativeOptions", Map.of()))
+        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
+        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
+  }
+
+  @Test
+  void submitUpdateActivityForm() throws Exception {
+    when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(workProgrammeActivity.getId())).thenReturn(workProgrammeActivity);
+    when(workProgrammeActivityFormValidator.isValid(any(), any())).thenReturn(true);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(WorkProgrammeActivityController.class)
+                .submitUpdateActivityForm(workProgrammeActivity.getId(), null, null, null)))
+                .with(user(organisationUser))
+                .with(csrf())
+        )
+        .andExpect(status().is3xxRedirection());
+
+    verify(workProgrammeActivityFormService).saveActivityFromForm(any(), eq(licenceScheduleDetail), eq(workProgrammeActivity));
+  }
+
+  @Test
+  void submitUpdateActivityForm_invalid() throws Exception {
+    when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(workProgrammeActivity.getId())).thenReturn(workProgrammeActivity);
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
+    when(workProgrammeActivityFormValidator.isValid(any(), any())).thenReturn(false);
+    when(workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getRelativeEventOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(workProgrammeActivityFormService.getActivityForm(workProgrammeActivity)).thenReturn(new WorkProgrammeActivityForm());
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(WorkProgrammeActivityController.class)
+                .submitUpdateActivityForm(workProgrammeActivity.getId(), null, null, null)))
+                .with(user(organisationUser))
+                .with(csrf())
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/licence/schedule/createWorkProgrammeActivity"))
+        .andExpect(model().attribute("categoryRadioOptions", WorkProgrammeActivityCategory.getCategoriesForLicenceType(licence.getType())))
+        .andExpect(model().attribute("commitmentRadioOptions", DisplayableEnumOptionUtil.getDisplayableOptions(WorkProgrammeActivityCommitment.class)))
+        .andExpect(model().attribute("activityDateRadioOptions", Map.of()))
+        .andExpect(model().attribute("termOptions", Map.of()))
+        .andExpect(model().attribute("phaseOptions", Map.of()))
+        .andExpect(model().attribute("relativeOptions", Map.of()))
+        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
+        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
+
+    verify(workProgrammeActivityFormService, never()).saveActivityFromForm(any(), any(), any());
   }
 }

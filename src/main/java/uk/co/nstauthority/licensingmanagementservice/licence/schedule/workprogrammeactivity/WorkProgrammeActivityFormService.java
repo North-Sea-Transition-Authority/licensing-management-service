@@ -59,9 +59,9 @@ public class WorkProgrammeActivityFormService {
   @Transactional
   public void saveActivityFromForm(
       WorkProgrammeActivityForm form,
-      LicenceScheduleDetail licenceScheduleDetail
+      LicenceScheduleDetail licenceScheduleDetail,
+      WorkProgrammeActivity activity
   ) {
-    var activity = new WorkProgrammeActivity();
     activity.setLicenceScheduleDetail(licenceScheduleDetail);
     activity.setCategory(form.getWorkProgrammeActivityCategory());
     activity.setOtherCategoryName(form.getOtherCategoryName());
@@ -99,6 +99,47 @@ public class WorkProgrammeActivityFormService {
 
     workProgrammeActivityRepository.save(activity);
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  public WorkProgrammeActivityForm getActivityForm(WorkProgrammeActivity workProgrammeActivity) {
+    var form = new WorkProgrammeActivityForm();
+    form.setWorkProgrammeActivityCategory(workProgrammeActivity.getCategory());
+    form.setOtherCategoryName(workProgrammeActivity.getOtherCategoryName());
+    form.setDescription(workProgrammeActivity.getDescription());
+    form.setWorkProgrammeActivityCommitment(workProgrammeActivity.getCommitment());
+    form.setComments(workProgrammeActivity.getComments());
+
+    var dateOption = workProgrammeActivity.getDateOption();
+
+    form.setWorkProgrammeActivityDateOption(dateOption);
+
+    var termIdString = workProgrammeActivity.getLicenceScheduleTerm() != null
+        ? String.valueOf(workProgrammeActivity.getLicenceScheduleTerm().getId())
+        : null;
+
+    var phaseIdString = workProgrammeActivity.getLicenceSchedulePhase() != null
+        ? String.valueOf(workProgrammeActivity.getLicenceSchedulePhase().getId())
+        : null;
+
+    if (dateOption.equals(WorkProgrammeActivityDateOption.WITHIN_A_TERM)) {
+      form.setLicenceScheduleTermId(termIdString);
+    }
+
+    if (dateOption.equals(WorkProgrammeActivityDateOption.WITHIN_A_PHASE)) {
+      form.setLicenceSchedulePhaseId(phaseIdString);
+    }
+
+    if (dateOption.equals(WorkProgrammeActivityDateOption.RELATIVE_DATE)) {
+      form.getRelativeDuration().setFromThreeFieldDuration(workProgrammeActivity.getRelativeDuration());
+
+      var relativeIdString = termIdString != null
+          ? termIdString
+          : phaseIdString;
+
+      form.setRelativeEventId(relativeIdString);
+    }
+
+    return form;
   }
 
   private void setRelativeEvent(

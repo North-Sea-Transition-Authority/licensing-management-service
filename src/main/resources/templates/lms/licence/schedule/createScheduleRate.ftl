@@ -79,6 +79,7 @@ errorSummaryItems=errorSummaryItems
         <@fdsTextarea.textarea
             path="form.comments"
             labelText="Comments"
+            optionalLabel=true
         />
 
         <@fdsAction.submitButtons primaryButtonText="Save and complete" secondaryLinkText="Cancel" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>

@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -80,6 +81,17 @@ class WorkProgrammeActivityServiceTest {
     workProgrammeActivityService.saveWorkProgrammeActivities(activityList);
 
     verify(workProgrammeActivityRepository).saveAll(activityList);
+  }
+
+  @Test
+  void getWorkProgrammeActivitiesByDateRange() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    var startDate = LocalDate.now();
+    var endDate = LocalDate.now();
+
+    workProgrammeActivityService.getWorkProgrammeActivitiesByDateRange(licenceScheduleDetail, startDate, endDate);
+
+    verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndDueDateBetween(licenceScheduleDetail, startDate, endDate);
   }
 
 }

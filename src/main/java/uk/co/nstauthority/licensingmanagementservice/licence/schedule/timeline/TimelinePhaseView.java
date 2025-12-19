@@ -5,6 +5,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 
 public record TimelinePhaseView(
     List<ScheduleEvent> events,
+    List<ScheduleEvent> endOfPhaseEvents,
     PhaseType phaseType,
     String dateDurationString,
     String endDateString,

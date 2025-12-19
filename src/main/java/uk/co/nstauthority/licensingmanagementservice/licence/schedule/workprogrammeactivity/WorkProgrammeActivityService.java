@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity;
 
 import jakarta.transaction.Transactional;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -46,5 +47,13 @@ public class WorkProgrammeActivityService {
   @Transactional
   public void saveWorkProgrammeActivities(List<WorkProgrammeActivity> workProgrammeActivities) {
     workProgrammeActivityRepository.saveAll(workProgrammeActivities);
+  }
+
+  public List<WorkProgrammeActivity> getWorkProgrammeActivitiesByDateRange(
+      LicenceScheduleDetail licenceScheduleDetail,
+      LocalDate from,
+      LocalDate to
+  ) {
+    return workProgrammeActivityRepository.findAllByLicenceScheduleDetailAndDueDateBetween(licenceScheduleDetail, from, to);
   }
 }

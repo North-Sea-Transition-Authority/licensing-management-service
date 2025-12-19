@@ -197,6 +197,26 @@ extendContainerWidth=true>
                             timeStampHeadingHint="31 May 2030"
                             timeStampClass="fds-timeline__time-stamp--no-border">
                             </@custom.timelineTimeStampCompleteNoBorder>
+
+                            <@custom.timelineTimeStampComplete
+                            timeStampHeading="End of Term requirements"
+                            timeStampHeadingHint="31 May 2030">
+                            </@custom.timelineTimeStampComplete>
+                            <@custom.timelineTimeStampNoDotComplete
+                            timeStampHeading="Obtain 3d seismic"
+                            timelineActionContent=timelineActions
+                            >
+                                <@fdsTimeline.timelineEvent>
+                                    <p class="govuk-body">
+                                        Test description text
+                                    </p>
+                                </@fdsTimeline.timelineEvent>
+                            </@custom.timelineTimeStampNoDotComplete>
+                            <@custom.timelineTimeStampCompleteNoBorder
+                            timeStampHeading="End of Initial Term"
+                            timeStampHeadingHint="31 May 2030"
+                            timeStampClass="fds-timeline__time-stamp--no-border">
+                            </@custom.timelineTimeStampCompleteNoBorder>
                         </@fdsTimeline.timelineSection>
                     </@fdsTimeline.timeline>
                 </@fdsAccordion.accordionSection>

@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -23,5 +24,11 @@ public interface WorkProgrammeActivityRepository extends JpaRepository<WorkProgr
   List<WorkProgrammeActivity> findAllByLicenceSchedulePhaseAndDateOption(
       LicenceSchedulePhase licenceSchedulePhase,
       WorkProgrammeActivityDateOption dateOption
+  );
+
+  List<WorkProgrammeActivity> findAllByLicenceScheduleDetailAndDueDateBetween(
+      LicenceScheduleDetail licenceScheduleDetail,
+      LocalDate startDate,
+      LocalDate endDate
   );
 }

@@ -152,4 +152,10 @@ public class WorkProgrammeActivity {
   public void setComments(String comments) {
     this.comments = comments;
   }
+
+  public String getCategoryString() {
+    return category.equals(WorkProgrammeActivityCategory.OTHER_ACTIVITY)
+        ? otherCategoryName
+        : category.getDisplayName();
+  }
 }

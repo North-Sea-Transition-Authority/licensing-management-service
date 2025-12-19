@@ -11,3 +11,6 @@ $fds-assets-path: "/lms/assets/static/fds/";
 
 // Fivium Design System Docs master stylesheet
 @import "../templates/fds/all";
+
+// Imports all custom LMS stylesheets
+@import "lms/all";

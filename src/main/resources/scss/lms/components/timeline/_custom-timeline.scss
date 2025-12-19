@@ -1,0 +1,14 @@
+.fds-timeline {
+  &__node-number {
+    &--small-dot {
+      width: 18px;
+      height: 18px;
+      left: -15px;
+      top: 0
+    }
+
+    &--no-dot {
+      opacity: 0;
+    }
+  }
+}

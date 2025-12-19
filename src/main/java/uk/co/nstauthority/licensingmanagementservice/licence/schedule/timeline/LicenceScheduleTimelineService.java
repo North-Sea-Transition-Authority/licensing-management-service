@@ -21,6 +21,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Service
@@ -30,17 +33,20 @@ public class LicenceScheduleTimelineService {
   private final LicenceTypeRulesResolver licenceTypeRulesResolver;
   private final LicenceScheduleTermService licenceScheduleTermService;
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
+  private final WorkProgrammeActivityService workProgrammeActivityService;
 
   public LicenceScheduleTimelineService(
       LicenceStartDateService licenceStartDateService,
       LicenceTypeRulesResolver licenceTypeRulesResolver,
       LicenceScheduleTermService licenceScheduleTermService,
-      LicenceSchedulePhaseService licenceSchedulePhaseService
+      LicenceSchedulePhaseService licenceSchedulePhaseService,
+      WorkProgrammeActivityService workProgrammeActivityService
   ) {
     this.licenceStartDateService = licenceStartDateService;
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
+    this.workProgrammeActivityService = workProgrammeActivityService;
   }
 
   public TimelineSummaryCardView getTimelineSummaryCardView(LicenceScheduleDetail licenceScheduleDetail) {
@@ -110,8 +116,11 @@ public class LicenceScheduleTimelineService {
         .map(ScheduleEvent::getEventType)
         .anyMatch(eventType -> eventType.equals(ScheduleEventType.PHASE));
 
+    var endOfTermEvents = getEndOfTermRequirementEvents(licenceScheduleTerm);
+
     return new TimelineTermView(
         scheduleEvents,
+        endOfTermEvents,
         licenceScheduleTerm.getTermType(),
         dateDurationString,
         DateFormatUtil.convertToDisplayText(licenceScheduleTerm.getEndDate()),
@@ -122,9 +131,35 @@ public class LicenceScheduleTimelineService {
   }
 
   private List<ScheduleEvent> getScheduleEventsForTerm(LicenceScheduleTerm licenceScheduleTerm) {
-    return licenceSchedulePhaseService.getActivePhasesByTerm(licenceScheduleTerm).stream()
+    var phaseViews = licenceSchedulePhaseService.getActivePhasesByTerm(licenceScheduleTerm).stream()
         .sorted(Comparator.comparing(phase -> phase.getPhaseType().getDisplayOrder()))
         .map(this::convertToTimelinePhaseView)
+        .toList();
+
+    if (!phaseViews.isEmpty()) {
+      return phaseViews;
+    }
+
+    return workProgrammeActivityService.getWorkProgrammeActivitiesByDateRange(
+        licenceScheduleTerm.getLicenceScheduleDetail(),
+        licenceScheduleTerm.getStartDate(),
+        licenceScheduleTerm.getEndDate()
+    ).stream()
+        .sorted(
+            Comparator.comparing(WorkProgrammeActivity::getDueDate)
+            .thenComparing(WorkProgrammeActivity::getCategoryString)
+        )
+        .map(this::convertToWorkProgrammeActivityView)
+        .toList();
+  }
+
+  private List<ScheduleEvent> getEndOfTermRequirementEvents(LicenceScheduleTerm licenceScheduleTerm) {
+    return workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(
+        licenceScheduleTerm,
+        WorkProgrammeActivityDateOption.WITHIN_A_TERM
+    ).stream()
+        .sorted(Comparator.comparing(WorkProgrammeActivity::getCategoryString))
+        .map(this::convertToWorkProgrammeActivityView)
         .toList();
   }
 
@@ -136,12 +171,51 @@ public class LicenceScheduleTimelineService {
     );
 
     return new TimelinePhaseView(
-        List.of(),
+        getScheduleEventsForPhase(licenceSchedulePhase),
+        getEndOfPhaseRequirementEvents(licenceSchedulePhase),
         licenceSchedulePhase.getPhaseType(),
         dateDurationString,
         DateFormatUtil.convertToDisplayText(licenceSchedulePhase.getEndDate()),
         ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderUpdatePhaseForm(licenceSchedulePhase.getId())),
         ReverseRouter.route(on(LicenceSchedulePhaseDeletionController.class).renderDeletePhasePage(licenceSchedulePhase.getId()))
+    );
+  }
+
+  private List<ScheduleEvent> getScheduleEventsForPhase(LicenceSchedulePhase licenceSchedulePhase) {
+    return workProgrammeActivityService.getWorkProgrammeActivitiesByDateRange(
+            licenceSchedulePhase.getLicenceScheduleDetail(),
+            licenceSchedulePhase.getStartDate(),
+            licenceSchedulePhase.getEndDate()
+        ).stream()
+        .sorted(
+            Comparator.comparing(WorkProgrammeActivity::getDueDate)
+                .thenComparing(WorkProgrammeActivity::getCategoryString)
+        )
+        .map(this::convertToWorkProgrammeActivityView)
+        .toList();
+  }
+
+  private List<ScheduleEvent> getEndOfPhaseRequirementEvents(LicenceSchedulePhase licenceSchedulePhase) {
+    return workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(
+            licenceSchedulePhase,
+            WorkProgrammeActivityDateOption.WITHIN_A_PHASE
+        ).stream()
+        .sorted(Comparator.comparing(WorkProgrammeActivity::getCategoryString))
+        .map(this::convertToWorkProgrammeActivityView)
+        .toList();
+  }
+
+  private ScheduleEvent convertToWorkProgrammeActivityView(WorkProgrammeActivity workProgrammeActivity) {
+    var dueDateString = workProgrammeActivity.getDueDate() != null
+        ? DateFormatUtil.convertToDisplayText(workProgrammeActivity.getDueDate())
+        : "";
+
+    return new TimelineWorkProgrammeActivityView(
+        workProgrammeActivity.getCategoryString(),
+        workProgrammeActivity.getDescription(),
+        dueDateString,
+        "",
+        ""
     );
   }
 

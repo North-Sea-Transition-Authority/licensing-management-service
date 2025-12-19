@@ -5,6 +5,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 
 public record TimelineTermView(
     List<ScheduleEvent> events,
+    List<ScheduleEvent> endOfTermEvents,
     TermType termType,
     String dateDurationString,
     String endDateString,

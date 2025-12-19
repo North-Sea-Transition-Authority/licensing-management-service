@@ -23,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
@@ -48,6 +49,9 @@ class WorkProgrammeActivityFormServiceTest {
 
   @Mock
   private LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
+
+  @Mock
+  private LicenceScheduleCalculationService licenceScheduleCalculationService;
 
   @InjectMocks
   private WorkProgrammeActivityFormService workProgrammeActivityFormService;
@@ -159,6 +163,8 @@ class WorkProgrammeActivityFormServiceTest {
             null,
             testDuration
         );
+
+    verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
   @Test
@@ -211,6 +217,8 @@ class WorkProgrammeActivityFormServiceTest {
             phase,
             testDuration
         );
+
+    verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
   @Test
@@ -257,6 +265,8 @@ class WorkProgrammeActivityFormServiceTest {
             term,
             null
         );
+
+    verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
   @Test
@@ -303,5 +313,7 @@ class WorkProgrammeActivityFormServiceTest {
             null,
             phase
         );
+
+    verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 }

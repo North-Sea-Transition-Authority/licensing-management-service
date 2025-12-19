@@ -1,4 +1,5 @@
 <#include  '../../../layout/layout.ftl'>
+<#import '../../../component/timeline/timestamp.ftl' as lmsTimeStamp>
 
 <#macro term termView>
     <#assign timelineActions>
@@ -10,17 +11,51 @@
         <#list termView.events() as phaseView>
             <@phase phaseView=phaseView/>
         </#list>
+
+        <#if termView.endOfTermEvents()?has_content>
+            <@fdsTimeline.timelineTimeStamp
+            timeStampHeading="End of term requirements"
+            timeStampHeadingHint=termView.endDateString()
+            />
+
+            <#list termView.endOfTermEvents() as activityView>
+                <@workProgrammeActivityEndOfPeriodRequirement activityView=activityView/>
+            </#list>
+
+            <@fdsTimeline.timelineTimeStamp
+            timeStampHeading="End of ${termView.termType().displayName}"
+            timeStampHeadingHint=termView.endDateString()
+            timeStampClass="fds-timeline__time-stamp--no-border"
+            />
+        </#if>
     <#else>
         <@fdsTimeline.timelineTimeStamp
-        timeStampHeading=termView.termType().displayName
-        timeStampHeadingHint=termView.dateDurationString()
-        timelineActionContent=timelineActions>
-        </@fdsTimeline.timelineTimeStamp>
+            timeStampHeading=termView.termType().displayName
+            timeStampHeadingHint=termView.dateDurationString()
+            timelineActionContent=timelineActions
+        />
+
+        <#list termView.events() as activityView>
+            <@workProgrammeActivity activityView=activityView/>
+        </#list>
+
+
+        <#if termView.endOfTermEvents()?has_content>
+            <@fdsTimeline.timelineTimeStamp
+                timeStampHeading="End of term requirements"
+                timeStampHeadingHint=termView.endDateString()
+            />
+
+            <#list termView.endOfTermEvents() as activityView>
+                <@workProgrammeActivityEndOfPeriodRequirement activityView=activityView/>
+            </#list>
+        </#if>
+
         <@fdsTimeline.timelineTimeStamp
-        timeStampHeading="End of ${termView.termType().displayName}"
-        timeStampHeadingHint=termView.endDateString()
-        timeStampClass="fds-timeline__time-stamp--no-border">
-        </@fdsTimeline.timelineTimeStamp>
+            timeStampHeading="End of ${termView.termType().displayName}"
+            timeStampHeadingHint=termView.endDateString()
+            timeStampClass="fds-timeline__time-stamp--no-border"
+        />
     </#if>
 
 </#macro>
@@ -34,11 +69,66 @@
     <@fdsTimeline.timelineTimeStamp
         timeStampHeading=phaseView.phaseType().displayName
         timeStampHeadingHint=phaseView.dateDurationString()
-        timelineActionContent=timelineActions>
-    </@fdsTimeline.timelineTimeStamp>
+        timelineActionContent=timelineActions
+    />
+
+    <#list phaseView.events() as activityView>
+        <@workProgrammeActivity activityView=activityView/>
+    </#list>
+
+    <#if phaseView.endOfPhaseEvents()?has_content>
+        <@fdsTimeline.timelineTimeStamp
+        timeStampHeading="End of phase requirements"
+        timeStampHeadingHint=phaseView.endDateString()
+        />
+
+        <#list phaseView.endOfPhaseEvents() as activityView>
+            <@workProgrammeActivityEndOfPeriodRequirement activityView=activityView/>
+        </#list>
+    </#if>
+
     <@fdsTimeline.timelineTimeStamp
         timeStampHeading="End of ${phaseView.phaseType().displayName}"
         timeStampHeadingHint=phaseView.endDateString()
-        timeStampClass="fds-timeline__time-stamp--no-border">
-    </@fdsTimeline.timelineTimeStamp>
+        timeStampClass="fds-timeline__time-stamp--no-border"
+    />
+</#macro>
+
+<#macro workProgrammeActivity activityView>
+    <#assign timelineActions>
+        <@fdsAction.link linkText="Edit" linkUrl=springUrl(activityView.updateUrl()) linkClass="govuk-link"/>
+        <@fdsAction.link linkText="Remove" linkUrl=springUrl(activityView.deleteUrl()) linkClass="govuk-link"/>
+    </#assign>
+
+    <@lmsTimeStamp.lmsTimeStamp
+        timeStampHeading=activityView.category()
+        timeStampHeadingHint=activityView.dueDateString()
+        timelineActionContent=timelineActions
+        nodeNumberClass="fds-timeline__node-number--small-dot"
+    >
+        <@fdsTimeline.timelineEvent>
+            <p class="govuk-body">
+                ${activityView.description()}
+            </p>
+        </@fdsTimeline.timelineEvent>
+    </@lmsTimeStamp.lmsTimeStamp>
+</#macro>
+
+<#macro workProgrammeActivityEndOfPeriodRequirement activityView>
+    <#assign timelineActions>
+        <@fdsAction.link linkText="Edit" linkUrl=springUrl(activityView.updateUrl()) linkClass="govuk-link"/>
+        <@fdsAction.link linkText="Remove" linkUrl=springUrl(activityView.deleteUrl()) linkClass="govuk-link"/>
+    </#assign>
+
+    <@lmsTimeStamp.lmsTimeStamp
+        timeStampHeading=activityView.category()
+        timelineActionContent=timelineActions
+        nodeNumberClass="fds-timeline__node-number--no-dot"
+    >
+        <@fdsTimeline.timelineEvent>
+            <p class="govuk-body">
+                ${activityView.description()}
+            </p>
+        </@fdsTimeline.timelineEvent>
+    </@lmsTimeStamp.lmsTimeStamp>
 </#macro>

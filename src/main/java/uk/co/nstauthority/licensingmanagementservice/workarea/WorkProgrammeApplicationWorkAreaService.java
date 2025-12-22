@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.workarea;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -66,7 +65,7 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
   ) {
     var licence = scheduleWorkProgrammeApplicationService
         .getLicenceFromScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail);
-    var createdDatetime = Instant.now(); //TODO LMS1-278: add created instant to SWPA detail and insert here
+    var createdDatetime = scheduleWorkProgrammeApplicationDetail.getCreatedDatetime();
     var licensees = responsibleOrganisationNamesByLicences.getOrDefault(
             licence,
             List.of()

@@ -61,6 +61,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
     var scheduleWorkProgrammeApplicationDetail1 = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail1.setId(UUID.randomUUID());
     scheduleWorkProgrammeApplicationDetail1.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication1);
+    scheduleWorkProgrammeApplicationDetail1.setCreatedDatetime(testInstant);
     when(scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail1))
         .thenReturn(licence1);
 
@@ -79,6 +80,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
     var scheduleWorkProgrammeApplicationDetail2 = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail2.setId(UUID.randomUUID());
     scheduleWorkProgrammeApplicationDetail2.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication2);
+    scheduleWorkProgrammeApplicationDetail2.setCreatedDatetime(testInstant);
     when(scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail2))
         .thenReturn(licence2);
 
@@ -102,7 +104,8 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
             SearchResultItem::id,
             SearchResultItem::linkHeadingText,
             SearchResultItem::linkHeadingUrl,
-            SearchResultItem::dataItemRows
+            SearchResultItem::dataItemRows,
+            SearchResultItem::transactionDatetime
         )
         .containsExactly(
             tuple(
@@ -113,8 +116,8 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
                 List.of(SummaryDataView.newBuilder()
                     .addStringValue("Licence type", licence1.getType().getDisplayName())
                     .addStringValue("Licensees", String.join(", ", orgList1))
-                    .build())
-                //TODO LMS1-278: add createdDateTime once implemented
+                    .build()),
+                testInstant
             ),
             tuple(
                 scheduleWorkProgrammeApplicationDetail2.getId().toString(),
@@ -124,8 +127,8 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
                 List.of(SummaryDataView.newBuilder()
                     .addStringValue("Licence type", licence2.getType().getDisplayName())
                     .addStringValue("Licensees", String.join(", ", orgList2))
-                    .build())
-                //TODO LMS1-278: add createdDateTime once implemented
+                    .build()),
+                testInstant
             )
         );
   }
@@ -150,6 +153,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
     var scheduleWorkProgrammeApplicationDetail1 = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail1.setId(UUID.randomUUID());
     scheduleWorkProgrammeApplicationDetail1.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication1);
+    scheduleWorkProgrammeApplicationDetail1.setCreatedDatetime(testInstant);
     when(scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail1))
         .thenReturn(licence1);
 
@@ -168,6 +172,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
     var scheduleWorkProgrammeApplicationDetail2 = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail2.setId(UUID.randomUUID());
     scheduleWorkProgrammeApplicationDetail2.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication2);
+    scheduleWorkProgrammeApplicationDetail2.setCreatedDatetime(testInstant);
     when(scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail2))
         .thenReturn(licence2);
 
@@ -189,8 +194,8 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
             SearchResultItem::id,
             SearchResultItem::linkHeadingText,
             SearchResultItem::linkHeadingUrl,
-            SearchResultItem::dataItemRows
-            //TODO LMS1-278: add createdDateTime once implemented
+            SearchResultItem::dataItemRows,
+            SearchResultItem::transactionDatetime
         )
         .containsExactly(
             tuple(
@@ -201,7 +206,8 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
                 List.of(SummaryDataView.newBuilder()
                     .addStringValue("Licence type", licence2.getType().getDisplayName())
                     .addStringValue("Licensees", String.join(", ", org1))
-                    .build())
+                    .build()),
+                testInstant
             )
         );
   }

@@ -84,7 +84,7 @@ public class ScheduleWorkProgrammeApplicationService {
     scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
     scheduleWorkProgrammeApplicationDetail.setVersionNumber(1);
     scheduleWorkProgrammeApplicationDetail.setStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT);
-
+    scheduleWorkProgrammeApplicationDetail.setCreatedDatetime(Instant.now(clock));
     scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(allLicenseesPermissionConfirmed);
     scheduleWorkProgrammeApplicationDetail.setResponsibleOrganisationUnitId(responsibleOrganisationUnitId);
 

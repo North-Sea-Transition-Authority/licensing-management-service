@@ -44,6 +44,9 @@ public class ScheduleWorkProgrammeApplicationDetail {
   private Instant submittedDatetime;
 
   @Column
+  private Instant createdDatetime;
+
+  @Column
   private Long submittedByWuaId;
 
   @Column
@@ -104,6 +107,14 @@ public class ScheduleWorkProgrammeApplicationDetail {
 
   public void setSubmittedDatetime(Instant submittedDatetime) {
     this.submittedDatetime = submittedDatetime;
+  }
+
+  public Instant getCreatedDatetime() {
+    return createdDatetime;
+  }
+
+  public void setCreatedDatetime(Instant createdDatetime) {
+    this.createdDatetime = createdDatetime;
   }
 
   public Long getSubmittedByWuaId() {

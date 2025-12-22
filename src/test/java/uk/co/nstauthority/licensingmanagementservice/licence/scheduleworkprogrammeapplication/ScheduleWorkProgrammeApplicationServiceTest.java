@@ -89,6 +89,8 @@ class ScheduleWorkProgrammeApplicationServiceTest {
   void createNewScheduleWorkProgrammeApplicationForLicence_withValidLicenceAndPermissionTrue() {
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
         .thenReturn(licenceScheduleDetail);
+    when(clock.instant()).thenReturn(CURRENT_INSTANT);
+
 
     LicenseeInformationForm licenseeInformationForm = new LicenseeInformationForm();
     licenseeInformationForm.setAllLicenseesPermissionConfirmed(true);
@@ -107,7 +109,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     assertThat(savedDetail.getVersionNumber()).isEqualTo(1);
     assertThat(savedDetail.getAllLicenseesPermissionConfirmed()).isTrue();
     assertThat(savedDetail.getResponsibleOrganisationUnitId()).isEqualTo(1);
-
+    assertThat(savedDetail.getCreatedDatetime()).isEqualTo(CURRENT_INSTANT);
     assertThat(result).isEqualTo(savedDetail);
   }
 
@@ -115,6 +117,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
   void createNewScheduleWorkProgrammeApplicationForLicence_withValidLicenceAndPermissionFalse() {
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
         .thenReturn(licenceScheduleDetail);
+    when(clock.instant()).thenReturn(CURRENT_INSTANT);
 
     LicenseeInformationForm licenseeInformationForm = new LicenseeInformationForm();
     licenseeInformationForm.setAllLicenseesPermissionConfirmed(false);
@@ -131,6 +134,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     assertThat(savedDetail.getVersionNumber()).isEqualTo(1);
     assertThat(savedDetail.getAllLicenseesPermissionConfirmed()).isFalse();
     assertThat(savedDetail.getResponsibleOrganisationUnitId()).isEqualTo(1);
+    assertThat(savedDetail.getCreatedDatetime()).isEqualTo(CURRENT_INSTANT);
 
     assertThat(result).isEqualTo(savedDetail);
   }

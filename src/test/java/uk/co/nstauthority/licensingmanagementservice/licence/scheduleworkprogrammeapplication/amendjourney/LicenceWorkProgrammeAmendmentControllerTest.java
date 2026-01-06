@@ -103,6 +103,8 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
     when(licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentView(any())).thenReturn(
         mockWorkProgrammeActivityAmendmentView);
 
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentController.class).renderForm(
                     WORK_PROGRAMME_ACTIVITY_ID,
@@ -125,6 +127,7 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
   void submitValidForm() throws Exception {
     when(licenceWorkProgrammeAmendmentFormValidator.isValid(any(), any()))
         .thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentController.class).submitForm(
@@ -153,6 +156,8 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
 
     when(licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentView(any())).thenReturn(
         mockWorkProgrammeActivityAmendmentView);
+
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentController.class).submitForm(
@@ -208,6 +213,31 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
             .with(user(organisationUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderPage_assertForbiddenUserNoAccess() throws Exception {
+    var activityId = UUID.randomUUID();
+
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentController.class).renderForm(
+        activityId, null, SCHEDULE_APPLICATION_DETAIL_ID, null)))
+               .with(user(organisationUser)))
+           .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void submitPage_assertForbiddenUserNoAccess() throws Exception {
+    var activityId = UUID.randomUUID();
+
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentController.class).submitForm(
+        activityId, null, SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
+               .with(user(organisationUser))
+               .with(csrf()))
+           .andExpect(status().isForbidden());
   }
 
   private WorkProgrammeActivityAmendmentView getMockWorkProgrammeActivityAmendmentView() {

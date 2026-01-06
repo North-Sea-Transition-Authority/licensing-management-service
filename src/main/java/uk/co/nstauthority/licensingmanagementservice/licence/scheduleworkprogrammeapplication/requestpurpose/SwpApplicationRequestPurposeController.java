@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
@@ -23,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 @Controller
 @RequestMapping("licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/request-purpose")
 @ScheduleAmendmentApplicationHasStatus(value = ScheduleWorkProgrammeApplicationStatus.DRAFT)
+@InvokingUserCanAccessScheduleApplication
 public class SwpApplicationRequestPurposeController {
 
   static final String PAGE_TITLE = "What are you requesting to do?";

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
@@ -22,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @Controller
 @RequestMapping("licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/task-list")
 @ScheduleAmendmentApplicationHasStatus(value = ScheduleWorkProgrammeApplicationStatus.DRAFT)
+@InvokingUserCanAccessScheduleApplication
 public class ScheduleWorkProgrammeApplicationTaskListController {
 
   public static final String PAGE_TITLE = "Task list";

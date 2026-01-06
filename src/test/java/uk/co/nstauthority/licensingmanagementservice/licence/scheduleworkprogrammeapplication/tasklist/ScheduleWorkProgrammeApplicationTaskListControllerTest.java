@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -11,6 +12,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -68,6 +70,7 @@ class ScheduleWorkProgrammeApplicationTaskListControllerTest extends AbstractCon
     )).thenReturn(LICENCE);
 
     when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(CAPTION);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(get(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
         id, null, null))
@@ -97,6 +100,25 @@ class ScheduleWorkProgrammeApplicationTaskListControllerTest extends AbstractCon
         .build();
 
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
+
+    mockMvc.perform(get(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
+        id, null, null))).with(user(USER))).andExpect(status().isForbidden());
+  }
+
+  @Test
+  void submitPage_assertForbiddenUserNoAccess() throws Exception {
+    var id = UUID.randomUUID();
+
+    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil
+        .builder()
+        .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
+        .withId(id)
+        .withScheduleWorkProgrammeApplication(
+            ScheduleWorkProgrammeApplicationTestUtil.createScheduleWorkProgrammeApplication(LICENCE_SCHEDULE_DETAIL))
+        .build();
+
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
 
     mockMvc.perform(get(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
         id, null, null))).with(user(USER))).andExpect(status().isForbidden());

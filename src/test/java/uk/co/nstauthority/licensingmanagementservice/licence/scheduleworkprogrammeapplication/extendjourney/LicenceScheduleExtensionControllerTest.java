@@ -69,7 +69,6 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
   @MockitoBean
   private LicenceScheduleTermRepository licenceScheduleTermRepository;
 
-
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
 
@@ -115,10 +114,11 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
       licenceScheduleTerm.setId(UUID.randomUUID());
     licenceScheduleTerm.setEndDate(LocalDate.of(1,1,1));
 
-      when(licenceScheduleExtensionService.getCurrentTerm(any())).thenReturn(licenceScheduleTerm);
-      when(licenceScheduleExtensionService.getlicenceScheduleExtensionForm(any())).thenReturn(new LicenceScheduleExtensionForm());
+    when(licenceScheduleExtensionService.getCurrentTerm(any())).thenReturn(licenceScheduleTerm);
+    when(licenceScheduleExtensionService.getlicenceScheduleExtensionForm(any())).thenReturn(new LicenceScheduleExtensionForm());
     when(licenceScheduleExtensionService.getExtendableTermAndPhases(any())).thenReturn(List.of(validTermAndPhases));
     when(licenceScheduleExtensionService.canExtendMoreThanOneOption(any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
       mockMvc.perform(
               get(ReverseRouter.route(
@@ -161,6 +161,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
     when(licenceScheduleExtensionService.getlicenceScheduleExtensionForm(any())).thenReturn(new LicenceScheduleExtensionForm());
     when(licenceScheduleExtensionService.getExtendableTermAndPhases(any())).thenReturn(List.of(validTermAndPhases));
     when(licenceScheduleExtensionService.canExtendMoreThanOneOption(any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
                get(ReverseRouter.route(
@@ -185,6 +186,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
   @Test
   void submitValidForm() throws Exception {
     when(licenceScheduleExtensionFormValidator.isValid(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(
@@ -210,6 +212,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
     when(licenceScheduleExtensionFormValidator.isValid(any(), any(), any())).thenReturn(false);
     when(licenceScheduleExtensionService.getExtendableTermAndPhases(any())).thenReturn(List.of(validTermAndPhases));
     when(licenceScheduleExtensionService.canExtendMoreThanOneOption(any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
       mockMvc.perform(
               post(ReverseRouter.route(
@@ -266,5 +269,24 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
             .with(user(organisationUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderPage_assertForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceScheduleExtensionController.class).renderForm(
+            SCHEDULE_APPLICATION_DETAIL_ID, null)))
+               .with(user(organisationUser)))
+           .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void submitPage_assertForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    mockMvc.perform(post(ReverseRouter.route(on(LicenceScheduleExtensionController.class).submitForm(
+               SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
+               .with(user(organisationUser))
+               .with(csrf()))
+           .andExpect(status().isForbidden());
   }
   }

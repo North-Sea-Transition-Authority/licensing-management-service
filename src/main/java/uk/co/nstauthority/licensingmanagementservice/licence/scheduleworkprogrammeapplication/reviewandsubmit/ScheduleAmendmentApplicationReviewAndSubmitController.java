@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
@@ -25,6 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController
 @Controller
 @RequestMapping("/licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/review-and-submit")
 @ScheduleAmendmentApplicationHasStatus(value = ScheduleWorkProgrammeApplicationStatus.DRAFT)
+@InvokingUserCanAccessScheduleApplication
 public class ScheduleAmendmentApplicationReviewAndSubmitController {
 
   private final LicenceService licenceService;

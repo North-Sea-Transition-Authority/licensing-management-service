@@ -106,6 +106,7 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
     FileUploadComponentAttributes fileUploadComponentAttributes = FileUploadTestUtil.FILE_UPLOAD_COMPONENT_ATTRIBUTES;
 
     when(fileControllerHelperService.fileUploadComponentAttributes(any(List.class), any(Class.class), any(Function.class), any(Function.class))).thenReturn(fileUploadComponentAttributes);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             get(ReverseRouter.route(
@@ -128,6 +129,7 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
   @Test
   void submitValidForm() throws Exception {
     when(licenceScheduleSupportingInformationFormValidator.isValid(any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(
@@ -145,6 +147,7 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
 
     FileUploadComponentAttributes fileUploadComponentAttributes = FileUploadTestUtil.FILE_UPLOAD_COMPONENT_ATTRIBUTES;
     when(fileControllerHelperService.fileUploadComponentAttributes(any(List.class), any(Class.class), any(Function.class), any(Function.class))).thenReturn(fileUploadComponentAttributes);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
 
     mockMvc.perform(
@@ -169,6 +172,7 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
   @Test
   void download() throws Exception {
     when(fileControllerHelperService.download(any(UUID.class), any(Supplier.class), any(ServiceUserDetail.class))).thenReturn(ResponseEntity.ok().build());
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).downloadFile(
         UUID.randomUUID(), scheduleWorkProgrammeApplicationDetail.getId(), null, null)))
@@ -182,6 +186,7 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
   @Test
   void delete() throws Exception {
     when(fileControllerHelperService.delete(any(UUID.class), any(Supplier.class), any(ServiceUserDetail.class))).thenReturn(ResponseEntity.ok().build());
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).deleteFile(
         UUID.randomUUID(), scheduleWorkProgrammeApplicationDetail.getId(), null, null)))
@@ -243,5 +248,38 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
         .andExpect(status().isForbidden());
   }
 
+  @Test
+  void renderPage_assertForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
 
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).renderForm(
+               SCHEDULE_APPLICATION_DETAIL_ID, null)))
+               .with(user(organisationUser)))
+           .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void submitPage_assertForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).submitForm(
+               SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
+               .with(user(organisationUser))
+               .with(csrf()))
+           .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void deleteFile_assertForbiddenUserNoAccess() throws Exception {
+    var fileId = UUID.randomUUID();
+
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(SCHEDULE_APPLICATION_DETAIL_ID)).thenReturn(scheduleWorkProgrammeApplicationDetail);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).deleteFile(
+               fileId, SCHEDULE_APPLICATION_DETAIL_ID, null, null)))
+               .with(user(organisationUser))
+               .with(csrf()))
+           .andExpect(status().isForbidden());
+  }
 }

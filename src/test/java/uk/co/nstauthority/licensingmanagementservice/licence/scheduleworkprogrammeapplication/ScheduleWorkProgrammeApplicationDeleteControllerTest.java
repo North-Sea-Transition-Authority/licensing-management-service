@@ -12,7 +12,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
-import java.util.Collections;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,10 +52,15 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
                                                 .withWuaId(ORGANISATION_USER_WUA_ID)
                                                 .build();
 
-    scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
-                                                                                     .withId(SCHEDULE_APPLICATION_DETAIL_ID)
-                                                                                     .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
-                                                                                     .build();
+    ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
+    scheduleWorkProgrammeApplication.setId(UUID.randomUUID());
+
+    scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationTestUtil
+        .builder()
+        .withId(SCHEDULE_APPLICATION_DETAIL_ID)
+        .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
+        .withScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication)
+        .build();
 
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(SCHEDULE_APPLICATION_DETAIL_ID))
         .thenReturn(scheduleWorkProgrammeApplicationDetail);
@@ -64,8 +68,8 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
 
   @SecurityTest
   void renderForm() throws Exception {
-    when(licenceScheduleSummarySectionService.getSummarySections(any(), any()))
-        .thenReturn(Collections.emptyList());
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any()))
+        .thenReturn(true);
 
     mockMvc.perform(
                get(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationDeleteController.class).renderForm(SCHEDULE_APPLICATION_DETAIL_ID, null)))
@@ -83,6 +87,9 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
 
   @Test
   void deleteScheduleWorkProgrammeApplication() throws Exception {
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any()))
+        .thenReturn(true);
+
     String expectedRedirectUrl = ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null));
 
     mockMvc.perform(
@@ -130,5 +137,31 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
                         .with(csrf())
            )
            .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderPage_assertForbiddenUserNoAccess() throws Exception {
+    var id = UUID.randomUUID();
+
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(scheduleWorkProgrammeApplicationDetail);
+
+    mockMvc.perform(get(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationDeleteController.class).renderForm(id, null)))
+                     .with(user(organisationUser)))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void deleteScheduleWorkProgrammeApplication_assertForbiddenUserNoAccess() throws Exception {
+    var id = UUID.randomUUID();
+
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(scheduleWorkProgrammeApplicationDetail);
+
+    mockMvc.perform(post(ReverseRouter.route(
+            on(ScheduleWorkProgrammeApplicationDeleteController.class).deleteScheduleWorkProgrammeApplication(id, null, null)))
+                     .with(user(organisationUser))
+                     .with(csrf()))
+        .andExpect(status().isForbidden());
   }
 }

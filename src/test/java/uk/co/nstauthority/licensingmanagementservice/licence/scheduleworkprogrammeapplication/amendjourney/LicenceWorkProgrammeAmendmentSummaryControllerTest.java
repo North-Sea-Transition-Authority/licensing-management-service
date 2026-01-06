@@ -27,6 +27,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
@@ -67,11 +68,15 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
 
+    var scheduleWorkProgrammeApplication = new  ScheduleWorkProgrammeApplication();
+    scheduleWorkProgrammeApplication.setId(UUID.randomUUID());
+
     scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setVersionNumber(1);
     scheduleWorkProgrammeApplicationDetail.setStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT);
     scheduleWorkProgrammeApplicationDetail.setId(SCHEDULE_APPLICATION_DETAIL_ID);
     scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(true);
+    scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
 
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(SCHEDULE_APPLICATION_DETAIL_ID)).thenReturn(
         scheduleWorkProgrammeApplicationDetail);
@@ -99,6 +104,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
         scheduleWorkProgrammeApplicationDetail)).thenReturn(form);
     when(licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentSummaryViewsFromScheduleWorkProgrammeApplicationDetail(
         scheduleWorkProgrammeApplicationDetail)).thenReturn(amendmentViews);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             get(ReverseRouter.route(
@@ -126,6 +132,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
   void renderFormWithNoAmendmentsRedirectsToSelectPage() throws Exception {
     when(licenceWorkProgrammeAmendmentRepository.findAllByScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail)).thenReturn(List.of());
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             get(ReverseRouter.route(
@@ -143,6 +150,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
   @Test
   void submitValidForm_withOptionSelectedYesNow() throws Exception {
     when(licenceWorkProgrammeAmendmentSummaryFormValidator.isValid(any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class).submitForm(
             SCHEDULE_APPLICATION_DETAIL_ID,
@@ -165,6 +173,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
   @Test
   void submitValidForm_withOptionSelectedNo() throws Exception {
     when(licenceWorkProgrammeAmendmentSummaryFormValidator.isValid(any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
                post(ReverseRouter.route(
@@ -185,6 +194,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
   @Test
   void submitValidForm_withOptionSelectedYesLater() throws Exception {
     when(licenceWorkProgrammeAmendmentSummaryFormValidator.isValid(any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
                post(ReverseRouter.route(
@@ -221,6 +231,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
     when(licenceWorkProgrammeAmendmentSummaryFormValidator.isValid(any())).thenReturn(false);
     when(licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentSummaryViewsFromScheduleWorkProgrammeApplicationDetail(
         scheduleWorkProgrammeApplicationDetail)).thenReturn(amendmentViews);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(
@@ -275,6 +286,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
         scheduleWorkProgrammeApplicationDetail)).thenReturn(form);
     when(licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentSummaryViewsFromScheduleWorkProgrammeApplicationDetail(
         scheduleWorkProgrammeApplicationDetail)).thenReturn(amendmentViews);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             get(ReverseRouter.route(
@@ -302,6 +314,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
         .build();
 
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class).renderForm(
         id, null))).with(user(organisationUser))).andExpect(status().isForbidden());
@@ -317,11 +330,31 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
         .build();
 
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class).submitForm(
             id, null, null, null)))
             .with(user(organisationUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderPage_assertForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class).renderForm(
+        SCHEDULE_APPLICATION_DETAIL_ID, null))).with(user(organisationUser))).andExpect(status().isForbidden());
+  }
+
+  @Test
+  void submitPage_assertForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class).submitForm(
+               SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
+               .with(user(organisationUser))
+               .with(csrf()))
+           .andExpect(status().isForbidden());
   }
 }

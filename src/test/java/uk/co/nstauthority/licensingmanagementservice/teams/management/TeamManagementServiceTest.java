@@ -32,6 +32,7 @@ import uk.co.fivium.energyportal.starter.serviceproviders.EnergyPortalServicePro
 import uk.co.fivium.energyportalapi.generated.types.User;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
@@ -68,6 +69,9 @@ class TeamManagementServiceTest {
 
   @Mock
   private EnergyPortalServiceProviderUserRolesService energyPortalServiceProviderUserRolesService;
+
+  @Mock
+  private OrganisationUnitQueryService organisationUnitQueryService;
 
   @InjectMocks
   private TeamManagementService teamManagementService;

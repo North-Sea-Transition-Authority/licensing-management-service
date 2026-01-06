@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -26,6 +27,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
@@ -44,7 +46,6 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
   @MockitoBean
   private SwpApplicationRequestPurposeService swpApplicationRequestPurposeService;
 
-
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
   private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder()
       .withWuaId(ORGANISATION_USER_WUA_ID)
@@ -60,9 +61,12 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
 
   @BeforeEach
   void setUp() {
+    var scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
+    scheduleWorkProgrammeApplication.setId(UUID.randomUUID());
     scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
         .withId(SWP_APPLICATION_DETAIL_ID)
         .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
+        .withScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication)
         .build();
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(SWP_APPLICATION_DETAIL_ID)).thenReturn(
         scheduleWorkProgrammeApplicationDetail);
@@ -74,6 +78,7 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
         .thenReturn(new SwpApplicationRequestPurposeForm());
     when(swpApplicationRequestPurposeService.getPageOptions(scheduleWorkProgrammeApplicationDetail))
         .thenReturn(PURPOSE_OPTIONS);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     var resultActions = mockMvc.perform(
             get(ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).renderForm(SWP_APPLICATION_DETAIL_ID, null)))
@@ -87,6 +92,7 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
   @SecurityTest
   void submitForm_validForm() throws Exception {
     when(swpApplicationRequestPurposeValidator.isValid(any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).submitForm(SWP_APPLICATION_DETAIL_ID, null, null, null)))
@@ -106,6 +112,7 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
         .thenReturn(PURPOSE_OPTIONS);
 
     when(swpApplicationRequestPurposeValidator.isValid(any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     var resultActions = mockMvc.perform(
         post(ReverseRouter.route(
@@ -149,6 +156,27 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
             .with(user(USER))
             .with(csrf()))
         .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderPage_assertForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+
+    mockMvc.perform(get(ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).renderForm(
+            SWP_APPLICATION_DETAIL_ID, null)))
+               .with(user(USER)))
+           .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void submitPage_assertForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).submitForm(
+            SWP_APPLICATION_DETAIL_ID, null,null, null)))
+               .with(user(USER))
+               .with(csrf()))
+           .andExpect(status().isForbidden());
   }
 
   private void expectStandardModelExists(ResultActions resultActions) throws Exception {

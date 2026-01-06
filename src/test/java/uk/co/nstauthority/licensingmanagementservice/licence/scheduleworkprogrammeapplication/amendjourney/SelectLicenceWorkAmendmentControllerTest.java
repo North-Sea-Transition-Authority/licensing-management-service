@@ -62,6 +62,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
         ScheduleWorkProgrammeApplicationTestUtil.createScheduleWorkProgrammeApplication(new LicenceScheduleDetail());
 
     var scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
+    scheduleWorkProgrammeApplicationDetail.setId(UUID.randomUUID());
     scheduleWorkProgrammeApplicationDetail.setVersionNumber(1);
     scheduleWorkProgrammeApplicationDetail.setId(SCHEDULE_APPLICATION_DETAIL_ID);
     scheduleWorkProgrammeApplicationDetail.setStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT);
@@ -80,6 +81,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
     var mockWorkProgrammeActivityAmendmentViews = getMockWorkProgrammeActivityAmendmentViews();
 
     when(licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentViews(any())).thenReturn(mockWorkProgrammeActivityAmendmentViews);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             get(ReverseRouter.route(
@@ -101,6 +103,8 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
   void submitValidForm() throws Exception {
 
     when(selectLicenceAmendmentFormValidator.isValid(any(),any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+
     mockMvc.perform(
             post(ReverseRouter.route(
                 on(SelectLicenceWorkAmendmentController.class).submitForm(SCHEDULE_APPLICATION_DETAIL_ID,
@@ -123,6 +127,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
 
     when(
         licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentViews(any())).thenReturn(mockWorkProgrammeActivityAmendmentViews);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(
@@ -174,6 +179,27 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
             .with(user(organisationUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderPage_assertForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+
+    mockMvc.perform(get(ReverseRouter.route(on(SelectLicenceWorkAmendmentController.class).renderForm(
+               SCHEDULE_APPLICATION_DETAIL_ID, null)))
+               .with(user(organisationUser)))
+           .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void submitPage_assertForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(SelectLicenceWorkAmendmentController.class).submitForm(
+               SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
+               .with(user(organisationUser))
+               .with(csrf()))
+           .andExpect(status().isForbidden());
   }
 
   private List<WorkProgrammeActivityAmendmentView> getMockWorkProgrammeActivityAmendmentViews() {

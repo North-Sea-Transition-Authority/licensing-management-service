@@ -8,12 +8,14 @@ import static uk.co.nstauthority.licensingmanagementservice.energyportal.organis
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.energyportalapi.client.organisation.OrganisationApi;
+import uk.co.fivium.energyportalapi.generated.types.OrganisationGroup;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
 
 @ExtendWith(MockitoExtension.class)
@@ -115,5 +117,40 @@ class OrganisationUnitQueryServiceTest {
     assertThat(organisationUnitQueryService.searchOrganisationUnitsWithName("org name"))
         .usingRecursiveComparison()
         .isEqualTo(List.of(orgUnitJson, orgUnitJson2));
+  }
+
+  @Test
+  void findOrganisationGroupIdsByUnitId() {
+    var group1 = new OrganisationGroup();
+    group1.setOrganisationGroupId(101);
+
+    var group2 = new OrganisationGroup();
+    group2.setOrganisationGroupId(102);
+
+    var organisationUnit = new OrganisationUnit();
+    organisationUnit.setOrganisationGroups(List.of(group1, group2));
+
+    when(organisationApi.findOrganisationUnit(
+        eq(1),
+        eq(OrganisationUnitQueryService.ORGANISATION_UNIT_GROUPS_PROJECTION_ROOT),
+        any(),
+        any()
+    )).thenReturn(Optional.of(organisationUnit));
+
+    assertThat(organisationUnitQueryService.findOrganisationGroupIdsByUnitId(1))
+        .containsExactly(101, 102);
+  }
+
+  @Test
+  void findOrganisationGroupIdsByUnitId_ReturnsEmptyListWhenNotFound() {
+    when(organisationApi.findOrganisationUnit(
+        eq(99),
+        any(),
+        any(),
+        any()
+    )).thenReturn(Optional.empty());
+
+    assertThat(organisationUnitQueryService.findOrganisationGroupIdsByUnitId(99))
+        .isEmpty();
   }
 }

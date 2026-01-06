@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.fivium.fileuploadlibrary.fds.FileDeleteResponse;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
@@ -24,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/supporting-information")
+@InvokingUserCanAccessScheduleApplication
 public class LicenceScheduleSupportingInformationController {
 
   public static final String PAGE_TITLE = "Supporting information";

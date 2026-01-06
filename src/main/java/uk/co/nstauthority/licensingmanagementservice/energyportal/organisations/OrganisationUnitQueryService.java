@@ -3,13 +3,16 @@ package uk.co.nstauthority.licensingmanagementservice.energyportal.organisations
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.energyportalapi.client.RequestPurpose;
 import uk.co.fivium.energyportalapi.client.organisation.OrganisationApi;
+import uk.co.fivium.energyportalapi.generated.client.OrganisationUnitProjectionRoot;
 import uk.co.fivium.energyportalapi.generated.client.OrganisationUnitsProjectionRoot;
+import uk.co.fivium.energyportalapi.generated.types.OrganisationGroup;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.correlationid.CorrelationIdUtil;
 
@@ -18,6 +21,9 @@ public class OrganisationUnitQueryService {
 
   public static final OrganisationUnitsProjectionRoot ORGANISATION_UNITS_PROJECTION_ROOT
       = new OrganisationUnitsProjectionRoot().organisationUnitId().name().registeredNumber();
+
+  public static final OrganisationUnitProjectionRoot ORGANISATION_UNIT_GROUPS_PROJECTION_ROOT
+      = new OrganisationUnitProjectionRoot().isDuplicate().organisationUnitId().organisationGroups().organisationGroupId().root();
 
   private final OrganisationApi organisationApi;
 
@@ -51,6 +57,28 @@ public class OrganisationUnitQueryService {
         new RequestPurpose("Get organisation units by ids"),
         CorrelationIdUtil.getLogCorrelationId()
     );
+  }
+
+  public List<Integer> findOrganisationGroupIdsByUnitId(Integer organisationUnitId) {
+    return organisationApi.findOrganisationUnit(
+                              organisationUnitId,
+                              ORGANISATION_UNIT_GROUPS_PROJECTION_ROOT,
+                              new RequestPurpose("Find organisation unit by ID"),
+                              CorrelationIdUtil.getLogCorrelationId())
+                          .map(this::organisationGroupIdsFromOrganisationUnit)
+                          .orElse(List.of());
+  }
+
+  private List<Integer> organisationGroupIdsFromOrganisationUnit(OrganisationUnit organisationUnit) {
+    if (organisationUnit.getOrganisationGroups() == null) {
+      return List.of();
+    }
+
+    return organisationUnit.getOrganisationGroups()
+                           .stream()
+                           .map(OrganisationGroup::getOrganisationGroupId)
+                           .filter(Objects::nonNull)
+                           .toList();
   }
 
   public List<OrganisationUnitJson> searchOrganisationUnitsWithName(String organisationName) {

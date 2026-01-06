@@ -14,6 +14,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -49,6 +50,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
   ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService;
 
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail;
+  private static final UUID SCHEDULE_APPLICATION_DETAIL_ID = UUID.randomUUID();
 
   @BeforeEach
   void setUp() {
@@ -56,11 +58,13 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
     LicenceScheduleDetail licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(LicenceScheduleTestUtil.createLicenceSchedule(licence));
     scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationTestUtil
         .builder()
-        .withId(UUID.randomUUID())
+        .withId(SCHEDULE_APPLICATION_DETAIL_ID)
         .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
         .withScheduleWorkProgrammeApplication(
             ScheduleWorkProgrammeApplicationTestUtil.createScheduleWorkProgrammeApplication(licenceScheduleDetail))
         .build();
+
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(SCHEDULE_APPLICATION_DETAIL_ID)).thenReturn(scheduleWorkProgrammeApplicationDetail);
   }
 
   @SecurityTest
@@ -71,6 +75,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(scheduleWorkProgrammeApplicationDetail);
     when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
     when(licenceScheduleSummarySectionService.getSummarySections(any(), any())).thenReturn(List.of(new SummarySection(1, List.of())));
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
     mockMvc
         .perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
             id,
@@ -101,7 +106,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
     when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
     when(licenceScheduleSummarySectionService.getSummarySections(any(), any())).thenReturn(List.of(new SummarySection(1, List.of())));
     when(scheduleWorkProgrammeApplicationTaskListService.isSubmittable(any(), any())).thenReturn(false);
-
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
     mockMvc
         .perform(post(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class)
             .submitApplication(id, null, null, null)))
@@ -129,6 +134,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(scheduleWorkProgrammeApplicationDetail);
     when(scheduleWorkProgrammeApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
     when(scheduleWorkProgrammeApplicationService.submitApplication(any(), any())).thenReturn(application);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class)
                 .submitApplication(id, null, null, null)))
@@ -151,6 +157,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
         .build();
 
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
         id, null, null))).with(user(USER))).andExpect(status().isForbidden());
@@ -172,5 +179,24 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
             .with(user(USER))
             .with(csrf()))
         .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderPage_assertForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    mockMvc.perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
+            SCHEDULE_APPLICATION_DETAIL_ID, null, null)))
+               .with(user(USER)))
+           .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void submitPage_assertForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    mockMvc.perform(post(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).submitApplication(
+            SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
+               .with(user(USER))
+               .with(csrf()))
+           .andExpect(status().isForbidden());
   }
 }

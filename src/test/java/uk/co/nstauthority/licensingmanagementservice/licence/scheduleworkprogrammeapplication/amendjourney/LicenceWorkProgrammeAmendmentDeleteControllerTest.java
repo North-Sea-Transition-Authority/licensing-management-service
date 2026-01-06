@@ -26,6 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCategory;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
@@ -75,11 +76,14 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
 
+    var scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
+    scheduleWorkProgrammeApplication.setId(UUID.randomUUID());
     scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setVersionNumber(1);
     scheduleWorkProgrammeApplicationDetail.setId(SCHEDULE_APPLICATION_DETAIL_ID);
     scheduleWorkProgrammeApplicationDetail.setStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT);
     scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(true);
+    scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
 
     workProgrammeActivity.setCategory(WorkProgrammeActivityCategory.WELL_TEST);
     when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(any())).thenReturn(workProgrammeActivity);
@@ -95,6 +99,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
     when(licenceWorkProgrammeAmendmentSummaryService.createSummaryViewFromWorkProgrammeAmendments(any(), any())).thenReturn(
         new LicenceWorkProgrammeAmendmentSummaryView("duration", "additionalInfo", "label", "extensionRequired",
             "information", LicenceWorkProgrammeAmendmentSummaryMode.VIEW, "changeUrl", "deleteUrl",false,false));
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class).renderForm(
         WORK_PROGRAMME_ACTIVITY_ID, null, SCHEDULE_APPLICATION_DETAIL_ID, null)))
@@ -117,6 +122,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
     when(licenceWorkProgrammeAmendmentSummaryService.createSummaryViewFromWorkProgrammeAmendments(any(), any())).thenReturn(
         new LicenceWorkProgrammeAmendmentSummaryView("duration", "additionalInfo", "label", "extensionRequired",
             "information", LicenceWorkProgrammeAmendmentSummaryMode.VIEW, "changeUrl", "deleteUrl",false,false));
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class).renderForm(
         WORK_PROGRAMME_ACTIVITY_ID, null, SCHEDULE_APPLICATION_DETAIL_ID, null)))
@@ -135,6 +141,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
     when(licenceWorkProgrammeAmendmentService.getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(
         scheduleWorkProgrammeApplicationDetail))
         .thenReturn(List.of(remainingAmendment));
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class)
                 .deleteLicenceWorkProgrammeAmendment(
@@ -163,6 +170,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
     when(licenceWorkProgrammeAmendmentService.getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(
         scheduleWorkProgrammeApplicationDetail))
         .thenReturn(List.of());
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class)
             .deleteLicenceWorkProgrammeAmendment(
@@ -189,6 +197,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
     when(licenceWorkProgrammeAmendmentService.getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(
         scheduleWorkProgrammeApplicationDetail))
         .thenReturn(null);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class)
             .deleteLicenceWorkProgrammeAmendment(
@@ -240,4 +249,23 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
         .andExpect(status().isForbidden());
   }
 
+  @Test
+  void renderPage_assertForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class).renderForm(
+        UUID.randomUUID(), null,SCHEDULE_APPLICATION_DETAIL_ID , null)))
+        .with(user(organisationUser))).andExpect(status().isForbidden());
+  }
+
+  @Test
+  void submitPage_assertForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class).deleteLicenceWorkProgrammeAmendment(
+               UUID.randomUUID(), null, SCHEDULE_APPLICATION_DETAIL_ID, null, null)))
+               .with(user(organisationUser))
+               .with(csrf()))
+           .andExpect(status().isForbidden());
+  }
 }

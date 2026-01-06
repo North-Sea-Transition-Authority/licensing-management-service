@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.reviewandsubmit.LicenceScheduleSummarySectionService;
@@ -20,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController
 @Controller
 @RequestMapping("/licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/delete-application")
 @ScheduleAmendmentApplicationHasStatus(value = ScheduleWorkProgrammeApplicationStatus.DRAFT)
+@InvokingUserCanAccessScheduleApplication
 public class ScheduleWorkProgrammeApplicationDeleteController {
 
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;

@@ -87,7 +87,7 @@ class LicenceScheduleRateFormServiceTest {
 
     when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
 
-    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail);
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate());
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
@@ -128,7 +128,7 @@ class LicenceScheduleRateFormServiceTest {
 
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
 
-    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail);
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate());
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
@@ -170,7 +170,7 @@ class LicenceScheduleRateFormServiceTest {
 
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
 
-    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail);
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate());
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
@@ -213,7 +213,7 @@ class LicenceScheduleRateFormServiceTest {
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
 
-    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail);
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate());
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
@@ -258,7 +258,7 @@ class LicenceScheduleRateFormServiceTest {
     var duration = new ThreeFieldDuration(1, 0, 0);
     form.getRelativeDuration().setFromThreeFieldDuration(duration);
 
-    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail);
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate());
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
@@ -304,7 +304,7 @@ class LicenceScheduleRateFormServiceTest {
     var duration = new ThreeFieldDuration(1, 0, 0);
     form.getRelativeDuration().setFromThreeFieldDuration(duration);
 
-    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail);
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate());
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
@@ -329,6 +329,143 @@ class LicenceScheduleRateFormServiceTest {
     );
 
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  @Test
+  void getFormFromRate_termOption() {
+    var term = new LicenceScheduleTerm();
+    term.setId(UUID.randomUUID());
+
+    var rate = new LicenceScheduleRate();
+    rate.setRateDefinitionOption(RateDefinitionOption.TERM);
+    rate.setRentalRate(BigDecimal.ONE);
+    rate.setComments("Comments");
+    rate.setLicenceScheduleTerm(term);
+
+    var result = licenceScheduleRateFormService.getFormFromRate(rate);
+
+    assertThat(result).extracting(
+        LicenceScheduleRateForm::getRateDefinitionOption,
+        form -> form.getRentalRate().getAsBigDecimal().get(),
+        LicenceScheduleRateForm::getComments,
+        LicenceScheduleRateForm::getLicenceScheduleTermId,
+        LicenceScheduleRateForm::getLicenceSchedulePhaseId,
+        LicenceScheduleRateForm::getRelativeEventId,
+        LicenceScheduleRateForm::getRateRelativeDateOption
+    ).containsExactly(
+        rate.getRateDefinitionOption(),
+        rate.getRentalRate(),
+        rate.getComments(),
+        rate.getLicenceScheduleTerm().getId().toString(),
+        null,
+        null,
+        null
+    );
+  }
+
+  @Test
+  void getFormFromRate_phaseOption() {
+    var phase = new LicenceSchedulePhase();
+    phase.setId(UUID.randomUUID());
+
+    var rate = new LicenceScheduleRate();
+    rate.setRateDefinitionOption(RateDefinitionOption.PHASE);
+    rate.setRentalRate(BigDecimal.ONE);
+    rate.setComments("Comments");
+    rate.setLicenceSchedulePhase(phase);
+
+    var result = licenceScheduleRateFormService.getFormFromRate(rate);
+
+    assertThat(result).extracting(
+        LicenceScheduleRateForm::getRateDefinitionOption,
+        form -> form.getRentalRate().getAsBigDecimal().get(),
+        LicenceScheduleRateForm::getComments,
+        LicenceScheduleRateForm::getLicenceScheduleTermId,
+        LicenceScheduleRateForm::getLicenceSchedulePhaseId,
+        LicenceScheduleRateForm::getRelativeEventId,
+        LicenceScheduleRateForm::getRateRelativeDateOption
+    ).containsExactly(
+        rate.getRateDefinitionOption(),
+        rate.getRentalRate(),
+        rate.getComments(),
+        null,
+        rate.getLicenceSchedulePhase().getId().toString(),
+        null,
+        null
+    );
+  }
+
+  @Test
+  void getFormFromRate_customOption_onStartDate() {
+    var phase = new LicenceSchedulePhase();
+    phase.setId(UUID.randomUUID());
+
+    var rate = new LicenceScheduleRate();
+    rate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
+    rate.setRentalRate(BigDecimal.ONE);
+    rate.setComments("Comments");
+    rate.setLicenceSchedulePhase(phase);
+    rate.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
+
+    var result = licenceScheduleRateFormService.getFormFromRate(rate);
+
+    assertThat(result).extracting(
+        LicenceScheduleRateForm::getRateDefinitionOption,
+        form -> form.getRentalRate().getAsBigDecimal().get(),
+        LicenceScheduleRateForm::getComments,
+        LicenceScheduleRateForm::getLicenceScheduleTermId,
+        LicenceScheduleRateForm::getLicenceSchedulePhaseId,
+        LicenceScheduleRateForm::getRelativeEventId,
+        LicenceScheduleRateForm::getRateRelativeDateOption
+    ).containsExactly(
+        rate.getRateDefinitionOption(),
+        rate.getRentalRate(),
+        rate.getComments(),
+        null,
+        null,
+        rate.getLicenceSchedulePhase().getId().toString(),
+        rate.getRateRelativeDateOption()
+    );
+  }
+
+  @Test
+  void getFormFromRate_customOption_onRelativeDate() {
+    var phase = new LicenceSchedulePhase();
+    phase.setId(UUID.randomUUID());
+
+    var rate = new LicenceScheduleRate();
+    rate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
+    rate.setRentalRate(BigDecimal.ONE);
+    rate.setComments("Comments");
+    rate.setLicenceSchedulePhase(phase);
+    rate.setRateRelativeDateOption(RateRelativeDateOption.RELATIVE_TO_START_DATE);
+    rate.setRelativeDuration(new ThreeFieldDuration(1, 2, 3));
+
+    var result = licenceScheduleRateFormService.getFormFromRate(rate);
+
+    assertThat(result).extracting(
+        LicenceScheduleRateForm::getRateDefinitionOption,
+        form -> form.getRentalRate().getAsBigDecimal().get(),
+        LicenceScheduleRateForm::getComments,
+        LicenceScheduleRateForm::getLicenceScheduleTermId,
+        LicenceScheduleRateForm::getLicenceSchedulePhaseId,
+        LicenceScheduleRateForm::getRelativeEventId,
+        LicenceScheduleRateForm::getRateRelativeDateOption
+    ).containsExactly(
+        rate.getRateDefinitionOption(),
+        rate.getRentalRate(),
+        rate.getComments(),
+        null,
+        null,
+        rate.getLicenceSchedulePhase().getId().toString(),
+        rate.getRateRelativeDateOption()
+    );
+
+    var duration = result.getRelativeDuration().toThreeFieldDuration();
+
+    assertThat(duration.days()).isEqualTo(rate.getRelativeDuration().days());
+    assertThat(duration.months()).isEqualTo(rate.getRelativeDuration().months());
+    assertThat(duration.years()).isEqualTo(rate.getRelativeDuration().years());
   }
 
   @Test

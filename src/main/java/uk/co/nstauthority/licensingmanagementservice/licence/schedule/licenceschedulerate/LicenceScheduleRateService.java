@@ -2,7 +2,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesc
 
 import jakarta.transaction.Transactional;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -14,6 +16,11 @@ public class LicenceScheduleRateService {
 
   public LicenceScheduleRateService(LicenceScheduleRateRepository licenceScheduleRateRepository) {
     this.licenceScheduleRateRepository = licenceScheduleRateRepository;
+  }
+
+  public LicenceScheduleRate getRateByIdOrThrow(UUID id) {
+    return licenceScheduleRateRepository.findById(id)
+        .orElseThrow(() -> new LmsEntityNotFoundException("LicenceScheduleRate not found", id));
   }
 
   public List<LicenceScheduleRate> getLicenceScheduleRatesByTerm(

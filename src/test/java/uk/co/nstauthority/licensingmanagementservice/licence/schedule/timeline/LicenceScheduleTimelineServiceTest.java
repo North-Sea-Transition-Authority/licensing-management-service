@@ -247,7 +247,8 @@ class LicenceScheduleTimelineServiceTest {
         phase.getStartDate(),
         "1 January 2025",
         "£1.00",
-        "",
+        ReverseRouter.route(on(LicenceScheduleRateController.class)
+            .renderUpdateLicenceScheduleRateForm(phaseRate.getId())),
         ""
     );
 
@@ -300,7 +301,8 @@ class LicenceScheduleTimelineServiceTest {
         term2.getStartDate(),
         "1 January 2026",
         "£2.00",
-        "",
+        ReverseRouter.route(on(LicenceScheduleRateController.class)
+            .renderUpdateLicenceScheduleRateForm(term2Rate.getId())),
         ""
     );
 

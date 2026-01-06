@@ -46,7 +46,7 @@ class WorkProgrammeActivityServiceTest {
   }
 
   @Test
-  void getWorkProgrammeActivityByIdOrThrow_termNotFound() {
+  void getWorkProgrammeActivityByIdOrThrow_activityNotFound() {
     when(workProgrammeActivityRepository.findById(any())).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(UUID.randomUUID()))

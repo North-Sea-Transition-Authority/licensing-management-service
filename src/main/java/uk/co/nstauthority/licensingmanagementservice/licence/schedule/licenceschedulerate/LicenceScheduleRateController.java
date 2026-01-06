@@ -14,27 +14,30 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Controller
-@RequestMapping("licence/schedule/{licenceScheduleDetailId}/rates/create")
+@RequestMapping("licence/schedule")
 public class LicenceScheduleRateController {
 
   private final LicenceScheduleRateFormService licenceScheduleRateFormService;
   private final LicenceScheduleRateFormValidator licenceScheduleRateFormValidator;
   private final LicenceService licenceService;
   private final LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
+  private final LicenceScheduleRateService licenceScheduleRateService;
 
   public LicenceScheduleRateController(
       LicenceScheduleRateFormService licenceScheduleRateFormService,
       LicenceScheduleRateFormValidator licenceScheduleRateFormValidator,
       LicenceService licenceService,
-      LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService
+      LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService,
+      LicenceScheduleRateService licenceScheduleRateService
   ) {
     this.licenceScheduleRateFormService = licenceScheduleRateFormService;
     this.licenceScheduleRateFormValidator = licenceScheduleRateFormValidator;
     this.licenceService = licenceService;
     this.licenceScheduleRelativeOptionsService = licenceScheduleRelativeOptionsService;
+    this.licenceScheduleRateService = licenceScheduleRateService;
   }
 
-  @GetMapping
+  @GetMapping("/{licenceScheduleDetailId}/rates/create")
   public ModelAndView renderNewLicenceScheduleRateForm(
       @PathVariable UUID licenceScheduleDetailId,
       LicenceScheduleDetail licenceScheduleDetail
@@ -42,7 +45,7 @@ public class LicenceScheduleRateController {
     return getScheduleRateModelAndView(new LicenceScheduleRateForm(), licenceScheduleDetail);
   }
 
-  @PostMapping
+  @PostMapping("/{licenceScheduleDetailId}/rates/create")
   ModelAndView submitNewLicenceScheduleRateForm(
       @PathVariable UUID licenceScheduleDetailId,
       LicenceScheduleDetail licenceScheduleDetail,
@@ -53,9 +56,47 @@ public class LicenceScheduleRateController {
       return getScheduleRateModelAndView(form, licenceScheduleDetail);
     }
 
-    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail);
+    licenceScheduleRateFormService.saveRateFromForm(
+        form,
+        licenceScheduleDetail,
+        new LicenceScheduleRate()
+    );
 
     return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
+  }
+
+  @GetMapping("/rate/{licenceScheduleRateId}/update")
+  public ModelAndView renderUpdateLicenceScheduleRateForm(
+      @PathVariable UUID licenceScheduleRateId
+  ) {
+    var rate = licenceScheduleRateService.getRateByIdOrThrow(licenceScheduleRateId);
+
+    return getScheduleRateModelAndView(
+        licenceScheduleRateFormService.getFormFromRate(rate),
+        rate.getLicenceScheduleDetail()
+    );
+  }
+
+  @PostMapping("/rate/{licenceScheduleRateId}/update")
+  ModelAndView submitUpdateLicenceScheduleRateForm(
+      @PathVariable UUID licenceScheduleRateId,
+      @ModelAttribute("form") LicenceScheduleRateForm form,
+      BindingResult bindingResult
+  ) {
+    var rate = licenceScheduleRateService.getRateByIdOrThrow(licenceScheduleRateId);
+    var detail = rate.getLicenceScheduleDetail();
+
+    if (!licenceScheduleRateFormValidator.isValid(form, bindingResult)) {
+      return getScheduleRateModelAndView(form, detail);
+    }
+
+    licenceScheduleRateFormService.saveRateFromForm(
+        form,
+        detail,
+        rate
+    );
+
+    return detail.getScheduleTimelineRedirectUrl();
   }
 
   private ModelAndView getScheduleRateModelAndView(LicenceScheduleRateForm form, LicenceScheduleDetail licenceScheduleDetail) {

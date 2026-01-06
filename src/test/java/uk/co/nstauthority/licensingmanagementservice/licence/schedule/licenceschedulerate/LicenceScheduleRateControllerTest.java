@@ -15,6 +15,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
@@ -43,6 +44,9 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
+
+  @MockitoBean
+  private LicenceScheduleRateService licenceScheduleRateService;
 
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
@@ -98,13 +102,13 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
     when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class))).thenReturn(true);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleRateController.class).renderNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null)))
+            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null, null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(licenceScheduleRateFormService).saveRateFromForm(any(), eq(licenceScheduleDetail));
+    verify(licenceScheduleRateFormService).saveRateFromForm(any(), eq(licenceScheduleDetail), any());
   }
 
   @Test
@@ -119,7 +123,7 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(pageCaption);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleRateController.class).renderNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null)))
+            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null, null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
@@ -133,7 +137,92 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("pageCaption", pageCaption))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
 
-    verify(licenceScheduleRateFormService, never()).saveRateFromForm(any(), any());
+    verify(licenceScheduleRateFormService, never()).saveRateFromForm(any(), any(), any());
+  }
+
+  @SecurityTest
+  void renderUpdateLicenceScheduleRateForm() throws Exception {
+    var pageCaption = "P001";
+
+    var rate = new LicenceScheduleRate();
+    rate.setId(UUID.randomUUID());
+    rate.setLicenceScheduleDetail(licenceScheduleDetail);
+    when(licenceScheduleRateService.getRateByIdOrThrow(rate.getId())).thenReturn(rate);
+
+    var form = new LicenceScheduleRateForm();
+    when(licenceScheduleRateFormService.getFormFromRate(rate)).thenReturn(form);
+
+    when(licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRateFormService.getRateDefinitionOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getRelativeEventOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(pageCaption);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceScheduleRateController.class).renderUpdateLicenceScheduleRateForm(rate.getId())))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/licence/schedule/createScheduleRate"))
+        .andExpect(model().attribute("termOptions", Map.of()))
+        .andExpect(model().attribute("phaseOptions", Map.of()))
+        .andExpect(model().attribute("rateDefinitionOptions", Map.of()))
+        .andExpect(model().attribute("relativeEventOptions", Map.of()))
+        .andExpect(model().attribute("relativeDateOptions", RateRelativeDateOption.getRateRelativeDateOptions()))
+        .andExpect(model().attribute("pageCaption", pageCaption))
+        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
+  }
+
+  @Test
+  void submitUpdateLicenceScheduleRateForm() throws Exception {
+    var rate = new LicenceScheduleRate();
+    rate.setId(UUID.randomUUID());
+    rate.setLicenceScheduleDetail(licenceScheduleDetail);
+
+    when(licenceScheduleRateService.getRateByIdOrThrow(rate.getId())).thenReturn(rate);
+    when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class))).thenReturn(true);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitUpdateLicenceScheduleRateForm(rate.getId(), null, null)))
+                .with(user(organisationUser))
+                .with(csrf())
+        )
+        .andExpect(status().is3xxRedirection());
+
+    verify(licenceScheduleRateFormService).saveRateFromForm(any(), eq(licenceScheduleDetail), eq(rate));
+  }
+
+  @Test
+  void submitUpdateLicenceScheduleRateForm_invalid() throws Exception {
+    when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class))).thenReturn(false);
+
+    var pageCaption = "P001";
+
+    var rate = new LicenceScheduleRate();
+    rate.setId(UUID.randomUUID());
+    rate.setLicenceScheduleDetail(licenceScheduleDetail);
+    when(licenceScheduleRateService.getRateByIdOrThrow(rate.getId())).thenReturn(rate);
+    when(licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRateFormService.getRateDefinitionOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(pageCaption);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitUpdateLicenceScheduleRateForm(rate.getId(), null, null)))
+                .with(user(organisationUser))
+                .with(csrf())
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/licence/schedule/createScheduleRate"))
+        .andExpect(model().attribute("termOptions", Map.of()))
+        .andExpect(model().attribute("phaseOptions", Map.of()))
+        .andExpect(model().attribute("rateDefinitionOptions", Map.of()))
+        .andExpect(model().attribute("relativeEventOptions", Map.of()))
+        .andExpect(model().attribute("relativeDateOptions", RateRelativeDateOption.getRateRelativeDateOptions()))
+        .andExpect(model().attribute("pageCaption", pageCaption))
+        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
+
+    verify(licenceScheduleRateFormService, never()).saveRateFromForm(any(), any(), any());
   }
 
 }

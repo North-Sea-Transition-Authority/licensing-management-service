@@ -1,9 +1,13 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import java.time.LocalDate;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateDefinitionOption;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 public record TimelineRateView(
     String title,
@@ -31,7 +35,8 @@ public record TimelineRateView(
         //TODO LMS1-195: change to duration once end date is calculated
         DateFormatUtil.convertToDisplayText(licenceScheduleRate.getStartDate()),
         "£%s".formatted(licenceScheduleRate.getRentalRate().toString()),
-        "",
+        ReverseRouter.route(on(LicenceScheduleRateController.class)
+            .renderUpdateLicenceScheduleRateForm(licenceScheduleRate.getId())),
         ""
     );
   }

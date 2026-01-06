@@ -1,16 +1,21 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
@@ -28,6 +33,23 @@ class LicenceScheduleRateServiceTest {
   private final LicenceScheduleTerm term = new LicenceScheduleTerm();
   private final LicenceSchedulePhase phase = new LicenceSchedulePhase();
   private final LicenceScheduleRate rate = new LicenceScheduleRate();
+
+  @Test
+  void getRateByIdOrThrow() {
+    rate.setId(UUID.randomUUID());
+
+    when(licenceScheduleRateRepository.findById(rate.getId())).thenReturn(Optional.of(rate));
+
+    assertThat(licenceScheduleRateService.getRateByIdOrThrow(rate.getId())).isEqualTo(rate);
+  }
+
+  @Test
+  void getRateByIdOrThrow_activityNotFound() {
+    when(licenceScheduleRateRepository.findById(any())).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> licenceScheduleRateService.getRateByIdOrThrow(UUID.randomUUID()))
+        .isInstanceOf(LmsEntityNotFoundException.class);
+  }
 
   @Test
   void getLicenceScheduleRatesByTerm_forTerm() {

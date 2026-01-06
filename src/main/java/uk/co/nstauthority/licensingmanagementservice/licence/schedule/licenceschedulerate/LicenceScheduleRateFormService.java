@@ -44,8 +44,11 @@ public class LicenceScheduleRateFormService {
   }
 
   @Transactional
-  void saveRateFromForm(LicenceScheduleRateForm form, LicenceScheduleDetail licenceScheduleDetail) {
-    var licenceScheduleRate = new LicenceScheduleRate();
+  void saveRateFromForm(
+      LicenceScheduleRateForm form,
+      LicenceScheduleDetail licenceScheduleDetail,
+      LicenceScheduleRate licenceScheduleRate
+  ) {
     licenceScheduleRate.setLicenceScheduleDetail(licenceScheduleDetail);
     licenceScheduleRate.setRateDefinitionOption(form.getRateDefinitionOption());
 
@@ -81,6 +84,47 @@ public class LicenceScheduleRateFormService {
 
     licenceScheduleRateRepository.save(licenceScheduleRate);
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  public LicenceScheduleRateForm getFormFromRate(LicenceScheduleRate licenceScheduleRate) {
+    LicenceScheduleRateForm form = new LicenceScheduleRateForm();
+    form.getRentalRate().setInputValue(licenceScheduleRate.getRentalRate().toString());
+    form.setComments(licenceScheduleRate.getComments());
+
+    var definitionOption = licenceScheduleRate.getRateDefinitionOption();
+    form.setRateDefinitionOption(definitionOption);
+
+    var termIdString = licenceScheduleRate.getLicenceScheduleTerm() != null
+        ? String.valueOf(licenceScheduleRate.getLicenceScheduleTerm().getId())
+        : null;
+
+    var phaseIdString = licenceScheduleRate.getLicenceSchedulePhase() != null
+        ? String.valueOf(licenceScheduleRate.getLicenceSchedulePhase().getId())
+        : null;
+
+    if (definitionOption.equals(RateDefinitionOption.TERM)) {
+      form.setLicenceScheduleTermId(termIdString);
+    }
+
+    if (definitionOption.equals(RateDefinitionOption.PHASE)) {
+      form.setLicenceSchedulePhaseId(phaseIdString);
+    }
+
+    if (definitionOption.equals(RateDefinitionOption.CUSTOM_PERIOD)) {
+      form.setRateRelativeDateOption(licenceScheduleRate.getRateRelativeDateOption());
+
+      var relativeIdString = termIdString != null
+          ? termIdString
+          : phaseIdString;
+
+      form.setRelativeEventId(relativeIdString);
+
+      if (licenceScheduleRate.getRateRelativeDateOption().equals(RateRelativeDateOption.RELATIVE_TO_START_DATE)) {
+        form.getRelativeDuration().setFromThreeFieldDuration(licenceScheduleRate.getRelativeDuration());
+      }
+    }
+
+    return form;
   }
 
   private void setRelativeEvent(

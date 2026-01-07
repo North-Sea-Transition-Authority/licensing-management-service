@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateDefinitionOption;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -37,7 +38,8 @@ public record TimelineRateView(
         "£%s".formatted(licenceScheduleRate.getRentalRate().toString()),
         ReverseRouter.route(on(LicenceScheduleRateController.class)
             .renderUpdateLicenceScheduleRateForm(licenceScheduleRate.getId())),
-        ""
+        ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
+            .renderDeleteRatePage(licenceScheduleRate.getId()))
     );
   }
 

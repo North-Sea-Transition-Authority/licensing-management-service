@@ -142,7 +142,7 @@ public class LicenceScheduleCalculationService {
   void calculateAndSaveRateStartDatesForTerm(LicenceScheduleTerm licenceScheduleTerm) {
     var termStartDate = licenceScheduleTerm.getStartDate();
 
-    var linkedRates = licenceScheduleRateService.getLicenceScheduleRatesForTermAndDefinitionOption(
+    var linkedRates = licenceScheduleRateService.getActiveLicenceScheduleRatesForTermAndDefinitionOption(
         licenceScheduleTerm,
         RateDefinitionOption.TERM
     );
@@ -151,7 +151,7 @@ public class LicenceScheduleCalculationService {
       linkedRate.setStartDate(termStartDate);
     }
 
-    var relativeRates = licenceScheduleRateService.getLicenceScheduleRatesForTermAndDefinitionOption(
+    var relativeRates = licenceScheduleRateService.getActiveLicenceScheduleRatesForTermAndDefinitionOption(
         licenceScheduleTerm,
         RateDefinitionOption.CUSTOM_PERIOD
     );
@@ -171,7 +171,7 @@ public class LicenceScheduleCalculationService {
   void calculateAndSaveRateStartDatesForPhase(LicenceSchedulePhase licenceSchedulePhase) {
     var phaseStartDate = licenceSchedulePhase.getStartDate();
 
-    var linkedRates = licenceScheduleRateService.getLicenceScheduleRatesForPhaseAndDefinitionOption(
+    var linkedRates = licenceScheduleRateService.getActiveLicenceScheduleRatesForPhaseAndDefinitionOption(
         licenceSchedulePhase,
         RateDefinitionOption.PHASE
     );
@@ -180,7 +180,7 @@ public class LicenceScheduleCalculationService {
       linkedRate.setStartDate(phaseStartDate);
     }
 
-    var relativeRates = licenceScheduleRateService.getLicenceScheduleRatesForPhaseAndDefinitionOption(
+    var relativeRates = licenceScheduleRateService.getActiveLicenceScheduleRatesForPhaseAndDefinitionOption(
         licenceSchedulePhase,
         RateDefinitionOption.CUSTOM_PERIOD
     );

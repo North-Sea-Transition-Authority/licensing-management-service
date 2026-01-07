@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -50,6 +51,7 @@ public class LicenceScheduleRateFormService {
       LicenceScheduleRate licenceScheduleRate
   ) {
     licenceScheduleRate.setLicenceScheduleDetail(licenceScheduleDetail);
+    licenceScheduleRate.setStatus(LicenceScheduleEventStatus.ACTIVE);
     licenceScheduleRate.setRateDefinitionOption(form.getRateDefinitionOption());
 
     if (form.getRateDefinitionOption().equals(RateDefinitionOption.TERM)) {

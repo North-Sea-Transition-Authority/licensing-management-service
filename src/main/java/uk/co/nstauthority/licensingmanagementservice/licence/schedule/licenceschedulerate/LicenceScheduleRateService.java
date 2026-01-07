@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
@@ -23,33 +24,36 @@ public class LicenceScheduleRateService {
         .orElseThrow(() -> new LmsEntityNotFoundException("LicenceScheduleRate not found", id));
   }
 
-  public List<LicenceScheduleRate> getLicenceScheduleRatesByTerm(
+  public List<LicenceScheduleRate> getActiveLicenceScheduleRatesByTerm(
       LicenceScheduleTerm licenceScheduleTerm
   ) {
-    var ratesByTerm = licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOption(
+    var ratesByTerm = licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOptionAndStatus(
         licenceScheduleTerm,
-        RateDefinitionOption.TERM
+        RateDefinitionOption.TERM,
+        LicenceScheduleEventStatus.ACTIVE
     );
 
     if (!ratesByTerm.isEmpty()) {
       return ratesByTerm;
     }
 
-    return licenceScheduleRateRepository.findAllByLicenceScheduleDetailAndStartDateBetween(
+    return licenceScheduleRateRepository.findAllByLicenceScheduleDetailAndStartDateBetweenAndStatus(
         licenceScheduleTerm.getLicenceScheduleDetail(),
         licenceScheduleTerm.getStartDate(),
-        licenceScheduleTerm.getEndDate()
+        licenceScheduleTerm.getEndDate(),
+        LicenceScheduleEventStatus.ACTIVE
     );
   }
 
-  public List<LicenceScheduleRate> getLicenceScheduleRatesByPhase(
+  public List<LicenceScheduleRate> getActiveLicenceScheduleRatesByPhase(
       LicenceSchedulePhase licenceSchedulePhase,
       PhaseType firstPhaseType
   ) {
     if (licenceSchedulePhase.getPhaseType().equals(firstPhaseType)) {
-      var ratesByTerm = licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOption(
+      var ratesByTerm = licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOptionAndStatus(
           licenceSchedulePhase.getLicenceScheduleTerm(),
-          RateDefinitionOption.TERM
+          RateDefinitionOption.TERM,
+          LicenceScheduleEventStatus.ACTIVE
       );
 
       if (!ratesByTerm.isEmpty()) {
@@ -57,44 +61,54 @@ public class LicenceScheduleRateService {
       }
     }
 
-    var ratesByPhase = licenceScheduleRateRepository.findAllByLicenceSchedulePhaseAndRateDefinitionOption(
+    var ratesByPhase = licenceScheduleRateRepository.findAllByLicenceSchedulePhaseAndRateDefinitionOptionAndStatus(
         licenceSchedulePhase,
-        RateDefinitionOption.PHASE
+        RateDefinitionOption.PHASE,
+        LicenceScheduleEventStatus.ACTIVE
     );
 
     if (!ratesByPhase.isEmpty()) {
       return ratesByPhase;
     }
 
-    return licenceScheduleRateRepository.findAllByLicenceScheduleDetailAndStartDateBetween(
+    return licenceScheduleRateRepository.findAllByLicenceScheduleDetailAndStartDateBetweenAndStatus(
         licenceSchedulePhase.getLicenceScheduleDetail(),
         licenceSchedulePhase.getStartDate(),
-        licenceSchedulePhase.getEndDate()
+        licenceSchedulePhase.getEndDate(),
+        LicenceScheduleEventStatus.ACTIVE
     );
   }
 
-  public List<LicenceScheduleRate> getLicenceScheduleRatesForTermAndDefinitionOption(
+  public List<LicenceScheduleRate> getActiveLicenceScheduleRatesForTermAndDefinitionOption(
       LicenceScheduleTerm licenceScheduleTerm,
       RateDefinitionOption rateDefinitionOption
   ) {
-    return licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOption(
+    return licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOptionAndStatus(
         licenceScheduleTerm,
-        rateDefinitionOption
+        rateDefinitionOption,
+        LicenceScheduleEventStatus.ACTIVE
     );
   }
 
-  public List<LicenceScheduleRate> getLicenceScheduleRatesForPhaseAndDefinitionOption(
+  public List<LicenceScheduleRate> getActiveLicenceScheduleRatesForPhaseAndDefinitionOption(
       LicenceSchedulePhase licenceSchedulePhase,
       RateDefinitionOption rateDefinitionOption
   ) {
-    return licenceScheduleRateRepository.findAllByLicenceSchedulePhaseAndRateDefinitionOption(
+    return licenceScheduleRateRepository.findAllByLicenceSchedulePhaseAndRateDefinitionOptionAndStatus(
         licenceSchedulePhase,
-        rateDefinitionOption
+        rateDefinitionOption,
+        LicenceScheduleEventStatus.ACTIVE
     );
   }
 
   @Transactional
   public void saveLicenceScheduleRates(List<LicenceScheduleRate> licenceScheduleRates) {
     licenceScheduleRateRepository.saveAll(licenceScheduleRates);
+  }
+
+  @Transactional
+  public void deleteLicenceScheduleRate(LicenceScheduleRate licenceScheduleRate) {
+    licenceScheduleRate.setStatus(LicenceScheduleEventStatus.DELETED);
+    licenceScheduleRateRepository.save(licenceScheduleRate);
   }
 }

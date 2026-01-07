@@ -160,7 +160,7 @@ public class LicenceScheduleTimelineService {
             .thenComparing(WorkProgrammeActivity::getCategoryString))
         .map(TimelineWorkProgrammeActivityView::getScheduleEventFrom);
 
-    var rates = licenceScheduleRateService.getLicenceScheduleRatesByTerm(licenceScheduleTerm)
+    var rates = licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(licenceScheduleTerm)
         .stream()
         .map(TimelineRateView::getScheduleEventFrom);
 
@@ -210,7 +210,7 @@ public class LicenceScheduleTimelineService {
         )
         .map(TimelineWorkProgrammeActivityView::getScheduleEventFrom);
 
-    var rates = licenceScheduleRateService.getLicenceScheduleRatesByPhase(licenceSchedulePhase, firstPhaseType)
+    var rates = licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(licenceSchedulePhase, firstPhaseType)
         .stream()
         .map(TimelineRateView::getScheduleEventFrom);
 

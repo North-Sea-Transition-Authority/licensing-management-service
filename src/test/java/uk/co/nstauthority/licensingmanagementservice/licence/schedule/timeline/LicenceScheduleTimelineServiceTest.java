@@ -31,6 +31,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateDefinitionOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -249,7 +250,8 @@ class LicenceScheduleTimelineServiceTest {
         "£1.00",
         ReverseRouter.route(on(LicenceScheduleRateController.class)
             .renderUpdateLicenceScheduleRateForm(phaseRate.getId())),
-        ""
+        ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
+            .renderDeleteRatePage(phaseRate.getId()))
     );
 
     var phaseView = new TimelinePhaseView(
@@ -303,7 +305,8 @@ class LicenceScheduleTimelineServiceTest {
         "£2.00",
         ReverseRouter.route(on(LicenceScheduleRateController.class)
             .renderUpdateLicenceScheduleRateForm(term2Rate.getId())),
-        ""
+        ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
+            .renderDeleteRatePage(term2Rate.getId()))
     );
 
     var termView2 = new TimelineTermView(
@@ -330,8 +333,8 @@ class LicenceScheduleTimelineServiceTest {
     when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(term2, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
         .thenReturn(List.of(endOfTerm2Activity));
 
-    when(licenceScheduleRateService.getLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
-    when(licenceScheduleRateService.getLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
+    when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
+    when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
 
     assertThat(licenceScheduleTimelineService.getLicenceScheduleEventViews(licenceScheduleDetail))
         .usingRecursiveComparison()

@@ -17,6 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationSubmissionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurpose;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurposeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurposeRepository;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -38,9 +39,6 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
   private final SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository;
   private final LicenceScheduleSupportingInformationSubmissionService licenceScheduleSupportingInformationSubmissionService;
   private final TeamManagementService teamManagementService;
-
-  private boolean extensionSelection;
-  private boolean amendmentSelection;
 
   public ScheduleWorkProgrammeApplicationTaskListSectionService(
       SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository,
@@ -70,12 +68,16 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
       ServiceUserDetail user) {
 
-    swpApplicationRequestPurposeRepository
-        .getByScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail)
-        .ifPresent(purpose -> {
-          extensionSelection = purpose.getExtendTerm() || purpose.getExtendPhaseOrTerm();
-          amendmentSelection = purpose.getAmendWorkProgramme();
-        });
+    var existingPurpose = swpApplicationRequestPurposeRepository
+        .getByScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail);
+
+    boolean extensionSelection = existingPurpose
+        .map(requestPurpose -> requestPurpose.getExtendTerm() || requestPurpose.getExtendPhaseOrTerm())
+        .orElse(false);
+
+    boolean amendmentSelection = existingPurpose
+        .map(SwpApplicationRequestPurpose::getAmendWorkProgramme)
+        .orElse(false);
 
     var scopeRef = TeamScopeReference.from(
         scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getId().toString(),

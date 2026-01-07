@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.validation;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,4 +78,21 @@ public class ValidatorTestingUtil {
     return getBindingResult(form, "form");
   }
 
+  public static void assertErrorExists(Errors errors,
+                                       String fieldName,
+                                       String expectedFieldCode,
+                                       String expectedErrorMessage
+  ) {
+    var fieldError = errors.getFieldErrors().stream()
+        .filter(error -> error.getField().equals(fieldName))
+        .findFirst();
+
+    if (fieldError.isEmpty()) {
+      throw new AssertionError("Expected error for field '" + fieldName + "' but none found.");
+    }
+
+    assertEquals(fieldError.get().getCode(), expectedFieldCode);
+    assertEquals(fieldError.get().getDefaultMessage(), expectedErrorMessage);
+
+  }
 }

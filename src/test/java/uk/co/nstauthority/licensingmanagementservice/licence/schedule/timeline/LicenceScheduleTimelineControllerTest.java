@@ -66,7 +66,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.DRAFT))
         .thenReturn(licenceScheduleDetail);
 
-    var timelineSummaryCardView = new TimelineSummaryCardView("date", true,"1", LicenceStatus.EXTANT.getDisplayText());
+    var timelineSummaryCardView = new TimelineSummaryCardView("date", true,"1", LicenceStatus.EXTANT.getDisplayName());
     var timelineActionViews = List.of(new TimelineActionView(LicenceScheduleTimelineAction.ADD_A_TERM, ""));
     var scheduleEventViews = List.of(new TimelineTermView(List.of(), List.of(), TermType.INITIAL, "", "", "", "", true));
 
@@ -97,7 +97,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
     when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
 
-    var timelineSummaryCardView = new TimelineSummaryCardView("date", true, "1", LicenceStatus.EXTANT.getDisplayText());
+    var timelineSummaryCardView = new TimelineSummaryCardView("date", true, "1", LicenceStatus.EXTANT.getDisplayName());
     var timelineActionViews = List.of(new TimelineActionView(LicenceScheduleTimelineAction.ADD_A_TERM, ""));
     var scheduleEventViews = List.of(new TimelineTermView(List.of(), List.of(), TermType.INITIAL, "", "", "", "", true));
 

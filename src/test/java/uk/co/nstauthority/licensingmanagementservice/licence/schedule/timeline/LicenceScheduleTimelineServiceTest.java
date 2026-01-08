@@ -108,7 +108,7 @@ class LicenceScheduleTimelineServiceTest {
             DateFormatUtil.convertToDisplayText(licenceStartDate.getStartDate()),
             true,
             licence.getRoundIssuedOn(),
-            licence.getStatus().getDisplayText()
+            licence.getStatus().getDisplayName()
         );
   }
 

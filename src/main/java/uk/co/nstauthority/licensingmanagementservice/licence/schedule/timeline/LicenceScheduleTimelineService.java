@@ -63,7 +63,7 @@ public class LicenceScheduleTimelineService {
         DateFormatUtil.convertToDisplayText(licenceStartDate.getStartDate()),
         licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType()),
         licence.getRoundIssuedOn(),
-        licence.getStatus().getDisplayText()
+        licence.getStatus().getDisplayName()
     );
   }
 

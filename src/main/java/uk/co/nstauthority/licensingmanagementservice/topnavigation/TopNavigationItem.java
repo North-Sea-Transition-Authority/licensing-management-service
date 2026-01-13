@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.topnavigation;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementController;
@@ -13,11 +12,8 @@ public enum TopNavigationItem {
   WORK_AREA("Work area",
       ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))
   ),
-  LICENCE_SEARCH("Licence search",
+  LICENCES("Licences",
       ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null))
-  ),
-  CREATE_LICENCE("Create licence",
-      ReverseRouter.route(on(LicenceController.class).renderNewLicenceForm())
   ),
   TEAMS("Teams",
       ReverseRouter.route(on(TeamManagementController.class).renderTeamTypeList(null))

@@ -23,8 +23,7 @@ public class TopNavigationService {
     }
     var navigationItems = new ArrayList<TopNavigationItem>();
     navigationItems.add(TopNavigationItem.WORK_AREA);
-    navigationItems.add(TopNavigationItem.LICENCE_SEARCH);
-    navigationItems.add(TopNavigationItem.CREATE_LICENCE);
+    navigationItems.add(TopNavigationItem.LICENCES);
     navigationItems.add(TopNavigationItem.TEAMS);
 
     return navigationItems;

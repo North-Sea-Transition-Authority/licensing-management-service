@@ -20,7 +20,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleo
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
-import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @Controller
 @RequestMapping("/licences")
@@ -75,7 +74,7 @@ public class LicenceController {
         .addObject("organisationUnitSearchEndpoint",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
         .addObject("backUrl",
-            ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)));
+            ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null)));
   }
 
   @GetMapping("/{licenceId}/manage-licensees")

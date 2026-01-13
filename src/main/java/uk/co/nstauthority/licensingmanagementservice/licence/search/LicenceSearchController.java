@@ -16,6 +16,7 @@ import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -97,6 +98,7 @@ public class LicenceSearchController {
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
         .addObject("preSelectedLicenseeOrgUnit", licenceSearchService.getPreselectedOrganisationUnit(form.getLicenseeOrgUnitId()))
         .addObject("searchItems", searchItems)
-        .addObject("hasSearchBeenInvoked", hasSearchBeenInvoked);
+        .addObject("hasSearchBeenInvoked", hasSearchBeenInvoked)
+        .addObject("createLicenceUrl", ReverseRouter.route(on(LicenceController.class).renderNewLicenceForm()));
   }
 }

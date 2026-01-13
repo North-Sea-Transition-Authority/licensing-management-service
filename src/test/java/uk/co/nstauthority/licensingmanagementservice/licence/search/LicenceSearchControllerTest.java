@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionService;
@@ -41,6 +42,8 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
   private ServiceUserDetail organisationUser;
   public static final String RENDER_SEARCH_PAGE_ROUTE = ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null));
   private static final String CLEARED_SEARCH_FILTERS_ROUTE = ReverseRouter.route(on(LicenceSearchController.class).clearSearchFilters(null, null));
+  public static final String CREATE_LICENCE_ROUTE = ReverseRouter.route(on(LicenceController.class).renderNewLicenceForm());
+
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
 
   @BeforeEach
@@ -63,7 +66,8 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("hasSearchBeenInvoked", false))
         .andExpect(model().attribute("clearFilterUrl", CLEARED_SEARCH_FILTERS_ROUTE))
         .andExpect(model().attribute("licenceTypes",
-            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes())));
+            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes())))
+        .andExpect(model().attribute("createLicenceUrl", CREATE_LICENCE_ROUTE));
 
     verify(licenceSearchService, never()).getSearchResultItems(form);
   }
@@ -86,8 +90,8 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("hasSearchBeenInvoked", true))
         .andExpect(model().attribute("clearFilterUrl", CLEARED_SEARCH_FILTERS_ROUTE))
         .andExpect(model().attribute("licenceTypes",
-            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes())));
-
+            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes())))
+        .andExpect(model().attribute("createLicenceUrl", CREATE_LICENCE_ROUTE));
     verify(licenceSearchService).getSearchResultItems(form);
   }
 

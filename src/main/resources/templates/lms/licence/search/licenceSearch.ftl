@@ -2,7 +2,7 @@
 <#import '../../search/search.ftl' as search>
 <#import '../../macros/dataItems/filters.ftl' as dataItemFilter>
 
-<#assign pageTitle = "Licence search" />
+<#assign pageTitle = "Licences" />
 
 <@defaultPage
 htmlTitle=pageTitle
@@ -10,6 +10,7 @@ pageHeading=pageTitle
 pageSize=PageSize.FULL_COLUMN
 extendContainerWidth=true
 >
+    <@fdsAction.link linkText="Create licence" linkUrl=springUrl(createLicenceUrl) linkClass="govuk-button"/>
     <@search.standardSearch
     searchResults=searchItems
     hasSearchBeenInvoked=hasSearchBeenInvoked

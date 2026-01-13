@@ -30,7 +30,7 @@ errorSummaryItems=errorSummaryItems>
         </@fdsFieldset.fieldset>
 
         <@fdsAction.submitButtons
-            primaryButtonText="Save and continue"
+            primaryButtonText="Create licence"
             secondaryLinkText="Cancel"
             linkSecondaryAction=true
             linkSecondaryActionUrl=springUrl(backUrl)

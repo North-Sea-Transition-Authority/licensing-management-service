@@ -85,13 +85,20 @@ class LicenceScheduleDetailServiceTest {
   }
 
   @Test
-  void draftScheduleExistsForLicence() {
+  void nonDeletedScheduleExistsForLicence() {
     var licence = new Licence();
 
-    when(licenceScheduleDetailRepository.existsByLicenceSchedule_LicenceAndStatus(licence, LicenceScheduleDetailStatus.DRAFT))
+    when(licenceScheduleDetailRepository.existsByLicenceSchedule_LicenceAndStatusIn(
+        licence,
+        List.of(
+            LicenceScheduleDetailStatus.ACTIVE,
+            LicenceScheduleDetailStatus.DRAFT,
+            LicenceScheduleDetailStatus.REPLACED
+        )
+    ))
         .thenReturn(true);
 
-    assertThat(licenceScheduleDetailService.draftScheduleExistsForLicence(licence)).isTrue();
+    assertThat(licenceScheduleDetailService.nonDeletedScheduleExistsForLicence(licence)).isTrue();
   }
 
   @Test

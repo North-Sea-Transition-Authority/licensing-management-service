@@ -7,7 +7,6 @@ import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionIt
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.StartLicenceScheduleJourneyController;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
@@ -18,13 +17,6 @@ public enum LicenceActionItem implements Displayable {
       false,
           licence -> ReverseRouter.route(on(StartLicenceScheduleJourneyController.class)
               .renderStartLicenceScheduleJourney(licence.getId(), null))
-  ),
-  EDIT_LICENCE_SCHEDULE(
-      "Edit licence schedule",
-      1,
-      false,
-          licence -> ReverseRouter.route(on(LicenceScheduleTimelineController.class)
-              .renderLicenceScheduleTimeline(licence.getId(), null))
   ),
   MANAGE_LICENSEES(
       "Manage licensees",

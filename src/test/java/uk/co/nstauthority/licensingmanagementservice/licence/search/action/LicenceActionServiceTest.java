@@ -58,24 +58,10 @@ class LicenceActionServiceTest {
         .withStatus(LicenceStatus.EXTANT)
         .build();
 
-    when(licenceScheduleDetailService.draftScheduleExistsForLicence(licence)).thenReturn(true);
+    when(licenceScheduleDetailService.nonDeletedScheduleExistsForLicence(licence)).thenReturn(true);
 
     assertThat(licenceActionService.getAvailableUserActionItems(licence, null))
-        .contains(LicenceActionItem.EDIT_LICENCE_SCHEDULE.toActionItemView(licence));
-  }
-
-  @Test
-  void getAvailableUserActionItems_licenceScheduleExists_licenceTypeNotSetupForSchedules() {
-    var licence = LicenceTestUtil.builder()
-        .withId(1)
-        .withLicenceType(LicenceType.METHANE_DRAINAGE)
-        .withStatus(LicenceStatus.EXTANT)
-        .build();
-
-    when(licenceScheduleDetailService.draftScheduleExistsForLicence(licence)).thenReturn(true);
-
-    assertThat(licenceActionService.getAvailableUserActionItems(licence, null))
-        .doesNotContain(LicenceActionItem.EDIT_LICENCE_SCHEDULE.toActionItemView(licence));
+        .doesNotContain(LicenceActionItem.CREATE_LICENCE_SCHEDULE.toActionItemView(licence));
   }
 
   @Test
@@ -86,7 +72,7 @@ class LicenceActionServiceTest {
         .withStatus(LicenceStatus.EXTANT)
         .build();
 
-    when(licenceScheduleDetailService.draftScheduleExistsForLicence(licence)).thenReturn(false);
+    when(licenceScheduleDetailService.nonDeletedScheduleExistsForLicence(licence)).thenReturn(false);
 
     assertThat(licenceActionService.getAvailableUserActionItems(licence, null))
         .contains(LicenceActionItem.CREATE_LICENCE_SCHEDULE.toActionItemView(licence));
@@ -100,7 +86,7 @@ class LicenceActionServiceTest {
         .withStatus(LicenceStatus.EXTANT)
         .build();
 
-    when(licenceScheduleDetailService.draftScheduleExistsForLicence(licence)).thenReturn(false);
+    when(licenceScheduleDetailService.nonDeletedScheduleExistsForLicence(licence)).thenReturn(false);
 
     assertThat(licenceActionService.getAvailableUserActionItems(licence, null))
         .doesNotContain(LicenceActionItem.CREATE_LICENCE_SCHEDULE.toActionItemView(licence));

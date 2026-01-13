@@ -65,8 +65,15 @@ public class LicenceScheduleDetailService {
     licenceScheduleDetailRepository.saveAll(licenceScheduleDetails);
   }
 
-  public boolean draftScheduleExistsForLicence(Licence licence) {
-    return licenceScheduleDetailRepository.existsByLicenceSchedule_LicenceAndStatus(licence, LicenceScheduleDetailStatus.DRAFT);
+  public boolean nonDeletedScheduleExistsForLicence(Licence licence) {
+    return licenceScheduleDetailRepository.existsByLicenceSchedule_LicenceAndStatusIn(
+        licence,
+        List.of(
+            LicenceScheduleDetailStatus.ACTIVE,
+            LicenceScheduleDetailStatus.DRAFT,
+            LicenceScheduleDetailStatus.REPLACED
+        )
+    );
   }
 
   public List<LicenceScheduleDetail> searchByLicenceReferenceLicenceTypeAndStatus(

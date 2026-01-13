@@ -21,7 +21,10 @@ public interface LicenceScheduleDetailRepository extends JpaRepository<LicenceSc
   @EntityGraph(attributePaths = "licenceSchedule.licence")
   List<LicenceScheduleDetail> findAllByStatus(LicenceScheduleDetailStatus licenceScheduleDetailStatus);
 
-  boolean existsByLicenceSchedule_LicenceAndStatus(Licence licence, LicenceScheduleDetailStatus licenceScheduleDetailStatus);
+  boolean existsByLicenceSchedule_LicenceAndStatusIn(
+      Licence licence,
+      List<LicenceScheduleDetailStatus> licenceScheduleDetailStatus
+  );
 
   @Query(
       """

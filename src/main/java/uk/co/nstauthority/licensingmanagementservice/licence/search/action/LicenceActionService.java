@@ -42,12 +42,7 @@ public class LicenceActionService {
           .requiresAnyRole()
           .requiresAnyStatus()
           .requiresAnyTypeFrom(LicenceType.CARBON_STORAGE, LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION)
-          .withLicenceScheduleRequirement(LicenceScheduleRequirement.NO_OPEN_DRAFT)
-        .registerAction(LicenceActionItem.EDIT_LICENCE_SCHEDULE)
-          .requiresAnyRole()
-          .requiresAnyStatus()
-          .requiresAnyTypeFrom(LicenceType.CARBON_STORAGE, LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION)
-          .withLicenceScheduleRequirement(LicenceScheduleRequirement.HAS_OPEN_DRAFT)
+          .withLicenceScheduleRequirement(LicenceScheduleRequirement.NO_SCHEDULE_EXISTS)
         .registerAction(LicenceActionItem.MANAGE_LICENSEES)
           .requiresAnyRole()
           .requiresAnyStatus()
@@ -89,9 +84,8 @@ public class LicenceActionService {
       Licence licence,
       Set<LicenceScheduleRequirement> requirements
   ) {
-    var scheduleExists = licenceScheduleDetailService.draftScheduleExistsForLicence(licence);
+    var scheduleExists = licenceScheduleDetailService.nonDeletedScheduleExistsForLicence(licence);
 
-    return scheduleExists && requirements.contains(LicenceScheduleRequirement.HAS_OPEN_DRAFT)
-        || !scheduleExists && requirements.contains(LicenceScheduleRequirement.NO_OPEN_DRAFT);
+    return !scheduleExists && requirements.contains(LicenceScheduleRequirement.NO_SCHEDULE_EXISTS);
   }
 }

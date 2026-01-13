@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.continuation.start
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,7 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTypeGroup;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTypeUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.internalapi.LicenceInternalApiRestController;
@@ -59,7 +61,10 @@ public class SelectContinuationApplicationLicenceController {
   }
 
   private ModelAndView getModelAndView(SelectContinuationApplicationLicenceForm form) {
-    var licenceTypeSlugList = LicenceTypeGroup.PRODUCTION.getUrlSlugList();
+    var licenceTypeSlugList = LicenceTypeUtil.getUrlSlugList(List.of(
+        LicenceType.LANDWARD_PRODUCTION,
+        LicenceType.SEAWARD_PRODUCTION
+    ));
 
     return new ModelAndView("lms/licence/continuation/selectLicence")
         .addObject("form", form)

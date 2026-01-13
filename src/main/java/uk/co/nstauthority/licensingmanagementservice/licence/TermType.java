@@ -8,24 +8,24 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 public enum TermType implements Displayable {
-  INITIAL(LicenceTypeGroup.PRODUCTION, "Initial Term", 10),
-  SECOND(LicenceTypeGroup.PRODUCTION, "Second Term", 20),
-  THIRD(LicenceTypeGroup.PRODUCTION, "Third Term", 30),
-  APPRAISAL(LicenceTypeGroup.CARBON_STORAGE, "Appraisal Term", 10),
-  INITIAL_CS(LicenceTypeGroup.CARBON_STORAGE, "Initial Term", 20),
-  OPERATIONAL(LicenceTypeGroup.CARBON_STORAGE, "Operational Term", 30),
-  POST_CLOSURE_PERIOD(LicenceTypeGroup.CARBON_STORAGE, "Post Closure Period", 40);
+  INITIAL(Set.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION), "Initial Term", 10),
+  SECOND(Set.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION), "Second Term", 20),
+  THIRD(Set.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION), "Third Term", 30),
+  APPRAISAL(Set.of(LicenceType.CARBON_STORAGE), "Appraisal Term", 10),
+  INITIAL_CS(Set.of(LicenceType.CARBON_STORAGE), "Initial Term", 20),
+  OPERATIONAL(Set.of(LicenceType.CARBON_STORAGE), "Operational Term", 30),
+  POST_CLOSURE_PERIOD(Set.of(LicenceType.CARBON_STORAGE), "Post Closure Period", 40);
 
   private final Set<LicenceType> licenceTypes;
   private final String displayName;
   private final Integer displayOrder;
 
   TermType(
-      LicenceTypeGroup licenceTypeGroup,
+      Set<LicenceType> licenceTypes,
       String displayName,
       Integer displayOrder
   ) {
-    this.licenceTypes = licenceTypeGroup.getLicenceTypes();
+    this.licenceTypes = licenceTypes;
     this.displayName = displayName;
     this.displayOrder = displayOrder;
   }

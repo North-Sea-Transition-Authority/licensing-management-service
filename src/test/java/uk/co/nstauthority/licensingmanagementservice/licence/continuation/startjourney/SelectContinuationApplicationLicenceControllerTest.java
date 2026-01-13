@@ -14,6 +14,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 import static uk.co.nstauthority.licensingmanagementservice.licence.continuation.startjourney.SelectContinuationApplicationLicenceController.PAGE_TITLE;
 
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.test.context.ContextConfiguration;
@@ -23,7 +24,8 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTypeGroup;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTypeUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.internalapi.LicenceInternalApiRestController;
@@ -48,7 +50,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
 
   @SecurityTest
   void render() throws Exception {
-    var licenceTypeGroup = LicenceTypeGroup.PRODUCTION;
+    var licenceTypeList = List.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).render()))
@@ -58,7 +60,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
         .andExpect(view().name("lms/licence/continuation/selectLicence"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("searchUrl",
-            SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndType(licenceTypeGroup.getUrlSlugList(), null))))
+            SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndType(LicenceTypeUtil.getUrlSlugList(licenceTypeList), null))))
         .andExpect(model().attribute("backUrl",
             ReverseRouter.route(on(StartContinuationApplicationController.class).render())));
   }
@@ -90,7 +92,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
 
   @SecurityTest
   void submit_invalidForm() throws Exception {
-    var licenceTypeGroup = LicenceTypeGroup.PRODUCTION;
+    var licenceTypeList = List.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION);
 
     when(selectContinuationApplicationLicenceFormValidator.isValid(any())).thenReturn(false);
 
@@ -103,7 +105,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
         .andExpect(view().name("lms/licence/continuation/selectLicence"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("searchUrl",
-            SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndType(licenceTypeGroup.getUrlSlugList(), null))))
+            SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndType(LicenceTypeUtil.getUrlSlugList(licenceTypeList), null))))
         .andExpect(model().attribute("backUrl",
             ReverseRouter.route(on(StartContinuationApplicationController.class).render())));
   }

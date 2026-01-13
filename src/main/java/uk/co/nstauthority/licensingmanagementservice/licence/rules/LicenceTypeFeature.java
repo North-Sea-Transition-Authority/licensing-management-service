@@ -4,68 +4,76 @@ import jakarta.annotation.Nullable;
 import java.util.EnumSet;
 import java.util.Set;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTypeGroup;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 
 public enum LicenceTypeFeature {
   TERMS(EnumSet.of(
-      LicenceTypeGroup.PRODUCTION,
-      LicenceTypeGroup.CARBON_STORAGE,
-      LicenceTypeGroup.GAS_STORAGE,
-      LicenceTypeGroup.EXPLORATION,
-      LicenceTypeGroup.METHANE_DRAINAGE
+      LicenceType.LANDWARD_PRODUCTION,
+      LicenceType.SEAWARD_PRODUCTION,
+      LicenceType.CARBON_STORAGE,
+      LicenceType.GAS_STORAGE,
+      LicenceType.LANDWARD_EXPLORATION,
+      LicenceType.SEAWARD_EXPLORATION,
+      LicenceType.METHANE_DRAINAGE
   )),
   PHASES(EnumSet.of(
-      LicenceTypeGroup.PRODUCTION,
-      LicenceTypeGroup.GAS_STORAGE
+      LicenceType.SEAWARD_PRODUCTION,
+      LicenceType.GAS_STORAGE
   )),
   PHASES_CAPTURED(EnumSet.of(
-      LicenceTypeGroup.PRODUCTION,
-      LicenceTypeGroup.GAS_STORAGE
+      LicenceType.SEAWARD_PRODUCTION,
+      LicenceType.GAS_STORAGE
   )),
   RENTAL_RATES(EnumSet.of(
-      LicenceTypeGroup.PRODUCTION,
-      LicenceTypeGroup.EXPLORATION,
-      LicenceTypeGroup.METHANE_DRAINAGE
+      LicenceType.LANDWARD_PRODUCTION,
+      LicenceType.SEAWARD_PRODUCTION,
+      LicenceType.LANDWARD_EXPLORATION,
+      LicenceType.SEAWARD_EXPLORATION,
+      LicenceType.METHANE_DRAINAGE
   )),
   RENTAL_RATES_EXPONENTIAL(EnumSet.of(
-      LicenceTypeGroup.PRODUCTION
+      LicenceType.LANDWARD_PRODUCTION,
+      LicenceType.SEAWARD_PRODUCTION
   )),
   RENTAL_RATES_FLAT(EnumSet.of(
-      LicenceTypeGroup.EXPLORATION,
-      LicenceTypeGroup.METHANE_DRAINAGE
+      LicenceType.LANDWARD_EXPLORATION,
+      LicenceType.SEAWARD_EXPLORATION,
+      LicenceType.METHANE_DRAINAGE
   )),
   WORK_PROGRAMMES(EnumSet.of(
-      LicenceTypeGroup.PRODUCTION,
-      LicenceTypeGroup.CARBON_STORAGE,
-      LicenceTypeGroup.GAS_STORAGE
+      LicenceType.LANDWARD_PRODUCTION,
+      LicenceType.SEAWARD_PRODUCTION,
+      LicenceType.CARBON_STORAGE,
+      LicenceType.GAS_STORAGE
   )),
   WORK_PROGRAMMES_PHASE_TIED(EnumSet.of(
-      LicenceTypeGroup.PRODUCTION
+      LicenceType.SEAWARD_PRODUCTION
   )),
   WORK_PROGRAMMES_TERM_TIED(EnumSet.of(
-      LicenceTypeGroup.CARBON_STORAGE
+      LicenceType.CARBON_STORAGE
   ), EnumSet.of(
       TermType.APPRAISAL
   )),
   CAN_CREATE_SCHEDULE_WORK_PROGRAMME_APPLICATIONS(EnumSet.of(
-      LicenceTypeGroup.PRODUCTION,
-      LicenceTypeGroup.CARBON_STORAGE
+      LicenceType.LANDWARD_PRODUCTION,
+      LicenceType.SEAWARD_PRODUCTION,
+      LicenceType.CARBON_STORAGE
   )),
   SHOW_ROUND_ISSUED_ON(EnumSet.of(
-      LicenceTypeGroup.PRODUCTION
+      LicenceType.LANDWARD_PRODUCTION,
+      LicenceType.SEAWARD_PRODUCTION
   ))
   ;
 
   private final Set<LicenceType> supportingLicenceTypes;
   private final Set<TermType> supportingTermTypes;
 
-  LicenceTypeFeature(Set<LicenceTypeGroup> supportingLicenceTypes, Set<TermType> supportingTermTypes) {
-    this.supportingLicenceTypes = LicenceTypeGroup.flattenLicenceTypeGroups(supportingLicenceTypes);
+  LicenceTypeFeature(Set<LicenceType> supportingLicenceTypes, Set<TermType> supportingTermTypes) {
+    this.supportingLicenceTypes = supportingLicenceTypes;
     this.supportingTermTypes = supportingTermTypes;
   }
 
-  LicenceTypeFeature(Set<LicenceTypeGroup> supportingLicenceTypes) {
+  LicenceTypeFeature(Set<LicenceType> supportingLicenceTypes) {
     this(supportingLicenceTypes, Set.of());
   }
 

@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney;
 
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -33,7 +34,7 @@ class StartScheduleWorkProgrammeApplicationJourneyControllerTest extends Abstrac
   @SecurityTest
   void renderStartScheduleWorkProgrammeApplicationJourney() throws Exception {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
-
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
     mockMvc.perform(
             get(ReverseRouter.route(on(StartScheduleWorkProgrammeApplicationJourneyController.class).renderStartScheduleWorkProgrammeApplicationJourney(licenceType.getUrlSlug())))
                 .with(user(organisationUser))
@@ -43,5 +44,16 @@ class StartScheduleWorkProgrammeApplicationJourneyControllerTest extends Abstrac
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("pageCaption", licenceType.getDisplayName()))
         .andExpect(model().attribute("startUrl", ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class).renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))));
+  }
+
+  @SecurityTest
+  void render_StartScheduleWorkProgrammeApplicationJourneyForbiddenUserNoAccess() throws Exception {
+    var licenceType = LicenceType.SEAWARD_EXPLORATION;
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+    mockMvc.perform(
+            get(ReverseRouter.route(on(StartScheduleWorkProgrammeApplicationJourneyController.class).renderStartScheduleWorkProgrammeApplicationJourney(licenceType.getUrlSlug())))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isForbidden());
   }
 }

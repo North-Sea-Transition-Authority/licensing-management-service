@@ -48,7 +48,7 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
   @SecurityTest
   void render() throws Exception {
     var applicationTypes = List.of(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, ApplicationType.CONTINUATION_APPLICATION);
-
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
     mockMvc.perform(
             get(ReverseRouter.route(on(SelectApplicationTypeController.class).render()))
                 .with(user(organisationUser))
@@ -63,6 +63,7 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
   @SecurityTest
   void submit() throws Exception {
     when(selectApplicationTypeFormValidator.isValid(any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
 
     var applicationType = ApplicationType.CONTINUATION_APPLICATION;
 
@@ -85,7 +86,7 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
   @SecurityTest
   void submit_invalid() throws Exception {
     var applicationTypes = List.of(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, ApplicationType.CONTINUATION_APPLICATION);
-
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
     when(selectApplicationTypeFormValidator.isValid(any())).thenReturn(false);
 
     mockMvc.perform(
@@ -98,5 +99,27 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("applicationTypeOptions", DisplayableEnumOptionUtil.getDisplayableOptions(applicationTypes)))
         .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))));
+  }
+
+  @SecurityTest
+  void render_ForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+    mockMvc.perform(
+            get(ReverseRouter.route(on(SelectApplicationTypeController.class).render()))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isForbidden());
+
+  }
+
+  @SecurityTest
+  void submit_ForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+    mockMvc.perform(
+            post(ReverseRouter.route(on(SelectApplicationTypeController.class).submit(null, null)))
+                .with(user(organisationUser))
+                .with(csrf())
+        )
+        .andExpect(status().isForbidden());
   }
 }

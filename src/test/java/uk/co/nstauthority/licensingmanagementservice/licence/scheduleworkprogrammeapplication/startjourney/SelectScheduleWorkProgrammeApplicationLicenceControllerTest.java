@@ -47,6 +47,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceControllerTest extends Abstra
   @SecurityTest
   void renderSelectLicenceForScheduleWorkProgrammeApplication() throws Exception {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class).renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug())))
@@ -70,6 +71,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceControllerTest extends Abstra
     var form = new SelectScheduleWorkProgrammeApplicationLicenceForm();
     form.setLicenceId(String.valueOf(licenceId));
     when(selectScheduleWorkProgrammeApplicationLicenceFormValidator.isValid(any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
 
     Licence licence = new Licence();
     licence.setId(licenceId);
@@ -87,9 +89,9 @@ class SelectScheduleWorkProgrammeApplicationLicenceControllerTest extends Abstra
   }
 
   @SecurityTest
-  void submitSelectLicenceForScheduleWorkProgrammeApplication_invalidForm() throws Exception {
+  void submit_SelectLicenceForScheduleWorkProgrammeApplication_invalidForm() throws Exception {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
-
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
     when(selectScheduleWorkProgrammeApplicationLicenceFormValidator.isValid(any())).thenReturn(false);
 
     mockMvc.perform(
@@ -105,5 +107,24 @@ class SelectScheduleWorkProgrammeApplicationLicenceControllerTest extends Abstra
             SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndType(licenceType.getUrlSlug(), null))))
         .andExpect(model().attribute("backUrl",
             ReverseRouter.route(on(StartScheduleWorkProgrammeApplicationJourneyController.class).renderStartScheduleWorkProgrammeApplicationJourney(licenceType.getUrlSlug()))));
+  }
+
+
+  @SecurityTest
+  void render_SelectLicenceForScheduleWorkProgrammeApplicationForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+    mockMvc.perform(
+        get(ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class).renderSelectLicenceForScheduleWorkProgrammeApplication(null)))
+            .with(user(organisationUser))
+            .with(csrf()));
+  }
+
+  @SecurityTest
+  void submitSelectLicenceForScheduleWorkProgrammeApplicationForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+    mockMvc.perform(
+            post(ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class).submitSelectLicenceForScheduleWorkProgrammeApplication(null, null, null)))
+                .with(user(organisationUser))
+                .with(csrf()));
   }
 }

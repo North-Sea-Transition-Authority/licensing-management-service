@@ -72,6 +72,8 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
   void render() throws Exception {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
 
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
+
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenseeInformationController.class).renderConfirmLicenseePermission(licenceType.getUrlSlug(), LICENCE_ID, null, organisationUser)))
                 .with(user(organisationUser))
@@ -87,6 +89,7 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
   @SecurityTest
   void submit() throws Exception {
     when(licenseeInformationFormValidator.isValid(any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
 
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
 
@@ -129,6 +132,7 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
 
     when(licenseeInformationFormValidator.isValid(any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenseeInformationController.class).submitLicenseePermissionConfirmation(licenceType.getUrlSlug(), LICENCE_ID, null,null, null, organisationUser)))
@@ -143,5 +147,31 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
             .renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))));
 
     verifyNoInteractions(scheduleWorkProgrammeApplicationService);
+  }
+
+  @SecurityTest
+  void render_ForbiddenUserNoAccess() throws Exception {
+    var licenceType = LicenceType.SEAWARD_EXPLORATION;
+
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenseeInformationController.class).renderConfirmLicenseePermission(licenceType.getUrlSlug(), LICENCE_ID, null, organisationUser)))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isForbidden());
+  }
+
+  @SecurityTest
+  void submit_ForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+
+    var licenceType = LicenceType.SEAWARD_EXPLORATION;
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(LicenseeInformationController.class).submitLicenseePermissionConfirmation(licenceType.getUrlSlug(), 1, null, null, null, organisationUser)))
+                .with(user(organisationUser))
+                .with(csrf()))
+        .andExpect(status().isForbidden());
   }
 }

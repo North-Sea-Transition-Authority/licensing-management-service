@@ -69,4 +69,15 @@ public class ApplicationAccessService {
 
     return isExternalContributor || isOrganisationGroup;
   }
+
+  public boolean userHasAccessToStartApplication(
+      Long wuaId
+  ) {
+    var allowedRoles = Set.of(
+        Role.APPLICATION_EDITOR,
+        Role.APPLICATION_SUBMITTER
+    );
+
+    return teamQueryService.userHasRoleInTeamType(wuaId, TeamType.ORGANISATION, allowedRoles);
+  }
 }

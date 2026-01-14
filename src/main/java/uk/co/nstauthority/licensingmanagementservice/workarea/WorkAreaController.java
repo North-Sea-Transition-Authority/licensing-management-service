@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -22,9 +23,14 @@ public class WorkAreaController {
   public static final String WORK_AREA_PAGE_NAME = "Work area";
 
   private final WorkAreaService workAreaService;
+  private final ApplicationAccessService applicationAccessService;
 
-  public WorkAreaController(WorkAreaService workAreaService) {
+  public WorkAreaController(
+      WorkAreaService workAreaService,
+      ApplicationAccessService applicationAccessService
+  ) {
     this.workAreaService = workAreaService;
+    this.applicationAccessService = applicationAccessService;
   }
 
   @GetMapping
@@ -53,10 +59,11 @@ public class WorkAreaController {
   }
 
   private @NotNull ModelAndView getModelAndView(WorkAreaFilterForm form, ServiceUserDetail user) {
+
     return new ModelAndView("lms/workarea/workArea")
         .addObject("pageTitle", WORK_AREA_PAGE_NAME)
         .addObject("workAreaItems", workAreaService.getWorkAreaResults(form, user))
-        .addObject("canStartApplication", true)
+        .addObject("canStartApplication", applicationAccessService.userHasAccessToStartApplication(user.wuaId()))
         .addObject("startApplicationUrl", ReverseRouter
                 .route(on(SelectApplicationTypeController.class).render()))
         .addObject("form", form)

@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.saml.SamlRes
 import uk.co.nstauthority.licensingmanagementservice.authorisation.AccessHandlerInterceptor;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasRolesInTeamTypeInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplicationInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanStartScheduleApplicationInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatusInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.branding.CustomerConfigurationProperties;
 import uk.co.nstauthority.licensingmanagementservice.branding.ServiceConfigurationProperties;
@@ -90,7 +91,8 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     ScheduleWorkProgrammeApplicationDetailArgumentResolver.class,
     LicenceContinuationApplicationDetailArgumentResolver.class,
     LicenceScheduleDetailArgumentResolver.class,
-    InvokingUserCanAccessScheduleApplicationInterceptorRule.class
+    InvokingUserCanAccessScheduleApplicationInterceptorRule.class,
+    InvokingUserCanStartScheduleApplicationInterceptorRule.class
 })
 @EnableConfigurationProperties({
     SamlProperties.class,

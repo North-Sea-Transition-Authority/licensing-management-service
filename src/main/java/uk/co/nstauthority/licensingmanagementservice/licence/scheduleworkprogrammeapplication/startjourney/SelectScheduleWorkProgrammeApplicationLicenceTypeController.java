@@ -9,12 +9,14 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanStartScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @Controller
 @RequestMapping("licences/schedule-work-programme-application/licence-type")
+@InvokingUserCanStartScheduleApplication
 public class SelectScheduleWorkProgrammeApplicationLicenceTypeController {
   public static final String PAGE_TITLE = "What type of licence is this application related to?";
 

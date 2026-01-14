@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanStartScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -26,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManage
 
 @Controller
 @RequestMapping("licence/{licenceId}/schedule-work-programme-application/{licenceTypeSlug}/licensee-information")
+@InvokingUserCanStartScheduleApplication
 public class LicenseeInformationController {
   public static final String PAGE_TITLE = "Licensee information";
 

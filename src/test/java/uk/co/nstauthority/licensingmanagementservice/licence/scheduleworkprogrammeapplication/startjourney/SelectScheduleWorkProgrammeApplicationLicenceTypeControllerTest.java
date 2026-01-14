@@ -49,6 +49,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceTypeControllerTest extends Ab
   void renderSelectLicenceType() throws Exception {
     var licenceTypes = List.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.CARBON_STORAGE);
     when(licenceTypeRulesResolver.getLicenceTypesThatCanCreateScheduleWorkProgrammeApplications()).thenReturn(licenceTypes);
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceTypeController.class).renderSelectLicenceType()))
@@ -63,6 +64,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceTypeControllerTest extends Ab
   @SecurityTest
   void submitSelectedLicenceType() throws Exception {
     when(selectScheduleWorkProgrammeApplicationLicenceTypeFormValidator.isValid(any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
 
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
 
@@ -84,6 +86,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceTypeControllerTest extends Ab
   void submitSelectedLicenceType_invalid() throws Exception {
     var licenceTypes = List.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.CARBON_STORAGE);
     when(licenceTypeRulesResolver.getLicenceTypesThatCanCreateScheduleWorkProgrammeApplications()).thenReturn(licenceTypes);
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
 
     when(selectScheduleWorkProgrammeApplicationLicenceTypeFormValidator.isValid(any())).thenReturn(false);
 
@@ -97,4 +100,26 @@ class SelectScheduleWorkProgrammeApplicationLicenceTypeControllerTest extends Ab
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("licenceTypeOptions", DisplayableEnumOptionUtil.getDisplayableOptions(licenceTypes)));
   }
+
+  @SecurityTest
+  void render_SelectLicenceTypeForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+    mockMvc.perform(
+            get(ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceTypeController.class).renderSelectLicenceType()))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isForbidden());
+  }
+
+  @SecurityTest
+  void submit_SelectedLicenceTypeForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+    mockMvc.perform(
+            post(ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceTypeController.class).submitSelectedLicenceType(null, null)))
+                .with(user(organisationUser))
+                .with(csrf())
+        )
+        .andExpect(status().isForbidden());
+  }
+
 }

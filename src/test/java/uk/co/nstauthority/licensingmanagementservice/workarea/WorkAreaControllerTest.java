@@ -2,8 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.workarea;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anySet;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -17,7 +15,6 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
 import java.util.List;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -26,7 +23,6 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
-import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = WorkAreaController.class)
@@ -98,7 +94,7 @@ class WorkAreaControllerTest extends AbstractControllerTest {
   @Test
   void getWorkArea_canStartApplication() throws Exception {
     var applicationUser = ServiceUserDetailTestUtil.newBuilder().build();
-    when(teamQueryService.userHasAtLeastOneRoleIn(applicationUser.wuaId(), Set.of(Role.APPLICATION_EDITOR))).thenReturn(true);
+    when(applicationAccessService.userHasAccessToStartApplication(applicationUser.wuaId())).thenReturn(true);
     var modelAndView = mockMvc.perform(
             get(ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)))
                 .with(user(applicationUser))
@@ -119,7 +115,7 @@ class WorkAreaControllerTest extends AbstractControllerTest {
   @Test
   void getWorkArea_cantStartApplication() throws Exception {
     var applicationUser = ServiceUserDetailTestUtil.newBuilder().build();
-    when(teamQueryService.userHasAtLeastOneRoleIn(eq(applicationUser.wuaId()), anySet())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToStartApplication(applicationUser.wuaId())).thenReturn(false);
     var modelAndView = mockMvc.perform(
             get(ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)))
                 .with(user(applicationUser))
@@ -128,7 +124,7 @@ class WorkAreaControllerTest extends AbstractControllerTest {
         .andExpect(view().name("lms/workarea/workArea"))
         .andExpect(model().attribute("clearFilterUrl",
             ReverseRouter.route(on(WorkAreaController.class).clearWorkAreaFilters(null, null))))
-        .andExpect(model().attribute("canStartApplication", true))
+        .andExpect(model().attribute("canStartApplication", false))
         .andReturn()
         .getModelAndView();
 

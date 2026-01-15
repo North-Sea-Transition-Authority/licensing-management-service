@@ -60,8 +60,8 @@ public class WebSecurityConfiguration {
         .requestMatchers("/assets/**", "/error", "/actuator/health", "/api/v1/logout/*")
           .permitAll()
         //TODO xyz - add in GA filter once Fox team has been created
-        //.requestMatchers("/**")
-        //  .hasAuthority(IDP_ACCESS_GRANTED_AUTHORITY_NAME)
+        .requestMatchers("/**")
+          .hasAuthority(IDP_ACCESS_GRANTED_AUTHORITY_NAME)
         .anyRequest()
           .authenticated()
       )

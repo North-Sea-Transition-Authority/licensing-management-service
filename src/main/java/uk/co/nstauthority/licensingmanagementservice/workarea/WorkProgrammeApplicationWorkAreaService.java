@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
@@ -24,13 +26,16 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
 
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final LicenceSearchService licenceSearchService;
+  private final ApplicationAccessService applicationAccessService;
 
   public WorkProgrammeApplicationWorkAreaService(
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
-      LicenceSearchService licenceSearchService
+      LicenceSearchService licenceSearchService,
+      ApplicationAccessService applicationAccessService
   ) {
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.licenceSearchService = licenceSearchService;
+    this.applicationAccessService = applicationAccessService;
   }
 
   @Override
@@ -41,11 +46,7 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
     //TODO filter correctly by form and user
     var applicationDetails = scheduleWorkProgrammeApplicationService
         .getAllScheduleWorkProgrammeApplicationDetailsByStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT).stream()
-        .filter(applicationDetail -> FilterUtil.filterTextInput(
-            scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail)
-                .getLicenceReference(),
-            workAreaFilterForm.getLicenceReference()
-        ))
+        .filter(applicationDetail -> matchesFilterAndHasAccess(applicationDetail, workAreaFilterForm, serviceUserDetail))
         .toList();
 
     var licences = applicationDetails.stream()
@@ -90,5 +91,29 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
         .withDataItemRow(dataItemRow)
         .withTransactionDatetime(createdDatetime)
         .build();
+  }
+
+  private boolean matchesFilterAndHasAccess(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail,
+      WorkAreaFilterForm filterForm,
+      ServiceUserDetail userDetail
+  ) {
+    String licenceRef = applicationDetail
+        .getScheduleWorkProgrammeApplication()
+        .getLicenceScheduleDetail()
+        .getLicenceSchedule()
+        .getLicence()
+        .getLicenceReference();
+
+    if (!FilterUtil.filterTextInput(licenceRef, filterForm.getLicenceReference())) {
+      return false;
+    }
+
+    return applicationAccessService.userHasAccessToApplication(
+        applicationDetail.getScheduleWorkProgrammeApplication().getId().toString(),
+        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
+        applicationDetail.getResponsibleOrganisationUnitId(),
+        userDetail.wuaId()
+    );
   }
 }

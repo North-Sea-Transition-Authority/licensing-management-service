@@ -55,7 +55,7 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
     ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
     scheduleWorkProgrammeApplication.setId(UUID.randomUUID());
 
-    scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationTestUtil
+    scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
         .builder()
         .withId(SCHEDULE_APPLICATION_DETAIL_ID)
         .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
@@ -108,7 +108,8 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
   @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
   void renderForm_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
-    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+    var submittedDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
+        .builder()
                                                                   .withId(id)
                                                                   .withStatus(status)
                                                                   .build();
@@ -125,7 +126,8 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
   @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
   void deleteScheduleWorkProgrammeApplication_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
-    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+    var submittedDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
+        .builder()
                                                                   .withId(id)
                                                                   .withStatus(status)
                                                                   .build();

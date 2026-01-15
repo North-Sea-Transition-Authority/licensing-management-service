@@ -19,9 +19,9 @@ import org.springframework.web.servlet.HandlerMapping;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AbstractInterceptorRuleTest;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
 
 class ScheduleAmendmentApplicationHasStatusInterceptorRuleTest extends AbstractInterceptorRuleTest {
 
@@ -108,7 +108,8 @@ class ScheduleAmendmentApplicationHasStatusInterceptorRuleTest extends AbstractI
 
   private void mockApplicationInStatusAsPathVariableEntity(ScheduleWorkProgrammeApplicationStatus status) {
     var id = UUID.randomUUID();
-    var scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationTestUtil.builder().withId(id).withStatus(status).build();
+    var scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
+        .builder().withId(id).withStatus(status).build();
 
     when(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE)).thenReturn(
         Map.of(ScheduleWorkProgrammeApplicationDetail.SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL_ID, id.toString())

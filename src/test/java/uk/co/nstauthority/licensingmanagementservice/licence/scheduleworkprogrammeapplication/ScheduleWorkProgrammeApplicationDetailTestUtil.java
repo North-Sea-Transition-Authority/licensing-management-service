@@ -1,11 +1,12 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication;
 
+import java.time.Instant;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
-public class ScheduleWorkProgrammeApplicationTestUtil {
+public class ScheduleWorkProgrammeApplicationDetailTestUtil {
 
-  private ScheduleWorkProgrammeApplicationTestUtil() {}
+  private ScheduleWorkProgrammeApplicationDetailTestUtil() {}
 
   public static Builder builder() {
     return new Builder();
@@ -17,6 +18,7 @@ public class ScheduleWorkProgrammeApplicationTestUtil {
     private Integer versionNumber;
     private ScheduleWorkProgrammeApplicationStatus status;
     private Boolean allLicenseesPermissionConfirmed;
+    private Instant createdDateTime;
 
     private Builder() {}
 
@@ -45,6 +47,11 @@ public class ScheduleWorkProgrammeApplicationTestUtil {
       return this;
     }
 
+    public Builder withCreatedDate(Instant createdDateTime) {
+      this.createdDateTime = createdDateTime;
+      return this;
+    }
+
     public ScheduleWorkProgrammeApplicationDetail build() {
       var scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
       scheduleWorkProgrammeApplicationDetail.setId(id);
@@ -52,6 +59,7 @@ public class ScheduleWorkProgrammeApplicationTestUtil {
       scheduleWorkProgrammeApplicationDetail.setVersionNumber(versionNumber);
       scheduleWorkProgrammeApplicationDetail.setStatus(status);
       scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(allLicenseesPermissionConfirmed);
+      scheduleWorkProgrammeApplicationDetail.setCreatedDatetime(createdDateTime);
 
       return scheduleWorkProgrammeApplicationDetail;
     }

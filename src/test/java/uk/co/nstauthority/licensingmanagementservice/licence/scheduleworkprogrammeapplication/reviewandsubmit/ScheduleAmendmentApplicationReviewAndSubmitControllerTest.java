@@ -28,8 +28,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -56,12 +56,12 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
   void setUp() {
     Licence licence = LicenceTestUtil.builder().build();
     LicenceScheduleDetail licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(LicenceScheduleTestUtil.createLicenceSchedule(licence));
-    scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationTestUtil
+    scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
         .builder()
         .withId(SCHEDULE_APPLICATION_DETAIL_ID)
         .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
         .withScheduleWorkProgrammeApplication(
-            ScheduleWorkProgrammeApplicationTestUtil.createScheduleWorkProgrammeApplication(licenceScheduleDetail))
+            ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(licenceScheduleDetail))
         .build();
 
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(SCHEDULE_APPLICATION_DETAIL_ID)).thenReturn(scheduleWorkProgrammeApplicationDetail);
@@ -151,7 +151,8 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
   @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
   void renderPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
-    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+    var submittedDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
+        .builder()
         .withId(id)
         .withStatus(status)
         .build();
@@ -167,7 +168,8 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
   @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
   void submitPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
-    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+    var submittedDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
+        .builder()
         .withId(id)
         .withStatus(status)
         .build();

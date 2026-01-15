@@ -28,8 +28,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCategory;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListSectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -219,7 +219,8 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
   @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
   void renderPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
-    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+    var submittedDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
+        .builder()
         .withId(id)
         .withStatus(status)
         .build();
@@ -235,7 +236,8 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
   @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
   void submitPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
-    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+    var submittedDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
+        .builder()
         .withId(id)
         .withStatus(status)
         .build();

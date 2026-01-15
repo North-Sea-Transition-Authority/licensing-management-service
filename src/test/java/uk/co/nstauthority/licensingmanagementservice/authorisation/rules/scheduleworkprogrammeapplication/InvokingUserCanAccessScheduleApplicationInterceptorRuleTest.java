@@ -21,8 +21,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.Applica
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
 
 class InvokingUserCanAccessScheduleApplicationInterceptorRuleTest extends AbstractInterceptorRuleTest {
 
@@ -101,7 +101,8 @@ class InvokingUserCanAccessScheduleApplicationInterceptorRuleTest extends Abstra
     var application = new ScheduleWorkProgrammeApplication();
     application.setId(applicationId);
 
-    var applicationDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
+        .builder()
                                                                     .withId(detailId)
                                                                     .withScheduleWorkProgrammeApplication(application)
                                                                     .build();

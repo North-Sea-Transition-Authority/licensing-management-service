@@ -64,11 +64,11 @@ class ScheduleWorkProgrammeApplicationServiceTest {
   void setUp() {
     licence = LicenceTestUtil.builder().build();
     licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(LicenceScheduleTestUtil.createLicenceSchedule(licence));
-    scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationTestUtil
+    scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
         .builder()
         .withId(UUID.randomUUID())
         .withScheduleWorkProgrammeApplication(
-            ScheduleWorkProgrammeApplicationTestUtil.createScheduleWorkProgrammeApplication(licenceScheduleDetail))
+            ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(licenceScheduleDetail))
         .build();
   }
 

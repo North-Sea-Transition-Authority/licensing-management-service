@@ -26,8 +26,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDeleteController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
@@ -43,11 +43,12 @@ class ScheduleWorkProgrammeApplicationTaskListControllerTest extends AbstractCon
   private static final LicenceScheduleDetail LICENCE_SCHEDULE_DETAIL =
       LicenceScheduleTestUtil.createLicenceScheduleDetail(LicenceScheduleTestUtil.createLicenceSchedule(LICENCE));
   private static final ScheduleWorkProgrammeApplicationDetail SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL =
-      ScheduleWorkProgrammeApplicationTestUtil.builder()
+      ScheduleWorkProgrammeApplicationDetailTestUtil
+          .builder()
           .withId(UUID.randomUUID())
           .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
           .withScheduleWorkProgrammeApplication(
-              ScheduleWorkProgrammeApplicationTestUtil.createScheduleWorkProgrammeApplication(LICENCE_SCHEDULE_DETAIL))
+              ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(LICENCE_SCHEDULE_DETAIL))
           .build();
   private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder().build();
 
@@ -92,11 +93,12 @@ class ScheduleWorkProgrammeApplicationTaskListControllerTest extends AbstractCon
   @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
   void getTaskList_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
-    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+    var submittedDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
+        .builder()
         .withId(id)
         .withStatus(status)
         .withScheduleWorkProgrammeApplication(
-            ScheduleWorkProgrammeApplicationTestUtil.createScheduleWorkProgrammeApplication(LICENCE_SCHEDULE_DETAIL))
+            ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(LICENCE_SCHEDULE_DETAIL))
         .build();
 
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
@@ -109,12 +111,12 @@ class ScheduleWorkProgrammeApplicationTaskListControllerTest extends AbstractCon
   void submitPage_assertForbiddenUserNoAccess() throws Exception {
     var id = UUID.randomUUID();
 
-    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil
+    var submittedDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
         .builder()
         .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
         .withId(id)
         .withScheduleWorkProgrammeApplication(
-            ScheduleWorkProgrammeApplicationTestUtil.createScheduleWorkProgrammeApplication(LICENCE_SCHEDULE_DETAIL))
+            ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(LICENCE_SCHEDULE_DETAIL))
         .build();
 
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);

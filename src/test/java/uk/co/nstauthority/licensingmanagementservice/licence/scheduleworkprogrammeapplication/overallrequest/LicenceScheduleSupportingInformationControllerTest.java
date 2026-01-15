@@ -37,8 +37,8 @@ import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperSe
 import uk.co.nstauthority.licensingmanagementservice.file.FileUploadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
@@ -83,7 +83,7 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
 
-    var scheduleWorkProgrammeApplication = ScheduleWorkProgrammeApplicationTestUtil.createScheduleWorkProgrammeApplication(new LicenceScheduleDetail());
+    var scheduleWorkProgrammeApplication = ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(new LicenceScheduleDetail());
 
     scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
@@ -201,7 +201,8 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
   @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
   void renderPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
-    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+    var submittedDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
+        .builder()
         .withId(id)
         .withStatus(status)
         .build();
@@ -216,7 +217,8 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
   @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
   void submitPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
-    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+    var submittedDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
+        .builder()
         .withId(id)
         .withStatus(status)
         .build();
@@ -234,7 +236,8 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
   @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
   void deleteFile_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
-    var submittedDetail = ScheduleWorkProgrammeApplicationTestUtil.builder()
+    var submittedDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
+        .builder()
         .withId(id)
         .withStatus(status)
         .build();

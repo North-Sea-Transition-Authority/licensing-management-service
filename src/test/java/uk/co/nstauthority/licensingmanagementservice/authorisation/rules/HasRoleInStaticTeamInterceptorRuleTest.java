@@ -46,7 +46,7 @@ class HasRoleInStaticTeamInterceptorRuleTest extends AbstractInterceptorRuleTest
     when(userDetailService.getUserDetail()).thenReturn(serviceUserDetail);
     when(teamQueryService.userHasAtLeastOneStaticRole(
         1L,
-        TeamType.LICENCE_MAINTENANCE,
+        TeamType.LICENCE_MANAGEMENT,
         Set.of(Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE))
     ).thenReturn(true);
 
@@ -69,7 +69,7 @@ class HasRoleInStaticTeamInterceptorRuleTest extends AbstractInterceptorRuleTest
     when(userDetailService.getUserDetail()).thenReturn(serviceUserDetail);
     when(teamQueryService.userHasAtLeastOneStaticRole(
         1L,
-        TeamType.LICENCE_MAINTENANCE,
+        TeamType.LICENCE_MANAGEMENT,
         Set.of(Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE))
     ).thenReturn(false);
 
@@ -97,7 +97,7 @@ class HasRoleInStaticTeamInterceptorRuleTest extends AbstractInterceptorRuleTest
     when(userDetailService.getUserDetail()).thenReturn(serviceUserDetail);
     when(teamQueryService.userHasAtLeastOneStaticRole(
         1L,
-        TeamType.LICENCE_MAINTENANCE,
+        TeamType.LICENCE_MANAGEMENT,
         Set.of(Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE))
     ).thenReturn(true);
 
@@ -120,7 +120,7 @@ class HasRoleInStaticTeamInterceptorRuleTest extends AbstractInterceptorRuleTest
     when(userDetailService.getUserDetail()).thenReturn(serviceUserDetail);
     when(teamQueryService.userHasAtLeastOneStaticRole(
         1L,
-        TeamType.LICENCE_MAINTENANCE,
+        TeamType.LICENCE_MANAGEMENT,
         Set.of(Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE))
     ).thenReturn(false);
     when(teamQueryService.userHasAtLeastOneStaticRole(

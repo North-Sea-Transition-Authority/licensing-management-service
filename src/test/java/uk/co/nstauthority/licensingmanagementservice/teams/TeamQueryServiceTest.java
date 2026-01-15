@@ -30,70 +30,70 @@ class TeamQueryServiceTest {
 
   @Test
   void userHasStaticRole_hasRole() {
-    setupStaticTeamAndRoles(1L, TeamType.LICENCE_MAINTENANCE, List.of(
-        Role.VIEW_ANY_LICENCE,
+    setupStaticTeamAndRoles(1L, TeamType.LICENCE_MANAGEMENT, List.of(
+        Role.OFFLINE_LICENCE_ADMINISTRATOR,
         Role.MANAGE_TEAM
     ));
 
-    assertThat(teamQueryService.userHasStaticRole(1L, TeamType.LICENCE_MAINTENANCE, Role.VIEW_ANY_LICENCE))
+    assertThat(teamQueryService.userHasStaticRole(1L, TeamType.LICENCE_MANAGEMENT, Role.OFFLINE_LICENCE_ADMINISTRATOR))
         .isTrue();
   }
 
   @Test
   void userHasStaticRole_doesNotHaveRole() {
-    setupStaticTeamAndRoles(1L, TeamType.LICENCE_MAINTENANCE, List.of(
+    setupStaticTeamAndRoles(1L, TeamType.LICENCE_MANAGEMENT, List.of(
         Role.MANAGE_TEAM
     ));
 
-    assertThat(teamQueryService.userHasStaticRole(1L, TeamType.LICENCE_MAINTENANCE, Role.VIEW_ANY_LICENCE))
+    assertThat(teamQueryService.userHasStaticRole(1L, TeamType.LICENCE_MANAGEMENT, Role.OFFLINE_LICENCE_ADMINISTRATOR))
         .isFalse();
   }
 
   @Test
   void userHasStaticRole_invalidRole() {
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(() -> teamQueryService.userHasStaticRole(1L, TeamType.LICENCE_MAINTENANCE, Role.APPLICATION_EDITOR));
+        .isThrownBy(() -> teamQueryService.userHasStaticRole(1L, TeamType.LICENCE_MANAGEMENT, Role.APPLICATION_EDITOR));
   }
 
   @Test
   void userHasStaticRole_noTeamInstance() {
-    when(teamRepository.findByTeamType(TeamType.LICENCE_MAINTENANCE)).thenReturn(List.of());
-    assertThat(teamQueryService.userHasStaticRole(1L, TeamType.LICENCE_MAINTENANCE, Role.VIEW_ANY_LICENCE))
+    when(teamRepository.findByTeamType(TeamType.LICENCE_MANAGEMENT)).thenReturn(List.of());
+    assertThat(teamQueryService.userHasStaticRole(1L, TeamType.LICENCE_MANAGEMENT, Role.OFFLINE_LICENCE_ADMINISTRATOR))
         .isFalse();
   }
 
   @Test
   void userHasAtLeastOneStaticRole_hasRole() {
-    setupStaticTeamAndRoles(1L, TeamType.LICENCE_MAINTENANCE, List.of(
-        Role.VIEW_ANY_LICENCE,
+    setupStaticTeamAndRoles(1L, TeamType.LICENCE_MANAGEMENT, List.of(
+        Role.OFFLINE_LICENCE_ADMINISTRATOR,
         Role.MANAGE_TEAM
     ));
 
-    assertThat(teamQueryService.userHasAtLeastOneStaticRole(1L, TeamType.LICENCE_MAINTENANCE, Set.of(Role.VIEW_ANY_LICENCE)))
+    assertThat(teamQueryService.userHasAtLeastOneStaticRole(1L, TeamType.LICENCE_MANAGEMENT, Set.of(Role.OFFLINE_LICENCE_ADMINISTRATOR)))
         .isTrue();
   }
 
   @Test
   void userHasAtLeastOneStaticRole_doesNotHaveRole() {
-    setupStaticTeamAndRoles(1L, TeamType.LICENCE_MAINTENANCE, List.of(
+    setupStaticTeamAndRoles(1L, TeamType.LICENCE_MANAGEMENT, List.of(
         Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM,
         Role.MANAGE_TEAM
     ));
 
-    assertThat(teamQueryService.userHasAtLeastOneStaticRole(1L, TeamType.LICENCE_MAINTENANCE, Set.of(Role.VIEW_ANY_LICENCE)))
+    assertThat(teamQueryService.userHasAtLeastOneStaticRole(1L, TeamType.LICENCE_MANAGEMENT, Set.of(Role.OFFLINE_LICENCE_ADMINISTRATOR)))
         .isFalse();
   }
 
   @Test
   void userHasAtLeastOneStaticRole_invalidRole() {
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(() -> teamQueryService.userHasAtLeastOneStaticRole(1L, TeamType.LICENCE_MAINTENANCE, Set.of(Role.APPLICATION_EDITOR)));
+        .isThrownBy(() -> teamQueryService.userHasAtLeastOneStaticRole(1L, TeamType.LICENCE_MANAGEMENT, Set.of(Role.APPLICATION_EDITOR)));
   }
 
   @Test
   void userHasAtLeastOneStaticRole_noTeamInstance() {
-    when(teamRepository.findByTeamType(TeamType.LICENCE_MAINTENANCE)).thenReturn(List.of());
-    assertThat(teamQueryService.userHasAtLeastOneStaticRole(1L, TeamType.LICENCE_MAINTENANCE, Set.of(Role.VIEW_ANY_LICENCE)))
+    when(teamRepository.findByTeamType(TeamType.LICENCE_MANAGEMENT)).thenReturn(List.of());
+    assertThat(teamQueryService.userHasAtLeastOneStaticRole(1L, TeamType.LICENCE_MANAGEMENT, Set.of(Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER)))
         .isFalse();
   }
 

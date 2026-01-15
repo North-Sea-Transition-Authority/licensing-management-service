@@ -11,12 +11,19 @@ import uk.co.nstauthority.licensingmanagementservice.teams.management.ScopedTeam
 
 public enum TeamType {
 
-  LICENCE_MAINTENANCE(
-      "Licence maintenance",
-      "licence-maintenance",
+  LICENCE_MANAGEMENT(
+      "Licence management",
+      "licence-management",
       false,
       false,
-      List.of(Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM),
+      List.of(
+          Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM,
+          Role.MANAGE_TEAM,
+          Role.OFFLINE_LICENCE_ADMINISTRATOR,
+          Role.SCHEDULE_ADMINISTRATOR,
+          Role.WORK_PROGRAMME_ADMINISTRATOR,
+          Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER
+  ),
       null
   ),
   PRODUCTION(

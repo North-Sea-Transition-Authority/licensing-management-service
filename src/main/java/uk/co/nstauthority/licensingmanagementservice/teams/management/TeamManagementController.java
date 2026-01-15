@@ -80,7 +80,7 @@ public class TeamManagementController {
         .filter(teamType -> !teamType.isApplicationScoped())
         .collect(Collectors.toCollection(HashSet::new));
 
-    if (teamQueryService.userHasStaticRole(user.wuaId(), TeamType.LICENCE_MAINTENANCE,
+    if (teamQueryService.userHasStaticRole(user.wuaId(), TeamType.LICENCE_MANAGEMENT,
         Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM)) {
       // regulator with priv can manage org teams
       teamTypes.add(TeamType.ORGANISATION);
@@ -122,7 +122,7 @@ public class TeamManagementController {
 
       boolean userCanCreateOrgs = teamQueryService.userHasStaticRole(
           user.wuaId(),
-          TeamType.LICENCE_MAINTENANCE,
+          TeamType.LICENCE_MANAGEMENT,
           Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM
       );
 

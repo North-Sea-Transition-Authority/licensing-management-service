@@ -171,7 +171,7 @@ public abstract class AbstractControllerTest {
         .withWuaId(REGULATOR_USER_WUA_ID)
         .build();
 
-    when(teamManagementService.getTeamTypesUserIsMemberOf(regulatorUser.wuaId())).thenReturn(Set.of(TeamType.LICENCE_MAINTENANCE));
+    when(teamManagementService.getTeamTypesUserIsMemberOf(regulatorUser.wuaId())).thenReturn(Set.of(TeamType.LICENCE_MANAGEMENT));
   }
 
   @TestConfiguration

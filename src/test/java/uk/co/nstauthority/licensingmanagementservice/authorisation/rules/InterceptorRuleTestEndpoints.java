@@ -15,20 +15,20 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 public class InterceptorRuleTestEndpoints {
 
   @GetMapping("has-any-role-in-team-type")
-  @HasAnyRoleInTeamTypeInterceptorRule.HasAnyRoleInTeamType(TeamType.LICENCE_MAINTENANCE)
+  @HasAnyRoleInTeamTypeInterceptorRule.HasAnyRoleInTeamType(TeamType.LICENCE_MANAGEMENT)
   public ResponseEntity<String> hasAnyRoleInTeamType() {
     return ResponseEntity.ok("has any role in team type test endpoint");
   }
 
   @GetMapping("has-role-in-static-team")
-  @HasRoleInStaticTeamInterceptorRule.HasRoleInStaticTeam(@HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.LICENCE_MAINTENANCE, roles = {Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE}))
+  @HasRoleInStaticTeamInterceptorRule.HasRoleInStaticTeam(@HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.LICENCE_MANAGEMENT, roles = {Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE}))
   public ResponseEntity<String> hasRoleInStaticTeam() {
     return ResponseEntity.ok("has role in static team test endpoint");
   }
 
   @GetMapping("has-role-in-static-team-multiple-teams")
   @HasRoleInStaticTeamInterceptorRule.HasRoleInStaticTeam({
-      @HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.LICENCE_MAINTENANCE, roles = {Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE}),
+      @HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.LICENCE_MANAGEMENT, roles = {Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE}),
       @HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.PRODUCTION, roles = {Role.MANAGE_TEAM})
   })
   public ResponseEntity<String> hasRoleInStaticTeam_multipleTeams() {
@@ -44,7 +44,7 @@ public class InterceptorRuleTestEndpoints {
   }
 
   @GetMapping("has-role-in-static-team-no-roles")
-  @HasRoleInStaticTeamInterceptorRule.HasRoleInStaticTeam(@HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.LICENCE_MAINTENANCE, roles = {}))
+  @HasRoleInStaticTeamInterceptorRule.HasRoleInStaticTeam(@HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.LICENCE_MANAGEMENT, roles = {}))
   public ResponseEntity<String> hasRoleInStaticTeam_noProvidedRoles() {
     return ResponseEntity.ok("has role in static team no provided roles test endpoint");
   }

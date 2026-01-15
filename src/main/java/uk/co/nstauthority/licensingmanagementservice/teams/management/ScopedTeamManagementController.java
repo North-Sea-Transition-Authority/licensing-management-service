@@ -47,13 +47,13 @@ public class ScopedTeamManagementController {
   // Add one of these get/post handlers for every scoped team time you want users to be able to create themselves.
   // only this creation logic needs to be added, once team is created normal TeamManagementController can be used.
   @GetMapping("/team-management/organisation/new")
-  @InvokingUserHasStaticRole(teamType = TeamType.LICENCE_MAINTENANCE, role = Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM)
+  @InvokingUserHasStaticRole(teamType = TeamType.LICENCE_MANAGEMENT, role = Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM)
   public ModelAndView renderCreateNewOrgTeam(@ModelAttribute("form") NewOrganisationTeamForm form) {
     return getModelAndView();
   }
 
   @PostMapping("/team-management/organisation/new")
-  @InvokingUserHasStaticRole(teamType = TeamType.LICENCE_MAINTENANCE, role = Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM)
+  @InvokingUserHasStaticRole(teamType = TeamType.LICENCE_MANAGEMENT, role = Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM)
   public ModelAndView handleCreateNewOrgTeam(@ModelAttribute("form") NewOrganisationTeamForm form, BindingResult bindingResult) {
     if (!newOrganisationTeamFormValidator.validate(form, bindingResult)) {
       return getModelAndView();

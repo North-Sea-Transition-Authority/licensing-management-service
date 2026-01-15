@@ -41,7 +41,7 @@ class HasAnyRoleInTeamTypeInterceptorRuleTest extends AbstractInterceptorRuleTes
   void hasCorrectTeamType() throws NoSuchMethodException {
     when(userDetailService.getUserDetail()).thenReturn(serviceUserDetail);
     when(teamManagementService.getTeamTypesUserIsMemberOf(serviceUserDetail.wuaId()))
-        .thenReturn(Set.of(TeamType.LICENCE_MAINTENANCE));
+        .thenReturn(Set.of(TeamType.LICENCE_MANAGEMENT));
 
     var annotation = getAnnotation(
         InterceptorRuleTestEndpoints.class.getDeclaredMethod("hasAnyRoleInTeamType"),

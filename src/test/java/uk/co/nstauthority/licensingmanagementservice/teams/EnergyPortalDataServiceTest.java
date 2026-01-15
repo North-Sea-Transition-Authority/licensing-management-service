@@ -60,6 +60,15 @@ class EnergyPortalDataServiceTest {
         createServiceRoleDto(Role.VIEW_ANY_LICENCE, false)
     );
 
+    var licenceManagementRoleDtos = Set.of(
+        createServiceRoleDto(Role.MANAGE_TEAM, true),
+        createServiceRoleDto(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM, false),
+        createServiceRoleDto(Role.OFFLINE_LICENCE_ADMINISTRATOR, false),
+        createServiceRoleDto(Role.SCHEDULE_ADMINISTRATOR, false),
+        createServiceRoleDto(Role.WORK_PROGRAMME_ADMINISTRATOR, false),
+        createServiceRoleDto(Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER, false)
+    );
+
     var productionRoleDtos = Set.of(
         createServiceRoleDto(Role.MANAGE_TEAM, true),
         createServiceRoleDto(Role.VIEW_ANY_LICENCE, false)
@@ -86,7 +95,7 @@ class EnergyPortalDataServiceTest {
     assertThat(energyPortalDataService.getTeamTypeToServiceProviderTeamTypeRoleDtos())
         .isEqualTo(
             Map.of(
-                TeamType.LICENCE_MAINTENANCE.name(), licenceMaintainenceRoleDtos,
+                TeamType.LICENCE_MANAGEMENT.name(), licenceManagementRoleDtos,
                 TeamType.PRODUCTION.name(), productionRoleDtos,
                 TeamType.CARBON_STORAGE.name(), carbonStorageRoleDtos,
                 TeamType.ORGANISATION.name(), organisationServiceRoleDtos,
@@ -98,7 +107,7 @@ class EnergyPortalDataServiceTest {
   @Test
   void getTeamTypes() {
     assertThat(energyPortalDataService.getTeamTypes()).isEqualTo(Set.of(
-        TeamType.LICENCE_MAINTENANCE.name(),
+        TeamType.LICENCE_MANAGEMENT.name(),
         TeamType.PRODUCTION.name(),
         TeamType.CARBON_STORAGE.name(),
         TeamType.ORGANISATION.name(),

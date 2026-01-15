@@ -161,7 +161,7 @@ class HasRolesInTeamTypeInterceptorRuleTest extends AbstractInterceptorRuleTest 
     ).thenReturn(false);
     when(teamQueryService.userHasRoleInTeamType(
         1L,
-        TeamType.LICENCE_MAINTENANCE,
+        TeamType.LICENCE_MANAGEMENT,
         Set.of(Role.MANAGE_TEAM))
     ).thenReturn(true);
 

@@ -32,7 +32,7 @@ public class RoleAndTeamTypeEndpoints {
   @GetMapping("/has-multiple-roles-in-multiple-team-types")
   @HasRolesInTeamType(value = {
       @RolesAndTeamType(roles = {Role.APPLICATION_EDITOR, Role.VIEW_ORGANISATION_LICENCES}, teamType = TeamType.ORGANISATION),
-      @RolesAndTeamType(roles = {Role.MANAGE_TEAM}, teamType = TeamType.LICENCE_MAINTENANCE)
+      @RolesAndTeamType(roles = {Role.MANAGE_TEAM}, teamType = TeamType.LICENCE_MANAGEMENT)
   })
   public ResponseEntity<String> hasMultipleRolesInMultipleTeamTypes() {
     return ResponseEntity.ok("multiple role in multiple team type test endpoint");

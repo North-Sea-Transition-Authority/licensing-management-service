@@ -35,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.configuration.EnergyPortalC
 import uk.co.nstauthority.licensingmanagementservice.configuration.ErrorConfigurationProperties;
 import uk.co.nstauthority.licensingmanagementservice.configuration.SamlProperties;
 import uk.co.nstauthority.licensingmanagementservice.configuration.WebSecurityConfiguration;
+import uk.co.nstauthority.licensingmanagementservice.document.search.DocumentTemplateSearchStringToTabConverter;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.epa.EpaRequestHandler;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.hibernate.HibernateQueryCounter;
@@ -92,7 +93,8 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     LicenceContinuationApplicationDetailArgumentResolver.class,
     LicenceScheduleDetailArgumentResolver.class,
     InvokingUserCanAccessScheduleApplicationInterceptorRule.class,
-    InvokingUserCanStartScheduleApplicationInterceptorRule.class
+    InvokingUserCanStartScheduleApplicationInterceptorRule.class,
+    DocumentTemplateSearchStringToTabConverter.class
 })
 @EnableConfigurationProperties({
     SamlProperties.class,

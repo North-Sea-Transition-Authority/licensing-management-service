@@ -1,0 +1,10 @@
+<#macro noMatchingResults>
+  <h3 class="govuk-heading-s">There are no matching results</h3>
+  <p class="govuk-body">Improve your results by:</p>
+  <ul class="govuk-list govuk-list--bullet">
+    <li>removing filters</li>
+    <li>double-checking your spelling</li>
+    <li>using fewer keywords</li>
+    <li>searching for something less specific</li>
+  </ul>
+</#macro>

@@ -54,19 +54,14 @@ class EnergyPortalDataServiceTest {
 
   @Test
   void getTeamTypeToServiceProviderTeamTypeRoleDtos() {
-    var licenceMaintainenceRoleDtos = Set.of(
-        createServiceRoleDto(Role.MANAGE_TEAM, true),
-        createServiceRoleDto(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM, false),
-        createServiceRoleDto(Role.VIEW_ANY_LICENCE, false)
-    );
-
     var licenceManagementRoleDtos = Set.of(
         createServiceRoleDto(Role.MANAGE_TEAM, true),
         createServiceRoleDto(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM, false),
         createServiceRoleDto(Role.OFFLINE_LICENCE_ADMINISTRATOR, false),
         createServiceRoleDto(Role.SCHEDULE_ADMINISTRATOR, false),
         createServiceRoleDto(Role.WORK_PROGRAMME_ADMINISTRATOR, false),
-        createServiceRoleDto(Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER, false)
+        createServiceRoleDto(Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER, false),
+        createServiceRoleDto(Role.DOCUMENT_TEMPLATE_MANAGER, false)
     );
 
     var productionRoleDtos = Set.of(

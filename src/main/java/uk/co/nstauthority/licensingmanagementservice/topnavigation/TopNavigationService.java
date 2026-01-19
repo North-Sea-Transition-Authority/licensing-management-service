@@ -25,6 +25,7 @@ public class TopNavigationService {
     navigationItems.add(TopNavigationItem.WORK_AREA);
     navigationItems.add(TopNavigationItem.LICENCES);
     navigationItems.add(TopNavigationItem.TEAMS);
+    navigationItems.add(TopNavigationItem.DOCUMENT_LIBRARY);
 
     return navigationItems;
   }

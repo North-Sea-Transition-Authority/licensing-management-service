@@ -671,8 +671,10 @@ class TeamManagementControllerTest extends AbstractControllerTest {
             Map.entry(Role.OFFLINE_LICENCE_ADMINISTRATOR.name(), Role.OFFLINE_LICENCE_ADMINISTRATOR.getName()),
             Map.entry(Role.SCHEDULE_ADMINISTRATOR.name(), Role.SCHEDULE_ADMINISTRATOR.getName()),
             Map.entry(Role.WORK_PROGRAMME_ADMINISTRATOR.name(), Role.WORK_PROGRAMME_ADMINISTRATOR.getName()),
-            Map.entry(Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER.name(), Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER.getName())
-            );
+            Map.entry(Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER.name(), Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER.getName()),
+            Map.entry(Role.DOCUMENT_TEMPLATE_MANAGER.name(),
+                Role.DOCUMENT_TEMPLATE_MANAGER.getName())
+        );
 
     var teamMemberViewModel = (TeamMemberView) modelAndView.getModel().get("teamMemberView");
     assertThat(teamMemberViewModel).isEqualTo(regTeamMemberView);
@@ -686,7 +688,8 @@ class TeamManagementControllerTest extends AbstractControllerTest {
             Role.OFFLINE_LICENCE_ADMINISTRATOR,
             Role.SCHEDULE_ADMINISTRATOR,
             Role.WORK_PROGRAMME_ADMINISTRATOR,
-            Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER
+            Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER,
+            Role.DOCUMENT_TEMPLATE_MANAGER
         );
   }
 

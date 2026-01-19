@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.topnavigation;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import uk.co.nstauthority.licensingmanagementservice.document.search.DocumentTemplateSearchController;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementController;
@@ -17,6 +18,11 @@ public enum TopNavigationItem {
   ),
   TEAMS("Teams",
       ReverseRouter.route(on(TeamManagementController.class).renderTeamTypeList(null))
+  ),
+  DOCUMENT_LIBRARY(
+      "Document library",
+      ReverseRouter.route(on(DocumentTemplateSearchController.class)
+          .renderDocumentTemplateSearch(null, null, null, null))
   );
 
   private final String displayName;

@@ -49,6 +49,10 @@ public enum Role {
   LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER(
       "Licence schedule and work programme view",
       "Can view the licence schedule and work programme. Users in any other role automatically have view access"
+  ),
+  DOCUMENT_TEMPLATE_MANAGER(
+      "Document template administrator",
+      "Create and edit document templates"
   );
 
   private final String name;

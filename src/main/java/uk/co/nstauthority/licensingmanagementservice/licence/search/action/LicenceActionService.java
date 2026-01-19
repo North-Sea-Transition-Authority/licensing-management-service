@@ -86,6 +86,7 @@ public class LicenceActionService {
   ) {
     var scheduleExists = licenceScheduleDetailService.nonDeletedScheduleExistsForLicence(licence);
 
-    return !scheduleExists && requirements.contains(LicenceScheduleRequirement.NO_SCHEDULE_EXISTS);
+    return requirements.contains(LicenceScheduleRequirement.NO_REQUIREMENT)
+        || requirements.contains(LicenceScheduleRequirement.NO_SCHEDULE_EXISTS) && !scheduleExists;
   }
 }

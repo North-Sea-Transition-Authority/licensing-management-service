@@ -117,9 +117,7 @@ public class LicenceActionBuilder {
 
     @Override
     public RegisterAnAction withoutLicenceScheduleRequirement() {
-      licenceScheduleRequirementMap.put(
-          actionItems.peek(), Arrays.stream(LicenceScheduleRequirement.values()).collect(Collectors.toSet())
-      );
+      licenceScheduleRequirementMap.put(actionItems.peek(), Set.of(LicenceScheduleRequirement.NO_REQUIREMENT));
       return this;
     }
 

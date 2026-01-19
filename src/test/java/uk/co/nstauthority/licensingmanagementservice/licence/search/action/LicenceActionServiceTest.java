@@ -65,6 +65,20 @@ class LicenceActionServiceTest {
   }
 
   @Test
+  void getAvailableUserActionItems_licenceScheduleExists_noScheduleRequirement() {
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .withStatus(LicenceStatus.EXTANT)
+        .build();
+
+    when(licenceScheduleDetailService.nonDeletedScheduleExistsForLicence(licence)).thenReturn(true);
+
+    assertThat(licenceActionService.getAvailableUserActionItems(licence, null))
+        .contains(LicenceActionItem.MANAGE_LICENSEES.toActionItemView(licence));
+  }
+
+  @Test
   void getAvailableUserActionItems_licenceScheduleDoesNotExist() {
     var licence = LicenceTestUtil.builder()
         .withId(1)

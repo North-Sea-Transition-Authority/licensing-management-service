@@ -3,10 +3,14 @@ package uk.co.nstauthority.licensingmanagementservice.licence.application;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @Service
@@ -14,14 +18,18 @@ public class ApplicationAccessService {
 
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final TeamQueryService teamQueryService;
+  private final LicenceOrganisationService licenceOrganisationService;
+  private final Set<Role> editorSubmitterRoles = Set.of(Role.APPLICATION_EDITOR, Role.APPLICATION_SUBMITTER);
   public static final String ORGANISATION = "ORGANISATION";
 
   public ApplicationAccessService(
       OrganisationUnitQueryService organisationUnitQueryService,
-      TeamQueryService teamQueryService
+      TeamQueryService teamQueryService,
+      LicenceOrganisationService licenceOrganisationService
   ) {
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.teamQueryService = teamQueryService;
+    this.licenceOrganisationService = licenceOrganisationService;
   }
 
   public boolean userHasAccessToApplication(
@@ -73,11 +81,16 @@ public class ApplicationAccessService {
   public boolean userHasAccessToStartApplication(
       Long wuaId
   ) {
-    var allowedRoles = Set.of(
-        Role.APPLICATION_EDITOR,
-        Role.APPLICATION_SUBMITTER
-    );
+    return teamQueryService.userHasRoleInTeamType(wuaId, TeamType.ORGANISATION, editorSubmitterRoles);
+  }
 
-    return teamQueryService.userHasRoleInTeamType(wuaId, TeamType.ORGANISATION, allowedRoles);
+  public boolean userHasEditorOrSubmitterRoleInOrganisationGroup(ServiceUserDetail userDetail) {
+    return licenceOrganisationService.getUsersOrgGroupIds(userDetail).stream().anyMatch(userOrgGroupId ->
+     teamQueryService.userHasAtLeastOneScopedRole(
+        userDetail.wuaId(),
+        TeamType.ORGANISATION,
+        TeamScopeReference.from(userOrgGroupId.toString(), ScopeType.ORGANISATION_GROUP.name()),
+        editorSubmitterRoles)
+    );
   }
 }

@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
@@ -31,17 +32,21 @@ class LicenseeInformationServiceTest {
   @Mock
   private ServiceUserDetail serviceUserDetail;
 
+  @Mock
+  private ApplicationAccessService  applicationAccessService;
+
   @Test
-  void getResponsibleOrgUnitOptions_returnsOnlyMatchingOrgUnits() {
+  void getResponsibleOrgUnitOptions_returnsOnlyMatchingOrgUnitsWithValidRoles() {
     Licence licence = new Licence();
     LicenceResponsibleOrganisation lro = createLicenceResponsibleOrganisation(2);
     when(licenceResponsibleOrganisationService.getAllByLicence(licence)).thenReturn(List.of(lro));
 
     OrganisationUnitJson ou1 = new OrganisationUnitJson(2, "Org Two");
     OrganisationUnitJson ou2 = new OrganisationUnitJson(3, "Org Three");
+    when(applicationAccessService.userHasEditorOrSubmitterRoleInOrganisationGroup(serviceUserDetail)).thenReturn(true);
     when(licenceOrganisationService.getUsersOrgUnits(serviceUserDetail)).thenReturn(List.of(ou1, ou2));
 
-    var result = licenseeInformationService.getResponsibleOrgUnitOptions(licence, serviceUserDetail);
+    var result = licenseeInformationService.getResponsibleOrgUnitOptionsWithValidRoles(licence, serviceUserDetail);
 
     assertThat(result)
         .hasSize(1)
@@ -49,7 +54,7 @@ class LicenseeInformationServiceTest {
   }
 
   @Test
-  void getResponsibleOrgUnitOptions_returnsEmptyWhenNoMatches() {
+  void getResponsibleOrgUnitOptions_WithValidRoles_returnsEmptyWhenNoMatches() {
     Licence licence = new Licence();
     LicenceResponsibleOrganisation lro = createLicenceResponsibleOrganisation(99);
     when(licenceResponsibleOrganisationService.getAllByLicence(licence)).thenReturn(List.of(lro));
@@ -58,7 +63,7 @@ class LicenseeInformationServiceTest {
     OrganisationUnitJson ou2 = new OrganisationUnitJson(3, "Org Three");
     when(licenceOrganisationService.getUsersOrgUnits(serviceUserDetail)).thenReturn(List.of(ou1, ou2));
 
-    var result = licenseeInformationService.getResponsibleOrgUnitOptions(licence, serviceUserDetail);
+    var result = licenseeInformationService.getResponsibleOrgUnitOptionsWithValidRoles(licence, serviceUserDetail);
 
     assertThat(result).isEmpty();
   }

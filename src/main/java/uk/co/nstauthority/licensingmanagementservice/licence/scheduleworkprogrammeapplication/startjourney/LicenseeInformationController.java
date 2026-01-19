@@ -104,7 +104,8 @@ public class LicenseeInformationController {
         .addObject("form", selectLicenceTypeForm)
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("pageCaption", caption)
-        .addObject("responsibleOrgUnitOptions", licenseeInformationService.getResponsibleOrgUnitOptions(licence, user))
+        .addObject("responsibleOrgUnitOptions", licenseeInformationService
+            .getResponsibleOrgUnitOptionsWithValidRoles(licence, user))
         .addObject("backUrl", ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class)
             .renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))
         );

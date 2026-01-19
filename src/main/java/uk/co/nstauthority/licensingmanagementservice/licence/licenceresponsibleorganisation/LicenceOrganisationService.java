@@ -34,7 +34,7 @@ public class LicenceOrganisationService {
     return organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(usersOrgGroupIds);
   }
 
-  private List<Integer> getUsersOrgGroupIds(ServiceUserDetail user) {
+  public List<Integer> getUsersOrgGroupIds(ServiceUserDetail user) {
     return teamQueryService.getTeamRolesForUser(user.wuaId())
         .stream()
         .map(TeamRole::getTeam)

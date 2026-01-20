@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
@@ -25,6 +26,7 @@ public class LicenceScheduleSupportingInformation {
   private String impactOnDeliverables;
 
   @ManyToOne
+  @JoinColumn(name = "schedule_work_programme_application_details_id")
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetails;
 
   public UUID getId() {

@@ -9,6 +9,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -27,6 +28,7 @@ public class LicenceScheduleTerm {
   private UUID id;
 
   @ManyToOne
+  @JoinColumn(name = "licence_schedule_detail_id")
   private LicenceScheduleDetail licenceScheduleDetail;
 
   @Enumerated(EnumType.STRING)

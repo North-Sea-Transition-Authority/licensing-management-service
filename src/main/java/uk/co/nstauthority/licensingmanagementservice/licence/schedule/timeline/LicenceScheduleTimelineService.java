@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
@@ -14,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseDeletionController;
@@ -38,6 +40,7 @@ public class LicenceScheduleTimelineService {
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
   private final WorkProgrammeActivityService workProgrammeActivityService;
   private final LicenceScheduleRateService licenceScheduleRateService;
+  private final LicenceScheduleExpiryService licenceScheduleExpiryService;
 
   public LicenceScheduleTimelineService(
       LicenceStartDateService licenceStartDateService,
@@ -45,7 +48,8 @@ public class LicenceScheduleTimelineService {
       LicenceScheduleTermService licenceScheduleTermService,
       LicenceSchedulePhaseService licenceSchedulePhaseService,
       WorkProgrammeActivityService workProgrammeActivityService,
-      LicenceScheduleRateService licenceScheduleRateService
+      LicenceScheduleRateService licenceScheduleRateService,
+      LicenceScheduleExpiryService licenceScheduleExpiryService
   ) {
     this.licenceStartDateService = licenceStartDateService;
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
@@ -53,6 +57,7 @@ public class LicenceScheduleTimelineService {
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
     this.workProgrammeActivityService = workProgrammeActivityService;
     this.licenceScheduleRateService = licenceScheduleRateService;
+    this.licenceScheduleExpiryService = licenceScheduleExpiryService;
   }
 
   public TimelineSummaryCardView getTimelineSummaryCardView(LicenceScheduleDetail licenceScheduleDetail) {
@@ -85,6 +90,8 @@ public class LicenceScheduleTimelineService {
     if (licenceTypeRulesResolver.hasRentalRate(licenceType)) {
       actions.add(LicenceScheduleTimelineAction.ADD_A_RATE);
     }
+
+    actions.add(LicenceScheduleTimelineAction.ADD_AN_EXPIRY);
 
     return actions.stream()
         .sorted(Comparator.comparing(LicenceScheduleTimelineAction::getDisplayOrder))
@@ -164,7 +171,11 @@ public class LicenceScheduleTimelineService {
         .stream()
         .map(TimelineRateView::getScheduleEventFrom);
 
-    return Stream.concat(workProgrammeActivities, rates)
+    var expiryDates = licenceScheduleExpiryService.getAllActiveExpiryDatesByDateRangeFor(licenceScheduleTerm).stream()
+        .map(TimelineExpiryView::getScheduleEventFrom);
+
+    return Stream.of(workProgrammeActivities, rates, expiryDates)
+        .flatMap(Function.identity())
         .sorted(Comparator.comparing(ScheduleEvent::getSortingDate)
             .thenComparing(event -> event.getEventType().getEventTypeOrder()))
         .toList();
@@ -210,11 +221,14 @@ public class LicenceScheduleTimelineService {
         )
         .map(TimelineWorkProgrammeActivityView::getScheduleEventFrom);
 
-    var rates = licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(licenceSchedulePhase, firstPhaseType)
-        .stream()
+    var rates = licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(licenceSchedulePhase, firstPhaseType).stream()
         .map(TimelineRateView::getScheduleEventFrom);
 
-    return Stream.concat(workProgrammeActivities, rates)
+    var expiryDates = licenceScheduleExpiryService.getAllActiveExpiryDatesByDateRangeFor(licenceSchedulePhase).stream()
+        .map(TimelineExpiryView::getScheduleEventFrom);
+
+    return Stream.of(workProgrammeActivities, rates, expiryDates)
+        .flatMap(Function.identity())
         .sorted(Comparator.comparing(ScheduleEvent::getSortingDate)
             .thenComparing(event -> event.getEventType().getEventTypeOrder()))
         .toList();

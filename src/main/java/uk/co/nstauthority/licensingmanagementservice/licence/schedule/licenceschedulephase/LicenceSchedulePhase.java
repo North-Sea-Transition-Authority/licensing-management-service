@@ -32,6 +32,7 @@ public class LicenceSchedulePhase {
   private LicenceScheduleTerm licenceScheduleTerm;
 
   @ManyToOne
+  @JoinColumn(name = "licence_schedule_detail_id")
   private LicenceScheduleDetail licenceScheduleDetail;
 
   @Enumerated(EnumType.STRING)

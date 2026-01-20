@@ -4,7 +4,8 @@ public enum ScheduleEventType {
   PHASE(null),
   RATE(1),
   WORK_PROGRAMME_ACTIVITY(2),
-  OTHER(3);
+  OTHER(3),
+  EXPIRY(4);
 
   private final Integer eventTypeOrder;
 

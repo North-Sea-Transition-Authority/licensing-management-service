@@ -24,6 +24,7 @@ public class LicenceScheduleExtensionRequest {
   private UUID id;
 
   @ManyToOne
+  @JoinColumn(name = "schedule_work_programme_application_details_id")
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetails;
 
   @ManyToOne

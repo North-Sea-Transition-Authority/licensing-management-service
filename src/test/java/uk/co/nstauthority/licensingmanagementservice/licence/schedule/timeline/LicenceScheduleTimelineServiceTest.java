@@ -23,8 +23,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiry;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseDeletionController;
@@ -68,6 +72,9 @@ class LicenceScheduleTimelineServiceTest {
 
   @Mock
   private LicenceScheduleRateService licenceScheduleRateService;
+
+  @Mock
+  private LicenceScheduleExpiryService licenceScheduleExpiryService;
 
   @InjectMocks
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
@@ -134,6 +141,10 @@ class LicenceScheduleTimelineServiceTest {
         new TimelineActionView(
             LicenceScheduleTimelineAction.ADD_A_RATE,
             ReverseRouter.route(on(LicenceScheduleRateController.class).renderNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null))
+        ),
+        new TimelineActionView(
+            LicenceScheduleTimelineAction.ADD_AN_EXPIRY,
+            ReverseRouter.route(on(LicenceScheduleExpiryController.class).renderAddLicenceExpiryPage(licenceScheduleDetail.getId(), null))
         )
     );
 
@@ -152,6 +163,10 @@ class LicenceScheduleTimelineServiceTest {
         new TimelineActionView(
             LicenceScheduleTimelineAction.ADD_A_TERM,
             ReverseRouter.route(on(LicenceScheduleTermController.class).renderAddNewTermForm(licenceScheduleDetail.getId(), null))
+        ),
+        new TimelineActionView(
+            LicenceScheduleTimelineAction.ADD_AN_EXPIRY,
+            ReverseRouter.route(on(LicenceScheduleExpiryController.class).renderAddLicenceExpiryPage(licenceScheduleDetail.getId(), null))
         )
     );
 
@@ -309,8 +324,22 @@ class LicenceScheduleTimelineServiceTest {
             .renderDeleteRatePage(term2Rate.getId()))
     );
 
+    var licenceExpiry = new LicenceScheduleExpiry();
+    licenceExpiry.setId(UUID.randomUUID());
+    licenceExpiry.setLicenceScheduleDetail(licenceScheduleDetail);
+    licenceExpiry.setStatus(LicenceScheduleEventStatus.ACTIVE);
+    licenceExpiry.setExpiryDate(LocalDate.of(2026, 12, 31));
+
+    var licenceExpiryView = new TimelineExpiryView(
+        "Licence expiry",
+        LocalDate.of(2026, 12, 31),
+        "31 December 2026",
+        ReverseRouter.route(on(LicenceScheduleExpiryController.class).renderUpdateLicenceExpiryPage(licenceExpiry.getId())),
+        ""
+    );
+
     var termView2 = new TimelineTermView(
-        List.of(term2RateView, midTerm2ActivityView),
+        List.of(term2RateView, midTerm2ActivityView, licenceExpiryView),
         List.of(endOfTerm2ActivityView),
         TermType.SECOND,
         "1 January 2026 to 31 December 2026 (1 year)",
@@ -335,6 +364,9 @@ class LicenceScheduleTimelineServiceTest {
 
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
+
+    when(licenceScheduleExpiryService.getAllActiveExpiryDatesByDateRangeFor(phase)).thenReturn(List.of());
+    when(licenceScheduleExpiryService.getAllActiveExpiryDatesByDateRangeFor(term2)).thenReturn(List.of(licenceExpiry));
 
     assertThat(licenceScheduleTimelineService.getLicenceScheduleEventViews(licenceScheduleDetail))
         .usingRecursiveComparison()

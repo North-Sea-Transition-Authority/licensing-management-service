@@ -21,8 +21,8 @@ public class TeamRole {
   @UuidGenerator
   private UUID id;
 
-  @JoinColumn(name = "team_id")
   @ManyToOne
+  @JoinColumn(name = "team_id")
   private Team team;
 
   @Enumerated(EnumType.STRING)

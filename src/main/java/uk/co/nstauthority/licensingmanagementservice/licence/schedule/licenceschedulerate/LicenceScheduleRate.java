@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -28,15 +29,18 @@ public class LicenceScheduleRate {
   private UUID id;
 
   @ManyToOne
+  @JoinColumn(name = "licence_schedule_detail_id")
   private LicenceScheduleDetail licenceScheduleDetail;
 
   @Enumerated(value = EnumType.STRING)
   private RateDefinitionOption rateDefinitionOption;
 
   @ManyToOne
+  @JoinColumn(name = "licence_schedule_term_id")
   private LicenceScheduleTerm licenceScheduleTerm;
 
   @ManyToOne
+  @JoinColumn(name = "licence_schedule_phase_id")
   private LicenceSchedulePhase licenceSchedulePhase;
 
   @Enumerated(value = EnumType.STRING)

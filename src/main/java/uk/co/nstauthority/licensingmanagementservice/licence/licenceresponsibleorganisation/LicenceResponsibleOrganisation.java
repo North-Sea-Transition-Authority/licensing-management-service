@@ -17,7 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 public class LicenceResponsibleOrganisation {
 
   @Id
-  @ManyToOne()
+  @ManyToOne
   @JoinColumn(name = "licence_id")
   @Cascade(CascadeType.MERGE)
   private Licence licence;

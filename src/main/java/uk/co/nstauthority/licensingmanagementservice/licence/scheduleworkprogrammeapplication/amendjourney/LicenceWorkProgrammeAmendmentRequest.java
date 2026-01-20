@@ -5,6 +5,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
@@ -22,9 +23,11 @@ public class LicenceWorkProgrammeAmendmentRequest {
   private UUID id;
 
   @ManyToOne
+  @JoinColumn(name = "work_programme_activity_id")
   private WorkProgrammeActivity workProgrammeActivity;
 
   @ManyToOne
+  @JoinColumn(name = "schedule_work_programme_application_details_id")
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetails;
 
   @Embedded

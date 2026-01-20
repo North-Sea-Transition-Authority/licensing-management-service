@@ -4,6 +4,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.util.function.Function;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
@@ -33,7 +34,13 @@ ADD_A_RATE(
     "Add a rate",
     4,
         licenceScheduleDetail -> ReverseRouter.route(on(LicenceScheduleRateController.class)
-            .renderNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null))
+        .renderNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null))
+),
+ADD_AN_EXPIRY(
+  "Add an expiry",
+  5,
+      licenceScheduleDetail -> ReverseRouter.route(on(LicenceScheduleExpiryController.class)
+        .renderAddLicenceExpiryPage(licenceScheduleDetail.getId(), null))
 );
 
   private final String displayText;

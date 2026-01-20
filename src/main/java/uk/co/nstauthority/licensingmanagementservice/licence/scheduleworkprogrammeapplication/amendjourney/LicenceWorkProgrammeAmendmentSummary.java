@@ -4,6 +4,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.UUID;
@@ -21,6 +22,7 @@ public class LicenceWorkProgrammeAmendmentSummary {
   private UUID id;
 
   @ManyToOne
+  @JoinColumn(name = "schedule_work_programme_application_details_id")
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetails;
 
   @Enumerated(EnumType.STRING)

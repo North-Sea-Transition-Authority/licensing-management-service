@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.correlationid;
 
+import com.google.common.annotations.VisibleForTesting;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
@@ -37,7 +38,8 @@ public class CorrelationIdUtil {
     }
   }
 
-  private static void setCorrelationIdOnMdc(String value) {
+  @VisibleForTesting
+  public static void setCorrelationIdOnMdc(String value) {
     var existingCorrelationId = MDC.get(MDC_CORRELATION_ID_ATTR);
     if (StringUtils.isNotBlank(existingCorrelationId)) {
       LOGGER.warn("Overwriting existing correlationId - {}", MDC.get(MDC_CORRELATION_ID_ATTR));

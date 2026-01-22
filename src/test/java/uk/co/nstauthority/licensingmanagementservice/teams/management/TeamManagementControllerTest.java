@@ -666,8 +666,8 @@ class TeamManagementControllerTest extends AbstractControllerTest {
 
     assertThat(roleMap)
         .containsExactly(
-            Map.entry(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM.name(), Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM.getName()),
             Map.entry(Role.MANAGE_TEAM.name(), Role.MANAGE_TEAM.getName()),
+            Map.entry(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM.name(), Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM.getName()),
             Map.entry(Role.OFFLINE_LICENCE_ADMINISTRATOR.name(), Role.OFFLINE_LICENCE_ADMINISTRATOR.getName()),
             Map.entry(Role.SCHEDULE_ADMINISTRATOR.name(), Role.SCHEDULE_ADMINISTRATOR.getName()),
             Map.entry(Role.WORK_PROGRAMME_ADMINISTRATOR.name(), Role.WORK_PROGRAMME_ADMINISTRATOR.getName()),
@@ -683,8 +683,8 @@ class TeamManagementControllerTest extends AbstractControllerTest {
 
     assertThat(rolesInTeam)
         .containsExactly(
-            Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM,
             Role.MANAGE_TEAM,
+            Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM,
             Role.OFFLINE_LICENCE_ADMINISTRATOR,
             Role.SCHEDULE_ADMINISTRATOR,
             Role.WORK_PROGRAMME_ADMINISTRATOR,

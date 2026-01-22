@@ -17,8 +17,8 @@ public enum TeamType {
       false,
       false,
       List.of(
-          Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM,
           Role.MANAGE_TEAM,
+          Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM,
           Role.OFFLINE_LICENCE_ADMINISTRATOR,
           Role.SCHEDULE_ADMINISTRATOR,
           Role.WORK_PROGRAMME_ADMINISTRATOR,

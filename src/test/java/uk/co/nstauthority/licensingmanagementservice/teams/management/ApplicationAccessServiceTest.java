@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -16,16 +15,20 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
-import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamRoleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,7 +41,7 @@ class ApplicationAccessServiceTest {
   private OrganisationUnitQueryService organisationUnitQueryService;
 
   @Mock
-  private LicenceOrganisationService licenceOrganisationService;
+  private OrganisationGroupQueryService organisationGroupQueryService;
 
   @InjectMocks
   private ApplicationAccessService applicationAccessService;
@@ -114,9 +117,20 @@ class ApplicationAccessServiceTest {
 
   @Test
   void userHasEditorOrSubmitterRoleInOrganisationGroup_returnsTrue() {
-    when(licenceOrganisationService.getUsersOrgGroupIds(organisationUser)).thenReturn(List.of(101, 102));
-    when(teamQueryService.userHasAtLeastOneScopedRole(eq(organisationUser.wuaId()), eq(TeamType.ORGANISATION), any(), any()))
-        .thenReturn(true);
+    var team = TeamTestUtil
+        .newBuilder()
+        .withTeamType(TeamType.ORGANISATION)
+        .withScopeType(ScopeType.ORGANISATION_GROUP.name())
+        .build();
+
+    var teamRole = TeamRoleTestUtil
+        .newBuilder()
+        .withRole(Role.APPLICATION_SUBMITTER)
+        .withTeam(team)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(organisationUser.wuaId()))
+        .thenReturn(Set.of(teamRole));
 
     boolean userHasEditorOrSubmitterRoleInOrganisationGroup = applicationAccessService.userHasEditorOrSubmitterRoleInOrganisationGroup(
         organisationUser);
@@ -126,12 +140,44 @@ class ApplicationAccessServiceTest {
 
   @Test
   void userHasEditorOrSubmitterRoleInOrganisationGroup_returnsFalse() {
-    when(licenceOrganisationService.getUsersOrgGroupIds(organisationUser)).thenReturn(List.of(101, 102));
-    when(teamQueryService.userHasAtLeastOneScopedRole(eq(organisationUser.wuaId()), eq(TeamType.ORGANISATION), any(), any()))
-        .thenReturn(false);
+    var team = TeamTestUtil
+        .newBuilder()
+        .withTeamType(TeamType.LICENCE_MANAGEMENT)
+        .build();
+
+    var teamRole = TeamRoleTestUtil
+        .newBuilder()
+        .withRole(Role.APPLICATION_SUBMITTER)
+        .withTeam(team)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(organisationUser.wuaId()))
+        .thenReturn(Set.of(teamRole));
 
     boolean userHasEditorOrSubmitterRoleInOrganisationGroup = applicationAccessService.userHasEditorOrSubmitterRoleInOrganisationGroup(organisationUser);
 
     assertFalse(userHasEditorOrSubmitterRoleInOrganisationGroup);
+  }
+
+  @Test
+  void getOrganisationUnitIds_returnsCorrectUnitIds() {
+    int unitId1 = 5001;
+    int unitId2 = 5002;
+    var unitJson1 = new OrganisationUnitJson(unitId1, "Unit 1");
+    var unitJson2 = new OrganisationUnitJson(unitId2, "Unit 2");
+
+    when(organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(any())).thenReturn(List.of(unitJson1, unitJson2));
+
+    var result = applicationAccessService.getOrganisationUnitIds(organisationUser);
+    assertThat(result).containsExactlyInAnyOrder(unitId1, unitId2);
+  }
+
+  @Test
+  void getAuthorizedOrganisationUnitIds_whenNoGroups_returnsEmptySet() {
+    when(organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(List.of())).thenReturn(List.of());
+
+    var result = applicationAccessService.getOrganisationUnitIds(organisationUser);
+
+    assertThat(result).isEmpty();
   }
 }

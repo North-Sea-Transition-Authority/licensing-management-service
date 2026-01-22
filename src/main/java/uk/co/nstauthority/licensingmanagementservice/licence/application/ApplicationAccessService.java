@@ -5,31 +5,31 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
-import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @Service
 public class ApplicationAccessService {
 
   private final OrganisationUnitQueryService organisationUnitQueryService;
+  private final OrganisationGroupQueryService organisationGroupQueryService;
   private final TeamQueryService teamQueryService;
-  private final LicenceOrganisationService licenceOrganisationService;
   private final Set<Role> editorSubmitterRoles = Set.of(Role.APPLICATION_EDITOR, Role.APPLICATION_SUBMITTER);
   public static final String ORGANISATION = "ORGANISATION";
 
   public ApplicationAccessService(
       OrganisationUnitQueryService organisationUnitQueryService,
-      TeamQueryService teamQueryService,
-      LicenceOrganisationService licenceOrganisationService
+      OrganisationGroupQueryService organisationGroupQueryService,
+      TeamQueryService teamQueryService
   ) {
     this.organisationUnitQueryService = organisationUnitQueryService;
+    this.organisationGroupQueryService = organisationGroupQueryService;
     this.teamQueryService = teamQueryService;
-    this.licenceOrganisationService = licenceOrganisationService;
   }
 
   public boolean userHasAccessToApplication(
@@ -85,12 +85,27 @@ public class ApplicationAccessService {
   }
 
   public boolean userHasEditorOrSubmitterRoleInOrganisationGroup(ServiceUserDetail userDetail) {
-    return licenceOrganisationService.getUsersOrgGroupIds(userDetail).stream().anyMatch(userOrgGroupId ->
-     teamQueryService.userHasAtLeastOneScopedRole(
-        userDetail.wuaId(),
-        TeamType.ORGANISATION,
-        TeamScopeReference.from(userOrgGroupId.toString(), ScopeType.ORGANISATION_GROUP.name()),
-        editorSubmitterRoles)
-    );
+    return !getOrganisationGroupIds(userDetail).isEmpty();
+  }
+
+  private Set<Integer> getOrganisationGroupIds(ServiceUserDetail userDetail) {
+    return teamQueryService.getTeamRolesForUser(userDetail.wuaId())
+        .stream()
+        .filter(teamRole ->
+                    teamRole.getTeam().getTeamType() == TeamType.ORGANISATION
+                    && ScopeType.ORGANISATION_GROUP.name().equals(teamRole.getTeam().getScopeType())
+                    && editorSubmitterRoles.contains(teamRole.getRole())
+        )
+        .map(teamRole -> Integer.valueOf(teamRole.getTeam().getScopeId()))
+        .collect(Collectors.toSet());
+  }
+
+  public Set<Integer> getOrganisationUnitIds(ServiceUserDetail userDetail) {
+    return organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(
+            getOrganisationGroupIds(userDetail).stream().toList()
+        )
+        .stream()
+        .map(OrganisationUnitJson::organisationUnitId)
+        .collect(Collectors.toSet());
   }
 }

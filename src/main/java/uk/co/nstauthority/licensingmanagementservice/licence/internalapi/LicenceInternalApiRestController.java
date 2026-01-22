@@ -4,6 +4,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.RestSearchResult;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -26,7 +27,8 @@ public class LicenceInternalApiRestController {
   @GetMapping("/{licenceTypeSlugList}")
   public RestSearchResult searchActiveLicenceSchedulesByReferenceAndType(
       @PathVariable String licenceTypeSlugList,
-      @RequestParam(value = "term") String term
+      @RequestParam(value = "term") String term,
+      ServiceUserDetail serviceUserDetail
   ) {
     var licenceTypes = LicenceType.getFromSlugListOrThrow(licenceTypeSlugList);
 
@@ -35,7 +37,8 @@ public class LicenceInternalApiRestController {
         licenceInternalApiService.searchLicencesWithSchedulesByReferenceTypeAndStatus(
             term,
             licenceTypes,
-            LicenceScheduleDetailStatus.ACTIVE
+            LicenceScheduleDetailStatus.ACTIVE,
+            serviceUserDetail
         )
     );
   }

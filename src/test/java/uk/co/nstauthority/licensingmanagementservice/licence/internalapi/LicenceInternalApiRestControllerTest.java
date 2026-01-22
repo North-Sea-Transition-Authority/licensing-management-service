@@ -35,11 +35,11 @@ class LicenceInternalApiRestControllerTest extends AbstractControllerTest {
 
     var response = List.of(new LicenceJson(1, "CS001"));
 
-    when(licenceInternalApiService.searchLicencesWithSchedulesByReferenceTypeAndStatus(searchTerm, List.of(licenceType), LicenceScheduleDetailStatus.ACTIVE))
+    when(licenceInternalApiService.searchLicencesWithSchedulesByReferenceTypeAndStatus(searchTerm, List.of(licenceType), LicenceScheduleDetailStatus.ACTIVE, null))
         .thenReturn(response);
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndType(licenceType.getUrlSlug(), null)))
+            get(ReverseRouter.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndType(licenceType.getUrlSlug(), null, null)))
                 .with(user(user))
                 .param("term", searchTerm)
         )

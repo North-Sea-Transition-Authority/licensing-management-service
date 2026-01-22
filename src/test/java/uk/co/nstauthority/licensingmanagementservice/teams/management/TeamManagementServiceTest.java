@@ -365,7 +365,7 @@ class TeamManagementServiceTest {
                 user1.getPrimaryEmailAddress(),
                 user1.getTelephoneNumber(),
                 regTeam.getId(),
-                List.of(regTeamUser1RoleOrgAdmin.getRole(), regTeamUser1RoleManage.getRole())
+                List.of(regTeamUser1RoleManage.getRole(),regTeamUser1RoleOrgAdmin.getRole())
             ),
             tuple(
                 user2.getWebUserAccountId(),

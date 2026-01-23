@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
@@ -53,5 +54,11 @@ public class InterceptorRuleTestEndpoints {
   @ActionEndPointInterceptorRule.ActionEndPoint(PROGRESS_APPLICATION)
   String getAction() {
     return "some data action";
+  }
+
+  @GetMapping("/test-with-licence-action")
+  @LicenceActionEndPointInterceptorRule.ActionEndPoint({LicenceActionItem.CREATE_LICENCE_SCHEDULE})
+  public String getLicenceAction() {
+    return "licence action data";
   }
 }

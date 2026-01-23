@@ -22,10 +22,10 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionItem;
-import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
@@ -37,10 +37,10 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
   private LicenceSearchService licenceSearchService;
 
   @MockitoBean
-  private LicenceActionService licenceActionService;
+  private LicenceAccessService  licenceAccessService;
 
   private ServiceUserDetail organisationUser;
-  public static final String RENDER_SEARCH_PAGE_ROUTE = ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null));
+  public static final String RENDER_SEARCH_PAGE_ROUTE = ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null, null));
   private static final String CLEARED_SEARCH_FILTERS_ROUTE = ReverseRouter.route(on(LicenceSearchController.class).clearSearchFilters(null, null));
   public static final String CREATE_LICENCE_ROUTE = ReverseRouter.route(on(LicenceController.class).renderNewLicenceForm());
 
@@ -51,6 +51,8 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
     organisationUser = ServiceUserDetailTestUtil.newBuilder()
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
+
+    when(licenceAccessService.userHasAccessToCreateLicence(ORGANISATION_USER_WUA_ID)).thenReturn(true);
   }
 
   @SecurityTest
@@ -67,6 +69,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("clearFilterUrl", CLEARED_SEARCH_FILTERS_ROUTE))
         .andExpect(model().attribute("licenceTypes",
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes())))
+        .andExpect(model().attribute("canCreateLicence", true))
         .andExpect(model().attribute("createLicenceUrl", CREATE_LICENCE_ROUTE));
 
     verify(licenceSearchService, never()).getSearchResultItems(form);
@@ -91,6 +94,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("clearFilterUrl", CLEARED_SEARCH_FILTERS_ROUTE))
         .andExpect(model().attribute("licenceTypes",
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes())))
+        .andExpect(model().attribute("canCreateLicence", true))
         .andExpect(model().attribute("createLicenceUrl", CREATE_LICENCE_ROUTE));
     verify(licenceSearchService).getSearchResultItems(form);
   }
@@ -106,10 +110,10 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
 
     var actions = List.of(LicenceActionItem.MANAGE_LICENSEES.toActionItemView(licence));
 
-    when(licenceActionService.getAvailableUserActionItems(licence, null)).thenReturn(actions);
+    when(licenceActionService.getAvailableUserActionItems(licence, organisationUser)).thenReturn(actions);
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licence.getId(), null)))
+            get(ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licence.getId(), null, null)))
                 .with(user(organisationUser))
         )
         .andExpect(status().isOk())

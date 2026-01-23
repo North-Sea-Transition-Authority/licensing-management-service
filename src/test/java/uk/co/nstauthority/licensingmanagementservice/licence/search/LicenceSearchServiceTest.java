@@ -209,7 +209,7 @@ class LicenceSearchServiceTest {
   private SearchResultItem buildSearchResultItem(Licence licence, List<String> licensees) {
     return SearchResultItem.newBuilder()
         .withId(licence.getId().toString())
-        .withLinkHeadingUrl(ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licence.getId(), null)))
+        .withLinkHeadingUrl(ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licence.getId(), null, null)))
         .withLinkHeadingText(licence.getLicenceReference())
         .withCaptionText(licence.getType().getDisplayName())
         .withDataItemRow(SummaryDataView.newStringKeyValue("Licensee(s)", String.join(", ", licensees)))

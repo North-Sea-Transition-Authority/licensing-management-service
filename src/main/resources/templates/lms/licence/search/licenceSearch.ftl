@@ -10,7 +10,9 @@ pageHeading=pageTitle
 pageSize=PageSize.FULL_COLUMN
 extendContainerWidth=true
 >
-    <@fdsAction.link linkText="Create licence" linkUrl=springUrl(createLicenceUrl) linkClass="govuk-button"/>
+    <#if canCreateLicence>
+      <@fdsAction.link linkText="Create licence" linkUrl=springUrl(createLicenceUrl) linkClass="govuk-button"/>
+    </#if>
     <@search.standardSearch
     searchResults=searchItems
     hasSearchBeenInvoked=hasSearchBeenInvoked

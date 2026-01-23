@@ -7,14 +7,17 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LicenceActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
+import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("licence/{licenceId}/schedule/start")
+@LicenceActionEndPointInterceptorRule.ActionEndPoint(LicenceActionItem.CREATE_LICENCE_SCHEDULE)
 public class StartLicenceScheduleJourneyController {
 
   private final LicenceService licenceService;
@@ -34,7 +37,7 @@ public class StartLicenceScheduleJourneyController {
         .addObject("startUrl",
             ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateForm(licenceId, null)))
         .addObject("backUrl",
-            ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licenceId, null)));
+            ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licenceId, null, null)));
   }
 
 }

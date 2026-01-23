@@ -24,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailSe
 import uk.co.nstauthority.licensingmanagementservice.authentication.saml.SamlResponseParser;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.AccessHandlerInterceptor;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasRolesInTeamTypeInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LicenceActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplicationInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanStartScheduleApplicationInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatusInterceptorRule;
@@ -50,6 +51,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ControllerAdviceService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.DefaultPageControllerAdvice;
 import uk.co.nstauthority.licensingmanagementservice.mvc.PostAuthenticationRequestMdcFilter;
@@ -94,7 +96,8 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     LicenceScheduleDetailArgumentResolver.class,
     InvokingUserCanAccessScheduleApplicationInterceptorRule.class,
     InvokingUserCanStartScheduleApplicationInterceptorRule.class,
-    DocumentTemplateSearchStringToTabConverter.class
+    DocumentTemplateSearchStringToTabConverter.class,
+    LicenceActionEndPointInterceptorRule.class
 })
 @EnableConfigurationProperties({
     SamlProperties.class,
@@ -139,6 +142,9 @@ public abstract class AbstractControllerTest {
 
   @MockitoBean
   protected ApplicationAccessService applicationAccessService;
+
+  @MockitoBean
+  protected LicenceActionService licenceActionService;
 
   @Autowired
   protected TeamManagementHandlerInterceptor teamManagementHandlerInterceptor;

@@ -14,6 +14,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -26,6 +27,8 @@ import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSe
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
@@ -57,6 +60,12 @@ class LicenceControllerTest extends AbstractControllerTest {
   @SecurityTest
   void renderNewLicenceForm() throws Exception {
     when(licenceFormService.getPreselectedOrganisationUnits(List.of())).thenReturn(List.of());
+    when(teamQueryService.userHasRoleInTeamType(
+        organisationUser.wuaId(),
+        TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.OFFLINE_LICENCE_ADMINISTRATOR))
+    ).thenReturn(true);
+
 
     mockMvc.perform(
         get(ReverseRouter.route(on(LicenceController.class).renderNewLicenceForm()))
@@ -68,7 +77,7 @@ class LicenceControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("preselectedOrgUnits", List.of()))
         .andExpect(model().attribute("organisationUnitSearchEndpoint",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))))
-        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null))));
+        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null, null))));
   }
 
   @SecurityTest
@@ -78,6 +87,11 @@ class LicenceControllerTest extends AbstractControllerTest {
 
     when(newLicenceValidator.isValid(any(), any())).thenReturn(true);
     when(licenceFormService.saveNewLicenceFromForm(any())).thenReturn(licence);
+    when(teamQueryService.userHasRoleInTeamType(
+        organisationUser.wuaId(),
+        TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.OFFLINE_LICENCE_ADMINISTRATOR))
+    ).thenReturn(true);
 
     mockMvc.perform(
         post(ReverseRouter.route(on(LicenceController.class).saveNewLicence(null, null)))
@@ -93,6 +107,11 @@ class LicenceControllerTest extends AbstractControllerTest {
   void saveNewLicence_formIsNotValid() throws Exception {
     when(newLicenceValidator.isValid(any(), any())).thenReturn(false);
     when(licenceFormService.getPreselectedOrganisationUnits(List.of())).thenReturn(List.of());
+    when(teamQueryService.userHasRoleInTeamType(
+        organisationUser.wuaId(),
+        TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.OFFLINE_LICENCE_ADMINISTRATOR))
+    ).thenReturn(true);
 
     mockMvc.perform(
         post(ReverseRouter.route(on(LicenceController.class).saveNewLicence(null, null)))
@@ -118,6 +137,11 @@ class LicenceControllerTest extends AbstractControllerTest {
 
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
     when(licenceFormService.getSavedOrganisationUnits(licence)).thenReturn(selectedOrgUnits);
+    when(teamQueryService.userHasRoleInTeamType(
+        organisationUser.wuaId(),
+        TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.OFFLINE_LICENCE_ADMINISTRATOR))
+    ).thenReturn(true);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceController.class).renderManageLicenseesPage(1, null)))
@@ -136,6 +160,11 @@ class LicenceControllerTest extends AbstractControllerTest {
     licence.setType(LicenceType.SEAWARD_PRODUCTION);
 
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
+    when(teamQueryService.userHasRoleInTeamType(
+        organisationUser.wuaId(),
+        TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.OFFLINE_LICENCE_ADMINISTRATOR))
+    ).thenReturn(true);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceController.class).renderManageLicenseesPage(1, null)))
@@ -151,6 +180,11 @@ class LicenceControllerTest extends AbstractControllerTest {
 
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
     when(manageLicenseesValidator.isValid(any(), any())).thenReturn(true);
+    when(teamQueryService.userHasRoleInTeamType(
+        organisationUser.wuaId(),
+        TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.OFFLINE_LICENCE_ADMINISTRATOR))
+    ).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceController.class).saveManageLicenseesPage(1, null, null, null)))
@@ -171,6 +205,11 @@ class LicenceControllerTest extends AbstractControllerTest {
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
     when(manageLicenseesValidator.isValid(any(), any())).thenReturn(false);
     when(licenceFormService.getPreselectedOrganisationUnits(List.of())).thenReturn(List.of());
+    when(teamQueryService.userHasRoleInTeamType(
+        organisationUser.wuaId(),
+        TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.OFFLINE_LICENCE_ADMINISTRATOR))
+    ).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceController.class).saveManageLicenseesPage(1, null, null, null)))
@@ -192,6 +231,11 @@ class LicenceControllerTest extends AbstractControllerTest {
     licence.setType(LicenceType.LANDWARD_PRODUCTION);
 
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
+    when(teamQueryService.userHasRoleInTeamType(
+        organisationUser.wuaId(),
+        TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.OFFLINE_LICENCE_ADMINISTRATOR))
+    ).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceController.class).saveManageLicenseesPage(1, null, null, null)))

@@ -14,7 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.RequestUtil;
 @Component
 public class LicenceArgumentResolver implements HandlerMethodArgumentResolver {
 
-  static final String LICENCE_ID = "licenceId";
+  public static final String LICENCE_ID = "licenceId";
 
   private final LicenceService licenceService;
 

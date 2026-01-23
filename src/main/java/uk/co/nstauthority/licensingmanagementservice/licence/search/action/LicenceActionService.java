@@ -1,11 +1,14 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.search.action;
 
+import static java.util.stream.Collectors.toSet;
+
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
@@ -15,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 
 @Service
 public class LicenceActionService {
@@ -39,12 +43,12 @@ public class LicenceActionService {
 
     var registeredActions = LicenceActionBuilder.newBuilder()
         .registerAction(LicenceActionItem.CREATE_LICENCE_SCHEDULE)
-          .requiresAnyRole()
+          .requiresAnyRoleFrom(Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR)
           .requiresAnyStatus()
           .requiresAnyTypeFrom(LicenceType.CARBON_STORAGE, LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION)
           .withLicenceScheduleRequirement(LicenceScheduleRequirement.NO_SCHEDULE_EXISTS)
         .registerAction(LicenceActionItem.MANAGE_LICENSEES)
-          .requiresAnyRole()
+          .requiresAnyRoleFrom(Role.OFFLINE_LICENCE_ADMINISTRATOR)
           .requiresAnyStatus()
           .requiresAnyTypeManagedByLms()
           .withoutLicenceScheduleRequirement()
@@ -60,17 +64,15 @@ public class LicenceActionService {
       Licence licence,
       ServiceUserDetail user
   ) {
-    //TODO: reimplement when users/roles are implemented.
-
-    //    var userRoles = teamQueryService.getTeamRolesForUser(user.wuaId()).stream()
-    //        .map(TeamRole::getRole)
-    //        .collect(toSet());
+    var userRoles = teamQueryService.getTeamRolesForUser(user.wuaId()).stream()
+            .map(TeamRole::getRole)
+            .collect(toSet());
 
     return EnumSet.allOf(LicenceActionItem.class).stream()
         // remove the actions which aren't applicable to the current licence status
         .filter(STATUS_TO_ACTIONS.get(licence.getStatus())::contains)
         // remove actions that users can't see given their roles
-        //.filter(action -> CollectionUtils.containsAny(ACTIONS_TO_ROLES.get(action), userRoles))
+        .filter(action -> CollectionUtils.containsAny(ACTIONS_TO_ROLES.get(action), userRoles))
         // remove the actions which aren't applicable to the licence type
         .filter(action -> ACTIONS_TO_LICENCE_TYPE.get(action).contains(licence.getType()))
         // remove the actions which do not meet the licence schedule requirement

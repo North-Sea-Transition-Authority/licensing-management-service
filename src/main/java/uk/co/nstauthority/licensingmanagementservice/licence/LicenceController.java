@@ -13,16 +13,23 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTeamType;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @Controller
 @RequestMapping("/licences")
+@HasRolesInTeamType(value = {
+    @RolesAndTeamType(roles = {Role.OFFLINE_LICENCE_ADMINISTRATOR}, teamType = TeamType.LICENCE_MANAGEMENT)
+})
 public class LicenceController {
 
   static final String NEW_LICENCE_PAGE_TITLE = "Add a new licence";
@@ -57,7 +64,7 @@ public class LicenceController {
     if (newLicenceValidator.isValid(form, bindingResult)) {
       var licence = licenceFormService.saveNewLicenceFromForm(form);
 
-      return ReverseRouter.redirect(on(LicenceSearchController.class).renderLicenceOverview(licence.getId(), null));
+      return ReverseRouter.redirect(on(LicenceSearchController.class).renderLicenceOverview(licence.getId(), null, null));
     }
 
     return getNewLicenceModelAndView(form);
@@ -74,7 +81,7 @@ public class LicenceController {
         .addObject("organisationUnitSearchEndpoint",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
         .addObject("backUrl",
-            ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null)));
+            ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null, null)));
   }
 
   @GetMapping("/{licenceId}/manage-licensees")
@@ -119,7 +126,7 @@ public class LicenceController {
     }
 
     licenceResponsibleOrganisationService.saveLicenseesFromForm(licence, form.getOrganisationUnitIds());
-    return ReverseRouter.redirect(on(LicenceSearchController.class).renderLicenceOverview(licenceId, null));
+    return ReverseRouter.redirect(on(LicenceSearchController.class).renderLicenceOverview(licenceId, null, null));
   }
 
   private ModelAndView getManageLicenseesModelAndView(
@@ -135,6 +142,6 @@ public class LicenceController {
         .addObject("organisationUnitSearchEndpoint",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
         .addObject("backUrl",
-            ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licence.getId(), null)));
+            ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licence.getId(), null, null)));
   }
 }

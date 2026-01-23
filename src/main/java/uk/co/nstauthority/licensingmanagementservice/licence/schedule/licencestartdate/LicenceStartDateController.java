@@ -10,12 +10,14 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LicenceActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.StartLicenceScheduleJourneyController;
+import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -40,6 +42,7 @@ public class LicenceStartDateController {
     this.licenceService = licenceService;
   }
 
+  @LicenceActionEndPointInterceptorRule.ActionEndPoint(LicenceActionItem.CREATE_LICENCE_SCHEDULE)
   @GetMapping("/licence/{licenceId}/schedule/start-date")
   public ModelAndView renderLicenceStartDateForm(
       @PathVariable Integer licenceId,
@@ -52,6 +55,7 @@ public class LicenceStartDateController {
     );
   }
 
+  @LicenceActionEndPointInterceptorRule.ActionEndPoint(LicenceActionItem.CREATE_LICENCE_SCHEDULE)
   @PostMapping("/licence/{licenceId}/schedule/start-date")
   public ModelAndView submitLicenceStartDateForm(
       @PathVariable Integer licenceId,

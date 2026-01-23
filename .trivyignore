@@ -1,80 +1,24 @@
+# ch.qos.logback:logback-core
+CVE-2026-1225
+
 # com.google.guava:guava
 CVE-2023-2976
 CVE-2020-8908
 
-# com.google.protobuf:protobuf-java
-CVE-2024-7254
-
-# com.squareup.okio:okio
-CVE-2023-3635
-
-# commons-io:commons-io
-CVE-2024-47554
-
-# org.apache.tomcat.embed:tomcat-embed-core
-CVE-2025-31650
-CVE-2025-31651
-CVE-2025-46701
-CVE-2025-48988
-CVE-2025-49125
-CVE-2025-48989
-CVE-2025-55752
-CVE-2025-55754
-CVE-2025-61795
-CVE-2025-49124
+# io.netty:netty-codec-http
+CVE-2025-67735
 
 # org.bouncycastle:bcpkix-jdk18on
 CVE-2023-33202
 CVE-2025-8916
 
 # org.bouncycastle:bcprov-jdk18on
-CVE-2023-33201
-CVE-2023-33202
-CVE-2024-29857
-CVE-2024-30171
-CVE-2024-34447
 CVE-2025-8885
+CVE-2024-34447
+CVE-2024-30171
+CVE-2024-29857
+CVE-2023-33202
+CVE-2023-33201
 
-# org.springframework.boot:spring-boot
-CVE-2025-22235
-
-# org.springframework:spring-context
-CVE-2025-22233
-
-# org.postgresql:postgresql
-CVE-2024-7254
-CVE-2025-49146
-
-# org.springframework:spring-web
-CVE-2025-41234
-
-# org.apache.commons:commons-lang3
-CVE-2025-48924
-
-# org.springframework:spring-webmvc
-CVE-2025-41242
-
-# io.netty:netty-codec-http2
-CVE-2025-55163
-
-# org.springframework:spring-webmvc
-CVE-2025-41242
-
-# io.netty:netty-codec
-CVE-2025-58057
-
-# io.netty:netty-codec-http
-CVE-2025-58056
-CVE-2025-67735
-
-# org.springframework.security:spring-security-core
-CVE-2025-41248
-
-# org.springframework:spring-core
-CVE-2025-41249
-
-# ch.qos.logback:logback-core
-CVE-2025-11226
-
-# org.apache.tomcat.embed:tomcat-embed-core
-CVE-2025-49124
+# commons-io:commons-io
+CVE-2024-47554

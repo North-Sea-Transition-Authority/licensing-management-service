@@ -63,6 +63,16 @@ public class DataBootstrapper {
     offshoreProductionLicensingUserMap.put(Role.CONTINUATION_REVIEWER_OPERATIONS, "continuation.reviewer.ops@lms.co.uk");
     regulatorTeamUsers.put(TeamType.OFFSHORE_PRODUCTION_LICENSING, offshoreProductionLicensingUserMap);
 
+    var carbonStorageLicensingUserMap = new HashMap<Role, String>();
+    carbonStorageLicensingUserMap.put(Role.MANAGE_TEAM, "administrator@lms.co.uk");
+    carbonStorageLicensingUserMap.put(Role.CASE_MANAGER_CS_NEW_VENTURES, "casemanager.cs.nv@lms.co.uk");
+    carbonStorageLicensingUserMap.put(Role.STEWARD_CS_NEW_VENTURES, "steward.cs.nv@lms.co.uk");
+    carbonStorageLicensingUserMap.put(Role.DECISION_ISSUER_CS_NEW_VENTURES, "decision.issuer.cs.nv@lms.co.uk");
+    carbonStorageLicensingUserMap.put(Role.CASE_MANAGER_CS_CTS, "casemanager.cs.cts@lms.co.uk");
+    carbonStorageLicensingUserMap.put(Role.STEWARD_CS_CTS, "steward.cs.cts@lms.co.uk");
+    carbonStorageLicensingUserMap.put(Role.DECISION_ISSUER_CS_CTS, "decision.issuer.cs.cts@lms.co.uk");
+    regulatorTeamUsers.put(TeamType.CARBON_STORAGE_LICENSING, carbonStorageLicensingUserMap);
+
     bootstrapRegulatorTeams(regulatorTeamUsers);
 
     var industryTeamUsers = new HashMap<Role, String>();

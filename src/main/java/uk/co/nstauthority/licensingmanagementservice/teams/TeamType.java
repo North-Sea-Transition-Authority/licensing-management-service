@@ -45,6 +45,22 @@ public enum TeamType {
       ),
       null
   ),
+  CARBON_STORAGE_LICENSING(
+      "Carbon Storage Licensing",
+      "carbon-storage-licensing",
+      false,
+      false,
+      List.of(
+          Role.MANAGE_TEAM,
+          Role.CASE_MANAGER_CS_NEW_VENTURES,
+          Role.CASE_MANAGER_CS_CTS,
+          Role.STEWARD_CS_NEW_VENTURES,
+          Role.STEWARD_CS_CTS,
+          Role.DECISION_ISSUER_CS_NEW_VENTURES,
+          Role.DECISION_ISSUER_CS_CTS
+      ),
+      null
+  ),
   PRODUCTION(
       "Production",
       "production",

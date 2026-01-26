@@ -85,6 +85,30 @@ public enum Role {
   CONTINUATION_REVIEWER_OPERATIONS(
       "Continuation reviewer (Operations)",
       "Review continuation requests for licences post initial term"
+  ),
+  CASE_MANAGER_CS_NEW_VENTURES(
+      "Case manager (New Ventures)",
+      "Receive and manage extension and amendment applications for licences in appraise phase"
+  ),
+  CASE_MANAGER_CS_CTS(
+      "Case manager (Carbon Transport and Storage)",
+      "Receive and manage extension and amendment applications for licences post appraise phase"
+  ),
+  STEWARD_CS_NEW_VENTURES(
+      "Steward (New Ventures)",
+      "Frame, consult and prepare decision support paper for licences in appraise phase"
+  ),
+  STEWARD_CS_CTS(
+      "Steward (Carbon Transport and Storage)",
+      "Frame, consult and prepare decision support paper for licences post appraise phase"
+  ),
+  DECISION_ISSUER_CS_NEW_VENTURES(
+      "Decision issuer (New Ventures)",
+      "Issue the final decision to the applicant for licences in appraise phase"
+  ),
+  DECISION_ISSUER_CS_CTS(
+      "Decision issuer (Carbon Transport and Storage)",
+      "Issue the final decision to the applicant for licences post appraise phase"
   );
 
   private final String name;

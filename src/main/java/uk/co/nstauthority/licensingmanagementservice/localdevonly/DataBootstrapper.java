@@ -51,6 +51,18 @@ public class DataBootstrapper {
     licenceManagementUserMap.put(Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER, "licence.viewer@lms.co.uk");
     regulatorTeamUsers.put(TeamType.LICENCE_MANAGEMENT, licenceManagementUserMap);
 
+    var offshoreProductionLicensingUserMap = new HashMap<Role, String>();
+    offshoreProductionLicensingUserMap.put(Role.MANAGE_TEAM, "administrator@lms.co.uk");
+    offshoreProductionLicensingUserMap.put(Role.CASE_MANAGER_NEW_VENTURES, "casemanager.nv@lms.co.uk");
+    offshoreProductionLicensingUserMap.put(Role.CASE_MANAGER_OPERATIONS, "casemanager.ops@lms.co.uk");
+    offshoreProductionLicensingUserMap.put(Role.STEWARD_NEW_VENTURES, "steward.nv@lms.co.uk");
+    offshoreProductionLicensingUserMap.put(Role.STEWARD_OPERATIONS, "steward.ops@lms.co.uk");
+    offshoreProductionLicensingUserMap.put(Role.DECISION_ISSUER_NEW_VENTURES, "decision.issuer.nv@lms.co.uk");
+    offshoreProductionLicensingUserMap.put(Role.DECISION_ISSUER_OPERATIONS, "decision.issuer.ops@lms.co.uk");
+    offshoreProductionLicensingUserMap.put(Role.CONTINUATION_REVIEWER_NEW_VENTURES, "continuation.reviewer.nv@lms.co.uk");
+    offshoreProductionLicensingUserMap.put(Role.CONTINUATION_REVIEWER_OPERATIONS, "continuation.reviewer.ops@lms.co.uk");
+    regulatorTeamUsers.put(TeamType.OFFSHORE_PRODUCTION_LICENSING, offshoreProductionLicensingUserMap);
+
     bootstrapRegulatorTeams(regulatorTeamUsers);
 
     var industryTeamUsers = new HashMap<Role, String>();
@@ -103,7 +115,6 @@ public class DataBootstrapper {
             .getFirst();
 
         var teamRole = new TeamRole();
-
         teamRole.setTeam(industryTeam);
         teamRole.setRole(role);
         teamRole.setWuaId(industryUser.webUserAccountId());
@@ -135,8 +146,8 @@ public class DataBootstrapper {
                   String.format("Bootstrapping LMS %s for local dev", role.getName()))
               .getFirst();
 
-          var teamRole = new TeamRole();
           var regulatorTeam = teamQueryService.getStaticTeam(teamType);
+          var teamRole = new TeamRole();
           teamRole.setTeam(regulatorTeam);
           teamRole.setRole(role);
           teamRole.setWuaId(regulatorUser.webUserAccountId());

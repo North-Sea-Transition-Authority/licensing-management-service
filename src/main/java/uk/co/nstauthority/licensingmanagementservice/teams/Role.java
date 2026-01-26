@@ -53,6 +53,38 @@ public enum Role {
   DOCUMENT_TEMPLATE_MANAGER(
       "Document template administrator",
       "Create and edit document templates"
+  ),
+  CASE_MANAGER_NEW_VENTURES(
+      "Case manager (New Ventures)",
+      "Receive and manage extension and amendment applications for licences in the initial term"
+  ),
+  CASE_MANAGER_OPERATIONS(
+      "Case manager (Operations)",
+      "Receive and manage extension and amendment applications for licences post initial term"
+  ),
+  STEWARD_NEW_VENTURES(
+      "Steward (New Ventures)",
+      "Frame, consult and prepare decision support paper for licences in the initial term"
+  ),
+  STEWARD_OPERATIONS(
+      "Steward (Operations)",
+      "Frame, consult and prepare decision support paper for licences post initial term"
+  ),
+  DECISION_ISSUER_NEW_VENTURES(
+      "Decision issuer (New Ventures)",
+      "Issue the final decision to the applicant for licences in the initial term"
+  ),
+  DECISION_ISSUER_OPERATIONS(
+      "Decision issuer (Operations)",
+      "Issue the final decision to the applicant for licences post initial term"
+  ),
+  CONTINUATION_REVIEWER_NEW_VENTURES(
+      "Continuation reviewer (New Ventures)",
+      "Review continuation requests for licences in the initial term"
+  ),
+  CONTINUATION_REVIEWER_OPERATIONS(
+      "Continuation reviewer (Operations)",
+      "Review continuation requests for licences post initial term"
   );
 
   private final String name;

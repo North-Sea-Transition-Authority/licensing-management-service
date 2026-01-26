@@ -24,7 +24,25 @@ public enum TeamType {
           Role.WORK_PROGRAMME_ADMINISTRATOR,
           Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER,
           Role.DOCUMENT_TEMPLATE_MANAGER
+     ),
+      null
   ),
+  OFFSHORE_PRODUCTION_LICENSING(
+      "Offshore production licensing",
+      "offshore-production-licensing",
+      false,
+      false,
+      List.of(
+          Role.MANAGE_TEAM,
+          Role.CASE_MANAGER_NEW_VENTURES,
+          Role.CASE_MANAGER_OPERATIONS,
+          Role.STEWARD_NEW_VENTURES,
+          Role.STEWARD_OPERATIONS,
+          Role.DECISION_ISSUER_NEW_VENTURES,
+          Role.DECISION_ISSUER_OPERATIONS,
+          Role.CONTINUATION_REVIEWER_NEW_VENTURES,
+          Role.CONTINUATION_REVIEWER_OPERATIONS
+      ),
       null
   ),
   PRODUCTION(

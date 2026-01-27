@@ -19,7 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @Service
-@Profile("development")
+@Profile({"development", "test-account-bootstrap"})
 public class DataBootstrapper {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DataBootstrapper.class);

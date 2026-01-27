@@ -109,6 +109,18 @@ public enum Role {
   DECISION_ISSUER_CS_CTS(
       "Decision issuer (Carbon Transport and Storage)",
       "Issue the final decision to the applicant for licences post appraise phase"
+  ),
+  CASE_MANAGER_ONSHORE(
+      "Case manager",
+      "Receive and manage extension and amendment applications for onshore production licences"
+  ),
+  STEWARD_ONSHORE(
+      "Steward",
+      "Frame, consult and prepare decision support paper for onshore production licences"
+  ),
+  DECISION_ISSUER_ONSHORE(
+      "Decision issuer",
+      "Issue the final decision to the applicant for onshore production licences"
   );
 
   private final String name;

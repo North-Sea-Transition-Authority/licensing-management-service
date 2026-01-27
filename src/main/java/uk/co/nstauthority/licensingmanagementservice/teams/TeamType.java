@@ -45,6 +45,19 @@ public enum TeamType {
       ),
       null
   ),
+  ONSHORE_PRODUCTION_LICENSING(
+      "Onshore production licensing",
+      "onshore-production-licensing",
+      false,
+      false,
+      List.of(
+          Role.MANAGE_TEAM,
+          Role.CASE_MANAGER_ONSHORE,
+          Role.STEWARD_ONSHORE,
+          Role.DECISION_ISSUER_ONSHORE
+      ),
+      null
+  ),
   CARBON_STORAGE_LICENSING(
       "Carbon Storage Licensing",
       "carbon-storage-licensing",

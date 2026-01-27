@@ -121,6 +121,14 @@ public enum Role {
   DECISION_ISSUER_ONSHORE(
       "Decision issuer",
       "Issue the final decision to the applicant for onshore production licences"
+  ),
+  CONTINUATION_ISSUER(
+      "Continuation issuer",
+      "Issue confirmation of continuation to the applicant for production licences"
+  ),
+  DECISION_EXECUTOR(
+      "Decision executor",
+      "Prepare deeds and execute decisions on extensions and work programme amendments for all licence types"
   );
 
   private final String name;

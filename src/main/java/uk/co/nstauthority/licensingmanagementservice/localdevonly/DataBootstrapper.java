@@ -80,6 +80,12 @@ public class DataBootstrapper {
     onshoreProductionLicensingUserMap.put(Role.DECISION_ISSUER_ONSHORE, "decision.issuer.onshore@lms.co.uk");
     regulatorTeamUsers.put(TeamType.ONSHORE_PRODUCTION_LICENSING, onshoreProductionLicensingUserMap);
 
+    var regulationsLicensingUserMap = new HashMap<Role, String>();
+    regulationsLicensingUserMap.put(Role.MANAGE_TEAM, "administrator@lms.co.uk");
+    regulationsLicensingUserMap.put(Role.CONTINUATION_ISSUER, "continuation.issuer@lms.co.uk");
+    regulationsLicensingUserMap.put(Role.DECISION_EXECUTOR, "decision.executor@lms.co.uk");
+    regulatorTeamUsers.put(TeamType.REGULATIONS_LICENSING, regulationsLicensingUserMap);
+
     bootstrapRegulatorTeams(regulatorTeamUsers);
 
     var industryTeamUsers = new HashMap<Role, String>();

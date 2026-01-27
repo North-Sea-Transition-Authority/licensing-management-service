@@ -116,6 +116,12 @@ class EnergyPortalDataServiceTest {
         createServiceRoleDto(Role.DECISION_ISSUER_ONSHORE, false)
     );
 
+    var regulationsLicensingRoleDtos = Set.of(
+        createServiceRoleDto(Role.MANAGE_TEAM, true),
+        createServiceRoleDto(Role.CONTINUATION_ISSUER, false),
+        createServiceRoleDto(Role.DECISION_EXECUTOR, false)
+    );
+
     assertThat(energyPortalDataService.getTeamTypeToServiceProviderTeamTypeRoleDtos())
         .isEqualTo(
             Map.of(
@@ -126,7 +132,8 @@ class EnergyPortalDataServiceTest {
                 TeamType.EXTERNAL_CONTRIBUTORS.name(), externalContributorsRoleDtos,
                 TeamType.OFFSHORE_PRODUCTION_LICENSING.name(), offshoreProductionLicensingRoleDtos,
                 TeamType.CARBON_STORAGE_LICENSING.name(), carbonStorageLicensingRoleDtos,
-                TeamType.ONSHORE_PRODUCTION_LICENSING.name(), onshoreProductionLicensingRoleDtos
+                TeamType.ONSHORE_PRODUCTION_LICENSING.name(), onshoreProductionLicensingRoleDtos,
+                TeamType.REGULATIONS_LICENSING.name(), regulationsLicensingRoleDtos
             )
         );
   }
@@ -141,7 +148,8 @@ class EnergyPortalDataServiceTest {
         TeamType.EXTERNAL_CONTRIBUTORS.name(),
         TeamType.OFFSHORE_PRODUCTION_LICENSING.name(),
         TeamType.CARBON_STORAGE_LICENSING.name(),
-        TeamType.ONSHORE_PRODUCTION_LICENSING.name()
+        TeamType.ONSHORE_PRODUCTION_LICENSING.name(),
+        TeamType.REGULATIONS_LICENSING.name()
     ));
   }
 

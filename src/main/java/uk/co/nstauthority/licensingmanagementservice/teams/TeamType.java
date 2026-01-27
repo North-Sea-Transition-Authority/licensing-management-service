@@ -74,6 +74,18 @@ public enum TeamType {
       ),
       null
   ),
+  REGULATIONS_LICENSING(
+      "Regulations Licensing",
+      "regulations-licensing",
+      false,
+      false,
+      List.of(
+          Role.MANAGE_TEAM,
+          Role.CONTINUATION_ISSUER,
+          Role.DECISION_EXECUTOR
+      ),
+      null
+  ),
   PRODUCTION(
       "Production",
       "production",

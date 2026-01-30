@@ -87,7 +87,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
         )
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
-            .getTaskList(licenceContinuationApplicationDetail.getId(), null))));
+            .getTaskList(licenceContinuationApplicationDetail.getId(), null, null))));
   }
 
   @SecurityTest

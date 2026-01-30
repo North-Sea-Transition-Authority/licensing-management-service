@@ -25,6 +25,8 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.saml.SamlRes
 import uk.co.nstauthority.licensingmanagementservice.authorisation.AccessHandlerInterceptor;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasRolesInTeamTypeInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LicenceActionEndPointInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatusInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplicationInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplicationInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanStartScheduleApplicationInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatusInterceptorRule;
@@ -97,7 +99,9 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     InvokingUserCanAccessScheduleApplicationInterceptorRule.class,
     InvokingUserCanStartScheduleApplicationInterceptorRule.class,
     DocumentTemplateSearchStringToTabConverter.class,
-    LicenceActionEndPointInterceptorRule.class
+    LicenceActionEndPointInterceptorRule.class,
+    InvokingUserCanAccessContinuationApplicationInterceptorRule.class,
+    ContinuationApplicationHasStatusInterceptorRule.class
 })
 @EnableConfigurationProperties({
     SamlProperties.class,

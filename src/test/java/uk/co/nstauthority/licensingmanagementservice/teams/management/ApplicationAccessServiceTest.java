@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService.ORGANISATION_GROUP;
 
 import java.util.List;
 import java.util.Set;
@@ -18,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
@@ -43,6 +45,9 @@ class ApplicationAccessServiceTest {
   @Mock
   private OrganisationGroupQueryService organisationGroupQueryService;
 
+  @Mock
+  private UserDetailService userDetailsService;
+
   @InjectMocks
   private ApplicationAccessService applicationAccessService;
 
@@ -55,6 +60,45 @@ class ApplicationAccessServiceTest {
         .newBuilder()
         .withWuaId(USER_1_WUA_ID)
         .build();
+  }
+
+  @Test
+  void userHasAccessToApplication_whenExternalContributor_Continuation_returnsTrue() {
+    String appId = "123";
+
+    Team externalTeam = new Team(UUID.randomUUID());
+    externalTeam.setTeamType(TeamType.EXTERNAL_CONTRIBUTORS);
+    externalTeam.setScopeId(appId);
+    externalTeam.setScopeType(ApplicationType.CONTINUATION_APPLICATION.name());
+
+    TeamRole role = new TeamRole();
+    role.setTeam(externalTeam);
+    role.setRole(Role.EXTERNAL_APPLICATION_EDITOR);
+
+
+    when(userDetailsService.getUserDetail()).thenReturn(organisationUser);
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+
+    assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.CONTINUATION_APPLICATION, null, USER_1_WUA_ID)).isTrue();
+  }
+
+  @Test
+  void userHasAccessToApplication_whenExternalContributor_Continuation_returnsFalse() {
+    String appId = "123";
+
+    Team externalTeam = new Team(UUID.randomUUID());
+    externalTeam.setTeamType(TeamType.EXTERNAL_CONTRIBUTORS);
+    externalTeam.setScopeId(appId);
+    externalTeam.setScopeType(ApplicationType.CONTINUATION_APPLICATION.name());
+
+    TeamRole role = new TeamRole();
+    role.setTeam(externalTeam);
+    role.setRole(Role.VIEW_ANY_LICENCE);
+
+    when(userDetailsService.getUserDetail()).thenReturn(organisationUser);
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+
+    assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.CONTINUATION_APPLICATION, null, USER_1_WUA_ID)).isFalse();
   }
 
   @Test
@@ -87,7 +131,7 @@ class ApplicationAccessServiceTest {
     Team orgTeam = new Team(UUID.randomUUID());
     orgTeam.setTeamType(TeamType.ORGANISATION);
     orgTeam.setScopeId(groupId);
-    orgTeam.setScopeType("ORGANISATION");
+    orgTeam.setScopeType(ORGANISATION_GROUP);
 
     TeamRole role = new TeamRole();
     role.setTeam(orgTeam);

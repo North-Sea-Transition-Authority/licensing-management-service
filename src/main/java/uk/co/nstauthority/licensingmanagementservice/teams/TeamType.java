@@ -116,7 +116,7 @@ public enum TeamType {
       "external-contributors",
       true,
       true,
-      List.of(Role.MANAGE_TEAM, Role.EXTERNAL_APPLICATION_EDITOR, Role.EXTERNAL_APPLICATION_VIEWER),
+      List.of(Role.EXTERNAL_APPLICATION_EDITOR, Role.EXTERNAL_APPLICATION_VIEWER),
       null
   );
 

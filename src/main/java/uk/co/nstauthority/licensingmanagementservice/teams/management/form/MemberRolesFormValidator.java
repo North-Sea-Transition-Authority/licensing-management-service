@@ -24,7 +24,8 @@ public class MemberRolesFormValidator {
         .map(Role::valueOf)
         .toList();
 
-    if (!teamManagementService.willManageTeamRoleBePresentAfterMemberRoleUpdate(team, wuaId, roles)) {
+    if (!team.getTeamType().isApplicationScoped()
+        && !teamManagementService.willManageTeamRoleBePresentAfterMemberRoleUpdate(team, wuaId, roles)) {
       errors.rejectValue("roles", "roles.noTeamManager",
           "There must always be at least one user who can add, remove and update members of this team.");
     }

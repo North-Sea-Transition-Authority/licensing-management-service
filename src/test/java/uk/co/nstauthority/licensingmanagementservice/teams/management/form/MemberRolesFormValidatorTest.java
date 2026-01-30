@@ -16,6 +16,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.validation.BeanPropertyBindingResult;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
 import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 
@@ -37,7 +39,10 @@ class MemberRolesFormValidatorTest {
   void setUp() {
     form = new MemberRolesForm();
     errors = new BeanPropertyBindingResult(form, "form");
-    team = new Team(UUID.randomUUID());
+    team = TeamTestUtil.newBuilder()
+        .withTeamType(TeamType.ORGANISATION)
+        .withId(UUID.randomUUID())
+        .build();
   }
 
   @Test

@@ -39,6 +39,11 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.configuration.EnergyPortalConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailRepository;
@@ -854,7 +859,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderScheduleExternalContributorsTeamList() throws Exception {
+  void renderExternalContributorsTeamList() throws Exception {
     var id = UUID.fromString(externalContributors.getScopeId());
 
     ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
@@ -879,8 +884,10 @@ class TeamManagementControllerTest extends AbstractControllerTest {
     when(scheduleWorkProgrammeApplicationService.getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication))
         .thenReturn(scheduleWorkProgrammeApplicationDetail);
 
+    externalContributors.setScopeType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name());
+
     mockMvc
-        .perform(get(ReverseRouter.route(on(TeamManagementController.class).renderScheduleExternalContributorsTeamList(
+        .perform(get(ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(
             externalContributors.getId(), null))).with(
             user(invokingUser)))
         .andExpect(status().isOk())
@@ -898,6 +905,53 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("addMemberUrl",
             ReverseRouter.route(on(TeamManagementController.class).renderAddMemberToScheduleExternalContributorsTeam(
                 externalContributors.getId(), null))
+        ));
+  }
+
+  @Test
+  void renderContinuationExternalContributorsTeamList() throws Exception {
+    var id = UUID.fromString(externalContributors.getScopeId());
+
+    LicenceContinuationApplication licenceContinuationApplication = new LicenceContinuationApplication();
+    licenceContinuationApplication.setId(id);
+
+    LicenceContinuationApplicationDetail licenceContinuationApplicationDetail =  LicenceContinuationApplicationTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withLicenceContinuationApplication(licenceContinuationApplication)
+        .build();
+
+    when(teamManagementService.canManageTeam(externalContributors, invokingUser.wuaId())).thenReturn(false);
+    when(teamManagementService.isMemberOfTeam(externalContributors, invokingUser.wuaId())).thenReturn(true);
+    when(teamManagementService.getTeam(externalContributors.getId())).thenReturn(externalContributors);
+
+    when(teamManagementService.getTeamMemberViewsForTeam(externalContributors))
+        .thenReturn(List.of(applicationScopedTeamMemberView));
+
+    when(licenceContinuationService.getDetailByIdOrThrow(id))
+        .thenReturn(licenceContinuationApplicationDetail);
+
+    externalContributors.setScopeType(ApplicationType.CONTINUATION_APPLICATION.name());
+
+    mockMvc.perform(get(ReverseRouter.route(
+            on(TeamManagementController.class).renderExternalContributorsTeamList(
+                externalContributors.getId(),
+                null)))
+            .with(user(invokingUser)))
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/teamManagement/teamMembers"))
+        .andExpect(model().attribute("teamName", externalContributors.getName()))
+        .andExpect(model().attribute("teamMemberViews", List.of(applicationScopedTeamMemberView)))
+        .andExpect(model().attribute("canManageTeam", false))
+        .andExpect(model().attribute("backUrl",
+                                     ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(
+                                         licenceContinuationApplicationDetail.getId(), null, null))
+        ))
+        .andExpect(model().attribute("currentEndPoint",
+                                     ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(null, null, null))
+        ))
+        .andExpect(model().attribute("addMemberUrl",
+                                     ReverseRouter.route(on(TeamManagementController.class).renderAddMemberToScheduleExternalContributorsTeam(
+                                         externalContributors.getId(), null))
         ));
   }
 
@@ -1067,10 +1121,8 @@ class TeamManagementControllerTest extends AbstractControllerTest {
 
     assertThat(roleMap)
         .containsExactly(
-            Map.entry(Role.MANAGE_TEAM.name(), Role.MANAGE_TEAM.getName()),
             Map.entry(Role.EXTERNAL_APPLICATION_EDITOR.name(), Role.EXTERNAL_APPLICATION_EDITOR.getName()),
-            Map.entry(Role.EXTERNAL_APPLICATION_VIEWER.name(),
-                Role.EXTERNAL_APPLICATION_VIEWER.getName())
+            Map.entry(Role.EXTERNAL_APPLICATION_VIEWER.name(), Role.EXTERNAL_APPLICATION_VIEWER.getName())
         );
 
     var teamMemberViewModel = modelAndView.getModel().get("teamMemberView");
@@ -1080,7 +1132,6 @@ class TeamManagementControllerTest extends AbstractControllerTest {
 
     assertThat(rolesInTeam)
         .containsExactly(
-            Role.MANAGE_TEAM,
             Role.EXTERNAL_APPLICATION_EDITOR,
             Role.EXTERNAL_APPLICATION_VIEWER
         );
@@ -1117,7 +1168,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
                .param("roles", "MANAGE_TEAM"))
            .andExpect(status().is3xxRedirection())
            .andExpect(redirectedUrl(
-               ReverseRouter.route(on(TeamManagementController.class).renderScheduleExternalContributorsTeamList(
+               ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(
                    externalContributors.getId(), null))));
 
     verify(teamManagementService).setUserTeamRoles(999L, externalContributors, List.of(Role.MANAGE_TEAM), invokingUser);
@@ -1231,7 +1282,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
                    .with(user(invokingUser)))
            .andExpect(status().is3xxRedirection())
            .andExpect(redirectedUrl(
-               ReverseRouter.route(on(TeamManagementController.class).renderScheduleExternalContributorsTeamList(
+               ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(
                    externalContributors.getId(), null))));
 
     verify(teamManagementService).removeUserFromTeam(999L, externalContributors, invokingUser);

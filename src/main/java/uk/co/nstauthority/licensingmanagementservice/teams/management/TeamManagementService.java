@@ -18,9 +18,11 @@ import org.springframework.web.server.ResponseStatusException;
 import uk.co.fivium.energyportal.starter.accounts.EnergyPortalServiceAccessService;
 import uk.co.fivium.energyportal.starter.serviceproviders.EnergyPortalServiceProviderUserRolesService;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -45,6 +47,8 @@ public class TeamManagementService {
   private final EnergyPortalUserService energyPortalUserService;
   private final EnergyPortalServiceAccessService energyPortalServiceAccessService;
   private final EnergyPortalServiceProviderUserRolesService energyPortalServiceProviderUserRolesService;
+  private final ApplicationAccessService applicationAccessService;
+  private final UserDetailService userDetailService;
 
   TeamManagementService(
       TeamRepository teamRepository,
@@ -52,7 +56,9 @@ public class TeamManagementService {
       TeamQueryService teamQueryService,
       EnergyPortalUserService energyPortalUserService,
       EnergyPortalServiceAccessService energyPortalServiceAccessService,
-      EnergyPortalServiceProviderUserRolesService energyPortalServiceProviderUserRolesService
+      EnergyPortalServiceProviderUserRolesService energyPortalServiceProviderUserRolesService,
+      ApplicationAccessService applicationAccessService,
+      UserDetailService userDetailService
   ) {
     this.teamRepository = teamRepository;
     this.teamRoleRepository = teamRoleRepository;
@@ -60,6 +66,8 @@ public class TeamManagementService {
     this.energyPortalUserService = energyPortalUserService;
     this.energyPortalServiceAccessService = energyPortalServiceAccessService;
     this.energyPortalServiceProviderUserRolesService = energyPortalServiceProviderUserRolesService;
+    this.applicationAccessService = applicationAccessService;
+    this.userDetailService = userDetailService;
   }
 
   public Team createScopedTeam(String name, TeamType teamType, TeamScopeReference scopeRef) {
@@ -118,6 +126,9 @@ public class TeamManagementService {
     if (teamType.equals(TeamType.ORGANISATION) && userCanManageAnyOrganisationTeam(wuaId)) {
       // If we want org teams, and the user is a regulator who can manage any org team, include all the org teams.
       teams.addAll(getAllScopedTeamsOfType(TeamType.ORGANISATION));
+    } else if (teamType.isApplicationScoped()
+               && applicationAccessService.userHasEditorOrSubmitterRoleInOrganisationGroup(userDetailService.getUserDetail())) {
+      teams.addAll(getAllScopedTeamsOfType(teamType));
     }
 
     return teams.stream()
@@ -249,7 +260,7 @@ public class TeamManagementService {
         }).toList();
     teamRoleRepository.saveAll(newTeamRoles);
 
-    if (!doesTeamHaveTeamManager(team)) {
+    if (!team.getTeamType().isApplicationScoped() && !doesTeamHaveTeamManager(team)) {
       throw new TeamManagementException("At least 1 team manager must exist in team %s".formatted(team.getId()));
     }
 
@@ -296,9 +307,13 @@ public class TeamManagementService {
   }
 
   public boolean willManageTeamRoleBePresentAfterMemberRemoval(Team team, Long wuaId) {
-    return teamRoleRepository.findByTeam(team).stream()
-        .filter(teamRole -> !teamRole.getWuaId().equals(wuaId))
-        .anyMatch(teamRole -> teamRole.getRole().equals(Role.MANAGE_TEAM));
+    if (!team.getTeamType().isApplicationScoped()) {
+      return teamRoleRepository.findByTeam(team).stream()
+          .filter(teamRole -> !teamRole.getWuaId().equals(wuaId))
+          .anyMatch(teamRole -> teamRole.getRole().equals(Role.MANAGE_TEAM));
+    } else  {
+      return true;
+    }
   }
 
   public boolean doesScopedTeamWithReferenceExist(TeamType teamType, TeamScopeReference scopeRef) {

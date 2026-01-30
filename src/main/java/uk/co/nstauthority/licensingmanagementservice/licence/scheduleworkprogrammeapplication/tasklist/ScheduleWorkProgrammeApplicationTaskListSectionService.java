@@ -97,7 +97,7 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
             EXTERNAL_CONTRIBUTORS,
             TaskListLabel.notStartedOrComplete(true),
             ReverseRouter.route(on(TeamManagementController.class)
-                .renderScheduleExternalContributorsTeamList(externalContributors.getId(), null))
+                .renderExternalContributorsTeamList(externalContributors.getId(), null))
         ),
         new TaskListItem(
             WHAT_ARE_YOU_REQUESTING_TO_DO,

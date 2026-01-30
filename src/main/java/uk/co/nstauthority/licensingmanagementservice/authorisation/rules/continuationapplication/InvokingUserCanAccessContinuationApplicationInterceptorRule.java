@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication;
+package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,31 +12,31 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleR
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AccessInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 
 @Component
-@Order(7)
-public class InvokingUserCanAccessScheduleApplicationInterceptorRule implements AccessInterceptorRule {
+@Order(8)
+public class InvokingUserCanAccessContinuationApplicationInterceptorRule implements AccessInterceptorRule {
 
-  private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
+  private final LicenceContinuationService licenceContinuationService;
   private final ApplicationAccessService applicationAccessService;
   private final UserDetailService userDetailService;
 
   @Autowired
-  public InvokingUserCanAccessScheduleApplicationInterceptorRule(
-      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
+  public InvokingUserCanAccessContinuationApplicationInterceptorRule(
+      LicenceContinuationService licenceContinuationService,
       ApplicationAccessService applicationAccessService,
       UserDetailService userDetailService
   ) {
-    this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
+    this.licenceContinuationService = licenceContinuationService;
     this.applicationAccessService = applicationAccessService;
     this.userDetailService = userDetailService;
   }
 
   @Override
   public Class<? extends Annotation> supports() {
-    return InvokingUserCanAccessScheduleApplication.class;
+    return InvokingUserCanAccessContinuationApplication.class;
   }
 
   @Override
@@ -47,12 +47,12 @@ public class InvokingUserCanAccessScheduleApplicationInterceptorRule implements 
     var wuaId = userDetailService.getUserDetail().wuaId();
 
     var applicationDetail = getApplicationDetailFromRequest(request);
-    var applicationId = applicationDetail.getScheduleWorkProgrammeApplication().getId();
+    var applicationId = applicationDetail.getId();
 
     boolean hasAccess = applicationAccessService.userHasAccessToApplication(
         applicationId.toString(),
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
-        applicationDetail.getResponsibleOrganisationUnitId(),
+        ApplicationType.CONTINUATION_APPLICATION,
+        null,
         wuaId
     );
 
@@ -66,10 +66,10 @@ public class InvokingUserCanAccessScheduleApplicationInterceptorRule implements 
     );
   }
 
-  private ScheduleWorkProgrammeApplicationDetail getApplicationDetailFromRequest(HttpServletRequest request) {
+  private LicenceContinuationApplicationDetail getApplicationDetailFromRequest(HttpServletRequest request) {
     var applicationDetailId = getPathVariableEntityIdFromRequest(
-        request, ScheduleWorkProgrammeApplicationDetail.SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL_ID
+        request, LicenceContinuationApplicationDetail.LICENCE_CONTINUATION_APPLICATION_DETAIL_ID
     );
-    return scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationDetailId);
+    return licenceContinuationService.getDetailByIdOrThrow(applicationDetailId);
   }
 }

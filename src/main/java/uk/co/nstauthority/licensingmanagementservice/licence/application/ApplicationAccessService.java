@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
@@ -20,16 +21,19 @@ public class ApplicationAccessService {
   private final OrganisationGroupQueryService organisationGroupQueryService;
   private final TeamQueryService teamQueryService;
   private final Set<Role> editorSubmitterRoles = Set.of(Role.APPLICATION_EDITOR, Role.APPLICATION_SUBMITTER);
-  public static final String ORGANISATION = "ORGANISATION";
+  private final UserDetailService userDetailService;
+  public static final String ORGANISATION_GROUP = "ORGANISATION_GROUP";
 
   public ApplicationAccessService(
       OrganisationUnitQueryService organisationUnitQueryService,
       OrganisationGroupQueryService organisationGroupQueryService,
-      TeamQueryService teamQueryService
+      TeamQueryService teamQueryService,
+      UserDetailService userDetailService
   ) {
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.organisationGroupQueryService = organisationGroupQueryService;
     this.teamQueryService = teamQueryService;
+    this.userDetailService = userDetailService;
   }
 
   public boolean userHasAccessToApplication(
@@ -39,17 +43,19 @@ public class ApplicationAccessService {
       Long wuaId
   ) {
     var allowedRoles = Set.of(
-        Role.MANAGE_TEAM,
         Role.EXTERNAL_APPLICATION_EDITOR,
         Role.APPLICATION_EDITOR,
         Role.APPLICATION_SUBMITTER
     );
 
+    var rawGroupIds = (organisationUnitId != null)
+                      ? organisationUnitQueryService.findOrganisationGroupIdsByUnitId(organisationUnitId)
+                      : getOrganisationGroupIds(userDetailService.getUserDetail());
 
-    var organisationGroupIds = organisationUnitQueryService.findOrganisationGroupIdsByUnitId(organisationUnitId)
-                                                           .stream()
-                                                           .map(String::valueOf)
-                                                           .collect(Collectors.toSet());
+
+    var organisationGroupIds = rawGroupIds.stream()
+        .map(String::valueOf)
+        .collect(Collectors.toSet());
 
     return teamQueryService.getTeamRolesForUser(wuaId).stream()
                            .filter(teamRole -> allowedRoles.contains(teamRole.getRole()))
@@ -73,7 +79,7 @@ public class ApplicationAccessService {
 
     boolean isOrganisationGroup = team.getTeamType() == TeamType.ORGANISATION
                                   && organisationGroupIds.contains(team.getScopeId())
-                                  && team.getScopeType().equals(ORGANISATION);
+                                  && team.getScopeType().equals(ORGANISATION_GROUP);
 
     return isExternalContributor || isOrganisationGroup;
   }

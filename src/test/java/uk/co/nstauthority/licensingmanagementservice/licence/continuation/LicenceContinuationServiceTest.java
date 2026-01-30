@@ -68,4 +68,20 @@ class LicenceContinuationServiceTest {
 
     assertThat(result).isEqualTo(savedDetail);
   }
+
+  @Test
+  void getLicenceFromScheduleWorkProgrammeApplicationDetail_withValidDetail_returnsLicence() {
+    var licenceContinuationApplicationDetail = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(
+        LICENCE_SCHEDULE_DETAIL);
+    Licence result = licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail);
+    assertThat(result).isEqualTo(LICENCE);
+  }
+
+  @Test
+  void getAllContinuationApplicationDetailsByStatus() {
+    licenceContinuationService.getAllContinuationApplicationDetailsByStatus(
+        LicenceContinuationApplicationStatus.DRAFT);
+
+    verify(licenceContinuationApplicationDetailRepository).findAllByStatus(LicenceContinuationApplicationStatus.DRAFT);
+  }
 }

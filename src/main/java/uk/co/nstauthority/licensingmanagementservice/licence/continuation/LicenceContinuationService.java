@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.continuation;
 import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
@@ -53,5 +54,21 @@ public class LicenceContinuationService {
   public LicenceContinuationApplicationDetail getDetailByIdOrThrow(UUID detailId) {
     return licenceContinuationApplicationDetailRepository.findById(detailId)
         .orElseThrow(() -> new LmsEntityNotFoundException("licence continuation application detail", detailId));
+  }
+
+  public List<LicenceContinuationApplicationDetail> getAllContinuationApplicationDetailsByStatus(
+      LicenceContinuationApplicationStatus status
+  ) {
+    return licenceContinuationApplicationDetailRepository.findAllByStatus(status);
+  }
+
+  public Licence getLicenceFromContinuationApplicationDetail(
+      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
+  ) {
+    return licenceContinuationApplicationDetail
+        .getLicenceContinuationApplication()
+        .getLicenceScheduleDetail()
+        .getLicenceSchedule()
+        .getLicence();
   }
 }

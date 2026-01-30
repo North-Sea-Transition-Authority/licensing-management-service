@@ -16,6 +16,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.resource.ResourceHttpRequestHandler;
 import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -28,12 +29,16 @@ public class TeamManagementHandlerInterceptor implements HandlerInterceptor {
   private final TeamManagementService teamManagementService;
   private final UserDetailService userDetailService;
   private final TeamQueryService teamQueryService;
+  private final ApplicationAccessService applicationAccessService;
 
   public TeamManagementHandlerInterceptor(TeamManagementService teamManagementService,
-                                          UserDetailService userDetailService, TeamQueryService teamQueryService) {
+                                          UserDetailService userDetailService, TeamQueryService teamQueryService,
+                                          ApplicationAccessService applicationAccessService
+  ) {
     this.teamManagementService = teamManagementService;
     this.userDetailService = userDetailService;
     this.teamQueryService = teamQueryService;
+    this.applicationAccessService = applicationAccessService;
   }
 
   @Override
@@ -115,6 +120,9 @@ public class TeamManagementHandlerInterceptor implements HandlerInterceptor {
 
     if (teamManagementService.isMemberOfTeam(team, wuaId) || (TeamType.ORGANISATION.equals(team.getTeamType())
         && teamManagementService.userCanManageAnyOrganisationTeam(wuaId))) {
+      return true;
+    } else if (team.getTeamType().isApplicationScoped()
+               && applicationAccessService.userHasEditorOrSubmitterRoleInOrganisationGroup(userDetailService.getUserDetail())) {
       return true;
     } else {
       throw new ResponseStatusException(

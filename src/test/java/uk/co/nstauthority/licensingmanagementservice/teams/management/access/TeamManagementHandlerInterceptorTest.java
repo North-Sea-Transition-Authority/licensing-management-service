@@ -270,6 +270,7 @@ class TeamManagementHandlerInterceptorTest {
     when(handlerMethod.getMethod()).thenReturn(method);
 
     var team = new Team(UUID.randomUUID());
+    team.setTeamType(TeamType.ORGANISATION);
 
     when(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE))
         .thenReturn(Map.of("teamId", team.getId().toString()));

@@ -32,10 +32,12 @@ import uk.co.fivium.energyportal.starter.serviceproviders.EnergyPortalServicePro
 import uk.co.fivium.energyportalapi.generated.types.User;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -73,6 +75,12 @@ class TeamManagementServiceTest {
   @Mock
   private OrganisationUnitQueryService organisationUnitQueryService;
 
+  @Mock
+  private ApplicationAccessService  applicationAccessService;
+
+  @Mock
+  private UserDetailService userDetailService;
+
   @InjectMocks
   private TeamManagementService teamManagementService;
 
@@ -88,6 +96,9 @@ class TeamManagementServiceTest {
   private static Team regTeam;
   private static Team orgTeam1;
   private static Team orgTeam2;
+
+  private static Team externalTeam1;
+  private static Team externalTeam2;
 
   private static TeamRole regTeamUser1RoleManage;
   private static TeamRole regTeamUser1RoleOrgAdmin;
@@ -137,6 +148,16 @@ class TeamManagementServiceTest {
     orgTeam2User1RoleManage.setTeam(orgTeam2);
     orgTeam2User1RoleManage.setWuaId(USER_1_WUA_ID);
     orgTeam2User1RoleManage.setRole(Role.MANAGE_TEAM);
+
+    externalTeam1 = TeamTestUtil.newBuilder()
+        .withId(UUID.randomUUID())
+        .withTeamType(TeamType.EXTERNAL_CONTRIBUTORS)
+        .build();
+
+    externalTeam2 = TeamTestUtil.newBuilder()
+        .withId(UUID.randomUUID())
+        .withTeamType(TeamType.EXTERNAL_CONTRIBUTORS)
+        .build();
 
     user1 = new User();
     user1.setWebUserAccountId(USER_1_WUA_ID);
@@ -261,6 +282,16 @@ class TeamManagementServiceTest {
     // Verify they can manage both org team 1 and 2
     assertThat(teamManagementService.getScopedTeamsOfTypeUserCanManage(TeamType.ORGANISATION, USER_1_WUA_ID))
         .containsExactlyInAnyOrder(orgTeam1, orgTeam2);
+  }
+
+  @Test
+  void getScopedTeamOfTypeUserCanManage_regulatorWithRoleCanManageAllExternalContributors() {
+    when(userDetailService.getUserDetail()).thenReturn(userDetail);
+    when(applicationAccessService.userHasEditorOrSubmitterRoleInOrganisationGroup(userDetail)).thenReturn(true);
+    when(teamRepository.findByTeamType(TeamType.EXTERNAL_CONTRIBUTORS)).thenReturn(List.of(externalTeam1, externalTeam2));
+
+    assertThat(teamManagementService.getScopedTeamsOfTypeUserCanManage(TeamType.EXTERNAL_CONTRIBUTORS, 10L))
+        .containsExactlyInAnyOrder(externalTeam1, externalTeam2);
   }
 
   @Test

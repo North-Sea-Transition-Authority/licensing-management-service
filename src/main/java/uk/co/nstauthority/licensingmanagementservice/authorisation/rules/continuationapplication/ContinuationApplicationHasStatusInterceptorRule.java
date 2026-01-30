@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication;
+package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -10,33 +10,33 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AccessInterceptorRule;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 
 @Component
-@Order(5)
-public class ScheduleAmendmentApplicationHasStatusInterceptorRule implements AccessInterceptorRule {
+@Order(9)
+public class ContinuationApplicationHasStatusInterceptorRule implements AccessInterceptorRule {
 
-  private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
+  private final LicenceContinuationService licenceContinuationService;
 
   @Autowired
-  public ScheduleAmendmentApplicationHasStatusInterceptorRule(
-      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService
+  public ContinuationApplicationHasStatusInterceptorRule(
+      LicenceContinuationService licenceContinuationService
   ) {
-    this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
+    this.licenceContinuationService = licenceContinuationService;
   }
 
   @Override
   public Class<? extends Annotation> supports() {
-    return ScheduleAmendmentApplicationHasStatus.class;
+    return ContinuationApplicationHasStatus.class;
   }
 
   @Override
   public SecurityRuleResult check(Object annotation,
                                   HttpServletRequest request,
                                   HttpServletResponse response) {
-    var applicationHasStatus = (ScheduleAmendmentApplicationHasStatus) annotation;
+    var applicationHasStatus = (ContinuationApplicationHasStatus) annotation;
 
     if (applicationHasStatus.value().length == 0) {
       throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No statuses provided to security annotation");
@@ -44,7 +44,7 @@ public class ScheduleAmendmentApplicationHasStatusInterceptorRule implements Acc
 
     var applicationDetail = getApplicationDetailFromRequest(request);
 
-    for (ScheduleWorkProgrammeApplicationStatus status : applicationHasStatus.value()) {
+    for (LicenceContinuationApplicationStatus status : applicationHasStatus.value()) {
       if (status.equals(applicationDetail.getStatus())) {
         return SecurityRuleResult.continueAsNormal();
       }
@@ -57,10 +57,10 @@ public class ScheduleAmendmentApplicationHasStatusInterceptorRule implements Acc
     );
   }
 
-  private ScheduleWorkProgrammeApplicationDetail getApplicationDetailFromRequest(HttpServletRequest request) {
+  private LicenceContinuationApplicationDetail getApplicationDetailFromRequest(HttpServletRequest request) {
     var applicationDetailId = getPathVariableEntityIdFromRequest(
-        request, ScheduleWorkProgrammeApplicationDetail.SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL_ID
+        request, LicenceContinuationApplicationDetail.LICENCE_CONTINUATION_APPLICATION_DETAIL_ID
     );
-    return scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationDetailId);
+    return licenceContinuationService.getDetailByIdOrThrow(applicationDetailId);
   }
 }

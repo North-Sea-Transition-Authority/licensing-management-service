@@ -96,7 +96,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.EXTERNAL_CONTRIBUTORS,
                     TaskListLabel.COMPLETE,
-                    ReverseRouter.route(on(TeamManagementController.class).renderScheduleExternalContributorsTeamList(team.getId(), user))
+                    ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(team.getId(), user))
                 ),
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
@@ -133,7 +133,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.EXTERNAL_CONTRIBUTORS,
                     TaskListLabel.COMPLETE,
-                    ReverseRouter.route(on(TeamManagementController.class).renderScheduleExternalContributorsTeamList(team.getId(), user))
+                    ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(team.getId(), user))
                 ),
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
@@ -180,7 +180,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.EXTERNAL_CONTRIBUTORS,
                     TaskListLabel.COMPLETE,
-                    ReverseRouter.route(on(TeamManagementController.class).renderScheduleExternalContributorsTeamList(team.getId(), user))
+                    ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(team.getId(), user))
                 ),
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
@@ -227,7 +227,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.EXTERNAL_CONTRIBUTORS,
                     TaskListLabel.COMPLETE,
-                    ReverseRouter.route(on(TeamManagementController.class).renderScheduleExternalContributorsTeamList(team.getId(), user))
+                    ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(team.getId(), user))
                 ),
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
@@ -274,7 +274,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.EXTERNAL_CONTRIBUTORS,
                     TaskListLabel.COMPLETE,
-                    ReverseRouter.route(on(TeamManagementController.class).renderScheduleExternalContributorsTeamList(team.getId(), user))
+                    ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(team.getId(), user))
                 ),
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
@@ -321,7 +321,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.EXTERNAL_CONTRIBUTORS,
                     TaskListLabel.COMPLETE,
-                    ReverseRouter.route(on(TeamManagementController.class).renderScheduleExternalContributorsTeamList(team.getId(), user))
+                    ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(team.getId(), user))
                 ),
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
@@ -369,7 +369,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.EXTERNAL_CONTRIBUTORS,
                     TaskListLabel.COMPLETE,
-                    ReverseRouter.route(on(TeamManagementController.class).renderScheduleExternalContributorsTeamList(team.getId(), user))
+                    ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(team.getId(), user))
                 ),
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,

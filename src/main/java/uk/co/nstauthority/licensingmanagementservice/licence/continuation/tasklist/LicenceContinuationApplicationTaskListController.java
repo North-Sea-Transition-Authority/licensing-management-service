@@ -1,39 +1,55 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist;
 
-import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatus;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 
 @Controller
 @RequestMapping("licence/continuation-application/{licenceContinuationApplicationDetailId}/task-list")
-// TODO restrict by status
+@ContinuationApplicationHasStatus(value = LicenceContinuationApplicationStatus.DRAFT)
+@InvokingUserCanAccessContinuationApplication
 public class LicenceContinuationApplicationTaskListController {
 
   public static final String PAGE_TITLE = "Task list";
 
   private final LicenceService licenceService;
 
-  public LicenceContinuationApplicationTaskListController(LicenceService licenceService) {
+  private final LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService;
+
+  public LicenceContinuationApplicationTaskListController(
+      LicenceService licenceService,
+      LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService
+  ) {
     this.licenceService = licenceService;
+    this.licenceContinuationApplicationTaskListService = licenceContinuationApplicationTaskListService;
   }
 
   @GetMapping
   public ModelAndView getTaskList(
       @PathVariable UUID licenceContinuationApplicationDetailId,
-      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail) {
+      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
+      ServiceUserDetail serviceUserDetail
+  ) {
 
+    var sections = licenceContinuationApplicationTaskListService.getAllSections(
+        licenceContinuationApplicationDetail,
+        serviceUserDetail
+    );
     var modelAndView = new ModelAndView("lms/licence/continuation/taskList")
         .addObject("pageTitle", PAGE_TITLE)
-        .addObject("taskListSections", List.of())
+        .addObject("taskListSections", sections)
         .addObject("pageCaption",
             licenceService.getLicencePageCaption(getLicence(licenceContinuationApplicationDetail)));
 

@@ -82,7 +82,6 @@ class EnergyPortalDataServiceTest {
     );
 
     var externalContributorsRoleDtos = Set.of(
-        createServiceRoleDto(Role.MANAGE_TEAM, true),
         createServiceRoleDto(Role.EXTERNAL_APPLICATION_EDITOR, false),
         createServiceRoleDto(Role.EXTERNAL_APPLICATION_VIEWER, false)
     );

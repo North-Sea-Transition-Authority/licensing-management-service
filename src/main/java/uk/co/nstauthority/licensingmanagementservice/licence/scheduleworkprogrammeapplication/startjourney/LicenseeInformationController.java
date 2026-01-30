@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,10 +16,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
@@ -75,21 +74,23 @@ public class LicenseeInformationController {
     var applicationDetail = scheduleWorkProgrammeApplicationService
         .createNewScheduleWorkProgrammeApplicationForLicence(licence, form);
 
+    createExternalContributorsTeam(applicationDetail);
+
+    return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+        .getTaskList(applicationDetail.getId(), null, null));
+  }
+
+  private void createExternalContributorsTeam(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
     var scopeRef = TeamScopeReference.from(
         applicationDetail.getScheduleWorkProgrammeApplication().getId().toString(),
         ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name()
     );
 
-    var team = teamManagementService.createScopedTeam(
+    teamManagementService.createScopedTeam(
         TeamType.EXTERNAL_CONTRIBUTORS.getDisplayName(),
         TeamType.EXTERNAL_CONTRIBUTORS,
         scopeRef
     );
-
-    teamManagementService.setUserTeamRoles(user.wuaId(), team, List.of(Role.MANAGE_TEAM), user);
-
-    return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationTaskListController.class)
-        .getTaskList(applicationDetail.getId(), null, null));
   }
 
   private ModelAndView getLicenseePermissionConfirmationModelAndView(

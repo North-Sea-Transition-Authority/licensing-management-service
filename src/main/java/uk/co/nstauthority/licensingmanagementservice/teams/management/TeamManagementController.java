@@ -23,6 +23,9 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.configuration.EnergyPortalConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -53,6 +56,7 @@ public class TeamManagementController {
   private final EnergyPortalConfiguration energyPortalConfiguration;
   private final EnergyPortalUserService energyPortalUserService;
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
+  private final LicenceContinuationService licenceContinuationService;
 
   public TeamManagementController(
       TeamManagementService teamManagementService,
@@ -61,7 +65,8 @@ public class TeamManagementController {
       AddMemberFormValidator addMemberFormValidator,
       EnergyPortalConfiguration energyPortalConfiguration,
       EnergyPortalUserService energyPortalUserService,
-      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService
+      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
+      LicenceContinuationService licenceContinuationService
   ) {
     this.teamManagementService = teamManagementService;
     this.teamQueryService = teamQueryService;
@@ -70,6 +75,7 @@ public class TeamManagementController {
     this.energyPortalConfiguration = energyPortalConfiguration;
     this.energyPortalUserService = energyPortalUserService;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
+    this.licenceContinuationService = licenceContinuationService;
   }
 
   @GetMapping
@@ -236,7 +242,7 @@ public class TeamManagementController {
 
   @GetMapping("/externalContributors/{teamId}")
   @InvokingUserCanViewTeam
-  public ModelAndView renderScheduleExternalContributorsTeamList(
+  public ModelAndView renderExternalContributorsTeamList(
       @PathVariable UUID teamId,
       ServiceUserDetail user
   ) {
@@ -295,7 +301,7 @@ public class TeamManagementController {
 
     updateRoles(wuaId, team, form, userDetail);
     return ReverseRouter.redirect(on(TeamManagementController.class)
-        .renderScheduleExternalContributorsTeamList(team.getId(), null));
+        .renderExternalContributorsTeamList(team.getId(), null));
   }
 
   @GetMapping("/externalContributors/{teamId}/member/{wuaId}/remove")
@@ -317,7 +323,7 @@ public class TeamManagementController {
     var team = teamManagementService.getTeam(teamId);
     teamManagementService.removeUserFromTeam(wuaId, team, userDetail);
     return ReverseRouter.redirect(on(TeamManagementController.class)
-        .renderScheduleExternalContributorsTeamList(team.getId(), null));
+        .renderExternalContributorsTeamList(team.getId(), null));
   }
 
   private ModelAndView buildTeamListView(Team team, Long wuaId) {
@@ -396,7 +402,7 @@ public class TeamManagementController {
           .addObject(
               "cancelUrl",
               ReverseRouter.route(on(TeamManagementController.class)
-                  .renderScheduleExternalContributorsTeamList(team.getId(), null)));
+                  .renderExternalContributorsTeamList(team.getId(), null)));
     } else {
       modelAndView
           .addObject(
@@ -411,14 +417,23 @@ public class TeamManagementController {
       return ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null));
     }
 
-    var scheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationService
-        .getScheduleWorkProgrammeApplicationById(UUID.fromString(scopeId));
+    if (team.getScopeType().equals(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name())) {
+      var scheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationService
+          .getScheduleWorkProgrammeApplicationById(UUID.fromString(scopeId));
 
-    var scheduleWorkProgrammeApplicationDetail = scheduleWorkProgrammeApplicationService
-        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication);
+      var scheduleWorkProgrammeApplicationDetail = scheduleWorkProgrammeApplicationService
+          .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication);
 
-    return ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
-        scheduleWorkProgrammeApplicationDetail.getId(), null, null));
+      return ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
+          scheduleWorkProgrammeApplicationDetail.getId(), null, null));
+
+    } else {
+      var detailByIdOrThrow = licenceContinuationService
+          .getDetailByIdOrThrow(UUID.fromString(scopeId));
+
+      return ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(
+          detailByIdOrThrow.getId(), null, null));
+    }
   }
 
   private Long findUserOrThrow(String email) {

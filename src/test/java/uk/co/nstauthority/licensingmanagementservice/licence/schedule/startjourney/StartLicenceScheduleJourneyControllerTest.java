@@ -16,8 +16,8 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController;
-import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
@@ -61,7 +61,7 @@ class StartLicenceScheduleJourneyControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("startUrl",
             ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateForm(licenceId, null))))
         .andExpect(model().attribute("backUrl",
-            ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licenceId, null, null))));
+            ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licenceId, null, null))));
   }
 
   @SecurityTest

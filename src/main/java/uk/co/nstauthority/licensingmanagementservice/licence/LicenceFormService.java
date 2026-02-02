@@ -39,6 +39,10 @@ public class LicenceFormService {
     licence.setLicenceReference(form.getLicenceType().getPrefix() + form.getLicenceNumber());
     licence.setStatus(LicenceStatus.EXTANT);
 
+    if (form.getLicenceType() == LicenceType.CARBON_STORAGE) {
+      licence.setResponsibleTeam(form.getResponsibleTeam());
+    }
+
     var savedLicence = licenceRepository.save(licence);
     licenceResponsibleOrganisationService.saveLicenseesFromForm(savedLicence, form.getOrganisationUnitIds());
 

@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.search.action;
+package uk.co.nstauthority.licensingmanagementservice.licence.overview.action;
 
 import static java.util.stream.Collectors.toSet;
 
@@ -51,6 +51,11 @@ public class LicenceActionService {
           .requiresAnyRoleFrom(Role.OFFLINE_LICENCE_ADMINISTRATOR)
           .requiresAnyStatus()
           .requiresAnyTypeManagedByLms()
+          .withoutLicenceScheduleRequirement()
+        .registerAction(LicenceActionItem.MANAGE_RESPONSIBLE_TEAM)
+          .requiresAnyRoleFrom(Role.OFFLINE_LICENCE_ADMINISTRATOR)
+          .requiresAnyStatus()
+          .requiresAnyTypeFrom(LicenceType.CARBON_STORAGE)
           .withoutLicenceScheduleRequirement()
         .build();
 

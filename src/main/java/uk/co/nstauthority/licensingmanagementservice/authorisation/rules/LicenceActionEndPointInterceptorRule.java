@@ -19,8 +19,8 @@ import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionIt
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionItem;
-import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
 
 @Component
 @Order(3)

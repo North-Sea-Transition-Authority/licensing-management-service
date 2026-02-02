@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceTeam;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -77,6 +78,8 @@ class LicenceControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("preselectedOrgUnits", List.of()))
         .andExpect(model().attribute("organisationUnitSearchEndpoint",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))))
+        .andExpect(model().attribute("csResponsibleTeamOptions",
+            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceTeam.fromTeamType(LicenceType.CARBON_STORAGE))))
         .andExpect(model().attribute("backUrl", ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null, null))));
   }
 
@@ -123,7 +126,9 @@ class LicenceControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("licenceTypeOptions", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getLicenceTypesManagedByLms())))
         .andExpect(model().attribute("preselectedOrgUnits", List.of()))
         .andExpect(model().attribute("organisationUnitSearchEndpoint",
-            SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))));
+            SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))))
+        .andExpect(model().attribute("csResponsibleTeamOptions",
+            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceTeam.fromTeamType(LicenceType.CARBON_STORAGE))));
   }
 
 

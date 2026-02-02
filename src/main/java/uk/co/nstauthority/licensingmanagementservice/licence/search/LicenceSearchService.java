@@ -15,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
@@ -118,7 +119,7 @@ public class LicenceSearchService {
     var mappedLicensees = licensees.stream().filter(Objects::nonNull).toList();
     return SearchResultItem.newBuilder()
         .withId(licence.getId().toString())
-        .withLinkHeadingUrl(ReverseRouter.route(on(LicenceSearchController.class)
+        .withLinkHeadingUrl(ReverseRouter.route(on(LicenceOverviewController.class)
           .renderLicenceOverview(licence.getId(), null, null)))
         .withLinkHeadingText(licence.getLicenceReference())
         .withCaptionText(licence.getType().getDisplayName())

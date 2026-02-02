@@ -40,6 +40,7 @@ public class DataBootstrapper {
   @EventListener(ApplicationReadyEvent.class)
   @Transactional
   public void loadData() {
+
     var regulatorTeamUsers = new HashMap<TeamType, Map<Role, String>>();
 
     var licenceManagementUserMap = new HashMap<Role, String>();
@@ -131,7 +132,7 @@ public class DataBootstrapper {
 
     for (Role role : industryTeamUsers.keySet()) {
       if (!industryTeamUserRoles.contains(role.name())) {
-        LOGGER.info(String.format("Bootstrapping industry %s", role.getName()));
+        LOGGER.info("Bootstrapping industry {}", role.getName());
         var industryUser = energyPortalUserService.findUsersByEmail(
                 industryTeamUsers.get(role),
                 String.format("Bootstrapping LMS %s for local dev", role.getName()))
@@ -159,10 +160,7 @@ public class DataBootstrapper {
       var roleUserMap = regulatorTeamUsers.get(teamType);
       for (Role role: roleUserMap.keySet()) {
         if (!regulatorRoles.contains(role.name())) {
-          LOGGER.info(String.format("Bootstrapping %s %s",
-              teamType.getDisplayName(),
-              role.getName()
-          ));
+          LOGGER.info("Bootstrapping {} {}", teamType.getDisplayName(), role.getName());
 
           var regulatorUser = energyPortalUserService.findUsersByEmail(
                   roleUserMap.get(role),

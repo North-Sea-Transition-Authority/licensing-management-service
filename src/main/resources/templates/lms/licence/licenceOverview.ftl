@@ -1,5 +1,5 @@
-<#include '../../layout/layout.ftl'>
-<#import '../../component/actions/actionItems.ftl' as actionItems>
+<#include '../layout/layout.ftl'>
+<#import '../component/actions/actionItems.ftl' as actionItems>
 
 <@defaultPage
 htmlTitle=licenceReference

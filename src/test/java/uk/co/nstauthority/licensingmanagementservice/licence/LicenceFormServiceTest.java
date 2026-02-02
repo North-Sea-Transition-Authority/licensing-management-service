@@ -19,6 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceTeam;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceFormServiceTest {
@@ -44,9 +45,38 @@ class LicenceFormServiceTest {
   @Test
   void saveNewLicenceFromForm() {
     var form = new NewLicenceForm();
+    form.setLicenceType(LicenceType.SEAWARD_PRODUCTION);
+    form.setLicenceNumber("001");
+    form.setOrganisationUnitIds(List.of("1", "2"));
+
+    when(licenceService.getNextLicenceId()).thenReturn(10000);
+
+    var licence = new Licence();
+    licence.setId(10000);
+    licence.setType(LicenceType.SEAWARD_PRODUCTION);
+    licence.setPrefix("P");
+    licence.setLicenceNumber("001");
+    licence.setLicenceReference("P001");
+    licence.setStatus(LicenceStatus.EXTANT);
+
+    licenceFormService.saveNewLicenceFromForm(form);
+
+    verify(licenceRepository).save(licenceCaptor.capture());
+
+    assertThat(licenceCaptor.getValue())
+        .usingRecursiveComparison()
+        .isEqualTo(licence);
+
+    verify(licenceResponsibleOrganisationService).saveLicenseesFromForm(any(), eq(form.getOrganisationUnitIds()));
+  }
+
+  @Test
+  void saveNewLicenceFromForm_WithResponsibleTeam() {
+    var form = new NewLicenceForm();
     form.setLicenceType(LicenceType.CARBON_STORAGE);
     form.setLicenceNumber("001");
     form.setOrganisationUnitIds(List.of("1", "2"));
+    form.setResponsibleTeam(LicenceTeam.CS_NEW_VENTURES);
 
     when(licenceService.getNextLicenceId()).thenReturn(10000);
 
@@ -57,6 +87,7 @@ class LicenceFormServiceTest {
     licence.setLicenceNumber("001");
     licence.setLicenceReference("CS001");
     licence.setStatus(LicenceStatus.EXTANT);
+    licence.setResponsibleTeam(LicenceTeam.CS_NEW_VENTURES);
 
     licenceFormService.saveNewLicenceFromForm(form);
 

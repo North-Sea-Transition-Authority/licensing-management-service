@@ -6,11 +6,26 @@ pageHeading=pageTitle
 pageSize=PageSize.TWO_THIRDS_COLUMN
 errorSummaryItems=errorSummaryItems>
     <@fdsForm.htmlForm>
-        <@fdsSelect.select
+
+        <@fdsRadio.radioGroup
             path="form.licenceType"
-            options=licenceTypeOptions
             labelText="Select the licence type"
-        />
+            hiddenContent=true>
+            <#assign firstItem=true/>
+            <#list licenceTypeOptions as key, value>
+                <@fdsRadio.radioItem path="form.licenceType" itemMap={key : value} isFirstItem=firstItem>
+                    <#if key = "CARBON_STORAGE">
+                        <@fdsSelect.select
+                            path="form.responsibleTeam"
+                            options=csResponsibleTeamOptions
+                            labelText="Who is the licence allocated to?"
+                            nestingPath="form.licenceType"
+                        />
+                    </#if>
+                </@fdsRadio.radioItem>
+                <#assign firstItem=false/>
+            </#list>
+        </@fdsRadio.radioGroup>
 
         <@fdsTextInput.textInput
             path="form.licenceNumber"

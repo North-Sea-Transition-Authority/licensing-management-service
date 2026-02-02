@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionItem.CREATE_LICENCE_SCHEDULE;
+import static uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem.CREATE_LICENCE_SCHEDULE;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,7 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleR
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceActionEndPointInterceptorRuleTest extends AbstractInterceptorRuleTest {

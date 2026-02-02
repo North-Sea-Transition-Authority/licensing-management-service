@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.search.action;
+package uk.co.nstauthority.licensingmanagementservice.licence.overview.action;
 
 import java.util.Arrays;
 import java.util.Deque;

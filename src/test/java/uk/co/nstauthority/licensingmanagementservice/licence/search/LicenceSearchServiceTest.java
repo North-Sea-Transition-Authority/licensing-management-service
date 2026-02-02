@@ -24,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
@@ -209,7 +210,7 @@ class LicenceSearchServiceTest {
   private SearchResultItem buildSearchResultItem(Licence licence, List<String> licensees) {
     return SearchResultItem.newBuilder()
         .withId(licence.getId().toString())
-        .withLinkHeadingUrl(ReverseRouter.route(on(LicenceSearchController.class).renderLicenceOverview(licence.getId(), null, null)))
+        .withLinkHeadingUrl(ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licence.getId(), null, null)))
         .withLinkHeadingText(licence.getLicenceReference())
         .withCaptionText(licence.getType().getDisplayName())
         .withDataItemRow(SummaryDataView.newStringKeyValue("Licensee(s)", String.join(", ", licensees)))

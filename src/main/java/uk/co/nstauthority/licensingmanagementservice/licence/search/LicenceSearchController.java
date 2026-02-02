@@ -7,7 +7,6 @@ import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.SessionAttributes;
@@ -16,11 +15,9 @@ import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
-import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
@@ -31,16 +28,13 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEn
 public class LicenceSearchController {
 
   private final LicenceSearchService licenceSearchService;
-  private final LicenceActionService licenceActionService;
   private final LicenceAccessService licenceAccessService;
 
   public LicenceSearchController(
       LicenceSearchService licenceSearchService,
-      LicenceActionService licenceActionService,
       LicenceAccessService licenceAccessService
   ) {
     this.licenceSearchService = licenceSearchService;
-    this.licenceActionService = licenceActionService;
     this.licenceAccessService = licenceAccessService;
   }
 
@@ -80,19 +74,6 @@ public class LicenceSearchController {
   @ModelAttribute("licenceSearchSession")
   private LicenceSearchSession getSearchSession(@ModelAttribute("form") LicenceSearchFilterForm form) {
     return new LicenceSearchSession(form);
-  }
-
-  // Only here for now while we haven't got a page to go to from search
-  @GetMapping("/{licenceId}")
-  public ModelAndView renderLicenceOverview(
-      @PathVariable Integer licenceId,
-      Licence licence,
-      ServiceUserDetail serviceUserDetail
-  ) {
-    return new ModelAndView("lms/licence/search/licenceOverview")
-        .addObject("licenceReference", licence.getLicenceReference())
-        .addObject("caption", licence.getType().getDisplayName())
-        .addObject("licenceActions", licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail));
   }
 
   private ModelAndView getLicenceSearchModelAndView(LicenceSearchFilterForm form,

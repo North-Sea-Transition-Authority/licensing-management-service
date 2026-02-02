@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.search.action;
+package uk.co.nstauthority.licensingmanagementservice.licence.overview.action;
 
 public enum LicenceScheduleRequirement {
   NO_REQUIREMENT,

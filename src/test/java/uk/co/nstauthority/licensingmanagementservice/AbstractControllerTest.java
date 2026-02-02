@@ -53,7 +53,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.search.action.LicenceActionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ControllerAdviceService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.DefaultPageControllerAdvice;
 import uk.co.nstauthority.licensingmanagementservice.mvc.PostAuthenticationRequestMdcFilter;

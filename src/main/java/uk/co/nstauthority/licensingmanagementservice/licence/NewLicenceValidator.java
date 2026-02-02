@@ -23,6 +23,15 @@ public class NewLicenceValidator {
         "Select the licence type"
     );
 
+    if (form.getLicenceType() == LicenceType.CARBON_STORAGE) {
+      ValidationUtils.rejectIfEmptyOrWhitespace(
+          errors,
+          "responsibleTeam",
+          "responsibleTeam.required",
+          "Select the responsible team"
+      );
+    }
+
     ValidationUtils.rejectIfEmptyOrWhitespace(
         errors,
         "licenceNumber",

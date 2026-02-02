@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.search.action;
+package uk.co.nstauthority.licensingmanagementservice.licence.overview.action;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
@@ -6,6 +6,7 @@ import java.util.function.Function;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceResponsibleTeamController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.StartLicenceScheduleJourneyController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
@@ -24,6 +25,13 @@ public enum LicenceActionItem implements Displayable {
       false,
           licence -> ReverseRouter.route(on(LicenceController.class)
               .renderManageLicenseesPage(licence.getId(), null))
+  ),
+  MANAGE_RESPONSIBLE_TEAM(
+      "Manage responsible team",
+      3,
+      false,
+          licence -> ReverseRouter.route(on(LicenceResponsibleTeamController.class)
+          .render(licence.getId(), null))
   );
 
   private final String displayName;

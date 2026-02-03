@@ -33,6 +33,7 @@
                     yearPath="form.workProgrammeExtensionDuration.years"
                     fieldNamePath="form.workProgrammeExtensionDuration.fieldName"
                     fieldDisplayTextPath="form.workProgrammeExtensionDuration.fieldDisplayText"
+                    nestingPath="form.durationExtensionRequired"
                     labelText="How long would you like to request the completion date to be extended by?"
                     formId="amendment-duration"/>
                 </@fdsRadio.radioYes>
@@ -49,6 +50,7 @@
             <@fdsRadio.radioYes path="form.additionalInfoRequired">
                 <@fdsTextarea.textarea
                 path="form.workProgrammeAmendmentInformation"
+                nestingPath="form.additionalInfoRequired"
                 labelText="What amendments would you like to request?"/>
             </@fdsRadio.radioYes>
 

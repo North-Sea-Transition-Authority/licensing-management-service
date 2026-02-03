@@ -27,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCommitment;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
@@ -100,7 +101,7 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
 
     var mockWorkProgrammeActivityAmendmentView = getMockWorkProgrammeActivityAmendmentView();
 
-    when(licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentView(any())).thenReturn(
+    when(workProgrammeActivityService.createWorkProgrammeActivityView(any())).thenReturn(
         mockWorkProgrammeActivityAmendmentView);
 
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
@@ -154,7 +155,7 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
 
     var mockWorkProgrammeActivityAmendmentView = getMockWorkProgrammeActivityAmendmentView();
 
-    when(licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentView(any())).thenReturn(
+    when(workProgrammeActivityService.createWorkProgrammeActivityView(any())).thenReturn(
         mockWorkProgrammeActivityAmendmentView);
 
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
@@ -242,13 +243,14 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
            .andExpect(status().isForbidden());
   }
 
-  private WorkProgrammeActivityAmendmentView getMockWorkProgrammeActivityAmendmentView() {
-    return new WorkProgrammeActivityAmendmentView(
+  private WorkProgrammeActivityView getMockWorkProgrammeActivityAmendmentView() {
+    return new WorkProgrammeActivityView(
         UUID.randomUUID().toString(),
         "12/12/2025",
         "Category A",
         "Description 1",
-        "Category A Due Date"
+        "Category A Due Date",
+        WorkProgrammeActivityCommitment.FIRM.getDisplayName()
     );
   }
   }

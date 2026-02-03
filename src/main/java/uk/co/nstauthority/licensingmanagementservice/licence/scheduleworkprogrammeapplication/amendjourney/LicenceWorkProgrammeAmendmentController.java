@@ -15,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.schedul
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -30,13 +31,16 @@ public class LicenceWorkProgrammeAmendmentController {
   public static final String PAGE_TITLE = "Work programme amendments";
   private final LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
   private final LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator;
+  private final WorkProgrammeActivityService  workProgrammeActivityService;
 
   public LicenceWorkProgrammeAmendmentController(
       LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService,
-      LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator
+      LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator,
+      WorkProgrammeActivityService workProgrammeActivityService
   ) {
     this.licenceWorkProgrammeAmendmentService = licenceWorkProgrammeAmendmentService;
     this.licenceWorkProgrammeAmendmentFormValidator = licenceWorkProgrammeAmendmentFormValidator;
+    this.workProgrammeActivityService = workProgrammeActivityService;
   }
 
   @GetMapping
@@ -84,7 +88,7 @@ public class LicenceWorkProgrammeAmendmentController {
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("form", form)
         .addObject("workProgrammeActivityDetails",
-            licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentView(workProgrammeActivity)
+                   workProgrammeActivityService.createWorkProgrammeActivityView(workProgrammeActivity)
         )
         .addObject("isLinkedRelativeDate",
             workProgrammeActivity.getDateOption().equals(WorkProgrammeActivityDateOption.RELATIVE_DATE)

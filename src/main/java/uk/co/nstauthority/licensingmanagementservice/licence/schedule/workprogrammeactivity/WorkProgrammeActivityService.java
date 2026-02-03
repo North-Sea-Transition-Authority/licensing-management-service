@@ -6,10 +6,12 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.WorkProgrammeActivityView;
 
 @Service
 public class WorkProgrammeActivityService {
@@ -94,5 +96,57 @@ public class WorkProgrammeActivityService {
   public void deleteWorkProgrammeActivity(WorkProgrammeActivity workProgrammeActivity) {
     workProgrammeActivity.setStatus(LicenceScheduleEventStatus.DELETED);
     workProgrammeActivityRepository.save(workProgrammeActivity);
+  }
+
+  public List<WorkProgrammeActivityView> getLicenceWorkProgramActivitiesViews(
+      LicenceScheduleDetail licenceScheduleDetail
+  ) {
+    List<WorkProgrammeActivity> workProgrammeActivities = getActiveWorkProgrammeActivities(
+        licenceScheduleDetail
+    );
+
+    return workProgrammeActivities
+        .stream()
+        .map(this::createWorkProgrammeActivityView)
+        .toList();
+  }
+
+  public WorkProgrammeActivityView createWorkProgrammeActivityView(
+      WorkProgrammeActivity workProgrammeActivity
+  ) {
+    LocalDate dueDate = resolveWorkProgrammeActivityDueDate(workProgrammeActivity);
+
+    return new WorkProgrammeActivityView(
+        workProgrammeActivity.getId().toString(),
+        DateFormatUtil.convertToDisplayText(dueDate),
+        resolveCategory(workProgrammeActivity),
+        workProgrammeActivity.getDescription(),
+        getCategoryWithDueDate(workProgrammeActivity, dueDate),
+        workProgrammeActivity.getCommitment().getDisplayName()
+    );
+  }
+
+  public String resolveCategory(WorkProgrammeActivity workProgrammeActivity) {
+    if (workProgrammeActivity.getOtherCategoryName() == null) {
+      return workProgrammeActivity.getCategory().getDisplayName();
+    }
+    return workProgrammeActivity.getOtherCategoryName();
+  }
+
+  public LocalDate resolveWorkProgrammeActivityDueDate(WorkProgrammeActivity activity) {
+    WorkProgrammeActivityDateOption dateOption = activity.getDateOption();
+
+    if (dateOption.equals(WorkProgrammeActivityDateOption.WITHIN_A_PHASE)) {
+      return activity.getLicenceSchedulePhase().getEndDate();
+    }
+    if (dateOption.equals(WorkProgrammeActivityDateOption.WITHIN_A_TERM)) {
+      return activity.getLicenceScheduleTerm().getEndDate();
+    }
+    return activity.getDueDate();
+  }
+
+  public String getCategoryWithDueDate(WorkProgrammeActivity activity, LocalDate dueDate
+  ) {
+    return resolveCategory(activity) + " " + DateFormatUtil.convertToDisplayTextWithDueDateLabel(dueDate);
   }
 }

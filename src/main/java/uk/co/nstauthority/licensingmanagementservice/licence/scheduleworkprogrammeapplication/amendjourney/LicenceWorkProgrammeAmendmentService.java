@@ -1,6 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.BooleanUtils;
@@ -9,11 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
-import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationService;
 
@@ -22,18 +17,15 @@ public class LicenceWorkProgrammeAmendmentService {
 
   private final LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
   private final LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator;
-  private final WorkProgrammeActivityService  workProgrammeActivityService;
   private final LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService;
 
   public LicenceWorkProgrammeAmendmentService(
       LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository,
       LicenceWorkProgrammeAmendmentFormValidator licenceWorkProgrammeAmendmentFormValidator,
-      WorkProgrammeActivityService workProgrammeActivityService,
       LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService
   ) {
     this.licenceWorkProgrammeAmendmentRepository = licenceWorkProgrammeAmendmentRepository;
     this.licenceWorkProgrammeAmendmentFormValidator = licenceWorkProgrammeAmendmentFormValidator;
-    this.workProgrammeActivityService = workProgrammeActivityService;
     this.licenceScheduleSupportingInformationService = licenceScheduleSupportingInformationService;
   }
 
@@ -160,61 +152,5 @@ public class LicenceWorkProgrammeAmendmentService {
               bindingResult
           );
         });
-  }
-
-  public List<WorkProgrammeActivityAmendmentView> getLicenceWorkProgramAmendmentViews(
-      LicenceScheduleDetail licenceScheduleDetail
-  ) {
-    List<WorkProgrammeActivity> workProgrammeActivities = workProgrammeActivityService.getActiveWorkProgrammeActivities(
-        licenceScheduleDetail
-    );
-
-    return workProgrammeActivities
-        .stream()
-        .map(this::createWorkProgrammeActivityAmendmentView)
-        .toList();
-  }
-
-  public WorkProgrammeActivityAmendmentView getLicenceWorkProgramAmendmentView(
-      WorkProgrammeActivity workProgrammeActivity
-  ) {
-    return createWorkProgrammeActivityAmendmentView(workProgrammeActivity);
-  }
-
-  private WorkProgrammeActivityAmendmentView createWorkProgrammeActivityAmendmentView(
-      WorkProgrammeActivity workProgrammeActivity
-  ) {
-    LocalDate dueDate = resolveWorkProgrammeActivityDueDate(workProgrammeActivity);
-
-    return new WorkProgrammeActivityAmendmentView(
-        workProgrammeActivity.getId().toString(),
-        DateFormatUtil.convertToDisplayText(dueDate),
-        resolveCategory(workProgrammeActivity),
-        workProgrammeActivity.getDescription(),
-        getCategoryWithDueDate(workProgrammeActivity, dueDate)
-    );
-  }
-
-  public String getCategoryWithDueDate(WorkProgrammeActivity activity, LocalDate dueDate) {
-    return resolveCategory(activity) + " " + DateFormatUtil.convertToDisplayTextWithDueDateLabel(dueDate);
-  }
-
-  public LocalDate resolveWorkProgrammeActivityDueDate(WorkProgrammeActivity activity) {
-    WorkProgrammeActivityDateOption dateOption = activity.getDateOption();
-
-    if (dateOption.equals(WorkProgrammeActivityDateOption.WITHIN_A_PHASE)) {
-      return activity.getLicenceSchedulePhase().getEndDate();
-    }
-    if (dateOption.equals(WorkProgrammeActivityDateOption.WITHIN_A_TERM)) {
-      return activity.getLicenceScheduleTerm().getEndDate();
-    }
-    return activity.getDueDate();
-  }
-
-  public String resolveCategory(WorkProgrammeActivity workProgrammeActivity) {
-    if (workProgrammeActivity.getOtherCategoryName() == null) {
-      return workProgrammeActivity.getCategory().getDisplayName();
-    }
-    return workProgrammeActivity.getOtherCategoryName();
   }
 }

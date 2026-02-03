@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCommitment;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
@@ -80,7 +81,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
 
     var mockWorkProgrammeActivityAmendmentViews = getMockWorkProgrammeActivityAmendmentViews();
 
-    when(licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentViews(any())).thenReturn(mockWorkProgrammeActivityAmendmentViews);
+    when(workProgrammeActivityService.getLicenceWorkProgramActivitiesViews(any())).thenReturn(mockWorkProgrammeActivityAmendmentViews);
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
@@ -125,8 +126,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
 
     var mockWorkProgrammeActivityAmendmentViews = getMockWorkProgrammeActivityAmendmentViews();
 
-    when(
-        licenceWorkProgrammeAmendmentService.getLicenceWorkProgramAmendmentViews(any())).thenReturn(mockWorkProgrammeActivityAmendmentViews);
+    when(workProgrammeActivityService.getLicenceWorkProgramActivitiesViews(any())).thenReturn(mockWorkProgrammeActivityAmendmentViews);
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
@@ -204,13 +204,14 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
            .andExpect(status().isForbidden());
   }
 
-  private List<WorkProgrammeActivityAmendmentView> getMockWorkProgrammeActivityAmendmentViews() {
-    WorkProgrammeActivityAmendmentView mockView = new WorkProgrammeActivityAmendmentView(
+  private List<WorkProgrammeActivityView> getMockWorkProgrammeActivityAmendmentViews() {
+    WorkProgrammeActivityView mockView = new WorkProgrammeActivityView(
         UUID.randomUUID().toString(),
         "12/12/2025",
         "Category A",
         "Description 1",
-        "Category A Due Date"
+        "Category A Due Date",
+        WorkProgrammeActivityCommitment.FIRM.getDisplayName()
     );
 
     return List.of(mockView);

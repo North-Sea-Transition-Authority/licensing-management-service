@@ -11,6 +11,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -79,10 +80,10 @@ class ScheduleWorkProgrammeApplicationServiceTest {
   }
 
   @Test
-  void getAllScheduleWorkProgrammeApplicationDetailsByStatus() {
-    scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT);
+  void getAllScheduleWorkProgrammeApplicationDetailsByStatuses() {
+    scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(Set.of(ScheduleWorkProgrammeApplicationStatus.DRAFT));
 
-    verify(scheduleWorkProgrammeApplicationDetailRepository).findAllByStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT);
+    verify(scheduleWorkProgrammeApplicationDetailRepository).findAllByStatusIn(Set.of(ScheduleWorkProgrammeApplicationStatus.DRAFT));
   }
 
   @Test

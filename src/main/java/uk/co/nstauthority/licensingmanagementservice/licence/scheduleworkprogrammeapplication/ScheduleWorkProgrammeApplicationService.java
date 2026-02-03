@@ -5,6 +5,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
@@ -123,10 +124,10 @@ public class ScheduleWorkProgrammeApplicationService {
         ));
   }
 
-  public List<ScheduleWorkProgrammeApplicationDetail> getAllScheduleWorkProgrammeApplicationDetailsByStatus(
-      ScheduleWorkProgrammeApplicationStatus status
+  public List<ScheduleWorkProgrammeApplicationDetail> getAllScheduleWorkProgrammeApplicationDetailsByStatuses(
+      Set<ScheduleWorkProgrammeApplicationStatus> statuses
   ) {
-    return scheduleWorkProgrammeApplicationDetailRepository.findAllByStatus(status);
+    return scheduleWorkProgrammeApplicationDetailRepository.findAllByStatusIn(statuses);
   }
 
   @Transactional

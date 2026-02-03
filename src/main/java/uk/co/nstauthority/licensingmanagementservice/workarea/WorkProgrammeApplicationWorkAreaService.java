@@ -5,6 +5,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
@@ -19,23 +20,29 @@ import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearc
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
 
 @Service
 public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProvider {
 
+  public static final Set<ScheduleWorkProgrammeApplicationStatus> ACTIVE_APPLICATION_STATUSES = Set.of(
+      ScheduleWorkProgrammeApplicationStatus.DRAFT,
+      ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final LicenceSearchService licenceSearchService;
   private final ApplicationAccessService applicationAccessService;
+  private final TeamQueryService teamQueryService;
 
   public WorkProgrammeApplicationWorkAreaService(
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
       LicenceSearchService licenceSearchService,
-      ApplicationAccessService applicationAccessService
-  ) {
+      ApplicationAccessService applicationAccessService,
+      TeamQueryService teamQueryService) {
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.licenceSearchService = licenceSearchService;
     this.applicationAccessService = applicationAccessService;
+    this.teamQueryService = teamQueryService;
   }
 
   @Override
@@ -45,7 +52,7 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
   ) {
     //TODO filter correctly by form and user
     var applicationDetails = scheduleWorkProgrammeApplicationService
-        .getAllScheduleWorkProgrammeApplicationDetailsByStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT).stream()
+        .getAllScheduleWorkProgrammeApplicationDetailsByStatuses(ACTIVE_APPLICATION_STATUSES).stream()
         .filter(applicationDetail -> matchesFilterAndHasAccess(applicationDetail, workAreaFilterForm, serviceUserDetail))
         .toList();
 
@@ -80,7 +87,6 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
         .addStringValue("Licensees", String.join(", ", licensees))
         .build();
 
-
     return SearchResultItem.newBuilder()
         .withId(scheduleWorkProgrammeApplicationDetail.getId().toString())
         .withLinkHeadingText(String.format("%s - schedule work programme application", licence.getLicenceReference()))
@@ -93,27 +99,43 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
         .build();
   }
 
+  private boolean isCaseManager(ServiceUserDetail userDetail, Licence licence) {
+    var responsibleTeam = licence.getResponsibleTeam();
+
+    if (responsibleTeam == null) {
+      return false;
+    }
+
+    return teamQueryService.userHasStaticRole(
+        userDetail.wuaId(),
+        responsibleTeam.getTeamType(),
+        responsibleTeam.getCaseManagerRole()
+    );
+  }
+
   private boolean matchesFilterAndHasAccess(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
       WorkAreaFilterForm filterForm,
       ServiceUserDetail userDetail
   ) {
-    String licenceRef = applicationDetail
-        .getScheduleWorkProgrammeApplication()
-        .getLicenceScheduleDetail()
-        .getLicenceSchedule()
-        .getLicence()
-        .getLicenceReference();
+    var licence = scheduleWorkProgrammeApplicationService
+        .getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail);
 
-    if (!FilterUtil.filterTextInput(licenceRef, filterForm.getLicenceReference())) {
+    if (!FilterUtil.filterTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
       return false;
     }
 
-    return applicationAccessService.userHasAccessToApplication(
+    var hasApplicationAccess = applicationAccessService.userHasAccessToApplication(
         applicationDetail.getScheduleWorkProgrammeApplication().getId().toString(),
         ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
         applicationDetail.getResponsibleOrganisationUnitId(),
         userDetail.wuaId()
     );
+
+    if (applicationDetail.getStatus() == ScheduleWorkProgrammeApplicationStatus.DRAFT) {
+      return hasApplicationAccess;
+    }
+
+    return hasApplicationAccess || isCaseManager(userDetail, licence);
   }
 }

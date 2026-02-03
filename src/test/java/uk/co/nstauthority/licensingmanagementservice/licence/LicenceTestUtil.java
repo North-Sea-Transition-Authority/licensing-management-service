@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence;
 
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceTeam;
+
 public class LicenceTestUtil {
 
   private LicenceTestUtil() {}
@@ -17,6 +19,7 @@ public class LicenceTestUtil {
     private String licenceReference;
     private String roundIssuedOn;
     private LicenceStatus status;
+    private LicenceTeam licenceTeam;
 
     private Builder() {}
 
@@ -55,6 +58,11 @@ public class LicenceTestUtil {
       return this;
     }
 
+    public Builder withResponsibleTeam(LicenceTeam licenceTeam) {
+      this.licenceTeam = licenceTeam;
+      return this;
+    }
+
     public Licence build() {
       var licence = new Licence();
       licence.setId(id);
@@ -64,6 +72,7 @@ public class LicenceTestUtil {
       licence.setLicenceReference(licenceReference);
       licence.setRoundIssuedOn(roundIssuedOn);
       licence.setStatus(status);
+      licence.setResponsibleTeam(licenceTeam);
 
       return licence;
     }

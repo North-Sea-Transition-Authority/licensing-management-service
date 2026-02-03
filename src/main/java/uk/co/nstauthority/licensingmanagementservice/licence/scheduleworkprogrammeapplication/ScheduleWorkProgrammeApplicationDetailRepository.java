@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -19,5 +20,5 @@ public interface ScheduleWorkProgrammeApplicationDetailRepository
                                                                Instant startOfYear,
                                                                Instant endOfYear);
 
-  List<ScheduleWorkProgrammeApplicationDetail> findAllByStatus(ScheduleWorkProgrammeApplicationStatus status);
+  List<ScheduleWorkProgrammeApplicationDetail> findAllByStatusIn(Set<ScheduleWorkProgrammeApplicationStatus> statuses);
 }

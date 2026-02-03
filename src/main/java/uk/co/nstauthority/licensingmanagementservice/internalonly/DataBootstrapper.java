@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.localdevonly;
+package uk.co.nstauthority.licensingmanagementservice.internalonly;
 
 import jakarta.persistence.EntityManager;
 import java.util.HashMap;

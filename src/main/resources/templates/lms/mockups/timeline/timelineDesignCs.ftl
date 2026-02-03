@@ -1,5 +1,5 @@
-<#include '../layout/layout.ftl'>
-<#import '../search/search.ftl' as search>
+<#include '../../layout/layout.ftl'>
+<#import '../../search/search.ftl' as search>
 <#import 'customTimeline.ftl' as custom>
 
 <@defaultPage
@@ -9,9 +9,9 @@ pageSize=PageSize.FULL_COLUMN
 extendContainerWidth=true>
 
     <@fdsSummaryList.summaryListCard headingText="Schedule details" summaryListId="summary-card-list">
-        <@fdsSummaryList.summaryListRowNoAction keyText="Start date">
+        <@fdsSummaryList.summaryListRow keyText="Start date" actionUrl="#" screenReaderActionText="">
             1 August 2023
-        </@fdsSummaryList.summaryListRowNoAction>
+        </@fdsSummaryList.summaryListRow>
         <@fdsSummaryList.summaryListRowNoAction keyText="End date">
             1 August 2029
         </@fdsSummaryList.summaryListRowNoAction>
@@ -22,6 +22,14 @@ extendContainerWidth=true>
             3
         </@fdsSummaryList.summaryListRowNoAction>
     </@fdsSummaryList.summaryListCard>
+    
+    <@fdsActionDropdown.actionDropdown dropdownButtonText="Add an event">
+        <@fdsActionDropdown.actionDropdownItem actionText="Add a term"/>
+        <@fdsActionDropdown.actionDropdownItem actionText="Add a schedule event"/>
+        <@fdsActionDropdown.actionDropdownItem actionText="Add a rate"/>
+        <@fdsActionDropdown.actionDropdownItem actionText="Add a work programme element"/>
+    </@fdsActionDropdown.actionDropdown>
+
     <@fdsSearch.searchPage>
 
         <@fdsSearch.searchFilter>
@@ -40,18 +48,24 @@ extendContainerWidth=true>
                 <@fdsAccordion.accordionSection sectionHeading="Appraisal Term" summaryText="1 August 2023 - 1 August 2029 (6 years)">
                     <@fdsTimeline.timeline>
                         <@fdsTimeline.timelineSection>
+                            <#assign timelineActions>
+                                <@fdsAction.link linkText="Edit" linkUrl="#" linkClass="govuk-link"/>
+                                <@fdsAction.link linkText="Remove" linkUrl="#" linkClass="govuk-link"/>
+                            </#assign>
                             <@fdsTimeline.timelineTimeStamp
                             timeStampHeading="Start of Appraisal Term"
                             timeStampHeadingHint="1 August 2023 - 1 August 2029 (6 years)"
-                            >
+                            timelineActionContent=timelineActions>
                             </@fdsTimeline.timelineTimeStamp>
                             <@custom.timelineTimeStampSmall
                             timeStampHeading="Early risk assessment"
+                            timelineActionContent=timelineActions
                             timeStampHeadingHint="31 January 2024"
                             >
                             </@custom.timelineTimeStampSmall>
                             <@custom.timelineTimeStampSmall
                             timeStampHeading="Seismic reprocessing & interpretation"
+                            timelineActionContent=timelineActions
                             timeStampHeadingHint="31 January 2024"
                             >
                                 <@fdsTimeline.timelineEvent>
@@ -62,16 +76,19 @@ extendContainerWidth=true>
                             </@custom.timelineTimeStampSmall>
                             <@custom.timelineTimeStampSmall
                             timeStampHeading="Early risk assessment workshop"
+                            timelineActionContent=timelineActions
                             timeStampHeadingHint="29 February 2024"
                             >
                             </@custom.timelineTimeStampSmall>
                             <@custom.timelineTimeStampSmall
                             timeStampHeading="Early risk assessment further measures"
+                            timelineActionContent=timelineActions
                             timeStampHeadingHint="30 March 2024"
                             >
                             </@custom.timelineTimeStampSmall>
                             <@custom.timelineTimeStampSmall
                             timeStampHeading="Seismic reprocessing & interpretation"
+                            timelineActionContent=timelineActions
                             timeStampHeadingHint="31 January 2025"
                             >
                                 <@fdsTimeline.timelineEvent>
@@ -82,6 +99,7 @@ extendContainerWidth=true>
                             </@custom.timelineTimeStampSmall>
                             <@custom.timelineTimeStampSmall
                             timeStampHeading="Above-ground assessment"
+                            timelineActionContent=timelineActions
                             timeStampHeadingHint="31 January 2026"
                             >
                                 <@fdsTimeline.timelineEvent>
@@ -98,6 +116,7 @@ extendContainerWidth=true>
                             </@custom.timelineTimeStampSmall>
                             <@custom.timelineTimeStampSmall
                             timeStampHeading="Well or injectivity test"
+                            timelineActionContent=timelineActions
                             timeStampHeadingHint="31 July 2026"
                             >
                                 <@fdsTimeline.timelineEvent>
@@ -108,11 +127,13 @@ extendContainerWidth=true>
                             </@custom.timelineTimeStampSmall>
                             <@custom.timelineTimeStampSmall
                             timeStampHeading="Site characterisation review report"
+                            timelineActionContent=timelineActions
                             timeStampHeadingHint="30 April 2027"
                             >
                             </@custom.timelineTimeStampSmall>
                             <@custom.timelineTimeStampSmall
                             timeStampHeading="Seismic acquisition and processing"
+                            timelineActionContent=timelineActions
                             timeStampHeadingHint="30 April 2027"
                             >
                                 <@fdsTimeline.timelineEvent>
@@ -123,16 +144,19 @@ extendContainerWidth=true>
                             </@custom.timelineTimeStampSmall>
                             <@custom.timelineTimeStampSmall
                             timeStampHeading="End assess phase review"
+                            timelineActionContent=timelineActions
                             timeStampHeadingHint="30 April 2028"
                             >
                             </@custom.timelineTimeStampSmall>
                             <@custom.timelineTimeStampSmall
                             timeStampHeading="End define phase review"
+                            timelineActionContent=timelineActions
                             timeStampHeadingHint="31 September 2028"
                             >
                             </@custom.timelineTimeStampSmall>
                             <@custom.timelineTimeStampSmall
                             timeStampHeading="Storage permit application"
+                            timelineActionContent=timelineActions
                             timeStampHeadingHint="31 January 2029"
                             >
                             </@custom.timelineTimeStampSmall>

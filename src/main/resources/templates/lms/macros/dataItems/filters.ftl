@@ -13,7 +13,7 @@
 </#macro>
 
 <#macro licenseeOrgUnitFilter form licenseeOrgUnitUrl preSelectedLicenseeOrgUnit>
-    <@fdsSearch.searchFilterItem itemName="Licensee" expanded=form.licenceTypes?has_content>
+    <@fdsSearch.searchFilterItem itemName="Licensee" expanded=form.licenseeOrgUnitId?has_content>
         <@fdsSearchSelector.searchSelectorRest
         path="form.licenseeOrgUnitId"
         restUrl=springUrl(licenseeOrgUnitUrl)

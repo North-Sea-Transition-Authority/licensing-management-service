@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.mockups;
+package uk.co.nstauthority.licensingmanagementservice.mockups.timeline;
 
 public class TimelineForm {
 

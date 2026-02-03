@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.mockups;
+package uk.co.nstauthority.licensingmanagementservice.mockups.timeline;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;

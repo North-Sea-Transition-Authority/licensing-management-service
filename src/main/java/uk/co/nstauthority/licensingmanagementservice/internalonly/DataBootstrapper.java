@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -114,7 +115,7 @@ public class DataBootstrapper {
       var team = new Team();
       team.setName(INDUSTRY_TEAM_NAME);
       team.setTeamType(TeamType.ORGANISATION);
-      team.setScopeType(TeamType.ORGANISATION.name());
+      team.setScopeType(ScopeType.ORGANISATION_GROUP.name());
       team.setScopeId("50");
       entityManager.persist(team);
       entityManager.flush();

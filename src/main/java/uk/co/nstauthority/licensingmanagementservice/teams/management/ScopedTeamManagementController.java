@@ -74,7 +74,7 @@ public class ScopedTeamManagementController {
 
     var scopeRef = TeamScopeReference.from(
         organisationGroup.getOrganisationGroupId().toString(),
-        TeamType.ORGANISATION.name()
+        ScopeType.ORGANISATION_GROUP.name()
     );
     var team = teamManagementService.createScopedTeam(organisationGroup.getName(), TeamType.ORGANISATION, scopeRef);
 

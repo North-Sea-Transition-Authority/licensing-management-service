@@ -22,7 +22,6 @@ public class ApplicationAccessService {
   private final TeamQueryService teamQueryService;
   private final Set<Role> editorSubmitterRoles = Set.of(Role.APPLICATION_EDITOR, Role.APPLICATION_SUBMITTER);
   private final UserDetailService userDetailService;
-  public static final String ORGANISATION_GROUP = "ORGANISATION_GROUP";
 
   public ApplicationAccessService(
       OrganisationUnitQueryService organisationUnitQueryService,
@@ -79,7 +78,7 @@ public class ApplicationAccessService {
 
     boolean isOrganisationGroup = team.getTeamType() == TeamType.ORGANISATION
                                   && organisationGroupIds.contains(team.getScopeId())
-                                  && team.getScopeType().equals(ORGANISATION_GROUP);
+                                  && team.getScopeType().equals(ScopeType.ORGANISATION_GROUP.name());
 
     return isExternalContributor || isOrganisationGroup;
   }

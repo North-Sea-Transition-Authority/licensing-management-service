@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService.ORGANISATION_GROUP;
 
 import java.util.List;
 import java.util.Set;
@@ -131,7 +130,7 @@ class ApplicationAccessServiceTest {
     Team orgTeam = new Team(UUID.randomUUID());
     orgTeam.setTeamType(TeamType.ORGANISATION);
     orgTeam.setScopeId(groupId);
-    orgTeam.setScopeType(ORGANISATION_GROUP);
+    orgTeam.setScopeType(ScopeType.ORGANISATION_GROUP.name());
 
     TeamRole role = new TeamRole();
     role.setTeam(orgTeam);

@@ -41,7 +41,7 @@ dependencies {
 	implementation "org.springframework.data:spring-data-envers"
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-database-postgresql'
-	implementation 'uk.co.fivium.energyportalapi:client:v16.1.1'
+	implementation 'uk.co.fivium.energyportalapi:client:v16.2.1'
 	implementation 'uk.co.fivium.energyportalmessagequeue:spring-boot-starter:v4.3.0'
 	implementation 'uk.co.fivium.energyportal.accounts:energy-portal-accounts-spring-boot-starter:v3.0.0'
 	implementation 'uk.co.fivium.digitalformlibrary:digital-form-library:v3.0.0'

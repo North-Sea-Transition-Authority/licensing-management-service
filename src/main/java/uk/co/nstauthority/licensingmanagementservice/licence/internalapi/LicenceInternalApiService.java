@@ -39,7 +39,7 @@ public class LicenceInternalApiService {
       ServiceUserDetail serviceUserDetail
   ) {
 
-    var authorisedUnitIds = applicationAccessService.getOrganisationUnitIds(serviceUserDetail);
+    var usersOrganisationUnitIds = applicationAccessService.getOrganisationUnitIds(serviceUserDetail);
 
     return licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
           searchTerm,
@@ -48,7 +48,7 @@ public class LicenceInternalApiService {
         ).stream()
         .map(LicenceScheduleDetail::getLicenceSchedule)
         .map(LicenceSchedule::getLicence)
-        .filter(licence -> isUserInLicenseeOrganisation(licence, authorisedUnitIds))
+        .filter(licence -> isUserInLicenseeOrganisation(licence, usersOrganisationUnitIds))
         .sorted(Comparator.comparing(Licence::getPrefix).thenComparing(Licence::getLicenceNumber))
         .map(this::toLicenceJson)
         .toList();
@@ -56,14 +56,18 @@ public class LicenceInternalApiService {
 
   private boolean isUserInLicenseeOrganisation(
       Licence licence,
-      Set<Integer> authorisedUnitIds
+      Set<Integer> usersOrganisationUnitIds
   ) {
 
     return licenceResponsibleOrganisationService
         .getAllByLicence(licence)
         .stream()
         .anyMatch(
-            responsibleOrganisationId -> authorisedUnitIds.contains(responsibleOrganisationId.getResponsibleOrganisationId()));
+            responsibleOrganisationId ->
+                usersOrganisationUnitIds.contains(
+                    responsibleOrganisationId.getResponsibleOrganisationId()
+                )
+        );
   }
 
   private LicenceJson toLicenceJson(Licence licence) {

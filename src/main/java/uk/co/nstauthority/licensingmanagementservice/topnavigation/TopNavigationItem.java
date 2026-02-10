@@ -6,9 +6,10 @@ import uk.co.nstauthority.licensingmanagementservice.document.search.DocumentTem
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementController;
+import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
-public enum TopNavigationItem {
+public enum TopNavigationItem implements Displayable {
 
   WORK_AREA("Work area",
       ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))
@@ -36,6 +37,7 @@ public enum TopNavigationItem {
     this.url = url;
   }
 
+  @Override
   public String getDisplayName() {
     return displayName;
   }

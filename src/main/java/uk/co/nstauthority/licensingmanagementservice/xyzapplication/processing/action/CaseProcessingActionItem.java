@@ -4,10 +4,11 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.util.function.Function;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplication;
 
-public enum CaseProcessingActionItem {
+public enum CaseProcessingActionItem implements Displayable {
 
   PROGRESS_APPLICATION(
       "Progress application",
@@ -31,6 +32,7 @@ public enum CaseProcessingActionItem {
     this.redirectUrl = redirectUrl;
   }
 
+  @Override
   public String getDisplayName() {
     return displayName;
   }

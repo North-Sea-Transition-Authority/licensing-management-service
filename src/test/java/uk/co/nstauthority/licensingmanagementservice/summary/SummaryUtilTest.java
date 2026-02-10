@@ -105,6 +105,11 @@ class SummaryUtilTest {
 record DisplayableTestClass() implements Displayable {
 
   @Override
+  public int ordinal() {
+    return 0;
+  }
+
+  @Override
   public String getDisplayName() {
     return "display name";
   }

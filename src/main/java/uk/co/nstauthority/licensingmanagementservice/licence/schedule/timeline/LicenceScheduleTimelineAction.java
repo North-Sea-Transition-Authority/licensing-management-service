@@ -10,8 +10,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
-public enum LicenceScheduleTimelineAction {
+public enum LicenceScheduleTimelineAction implements Displayable {
 ADD_A_TERM(
     "Add a term",
     1,
@@ -61,6 +62,12 @@ ADD_AN_EXPIRY(
     return displayText;
   }
 
+  @Override
+  public String getDisplayName() {
+    return displayText;
+  }
+
+  @Override
   public int getDisplayOrder() {
     return displayOrder;
   }

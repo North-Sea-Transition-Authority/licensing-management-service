@@ -8,8 +8,9 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.ScopedTeamManagementController;
+import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
-public enum TeamType {
+public enum TeamType implements Displayable {
 
   LICENCE_MANAGEMENT(
       "Licence management",
@@ -143,6 +144,7 @@ public enum TeamType {
     this.createNewInstanceRoute = createNewInstanceRoute;
   }
 
+  @Override
   public String getDisplayName() {
     return displayName;
   }

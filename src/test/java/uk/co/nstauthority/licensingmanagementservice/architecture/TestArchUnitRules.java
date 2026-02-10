@@ -1,16 +1,21 @@
 package uk.co.nstauthority.licensingmanagementservice.architecture;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.theClass;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.tngtech.archunit.core.domain.JavaMethod;
+import com.tngtech.archunit.core.domain.properties.HasName;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
+import uk.co.fivium.digitalenummaterialisationlibrary.enummaterialisation.MaterialisableEnum;
 import uk.co.nstauthority.licensingmanagementservice.util.ArchUnitUtils;
+import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
 @AnalyzeClasses(packages = "uk.co.nstauthority.licensingmanagementservice")
 class TestArchUnitRules {
@@ -29,4 +34,16 @@ class TestArchUnitRules {
         }
       })
       .allowEmptyShould(true);
+
+  @ArchTest
+  public static final ArchRule enumMaterialisationArchRule = classes()
+      .that().areEnums()
+      .and().containAnyMethodsThat(
+          HasName.Predicates.name("getDisplayName").or(HasName.Predicates.name("getDisplayOrder"))
+      )
+      .should().implement(MaterialisableEnum.class);
+
+  @ArchTest
+  public static final ArchRule displayableArchRule = theClass(Displayable.class)
+      .should().beAssignableTo(MaterialisableEnum.class);
 }

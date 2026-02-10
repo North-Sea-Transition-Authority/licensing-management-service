@@ -1,15 +1,13 @@
 package uk.co.nstauthority.licensingmanagementservice.util.enumutil;
 
+import uk.co.fivium.digitalenummaterialisationlibrary.enummaterialisation.MaterialisableEnum;
+
 /**
  * Interface which allows implementing classes to expose their human readable representation consistently.
  */
-public interface Displayable {
+public interface Displayable extends MaterialisableEnum {
 
   String getDisplayName();
-
-  default int getDisplayOrder() {
-    return 0;
-  }
 
   String name();
 

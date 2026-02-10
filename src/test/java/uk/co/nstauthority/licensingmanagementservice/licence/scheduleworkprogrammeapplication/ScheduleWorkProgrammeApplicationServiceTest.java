@@ -29,6 +29,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.LicenseeInformationForm;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @ExtendWith(MockitoExtension.class)
 class ScheduleWorkProgrammeApplicationServiceTest {
@@ -46,6 +50,9 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
   @Mock
   private Clock clock;
+
+  @Mock
+  private TeamQueryService teamQueryService;
 
   @InjectMocks
   private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
@@ -154,8 +161,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
     var currentYear = LocalDate.now(clock).getYear();
 
-    var user = mock(ServiceUserDetail.class);
-    when(user.wuaId()).thenReturn(1L);
+    var user = mockUser();
 
     var result = scheduleWorkProgrammeApplicationService.submitApplication(scheduleWorkProgrammeApplicationDetail, user);
 
@@ -182,4 +188,23 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     assertThat(savedEntity.getStatus()).isEqualTo(ScheduleWorkProgrammeApplicationStatus.DELETED);
   }
 
+  @Test
+  void userCanSubmitApplication() {
+    var user = mockUser();
+
+    scheduleWorkProgrammeApplicationService.userCanSubmitApplication(scheduleWorkProgrammeApplicationDetail, user);
+
+    verify(teamQueryService).userHasScopedRole(
+        eq(user.wuaId()),
+        eq(TeamType.ORGANISATION),
+        any(TeamScopeReference.class),
+        eq(Role.APPLICATION_SUBMITTER)
+    );
+  }
+
+  private ServiceUserDetail mockUser() {
+    var user = mock(ServiceUserDetail.class);
+    when(user.wuaId()).thenReturn(1L);
+    return user;
+  }
 }

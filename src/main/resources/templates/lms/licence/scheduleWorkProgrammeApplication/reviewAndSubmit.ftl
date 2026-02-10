@@ -4,8 +4,6 @@
 
 <#assign pageTitle = "Review your submission before submitting"/>
 
-
-
 <@defaultPage
 htmlTitle=pageTitle
 caption=pageCaption
@@ -16,12 +14,18 @@ extendContainerWidth=true
 backLinkUrl=springUrl(cancelUrl)>
     <#if !isSubmittable>
       <@banner.summaryMissingInformationNotificationBanner/>
+    <#elseif !userCanSubmit>
+        <@fdsNotificationBanner.notificationBannerInfo fullWidth=true bannerTitleText="Permission required">
+            <@fdsNotificationBanner.notificationBannerContent headingText="You do not have the required role to submit this application.">
+                <p class="govuk-body">Only users assigned the ‘${submitterRoleName}’ role for this organisation can submit applications to the NSTA.</p>
+            </@fdsNotificationBanner.notificationBannerContent>
+        </@fdsNotificationBanner.notificationBannerInfo>
     </#if>
 
     <@fdsForm.htmlForm>
         <@scheduleApplicationSummary.scheduleApplicationSummary accordionId=accordionId summarySections=summarySections/>
 
-        <#if isSubmittable>
+        <#if isSubmittable && userCanSubmit>
             <@fdsAction.submitButtons
             primaryButtonText="Submit"
             secondaryLinkText="Back to task list"

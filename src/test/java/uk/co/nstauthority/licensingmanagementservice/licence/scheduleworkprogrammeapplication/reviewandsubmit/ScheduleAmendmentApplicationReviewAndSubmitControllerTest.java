@@ -19,6 +19,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.ResultActions;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
@@ -34,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
@@ -67,77 +69,101 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(SCHEDULE_APPLICATION_DETAIL_ID)).thenReturn(scheduleWorkProgrammeApplicationDetail);
   }
 
-  @SecurityTest
+  @Test
   void getReviewAndSubmit() throws Exception {
-
-    var id = scheduleWorkProgrammeApplicationDetail.getId();
-
-    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(scheduleWorkProgrammeApplicationDetail);
+    var applicationDetailId = scheduleWorkProgrammeApplicationDetail.getId();
+    mockScheduleWorkProgrammeApplicationDetailScenario(applicationDetailId);
     when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
-    when(licenceScheduleSummarySectionService.getSummarySections(any(), any())).thenReturn(List.of(new SummarySection(1, List.of())));
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
-    mockMvc
+
+    var resultActions = mockMvc
         .perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
-            id,
+            applicationDetailId,
             null,
             null
         )))
             .with(user(USER)))
-        .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/reviewAndSubmit"))
-        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
-                id,
-                null,
-                null
-            ))))
-        .andExpect(model().attribute("pageCaption", CAPTION))
-        .andExpect(model().attribute("summarySections", licenceScheduleSummarySectionService.getSummarySections(
-                scheduleWorkProgrammeApplicationDetail,
-                null
-            )))
-        .andExpect(model().attribute("accordionId", scheduleWorkProgrammeApplicationDetail.getId()));
+        .andExpect(status().isOk());
+
+    assertRenderPageModelsAttributesArePresent(resultActions, applicationDetailId);
   }
 
-  @SecurityTest
-  void submitApplication_notSubmittable() throws Exception {
-    var id = scheduleWorkProgrammeApplicationDetail.getId();
-
-    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(scheduleWorkProgrammeApplicationDetail);
+  @Test
+  void getReviewAndSubmit_UserCantSubmit() throws Exception {
+    var applicationDetailId = scheduleWorkProgrammeApplicationDetail.getId();
+    mockScheduleWorkProgrammeApplicationDetailScenario(applicationDetailId);
     when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
-    when(licenceScheduleSummarySectionService.getSummarySections(any(), any())).thenReturn(List.of(new SummarySection(1, List.of())));
+    when(scheduleWorkProgrammeApplicationService.userCanSubmitApplication(scheduleWorkProgrammeApplicationDetail, USER)).thenReturn(false);
+
+    var resultActions = mockMvc
+        .perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
+            applicationDetailId,
+            null,
+            null
+        )))
+            .with(user(USER)))
+        .andExpect(status().isOk());
+
+    assertRenderPageModelsAttributesArePresent(resultActions, applicationDetailId);
+    resultActions
+        .andExpect(model().attribute("userCanSubmit", false));
+  }
+
+  @Test
+  void submitApplication_notSubmittable() throws Exception {
+    var applicationDetailId = scheduleWorkProgrammeApplicationDetail.getId();
+    mockScheduleWorkProgrammeApplicationDetailScenario(applicationDetailId);
+    when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
+
     when(scheduleWorkProgrammeApplicationTaskListService.isSubmittable(any(), any())).thenReturn(false);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
-    mockMvc
+    var resultActions = mockMvc
         .perform(post(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class)
-            .submitApplication(id, null, null, null)))
+            .submitApplication(applicationDetailId, null, null, null)))
             .with(user(USER))
             .with(csrf()))
-        .andExpect(status().isOk())
+        .andExpect(status().isOk());
+
+    assertRenderPageModelsAttributesArePresent(resultActions, applicationDetailId);
+    resultActions
+        .andExpect(model().attribute("isSubmittable", false));
+  }
+
+  private void assertRenderPageModelsAttributesArePresent(ResultActions resultActions, UUID id) throws Exception {
+    resultActions
         .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/reviewAndSubmit"))
-        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
-            .getTaskList(id, null, null))))
+        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
+            id,
+            null,
+            null
+        ))))
         .andExpect(model().attribute("pageCaption", CAPTION))
         .andExpect(model().attribute("summarySections", licenceScheduleSummarySectionService.getSummarySections(
             scheduleWorkProgrammeApplicationDetail,
             null
         )))
         .andExpect(model().attribute("accordionId", scheduleWorkProgrammeApplicationDetail.getId()))
-        .andExpect(model().attribute("isSubmittable", false));
+        .andExpect(model().attributeExists("isSubmittable"))
+        .andExpect(model().attributeExists("userCanSubmit"))
+        .andExpect(model().attribute("submitterRoleName", Role.APPLICATION_SUBMITTER.getName()));
   }
 
-  @SecurityTest
+  private void mockScheduleWorkProgrammeApplicationDetailScenario(UUID applicationDetailId) {
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationDetailId)).thenReturn(scheduleWorkProgrammeApplicationDetail);
+    when(licenceScheduleSummarySectionService.getSummarySections(any(), any())).thenReturn(List.of(new SummarySection(1, List.of())));
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+  }
+
+  @Test
   void submitApplication_submittable() throws Exception {
-    var id = scheduleWorkProgrammeApplicationDetail.getId();
+    var applicationDetailId = scheduleWorkProgrammeApplicationDetail.getId();
     var application = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication();
     application.setApplicationReference("APP-REF-123");
-
-    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(scheduleWorkProgrammeApplicationDetail);
-    when(scheduleWorkProgrammeApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
+    mockScheduleWorkProgrammeApplicationDetailScenario(applicationDetailId);
     when(scheduleWorkProgrammeApplicationService.submitApplication(any(), any())).thenReturn(application);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+
+    when(scheduleWorkProgrammeApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class)
-                .submitApplication(id, null, null, null)))
+                .submitApplication(applicationDetailId, null, null, null)))
             .with(user(USER))
             .with(csrf()))
         .andExpect(status().isOk())
@@ -183,7 +209,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
         .andExpect(status().isForbidden());
   }
 
-  @Test
+  @SecurityTest
   void renderPage_assertForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
     mockMvc.perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
@@ -192,7 +218,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
            .andExpect(status().isForbidden());
   }
 
-  @Test
+  @SecurityTest
   void submitPage_assertForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
     mockMvc.perform(post(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).submitApplication(

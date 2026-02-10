@@ -21,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @Controller
@@ -56,30 +57,24 @@ public class ScheduleAmendmentApplicationReviewAndSubmitController {
         user
     );
 
-    return getReviewAndSubmitModelAndView(scheduleWorkProgrammeApplicationDetail, submittable);
+    return getReviewAndSubmitModelAndView(scheduleWorkProgrammeApplicationDetail, submittable, user);
   }
 
   private ModelAndView getReviewAndSubmitModelAndView(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
-      boolean isSubmittable
+      ScheduleWorkProgrammeApplicationDetail applicationDetail,
+      boolean isSubmittable,
+      ServiceUserDetail user
   ) {
-
     return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/reviewAndSubmit")
-        .addObject("cancelUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
-                scheduleWorkProgrammeApplicationDetail.getId(),
-                null,
-                null
-            )))
+        .addObject("cancelUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+            .getTaskList(applicationDetail.getId(), null, null)))
         .addObject("pageCaption", licenceService.getLicencePageCaption(
-            scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(
-                scheduleWorkProgrammeApplicationDetail
-            )))
-        .addObject("summarySections", licenceScheduleSummarySectionService.getSummarySections(
-                scheduleWorkProgrammeApplicationDetail,
-                null
-            ))
-        .addObject("accordionId", scheduleWorkProgrammeApplicationDetail.getId())
-        .addObject("isSubmittable", isSubmittable);
+            scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail)))
+        .addObject("summarySections", licenceScheduleSummarySectionService.getSummarySections(applicationDetail, null))
+        .addObject("accordionId", applicationDetail.getId())
+        .addObject("isSubmittable", isSubmittable)
+        .addObject("userCanSubmit", scheduleWorkProgrammeApplicationService.userCanSubmitApplication(applicationDetail, user))
+        .addObject("submitterRoleName", Role.APPLICATION_SUBMITTER.getName());
   }
 
   @PostMapping
@@ -95,7 +90,7 @@ public class ScheduleAmendmentApplicationReviewAndSubmitController {
     );
 
     if (!submittable) {
-      return getReviewAndSubmitModelAndView(scheduleWorkProgrammeApplicationDetail, submittable);
+      return getReviewAndSubmitModelAndView(scheduleWorkProgrammeApplicationDetail, submittable, user);
     }
 
     var scheduleWorkProgrammeApplication

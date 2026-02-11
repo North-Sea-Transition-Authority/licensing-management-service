@@ -15,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 
 @Controller
 @RequestMapping("licence/continuation-application/{licenceContinuationApplicationDetailId}/task-list")
@@ -27,13 +28,15 @@ public class LicenceContinuationApplicationTaskListController {
   private final LicenceService licenceService;
 
   private final LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService;
+  private final LicenceContinuationService licenceContinuationService;
 
   public LicenceContinuationApplicationTaskListController(
       LicenceService licenceService,
-      LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService
-  ) {
+      LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService,
+      LicenceContinuationService licenceContinuationService) {
     this.licenceService = licenceService;
     this.licenceContinuationApplicationTaskListService = licenceContinuationApplicationTaskListService;
+    this.licenceContinuationService = licenceContinuationService;
   }
 
   @GetMapping
@@ -63,8 +66,6 @@ public class LicenceContinuationApplicationTaskListController {
   }
 
   private Licence getLicence(LicenceContinuationApplicationDetail licenceContinuationApplicationDetail) {
-    return licenceContinuationApplicationDetail.getLicenceContinuationApplication()
-        .getLicenceScheduleDetail().getLicenceSchedule()
-        .getLicence();
+    return licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail);
   }
 }

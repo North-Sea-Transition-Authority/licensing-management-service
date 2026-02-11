@@ -56,6 +56,7 @@ class LicenceContinuationApplicationTaskListControllerTest extends AbstractContr
     var sections = List.of(new TaskListSection("Section 1", 10, items));
 
     when(licenceContinuationApplicationTaskListService.getAllSections(LICENCE_CONTINUATION_APPLICATION_DETAIL, USER)).thenReturn(sections);
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(LICENCE_CONTINUATION_APPLICATION_DETAIL)).thenReturn(LICENCE);
     when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(CAPTION);
     when(licenceContinuationService.getDetailByIdOrThrow(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId())).thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
     when(applicationAccessService.userHasAccessToApplication(

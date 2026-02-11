@@ -4,9 +4,9 @@ import jakarta.transaction.Transactional;
 import java.util.EnumSet;
 import java.util.Set;
 import org.springframework.stereotype.Service;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationService;
 
@@ -17,22 +17,26 @@ public class SwpApplicationRequestPurposeService {
   private final SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository;
   private final LicenceScheduleExtensionRepository licenceScheduleExtensionRepository;
   private final LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService;
+  private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
 
   public SwpApplicationRequestPurposeService(
       LicenceTypeRulesResolver licenceTypeRulesResolver,
       SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository,
       LicenceScheduleExtensionRepository licenceScheduleExtensionRepository,
-      LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService) {
+      LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService,
+      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService) {
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
     this.swpApplicationRequestPurposeRepository = swpApplicationRequestPurposeRepository;
     this.licenceScheduleExtensionRepository = licenceScheduleExtensionRepository;
     this.licenceScheduleSupportingInformationService = licenceScheduleSupportingInformationService;
+    this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
   }
 
   public Set<SwpApplicationRequestPurposeOption> getPageOptions(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
+      ScheduleWorkProgrammeApplicationDetail applicationDetail) {
 
-    var licenceType = getLicenceType(scheduleWorkProgrammeApplicationDetail);
+    var licence = scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail);
+    var licenceType = licence.getType();
 
     var hasTerms = licenceTypeRulesResolver.hasTerms(licenceType);
     var phasesCaptured = licenceTypeRulesResolver.arePhasesCaptured(licenceType);
@@ -55,14 +59,14 @@ public class SwpApplicationRequestPurposeService {
 
   @Transactional
   public SwpApplicationRequestPurpose saveOrUpdateRequestPurpose(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
+      ScheduleWorkProgrammeApplicationDetail applicationDetail,
       SwpApplicationRequestPurposeForm form) {
 
     var swpApplicationRequestPurpose = swpApplicationRequestPurposeRepository
-        .getByScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail)
+        .getByScheduleWorkProgrammeApplicationDetail(applicationDetail)
         .orElseGet(() -> {
           var purpose = new SwpApplicationRequestPurpose();
-          purpose.setScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail);
+          purpose.setScheduleWorkProgrammeApplicationDetail(applicationDetail);
           return purpose;
         });
 
@@ -73,11 +77,9 @@ public class SwpApplicationRequestPurposeService {
         || requestPurposes.contains(SwpApplicationRequestPurposeOption.EXTEND_A_TERM);
 
     if (!extendOptionSelected) {
-      licenceScheduleExtensionRepository.deleteByScheduleWorkProgrammeApplicationDetails(
-          scheduleWorkProgrammeApplicationDetail);
+      licenceScheduleExtensionRepository.deleteByScheduleWorkProgrammeApplicationDetails(applicationDetail);
 
-      licenceScheduleSupportingInformationService.handleSupportingInformationExtensionRemoval(
-          scheduleWorkProgrammeApplicationDetail);
+      licenceScheduleSupportingInformationService.handleSupportingInformationExtensionRemoval(applicationDetail);
     }
 
     setRequestPurposes(swpApplicationRequestPurpose, requestPurposes);
@@ -101,11 +103,6 @@ public class SwpApplicationRequestPurposeService {
         default -> throw new IllegalStateException("Unexpected value: " + requestPurposeOption);
       }
     }
-  }
-
-  private LicenceType getLicenceType(ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
-    return scheduleWorkProgrammeApplicationDetail
-        .getScheduleWorkProgrammeApplication().getLicenceScheduleDetail().getLicenceSchedule().getLicence().getType();
   }
 
   public SwpApplicationRequestPurposeForm getFilledSwpApplicationRequestPurposeForm(

@@ -156,6 +156,8 @@ class ContinuationApplicationWorkAreaServiceTest {
 
     @Test
     void getWorkAreaItems_filteredByLicenceReference() {
+      when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
+          .thenReturn(licence1);
       when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
           .thenReturn(licence2);
 
@@ -204,6 +206,8 @@ class ContinuationApplicationWorkAreaServiceTest {
     void getWorkAreaItems_filteredByUser() {
       when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
           .thenReturn(licence1);
+      when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
+          .thenReturn(licence2);
 
       when(licenceContinuationService.getAllContinuationApplicationDetailsByStatus(LicenceContinuationApplicationStatus.DRAFT))
           .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));

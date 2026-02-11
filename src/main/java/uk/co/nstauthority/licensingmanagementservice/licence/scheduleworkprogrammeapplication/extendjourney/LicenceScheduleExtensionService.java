@@ -78,6 +78,10 @@ public class LicenceScheduleExtensionService {
         .orElse(null);
   }
 
+  public LicenceSchedulePhase getCurrentPhase(LicenceScheduleDetail licenceScheduleDetail) {
+    return getCurrentPhase(getCurrentTerm(licenceScheduleDetail));
+  }
+
   public boolean isExtensionRequested(ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
     return licenceScheduleExtensionRepository
         .existsLicenceScheduleExtensionRequestByScheduleWorkProgrammeApplicationDetails(
@@ -189,15 +193,14 @@ public class LicenceScheduleExtensionService {
   }
 
   public List<LicenceScheduleExtensionRequestView> getLicenceScheduleExtensionViews(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplication
+      ScheduleWorkProgrammeApplicationDetail applicationDetail
   ) {
-    var licenceScheduleExtensionRequestMap =
-        getAllExtensionRequestByScheduleWorkProgrammeApplicationDetails(scheduleWorkProgrammeApplication)
+    var licenceScheduleExtensionRequestMap = getAllExtensionRequestByScheduleWorkProgrammeApplicationDetails(applicationDetail)
         .stream()
         .collect(Collectors.toMap(this::getRequestIdString, licenceScheduleExtensionRequest -> licenceScheduleExtensionRequest));
 
     var extendableTermAndPhases = getExtendableTermAndPhases(
-        scheduleWorkProgrammeApplication.getScheduleWorkProgrammeApplication().getLicenceScheduleDetail()
+        applicationDetail.getScheduleWorkProgrammeApplication().getLicenceScheduleDetail()
     );
 
     List<LicenceScheduleExtensionRequestView> licenceScheduleExtensionRequestViews = new ArrayList<>();

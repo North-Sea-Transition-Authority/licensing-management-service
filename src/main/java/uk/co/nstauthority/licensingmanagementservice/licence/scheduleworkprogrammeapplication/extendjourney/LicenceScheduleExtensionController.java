@@ -14,7 +14,6 @@ import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
@@ -70,44 +69,33 @@ public class LicenceScheduleExtensionController {
   private ModelAndView getModelAndView(LicenceScheduleExtensionForm form,
                                        ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
 
-    ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationDetail
-        .getScheduleWorkProgrammeApplication();
+    var scheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication();
+    var licenceScheduleDetail = scheduleWorkProgrammeApplication.getLicenceScheduleDetail();
 
-    var scheduleWorkProgrammeApplicationDetailId = scheduleWorkProgrammeApplicationDetail.getId();
+    var currentTerm = licenceScheduleExtensionFormService.getCurrentTerm(licenceScheduleDetail);
+    var currentPhase = licenceScheduleExtensionFormService.getCurrentPhase(licenceScheduleDetail);
+
     var modelAndView = new ModelAndView(
         "lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceExtension")
                 .addObject("pageTitle", PAGE_TITLE)
                 .addObject("form", form)
-                .addObject("currentTerm", licenceScheduleExtensionFormService.getCurrentTerm(
-                        scheduleWorkProgrammeApplication.getLicenceScheduleDetail()))
-                .addObject("currentPhase", licenceScheduleExtensionFormService.getCurrentPhase(
-                        licenceScheduleExtensionFormService.getCurrentTerm(
-                            scheduleWorkProgrammeApplication.getLicenceScheduleDetail())))
-                .addObject("validTermsAndPhases", licenceScheduleExtensionFormService.getExtendableTermAndPhases(
-                        scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getLicenceScheduleDetail()))
+                .addObject("currentTerm", currentTerm)
+                .addObject("currentPhase", currentPhase)
+                .addObject("validTermsAndPhases",
+                    licenceScheduleExtensionFormService.getExtendableTermAndPhases(licenceScheduleDetail))
                 .addObject("canExtendMoreThanOneOption", licenceScheduleExtensionFormService.canExtendMoreThanOneOption(
-                        licenceScheduleExtensionFormService.getExtendableTermAndPhases(
-                        scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getLicenceScheduleDetail())))
-                .addObject("cancelUrl", ReverseRouter.route(
-                        on(ScheduleWorkProgrammeApplicationTaskListController.class)
-                            .getTaskList(scheduleWorkProgrammeApplicationDetailId, null, null)));
+                        licenceScheduleExtensionFormService.getExtendableTermAndPhases(licenceScheduleDetail)))
+                .addObject("cancelUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+                            .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null)));
 
-    if (licenceScheduleExtensionFormService.getCurrentTerm(
-        scheduleWorkProgrammeApplication.getLicenceScheduleDetail()) != null) {
-      modelAndView.addObject("currentTermEndDate", DateFormatUtil.convertToDisplayText(
-          licenceScheduleExtensionFormService.getCurrentTerm(
-              scheduleWorkProgrammeApplication.getLicenceScheduleDetail())
-                                             .getEndDate()));
+    if (currentTerm != null) {
+      modelAndView.addObject("currentTermEndDate", DateFormatUtil.convertToDisplayText(currentTerm.getEndDate()));
     }
-    if (licenceScheduleExtensionFormService.getCurrentPhase(
-        licenceScheduleExtensionFormService.getCurrentTerm(
-            scheduleWorkProgrammeApplication.getLicenceScheduleDetail())) != null) {
-      modelAndView.addObject("currentPhaseEndDate", DateFormatUtil.convertToDisplayText(
-          licenceScheduleExtensionFormService.getCurrentPhase(
-              licenceScheduleExtensionFormService.getCurrentTerm(
-                  scheduleWorkProgrammeApplication.getLicenceScheduleDetail()))
-                                             .getEndDate()));
+
+    if (currentPhase != null) {
+      modelAndView.addObject("currentPhaseEndDate", DateFormatUtil.convertToDisplayText(currentPhase.getEndDate()));
     }
+
     return modelAndView;
   }
 }

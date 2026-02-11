@@ -76,6 +76,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
   private LicenceScheduleTermAndPhases validTermAndPhases;
 
   private static final UUID SCHEDULE_APPLICATION_DETAIL_ID = UUID.randomUUID();
+  private LicenceScheduleDetail licenceScheduleDetail;
 
   @BeforeEach
   void setUp() {
@@ -90,7 +91,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
     var licenceSchedule = new LicenceSchedule();
     licenceSchedule.setLicence(licence);
 
-    var licenceScheduleDetail = new LicenceScheduleDetail();
+    licenceScheduleDetail = new LicenceScheduleDetail();
     licenceScheduleDetail.setLicenceSchedule(licenceSchedule);
 
     var scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
@@ -156,7 +157,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
 
     when(licenceScheduleExtensionService.getCurrentTerm(any())).thenReturn(licenceScheduleTerm);
 
-    when(licenceScheduleExtensionService.getCurrentPhase(licenceScheduleTerm)).thenReturn(currentPhase);
+    when(licenceScheduleExtensionService.getCurrentPhase(licenceScheduleDetail)).thenReturn(currentPhase);
 
     when(licenceScheduleExtensionService.getlicenceScheduleExtensionForm(any())).thenReturn(new LicenceScheduleExtensionForm());
     when(licenceScheduleExtensionService.getExtendableTermAndPhases(any())).thenReturn(List.of(validTermAndPhases));

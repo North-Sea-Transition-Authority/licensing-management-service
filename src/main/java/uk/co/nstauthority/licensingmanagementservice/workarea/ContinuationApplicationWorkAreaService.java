@@ -96,14 +96,9 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       WorkAreaFilterForm filterForm,
       ServiceUserDetail userDetail
   ) {
-    String licenceRef = applicationDetail
-        .getLicenceContinuationApplication()
-        .getLicenceScheduleDetail()
-        .getLicenceSchedule()
-        .getLicence()
-        .getLicenceReference();
+    Licence licence = licenceContinuationService.getLicenceFromContinuationApplicationDetail(applicationDetail);
 
-    if (!FilterUtil.filterTextInput(licenceRef, filterForm.getLicenceReference())) {
+    if (!FilterUtil.filterTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
       return false;
     }
 

@@ -19,6 +19,9 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
     private ScheduleWorkProgrammeApplicationStatus status;
     private Boolean allLicenseesPermissionConfirmed;
     private Instant createdDateTime;
+    private Instant submittedDatetime;
+    private String applicationReference;
+    private Long submittedByWuaId;
 
     private Builder() {}
 
@@ -52,14 +55,40 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
       return this;
     }
 
+    public Builder withSubmittedDatetime(Instant submittedDatetime) {
+      this.submittedDatetime = submittedDatetime;
+      return this;
+    }
+
+    public Builder withApplicationReference(String applicationReference) {
+      this.applicationReference = applicationReference;
+      return this;
+    }
+
+    public Builder withSubmittedByWuaId(Long submittedByWuaId) {
+      this.submittedByWuaId = submittedByWuaId;
+      return this;
+    }
+
     public ScheduleWorkProgrammeApplicationDetail build() {
       var scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
       scheduleWorkProgrammeApplicationDetail.setId(id);
-      scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
       scheduleWorkProgrammeApplicationDetail.setVersionNumber(versionNumber);
       scheduleWorkProgrammeApplicationDetail.setStatus(status);
       scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(allLicenseesPermissionConfirmed);
       scheduleWorkProgrammeApplicationDetail.setCreatedDatetime(createdDateTime);
+      scheduleWorkProgrammeApplicationDetail.setSubmittedDatetime(submittedDatetime);
+      scheduleWorkProgrammeApplicationDetail.setSubmittedByWuaId(submittedByWuaId);
+
+      if (scheduleWorkProgrammeApplication == null) {
+        var swpApplication = new ScheduleWorkProgrammeApplication();
+        swpApplication.setId(UUID.randomUUID());
+        swpApplication.setApplicationReference(applicationReference);
+        scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(swpApplication);
+      } else {
+        scheduleWorkProgrammeApplication.setApplicationReference(applicationReference);
+        scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
+      }
 
       return scheduleWorkProgrammeApplicationDetail;
     }

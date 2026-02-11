@@ -30,6 +30,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -138,6 +140,28 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
                 List.of(summaryDataView2),
                 testInstant.minus(1, ChronoUnit.HOURS)
             )
+        );
+  }
+
+  @Test
+  void getWorkAreaItems_whenSubmitted_linksToOverview() {
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence1, licence2)))
+        .thenReturn(Map.of(licence1, List.of("Org 1"), licence2, List.of("Org 2")));
+
+    var workAreaItems = workProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::linkHeadingUrl)
+        .containsExactly(
+            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+                .renderOverview(scheduleWorkProgrammeApplicationDetail1.getId(), null, null)),
+            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+                .getTaskList(scheduleWorkProgrammeApplicationDetail2.getId(), null, null))
         );
   }
 

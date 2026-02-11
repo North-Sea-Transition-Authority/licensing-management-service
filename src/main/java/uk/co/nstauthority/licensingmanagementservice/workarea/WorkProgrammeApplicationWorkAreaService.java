@@ -15,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.Applica
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -87,12 +88,16 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
         .addStringValue("Licensees", String.join(", ", licensees))
         .build();
 
+    var linkHeadingUrl = scheduleWorkProgrammeApplicationDetail.getStatus() == ScheduleWorkProgrammeApplicationStatus.SUBMITTED
+        ? ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+            .renderOverview(scheduleWorkProgrammeApplicationDetail.getId(), null, null))
+        : ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+            .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null));
+
     return SearchResultItem.newBuilder()
         .withId(scheduleWorkProgrammeApplicationDetail.getId().toString())
         .withLinkHeadingText(String.format("%s - schedule work programme application", licence.getLicenceReference()))
-        .withLinkHeadingUrl(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
-            .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null))
-        )
+        .withLinkHeadingUrl(linkHeadingUrl)
         .withCaptionText(String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(createdDatetime)))
         .withDataItemRow(dataItemRow)
         .withTransactionDatetime(createdDatetime)

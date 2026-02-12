@@ -9,14 +9,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesta
 @Service
 public class LicenceScheduleExpiryFormValidator {
 
-  private final LicenceScheduleExpiryService licenceScheduleExpiryService;
   private final LicenceStartDateService licenceStartDateService;
 
   public LicenceScheduleExpiryFormValidator(
-      LicenceScheduleExpiryService licenceScheduleExpiryService,
       LicenceStartDateService licenceStartDateService
   ) {
-    this.licenceScheduleExpiryService = licenceScheduleExpiryService;
     this.licenceStartDateService = licenceStartDateService;
   }
 
@@ -25,46 +22,14 @@ public class LicenceScheduleExpiryFormValidator {
       Errors errors,
       LicenceScheduleDetail licenceScheduleDetail
   ) {
-    var expiryDates = licenceScheduleExpiryService.getAllActiveExpiryDatesByLicenceScheduleDetail(licenceScheduleDetail);
-
-    if (!expiryDates.isEmpty()) {
-      errors.reject("licenceScheduleExpiry.invalid", "You cannot add an expiry as one already exists on the licence");
-    }
-
-    validateDateInput(
-        form,
-        errors,
-        licenceScheduleDetail
-    );
-
-    return !errors.hasErrors();
-  }
-
-  public boolean isValidUpdate(
-      LicenceScheduleExpiryForm form,
-      Errors errors,
-      LicenceScheduleDetail licenceScheduleDetail
-  ) {
-    validateDateInput(
-        form,
-        errors,
-        licenceScheduleDetail
-    );
-
-    return !errors.hasErrors();
-  }
-
-  private void validateDateInput(
-      LicenceScheduleExpiryForm form,
-      Errors errors,
-      LicenceScheduleDetail licenceScheduleDetail
-  ) {
     var startDate = licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail);
 
     ThreeFieldDateInputValidator.builder()
-        .emptyInputErrorMessage("Provide the expiry date")
+        .isOptional()
         .mustBeAfterDate(startDate.getStartDate())
         .mustBeAfterDateErrorMessage("The expiry date must be after the licence start date")
         .validate(form.getExpiryDate(), errors);
+
+    return !errors.hasErrors();
   }
 }

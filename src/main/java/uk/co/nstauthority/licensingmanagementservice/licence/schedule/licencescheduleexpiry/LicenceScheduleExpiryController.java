@@ -31,55 +31,25 @@ public class LicenceScheduleExpiryController {
   }
 
   @GetMapping("/{licenceScheduleDetailId}/expiry/create")
-  public ModelAndView renderAddLicenceExpiryPage(
+  public ModelAndView renderAddUpdateLicenceExpiryPage(
       @PathVariable UUID licenceScheduleDetailId,
       LicenceScheduleDetail licenceScheduleDetail
   ) {
-    return getLicenceExpiryModelAndView(new LicenceScheduleExpiryForm(), licenceScheduleDetail);
+    var expiry = licenceScheduleExpiryService.getOrCreateExpiry(licenceScheduleDetail);
+
+    return getLicenceExpiryModelAndView(licenceScheduleExpiryService.getExpiryForm(expiry), licenceScheduleDetail);
   }
 
   @PostMapping("/{licenceScheduleDetailId}/expiry/create")
-  ModelAndView submitAddLicenceExpiryPage(
+  ModelAndView submitAddUpdateLicenceExpiryPage(
       @PathVariable UUID licenceScheduleDetailId,
       LicenceScheduleDetail licenceScheduleDetail,
       @ModelAttribute("form") LicenceScheduleExpiryForm form,
       BindingResult bindingResult
   ) {
+    var expiry = licenceScheduleExpiryService.getOrCreateExpiry(licenceScheduleDetail);
+
     if (!licenceScheduleExpiryFormValidator.isValid(form, bindingResult, licenceScheduleDetail)) {
-      return getLicenceExpiryModelAndView(form, licenceScheduleDetail);
-    }
-
-    licenceScheduleExpiryService.saveExpiryFromForm(
-        form,
-        licenceScheduleDetail,
-        new LicenceScheduleExpiry()
-    );
-
-    return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
-  }
-
-  @GetMapping("/expiry/{licenceScheduleExpiryId}/update")
-  public ModelAndView renderUpdateLicenceExpiryPage(
-      @PathVariable UUID licenceScheduleExpiryId
-  ) {
-    var expiry = licenceScheduleExpiryService.getExpiryByIdOrThrow(licenceScheduleExpiryId);
-
-    return getLicenceExpiryModelAndView(
-        licenceScheduleExpiryService.getExpiryForm(expiry),
-        expiry.getLicenceScheduleDetail()
-    );
-  }
-
-  @PostMapping("/expiry/{licenceScheduleExpiryId}/update")
-  ModelAndView submitUpdateLicenceExpiryPage(
-      @PathVariable UUID licenceScheduleExpiryId,
-      @ModelAttribute("form") LicenceScheduleExpiryForm form,
-      BindingResult bindingResult
-  ) {
-    var expiry = licenceScheduleExpiryService.getExpiryByIdOrThrow(licenceScheduleExpiryId);
-    var licenceScheduleDetail = expiry.getLicenceScheduleDetail();
-
-    if (!licenceScheduleExpiryFormValidator.isValidUpdate(form, bindingResult, licenceScheduleDetail)) {
       return getLicenceExpiryModelAndView(form, licenceScheduleDetail);
     }
 

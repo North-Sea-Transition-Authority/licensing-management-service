@@ -11,6 +11,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.reviewandapply.ReviewAndApplyScheduleController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -60,6 +61,9 @@ public class LicenceScheduleTimelineController {
         .addObject("scheduleEventViews", licenceScheduleTimelineService.getLicenceScheduleEventViews(licenceScheduleDetail))
         .addObject("updateLicenceStartDateUrl", ReverseRouter.route(on(LicenceStartDateController.class)
             .renderLicenceStartDateUpdateForm(licenceScheduleDetail.getId(), null))
+        )
+        .addObject("updateExpiryDateUrl", ReverseRouter.route(on(LicenceScheduleExpiryController.class)
+            .renderAddUpdateLicenceExpiryPage(licenceScheduleDetail.getId(), null))
         )
         .addObject("reviewAndApplyUrl", ReverseRouter.route(on(ReviewAndApplyScheduleController.class)
             .renderReviewAndApplyPage(licenceScheduleDetail.getId(), null))

@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,38 +40,21 @@ class LicenceScheduleExpiryFormValidatorTest {
   }
 
   @Test
-  void isValid() {
+  void isValid_valid_dateProvided() {
     var form = new LicenceScheduleExpiryForm();
     form.getExpiryDate().setDate(LocalDate.of(2026, 1, 1));
-
-    when(licenceScheduleExpiryService.getAllActiveExpiryDatesByLicenceScheduleDetail(licenceScheduleDetail))
-        .thenReturn(List.of());
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
     assertThat(licenceScheduleExpiryFormValidator.isValid(form, bindingResult, licenceScheduleDetail)).isTrue();
   }
 
-  @Test
-  void isValid_invalid_expiryAlreadyExists() {
-    var form = new LicenceScheduleExpiryForm();
-    form.getExpiryDate().setDate(LocalDate.of(2026, 1, 1));
-
-    when(licenceScheduleExpiryService.getAllActiveExpiryDatesByLicenceScheduleDetail(licenceScheduleDetail))
-        .thenReturn(List.of(new LicenceScheduleExpiry()));
-
-    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
-    assertThat(licenceScheduleExpiryFormValidator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
-  }
 
   @Test
-  void isValid_invalid_expiryDateNotProvided() {
+  void isValid_valid_dateNotProvided() {
     var form = new LicenceScheduleExpiryForm();
 
-    when(licenceScheduleExpiryService.getAllActiveExpiryDatesByLicenceScheduleDetail(licenceScheduleDetail))
-        .thenReturn(List.of());
-
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
-    assertThat(licenceScheduleExpiryFormValidator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
+    assertThat(licenceScheduleExpiryFormValidator.isValid(form, bindingResult, licenceScheduleDetail)).isTrue();
   }
 
   @Test
@@ -80,37 +62,10 @@ class LicenceScheduleExpiryFormValidatorTest {
     var form = new LicenceScheduleExpiryForm();
     form.getExpiryDate().setDate(LocalDate.of(2024, 1, 1));
 
-    when(licenceScheduleExpiryService.getAllActiveExpiryDatesByLicenceScheduleDetail(licenceScheduleDetail))
-        .thenReturn(List.of());
-
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
     assertThat(licenceScheduleExpiryFormValidator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
   }
 
-  @Test
-  void isValidUpdate() {
-    var form = new LicenceScheduleExpiryForm();
-    form.getExpiryDate().setDate(LocalDate.of(2026, 1, 1));
 
-    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
-    assertThat(licenceScheduleExpiryFormValidator.isValidUpdate(form, bindingResult, licenceScheduleDetail)).isTrue();
-  }
-
-  @Test
-  void isValidUpdate_invalid_expiryDateNotProvided() {
-    var form = new LicenceScheduleExpiryForm();
-
-    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
-    assertThat(licenceScheduleExpiryFormValidator.isValidUpdate(form, bindingResult, licenceScheduleDetail)).isFalse();
-  }
-
-  @Test
-  void isValidUpdate_invalid_expiryDateBeforeLicenceStartDate() {
-    var form = new LicenceScheduleExpiryForm();
-    form.getExpiryDate().setDate(LocalDate.of(2024, 1, 1));
-
-    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
-    assertThat(licenceScheduleExpiryFormValidator.isValidUpdate(form, bindingResult, licenceScheduleDetail)).isFalse();
-  }
 
 }

@@ -57,8 +57,7 @@ class ReviewAndApplyScheduleControllerTest extends AbstractControllerTest {
   void renderReviewAndApplyPage() throws Exception {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
-
-    var summaryCardView = new TimelineSummaryCardView("date", true, "1", "status");
+    var summaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", "status");
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(summaryCardView);
 
     mockMvc.perform(

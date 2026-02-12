@@ -40,8 +40,6 @@
                 <@workProgrammeActivity activityView=eventView/>
             <#elseif eventView.getEventType() = "RATE">
                 <@rate eventView/>
-            <#elseif eventView.getEventType() = "EXPIRY">
-                <@expiry eventView/>
             </#if>
         </#list>
 
@@ -83,8 +81,6 @@
             <@workProgrammeActivity activityView=eventView/>
         <#elseif eventView.getEventType() = "RATE">
             <@rate eventView/>
-        <#elseif eventView.getEventType() = "EXPIRY">
-            <@expiry eventView/>
         </#if>
     </#list>
 
@@ -162,20 +158,5 @@
                 ${rateView.rentalRateString()} per km<sup>2</sup>
             </p>
         </@fdsTimeline.timelineEvent>
-    </@lmsTimeStamp.lmsTimeStamp>
-</#macro>
-
-<#macro expiry expiryView>
-    <#assign timelineActions>
-        <@fdsAction.link linkText="Edit" linkUrl=springUrl(expiryView.updateUrl()) linkClass="govuk-link"/>
-        <@fdsAction.link linkText="Remove" linkUrl=springUrl(expiryView.deleteUrl()) linkClass="govuk-link"/>
-    </#assign>
-
-    <@lmsTimeStamp.lmsTimeStamp
-    timeStampHeading=expiryView.title()
-    timeStampHeadingHint=expiryView.expiryDateString()
-    timelineActionContent=timelineActions
-    nodeNumberClass="fds-timeline__node-number--small-dot"
-    >
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>

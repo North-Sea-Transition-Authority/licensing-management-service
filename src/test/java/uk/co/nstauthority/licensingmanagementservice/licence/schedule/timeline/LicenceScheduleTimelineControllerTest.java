@@ -23,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.reviewandapply.ReviewAndApplyScheduleController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -66,7 +67,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.DRAFT))
         .thenReturn(licenceScheduleDetail);
 
-    var timelineSummaryCardView = new TimelineSummaryCardView("date", true,"1", LicenceStatus.EXTANT.getDisplayName());
+    var timelineSummaryCardView = new TimelineSummaryCardView("date", "date2", true,"1", LicenceStatus.EXTANT.getDisplayName());
     var timelineActionViews = List.of(new TimelineActionView(LicenceScheduleTimelineAction.ADD_A_TERM, ""));
     var scheduleEventViews = List.of(new TimelineTermView(List.of(), List.of(), TermType.INITIAL, "", "", "", "", true));
 
@@ -87,6 +88,9 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("updateLicenceStartDateUrl",
             ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateUpdateForm(licenceScheduleDetail.getId(), null)))
         )
+        .andExpect(model().attribute("updateExpiryDateUrl",
+                ReverseRouter.route(on(LicenceScheduleExpiryController.class).renderAddUpdateLicenceExpiryPage(licenceScheduleDetail.getId(), null)))
+        )
         .andExpect(model().attribute("reviewAndApplyUrl", ReverseRouter.route(on(ReviewAndApplyScheduleController.class)
             .renderReviewAndApplyPage(licenceScheduleDetail.getId(), null)))
         );
@@ -97,7 +101,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
     when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
 
-    var timelineSummaryCardView = new TimelineSummaryCardView("date", true, "1", LicenceStatus.EXTANT.getDisplayName());
+    var timelineSummaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatus.EXTANT.getDisplayName());
     var timelineActionViews = List.of(new TimelineActionView(LicenceScheduleTimelineAction.ADD_A_TERM, ""));
     var scheduleEventViews = List.of(new TimelineTermView(List.of(), List.of(), TermType.INITIAL, "", "", "", "", true));
 
@@ -118,6 +122,9 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("scheduleEventViews", scheduleEventViews))
         .andExpect(model().attribute("updateLicenceStartDateUrl",
             ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateUpdateForm(licenceScheduleDetail.getId(), null)))
+        )
+        .andExpect(model().attribute("updateExpiryDateUrl",
+            ReverseRouter.route(on(LicenceScheduleExpiryController.class).renderAddUpdateLicenceExpiryPage(licenceScheduleDetail.getId(), null)))
         )
         .andExpect(model().attribute("reviewAndApplyUrl", ReverseRouter.route(on(ReviewAndApplyScheduleController.class)
             .renderReviewAndApplyPage(licenceScheduleDetail.getId(), null)))

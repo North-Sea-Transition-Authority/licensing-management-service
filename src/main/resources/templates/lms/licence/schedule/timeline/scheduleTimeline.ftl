@@ -11,6 +11,9 @@ extendContainerWidth=true>
         <@fdsSummaryList.summaryListRow keyText="Start date" actionUrl=springUrl(updateLicenceStartDateUrl) screenReaderActionText="">
             ${timelineSummaryCardView.licenceStartDate()}
         </@fdsSummaryList.summaryListRow>
+        <@fdsSummaryList.summaryListRow keyText="Expiry date" actionUrl=springUrl(updateExpiryDateUrl) screenReaderActionText="">
+            ${timelineSummaryCardView.licenceExpiryDate()!""}
+        </@fdsSummaryList.summaryListRow>
         <@fdsSummaryList.summaryListRowNoAction keyText="Status">
             ${timelineSummaryCardView.status()!""}
         </@fdsSummaryList.summaryListRowNoAction>

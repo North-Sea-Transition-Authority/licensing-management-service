@@ -15,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiry;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseController;
@@ -63,13 +64,25 @@ public class LicenceScheduleTimelineService {
   public TimelineSummaryCardView getTimelineSummaryCardView(LicenceScheduleDetail licenceScheduleDetail) {
     var licence = licenceScheduleDetail.getLicenceSchedule().getLicence();
     var licenceStartDate = licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail);
+    var licenceExpiryDateString = licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail)
+        .map(this::getExpiryDateString)
+        .orElse("");
 
     return new TimelineSummaryCardView(
         DateFormatUtil.convertToDisplayText(licenceStartDate.getStartDate()),
+        licenceExpiryDateString,
         licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType()),
         licence.getRoundIssuedOn(),
         licence.getStatus().getDisplayName()
     );
+  }
+
+  private String getExpiryDateString(LicenceScheduleExpiry licenceScheduleExpiry) {
+    if (licenceScheduleExpiry.getExpiryDate() == null) {
+      return "";
+    }
+
+    return DateFormatUtil.convertToDisplayText(licenceScheduleExpiry.getExpiryDate());
   }
 
   List<TimelineActionView> getLicenceScheduleTimelineActions(LicenceScheduleDetail licenceScheduleDetail) {
@@ -90,8 +103,6 @@ public class LicenceScheduleTimelineService {
     if (licenceTypeRulesResolver.hasRentalRate(licenceType)) {
       actions.add(LicenceScheduleTimelineAction.ADD_A_RATE);
     }
-
-    actions.add(LicenceScheduleTimelineAction.ADD_AN_EXPIRY);
 
     return actions.stream()
         .sorted(Comparator.comparing(LicenceScheduleTimelineAction::getDisplayOrder))
@@ -171,10 +182,7 @@ public class LicenceScheduleTimelineService {
         .stream()
         .map(TimelineRateView::getScheduleEventFrom);
 
-    var expiryDates = licenceScheduleExpiryService.getAllActiveExpiryDatesByDateRangeFor(licenceScheduleTerm).stream()
-        .map(TimelineExpiryView::getScheduleEventFrom);
-
-    return Stream.of(workProgrammeActivities, rates, expiryDates)
+    return Stream.of(workProgrammeActivities, rates)
         .flatMap(Function.identity())
         .sorted(Comparator.comparing(ScheduleEvent::getSortingDate)
             .thenComparing(event -> event.getEventType().getEventTypeOrder()))
@@ -224,10 +232,7 @@ public class LicenceScheduleTimelineService {
     var rates = licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(licenceSchedulePhase, firstPhaseType).stream()
         .map(TimelineRateView::getScheduleEventFrom);
 
-    var expiryDates = licenceScheduleExpiryService.getAllActiveExpiryDatesByDateRangeFor(licenceSchedulePhase).stream()
-        .map(TimelineExpiryView::getScheduleEventFrom);
-
-    return Stream.of(workProgrammeActivities, rates, expiryDates)
+    return Stream.of(workProgrammeActivities, rates)
         .flatMap(Function.identity())
         .sorted(Comparator.comparing(ScheduleEvent::getSortingDate)
             .thenComparing(event -> event.getEventType().getEventTypeOrder()))

@@ -13,6 +13,9 @@ errorSummaryItems=errorSummaryItems>
             <@fdsSummaryList.summaryListRowNoAction keyText="Start date">
                 ${summaryCardView.licenceStartDate()}
             </@fdsSummaryList.summaryListRowNoAction>
+            <@fdsSummaryList.summaryListRowNoAction keyText="Expiry date">
+                ${summaryCardView.licenceExpiryDate()!""}
+            </@fdsSummaryList.summaryListRowNoAction>
             <@fdsSummaryList.summaryListRowNoAction keyText="Status">
                 ${summaryCardView.status()!""}
             </@fdsSummaryList.summaryListRowNoAction>

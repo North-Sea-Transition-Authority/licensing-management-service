@@ -67,11 +67,16 @@ class LicenceScheduleExpiryControllerTest extends AbstractControllerTest {
   }
 
   @SecurityTest
-  void renderAddLicenceExpiryPage() throws Exception {
+  void renderAddUpdateLicenceExpiryPage() throws Exception {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
 
+    var expiry = new LicenceScheduleExpiry();
+
+    when(licenceScheduleExpiryService.getOrCreateExpiry(licenceScheduleDetail)).thenReturn(expiry);
+    when(licenceScheduleExpiryService.getExpiryForm(expiry)).thenReturn(new LicenceScheduleExpiryForm());
+
     mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceScheduleExpiryController.class).renderAddLicenceExpiryPage(licenceScheduleDetail.getId(), null)))
+            get(ReverseRouter.route(on(LicenceScheduleExpiryController.class).renderAddUpdateLicenceExpiryPage(licenceScheduleDetail.getId(), null)))
                 .with(user(organisationUser))
         )
         .andExpect(status().isOk())
@@ -81,12 +86,13 @@ class LicenceScheduleExpiryControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void submitAddLicenceExpiryPage_validForm() throws Exception {
+  void submitAddUpdateLicenceExpiryPage_validForm() throws Exception {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
+    when(licenceScheduleExpiryService.getOrCreateExpiry(licenceScheduleDetail)).thenReturn(new LicenceScheduleExpiry());
     when(licenceScheduleExpiryFormValidator.isValid(any(), any(), eq(licenceScheduleDetail))).thenReturn(true);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleExpiryController.class).submitAddLicenceExpiryPage(licenceScheduleDetail.getId(), null, null, null)))
+            post(ReverseRouter.route(on(LicenceScheduleExpiryController.class).submitAddUpdateLicenceExpiryPage(licenceScheduleDetail.getId(), null, null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
@@ -96,75 +102,13 @@ class LicenceScheduleExpiryControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void submitAddLicenceExpiryPage_invalidForm() throws Exception {
+  void submitAddUpdateLicenceExpiryPage_invalidForm() throws Exception {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
+    when(licenceScheduleExpiryService.getOrCreateExpiry(licenceScheduleDetail)).thenReturn(new LicenceScheduleExpiry());
     when(licenceScheduleExpiryFormValidator.isValid(any(), any(), eq(licenceScheduleDetail))).thenReturn(false);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleExpiryController.class).submitAddLicenceExpiryPage(licenceScheduleDetail.getId(), null, null, null)))
-                .with(user(organisationUser))
-                .with(csrf())
-        )
-        .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/schedule/createLicenceExpiry"))
-        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
-        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
-
-    verify(licenceScheduleExpiryService, never()).saveExpiryFromForm(any(), any(), any());
-  }
-
-  @SecurityTest
-  void renderUpdateLicenceExpiryPage() throws Exception {
-    var expiry = new LicenceScheduleExpiry();
-    expiry.setId(UUID.randomUUID());
-    expiry.setLicenceScheduleDetail(licenceScheduleDetail);
-
-    when(licenceScheduleExpiryService.getExpiryByIdOrThrow(expiry.getId())).thenReturn(expiry);
-    when(licenceScheduleExpiryService.getExpiryForm(expiry)).thenReturn(new LicenceScheduleExpiryForm());
-    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
-
-    mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceScheduleExpiryController.class).renderUpdateLicenceExpiryPage(expiry.getId())))
-                .with(user(organisationUser))
-        )
-        .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/schedule/createLicenceExpiry"))
-        .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
-        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
-  }
-
-  @Test
-  void submitUpdateLicenceExpiryPage_validForm() throws Exception {
-    var expiry = new LicenceScheduleExpiry();
-    expiry.setId(UUID.randomUUID());
-    expiry.setLicenceScheduleDetail(licenceScheduleDetail);
-
-    when(licenceScheduleExpiryService.getExpiryByIdOrThrow(expiry.getId())).thenReturn(expiry);
-    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
-    when(licenceScheduleExpiryFormValidator.isValidUpdate(any(), any(), eq(licenceScheduleDetail))).thenReturn(true);
-
-    mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleExpiryController.class).submitUpdateLicenceExpiryPage(expiry.getId(), null, null)))
-                .with(user(organisationUser))
-                .with(csrf())
-        )
-        .andExpect(status().is3xxRedirection());
-
-    verify(licenceScheduleExpiryService).saveExpiryFromForm(any(), eq(licenceScheduleDetail), eq(expiry));
-  }
-
-  @Test
-  void submitUpdateLicenceExpiryPage_invalidForm() throws Exception {
-    var expiry = new LicenceScheduleExpiry();
-    expiry.setId(UUID.randomUUID());
-    expiry.setLicenceScheduleDetail(licenceScheduleDetail);
-
-    when(licenceScheduleExpiryService.getExpiryByIdOrThrow(expiry.getId())).thenReturn(expiry);
-    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
-    when(licenceScheduleExpiryFormValidator.isValidUpdate(any(), any(), eq(licenceScheduleDetail))).thenReturn(false);
-
-    mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleExpiryController.class).submitUpdateLicenceExpiryPage(expiry.getId(), null, null)))
+            post(ReverseRouter.route(on(LicenceScheduleExpiryController.class).submitAddUpdateLicenceExpiryPage(licenceScheduleDetail.getId(), null, null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )

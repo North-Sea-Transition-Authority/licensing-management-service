@@ -16,6 +16,7 @@ errorSummaryItems=errorSummaryItems>
             yearPath="form.expiryDate.yearInput.inputValue"
             labelText="Expiry date"
             formId="form-licence-start-date"
+            optionalLabel=true
         />
 
         <@fdsTextarea.textarea

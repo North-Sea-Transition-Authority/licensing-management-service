@@ -8,6 +8,7 @@ public record TimelinePhaseView(
     List<ScheduleEvent> events,
     List<ScheduleEvent> endOfPhaseEvents,
     PhaseType phaseType,
+    LocalDate startDate,
     String dateDurationString,
     String endDateString,
     String updateUrl,
@@ -21,6 +22,6 @@ public record TimelinePhaseView(
 
   @Override
   public LocalDate getSortingDate() {
-    return null;
+    return startDate;
   }
 }

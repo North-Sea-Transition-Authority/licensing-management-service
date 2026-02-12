@@ -8,8 +8,12 @@
     </#assign>
 
     <#if termView.events()?has_content && termView.hasPhases()>
-        <#list termView.events() as phaseView>
-            <@phase phaseView=phaseView/>
+        <#list termView.events() as eventView>
+            <#if eventView.getEventType() = "RATE">
+                <@rate rateView=eventView smallDot=false/>
+            <#else>
+                <@phase phaseView=eventView/>
+            </#if>
         </#list>
 
         <#if termView.endOfTermEvents()?has_content>
@@ -39,10 +43,9 @@
             <#if eventView.getEventType() = "WORK_PROGRAMME_ACTIVITY">
                 <@workProgrammeActivity activityView=eventView/>
             <#elseif eventView.getEventType() = "RATE">
-                <@rate eventView/>
+                <@rate rateView=eventView/>
             </#if>
         </#list>
-
 
         <#if termView.endOfTermEvents()?has_content>
             <@fdsTimeline.timelineTimeStamp
@@ -141,17 +144,26 @@
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>
 
-<#macro rate rateView>
+<#macro rate rateView smallDot=true>
     <#assign timelineActions>
         <@fdsAction.link linkText="Edit" linkUrl=springUrl(rateView.updateUrl()) linkClass="govuk-link"/>
         <@fdsAction.link linkText="Remove" linkUrl=springUrl(rateView.deleteUrl()) linkClass="govuk-link"/>
     </#assign>
 
+    <#if smallDot=true>
+        <#assign nodeClass = "fds-timeline__node-number--small-dot">
+        <#assign timeStampClass = "">
+    <#else>
+        <#assign nodeClass = "">
+        <#assign timeStampClass = "fds-timeline__time-stamp--no-border">
+    </#if>
+
     <@lmsTimeStamp.lmsTimeStamp
-    timeStampHeading=rateView.title()
-    timeStampHeadingHint=rateView.startDateString()
-    timelineActionContent=timelineActions
-    nodeNumberClass="fds-timeline__node-number--small-dot"
+        timeStampHeading=rateView.title()
+        timeStampHeadingHint=rateView.startDateString()
+        timelineActionContent=timelineActions
+        timeStampClass=timeStampClass
+        nodeNumberClass=nodeClass
     >
         <@fdsTimeline.timelineEvent>
             <p class="govuk-body">

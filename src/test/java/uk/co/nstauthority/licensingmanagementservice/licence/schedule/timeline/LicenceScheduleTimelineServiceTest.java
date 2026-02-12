@@ -300,6 +300,7 @@ class LicenceScheduleTimelineServiceTest {
         List.of(phaseRateView, midPhaseActivityView),
         List.of(endOfPhaseActivityView),
         PhaseType.PHASE_A,
+        phase.getStartDate(),
         "1 January 2025 to 31 December 2025 (1 year)",
         "31 December 2025",
         ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderUpdatePhaseForm(phase.getId())),

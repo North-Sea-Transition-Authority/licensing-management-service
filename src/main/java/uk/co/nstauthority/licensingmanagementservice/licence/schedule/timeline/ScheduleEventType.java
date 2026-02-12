@@ -1,11 +1,10 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline;
 
 public enum ScheduleEventType {
-  PHASE(null),
+  PHASE(999),
   RATE(1),
   WORK_PROGRAMME_ACTIVITY(2),
-  OTHER(3),
-  EXPIRY(4);
+  OTHER(3);
 
   private final Integer eventTypeOrder;
 

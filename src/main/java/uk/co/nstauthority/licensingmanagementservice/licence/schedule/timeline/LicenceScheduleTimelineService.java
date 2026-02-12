@@ -168,7 +168,14 @@ public class LicenceScheduleTimelineService {
         .toList();
 
     if (!phaseViews.isEmpty()) {
-      return phaseViews;
+      var termRateViews = licenceScheduleRateService.getActiveLicenceScheduleRatesAttachedToTerm(licenceScheduleTerm).stream()
+          .map(TimelineRateView::getScheduleEventFrom)
+          .toList();
+
+      return Stream.concat(phaseViews.stream(), termRateViews.stream())
+          .sorted(Comparator.comparing(ScheduleEvent::getSortingDate)
+              .thenComparing(event -> event.getEventType().getEventTypeOrder()))
+          .toList();
     }
 
     var workProgrammeActivities = workProgrammeActivityService
@@ -210,6 +217,7 @@ public class LicenceScheduleTimelineService {
         getScheduleEventsForPhase(licenceSchedulePhase, firstPhaseType),
         getEndOfPhaseRequirementEvents(licenceSchedulePhase),
         licenceSchedulePhase.getPhaseType(),
+        licenceSchedulePhase.getStartDate(),
         dateDurationString,
         DateFormatUtil.convertToDisplayText(licenceSchedulePhase.getEndDate()),
         ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderUpdatePhaseForm(licenceSchedulePhase.getId())),

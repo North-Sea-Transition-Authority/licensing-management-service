@@ -24,14 +24,18 @@ public class LicenceScheduleRateService {
         .orElseThrow(() -> new LmsEntityNotFoundException("LicenceScheduleRate not found", id));
   }
 
-  public List<LicenceScheduleRate> getActiveLicenceScheduleRatesByTerm(
-      LicenceScheduleTerm licenceScheduleTerm
-  ) {
-    var ratesByTerm = licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOptionAndStatus(
+  public List<LicenceScheduleRate> getActiveLicenceScheduleRatesAttachedToTerm(LicenceScheduleTerm licenceScheduleTerm) {
+    return licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOptionAndStatus(
         licenceScheduleTerm,
         RateDefinitionOption.TERM,
         LicenceScheduleEventStatus.ACTIVE
     );
+  }
+
+  public List<LicenceScheduleRate> getActiveLicenceScheduleRatesByTerm(
+      LicenceScheduleTerm licenceScheduleTerm
+  ) {
+    var ratesByTerm = getActiveLicenceScheduleRatesAttachedToTerm(licenceScheduleTerm);
 
     if (!ratesByTerm.isEmpty()) {
       return ratesByTerm;
@@ -57,7 +61,7 @@ public class LicenceScheduleRateService {
       );
 
       if (!ratesByTerm.isEmpty()) {
-        return ratesByTerm;
+        return List.of();
       }
     }
 

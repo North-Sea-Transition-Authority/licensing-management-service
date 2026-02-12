@@ -58,6 +58,18 @@ class LicenceScheduleRateServiceTest {
   }
 
   @Test
+  void getActiveLicenceScheduleRatesAttachedToTerm() {
+    when(licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOptionAndStatus(
+        term,
+        RateDefinitionOption.TERM,
+        LicenceScheduleEventStatus.ACTIVE
+    ))
+        .thenReturn(List.of(rate));
+
+    assertThat(licenceScheduleRateService.getActiveLicenceScheduleRatesAttachedToTerm(term)).isEqualTo(List.of(rate));
+  }
+
+  @Test
   void getActiveLicenceScheduleRatesByTerm_forTerm() {
     when(licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOptionAndStatus(
         term,
@@ -104,7 +116,7 @@ class LicenceScheduleRateServiceTest {
     ))
         .thenReturn(List.of(rate));
 
-    assertThat(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).isEqualTo(List.of(rate));
+    assertThat(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).isEqualTo(List.of());
   }
 
   @Test

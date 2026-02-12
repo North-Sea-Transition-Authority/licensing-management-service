@@ -34,7 +34,7 @@ public class LicenceInternalApiRestController {
 
     return searchSelectorService.search(
         term,
-        licenceInternalApiService.searchLicencesWithSchedulesByReferenceTypeAndStatus(
+        licenceInternalApiService.searchLicencesWithInProgressSchedulesByReferenceTypeAndStatus(
             term,
             licenceTypes,
             LicenceScheduleDetailStatus.ACTIVE,

@@ -104,16 +104,19 @@ class LicenceScheduleDetailServiceTest {
   @Test
   void searchByLicenceReferenceLicenceTypeAndStatus() {
     var searchTerm = "searchTerm";
+    var expectedResults = List.of(new LicenceScheduleDetail());
 
-    licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
+    when(licenceScheduleDetailRepository.searchByLicenceReferenceLicenceTypesAndStatus(
+        searchTerm, List.of(LicenceType.CARBON_STORAGE), LicenceScheduleDetailStatus.ACTIVE
+    )).thenReturn(expectedResults);
+
+    var result = licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
         searchTerm,
         List.of(LicenceType.CARBON_STORAGE),
         LicenceScheduleDetailStatus.ACTIVE
     );
 
-    verify(licenceScheduleDetailRepository).searchByLicenceReferenceLicenceTypesAndStatus(
-        searchTerm, List.of(LicenceType.CARBON_STORAGE), LicenceScheduleDetailStatus.ACTIVE
-    );
+    assertThat(result).isEqualTo(expectedResults);
   }
 
   @Test

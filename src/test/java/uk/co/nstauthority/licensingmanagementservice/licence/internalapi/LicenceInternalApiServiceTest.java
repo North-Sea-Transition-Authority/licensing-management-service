@@ -52,7 +52,7 @@ class LicenceInternalApiServiceTest {
   }
 
   @Test
-  void searchLicencesWithSchedulesByReferenceTypeAndStatus() {
+  void searchLicencesWithInProgressSchedulesByReferenceTypeAndStatus() {
     var searchTerm = "term";
     var licenceType = LicenceType.GAS_STORAGE;
 
@@ -75,7 +75,7 @@ class LicenceInternalApiServiceTest {
 
     var licenceJson = new LicenceJson(id, licenceReference);
 
-    assertThat(licenceInternalApiService.searchLicencesWithSchedulesByReferenceTypeAndStatus(searchTerm, List.of(licenceType), LicenceScheduleDetailStatus.ACTIVE, serviceUserDetail))
+    assertThat(licenceInternalApiService.searchLicencesWithInProgressSchedulesByReferenceTypeAndStatus(searchTerm, List.of(licenceType), LicenceScheduleDetailStatus.ACTIVE, serviceUserDetail))
         .usingRecursiveComparison()
         .isEqualTo(List.of(licenceJson));
   }

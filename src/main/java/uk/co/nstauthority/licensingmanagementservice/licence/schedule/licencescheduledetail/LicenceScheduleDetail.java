@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.envers.Audited;
@@ -19,7 +20,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.L
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Audited
-@Entity(name = "licence_schedule_details")
+@Entity
+@Table(name = "licence_schedule_details")
 public class LicenceScheduleDetail {
 
   @Id

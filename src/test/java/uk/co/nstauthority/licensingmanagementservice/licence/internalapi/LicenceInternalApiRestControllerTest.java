@@ -35,7 +35,7 @@ class LicenceInternalApiRestControllerTest extends AbstractControllerTest {
 
     var response = List.of(new LicenceJson(1, "CS001"));
 
-    when(licenceInternalApiService.searchLicencesWithSchedulesByReferenceTypeAndStatus(searchTerm, List.of(licenceType), LicenceScheduleDetailStatus.ACTIVE, null))
+    when(licenceInternalApiService.searchLicencesWithInProgressSchedulesByReferenceTypeAndStatus(searchTerm, List.of(licenceType), LicenceScheduleDetailStatus.ACTIVE, null))
         .thenReturn(response);
 
     mockMvc.perform(

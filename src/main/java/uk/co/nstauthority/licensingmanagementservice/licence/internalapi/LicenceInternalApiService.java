@@ -32,13 +32,12 @@ public class LicenceInternalApiService {
     this.applicationAccessService = applicationAccessService;
   }
 
-  List<LicenceJson> searchLicencesWithSchedulesByReferenceTypeAndStatus(
+  List<LicenceJson> searchLicencesWithInProgressSchedulesByReferenceTypeAndStatus(
       String searchTerm,
       List<LicenceType> types,
       LicenceScheduleDetailStatus status,
       ServiceUserDetail serviceUserDetail
   ) {
-
     var usersOrganisationUnitIds = applicationAccessService.getOrganisationUnitIds(serviceUserDetail);
 
     return licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
 
 @Transactional
@@ -33,11 +35,13 @@ class LicenceScheduleDetailServiceIntegrationTest {
 
   @Test
   void searchByLicenceReferenceLicenceTypeAndStatus() {
-    var licenceScheduleDetail = createLicenceAndScheduleDetail(1, "CS001", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE);
-    createLicenceAndScheduleDetail(2, "CS002", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE);
-    var licenceScheduleDetail3 = createLicenceAndScheduleDetail(4, "EX011", LicenceType.LANDWARD_PRODUCTION, LicenceScheduleDetailStatus.ACTIVE);
-    createLicenceAndScheduleDetail(5, "EX012", LicenceType.LANDWARD_PRODUCTION, LicenceScheduleDetailStatus.DRAFT);
-    createLicenceAndScheduleDetail(6, "P001", LicenceType.SEAWARD_PRODUCTION, LicenceScheduleDetailStatus.ACTIVE);
+    var pastDate = LocalDate.now().minusDays(1);
+
+    var licenceScheduleDetail = createLicenceAndScheduleDetail(1, "CS001", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, pastDate);
+    createLicenceAndScheduleDetail(2, "CS002", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, pastDate);
+    var licenceScheduleDetail3 = createLicenceAndScheduleDetail(4, "EX011", LicenceType.LANDWARD_PRODUCTION, LicenceScheduleDetailStatus.ACTIVE, pastDate);
+    createLicenceAndScheduleDetail(5, "EX012", LicenceType.LANDWARD_PRODUCTION, LicenceScheduleDetailStatus.DRAFT, pastDate);
+    createLicenceAndScheduleDetail(6, "P001", LicenceType.SEAWARD_PRODUCTION, LicenceScheduleDetailStatus.ACTIVE, pastDate);
 
     em.flush();
 
@@ -47,17 +51,66 @@ class LicenceScheduleDetailServiceIntegrationTest {
         LicenceScheduleDetailStatus.ACTIVE
     );
 
-    assertThat(result).usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
+    assertThat(result)
+        .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
         .isEqualTo(List.of(licenceScheduleDetail, licenceScheduleDetail3));
+  }
+
+  @Test
+  void searchByLicenceReferenceLicenceTypeAndStatus_excludesFutureStartDates() {
+    var pastDate = LocalDate.now().minusDays(1);
+    var futureDate = LocalDate.now().plusDays(1);
+
+    var pastScheduleDetail = createLicenceAndScheduleDetail(1, "CS001", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, pastDate);
+    createLicenceAndScheduleDetail(2, "CS002", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, futureDate);
+
+    em.flush();
+
+    var result = licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
+        "CS",
+        List.of(LicenceType.CARBON_STORAGE),
+        LicenceScheduleDetailStatus.ACTIVE
+    );
+
+    assertThat(result)
+        .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
+        .containsExactly(pastScheduleDetail);
+  }
+
+  @Test
+  void searchByLicenceReferenceLicenceTypeAndStatus_excludesScheduleDetailsWithNoStartDate() {
+    var pastDate = LocalDate.now().minusDays(1);
+
+    var scheduleDetailWithStartDate = createLicenceAndScheduleDetail(1, "CS001", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, pastDate);
+    createLicenceAndScheduleDetail(2, "CS002", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, null);
+
+    em.flush();
+
+    var result = licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
+        "CS",
+        List.of(LicenceType.CARBON_STORAGE),
+        LicenceScheduleDetailStatus.ACTIVE
+    );
+
+    assertThat(result)
+        .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
+        .containsExactly(scheduleDetailWithStartDate);
   }
 
   private LicenceScheduleDetail createLicenceAndScheduleDetail(int id,
                                                                String licenceReference,
                                                                LicenceType licenceType,
-                                                               LicenceScheduleDetailStatus licenceScheduleDetailStatus) {
+                                                               LicenceScheduleDetailStatus licenceScheduleDetailStatus,
+                                                               LocalDate startDate) {
     var licence = createLicence(id, licenceReference, licenceType);
     var licenceSchedule = createLicenceSchedule(licence);
-    return createLicenceScheduleDetail(licenceSchedule, licenceScheduleDetailStatus);
+    var licenceScheduleDetail = createLicenceScheduleDetail(licenceSchedule, licenceScheduleDetailStatus);
+
+    if (startDate != null) {
+      createLicenceStartDate(licenceScheduleDetail, startDate);
+    }
+
+    return licenceScheduleDetail;
   }
 
   private LicenceScheduleDetail createLicenceScheduleDetail(LicenceSchedule licenceSchedule, LicenceScheduleDetailStatus active) {
@@ -74,6 +127,15 @@ class LicenceScheduleDetailServiceIntegrationTest {
 
     em.persist(licenceSchedule);
     return licenceSchedule;
+  }
+
+  private LicenceStartDate createLicenceStartDate(LicenceScheduleDetail licenceScheduleDetail, LocalDate startDate) {
+    var licenceStartDate = new LicenceStartDate();
+    licenceStartDate.setLicenceScheduleDetail(licenceScheduleDetail);
+    licenceStartDate.setStartDate(startDate);
+
+    em.persist(licenceStartDate);
+    return licenceStartDate;
   }
 
   private Licence createLicence(int id, String licenceReference, LicenceType licenceType) {

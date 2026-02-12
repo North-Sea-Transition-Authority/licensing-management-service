@@ -105,20 +105,20 @@ public class LicenceScheduleExtensionFormValidator {
       errors.rejectValue(
           "selectedTerm",
           "selectedTerm.required",
-          "You must select at least one Phase or Term to request extension."
+          "Select at least one Phase or Term to request extension"
       );
 
     } else if (onlyTermsOptionsAvailable) {
       errors.rejectValue(
           "selectedTerm",
           "selectedTerm.required",
-          "You must select at least one term to request extension."
+          "Select at least one term to request extension"
       );
     } else if (onlyPhaseOptionsAvailable) {
       errors.rejectValue(
           "selectedPhase",
           "selectedPhase.required",
-          "You must select at least one phase to request extension."
+          "Select at least one phase to request extension"
       );
     }
   }

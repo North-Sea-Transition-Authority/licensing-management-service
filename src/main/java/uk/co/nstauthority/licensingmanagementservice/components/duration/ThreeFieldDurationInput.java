@@ -22,8 +22,16 @@ public class ThreeFieldDurationInput {
     return fieldName;
   }
 
+  public void setFieldName(String fieldName) {
+    this.fieldName = fieldName;
+  }
+
   public String getFieldDisplayText() {
     return fieldDisplayText;
+  }
+
+  public void setFieldDisplayText(String fieldDisplayText) {
+    this.fieldDisplayText = fieldDisplayText;
   }
 
   public String getDays() {

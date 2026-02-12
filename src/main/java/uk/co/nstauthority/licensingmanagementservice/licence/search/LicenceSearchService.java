@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceReferenceComparator;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
@@ -56,7 +57,7 @@ public class LicenceSearchService {
     var responsibleOrganisationNames = getResponsibleOrganisationNamesByLicences(licenceResponsibleOrganisations);
     return batchFilteredLicences
         .map(licence -> toSearchResultItem(licence, responsibleOrganisationNames.getOrDefault(licence, List.of())))
-        .sorted(Comparator.comparing(SearchResultItem::linkHeadingText))
+        .sorted(Comparator.comparing(SearchResultItem::linkHeadingText, new LicenceReferenceComparator()))
         .toList();
   }
 

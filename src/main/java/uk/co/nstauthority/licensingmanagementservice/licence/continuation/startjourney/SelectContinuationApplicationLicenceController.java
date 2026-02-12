@@ -10,22 +10,17 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InvokingUserCanStartApplication;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTypeUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.internalapi.LicenceInternalApiRestController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
 
 @Controller
 @RequestMapping("licences/continuation-application/licence")
+@InvokingUserCanStartApplication
 public class SelectContinuationApplicationLicenceController {
 
   static final String PAGE_TITLE
@@ -33,18 +28,13 @@ public class SelectContinuationApplicationLicenceController {
 
   private final SelectContinuationApplicationLicenceFormValidator selectLicenceFormValidator;
   private final LicenceService licenceService;
-  private final LicenceContinuationService licenceContinuationService;
-  private final TeamManagementService teamManagementService;
 
   public SelectContinuationApplicationLicenceController(
       SelectContinuationApplicationLicenceFormValidator selectLicenceFormValidator,
-      LicenceService licenceService, LicenceContinuationService licenceContinuationService,
-      TeamManagementService teamManagementService
+      LicenceService licenceService
   ) {
     this.selectLicenceFormValidator = selectLicenceFormValidator;
     this.licenceService = licenceService;
-    this.licenceContinuationService = licenceContinuationService;
-    this.teamManagementService = teamManagementService;
   }
 
   @GetMapping
@@ -63,27 +53,8 @@ public class SelectContinuationApplicationLicenceController {
 
     var licence = licenceService.findLicenceByIdOrThrow(Integer.parseInt(form.getLicenceId()));
 
-    var applicationDetail = licenceContinuationService.createNewLicenceContinuationApplication(licence);
-
-    createContinuationExternalTeam(applicationDetail);
-
-    return ReverseRouter.redirect(on(LicenceContinuationApplicationTaskListController.class)
-        .getTaskList(applicationDetail.getId(), null, null));
-  }
-
-  private void createContinuationExternalTeam(LicenceContinuationApplicationDetail applicationDetail
-  ) {
-
-    var scopeRef = TeamScopeReference.from(
-        applicationDetail.getId().toString(),
-        ApplicationType.CONTINUATION_APPLICATION.name()
-    );
-
-    teamManagementService.createScopedTeam(
-        TeamType.EXTERNAL_CONTRIBUTORS.getDisplayName(),
-        TeamType.EXTERNAL_CONTRIBUTORS,
-        scopeRef
-    );
+    return ReverseRouter.redirect(on(LicenceContinuationLicenseeInformationController.class)
+                                      .renderConfirmLicenseePermission(licence.getId(), null, null));
   }
 
   private ModelAndView getModelAndView(SelectContinuationApplicationLicenceForm form) {

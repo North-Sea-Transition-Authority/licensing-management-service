@@ -52,7 +52,7 @@ public class InvokingUserCanAccessContinuationApplicationInterceptorRule impleme
     boolean hasAccess = applicationAccessService.userHasAccessToApplication(
         applicationId.toString(),
         ApplicationType.CONTINUATION_APPLICATION,
-        null,
+        applicationDetail.getResponsibleOrganisationUnitId(),
         wuaId
     );
 

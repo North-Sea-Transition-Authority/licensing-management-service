@@ -5,8 +5,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 @Service
@@ -14,12 +18,19 @@ public class LicenceResponsibleOrganisationService {
 
   private final LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository;
   private final PearsResponsibleOrganisationRefreshService pearsResponsibleOrganisationRefreshService;
+  private final LicenceOrganisationService licenceOrganisationService;
+  private final ApplicationAccessService applicationAccessService;
 
   public LicenceResponsibleOrganisationService(
       LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository,
-      PearsResponsibleOrganisationRefreshService pearsResponsibleOrganisationRefreshService) {
+      PearsResponsibleOrganisationRefreshService pearsResponsibleOrganisationRefreshService,
+      LicenceOrganisationService licenceOrganisationService,
+      ApplicationAccessService applicationAccessService
+  ) {
     this.licenceResponsibleOrganisationRepository = licenceResponsibleOrganisationRepository;
     this.pearsResponsibleOrganisationRefreshService = pearsResponsibleOrganisationRefreshService;
+    this.licenceOrganisationService = licenceOrganisationService;
+    this.applicationAccessService = applicationAccessService;
   }
 
   public List<LicenceResponsibleOrganisation> getAllByLicence(Licence licence) {
@@ -81,4 +92,23 @@ public class LicenceResponsibleOrganisationService {
 
     return licensee;
   }
+
+  public Map<String, String> getResponsibleOrgUnitOptionsWithValidRoles(
+      Licence licence,
+      ServiceUserDetail serviceUserDetail
+  ) {
+
+    var licenceResponsibleOrganisationIds = getAllByLicence(licence)
+        .stream()
+        .map(LicenceResponsibleOrganisation::getResponsibleOrganisationId)
+        .toList();
+
+    return licenceOrganisationService
+        .getUsersOrgUnits(serviceUserDetail)
+        .stream()
+        .filter(orgUnit -> licenceResponsibleOrganisationIds.contains(orgUnit.organisationUnitId())
+                           && applicationAccessService.userHasEditorOrSubmitterRoleInOrganisationGroup(serviceUserDetail))
+        .collect(Collectors.toMap(OrganisationUnitJson::getId, OrganisationUnitJson::getName));
+  }
+
 }

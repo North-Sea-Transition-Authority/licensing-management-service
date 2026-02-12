@@ -1,0 +1,5 @@
+ALTER TABLE licence_continuation_application_details
+ADD COLUMN responsible_organisation_unit_id INTEGER;
+
+ALTER TABLE licence_continuation_application_details_aud
+ADD COLUMN responsible_organisation_unit_id INTEGER;

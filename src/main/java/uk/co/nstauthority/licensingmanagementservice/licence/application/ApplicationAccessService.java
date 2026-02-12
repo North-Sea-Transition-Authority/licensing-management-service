@@ -5,7 +5,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
@@ -21,18 +20,15 @@ public class ApplicationAccessService {
   private final OrganisationGroupQueryService organisationGroupQueryService;
   private final TeamQueryService teamQueryService;
   private final Set<Role> editorSubmitterRoles = Set.of(Role.APPLICATION_EDITOR, Role.APPLICATION_SUBMITTER);
-  private final UserDetailService userDetailService;
 
   public ApplicationAccessService(
       OrganisationUnitQueryService organisationUnitQueryService,
       OrganisationGroupQueryService organisationGroupQueryService,
-      TeamQueryService teamQueryService,
-      UserDetailService userDetailService
+      TeamQueryService teamQueryService
   ) {
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.organisationGroupQueryService = organisationGroupQueryService;
     this.teamQueryService = teamQueryService;
-    this.userDetailService = userDetailService;
   }
 
   public boolean userHasAccessToApplication(
@@ -47,10 +43,7 @@ public class ApplicationAccessService {
         Role.APPLICATION_SUBMITTER
     );
 
-    var rawGroupIds = (organisationUnitId != null)
-                      ? organisationUnitQueryService.findOrganisationGroupIdsByUnitId(organisationUnitId)
-                      : getOrganisationGroupIds(userDetailService.getUserDetail());
-
+    var rawGroupIds = organisationUnitQueryService.findOrganisationGroupIdsByUnitId(organisationUnitId);
 
     var organisationGroupIds = rawGroupIds.stream()
         .map(String::valueOf)

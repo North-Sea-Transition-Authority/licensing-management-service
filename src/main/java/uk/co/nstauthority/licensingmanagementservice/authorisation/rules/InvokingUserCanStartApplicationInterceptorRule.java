@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication;
+package uk.co.nstauthority.licensingmanagementservice.authorisation.rules;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -9,18 +9,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AccessInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 
 @Component
 @Order(6)
-public class InvokingUserCanStartScheduleApplicationInterceptorRule implements AccessInterceptorRule {
+public class InvokingUserCanStartApplicationInterceptorRule implements AccessInterceptorRule {
 
   private final ApplicationAccessService applicationAccessService;
   private final UserDetailService userDetailService;
 
   @Autowired
-  public InvokingUserCanStartScheduleApplicationInterceptorRule(
+  public InvokingUserCanStartApplicationInterceptorRule(
       ApplicationAccessService applicationAccessService,
       UserDetailService userDetailService
   ) {
@@ -30,7 +29,7 @@ public class InvokingUserCanStartScheduleApplicationInterceptorRule implements A
 
   @Override
   public Class<? extends Annotation> supports() {
-    return InvokingUserCanStartScheduleApplication.class;
+    return InvokingUserCanStartApplication.class;
   }
 
   @Override

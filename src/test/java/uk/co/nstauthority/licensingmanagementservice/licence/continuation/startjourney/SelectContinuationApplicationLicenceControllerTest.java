@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.continuation.start
 
 import static java.lang.Integer.parseInt;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -27,7 +28,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTypeUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.internalapi.LicenceInternalApiRestController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
@@ -50,6 +50,8 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
 
   @SecurityTest
   void render() throws Exception {
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
+
     var licenceTypeList = List.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION);
 
     mockMvc.perform(
@@ -72,12 +74,13 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
     var form = new SelectContinuationApplicationLicenceForm();
     form.setLicenceId(String.valueOf(licenceId));
     when(selectContinuationApplicationLicenceFormValidator.isValid(any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
 
-    var licence = new Licence();
+    var licence = new Licence(licenceId);
     when(licenceService.findLicenceByIdOrThrow(parseInt(form.getLicenceId()))).thenReturn(licence);
 
     var licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail(UUID.randomUUID());
-    when(licenceContinuationService.createNewLicenceContinuationApplication(licence)).thenReturn(licenceContinuationApplicationDetail);
+    when(licenceContinuationService.createNewLicenceContinuationApplication(licence, 1)).thenReturn(licenceContinuationApplicationDetail);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).submit(form, null)))
@@ -86,12 +89,14 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
                 .flashAttr("form", form)
         )
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
-            .getTaskList(licenceContinuationApplicationDetail.getId(), null, null))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceContinuationLicenseeInformationController.class)
+            .renderConfirmLicenseePermission(licenceId, null , null))));
   }
 
   @SecurityTest
   void submit_invalidForm() throws Exception {
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
+
     var licenceTypeList = List.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION);
 
     when(selectContinuationApplicationLicenceFormValidator.isValid(any())).thenReturn(false);
@@ -108,5 +113,31 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
             SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndType(LicenceTypeUtil.getUrlSlugList(licenceTypeList), null, null))))
         .andExpect(model().attribute("backUrl",
             ReverseRouter.route(on(StartContinuationApplicationController.class).render())));
+  }
+
+  @SecurityTest
+  void render_ForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).render()))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isForbidden());
+  }
+
+  @SecurityTest
+  void submit_ForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).submit(null, null)))
+                .with(user(organisationUser))
+                .with(csrf())
+                .flashAttr("form", new SelectContinuationApplicationLicenceForm())
+        )
+        .andExpect(status().isForbidden());
+
+    verifyNoInteractions(licenceService);
   }
 }

@@ -105,7 +105,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
     return applicationAccessService.userHasAccessToApplication(
         applicationDetail.getId().toString(),
         ApplicationType.CONTINUATION_APPLICATION,
-        null,
+        applicationDetail.getResponsibleOrganisationUnitId(),
         userDetail.wuaId()
     );
   }

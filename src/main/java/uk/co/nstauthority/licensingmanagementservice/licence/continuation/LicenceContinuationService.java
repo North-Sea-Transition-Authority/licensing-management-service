@@ -29,7 +29,10 @@ public class LicenceContinuationService {
   }
 
   @Transactional
-  public LicenceContinuationApplicationDetail createNewLicenceContinuationApplication(Licence licence) {
+  public LicenceContinuationApplicationDetail createNewLicenceContinuationApplication(
+      Licence licence,
+      Integer responsibleOrganisationUnitId
+  ) {
     var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
         licence,
         LicenceScheduleDetailStatus.ACTIVE
@@ -45,6 +48,7 @@ public class LicenceContinuationService {
     licenceContinuationApplicationDetail.setVersionNumber(1);
     licenceContinuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.DRAFT);
     licenceContinuationApplicationDetail.setCreatedDateTime(Instant.now(clock));
+    licenceContinuationApplicationDetail.setResponsibleOrganisationUnitId(responsibleOrganisationUnitId);
 
     licenceContinuationApplicationDetailRepository.save(licenceContinuationApplicationDetail);
 

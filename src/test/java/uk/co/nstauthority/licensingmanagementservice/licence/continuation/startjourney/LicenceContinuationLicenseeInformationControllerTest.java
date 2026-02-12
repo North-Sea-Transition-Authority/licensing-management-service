@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney;
+package uk.co.nstauthority.licensingmanagementservice.licence.continuation.startjourney;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -18,6 +18,7 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.schedulework
 
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -25,22 +26,19 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurpose;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurposeService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
-@ContextConfiguration(classes = LicenseeInformationController.class)
-class LicenseeInformationControllerTest extends AbstractControllerTest {
+@ContextConfiguration(classes = {LicenceContinuationLicenseeInformationController.class})
+class LicenceContinuationLicenseeInformationControllerTest extends AbstractControllerTest {
 
   @MockitoBean
-  private LicenseeInformationFormValidator licenseeInformationFormValidator;
+  private LicenceContinuationLicenseeInformationFormValidator licenceContinuationLicenseeInformationFormValidator;
 
   @MockitoBean
   private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
@@ -49,72 +47,63 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
   private static final String CAPTION = "Licence type - Licence ref";
   private static final Integer LICENCE_ID = 1;
-  private static final Licence LICENCE = LicenceTestUtil.builder().withId(LICENCE_ID).build();
-
-  @MockitoBean
-  private SwpApplicationRequestPurposeService swpApplicationRequestPurposeService;
+  private static final Licence LICENCE = LicenceTestUtil
+      .builder().withId(LICENCE_ID).build();
 
   @BeforeEach
   void setUp() {
-    organisationUser = ServiceUserDetailTestUtil
-        .newBuilder()
+    organisationUser = ServiceUserDetailTestUtil.newBuilder()
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
 
-    var swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
-    when(swpApplicationRequestPurposeService.saveOrUpdateRequestPurpose(any(),any())).thenReturn(swpApplicationRequestPurpose);
     when(licenceService.findLicenceByIdOrThrow(LICENCE_ID)).thenReturn(LICENCE);
     when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(CAPTION);
   }
 
-  @SecurityTest
+  @Test
   void render() throws Exception {
-    var licenceType = LicenceType.SEAWARD_EXPLORATION;
-
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(LicenseeInformationController.class).renderConfirmLicenseePermission(licenceType.getUrlSlug(), LICENCE_ID, null, organisationUser)))
+            get(ReverseRouter.route(on(LicenceContinuationLicenseeInformationController.class).renderConfirmLicenseePermission(LICENCE_ID, null, organisationUser)))
                 .with(user(organisationUser))
         )
         .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/licenseeInformation"))
+        .andExpect(view().name("lms/licence/continuation/licenseeInformationContinuation"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("pageCaption", CAPTION))
-        .andExpect(model().attribute("backUrl",  ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class)
-            .renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))));
+        .andExpect(model().attribute("backUrl",  ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).render())));
   }
 
-  @SecurityTest
+  @Test
   void submit() throws Exception {
-    when(licenseeInformationFormValidator.isValid(any(), any())).thenReturn(true);
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
-
-    var licenceType = LicenceType.SEAWARD_EXPLORATION;
+    when(licenceContinuationLicenseeInformationFormValidator.isValid(any())).thenReturn(true);
 
     var licence = mock(Licence.class);
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
 
-    var form = new LicenseeInformationForm();
-    form.setAllLicenseesPermissionConfirmed(true);
+
+    var form = new LicenceContinuationLicenseeInformationForm();
+    form.setResponsibleOrganisationUnitId(1);
 
     var team = new Team(UUID.randomUUID());
     when(teamManagementService.createScopedTeam(any(), any(), any())).thenReturn(team);
 
-    ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
-    scheduleWorkProgrammeApplication.setId(UUID.randomUUID());
+    LicenceContinuationApplication licenceContinuationApplication = new LicenceContinuationApplication();
+    licenceContinuationApplication.setId(UUID.randomUUID());
 
-    var scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
+    var licenceContinuationApplicationDetail = LicenceContinuationApplicationTestUtil
         .builder()
         .withId(UUID.randomUUID())
-        .withScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication)
+        .withLicenceContinuationApplication(licenceContinuationApplication)
         .build();
 
-    when(scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence, form))
-        .thenReturn(scheduleWorkProgrammeApplicationDetail);
+    when(licenceContinuationService.createNewLicenceContinuationApplication(licence, 1))
+        .thenReturn(licenceContinuationApplicationDetail);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenseeInformationController.class).submitLicenseePermissionConfirmation(licenceType.getUrlSlug(), 1, null, form, null, organisationUser)))
+            post(ReverseRouter.route(on(LicenceContinuationLicenseeInformationController.class).submitLicenseePermissionConfirmation(1, null, form, null, organisationUser)))
                 .with(user(organisationUser))
                 .with(csrf())
                 .flashAttr("form", form)
@@ -122,39 +111,34 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
         .andExpect(status().is3xxRedirection());
 
     verify(teamManagementService).createScopedTeam(eq(TeamType.EXTERNAL_CONTRIBUTORS.getDisplayName()), eq(TeamType.EXTERNAL_CONTRIBUTORS), any());
-    verify(scheduleWorkProgrammeApplicationService).createNewScheduleWorkProgrammeApplicationForLicence(licence, form);
+    verify(licenceContinuationService).createNewLicenceContinuationApplication(licence, 1);
   }
 
   @SecurityTest
   void submitLicenseePermissionConfirmation_invalid() throws Exception {
-    var licenceType = LicenceType.SEAWARD_EXPLORATION;
-
-    when(licenseeInformationFormValidator.isValid(any(), any())).thenReturn(false);
+    when(licenceContinuationLicenseeInformationFormValidator.isValid(any())).thenReturn(false);
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenseeInformationController.class).submitLicenseePermissionConfirmation(licenceType.getUrlSlug(), LICENCE_ID, null,null, null, organisationUser)))
+            post(ReverseRouter.route(on(LicenceContinuationLicenseeInformationController.class).submitLicenseePermissionConfirmation(LICENCE_ID, null,null, null, organisationUser)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
         .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/licenseeInformation"))
+        .andExpect(view().name("lms/licence/continuation/licenseeInformationContinuation"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("pageCaption", CAPTION))
-        .andExpect(model().attribute("backUrl",  ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class)
-            .renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))));
+        .andExpect(model().attribute("backUrl",  ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).render())));
 
     verifyNoInteractions(scheduleWorkProgrammeApplicationService);
   }
 
   @SecurityTest
   void render_ForbiddenUserNoAccess() throws Exception {
-    var licenceType = LicenceType.SEAWARD_EXPLORATION;
-
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(LicenseeInformationController.class).renderConfirmLicenseePermission(licenceType.getUrlSlug(), LICENCE_ID, null, organisationUser)))
+            get(ReverseRouter.route(on(LicenceContinuationLicenseeInformationController.class).renderConfirmLicenseePermission(LICENCE_ID, null, organisationUser)))
                 .with(user(organisationUser))
         )
         .andExpect(status().isForbidden());
@@ -164,12 +148,11 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
   void submit_ForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
 
-    var licenceType = LicenceType.SEAWARD_EXPLORATION;
-
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenseeInformationController.class).submitLicenseePermissionConfirmation(licenceType.getUrlSlug(), 1, null, null, null, organisationUser)))
+            post(ReverseRouter.route(on(LicenceContinuationLicenseeInformationController.class).submitLicenseePermissionConfirmation(1, null, null, null, organisationUser)))
                 .with(user(organisationUser))
                 .with(csrf()))
         .andExpect(status().isForbidden());
   }
+
 }

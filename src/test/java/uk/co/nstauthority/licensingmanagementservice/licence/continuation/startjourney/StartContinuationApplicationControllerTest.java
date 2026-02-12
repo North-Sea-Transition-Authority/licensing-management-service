@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation.startjourney;
 
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -32,6 +33,8 @@ class StartContinuationApplicationControllerTest extends AbstractControllerTest 
 
   @SecurityTest
   void render() throws Exception {
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
+
     mockMvc.perform(
             get(ReverseRouter.route(on(StartContinuationApplicationController.class).render()))
                 .with(user(organisationUser))
@@ -41,5 +44,16 @@ class StartContinuationApplicationControllerTest extends AbstractControllerTest 
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("startUrl", ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).render())))
         .andExpect(model().attribute("backUrl", ReverseRouter.route(on(SelectApplicationTypeController.class).render())));
+  }
+
+  @SecurityTest
+  void render_ForbiddenUserNoAccess() throws Exception {
+    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(StartContinuationApplicationController.class).render()))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isForbidden());
   }
 }

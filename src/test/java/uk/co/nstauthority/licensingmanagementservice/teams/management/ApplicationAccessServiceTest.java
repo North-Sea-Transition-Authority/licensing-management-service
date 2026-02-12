@@ -18,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
@@ -43,9 +42,6 @@ class ApplicationAccessServiceTest {
 
   @Mock
   private OrganisationGroupQueryService organisationGroupQueryService;
-
-  @Mock
-  private UserDetailService userDetailsService;
 
   @InjectMocks
   private ApplicationAccessService applicationAccessService;
@@ -74,8 +70,6 @@ class ApplicationAccessServiceTest {
     role.setTeam(externalTeam);
     role.setRole(Role.EXTERNAL_APPLICATION_EDITOR);
 
-
-    when(userDetailsService.getUserDetail()).thenReturn(organisationUser);
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
 
     assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.CONTINUATION_APPLICATION, null, USER_1_WUA_ID)).isTrue();
@@ -94,7 +88,6 @@ class ApplicationAccessServiceTest {
     role.setTeam(externalTeam);
     role.setRole(Role.VIEW_ANY_LICENCE);
 
-    when(userDetailsService.getUserDetail()).thenReturn(organisationUser);
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
 
     assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.CONTINUATION_APPLICATION, null, USER_1_WUA_ID)).isFalse();

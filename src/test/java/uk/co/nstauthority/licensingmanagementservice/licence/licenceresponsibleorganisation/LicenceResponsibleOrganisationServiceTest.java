@@ -13,7 +13,11 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceResponsibleOrganisationServiceTest {
@@ -27,11 +31,25 @@ class LicenceResponsibleOrganisationServiceTest {
   @Mock
   private PearsResponsibleOrganisationRefreshService pearsResponsibleOrganisationRefreshService;
 
+  @Mock
+  private ApplicationAccessService applicationAccessService;
+
+  @Mock
+  private LicenceOrganisationService licenceOrganisationService;
+
   @InjectMocks
   private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
 
+  private ServiceUserDetail organisationUser;
+
+  private static final Long ORGANISATION_USER_WUA_ID = 2L;
+
   @Test
   void getAllByLicence() {
+    organisationUser = ServiceUserDetailTestUtil.newBuilder()
+        .withWuaId(ORGANISATION_USER_WUA_ID)
+        .build();
+
     var licence = new Licence();
 
     licenceResponsibleOrganisationService.getAllByLicence(licence);
@@ -126,5 +144,46 @@ class LicenceResponsibleOrganisationServiceTest {
         .usingRecursiveComparison()
         .ignoringCollectionOrder()
         .isEqualTo(expectedSave);
+  }
+
+  @Test
+  void getResponsibleOrgUnitOptions_returnsOnlyMatchingOrgUnitsWithValidRoles() {
+    Licence licence = new Licence();
+
+    var responsibleOrganisation = new LicenceResponsibleOrganisation();
+    responsibleOrganisation.setResponsibleOrganisationId(1);
+    responsibleOrganisation.setLicence(licence);
+    responsibleOrganisation.setManagedByLms(true);
+
+    var responsibleOrganisation2 = new LicenceResponsibleOrganisation();
+    responsibleOrganisation2.setResponsibleOrganisationId(2);
+    responsibleOrganisation2.setLicence(licence);
+    responsibleOrganisation2.setManagedByLms(true);
+
+    when(licenceResponsibleOrganisationRepository.findAllByLicence(licence)).thenReturn(List.of(responsibleOrganisation, responsibleOrganisation2));
+
+    OrganisationUnitJson ou1 = new OrganisationUnitJson(2, "Org Two");
+    OrganisationUnitJson ou2 = new OrganisationUnitJson(3, "Org Three");
+    when(applicationAccessService.userHasEditorOrSubmitterRoleInOrganisationGroup(organisationUser)).thenReturn(true);
+    when(licenceOrganisationService.getUsersOrgUnits(organisationUser)).thenReturn(List.of(ou1, ou2));
+
+    var result = licenceResponsibleOrganisationService.getResponsibleOrgUnitOptionsWithValidRoles(licence, organisationUser);
+
+    assertThat(result)
+        .hasSize(1)
+        .containsEntry("2", "Org Two");
+  }
+
+  @Test
+  void getResponsibleOrgUnitOptions_WithValidRoles_returnsEmptyWhenNoMatches() {
+    Licence licence = new Licence();
+
+    OrganisationUnitJson ou1 = new OrganisationUnitJson(2, "Org Two");
+    OrganisationUnitJson ou2 = new OrganisationUnitJson(3, "Org Three");
+    when(licenceOrganisationService.getUsersOrgUnits(organisationUser)).thenReturn(List.of(ou1, ou2));
+
+    var result = licenceResponsibleOrganisationService.getResponsibleOrgUnitOptionsWithValidRoles(licence, organisationUser);
+
+    assertThat(result).isEmpty();
   }
 }

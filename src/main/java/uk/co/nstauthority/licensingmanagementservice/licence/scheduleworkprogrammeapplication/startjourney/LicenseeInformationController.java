@@ -11,11 +11,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanStartScheduleApplication;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InvokingUserCanStartApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
@@ -26,26 +27,27 @@ import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManage
 
 @Controller
 @RequestMapping("licence/{licenceId}/schedule-work-programme-application/{licenceTypeSlug}/licensee-information")
-@InvokingUserCanStartScheduleApplication
+@InvokingUserCanStartApplication
 public class LicenseeInformationController {
   public static final String PAGE_TITLE = "Licensee information";
 
   private final LicenseeInformationFormValidator licenseeInformationFormValidator;
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final LicenceService licenceService;
-  private final LicenseeInformationService licenseeInformationService;
+  private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final TeamManagementService teamManagementService;
 
   public LicenseeInformationController(
       LicenseeInformationFormValidator licenseeInformationFormValidator,
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
       LicenceService licenceService,
-      LicenseeInformationService licenseeInformationService, TeamManagementService teamManagementService
+      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
+      TeamManagementService teamManagementService
   ) {
     this.licenseeInformationFormValidator = licenseeInformationFormValidator;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.licenceService = licenceService;
-    this.licenseeInformationService = licenseeInformationService;
+    this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.teamManagementService = teamManagementService;
   }
 
@@ -105,7 +107,7 @@ public class LicenseeInformationController {
         .addObject("form", selectLicenceTypeForm)
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("pageCaption", caption)
-        .addObject("responsibleOrgUnitOptions", licenseeInformationService
+        .addObject("responsibleOrgUnitOptions", licenceResponsibleOrganisationService
             .getResponsibleOrgUnitOptionsWithValidRoles(licence, user))
         .addObject("backUrl", ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class)
             .renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))

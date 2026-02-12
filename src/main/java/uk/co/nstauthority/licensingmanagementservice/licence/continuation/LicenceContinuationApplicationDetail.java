@@ -38,6 +38,8 @@ public class LicenceContinuationApplicationDetail {
 
   private Instant createdDateTime;
 
+  private Integer responsibleOrganisationUnitId;
+
   public LicenceContinuationApplicationDetail() {
   }
 
@@ -85,5 +87,13 @@ public class LicenceContinuationApplicationDetail {
 
   public void setCreatedDateTime(Instant createdInstant) {
     this.createdDateTime = createdInstant;
+  }
+
+  public Integer getResponsibleOrganisationUnitId() {
+    return responsibleOrganisationUnitId;
+  }
+
+  public void setResponsibleOrganisationUnitId(Integer responsibleOrganisationUnitId) {
+    this.responsibleOrganisationUnitId = responsibleOrganisationUnitId;
   }
 }

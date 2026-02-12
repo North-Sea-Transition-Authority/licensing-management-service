@@ -21,7 +21,39 @@ public class LicenceContinuationOtherRequirementValidator {
           errors,
           "actionsToProvideFinancialEvidence",
           "actionsToProvideFinancialEvidence.required",
-          "Enter the actions being taken to provide evidence of financial capacity to the NSTA Finance Team"
+          "Enter actions being taken to provide evidence of financial capacity to the NSTA Finance Team"
+      );
+    }
+
+    ValidationUtils.rejectIfEmptyOrWhitespace(
+        errors,
+        "developmentConsentGrantStatus",
+        "developmentConsentGrantStatus.required",
+        "Select if Development Consent has been granted"
+    );
+
+    if (BooleanUtils.isFalse(form.getDevelopmentConsentGrantStatus())) {
+      ValidationUtils.rejectIfEmptyOrWhitespace(
+          errors,
+          "actionsToApproveDevelopmentConsent",
+          "actionsToApproveDevelopmentConsent.required",
+          "Enter actions being taken to get the Development Consent approved"
+      );
+    }
+
+    ValidationUtils.rejectIfEmptyOrWhitespace(
+        errors,
+        "relinquishmentRequirementStatus",
+        "relinquishmentRequirementStatus.required",
+        "Select if required amount of the licensed area has been relinquished"
+    );
+
+    if (BooleanUtils.isFalse(form.getRelinquishmentRequirementStatus())) {
+      ValidationUtils.rejectIfEmptyOrWhitespace(
+          errors,
+          "actionsToRelinquishRequiredLicenceArea",
+          "actionsToRelinquishRequiredLicenceArea.required",
+          "Enter the actions being taken to relinquish the required amount of the licence area"
       );
     }
 

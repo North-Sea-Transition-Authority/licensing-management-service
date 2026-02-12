@@ -1,0 +1,7 @@
+ALTER TABLE licence_continuation_other_requirement_request
+ADD COLUMN development_consent_grant_status BOOLEAN,
+ADD COLUMN actions_to_approve_development_consent TEXT;
+
+ALTER TABLE licence_continuation_other_requirement_request_aud
+ADD COLUMN development_consent_grant_status BOOLEAN,
+ADD COLUMN actions_to_approve_development_consent TEXT;

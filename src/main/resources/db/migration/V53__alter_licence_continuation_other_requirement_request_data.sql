@@ -1,0 +1,7 @@
+ALTER TABLE licence_continuation_other_requirement_request
+ADD COLUMN relinquishment_requirement_status BOOLEAN,
+ADD COLUMN actions_to_relinquish_required_licence_area TEXT;
+
+ALTER TABLE licence_continuation_other_requirement_request_aud
+ADD COLUMN relinquishment_requirement_status BOOLEAN,
+ADD COLUMN actions_to_relinquish_required_licence_area TEXT;

@@ -26,12 +26,26 @@ public class LicenceContinuationOtherRequirementService {
     ).orElse(new LicenceContinuationOtherRequirementRequest());
 
     otherRequirementRequest.setFinancialCapacityEvidenceSubmissionStatus(form.getFinancialCapacityEvidenceSubmissionStatus());
+    otherRequirementRequest.setDevelopmentConsentGrantStatus(form.getDevelopmentConsentGrantStatus());
     otherRequirementRequest.setLicenceContinuationApplicationDetail(applicationDetail);
+    otherRequirementRequest.setRelinquishmentRequirementStatus(form.getRelinquishmentRequirementStatus());
 
     if (BooleanUtils.isTrue(form.getFinancialCapacityEvidenceSubmissionStatus())) {
       otherRequirementRequest.setActionsToProvideFinancialEvidence(null);
     } else {
       otherRequirementRequest.setActionsToProvideFinancialEvidence(form.getActionsToProvideFinancialEvidence());
+    }
+
+    if (BooleanUtils.isTrue(form.getDevelopmentConsentGrantStatus())) {
+      otherRequirementRequest.setActionsToApproveDevelopmentConsent(null);
+    } else {
+      otherRequirementRequest.setActionsToApproveDevelopmentConsent(form.getActionsToApproveDevelopmentConsent());
+    }
+
+    if (BooleanUtils.isTrue(form.getRelinquishmentRequirementStatus())) {
+      otherRequirementRequest.setActionsToRelinquishRequiredLicenceArea(null);
+    } else {
+      otherRequirementRequest.setActionsToRelinquishRequiredLicenceArea(form.getActionsToRelinquishRequiredLicenceArea());
     }
 
     licenceContinuationOtherRequirementRepository.save(otherRequirementRequest);
@@ -43,6 +57,10 @@ public class LicenceContinuationOtherRequirementService {
     LicenceContinuationOtherRequirementForm form = new LicenceContinuationOtherRequirementForm();
     form.setFinancialCapacityEvidenceSubmissionStatus(request.getFinancialCapacityEvidenceSubmissionStatus());
     form.setActionsToProvideFinancialEvidence(request.getActionsToProvideFinancialEvidence());
+    form.setDevelopmentConsentGrantStatus(request.getDevelopmentConsentGrantStatus());
+    form.setActionsToApproveDevelopmentConsent(request.getActionsToApproveDevelopmentConsent());
+    form.setRelinquishmentRequirementStatus(request.getRelinquishmentRequirementStatus());
+    form.setActionsToRelinquishRequiredLicenceArea(request.getActionsToRelinquishRequiredLicenceArea());
     return form;
   }
 

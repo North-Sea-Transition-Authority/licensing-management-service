@@ -65,18 +65,102 @@ class LicenceContinuationOtherRequirementServiceTest {
   }
 
   @Test
+  void save_WhenDevelopmentConsentGrantedIsTrue_ClearsActions() {
+    var licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
+    var form = new LicenceContinuationOtherRequirementForm();
+    form.setDevelopmentConsentGrantStatus(true);
+    form.setActionsToApproveDevelopmentConsent("Should be cleared");
+
+    when(repository.findByLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(Optional.of(new LicenceContinuationOtherRequirementRequest()));
+
+    service.saveLicenceContinuationOtherRequirementForm(form, licenceContinuationApplicationDetail);
+
+    verify(repository).save(captor.capture());
+
+    var savedRequest = captor.getValue();
+    assertThat(savedRequest.getDevelopmentConsentGrantStatus()).isTrue();
+    assertThat(savedRequest.getActionsToApproveDevelopmentConsent()).isNull();
+  }
+
+  @Test
+  void save_WhenDevelopmentConsentGrantedIsFalse_SavesActions() {
+    var licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
+    var form = new LicenceContinuationOtherRequirementForm();
+    form.setDevelopmentConsentGrantStatus(false);
+    form.setActionsToApproveDevelopmentConsent("Consent Actions needed");
+
+    when(repository.findByLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(Optional.of(new LicenceContinuationOtherRequirementRequest()));
+
+    service.saveLicenceContinuationOtherRequirementForm(form, licenceContinuationApplicationDetail);
+
+    verify(repository).save(captor.capture());
+
+    var savedRequest = captor.getValue();
+    assertThat(savedRequest.getDevelopmentConsentGrantStatus()).isFalse();
+    assertThat(savedRequest.getActionsToApproveDevelopmentConsent()).isEqualTo("Consent Actions needed");
+  }
+
+  @Test
+  void save_WhenRelinquishmentPerformedIsTrue_ClearsActions() {
+    var licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
+    var form = new LicenceContinuationOtherRequirementForm();
+    form.setRelinquishmentRequirementStatus(true);
+    form.setActionsToRelinquishRequiredLicenceArea("Should be cleared");
+
+    when(repository.findByLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(Optional.of(new LicenceContinuationOtherRequirementRequest()));
+
+    service.saveLicenceContinuationOtherRequirementForm(form, licenceContinuationApplicationDetail);
+
+    verify(repository).save(captor.capture());
+
+    var savedRequest = captor.getValue();
+    assertThat(savedRequest.getRelinquishmentRequirementStatus()).isTrue();
+    assertThat(savedRequest.getActionsToRelinquishRequiredLicenceArea()).isNull();
+  }
+
+  @Test
+  void save_WhenRelinquishmentPerformedIsFalse_SavesActions() {
+    var licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
+    var form = new LicenceContinuationOtherRequirementForm();
+    form.setRelinquishmentRequirementStatus(false);
+    form.setActionsToRelinquishRequiredLicenceArea("Relinquishment actions underway");
+
+    when(repository.findByLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(Optional.of(new LicenceContinuationOtherRequirementRequest()));
+
+    service.saveLicenceContinuationOtherRequirementForm(form, licenceContinuationApplicationDetail);
+
+    verify(repository).save(captor.capture());
+
+    var savedRequest = captor.getValue();
+    assertThat(savedRequest.getRelinquishmentRequirementStatus()).isFalse();
+    assertThat(savedRequest.getActionsToRelinquishRequiredLicenceArea()).isEqualTo("Relinquishment actions underway");
+  }
+
+  @Test
   void getForm_WhenExists_ReturnsMappedForm() {
     var licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
-    var licenceContinuationOtherRequirementRequest = new LicenceContinuationOtherRequirementRequest();
-    licenceContinuationOtherRequirementRequest.setFinancialCapacityEvidenceSubmissionStatus(true);
-    licenceContinuationOtherRequirementRequest.setActionsToProvideFinancialEvidence("Actions");
+    var request = new LicenceContinuationOtherRequirementRequest();
+    request.setFinancialCapacityEvidenceSubmissionStatus(true);
+    request.setActionsToProvideFinancialEvidence("Actions");
+    request.setDevelopmentConsentGrantStatus(true);
+    request.setActionsToApproveDevelopmentConsent("Consent Actions");
+    request.setRelinquishmentRequirementStatus(false);
+    request.setActionsToRelinquishRequiredLicenceArea("Relinquishment Actions");
 
-    when(repository.findByLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail)).thenReturn(Optional.of(licenceContinuationOtherRequirementRequest));
+    when(repository.findByLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail)).thenReturn(Optional.of(request));
 
     var result = service.getLicenceContinuationOtherRequirementForm(licenceContinuationApplicationDetail);
 
     assertThat(result.getFinancialCapacityEvidenceSubmissionStatus()).isTrue();
     assertThat(result.getActionsToProvideFinancialEvidence()).isEqualTo("Actions");
+    assertThat(result.getDevelopmentConsentGrantStatus()).isTrue();
+    assertThat(result.getActionsToApproveDevelopmentConsent()).isEqualTo("Consent Actions");
+    assertThat(result.getRelinquishmentRequirementStatus()).isFalse();
+    assertThat(result.getActionsToRelinquishRequiredLicenceArea()).isEqualTo("Relinquishment Actions");
   }
 
   @Test
@@ -88,5 +172,7 @@ class LicenceContinuationOtherRequirementServiceTest {
 
     assertThat(result).isNotNull();
     assertThat(result.getFinancialCapacityEvidenceSubmissionStatus()).isNull();
+    assertThat(result.getDevelopmentConsentGrantStatus()).isNull();
+    assertThat(result.getRelinquishmentRequirementStatus()).isNull();
   }
 }

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InvokingUserCanStartApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
@@ -58,6 +59,7 @@ public class SelectScheduleWorkProgrammeApplicationLicenceTypeController {
     return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/selectLicenceType")
         .addObject("form", selectLicenceTypeForm)
         .addObject("pageTitle", PAGE_TITLE)
-        .addObject("licenceTypeOptions", licenceTypeOptions);
+        .addObject("licenceTypeOptions", licenceTypeOptions)
+        .addObject("backUrl", ReverseRouter.route(on(SelectApplicationTypeController.class).render()));
   }
 }

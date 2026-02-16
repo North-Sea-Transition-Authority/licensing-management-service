@@ -7,6 +7,7 @@ pageHeadingClass="govuk-heading-l"
 caption=pageCaption
 captionClass="govuk-caption-l"
 pageSize=PageSize.TWO_THIRDS_COLUMN
+backLinkUrl=springUrl(backUrl)
 errorSummaryItems=errorSummaryItems>
 
     <@fdsStartPage.startPage startActionButton=false startActionUrl=springUrl(startUrl) startActionText="Start">

@@ -27,7 +27,9 @@ public class StartScheduleWorkProgrammeApplicationJourneyController {
         .addObject("pageCaption", licenceType.getDisplayName())
         .addObject("startUrl", ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class)
                 .renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))
-        );
+        )
+        .addObject("backUrl",
+            ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceTypeController.class).renderSelectLicenceType()));
   }
 
 }

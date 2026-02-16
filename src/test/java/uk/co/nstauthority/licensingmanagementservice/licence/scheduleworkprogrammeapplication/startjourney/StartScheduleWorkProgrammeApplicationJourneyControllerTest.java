@@ -43,7 +43,8 @@ class StartScheduleWorkProgrammeApplicationJourneyControllerTest extends Abstrac
         .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/startJourney"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("pageCaption", licenceType.getDisplayName()))
-        .andExpect(model().attribute("startUrl", ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class).renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))));
+        .andExpect(model().attribute("startUrl", ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class).renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))))
+        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceTypeController.class).renderSelectLicenceType())));
   }
 
   @SecurityTest

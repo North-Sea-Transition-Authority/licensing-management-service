@@ -3,7 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 import java.util.UUID;
 
 public class SelectLicenceAmendmentForm {
-  UUID selectedWorkProgrammeActivityAmendmentId;
+  private UUID selectedWorkProgrammeActivityAmendmentId;
 
   public UUID getSelectedWorkProgrammeActivityAmendmentId() {
     return selectedWorkProgrammeActivityAmendmentId;

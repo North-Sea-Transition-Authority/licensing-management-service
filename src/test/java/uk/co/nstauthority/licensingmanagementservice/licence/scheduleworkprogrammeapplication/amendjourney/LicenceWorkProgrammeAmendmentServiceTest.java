@@ -195,4 +195,20 @@ class LicenceWorkProgrammeAmendmentServiceTest {
     assertFalse(licenceWorkProgrammeAmendmentService.validateAllWorkProgrammeAmendments(List.of(request)));
     verify(licenceWorkProgrammeAmendmentFormValidator).isValid(any(LicenceWorkProgrammeAmendmentForm.class), any());
   }
+
+  @Test
+  void existsByWorkProgrammeActivityIdAndSwpApplicationDetail() {
+    var workProgrammeActivityId = UUID.randomUUID();
+    var swpApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
+
+    licenceWorkProgrammeAmendmentService.existsByWorkProgrammeActivityIdAndSwpApplicationDetail(
+        workProgrammeActivityId,
+        swpApplicationDetail
+    );
+
+    verify(licenceWorkProgrammeAmendmentRepository).existsByWorkProgrammeActivityIdAndScheduleWorkProgrammeApplicationDetails(
+        workProgrammeActivityId,
+        swpApplicationDetail
+    );
+  }
 }

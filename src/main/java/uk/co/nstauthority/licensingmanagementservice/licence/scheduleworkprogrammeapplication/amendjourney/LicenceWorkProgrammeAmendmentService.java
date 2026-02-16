@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,29 +40,35 @@ public class LicenceWorkProgrammeAmendmentService {
   }
 
   public List<LicenceWorkProgrammeAmendmentRequest> getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  ) {
     return licenceWorkProgrammeAmendmentRepository
         .findAllByScheduleWorkProgrammeApplicationDetails(
             scheduleWorkProgrammeApplicationDetail);
   }
 
   public boolean hasAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  ) {
     return licenceWorkProgrammeAmendmentRepository
         .existsByScheduleWorkProgrammeApplicationDetails(scheduleWorkProgrammeApplicationDetail);
   }
 
   @Transactional
-  public void deleteWorkProgrammeAmendment(LicenceWorkProgrammeAmendmentRequest licenceWorkProgrammeAmendmentRequest,
-                                           ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
+  public void deleteWorkProgrammeAmendment(
+      LicenceWorkProgrammeAmendmentRequest licenceWorkProgrammeAmendmentRequest,
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  ) {
     licenceWorkProgrammeAmendmentRequest.setScheduleWorkProgrammeApplicationDetails(scheduleWorkProgrammeApplicationDetail);
     licenceWorkProgrammeAmendmentRepository.delete(licenceWorkProgrammeAmendmentRequest);
   }
 
   @Transactional
-  public void saveAmendmentForm(LicenceWorkProgrammeAmendmentForm licenceScheduleExtensionForm,
-                                ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
-                                WorkProgrammeActivity workProgrammeActivity) {
+  public void saveAmendmentForm(
+      LicenceWorkProgrammeAmendmentForm licenceScheduleExtensionForm,
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
+      WorkProgrammeActivity workProgrammeActivity
+  ) {
     var licenceWorkProgrammeAmendmentRequest = licenceWorkProgrammeAmendmentRepository
         .findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivity(
             scheduleWorkProgrammeApplicationDetail, workProgrammeActivity)
@@ -94,10 +101,12 @@ public class LicenceWorkProgrammeAmendmentService {
 
   public LicenceWorkProgrammeAmendmentForm getLicenceWorkProgrammeActivityAmendmentForm(
       WorkProgrammeActivity workProgrammeActivity,
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
-
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  ) {
     return getAmendmentRequestByScheduleWorkProgrammeApplicationDetail(
-        scheduleWorkProgrammeApplicationDetail, workProgrammeActivity)
+        scheduleWorkProgrammeApplicationDetail,
+        workProgrammeActivity
+    )
         .map(this::licenceWorkProgramAmendmentToForm)
         .orElse(new LicenceWorkProgrammeAmendmentForm());
   }
@@ -106,20 +115,19 @@ public class LicenceWorkProgrammeAmendmentService {
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
       WorkProgrammeActivity workProgrammeActivity
   ) {
-    return licenceWorkProgrammeAmendmentRepository
-        .findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivity(
-            scheduleWorkProgrammeApplicationDetail, workProgrammeActivity)
+    return licenceWorkProgrammeAmendmentRepository.findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivity(
+            scheduleWorkProgrammeApplicationDetail,
+            workProgrammeActivity
+        )
         .orElseThrow(() ->
-                         new LmsEntityNotFoundException(
-                             String.format(
-                                 "Licence work programme amendment %s request not found",
-                                 workProgrammeActivity.getId().toString()
-                             )));
+            new LmsEntityNotFoundException("Licence work programme amendment %s request not found"
+                .formatted(workProgrammeActivity.getId()))
+        );
   }
 
   private LicenceWorkProgrammeAmendmentForm licenceWorkProgramAmendmentToForm(
-      LicenceWorkProgrammeAmendmentRequest licenceWorkProgrammeAmendmentRequest) {
-
+      LicenceWorkProgrammeAmendmentRequest licenceWorkProgrammeAmendmentRequest
+  ) {
     var form = new LicenceWorkProgrammeAmendmentForm();
     var formExtensionDuration = form.getWorkProgrammeExtensionDuration();
     var requestExtensionDuration = licenceWorkProgrammeAmendmentRequest.getWorkProgrammeExtensionDuration();
@@ -137,8 +145,8 @@ public class LicenceWorkProgrammeAmendmentService {
   }
 
   public boolean validateAllWorkProgrammeAmendments(
-      List<LicenceWorkProgrammeAmendmentRequest> workProgrammeApplicationDetails) {
-
+      List<LicenceWorkProgrammeAmendmentRequest> workProgrammeApplicationDetails
+  ) {
     return workProgrammeApplicationDetails
         .stream()
         .map(this::licenceWorkProgramAmendmentToForm)
@@ -152,5 +160,15 @@ public class LicenceWorkProgrammeAmendmentService {
               bindingResult
           );
         });
+  }
+
+  public boolean existsByWorkProgrammeActivityIdAndSwpApplicationDetail(
+      UUID workProgrammeActivityId,
+      ScheduleWorkProgrammeApplicationDetail detail
+  ) {
+    return licenceWorkProgrammeAmendmentRepository.existsByWorkProgrammeActivityIdAndScheduleWorkProgrammeApplicationDetails(
+        workProgrammeActivityId,
+        detail
+    );
   }
 }

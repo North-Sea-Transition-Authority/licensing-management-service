@@ -56,31 +56,32 @@ public class SelectLicenceWorkAmendmentController {
       @ModelAttribute("form") SelectLicenceAmendmentForm form,
       BindingResult bindingResult
   ) {
-    if (!selectLicenceAmendmentFormValidator.isValid(form, bindingResult)) {
+    if (!selectLicenceAmendmentFormValidator.isValid(form, bindingResult, scheduleWorkProgrammeApplicationDetail)) {
       return getModelAndView(form, scheduleWorkProgrammeApplicationDetail);
     }
 
-    selectLicenceAmendmentService
-        .saveAmendmentForm(form.getSelectedWorkProgrammeActivityAmendmentId(), form,
-        scheduleWorkProgrammeApplicationDetail);
+    selectLicenceAmendmentService.saveAmendmentForm(
+        form.getSelectedWorkProgrammeActivityAmendmentId(),
+        form,
+        scheduleWorkProgrammeApplicationDetail
+    );
 
     return ReverseRouter.redirect(on(LicenceWorkProgrammeAmendmentController.class)
-        .renderForm(form.selectedWorkProgrammeActivityAmendmentId, null, scheduleWorkProgrammeApplicationDetailId, null));
+        .renderForm(form.getSelectedWorkProgrammeActivityAmendmentId(), null, scheduleWorkProgrammeApplicationDetailId, null));
   }
 
   private ModelAndView getModelAndView(
       SelectLicenceAmendmentForm form,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
-
     return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/selectScheduleWorkProgrammeToAmend")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("form", form)
         .addObject("workProgrammeAmendmentViews", workProgrammeActivityService.getLicenceWorkProgramActivitiesViews(
                 scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getLicenceScheduleDetail()
-        )).addObject("cancelUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
-            .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null
-            )));
-
+        ))
+        .addObject("cancelUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
+            scheduleWorkProgrammeApplicationDetail.getId(), null, null
+        )));
   }
 }

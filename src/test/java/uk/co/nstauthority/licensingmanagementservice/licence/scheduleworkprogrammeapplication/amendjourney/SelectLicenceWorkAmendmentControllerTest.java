@@ -77,7 +77,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
 
   @SecurityTest
   void renderSelectAmendmentForm() throws Exception {
-    when(selectLicenceAmendmentFormValidator.isValid(any(),any())).thenReturn(true);
+    when(selectLicenceAmendmentFormValidator.isValid(any(), any(), any())).thenReturn(true);
 
     var mockWorkProgrammeActivityAmendmentViews = getMockWorkProgrammeActivityAmendmentViews();
 
@@ -103,7 +103,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
   @Test
   void submitValidForm() throws Exception {
 
-    when(selectLicenceAmendmentFormValidator.isValid(any(),any())).thenReturn(true);
+    when(selectLicenceAmendmentFormValidator.isValid(any(), any(), any())).thenReturn(true);
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
@@ -122,7 +122,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
   @Test
   void submitInvalidForm() throws Exception {
 
-    when(selectLicenceAmendmentFormValidator.isValid(any(),any())).thenReturn(false);
+    when(selectLicenceAmendmentFormValidator.isValid(any(),any(),any())).thenReturn(false);
 
     var mockWorkProgrammeActivityAmendmentViews = getMockWorkProgrammeActivityAmendmentViews();
 

@@ -46,8 +46,8 @@ dependencies {
 	implementation 'uk.co.fivium.energyportal.accounts:energy-portal-accounts-spring-boot-starter:v3.0.0'
 	implementation 'uk.co.fivium.digitalformlibrary:digital-form-library:v3.0.0'
 	implementation "uk.co.fivium:file-upload-spring-boot-starter:${fileUploadLibraryVersion}"
-    implementation 'uk.co.fivium:digital-enum-materialisation-library-spring-boot-starter:v1.1.1'
-    implementation 'uk.co.fivium:digital-notification-library-spring-boot-starter:v1.1.0'
+	implementation 'uk.co.fivium:digital-enum-materialisation-library-spring-boot-starter:v1.1.2'
+	implementation 'uk.co.fivium:digital-notification-library-spring-boot-starter:v1.1.0'
 // TODO re-add when payments required
 //	implementation 'uk.co.fivium:digital-payments-library-spring-boot-starter:1.0.0'
 	implementation 'uk.co.fivium.feedbackmanagementservice:client:v2.3.0'

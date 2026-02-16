@@ -120,15 +120,12 @@ class OrganisationUnitQueryServiceTest {
   }
 
   @Test
-  void findOrganisationGroupIdsByUnitId() {
-    var group1 = new OrganisationGroup();
-    group1.setOrganisationGroupId(101);
-
-    var group2 = new OrganisationGroup();
-    group2.setOrganisationGroupId(102);
+  void findOrganisationGroupIdByUnitId() {
+    var group = new OrganisationGroup();
+    group.setOrganisationGroupId(101);
 
     var organisationUnit = new OrganisationUnit();
-    organisationUnit.setOrganisationGroups(List.of(group1, group2));
+    organisationUnit.setOrganisationGroups(List.of(group));
 
     when(organisationApi.findOrganisationUnit(
         eq(1),
@@ -137,12 +134,12 @@ class OrganisationUnitQueryServiceTest {
         any()
     )).thenReturn(Optional.of(organisationUnit));
 
-    assertThat(organisationUnitQueryService.findOrganisationGroupIdsByUnitId(1))
-        .containsExactly(101, 102);
+    assertThat(organisationUnitQueryService.findOrganisationGroupIdByUnitId(1))
+        .contains(101);
   }
 
   @Test
-  void findOrganisationGroupIdsByUnitId_ReturnsEmptyListWhenNotFound() {
+  void findOrganisationGroupIdByUnitId_returnsEmptyWhenNotFound() {
     when(organisationApi.findOrganisationUnit(
         eq(99),
         any(),
@@ -150,7 +147,7 @@ class OrganisationUnitQueryServiceTest {
         any()
     )).thenReturn(Optional.empty());
 
-    assertThat(organisationUnitQueryService.findOrganisationGroupIdsByUnitId(99))
+    assertThat(organisationUnitQueryService.findOrganisationGroupIdByUnitId(99))
         .isEmpty();
   }
 }

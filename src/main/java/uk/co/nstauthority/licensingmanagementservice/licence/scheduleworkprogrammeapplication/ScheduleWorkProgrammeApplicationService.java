@@ -12,14 +12,10 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.LicenseeInformationForm;
-import uk.co.nstauthority.licensingmanagementservice.teams.Role;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
 @Service
@@ -30,19 +26,19 @@ public class ScheduleWorkProgrammeApplicationService {
   private final ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository;
   private final LicenceScheduleDetailService licenceScheduleDetailService;
   private final Clock clock;
-  private final TeamQueryService teamQueryService;
+  private final ApplicationAccessService applicationAccessService;
 
   public ScheduleWorkProgrammeApplicationService(
       ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository,
       ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository,
       LicenceScheduleDetailService licenceScheduleDetailService,
       Clock clock,
-      TeamQueryService teamQueryService) {
+      ApplicationAccessService applicationAccessService) {
     this.scheduleWorkProgrammeApplicationRepository = scheduleWorkProgrammeApplicationRepository;
     this.scheduleWorkProgrammeApplicationDetailRepository = scheduleWorkProgrammeApplicationDetailRepository;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.clock = clock;
-    this.teamQueryService = teamQueryService;
+    this.applicationAccessService = applicationAccessService;
   }
 
   @Transactional
@@ -178,11 +174,9 @@ public class ScheduleWorkProgrammeApplicationService {
   }
 
   public boolean userCanSubmitApplication(ScheduleWorkProgrammeApplicationDetail applicationDetail, ServiceUserDetail user) {
-    return teamQueryService.userHasScopedRole(
-        user.wuaId(),
-        TeamType.ORGANISATION,
-        TeamScopeReference.from(applicationDetail.getId().toString(), ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name()),
-        Role.APPLICATION_SUBMITTER
+    return applicationAccessService.userIsSubmitterForOrganisationUnit(
+        applicationDetail.getResponsibleOrganisationUnitId(),
+        user.wuaId()
     );
   }
 }

@@ -29,10 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.LicenseeInformationForm;
-import uk.co.nstauthority.licensingmanagementservice.teams.Role;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 
 @ExtendWith(MockitoExtension.class)
 class ScheduleWorkProgrammeApplicationServiceTest {
@@ -52,7 +49,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
   private Clock clock;
 
   @Mock
-  private TeamQueryService teamQueryService;
+  private ApplicationAccessService applicationAccessService;
 
   @InjectMocks
   private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
@@ -191,15 +188,12 @@ class ScheduleWorkProgrammeApplicationServiceTest {
   @Test
   void userCanSubmitApplication() {
     var user = mockUser();
+    var organisationUnitId = 100;
+    scheduleWorkProgrammeApplicationDetail.setResponsibleOrganisationUnitId(organisationUnitId);
 
     scheduleWorkProgrammeApplicationService.userCanSubmitApplication(scheduleWorkProgrammeApplicationDetail, user);
 
-    verify(teamQueryService).userHasScopedRole(
-        eq(user.wuaId()),
-        eq(TeamType.ORGANISATION),
-        any(TeamScopeReference.class),
-        eq(Role.APPLICATION_SUBMITTER)
-    );
+    verify(applicationAccessService).userIsSubmitterForOrganisationUnit(organisationUnitId, user.wuaId());
   }
 
   private ServiceUserDetail mockUser() {

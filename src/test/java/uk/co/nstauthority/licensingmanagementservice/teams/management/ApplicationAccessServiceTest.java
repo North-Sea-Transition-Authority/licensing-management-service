@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +30,7 @@ import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRoleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
@@ -107,7 +110,7 @@ class ApplicationAccessServiceTest {
     role.setRole(Role.EXTERNAL_APPLICATION_EDITOR);
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
-    when(organisationUnitQueryService.findOrganisationGroupIdsByUnitId(100)).thenReturn(List.of());
+    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(100)).thenReturn(Optional.empty());
 
     assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, 100, USER_1_WUA_ID)).isTrue();
   }
@@ -117,8 +120,8 @@ class ApplicationAccessServiceTest {
     Integer orgUnitId = 100;
     String groupId = "999";
 
-    when(organisationUnitQueryService.findOrganisationGroupIdsByUnitId(orgUnitId))
-        .thenReturn(List.of(999));
+    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(orgUnitId))
+        .thenReturn(Optional.of(999));
 
     Team orgTeam = new Team(UUID.randomUUID());
     orgTeam.setTeamType(TeamType.ORGANISATION);
@@ -146,7 +149,7 @@ class ApplicationAccessServiceTest {
     role.setRole(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM);
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
-    when(organisationUnitQueryService.findOrganisationGroupIdsByUnitId(100)).thenReturn(List.of());
+    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(100)).thenReturn(Optional.empty());
 
     assertThat(applicationAccessService.userHasAccessToApplication("123", ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, 100, USER_1_WUA_ID)).isFalse();
   }
@@ -206,6 +209,42 @@ class ApplicationAccessServiceTest {
 
     var result = applicationAccessService.getOrganisationUnitIds(organisationUser);
     assertThat(result).containsExactlyInAnyOrder(unitId1, unitId2);
+  }
+
+  @Test
+  void userIsSubmitterForOrganisationUnit_whenUserIsSubmitterInOrgGroup_returnsTrue() {
+    var organisationUnitId = 100;
+    var organisationGroupId = 999;
+
+    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(organisationUnitId))
+        .thenReturn(Optional.of(organisationGroupId));
+
+    when(teamQueryService.userHasScopedRole(
+        eq(USER_1_WUA_ID),
+        eq(TeamType.ORGANISATION),
+        any(TeamScopeReference.class),
+        eq(Role.APPLICATION_SUBMITTER)
+    )).thenReturn(true);
+
+    assertThat(applicationAccessService.userIsSubmitterForOrganisationUnit(organisationUnitId, USER_1_WUA_ID)).isTrue();
+  }
+
+  @Test
+  void userIsSubmitterForOrganisationUnit_whenUserIsNotSubmitter_returnsFalse() {
+    var organisationUnitId = 100;
+    var organisationGroupId = 999;
+
+    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(organisationUnitId))
+        .thenReturn(Optional.of(organisationGroupId));
+
+    when(teamQueryService.userHasScopedRole(
+        eq(USER_1_WUA_ID),
+        eq(TeamType.ORGANISATION),
+        any(TeamScopeReference.class),
+        eq(Role.APPLICATION_SUBMITTER)
+    )).thenReturn(false);
+
+    assertThat(applicationAccessService.userIsSubmitterForOrganisationUnit(organisationUnitId, USER_1_WUA_ID)).isFalse();
   }
 
   @Test

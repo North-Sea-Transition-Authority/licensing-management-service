@@ -59,26 +59,26 @@ public class OrganisationUnitQueryService {
     );
   }
 
-  public List<Integer> findOrganisationGroupIdsByUnitId(Integer organisationUnitId) {
+  public Optional<Integer> findOrganisationGroupIdByUnitId(Integer organisationUnitId) {
     return organisationApi.findOrganisationUnit(
                               organisationUnitId,
                               ORGANISATION_UNIT_GROUPS_PROJECTION_ROOT,
                               new RequestPurpose("Find organisation unit by ID"),
                               CorrelationIdUtil.getLogCorrelationId())
-                          .map(this::organisationGroupIdsFromOrganisationUnit)
-                          .orElse(List.of());
+                          .flatMap(this::organisationGroupIdFromOrganisationUnit);
   }
 
-  private List<Integer> organisationGroupIdsFromOrganisationUnit(OrganisationUnit organisationUnit) {
+  private Optional<Integer> organisationGroupIdFromOrganisationUnit(OrganisationUnit organisationUnit) {
     if (organisationUnit.getOrganisationGroups() == null) {
-      return List.of();
+      return Optional.empty();
     }
 
     return organisationUnit.getOrganisationGroups()
+                           // EPA returns a list, but there should only be a maximum of one organisation group per unit
                            .stream()
                            .map(OrganisationGroup::getOrganisationGroupId)
                            .filter(Objects::nonNull)
-                           .toList();
+                           .findFirst();
   }
 
   public List<OrganisationUnitJson> searchOrganisationUnitsWithName(String organisationName) {

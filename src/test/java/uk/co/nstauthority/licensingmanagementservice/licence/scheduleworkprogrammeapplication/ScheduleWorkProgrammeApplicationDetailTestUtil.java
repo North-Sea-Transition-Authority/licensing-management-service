@@ -22,6 +22,7 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
     private Instant submittedDatetime;
     private String applicationReference;
     private Long submittedByWuaId;
+    private Integer responsibleOrganisationUnitId;
 
     private Builder() {}
 
@@ -70,6 +71,11 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
       return this;
     }
 
+    public Builder withResponsibleOrganisationUnitId(Integer responsibleOrganisationUnitId) {
+      this.responsibleOrganisationUnitId = responsibleOrganisationUnitId;
+      return this;
+    }
+
     public ScheduleWorkProgrammeApplicationDetail build() {
       var scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
       scheduleWorkProgrammeApplicationDetail.setId(id);
@@ -89,6 +95,7 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
         scheduleWorkProgrammeApplication.setApplicationReference(applicationReference);
         scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
       }
+      scheduleWorkProgrammeApplicationDetail.setResponsibleOrganisationUnitId(responsibleOrganisationUnitId);
 
       return scheduleWorkProgrammeApplicationDetail;
     }

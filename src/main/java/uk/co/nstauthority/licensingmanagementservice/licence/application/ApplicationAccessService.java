@@ -11,6 +11,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @Service
@@ -43,11 +44,10 @@ public class ApplicationAccessService {
         Role.APPLICATION_SUBMITTER
     );
 
-    var rawGroupIds = organisationUnitQueryService.findOrganisationGroupIdsByUnitId(organisationUnitId);
-
-    var organisationGroupIds = rawGroupIds.stream()
+    var organisationGroupIds = organisationUnitQueryService.findOrganisationGroupIdByUnitId(organisationUnitId)
         .map(String::valueOf)
-        .collect(Collectors.toSet());
+        .map(Set::of)
+        .orElse(Set.of());
 
     return teamQueryService.getTeamRolesForUser(wuaId).stream()
                            .filter(teamRole -> allowedRoles.contains(teamRole.getRole()))
@@ -96,6 +96,17 @@ public class ApplicationAccessService {
         )
         .map(teamRole -> Integer.valueOf(teamRole.getTeam().getScopeId()))
         .collect(Collectors.toSet());
+  }
+
+  public boolean userIsSubmitterForOrganisationUnit(Integer organisationUnitId, Long wuaId) {
+    return organisationUnitQueryService.findOrganisationGroupIdByUnitId(organisationUnitId)
+        .map(groupId -> teamQueryService.userHasScopedRole(
+            wuaId,
+            TeamType.ORGANISATION,
+            TeamScopeReference.from(String.valueOf(groupId), ScopeType.ORGANISATION_GROUP.name()),
+            Role.APPLICATION_SUBMITTER
+        ))
+        .orElse(false);
   }
 
   public Set<Integer> getOrganisationUnitIds(ServiceUserDetail userDetail) {

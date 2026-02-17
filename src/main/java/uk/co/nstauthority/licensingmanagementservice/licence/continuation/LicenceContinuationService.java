@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
@@ -64,6 +65,12 @@ public class LicenceContinuationService {
       LicenceContinuationApplicationStatus status
   ) {
     return licenceContinuationApplicationDetailRepository.findAllByStatus(status);
+  }
+
+  public List<LicenceContinuationApplicationDetail> getAllContinuationApplicationDetailsByStatuses(
+      Set<LicenceContinuationApplicationStatus> statuses
+  ) {
+    return licenceContinuationApplicationDetailRepository.findAllByStatusIn(statuses);
   }
 
   public Licence getLicenceFromContinuationApplicationDetail(

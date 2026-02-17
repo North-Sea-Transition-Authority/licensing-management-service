@@ -68,7 +68,7 @@ public class SelectContinuationApplicationLicenceController {
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("searchUrl",
             SearchSelectorService.route(on(LicenceInternalApiRestController.class)
-                .searchActiveLicenceSchedulesByReferenceAndType(licenceTypeSlugList, null, null))
+                .searchActiveLicenceSchedulesByReferenceAndTypeForContinuationApplication(licenceTypeSlugList, null, null))
         ).addObject("backUrl", ReverseRouter.route(on(StartContinuationApplicationController.class).render()));
   }
 }

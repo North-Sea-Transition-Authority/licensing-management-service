@@ -58,7 +58,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceControllerTest extends Abstra
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("pageCaption", licenceType.getDisplayName()))
         .andExpect(model().attribute("searchUrl",
-            SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndType(licenceType.getUrlSlug(), null, null))))
+            SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndTypeForEaaApplication(licenceType.getUrlSlug(), null, null))))
         .andExpect(model().attribute("backUrl",
             ReverseRouter.route(on(StartScheduleWorkProgrammeApplicationJourneyController.class).renderStartScheduleWorkProgrammeApplicationJourney(licenceType.getUrlSlug()))));
   }
@@ -104,7 +104,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceControllerTest extends Abstra
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("pageCaption", licenceType.getDisplayName()))
         .andExpect(model().attribute("searchUrl",
-            SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndType(licenceType.getUrlSlug(), null, null))))
+            SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndTypeForEaaApplication(licenceType.getUrlSlug(), null, null))))
         .andExpect(model().attribute("backUrl",
             ReverseRouter.route(on(StartScheduleWorkProgrammeApplicationJourneyController.class).renderStartScheduleWorkProgrammeApplicationJourney(licenceType.getUrlSlug()))));
   }

@@ -39,6 +39,11 @@ class LicenceReferenceComparatorTest {
   }
 
   @Test
+  void sortsNumericPartLargerThanLong() {
+    assertThat(comparator.compare("C9999999999999999999", "C10000000000000000000")).isNegative();
+  }
+
+  @Test
   void fallsBackToStringComparisonWhenNotMatchingPattern() {
     assertThat(comparator.compare("unknown", "zzz")).isNegative();
   }

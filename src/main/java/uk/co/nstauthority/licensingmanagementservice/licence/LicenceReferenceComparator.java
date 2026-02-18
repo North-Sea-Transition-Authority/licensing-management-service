@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence;
 
+import java.math.BigInteger;
 import java.util.Comparator;
 import java.util.regex.Pattern;
 
@@ -25,9 +26,7 @@ public class LicenceReferenceComparator implements Comparator<String> {
       return prefixComparison;
     }
 
-    return Integer.compare(
-        Integer.parseInt(leftMatcher.group(2)),
-        Integer.parseInt(rightMatcher.group(2))
-    );
+    return new BigInteger(leftMatcher.group(2))
+        .compareTo(new BigInteger(rightMatcher.group(2)));
   }
 }

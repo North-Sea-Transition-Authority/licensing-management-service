@@ -94,7 +94,7 @@ class ScheduleWorkAreaServiceTest {
                 licenceScheduleDetail1.getId().toString(),
                 String.format("%s - draft schedule", licence1.getLicenceReference()),
                 ReverseRouter.route(on(LicenceScheduleTimelineController.class)
-                    .renderLicenceScheduleTimeline(licenceScheduleDetail1.getId(), null)),
+                    .renderLicenceScheduleTimeline(licenceScheduleDetail1.getId(), null, null)),
                 List.of(SummaryDataView.newBuilder()
                     .addStringValue("Licence type", licence1.getType().getDisplayName())
                     .addStringValue("Licensees", String.join(", ", orgList1))
@@ -105,7 +105,7 @@ class ScheduleWorkAreaServiceTest {
                 licenceScheduleDetail2.getId().toString(),
                 String.format("%s - draft schedule", licence2.getLicenceReference()),
                 ReverseRouter.route(on(LicenceScheduleTimelineController.class)
-                    .renderLicenceScheduleTimeline(licenceScheduleDetail2.getId(), null)),
+                    .renderLicenceScheduleTimeline(licenceScheduleDetail2.getId(), null, null)),
             List.of(SummaryDataView.newBuilder()
                 .addStringValue("Licence type", licence2.getType().getDisplayName())
                 .addStringValue("Licensees", String.join(", ", orgList2))
@@ -168,7 +168,7 @@ class ScheduleWorkAreaServiceTest {
                 licenceScheduleDetail2.getId().toString(),
                 String.format("%s - draft schedule", licence2.getLicenceReference()),
                 ReverseRouter.route(on(LicenceScheduleTimelineController.class)
-                    .renderLicenceScheduleTimeline(licenceScheduleDetail2.getId(), null)),
+                    .renderLicenceScheduleTimeline(licenceScheduleDetail2.getId(), null, null)),
                 List.of(SummaryDataView.newBuilder()
                     .addStringValue("Licence type", licence2.getType().getDisplayName())
                     .addStringValue("Licensees", String.join(", ", org1))

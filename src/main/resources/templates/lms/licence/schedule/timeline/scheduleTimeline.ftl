@@ -30,19 +30,35 @@ extendContainerWidth=true>
         </#list>
     </@fdsActionDropdown.actionDropdown>
 
-    <@fdsAccordion.accordion accordionId="schedule-accordion">
-        <#list scheduleEventViews as termView>
-            <@fdsAccordion.accordionSection sectionHeading=termView.termType().displayName summaryText=termView.dateDurationString()>
-                <@fdsTimeline.timeline>
-                    <@fdsTimeline.timelineSection>
-                        <@scheduleEvents.term
-                            termView=termView
-                        />
-                    </@fdsTimeline.timelineSection>
-                </@fdsTimeline.timeline>
-            </@fdsAccordion.accordionSection>
-        </#list>
-    </@fdsAccordion.accordion>
+    <br><br>
+
+    <@fdsSearch.searchPage>
+        <@fdsSearch.searchFilter>
+            <@fdsSearch.searchFilterList
+            clearFilterText="Clear filters"
+            clearFilterUrl=springUrl(clearFilterUrl)>
+                <@fdsSearch.searchFilterItem itemName="Show" expanded=true>
+                    <@fdsSearch.searchCheckboxes path="form.eventTypes" checkboxes=timelineFilterOptions/>
+                </@fdsSearch.searchFilterItem>
+            </@fdsSearch.searchFilterList>
+        </@fdsSearch.searchFilter>
+
+        <@fdsSearch.searchPageContent>
+            <@fdsAccordion.accordion accordionId="schedule-accordion">
+                <#list scheduleEventViews as termView>
+                    <@fdsAccordion.accordionSection sectionHeading=termView.termType().displayName summaryText=termView.dateDurationString()>
+                        <@fdsTimeline.timeline>
+                            <@fdsTimeline.timelineSection>
+                                <@scheduleEvents.term
+                                termView=termView
+                                />
+                            </@fdsTimeline.timelineSection>
+                        </@fdsTimeline.timeline>
+                    </@fdsAccordion.accordionSection>
+                </#list>
+            </@fdsAccordion.accordion>
+        </@fdsSearch.searchPageContent>
+    </@fdsSearch.searchPage>
 
     <@fdsAction.link linkText="Review and apply" linkUrl=springUrl(reviewAndApplyUrl) linkClass="govuk-button"/>
 </@defaultPage>

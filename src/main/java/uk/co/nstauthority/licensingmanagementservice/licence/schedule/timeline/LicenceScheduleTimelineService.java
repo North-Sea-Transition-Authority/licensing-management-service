@@ -120,27 +120,37 @@ public class LicenceScheduleTimelineService {
     );
   }
 
-  List<TimelineTermView> getLicenceScheduleEventViews(LicenceScheduleDetail licenceScheduleDetail) {
+  List<TimelineTermView> getLicenceScheduleEventViews(
+      LicenceScheduleDetail licenceScheduleDetail,
+      TimelineFilterForm timelineFilterForm
+  ) {
+    var includedEventTypes = timelineFilterForm.getEventTypes().stream()
+        .map(ScheduleEventType::valueOf)
+        .toList();
+
     return licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
         .sorted(Comparator.comparing(term -> term.getTermType().getDisplayOrder()))
-        .map(this::convertToTimelineTermView)
+        .map(term -> convertToTimelineTermView(term, includedEventTypes))
         .toList();
   }
 
-  private TimelineTermView convertToTimelineTermView(LicenceScheduleTerm licenceScheduleTerm) {
+  private TimelineTermView convertToTimelineTermView(
+      LicenceScheduleTerm licenceScheduleTerm,
+      List<ScheduleEventType> includedEventTypes
+  ) {
     var dateDurationString = getDateDurationString(
         licenceScheduleTerm.getStartDate(),
         licenceScheduleTerm.getEndDate(),
         licenceScheduleTerm.getTermDuration()
     );
 
-    var scheduleEvents = getScheduleEventsForTerm(licenceScheduleTerm);
+    var scheduleEvents = getScheduleEventsForTerm(licenceScheduleTerm, includedEventTypes);
 
     var hasPhases = scheduleEvents.stream()
         .map(ScheduleEvent::getEventType)
         .anyMatch(eventType -> eventType.equals(ScheduleEventType.PHASE));
 
-    var endOfTermEvents = getEndOfTermRequirementEvents(licenceScheduleTerm);
+    var endOfTermEvents = getEndOfTermRequirementEvents(licenceScheduleTerm, includedEventTypes);
 
     return new TimelineTermView(
         scheduleEvents,
@@ -154,8 +164,11 @@ public class LicenceScheduleTimelineService {
     );
   }
 
-  private List<ScheduleEvent> getScheduleEventsForTerm(LicenceScheduleTerm licenceScheduleTerm) {
-    var phases =  licenceSchedulePhaseService.getActivePhasesByTerm(licenceScheduleTerm);
+  private List<ScheduleEvent> getScheduleEventsForTerm(
+      LicenceScheduleTerm licenceScheduleTerm,
+      List<ScheduleEventType> includedEventTypes
+  ) {
+    var phases = licenceSchedulePhaseService.getActivePhasesByTerm(licenceScheduleTerm);
 
     var firstPhaseType = phases.stream()
         .min(Comparator.comparing(phase -> phase.getPhaseType().getDisplayOrder()))
@@ -164,12 +177,13 @@ public class LicenceScheduleTimelineService {
 
     var phaseViews = phases.stream()
         .sorted(Comparator.comparing(phase -> phase.getPhaseType().getDisplayOrder()))
-        .map(phase -> convertToTimelinePhaseView(phase, firstPhaseType))
+        .map(phase -> convertToTimelinePhaseView(phase, firstPhaseType, includedEventTypes))
         .toList();
 
     if (!phaseViews.isEmpty()) {
       var termRateViews = licenceScheduleRateService.getActiveLicenceScheduleRatesAttachedToTerm(licenceScheduleTerm).stream()
           .map(TimelineRateView::getScheduleEventFrom)
+          .filter(event -> includedEventTypes.contains(event.getEventType()))
           .toList();
 
       return Stream.concat(phaseViews.stream(), termRateViews.stream())
@@ -191,12 +205,20 @@ public class LicenceScheduleTimelineService {
 
     return Stream.of(workProgrammeActivities, rates)
         .flatMap(Function.identity())
+        .filter(event -> includedEventTypes.contains(event.getEventType()))
         .sorted(Comparator.comparing(ScheduleEvent::getSortingDate)
             .thenComparing(event -> event.getEventType().getEventTypeOrder()))
         .toList();
   }
 
-  private List<ScheduleEvent> getEndOfTermRequirementEvents(LicenceScheduleTerm licenceScheduleTerm) {
+  private List<ScheduleEvent> getEndOfTermRequirementEvents(
+      LicenceScheduleTerm licenceScheduleTerm,
+      List<ScheduleEventType> includedEventTypes
+  ) {
+    if (!includedEventTypes.contains(ScheduleEventType.WORK_PROGRAMME_ACTIVITY)) {
+      return List.of();
+    }
+
     return workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(
         licenceScheduleTerm,
         WorkProgrammeActivityDateOption.WITHIN_A_TERM
@@ -206,7 +228,11 @@ public class LicenceScheduleTimelineService {
         .toList();
   }
 
-  private ScheduleEvent convertToTimelinePhaseView(LicenceSchedulePhase licenceSchedulePhase, PhaseType firstPhaseType) {
+  private ScheduleEvent convertToTimelinePhaseView(
+      LicenceSchedulePhase licenceSchedulePhase,
+      PhaseType firstPhaseType,
+      List<ScheduleEventType> includedEventTypes
+  ) {
     var dateDurationString = getDateDurationString(
         licenceSchedulePhase.getStartDate(),
         licenceSchedulePhase.getEndDate(),
@@ -214,8 +240,8 @@ public class LicenceScheduleTimelineService {
     );
 
     return new TimelinePhaseView(
-        getScheduleEventsForPhase(licenceSchedulePhase, firstPhaseType),
-        getEndOfPhaseRequirementEvents(licenceSchedulePhase),
+        getScheduleEventsForPhase(licenceSchedulePhase, firstPhaseType, includedEventTypes),
+        getEndOfPhaseRequirementEvents(licenceSchedulePhase, includedEventTypes),
         licenceSchedulePhase.getPhaseType(),
         licenceSchedulePhase.getStartDate(),
         dateDurationString,
@@ -227,7 +253,8 @@ public class LicenceScheduleTimelineService {
 
   private List<ScheduleEvent> getScheduleEventsForPhase(
       LicenceSchedulePhase licenceSchedulePhase,
-      PhaseType firstPhaseType
+      PhaseType firstPhaseType,
+      List<ScheduleEventType> includedEventTypes
   ) {
     var workProgrammeActivities = workProgrammeActivityService
         .getActiveWorkProgrammeActivitiesByDateRangeFor(licenceSchedulePhase).stream()
@@ -242,12 +269,20 @@ public class LicenceScheduleTimelineService {
 
     return Stream.of(workProgrammeActivities, rates)
         .flatMap(Function.identity())
+        .filter(event -> includedEventTypes.contains(event.getEventType()))
         .sorted(Comparator.comparing(ScheduleEvent::getSortingDate)
             .thenComparing(event -> event.getEventType().getEventTypeOrder()))
         .toList();
   }
 
-  private List<ScheduleEvent> getEndOfPhaseRequirementEvents(LicenceSchedulePhase licenceSchedulePhase) {
+  private List<ScheduleEvent> getEndOfPhaseRequirementEvents(
+      LicenceSchedulePhase licenceSchedulePhase,
+      List<ScheduleEventType> includedEventTypes
+  ) {
+    if (!includedEventTypes.contains(ScheduleEventType.WORK_PROGRAMME_ACTIVITY)) {
+      return List.of();
+    }
+
     return workProgrammeActivityService.getActiveWorkProgrammeActivitiesByPhaseAndDateOption(
             licenceSchedulePhase,
             WorkProgrammeActivityDateOption.WITHIN_A_PHASE

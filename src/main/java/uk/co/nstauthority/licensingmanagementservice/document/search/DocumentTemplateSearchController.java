@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.ModelAndView;
-import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasAnyRoleInTeamTypeInterceptorRule.HasAnyRoleInTeamType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -42,10 +41,9 @@ public class DocumentTemplateSearchController {
   public ModelAndView renderDocumentTemplateSearch(
       @ModelAttribute("documentTemplateSearchSession") DocumentTemplateSearchSession documentTemplateSearchSession,
       @RequestParam(name = "page", defaultValue = "0") Integer pageNumber,
-      @RequestParam(name = "tab", defaultValue = DEFAULT_TAB) DocumentTemplateSearchTab tab,
-      ServiceUserDetail serviceUserDetail) {
-    return getModelAndViewForDocumentTemplate(documentTemplateSearchSession.getSearchFilterForm(), pageNumber, tab,
-        serviceUserDetail);
+      @RequestParam(name = "tab", defaultValue = DEFAULT_TAB) DocumentTemplateSearchTab tab
+  ) {
+    return getModelAndViewForDocumentTemplate(documentTemplateSearchSession.getSearchFilterForm(), pageNumber, tab);
   }
 
   @PostMapping
@@ -56,7 +54,7 @@ public class DocumentTemplateSearchController {
 
     documentTemplateSearchSession.update(form);
     return ReverseRouter.redirect(on(DocumentTemplateSearchController.class)
-        .renderDocumentTemplateSearch(null, null, tab, null));
+        .renderDocumentTemplateSearch(null, null, tab));
   }
 
   @GetMapping("/clear-filters")
@@ -67,7 +65,7 @@ public class DocumentTemplateSearchController {
     sessionStatus.setComplete();
     documentTemplateSearchSession.clearFilters();
     return ReverseRouter.redirect(on(DocumentTemplateSearchController.class)
-        .renderDocumentTemplateSearch(null, null, tab, null));
+        .renderDocumentTemplateSearch(null, null, tab));
   }
 
   @ModelAttribute("documentTemplateSearchSession")
@@ -78,9 +76,9 @@ public class DocumentTemplateSearchController {
 
   private ModelAndView getModelAndViewForDocumentTemplate(DocumentTemplateSearchFilterForm form,
                                                           int pageNumber,
-                                                          DocumentTemplateSearchTab tab,
-                                                          ServiceUserDetail serviceUserDetail) {
-    var filteredItems = documentTemplateSearchService.getDocumentTemplateSearchItems(form, serviceUserDetail);
+                                                          DocumentTemplateSearchTab tab
+  ) {
+    var filteredItems = documentTemplateSearchService.getDocumentTemplateSearchItems(form);
     var searchItemsByTab = documentTemplateSearchTabService.getSearchTabItems(filteredItems, pageNumber, tab);
     var tabs = searchItemsByTab.stream().map(SearchTabItem::tabView).toList();
     return new ModelAndView("lms/document/documentTemplateSearchPage")
@@ -92,6 +90,6 @@ public class DocumentTemplateSearchController {
         .addObject("clearFilterUrl", ReverseRouter.route(on(DocumentTemplateSearchController.class)
             .clearDocumentTemplateSearchFilters(null, tab, null)))
         .addObject("controllerUrl", ReverseRouter.route(on(DocumentTemplateSearchController.class)
-            .renderDocumentTemplateSearch(null, null, null, null)));
+            .renderDocumentTemplateSearch(null, null, null)));
   }
 }

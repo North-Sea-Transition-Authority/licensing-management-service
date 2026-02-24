@@ -50,7 +50,7 @@ class DocumentTemplateSearchTabServiceTest {
                 List.of(continuationSearchResult, allTypesResult),
                 BASE_URL.formatted(
                     ReverseRouter.route(on(DocumentTemplateSearchController.class)
-                        .renderDocumentTemplateSearch(null, null, null, null)),
+                        .renderDocumentTemplateSearch(null, null, null)),
                     DocumentTemplateSearchTab.CONTINUATION,
                     0),
                 DocumentTemplateSearchTab.CONTINUATION.getTabView(tabToCount)

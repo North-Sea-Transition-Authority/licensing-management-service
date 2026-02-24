@@ -23,7 +23,7 @@ public enum TopNavigationItem implements Displayable {
   DOCUMENT_LIBRARY(
       "Document library",
       ReverseRouter.route(on(DocumentTemplateSearchController.class)
-          .renderDocumentTemplateSearch(null, null, null, null))
+          .renderDocumentTemplateSearch(null, null, null))
   );
 
   private final String displayName;

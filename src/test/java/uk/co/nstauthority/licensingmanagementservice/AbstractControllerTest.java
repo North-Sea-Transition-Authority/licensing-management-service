@@ -16,6 +16,7 @@ import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateService;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceLogoutSuccessHandler;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailArgumentResolver;
@@ -23,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.authentication.saml.SamlResponseParser;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.AccessHandlerInterceptor;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasAnyRoleInTeamTypeInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasRolesInTeamTypeInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InvokingUserCanStartApplicationInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LicenceActionEndPointInterceptorRule;
@@ -38,6 +40,7 @@ import uk.co.nstauthority.licensingmanagementservice.configuration.EnergyPortalC
 import uk.co.nstauthority.licensingmanagementservice.configuration.ErrorConfigurationProperties;
 import uk.co.nstauthority.licensingmanagementservice.configuration.SamlProperties;
 import uk.co.nstauthority.licensingmanagementservice.configuration.WebSecurityConfiguration;
+import uk.co.nstauthority.licensingmanagementservice.document.DocumentTemplateArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.document.search.DocumentTemplateSearchStringToTabConverter;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.epa.EpaRequestHandler;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
@@ -101,7 +104,9 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     DocumentTemplateSearchStringToTabConverter.class,
     LicenceActionEndPointInterceptorRule.class,
     InvokingUserCanAccessContinuationApplicationInterceptorRule.class,
-    ContinuationApplicationHasStatusInterceptorRule.class
+    ContinuationApplicationHasStatusInterceptorRule.class,
+    DocumentTemplateArgumentResolver.class,
+    HasAnyRoleInTeamTypeInterceptorRule.class
 })
 @EnableConfigurationProperties({
     SamlProperties.class,
@@ -167,6 +172,9 @@ public abstract class AbstractControllerTest {
 
   @MockitoBean
   protected OrganisationGroupQueryService organisationGroupQueryService;
+
+  @MockitoBean
+  protected DocumentTemplateService documentTemplateService;
 
   @Autowired
   protected TopNavigationService topNavigationService;

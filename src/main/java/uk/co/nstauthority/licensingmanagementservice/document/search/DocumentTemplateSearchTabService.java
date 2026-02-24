@@ -35,8 +35,8 @@ public class DocumentTemplateSearchTabService {
         ReverseRouter.route(on(DocumentTemplateSearchController.class).renderDocumentTemplateSearch(
             null,
             null,
-            DocumentTemplateSearchTab.CONTINUATION,
-            null))
+            DocumentTemplateSearchTab.CONTINUATION
+        ))
     );
 
     var tabToCount = Map.of(

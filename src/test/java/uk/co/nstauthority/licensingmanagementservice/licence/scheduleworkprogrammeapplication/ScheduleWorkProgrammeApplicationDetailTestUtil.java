@@ -108,4 +108,12 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
     scheduleWorkProgrammeApplication.setLicenceScheduleDetail(licenceScheduleDetail);
     return scheduleWorkProgrammeApplication;
   }
+
+  public static ScheduleWorkProgrammeApplicationDetail createScheduleWorkProgrammeApplicationDetail(LicenceScheduleDetail licenceScheduleDetail) {
+    var scheduleWorkProgrammeApplication = createScheduleWorkProgrammeApplication(licenceScheduleDetail);
+    return builder()
+        .withScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication)
+        .withId(UUID.randomUUID())
+        .build();
+  }
 }

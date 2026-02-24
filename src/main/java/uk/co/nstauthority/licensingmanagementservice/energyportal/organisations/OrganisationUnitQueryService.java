@@ -12,6 +12,7 @@ import uk.co.fivium.energyportalapi.client.RequestPurpose;
 import uk.co.fivium.energyportalapi.client.organisation.OrganisationApi;
 import uk.co.fivium.energyportalapi.generated.client.OrganisationUnitProjectionRoot;
 import uk.co.fivium.energyportalapi.generated.client.OrganisationUnitsProjectionRoot;
+import uk.co.fivium.energyportalapi.generated.types.Address;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationGroup;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.correlationid.CorrelationIdUtil;
@@ -44,10 +45,19 @@ public class OrganisationUnitQueryService {
   }
 
   public Optional<String> getOrganisationUnitNameById(Integer responsibleOrganisationUnitId) {
+    return getOrganisationUnit(responsibleOrganisationUnitId)
+        .map(OrganisationUnit::getName);
+  }
+
+  public Optional<Address> getOrganisationUnitAddressById(Integer responsibleOrganisationUnitId) {
+    return getOrganisationUnit(responsibleOrganisationUnitId)
+        .map(OrganisationUnit::getRegisteredAddress);
+  }
+
+  public Optional<OrganisationUnit> getOrganisationUnit(Integer responsibleOrganisationUnitId) {
     return getOrganisationUnitsByIdsFromEpa(List.of(responsibleOrganisationUnitId))
         .stream()
-        .findFirst()
-        .map(OrganisationUnit::getName);
+        .findFirst();
   }
 
   private List<OrganisationUnit> getOrganisationUnitsByIdsFromEpa(List<Integer> organisationUnitIds) {

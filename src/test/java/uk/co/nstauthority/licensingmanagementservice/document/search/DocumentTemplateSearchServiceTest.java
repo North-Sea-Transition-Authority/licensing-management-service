@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.document.search;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -10,22 +11,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateService;
-import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.document.DocumentTemplateDtoTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.document.LmsDocumentTemplateDto;
 import uk.co.nstauthority.licensingmanagementservice.document.DocumentTemplateMetadataService;
 import uk.co.nstauthority.licensingmanagementservice.document.DocumentTemplateMetadataTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.document.LmsDocumentTemplateDto;
+import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.DocumentTemplateController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ExtendWith(MockitoExtension.class)
 class DocumentTemplateSearchServiceTest {
 
   @Mock
   private DocumentTemplateService documentTemplateService;
-
-  @Mock
-  private TeamQueryService teamQueryService;
 
   @Mock
   private DocumentTemplateMetadataService documentTemplateMetadataService;
@@ -36,21 +34,24 @@ class DocumentTemplateSearchServiceTest {
   @Test
   void getDocumentTemplateSearchItems_noFilters() {
     var form = new DocumentTemplateSearchFilterForm();
-    var user = ServiceUserDetailTestUtil.newBuilder().build();
 
     var documentTemplateDto = DocumentTemplateDtoTestUtil.newBuilder().build();
     var metadata = DocumentTemplateMetadataTestUtil.newBuilder().withDocumentTemplateId(documentTemplateDto.id()).build();
     when(documentTemplateMetadataService.getAllDocumentTemplateMetadata()).thenReturn(List.of(metadata));
     when(documentTemplateService.getDocumentTemplateDtos()).thenReturn(List.of(documentTemplateDto));
 
-    assertThat(documentTemplateSearchService.getDocumentTemplateSearchItems(form, user))
-        .containsExactly(LmsDocumentTemplateDto.from(metadata, documentTemplateDto, ""));
+    assertThat(documentTemplateSearchService.getDocumentTemplateSearchItems(form))
+        .containsExactly(LmsDocumentTemplateDto.from(
+            metadata,
+            documentTemplateDto,
+            ReverseRouter.route(on(DocumentTemplateController.class).renderTemplateOverview(documentTemplateDto.id(), null))
+        )
+        );
   }
 
   @Test
   void getDocumentTemplateSearchItems_isSortedAlphabetically() {
     var form = new DocumentTemplateSearchFilterForm();
-    var user = ServiceUserDetailTestUtil.newBuilder().build();
 
     var firstDocumentTemplateDto = DocumentTemplateDtoTestUtil.newBuilder()
         .withTitle("aaa")
@@ -71,11 +72,18 @@ class DocumentTemplateSearchServiceTest {
     when(documentTemplateService.getDocumentTemplateDtos())
         .thenReturn(List.of(secondDocumentTemplateDto, firstDocumentTemplateDto));
 
-
-    assertThat(documentTemplateSearchService.getDocumentTemplateSearchItems(form, user))
+    assertThat(documentTemplateSearchService.getDocumentTemplateSearchItems(form))
         .containsExactly(
-            LmsDocumentTemplateDto.from(firstMetadata, firstDocumentTemplateDto, ""),
-            LmsDocumentTemplateDto.from(secondMetadata, secondDocumentTemplateDto, "")
+            LmsDocumentTemplateDto.from(
+                firstMetadata,
+                firstDocumentTemplateDto,
+                ReverseRouter.route(on(DocumentTemplateController.class).renderTemplateOverview(firstDocumentTemplateDto.id(), null))
+            ),
+            LmsDocumentTemplateDto.from(
+                secondMetadata,
+                secondDocumentTemplateDto,
+                ReverseRouter.route(on(DocumentTemplateController.class).renderTemplateOverview(secondDocumentTemplateDto.id(), null))
+            )
         );
   }
 
@@ -83,7 +91,6 @@ class DocumentTemplateSearchServiceTest {
   void getDocumentTemplateSearchItems_whenLicenceTypeFilter_thenFilterOut() {
     var form = new DocumentTemplateSearchFilterForm();
     form.setLicenceTypes(List.of(LicenceType.SEAWARD_PRODUCTION.getEnumName()));
-    var user = ServiceUserDetailTestUtil.newBuilder().build();
 
     var differentDocumentTemplateDto = DocumentTemplateDtoTestUtil.newBuilder().build();
     var differentMetadata = DocumentTemplateMetadataTestUtil.newBuilder()
@@ -102,16 +109,19 @@ class DocumentTemplateSearchServiceTest {
     when(documentTemplateService.getDocumentTemplateDtos())
         .thenReturn(List.of(differentDocumentTemplateDto, matchingDocumentTemplateDto));
 
-
-    assertThat(documentTemplateSearchService.getDocumentTemplateSearchItems(form, user))
-        .containsExactly(LmsDocumentTemplateDto.from(matchingMetadata, matchingDocumentTemplateDto, ""));
+    assertThat(documentTemplateSearchService.getDocumentTemplateSearchItems(form))
+        .containsExactly(LmsDocumentTemplateDto.from(
+            matchingMetadata,
+            matchingDocumentTemplateDto,
+            ReverseRouter.route(on(DocumentTemplateController.class).renderTemplateOverview(matchingDocumentTemplateDto.id(), null))
+        )
+        );
   }
 
   @Test
   void getDocumentTemplateSearchItems_whenDocumentTitleFilter_thenFilterOut() {
     var form = new DocumentTemplateSearchFilterForm();
     form.setDocumentTemplateTitle("aaa");
-    var user = ServiceUserDetailTestUtil.newBuilder().build();
 
     var documentTemplateDto = DocumentTemplateDtoTestUtil.newBuilder().withTitle("BBB").build();
     var metadata = DocumentTemplateMetadataTestUtil.newBuilder()
@@ -126,7 +136,12 @@ class DocumentTemplateSearchServiceTest {
     when(documentTemplateMetadataService.getAllDocumentTemplateMetadata()).thenReturn(List.of(metadata, matchingMetadata));
     when(documentTemplateService.getDocumentTemplateDtos()).thenReturn(List.of(documentTemplateDto, matchingDocumentTemplateDto));
 
-    assertThat(documentTemplateSearchService.getDocumentTemplateSearchItems(form, user))
-        .containsExactly(LmsDocumentTemplateDto.from(matchingMetadata, matchingDocumentTemplateDto, ""));
+    assertThat(documentTemplateSearchService.getDocumentTemplateSearchItems(form))
+        .containsExactly(LmsDocumentTemplateDto.from(
+            matchingMetadata,
+            matchingDocumentTemplateDto,
+            ReverseRouter.route(on(DocumentTemplateController.class).renderTemplateOverview(matchingDocumentTemplateDto.id(), null))
+        )
+        );
   }
 }

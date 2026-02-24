@@ -1,7 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.document.search;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -68,7 +67,7 @@ class DocumentTemplateSearchControllerTest extends AbstractControllerTest {
   private static Stream<Arguments> getGetMappingsForSecurityTests() {
     return Stream.of(
         Arguments.of(ReverseRouter.route(on(DocumentTemplateSearchController.class)
-            .renderDocumentTemplateSearch(null, null, null, null))),
+            .renderDocumentTemplateSearch(null, null, null))),
         Arguments.of(ReverseRouter.route(on(DocumentTemplateSearchController.class)
             .clearDocumentTemplateSearchFilters(null, null, null)))
 
@@ -89,8 +88,7 @@ class DocumentTemplateSearchControllerTest extends AbstractControllerTest {
   void renderDocumentTemplateSearch_whenNotDocumentTemplateManager() throws Exception {
     var filteredItems = List.of(LmsDocumentTemplateDtoTestUtil.newBuilder().build());
 
-    when(documentTemplateSearchService.getDocumentTemplateSearchItems(any(DocumentTemplateSearchFilterForm.class),
-        eq(regulatorUser)))
+    when(documentTemplateSearchService.getDocumentTemplateSearchItems(any(DocumentTemplateSearchFilterForm.class)))
         .thenReturn(filteredItems);
 
     var searchItemsByTab = getSearchItemsByTab();
@@ -105,7 +103,7 @@ class DocumentTemplateSearchControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             get(ReverseRouter.route(on(DocumentTemplateSearchController.class)
-                .renderDocumentTemplateSearch(documentTemplateSearchSession, null, null, null)) + tabParam)
+                .renderDocumentTemplateSearch(documentTemplateSearchSession, null, null)) + tabParam)
                 .with(user(regulatorUser))
                 .flashAttr("form", form)
         )
@@ -119,15 +117,14 @@ class DocumentTemplateSearchControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("clearFilterUrl", ReverseRouter.route(on(DocumentTemplateSearchController.class)
             .clearDocumentTemplateSearchFilters(null, DocumentTemplateSearchTab.CONTINUATION, null))))
         .andExpect(model().attribute("controllerUrl", ReverseRouter.route(on(DocumentTemplateSearchController.class)
-            .renderDocumentTemplateSearch(null, null, null, null))));
+            .renderDocumentTemplateSearch(null, null, null))));
   }
 
   @Test
   void renderDocumentTemplateSearch_whenDocumentTemplateManager() throws Exception {
     var filteredItems = List.of(LmsDocumentTemplateDtoTestUtil.newBuilder().build());
 
-    when(documentTemplateSearchService.getDocumentTemplateSearchItems(any(DocumentTemplateSearchFilterForm.class),
-        eq(regulatorUser)))
+    when(documentTemplateSearchService.getDocumentTemplateSearchItems(any(DocumentTemplateSearchFilterForm.class)))
         .thenReturn(filteredItems);
 
     var searchItemsByTab = getSearchItemsByTab();
@@ -142,7 +139,7 @@ class DocumentTemplateSearchControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             get(ReverseRouter.route(on(DocumentTemplateSearchController.class)
-                .renderDocumentTemplateSearch(documentTemplateSearchSession, null, null, null)) + tabParam)
+                .renderDocumentTemplateSearch(documentTemplateSearchSession, null, null)) + tabParam)
                 .with(user(regulatorUser))
                 .flashAttr("form", form)
         )
@@ -156,7 +153,7 @@ class DocumentTemplateSearchControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("clearFilterUrl", ReverseRouter.route(on(DocumentTemplateSearchController.class)
             .clearDocumentTemplateSearchFilters(null, DocumentTemplateSearchTab.CONTINUATION, null))))
         .andExpect(model().attribute("controllerUrl", ReverseRouter.route(on(DocumentTemplateSearchController.class)
-            .renderDocumentTemplateSearch(null, null, null, null))));
+            .renderDocumentTemplateSearch(null, null, null))));
   }
 
   private List<SearchTabItem> getSearchItemsByTab() {
@@ -164,7 +161,7 @@ class DocumentTemplateSearchControllerTest extends AbstractControllerTest {
     var pageRequest = PageRequest.of(0, 10);
     var page = new PageImpl<>(List.of(searchResultItem), pageRequest, 1);
     var pageView = PageView.fromPage(page, ReverseRouter.route(on(DocumentTemplateSearchController.class)
-        .renderDocumentTemplateSearch(null, null, null, null)));
+        .renderDocumentTemplateSearch(null, null, null)));
     return List.of(new SearchTabItem(pageView,
         DocumentTemplateSearchTab.CONTINUATION.getTabView(Map.of(DocumentTemplateSearchTab.CONTINUATION, 1))));
   }
@@ -179,7 +176,7 @@ class DocumentTemplateSearchControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(DocumentTemplateSearchController.class)
-            .renderDocumentTemplateSearch(documentTemplateSearchSession, null, DocumentTemplateSearchTab.CONTINUATION, null))));
+            .renderDocumentTemplateSearch(documentTemplateSearchSession, null, DocumentTemplateSearchTab.CONTINUATION))));
   }
 
   @Test
@@ -191,6 +188,6 @@ class DocumentTemplateSearchControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(DocumentTemplateSearchController.class)
-            .renderDocumentTemplateSearch(documentTemplateSearchSession, null, DocumentTemplateSearchTab.CONTINUATION, null))));
+            .renderDocumentTemplateSearch(documentTemplateSearchSession, null, DocumentTemplateSearchTab.CONTINUATION))));
   }
 }

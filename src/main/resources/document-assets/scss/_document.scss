@@ -1,0 +1,54 @@
+@page {
+  size: a4;
+  margin: 3.53cm 2.29cm 2.5cm;
+
+  @top-center {
+    content: element(header);
+  }
+
+  @left-middle {
+    content: element(watermark);
+  }
+
+  @bottom-center {
+    content: element(footer);
+  }
+
+  @right-bottom {
+    font-family: 'Helvetica Neue', 'Arial', sans-serif;
+    content: counter(page);
+  }
+}
+
+* {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  font-family: 'Helvetica Neue', 'Arial', sans-serif;
+}
+
+.header {
+  position: running(header);
+  width: 100%;
+}
+
+.watermark {
+  position: running(watermark);
+  color: #d3d3ff;
+  font-size: 76pt;
+  text-align: center;
+  font-weight: bold;
+  width: 210mm;
+  transform: rotate(-45deg);
+}
+
+.footer {
+  position: running(footer);
+  font-size: 7pt;
+}
+
+p {
+  padding-bottom: 1rem;
+}

@@ -44,11 +44,11 @@
   <tbody>
   <tr>
     <td>
-      <img src="classpath:///document-assets/OPRED_LOGO.png" alt="" style="max-height: 75px; float: left;"/>
+      <img src="classpath:///document-assets/NSTA_LOGO.png" alt="" style="max-height: 75px; float: left;"/>
     </td>
   </tr>
   <tr>
-    <td style="width: 105mm">
+    <td style="width: 105mm; vertical-align: top; padding-top: 20px;">
       ${companyName!""}
       <br/>
       <#list companyRegisteredAddress as addressLine>
@@ -63,20 +63,6 @@
       <br/>
       Date: ${currentDate!""}
       <br/>
-      Our reference: ${lmsReference}
-    </td>
-    <td style="text-align: left; width: 55mm">
-      <br/>
-      <p>${departmentName!""}</p>
-      <#list regulatorAddress as addressLine>
-        ${addressLine!""}
-        <br/>
-      </#list>
-      <br/>
-      <#if regulatorTelephone?has_content>
-        <p><strong>Tel</strong>${regulatorTelephone!""}</p>
-      </#if>
-      <p>${regulatorEmail!""}</p>
     </td>
   </tr>
   </tbody>

@@ -36,6 +36,29 @@ function compileSass(exitOnError) {
     .pipe(gulp.dest('./'));
 }
 
+function compileSassSync(sassOptions, sassGlobPattern, dest) {
+  return gulp.src(sassGlobPattern, {base: "."})
+    .pipe(sourcemaps.init())
+    .pipe(sass(sassOptions, true))
+    .pipe(postcss([autoprefixer({ grid: true })]))
+    .pipe(sourcemaps.write("./"))
+    .pipe(rename(path => {
+      path.dirname = "";
+    }))
+    .pipe(gulp.dest(dest));
+}
+
+gulp.task("build-document-styles", () => {
+  const dest = "src/main/resources/document-assets";
+  const sassGlobPattern = "src/main/resources/document-assets/scss/*.scss";
+  const sassOptions = {
+    outputStyle: "expanded",
+    includePath: "src/main/resources/document-assets/scss"
+  };
+
+  return compileSassSync(sassOptions, sassGlobPattern, dest);
+});
+
 // copy FDS into public/assets
 gulp.task('copyFdsResources', () => {
   return gulp.src(['fivium-design-system-core/fds/**/*'])
@@ -72,4 +95,4 @@ gulp.task('sassCi', gulp.series(['initFds'], () => {
   return compileSass(true);
 }));
 
-gulp.task('buildAll', gulp.series(['sassCi']));
+gulp.task('buildAll', gulp.series(['sassCi', 'build-document-styles']));

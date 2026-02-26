@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.document.viewtemplates;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,10 +50,36 @@ public class DocumentTemplateController {
     var documentTemplateSectionsSummaryView = lmsDocumentTemplateService.getDocumentTemplateSectionsSummaryView(
         documentTemplateDto, documentTemplateMailMergeFieldFormatter);
 
+    var hasAnyConditionalSections = documentTemplateSectionsSummaryView
+        .topLevelDocumentTemplateSectionSummaryViews()
+        .stream()
+        .anyMatch(summaryView -> StringUtils.isNotBlank(summaryView.conditionTitle()));
+
+    var hasAllConditionalSections = documentTemplateSectionsSummaryView
+        .topLevelDocumentTemplateSectionSummaryViews()
+        .stream()
+        .allMatch(summaryView -> StringUtils.isNotBlank(summaryView.conditionTitle()));
+
     var modelAndView = new ModelAndView("lms/document/templateOverview")
         .addObject("documentTemplateDto", documentTemplateDto)
         .addObject("accordionId", documentTemplateDto.id())
         .addObject("documentSectionsSummaryView", documentTemplateSectionsSummaryView);
+
+    if (hasAnyConditionalSections) {
+      modelAndView.addObject(
+          "previewWithConditionsUrl",
+          ReverseRouter.route(on(DocumentTemplatePdfController.class)
+                                  .renderTemplatePreviewPdfWithConditions(documentTemplateDto.id(), null))
+      );
+    }
+
+    if (!hasAllConditionalSections) {
+      modelAndView.addObject(
+          "previewWithoutConditionsUrl",
+          ReverseRouter.route(on(DocumentTemplatePdfController.class)
+                                  .renderTemplatePreviewPdfWithoutConditions(documentTemplateDto.id(), null))
+      );
+    }
 
     var breadcrumbs = Breadcrumbs.builder("%s".formatted(documentTemplateDto.title()))
         .addBreadcrumb(

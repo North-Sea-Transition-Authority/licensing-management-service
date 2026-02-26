@@ -64,7 +64,7 @@ class DocumentTemplateControllerTest extends AbstractControllerTest {
         "1",
         "Test title",
         "Test content",
-        "condition",
+        null,
         false,
         List.of(),
         Map.of(),
@@ -90,6 +90,96 @@ class DocumentTemplateControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("documentTemplateDto", documentTemplateDto))
         .andExpect(model().attribute("accordionId", DOCUMENT_TEMPLATE_ID))
         .andExpect(model().attribute("breadcrumbs", Map.of(ReverseRouter.route(on(DocumentTemplateSearchController.class)
-                                                            .renderDocumentTemplateSearch(null, null, null)), "Document library")));
+                                                            .renderDocumentTemplateSearch(null, null, null)), "Document library")))
+        .andExpect(model().attribute("previewWithoutConditionsUrl", ReverseRouter.route(on(DocumentTemplatePdfController.class).renderTemplatePreviewPdfWithoutConditions(DOCUMENT_TEMPLATE_ID, null))))
+        .andExpect(model().attributeDoesNotExist("previewWithConditionsUrl"));
+  }
+
+  @Test
+  void renderTemplateOverview_whenHasConditionalSections_twoPreviewUrls() throws Exception {
+    DocumentTemplateDto documentTemplateDto = DocumentTemplateDtoTestUtil
+        .newBuilder()
+        .withId(DOCUMENT_TEMPLATE_ID)
+        .build();
+
+    var conditionalSection = new DocumentTemplateSectionSummaryView(
+        UUID.randomUUID(),
+        "1",
+        "Test title",
+        "Test content",
+        "CONDITION_MNEMONIC",
+        false,
+        List.of(),
+        Map.of(),
+        DocumentTemplateSectionUrlsTestUtil.newBuilder().build(),
+        List.of()
+    );
+
+    var nonConditionalSection = new DocumentTemplateSectionSummaryView(
+        UUID.randomUUID(),
+        "1",
+        "Test title",
+        "Test content",
+        null,
+        false,
+        List.of(),
+        Map.of(),
+        DocumentTemplateSectionUrlsTestUtil.newBuilder().build(),
+        List.of()
+    );
+
+    var documentSummaryView = DocumentTemplateSectionsSummaryViewTestUtil.newBuilder()
+        .withDocumentTemplateSectionSummaryViews(List.of(conditionalSection, nonConditionalSection))
+        .build();
+
+    when(lmsDocumentTemplateService.getDocumentTemplateSectionsSummaryView(any(), any())).thenReturn(documentSummaryView);
+    when(documentTemplateService.getDocumentTemplateDtoOrThrow(DOCUMENT_TEMPLATE_ID)).thenReturn(documentTemplateDto);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(DocumentTemplateController.class)
+                                        .renderTemplateOverview(DOCUMENT_TEMPLATE_ID, null)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("previewWithoutConditionsUrl", ReverseRouter.route(on(DocumentTemplatePdfController.class).renderTemplatePreviewPdfWithoutConditions(DOCUMENT_TEMPLATE_ID, null))))
+        .andExpect(model().attribute("previewWithConditionsUrl", ReverseRouter.route(on(DocumentTemplatePdfController.class).renderTemplatePreviewPdfWithConditions(DOCUMENT_TEMPLATE_ID, null))));
+  }
+
+  @Test
+  void renderTemplateOverview_whenAllSectionsAreConditional() throws Exception {
+    DocumentTemplateDto documentTemplateDto = DocumentTemplateDtoTestUtil
+        .newBuilder()
+        .withId(DOCUMENT_TEMPLATE_ID)
+        .build();
+
+    var nonConditionalSection = new DocumentTemplateSectionSummaryView(
+        UUID.randomUUID(),
+        "1",
+        "Test title",
+        "Test content",
+        "CONDITION_MNEMONIC",
+        false,
+        List.of(),
+        Map.of(),
+        DocumentTemplateSectionUrlsTestUtil.newBuilder().build(),
+        List.of()
+    );
+
+    var documentSummaryView = DocumentTemplateSectionsSummaryViewTestUtil.newBuilder()
+        .withDocumentTemplateSectionSummaryViews(List.of(nonConditionalSection))
+        .build();
+
+    when(lmsDocumentTemplateService.getDocumentTemplateSectionsSummaryView(any(), any())).thenReturn(documentSummaryView);
+    when(documentTemplateService.getDocumentTemplateDtoOrThrow(DOCUMENT_TEMPLATE_ID)).thenReturn(documentTemplateDto);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(DocumentTemplateController.class)
+                                        .renderTemplateOverview(DOCUMENT_TEMPLATE_ID, null)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/document/templateOverview"))
+        .andExpect(model().attribute("previewWithConditionsUrl", ReverseRouter.route(on(DocumentTemplatePdfController.class).renderTemplatePreviewPdfWithConditions(DOCUMENT_TEMPLATE_ID, null))))
+        .andExpect(model().attributeDoesNotExist("previewWithoutConditionsUrl"));
   }
 }

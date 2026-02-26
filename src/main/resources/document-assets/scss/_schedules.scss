@@ -1,0 +1,14 @@
+.schedule-header {
+  text-align: center;
+}
+
+.schedule-table {
+  border: 1px solid black;
+  border-collapse: collapse;
+
+  th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+    padding: 2mm;
+  }
+}

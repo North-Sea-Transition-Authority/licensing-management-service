@@ -6,10 +6,15 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+import static uk.co.nstauthority.licensingmanagementservice.document.AddSectionOption.ADD_AFTER;
+import static uk.co.nstauthority.licensingmanagementservice.document.AddSectionOption.ADD_BEFORE;
+import static uk.co.nstauthority.licensingmanagementservice.document.AddSectionOption.ADD_SUBSECTION;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -21,14 +26,18 @@ import uk.co.fivium.digitaldocumentlibrary.document.DocumentMailMergeFieldFormat
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentMailMergeFieldResolveResult;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateDto;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateSectionSummaryView;
+import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateSectionUrls;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateSectionViewService;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateSectionsSummaryView;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateService;
 import uk.co.fivium.digitaldocumentlibrary.document.PdfRenderResult;
+import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.DocumentTemplateSectionController;
+import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.DocumentTemplateSectionDtoTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.DocumentTemplateSectionsSummaryViewTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.mailmerge.mailmergefields.CompanyNameMailMergeField;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.mailmerge.mailmergefields.CompanyRegisteredAddressMailMergeField;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.mailmerge.mailmergefields.CurrentDateMailMergeField;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ExtendWith(MockitoExtension.class)
 class LmsDocumentTemplateServiceTest {
@@ -174,5 +183,28 @@ class LmsDocumentTemplateServiceTest {
     var resultingSectionSummary = lmsDocumentTemplateService.getDocumentTemplateSectionsSummaryView(templateDto);
 
     assertEquals(expectedSummarySection, resultingSectionSummary);
+  }
+
+  @Test
+  void getDocumentSectionUrls() {
+    var sectionDto = DocumentTemplateSectionDtoTestUtil.newBuilder().build();
+
+    var resultingUrls = lmsDocumentTemplateService.getDocumentSectionUrls(sectionDto);
+
+    Assertions.assertThat(resultingUrls)
+        .extracting(
+            DocumentTemplateSectionUrls::addSectionBeforeUrl,
+            DocumentTemplateSectionUrls::addSectionAfterUrl,
+            DocumentTemplateSectionUrls::addSubsectionUrl,
+            DocumentTemplateSectionUrls::editUrl,
+            DocumentTemplateSectionUrls::removeUrl
+        )
+        .containsExactly(
+            ReverseRouter.route(on(DocumentTemplateSectionController.class).renderAddSectionPage(sectionDto.id(), ADD_BEFORE)),
+            ReverseRouter.route(on(DocumentTemplateSectionController.class).renderAddSectionPage(sectionDto.id(), ADD_AFTER)),
+            ReverseRouter.route(on(DocumentTemplateSectionController.class).renderAddSectionPage(sectionDto.id(), ADD_SUBSECTION)),
+            ReverseRouter.route(on(DocumentTemplateSectionController.class).renderEditSectionPage(sectionDto.id())),
+            ReverseRouter.route(on(DocumentTemplateSectionController.class).renderRemoveSectionPage(sectionDto.id()))
+        );
   }
 }

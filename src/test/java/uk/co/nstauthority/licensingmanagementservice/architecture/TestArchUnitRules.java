@@ -16,6 +16,7 @@ import com.tngtech.archunit.lang.SimpleConditionEvent;
 import uk.co.fivium.digitalenummaterialisationlibrary.enummaterialisation.MaterialisableEnum;
 import uk.co.nstauthority.licensingmanagementservice.util.ArchUnitUtils;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
+import uk.co.nstauthority.licensingmanagementservice.util.enumutil.IgnoreMaterialisationRule;
 
 @AnalyzeClasses(packages = "uk.co.nstauthority.licensingmanagementservice")
 class TestArchUnitRules {
@@ -38,6 +39,7 @@ class TestArchUnitRules {
   @ArchTest
   public static final ArchRule enumMaterialisationArchRule = classes()
       .that().areEnums()
+      .and().areNotAnnotatedWith(IgnoreMaterialisationRule.class)
       .and().containAnyMethodsThat(
           HasName.Predicates.name("getDisplayName").or(HasName.Predicates.name("getDisplayOrder"))
       )

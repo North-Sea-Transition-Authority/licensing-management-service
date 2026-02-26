@@ -1,7 +1,7 @@
 <#include '../../layout/layout.ftl'>
 <#include '_documentSectionSummaryViewContent.ftl'>
 
-<#macro documentSections topLevelDocumentSectionSummaryViews accordionId isTemplate includeRemove=true errorList=[]>
+<#macro documentSections userHasValidPermission topLevelDocumentSectionSummaryViews accordionId isTemplate includeRemove=true errorList=[]>
   <@fdsAccordion.accordion accordionId="summaryaccordion-${accordionId}" rememberExpanded=false>
     <#list topLevelDocumentSectionSummaryViews as documentSectionSummaryView>
         <#list errorList as error>
@@ -26,6 +26,7 @@
             </p>
           </#if>
           <@documentSectionSummaryViewContent
+            userHasValidPermission=userHasValidPermission
             documentSectionSummaryView=documentSectionSummaryView
             isTemplate=isTemplate
             includeRemove=includeRemove

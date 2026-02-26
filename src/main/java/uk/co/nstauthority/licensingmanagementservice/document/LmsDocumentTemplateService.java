@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.document;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,10 +17,12 @@ import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateSectionUrls;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateSectionViewService;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateSectionsSummaryView;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateService;
+import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.DocumentTemplateSectionController;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.LmsPdfRenderResult;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.mailmerge.mailmergefields.CompanyNameMailMergeField;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.mailmerge.mailmergefields.CompanyRegisteredAddressMailMergeField;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.mailmerge.mailmergefields.CurrentDateMailMergeField;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Service
 public class LmsDocumentTemplateService {
@@ -85,20 +89,35 @@ public class LmsDocumentTemplateService {
     var currentDate = currentDateMailMergeField.resolve(documentTemplateDto);
 
     Map<String, Object> templateModel = new HashMap<>(Map.of(
-        "documentTemplateSectionSummaryView", nonConditionalSummaryView,
-        "isPreview", isPreview,
-        "companyName", getResolvedValue(companyName),
-        "companyRegisteredAddress", (companyAddress != null) ? companyAddress.split("\n") : List.of(),
-        "currentDate", getResolvedValue(currentDate)
+        "documentTemplateSectionSummaryView",
+        nonConditionalSummaryView,
+        "isPreview",
+        isPreview,
+        "companyName",
+        getResolvedValue(companyName),
+        "companyRegisteredAddress",
+        (companyAddress != null) ? companyAddress.split("\n") : List.of(),
+        "currentDate",
+        getResolvedValue(currentDate)
     ));
 
     var pdf = documentTemplateService.renderPdf(documentTemplateDto, templateModel);
     return new LmsPdfRenderResult(pdf.pdfContent(), pdf.pdfHtml(), Map.of());
   }
 
-  //TODO add real world section urls
   DocumentTemplateSectionUrls getDocumentSectionUrls(DocumentTemplateSectionDto documentTemplateSectionDto) {
-    return new DocumentTemplateSectionUrls("", "", "", "", "");
+    return new DocumentTemplateSectionUrls(
+        ReverseRouter.route(on(DocumentTemplateSectionController.class)
+                                .renderAddSectionPage(documentTemplateSectionDto.id(), AddSectionOption.ADD_BEFORE)),
+        ReverseRouter.route(on(DocumentTemplateSectionController.class)
+                                .renderAddSectionPage(documentTemplateSectionDto.id(), AddSectionOption.ADD_AFTER)),
+        ReverseRouter.route(on(DocumentTemplateSectionController.class)
+                                .renderAddSectionPage(documentTemplateSectionDto.id(), AddSectionOption.ADD_SUBSECTION)),
+        ReverseRouter.route(on(DocumentTemplateSectionController.class)
+                                .renderEditSectionPage(documentTemplateSectionDto.id())),
+        ReverseRouter.route(on(DocumentTemplateSectionController.class)
+                                .renderRemoveSectionPage(documentTemplateSectionDto.id()))
+    );
   }
 
   private String getResolvedValue(DocumentMailMergeFieldResolveResult resolveResult) {

@@ -14,6 +14,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -254,5 +256,55 @@ class ApplicationAccessServiceTest {
     var result = applicationAccessService.getOrganisationUnitIds(organisationUser);
 
     assertThat(result).isEmpty();
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = Role.class, names = {
+      "STEWARD_NEW_VENTURES",
+      "STEWARD_OPERATIONS",
+      "STEWARD_CS_NEW_VENTURES",
+      "STEWARD_CS_CTS"
+  })
+  void userHasAccessToApplication_whenUserIsSteward_returnsTrue(Role stewardRole) {
+    String appId = "456";
+    Integer orgUnitId = 100;
+
+    Team irrelevantTeam = new Team(UUID.randomUUID());
+    irrelevantTeam.setTeamType(TeamType.LICENCE_MANAGEMENT);
+
+    TeamRole role = new TeamRole();
+    role.setTeam(irrelevantTeam);
+    role.setRole(stewardRole);
+
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(orgUnitId)).thenReturn(Optional.empty());
+
+    assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, orgUnitId, USER_1_WUA_ID)).isTrue();
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = Role.class, names = {
+      "CASE_MANAGER_NEW_VENTURES",
+      "CASE_MANAGER_CS_NEW_VENTURES",
+      "CASE_MANAGER_OPERATIONS",
+      "CASE_MANAGER_CS_CTS",
+      "CASE_MANAGER_ONSHORE"
+  })
+  void userHasAccessToApplication_whenUserIsCaseManager_returnsTrue(Role caseManagerRole) {
+    String appId = "789";
+    Integer orgUnitId = 100;
+
+    Team irrelevantTeam = new Team(UUID.randomUUID());
+    irrelevantTeam.setTeamType(TeamType.ORGANISATION);
+    irrelevantTeam.setScopeId("999");
+
+    TeamRole role = new TeamRole();
+    role.setTeam(irrelevantTeam);
+    role.setRole(caseManagerRole);
+
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(orgUnitId)).thenReturn(Optional.of(111));
+
+    assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.CONTINUATION_APPLICATION, orgUnitId, USER_1_WUA_ID)).isTrue();
   }
 }

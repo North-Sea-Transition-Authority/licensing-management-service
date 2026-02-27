@@ -26,6 +26,9 @@ public class ScheduleWorkProgrammeApplication {
   @Column
   private String applicationReference;
 
+  @Column
+  private Long stewardWuaId;
+
   public UUID getId() {
     return id;
   }
@@ -48,5 +51,13 @@ public class ScheduleWorkProgrammeApplication {
 
   public void setApplicationReference(String applicationReference) {
     this.applicationReference = applicationReference;
+  }
+
+  public Long getStewardWuaId() {
+    return stewardWuaId;
+  }
+
+  public void setStewardWuaId(Long stewardWuaId) {
+    this.stewardWuaId = stewardWuaId;
   }
 }

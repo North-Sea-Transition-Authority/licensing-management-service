@@ -1,7 +1,10 @@
 package uk.co.nstauthority.licensingmanagementservice.util;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -21,5 +24,16 @@ public class StreamUtil {
         },
         LinkedHashMap::new
     );
+  }
+
+  @SafeVarargs
+  public static <R> Set<R> unionSets(Set<R>... sets) {
+    if (sets == null) {
+      return Set.of();
+    }
+
+    return Arrays.stream(sets)
+        .flatMap(Collection::stream)
+        .collect(Collectors.toSet());
   }
 }

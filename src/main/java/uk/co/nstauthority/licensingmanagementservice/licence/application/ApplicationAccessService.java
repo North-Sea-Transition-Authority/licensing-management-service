@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.application;
 
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
+import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 @Service
 public class ApplicationAccessService {
@@ -21,6 +23,20 @@ public class ApplicationAccessService {
   private final OrganisationGroupQueryService organisationGroupQueryService;
   private final TeamQueryService teamQueryService;
   private final Set<Role> editorSubmitterRoles = Set.of(Role.APPLICATION_EDITOR, Role.APPLICATION_SUBMITTER);
+  public static final Set<Role> STEWARD_ROLES = EnumSet.of(
+      Role.STEWARD_NEW_VENTURES,
+      Role.STEWARD_OPERATIONS,
+      Role.STEWARD_CS_NEW_VENTURES,
+      Role.STEWARD_CS_CTS,
+      Role.STEWARD_ONSHORE
+  );
+  public static final Set<Role> CASE_MANAGER_ROLES = EnumSet.of(
+      Role.CASE_MANAGER_CS_CTS,
+      Role.CASE_MANAGER_CS_NEW_VENTURES,
+      Role.CASE_MANAGER_NEW_VENTURES,
+      Role.CASE_MANAGER_ONSHORE,
+      Role.CASE_MANAGER_OPERATIONS
+  );
 
   public ApplicationAccessService(
       OrganisationUnitQueryService organisationUnitQueryService,
@@ -38,10 +54,14 @@ public class ApplicationAccessService {
       Integer organisationUnitId,
       Long wuaId
   ) {
-    var allowedRoles = Set.of(
-        Role.EXTERNAL_APPLICATION_EDITOR,
-        Role.APPLICATION_EDITOR,
-        Role.APPLICATION_SUBMITTER
+    var allowedRoles = StreamUtil.unionSets(
+        Set.of(
+            Role.EXTERNAL_APPLICATION_EDITOR,
+            Role.APPLICATION_EDITOR,
+            Role.APPLICATION_SUBMITTER
+        ),
+        STEWARD_ROLES,
+        CASE_MANAGER_ROLES
     );
 
     var organisationGroupIds = organisationUnitQueryService.findOrganisationGroupIdByUnitId(organisationUnitId)
@@ -51,11 +71,14 @@ public class ApplicationAccessService {
 
     return teamQueryService.getTeamRolesForUser(wuaId).stream()
                            .filter(teamRole -> allowedRoles.contains(teamRole.getRole()))
-                           .anyMatch(teamRole -> isMatchingExternalContributorOrOrganisationTeam(
-                               teamRole.getTeam(),
-                               applicationId,
-                               applicationType,
-                               organisationGroupIds)
+                           .anyMatch(teamRole ->
+                               isMatchingExternalContributorOrOrganisationTeam(
+                                 teamRole.getTeam(),
+                                 applicationId,
+                                 applicationType,
+                                 organisationGroupIds
+                               )
+                               || isCaseManagerOrSteward(teamRole.getRole())
                            );
   }
 
@@ -65,15 +88,25 @@ public class ApplicationAccessService {
       ApplicationType applicationType,
       Set<String> organisationGroupIds
   ) {
-    boolean isExternalContributor = team.getTeamType() == TeamType.EXTERNAL_CONTRIBUTORS
-                                    && applicationId.equals(team.getScopeId())
-                                    && team.getScopeType().equals(applicationType.name());
 
-    boolean isOrganisationGroup = team.getTeamType() == TeamType.ORGANISATION
-                                  && organisationGroupIds.contains(team.getScopeId())
-                                  && team.getScopeType().equals(ScopeType.ORGANISATION_GROUP.name());
+    var isExternalContributor = team.getTeamType() == TeamType.EXTERNAL_CONTRIBUTORS
+                                && applicationId.equals(team.getScopeId())
+                                && team.getScopeType().equals(applicationType.name());
+
+    var isOrganisationGroup = team.getTeamType() == TeamType.ORGANISATION
+                              && organisationGroupIds.contains(team.getScopeId())
+                              && team.getScopeType().equals(ScopeType.ORGANISATION_GROUP.name());
 
     return isExternalContributor || isOrganisationGroup;
+  }
+
+  private boolean isCaseManagerOrSteward(
+      Role role
+  ) {
+    var isCaseManager = CASE_MANAGER_ROLES.contains(role);
+    var isSteward = STEWARD_ROLES.contains(role);
+
+    return isCaseManager || isSteward;
   }
 
   public boolean userHasAccessToStartApplication(

@@ -120,7 +120,7 @@ class ScheduleWorkProgrammeApplicationOverviewServiceTest {
     var keys = context.summaryDataView().get(0).keyValues().stream()
         .map(SummaryKeyValue::key)
         .toList();
-    assertThat(keys).containsExactly("Status", "Licence reference", "Submitted by", "Submission date");
+    assertThat(keys).containsExactly("Status", "Licence reference", "Submitted by", "Submission date", "Steward");
   }
 
   @Test

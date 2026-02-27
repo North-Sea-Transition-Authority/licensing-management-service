@@ -25,4 +25,6 @@ public interface TeamRoleRepository extends ListCrudRepository<TeamRole, UUID> {
   List<TeamRole> findAllByRole(Role role);
 
   List<TeamRole> findAllByTeamAndRole(Team team, Role role);
+
+  List<TeamRole> findAllByRoleIn(Collection<Role> roles);
 }

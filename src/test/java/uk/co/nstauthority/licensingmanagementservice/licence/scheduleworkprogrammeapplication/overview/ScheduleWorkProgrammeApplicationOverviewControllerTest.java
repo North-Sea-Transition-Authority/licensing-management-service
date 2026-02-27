@@ -81,6 +81,8 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
         .thenReturn(applicationContext);
     when(licenceScheduleSummarySectionService.getSummarySections(applicationDetail, USER))
         .thenReturn(List.of());
+    when(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, USER))
+        .thenReturn(List.of());
 
     mockMvc.perform(
             get(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
@@ -92,7 +94,8 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
             "lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeApplicationOverview"))
         .andExpect(model().attribute("applicationContext", applicationContext))
         .andExpect(model().attribute("summarySections", List.of()))
-        .andExpect(model().attribute("accordionId", applicationDetailId));
+        .andExpect(model().attribute("accordionId", applicationDetailId))
+        .andExpect(model().attribute("applicationActions", List.of()));
   }
 
   private Licence createLicence() {

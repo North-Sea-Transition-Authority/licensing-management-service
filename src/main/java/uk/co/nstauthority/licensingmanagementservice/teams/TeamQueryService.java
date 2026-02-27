@@ -1,6 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.teams;
 
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 
@@ -86,5 +88,9 @@ public class TeamQueryService {
 
   public Set<TeamRole> getTeamRolesForUser(long wuaId) {
     return new HashSet<>(teamRoleRepository.findAllByWuaId(wuaId));
+  }
+
+  public List<TeamRole> getAllTeamRolesWithRoles(Collection<Role> roles) {
+    return teamRoleRepository.findAllByRoleIn(roles);
   }
 }

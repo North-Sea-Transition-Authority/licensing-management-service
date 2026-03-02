@@ -22,7 +22,6 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEn
 @RequestMapping("licences/{licenceId}/responsible-team")
 public class LicenceResponsibleTeamController {
 
-
   public static final String PAGE_TITLE = "Who is the licence allocated to?";
   private final LicenceResponsibleTeamValidator licenceResponsibleTeamValidator;
   private final LicenceResponsibleTeamService licenceResponsibleTeamService;
@@ -54,7 +53,7 @@ public class LicenceResponsibleTeamController {
 
     licenceResponsibleTeamService.saveLicenceResponsibleTeam(licence, form.getResponsibleTeam());
 
-    return ReverseRouter.redirect(on(LicenceOverviewController.class).renderLicenceOverview(licenceId, null, null));
+    return ReverseRouter.redirect(on(LicenceOverviewController.class).renderLicenceOverview(licenceId, null, null, null));
   }
 
   private ModelAndView getModelAndView(Licence licence) {
@@ -67,7 +66,7 @@ public class LicenceResponsibleTeamController {
         .addObject("responsibleTeamOptions",
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceTeam.fromTeamType(licence.getType())))
         .addObject("backUrl",
-            ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licence.getId(), null, null)));
+            ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licence.getId(), null, null, null)));
   }
 
 }

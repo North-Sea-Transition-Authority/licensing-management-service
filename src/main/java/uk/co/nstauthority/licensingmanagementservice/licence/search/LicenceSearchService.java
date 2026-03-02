@@ -121,7 +121,7 @@ public class LicenceSearchService {
     return SearchResultItem.newBuilder()
         .withId(licence.getId().toString())
         .withLinkHeadingUrl(ReverseRouter.route(on(LicenceOverviewController.class)
-          .renderLicenceOverview(licence.getId(), null, null)))
+          .renderLicenceOverview(licence.getId(), null, null, null)))
         .withLinkHeadingText(licence.getLicenceReference())
         .withCaptionText(licence.getType().getDisplayName())
         .withDataItemRow(SummaryDataView.newStringKeyValue("Licensee(s)", String.join(", ", mappedLicensees)))

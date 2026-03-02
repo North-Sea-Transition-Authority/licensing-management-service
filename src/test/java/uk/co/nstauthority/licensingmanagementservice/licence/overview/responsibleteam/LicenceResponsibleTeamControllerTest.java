@@ -119,7 +119,7 @@ class LicenceResponsibleTeamControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("responsibleTeamOptions",
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceTeam.fromTeamType(licence.getType()))))
         .andExpect(model().attribute("backUrl",
-            ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licence.getId(), null, null))));
+            ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licence.getId(), null, null, null))));
   }
 
   private void mockSatisfiesActionItem(Licence licence, LicenceActionItem licenceActionItem) {

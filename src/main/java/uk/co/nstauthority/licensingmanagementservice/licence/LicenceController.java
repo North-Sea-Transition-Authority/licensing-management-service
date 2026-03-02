@@ -66,7 +66,7 @@ public class LicenceController {
     if (newLicenceValidator.isValid(form, bindingResult)) {
       var licence = licenceFormService.saveNewLicenceFromForm(form);
 
-      return ReverseRouter.redirect(on(LicenceOverviewController.class).renderLicenceOverview(licence.getId(), null, null));
+      return ReverseRouter.redirect(on(LicenceOverviewController.class).renderLicenceOverview(licence.getId(), null, null, null));
     }
 
     return getNewLicenceModelAndView(form);
@@ -130,7 +130,7 @@ public class LicenceController {
     }
 
     licenceResponsibleOrganisationService.saveLicenseesFromForm(licence, form.getOrganisationUnitIds());
-    return ReverseRouter.redirect(on(LicenceOverviewController.class).renderLicenceOverview(licenceId, null, null));
+    return ReverseRouter.redirect(on(LicenceOverviewController.class).renderLicenceOverview(licenceId, null, null, null));
   }
 
   private ModelAndView getManageLicenseesModelAndView(
@@ -146,6 +146,6 @@ public class LicenceController {
         .addObject("organisationUnitSearchEndpoint",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
         .addObject("backUrl",
-            ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licence.getId(), null, null)));
+            ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licence.getId(), null, null, null)));
   }
 }

@@ -93,7 +93,7 @@ public class LicenceScheduleTimelineController {
         .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .addObject("actions", licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail))
         .addObject("scheduleEventViews",
-            licenceScheduleTimelineService.getLicenceScheduleEventViews(licenceScheduleDetail, timelineFilterForm)
+            licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, timelineFilterForm)
         )
         .addObject("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions())
         .addObject("updateLicenceStartDateUrl", ReverseRouter.route(on(LicenceStartDateController.class)

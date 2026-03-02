@@ -2,10 +2,12 @@
 <#import '../../../component/timeline/timestamp.ftl' as lmsTimeStamp>
 
 <#macro term termView>
-    <#assign timelineActions>
-        <@fdsAction.link linkText="Edit" linkUrl=springUrl(termView.updateUrl()) linkClass="govuk-link"/>
-        <@fdsAction.link linkText="Remove" linkUrl=springUrl(termView.deleteUrl()) linkClass="govuk-link"/>
-    </#assign>
+    <#if termView.updateUrl()?has_content>
+        <#assign timelineActions>
+            <@fdsAction.link linkText="Edit" linkUrl=springUrl(termView.updateUrl()) linkClass="govuk-link"/>
+            <@fdsAction.link linkText="Remove" linkUrl=springUrl(termView.deleteUrl()) linkClass="govuk-link"/>
+        </#assign>
+    </#if>
 
     <#if termView.events()?has_content && termView.hasPhases()>
         <#list termView.events() as eventView>
@@ -68,10 +70,12 @@
 </#macro>
 
 <#macro phase phaseView>
-    <#assign timelineActions>
-        <@fdsAction.link linkText="Edit" linkUrl=springUrl(phaseView.updateUrl()) linkClass="govuk-link"/>
-        <@fdsAction.link linkText="Remove" linkUrl=springUrl(phaseView.deleteUrl()) linkClass="govuk-link"/>
-    </#assign>
+    <#if phaseView.updateUrl()?has_content>
+        <#assign timelineActions>
+            <@fdsAction.link linkText="Edit" linkUrl=springUrl(phaseView.updateUrl()) linkClass="govuk-link"/>
+            <@fdsAction.link linkText="Remove" linkUrl=springUrl(phaseView.deleteUrl()) linkClass="govuk-link"/>
+        </#assign>
+    </#if>
 
     <@fdsTimeline.timelineTimeStamp
         timeStampHeading=phaseView.phaseType().displayName
@@ -106,10 +110,12 @@
 </#macro>
 
 <#macro workProgrammeActivity activityView>
-    <#assign timelineActions>
-        <@fdsAction.link linkText="Edit" linkUrl=springUrl(activityView.updateUrl()) linkClass="govuk-link"/>
-        <@fdsAction.link linkText="Remove" linkUrl=springUrl(activityView.deleteUrl()) linkClass="govuk-link"/>
-    </#assign>
+    <#if activityView.updateUrl()?has_content>
+        <#assign timelineActions>
+            <@fdsAction.link linkText="Edit" linkUrl=springUrl(activityView.updateUrl()) linkClass="govuk-link"/>
+            <@fdsAction.link linkText="Remove" linkUrl=springUrl(activityView.deleteUrl()) linkClass="govuk-link"/>
+        </#assign>
+    </#if>
 
     <@lmsTimeStamp.lmsTimeStamp
         timeStampHeading=activityView.category()
@@ -126,10 +132,12 @@
 </#macro>
 
 <#macro workProgrammeActivityEndOfPeriodRequirement activityView>
-    <#assign timelineActions>
-        <@fdsAction.link linkText="Edit" linkUrl=springUrl(activityView.updateUrl()) linkClass="govuk-link"/>
-        <@fdsAction.link linkText="Remove" linkUrl=springUrl(activityView.deleteUrl()) linkClass="govuk-link"/>
-    </#assign>
+    <#if activityView.updateUrl()?has_content>
+        <#assign timelineActions>
+            <@fdsAction.link linkText="Edit" linkUrl=springUrl(activityView.updateUrl()) linkClass="govuk-link"/>
+            <@fdsAction.link linkText="Remove" linkUrl=springUrl(activityView.deleteUrl()) linkClass="govuk-link"/>
+        </#assign>
+    </#if>
 
     <@lmsTimeStamp.lmsTimeStamp
         timeStampHeading=activityView.category()
@@ -145,10 +153,12 @@
 </#macro>
 
 <#macro rate rateView smallDot=true>
-    <#assign timelineActions>
-        <@fdsAction.link linkText="Edit" linkUrl=springUrl(rateView.updateUrl()) linkClass="govuk-link"/>
-        <@fdsAction.link linkText="Remove" linkUrl=springUrl(rateView.deleteUrl()) linkClass="govuk-link"/>
-    </#assign>
+    <#if rateView.updateUrl()?has_content>
+        <#assign timelineActions>
+            <@fdsAction.link linkText="Edit" linkUrl=springUrl(rateView.updateUrl()) linkClass="govuk-link"/>
+            <@fdsAction.link linkText="Remove" linkUrl=springUrl(rateView.deleteUrl()) linkClass="govuk-link"/>
+        </#assign>
+    </#if>
 
     <#if smallDot=true>
         <#assign nodeClass = "fds-timeline__node-number--small-dot">

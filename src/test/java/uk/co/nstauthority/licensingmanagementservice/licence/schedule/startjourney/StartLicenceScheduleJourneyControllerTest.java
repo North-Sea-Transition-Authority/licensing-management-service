@@ -61,7 +61,7 @@ class StartLicenceScheduleJourneyControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("startUrl",
             ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateForm(licenceId, null))))
         .andExpect(model().attribute("backUrl",
-            ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licenceId, null, null))));
+            ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licenceId, null, null, null))));
   }
 
   @SecurityTest

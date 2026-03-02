@@ -22,3 +22,6 @@ CVE-2023-33201
 
 # commons-io:commons-io
 CVE-2024-47554
+
+# com.fasterxml.jackson.core:jackson-core
+GHSA-72hv-8253-57qq

@@ -37,7 +37,7 @@ public class StartLicenceScheduleJourneyController {
         .addObject("startUrl",
             ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateForm(licenceId, null)))
         .addObject("backUrl",
-            ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licenceId, null, null)));
+            ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licenceId, null, null, null)));
   }
 
 }

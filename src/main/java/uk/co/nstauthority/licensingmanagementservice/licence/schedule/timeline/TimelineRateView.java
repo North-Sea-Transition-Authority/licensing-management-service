@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.time.LocalDate;
+import java.util.List;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateController;
@@ -29,17 +30,28 @@ public record TimelineRateView(
     return startDate;
   }
 
-  public static ScheduleEvent getScheduleEventFrom(LicenceScheduleRate licenceScheduleRate) {
+  public static ScheduleEvent getScheduleEventFrom(
+      LicenceScheduleRate licenceScheduleRate,
+      List<ScheduleEventAction> allowedActions
+  ) {
+    var editUrl = allowedActions.contains(ScheduleEventAction.EDIT_SCHEDULE_EVENTS)
+        ? ReverseRouter.route(on(LicenceScheduleRateController.class)
+          .renderUpdateLicenceScheduleRateForm(licenceScheduleRate.getId()))
+        : "";
+
+    var deleteUrl = allowedActions.contains(ScheduleEventAction.EDIT_SCHEDULE_EVENTS)
+        ? ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
+          .renderDeleteRatePage(licenceScheduleRate.getId()))
+        : "";
+
     return new TimelineRateView(
         generateTitle(licenceScheduleRate),
         licenceScheduleRate.getStartDate(),
         //TODO LMS1-195: change to duration once end date is calculated
         DateFormatUtil.convertToDisplayText(licenceScheduleRate.getStartDate()),
         "£%s".formatted(licenceScheduleRate.getRentalRate().toString()),
-        ReverseRouter.route(on(LicenceScheduleRateController.class)
-            .renderUpdateLicenceScheduleRateForm(licenceScheduleRate.getId())),
-        ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
-            .renderDeleteRatePage(licenceScheduleRate.getId()))
+        editUrl,
+        deleteUrl
     );
   }
 

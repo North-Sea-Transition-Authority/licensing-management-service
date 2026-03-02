@@ -93,9 +93,38 @@ extendContainerWidth=true>
                                     </p>
 
                                     <@fdsDetails.summaryDetails summaryTitle="Comments">
-                                        <p class="govuk-body">
-                                            This is a comment
-                                        </p>
+                                        <@fdsCard.card>
+                                            <@fdsDataItems.dataItem>
+                                                <@fdsDataItems.dataValues key="Name" value="Sally Steward"/>
+                                                <@fdsDataItems.dataValues key="Posted" value="31 May 2028 12:54:00"/>
+                                            </@fdsDataItems.dataItem>
+                                            <@fdsDataItems.dataItem>
+                                                <@fdsDataItems.dataValues key="Comment" value="Operator has confirmed that work is underway"/>
+                                            </@fdsDataItems.dataItem>
+                                            <@fdsAction.link linkText="Remove" linkUrl="#"/>
+                                        </@fdsCard.card>
+
+                                        <@fdsCard.card>
+                                            <@fdsDataItems.dataItem>
+                                                <@fdsDataItems.dataValues key="Name" value="Wendy Work-Programme"/>
+                                                <@fdsDataItems.dataValues key="Posted" value="22 July 2028 10:39:00"/>
+                                            </@fdsDataItems.dataItem>
+                                            <@fdsDataItems.dataItem>
+                                                <@fdsDataItems.dataValues key="Comment" value="Total amount of seismic data required reduced to 270 sq kms"/>
+                                            </@fdsDataItems.dataItem>
+                                            <@fdsAction.link linkText="Remove" linkUrl="#"/>
+                                        </@fdsCard.card>
+
+                                        <@fdsCard.card>
+                                            <@fdsDataItems.dataItem>
+                                                <@fdsDataItems.dataValues key="Name" value="Sally Steward"/>
+                                                <@fdsDataItems.dataValues key="Posted" value="12 December 2028 11:20:00"/>
+                                            </@fdsDataItems.dataItem>
+                                            <@fdsDataItems.dataItem>
+                                                <@fdsDataItems.dataValues key="Comment" value="Operator has confirmed that work is complete"/>
+                                            </@fdsDataItems.dataItem>
+                                            <@fdsAction.link linkText="Remove" linkUrl="#"/>
+                                        </@fdsCard.card>
                                     </@fdsDetails.summaryDetails>
                                 </@fdsTimeline.timelineEvent>
                             </@custom.timelineTimeStampNoDotComplete>

@@ -87,22 +87,6 @@ public enum TeamType implements Displayable {
       ),
       null
   ),
-  PRODUCTION(
-      "Production",
-      "production",
-      false,
-      false,
-      List.of(Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE),
-      null
-  ),
-  CARBON_STORAGE(
-      "Carbon storage",
-      "carbon-storage",
-      false,
-      false,
-      List.of(Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE),
-      null
-  ),
   ORGANISATION(
       "Organisations",
       "organisation",

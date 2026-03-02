@@ -30,7 +30,7 @@ public class InterceptorRuleTestEndpoints {
   @GetMapping("has-role-in-static-team-multiple-teams")
   @HasRoleInStaticTeamInterceptorRule.HasRoleInStaticTeam({
       @HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.LICENCE_MANAGEMENT, roles = {Role.MANAGE_TEAM, Role.VIEW_ANY_LICENCE}),
-      @HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.PRODUCTION, roles = {Role.MANAGE_TEAM})
+      @HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.OFFSHORE_PRODUCTION_LICENSING, roles = {Role.MANAGE_TEAM})
   })
   public ResponseEntity<String> hasRoleInStaticTeam_multipleTeams() {
     return ResponseEntity.ok("has role in static team multiple teams test endpoint");

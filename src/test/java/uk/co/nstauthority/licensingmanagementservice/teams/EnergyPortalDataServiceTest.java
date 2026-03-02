@@ -125,8 +125,6 @@ class EnergyPortalDataServiceTest {
         .isEqualTo(
             Map.of(
                 TeamType.LICENCE_MANAGEMENT.name(), licenceManagementRoleDtos,
-                TeamType.PRODUCTION.name(), productionRoleDtos,
-                TeamType.CARBON_STORAGE.name(), carbonStorageRoleDtos,
                 TeamType.ORGANISATION.name(), organisationServiceRoleDtos,
                 TeamType.EXTERNAL_CONTRIBUTORS.name(), externalContributorsRoleDtos,
                 TeamType.OFFSHORE_PRODUCTION_LICENSING.name(), offshoreProductionLicensingRoleDtos,
@@ -141,8 +139,6 @@ class EnergyPortalDataServiceTest {
   void getTeamTypes() {
     assertThat(energyPortalDataService.getTeamTypes()).isEqualTo(Set.of(
         TeamType.LICENCE_MANAGEMENT.name(),
-        TeamType.PRODUCTION.name(),
-        TeamType.CARBON_STORAGE.name(),
         TeamType.ORGANISATION.name(),
         TeamType.EXTERNAL_CONTRIBUTORS.name(),
         TeamType.OFFSHORE_PRODUCTION_LICENSING.name(),

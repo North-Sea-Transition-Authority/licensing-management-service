@@ -125,7 +125,7 @@ class HasRoleInStaticTeamInterceptorRuleTest extends AbstractInterceptorRuleTest
     ).thenReturn(false);
     when(teamQueryService.userHasAtLeastOneStaticRole(
         1L,
-        TeamType.PRODUCTION,
+        TeamType.OFFSHORE_PRODUCTION_LICENSING,
         Set.of(Role.MANAGE_TEAM))
     ).thenReturn(false);
 

@@ -19,7 +19,7 @@ class TeamUpdateHandler implements EnergyPortalOrganisationGroupConsumer {
   }
 
   @Override
-  public void accept(EnergyPortalOrganisationGroupEvent energyPortalOrganisationGroupEvent) {
+  public void onEnergyPortalOrganisationGroupEvent(EnergyPortalOrganisationGroupEvent energyPortalOrganisationGroupEvent) {
     if (energyPortalOrganisationGroupEvent.isCreated()) {
       LOGGER.info("Received organisation group created event for organisation {}", energyPortalOrganisationGroupEvent.groupId());
       return;

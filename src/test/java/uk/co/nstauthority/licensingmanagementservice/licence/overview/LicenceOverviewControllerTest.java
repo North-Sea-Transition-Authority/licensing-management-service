@@ -14,6 +14,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
@@ -72,9 +73,9 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
   }
 
   @SecurityTest
-  void renderLicenceOverview() throws Exception {
+  void renderLicenceOverview_activeScheduleExists() throws Exception {
     when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
-    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE)).thenReturn(licenceScheduleDetail);
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(licence, LicenceScheduleDetailStatus.ACTIVE)).thenReturn(Optional.of(licenceScheduleDetail));
 
     var actions = List.of(LicenceActionItem.MANAGE_LICENSEES.toActionItemView(licence));
 
@@ -101,6 +102,36 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("clearFilterUrl", ReverseRouter.route(on(LicenceOverviewController.class)
             .clearFilters(licence.getId(), null, null)))
         );
+  }
+
+  @SecurityTest
+  void renderLicenceOverview_activeScheduleDoesNotExist() throws Exception {
+    when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(licence, LicenceScheduleDetailStatus.ACTIVE)).thenReturn(Optional.empty());
+
+    var actions = List.of(LicenceActionItem.MANAGE_LICENSEES.toActionItemView(licence));
+
+    when(licenceActionService.getAvailableUserActionItems(licence, USER)).thenReturn(actions);
+
+    var timelineSummaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatus.EXTANT.getDisplayName());
+    var scheduleEventViews = List.of(new TimelineTermView(List.of(), List.of(), TermType.INITIAL, "", "", "", "", true));
+
+    when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
+    when(licenceScheduleTimelineService.getReadOnlyLicenceScheduleEventViews(eq(licenceScheduleDetail), any())).thenReturn(scheduleEventViews);
+
+    mockMvc.perform(
+            get(viewOverviewUrl)
+                .with(user(USER))
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/licence/licenceOverview"))
+        .andExpect(model().attribute("licenceReference", licence.getLicenceReference()))
+        .andExpect(model().attribute("caption", licence.getType().getDisplayName()))
+        .andExpect(model().attribute("licenceActions", actions))
+        .andExpect(model().attributeDoesNotExist("timelineSummaryCardView"))
+        .andExpect(model().attributeDoesNotExist("scheduleEventViews"))
+        .andExpect(model().attributeDoesNotExist("timelineFilterOptions"))
+        .andExpect(model().attributeDoesNotExist("clearFilterUrl"));
   }
 
   @Test

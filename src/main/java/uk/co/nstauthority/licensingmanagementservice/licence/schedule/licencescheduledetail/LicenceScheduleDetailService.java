@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesc
 import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
@@ -36,6 +37,13 @@ public class LicenceScheduleDetailService {
   public LicenceScheduleDetail getScheduleDetailByLicenceAndStatusOrThrow(Licence licence, LicenceScheduleDetailStatus status) {
     return licenceScheduleDetailRepository.findByLicenceSchedule_LicenceAndStatus(licence, status)
         .orElseThrow(() -> new LmsEntityNotFoundException("licence schedule detail", licence.getId()));
+  }
+
+  public Optional<LicenceScheduleDetail> getScheduleDetailByLicenceAndStatus(
+      Licence licence,
+      LicenceScheduleDetailStatus status
+  ) {
+    return licenceScheduleDetailRepository.findByLicenceSchedule_LicenceAndStatus(licence, status);
   }
 
   //TODO remove in place of draft schedules for the user

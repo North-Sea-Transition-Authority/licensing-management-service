@@ -8,13 +8,17 @@ pageHeading=licenceReference
 caption=caption
 pageSize=PageSize.FULL_COLUMN
 >
-  <@scheduleTimeline.timelineSummaryCard timelineSummaryCardView=timelineSummaryCardView/>
+    <#if timelineSummaryCardView?has_content>
+        <@scheduleTimeline.timelineSummaryCard timelineSummaryCardView=timelineSummaryCardView/>
+    </#if>
 
-  <@actionItems.actionItems actionItems=licenceActions screenReaderText=licenceReference/>
+    <@actionItems.actionItems actionItems=licenceActions screenReaderText=licenceReference/>
 
-  <@scheduleTimeline.timelineWithFilters
-      scheduleEventViews=scheduleEventViews
-      timelineFilterOptions=timelineFilterOptions
-      clearFilterUrl=clearFilterUrl
-  />
+    <#if scheduleEventViews?has_content>
+        <@scheduleTimeline.timelineWithFilters
+        scheduleEventViews=scheduleEventViews
+        timelineFilterOptions=timelineFilterOptions
+        clearFilterUrl=clearFilterUrl
+        />
+    </#if>
 </@defaultPage>

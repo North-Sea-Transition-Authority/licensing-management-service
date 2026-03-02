@@ -48,22 +48,24 @@ public class LicenceOverviewController {
       Licence licence,
       ServiceUserDetail user
   ) {
-    var scheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
-        licence,
-        LicenceScheduleDetailStatus.ACTIVE
-    );
-
     var form = filterSession.getTimelineFilterForm();
 
     if (!filterSession.hasFilterBeenInvoked()) {
       form.clearFilter();
     }
 
-    return new ModelAndView("lms/licence/licenceOverview")
+    var modelAndView = new ModelAndView("lms/licence/licenceOverview")
         .addObject("form", form)
         .addObject("licenceReference", licence.getLicenceReference())
         .addObject("caption", licence.getType().getDisplayName())
-        .addObject("licenceActions", licenceActionService.getAvailableUserActionItems(licence, user))
+        .addObject("licenceActions", licenceActionService.getAvailableUserActionItems(licence, user));
+
+    var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(
+        licence,
+        LicenceScheduleDetailStatus.ACTIVE
+    );
+
+    licenceScheduleDetail.ifPresent(scheduleDetail -> modelAndView
         .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(scheduleDetail))
         .addObject("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions())
         .addObject("scheduleEventViews",
@@ -71,7 +73,10 @@ public class LicenceOverviewController {
         )
         .addObject("clearFilterUrl", ReverseRouter.route(on(LicenceOverviewController.class)
             .clearFilters(licenceId, null, null))
-        );
+        )
+    );
+
+    return modelAndView;
   }
 
   @PostMapping

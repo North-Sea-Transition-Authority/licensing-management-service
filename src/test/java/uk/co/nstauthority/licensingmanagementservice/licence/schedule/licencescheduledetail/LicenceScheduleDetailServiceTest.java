@@ -60,6 +60,15 @@ class LicenceScheduleDetailServiceTest {
   }
 
   @Test
+  void getScheduleDetailByLicenceAndStatus() {
+    var licence = new Licence();
+
+    licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(licence, LicenceScheduleDetailStatus.ACTIVE);
+
+    verify(licenceScheduleDetailRepository).findByLicenceSchedule_LicenceAndStatus(licence, LicenceScheduleDetailStatus.ACTIVE);
+  }
+
+  @Test
   void createNewLicenceScheduleEntitiesForLicence_noExistingEntities() {
     var licence = new Licence();
     var licenceSchedule = new LicenceSchedule();

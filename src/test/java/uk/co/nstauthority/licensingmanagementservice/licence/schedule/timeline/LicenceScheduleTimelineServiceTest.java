@@ -43,6 +43,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCategory;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityController;
@@ -176,6 +177,10 @@ class LicenceScheduleTimelineServiceTest {
         new TimelineActionView(
             LicenceScheduleTimelineAction.ADD_A_RATE,
             ReverseRouter.route(on(LicenceScheduleRateController.class).renderNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null))
+        ),
+        new TimelineActionView(
+            LicenceScheduleTimelineAction.ADD_A_SCHEDULE_EVENT,
+            ReverseRouter.route(on(OtherScheduleEventController.class).renderAddNewEventForm(licenceScheduleDetail.getId(), null))
         )
     );
 
@@ -194,6 +199,10 @@ class LicenceScheduleTimelineServiceTest {
         new TimelineActionView(
             LicenceScheduleTimelineAction.ADD_A_TERM,
             ReverseRouter.route(on(LicenceScheduleTermController.class).renderAddNewTermForm(licenceScheduleDetail.getId(), null))
+        ),
+        new TimelineActionView(
+            LicenceScheduleTimelineAction.ADD_A_SCHEDULE_EVENT,
+            ReverseRouter.route(on(OtherScheduleEventController.class).renderAddNewEventForm(licenceScheduleDetail.getId(), null))
         )
     );
 

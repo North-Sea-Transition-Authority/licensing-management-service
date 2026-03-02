@@ -104,6 +104,8 @@ public class LicenceScheduleTimelineService {
       actions.add(LicenceScheduleTimelineAction.ADD_A_RATE);
     }
 
+    actions.add(LicenceScheduleTimelineAction.ADD_A_SCHEDULE_EVENT);
+
     return actions.stream()
         .sorted(Comparator.comparing(LicenceScheduleTimelineAction::getDisplayOrder))
         .map(action -> toTimelineActionView(action, licenceScheduleDetail))

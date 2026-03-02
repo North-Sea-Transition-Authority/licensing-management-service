@@ -7,6 +7,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
@@ -35,6 +36,12 @@ ADD_A_RATE(
     4,
         licenceScheduleDetail -> ReverseRouter.route(on(LicenceScheduleRateController.class)
         .renderNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null))
+),
+ADD_A_SCHEDULE_EVENT(
+    "Add a schedule event",
+    5,
+        licenceScheduleDetail -> ReverseRouter.route(on(OtherScheduleEventController.class)
+        .renderAddNewEventForm(licenceScheduleDetail.getId(), null))
 );
 
   private final String displayText;

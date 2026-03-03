@@ -297,7 +297,8 @@ class LicenceScheduleTimelineServiceTest {
         "description",
         LocalDate.of(2025, 2, 1),
         "1 February 2025",
-        "",
+        ReverseRouter.route(on(OtherScheduleEventController.class)
+            .renderUpdateEventForm(midPhaseEvent.getId())),
         ""
     );
 
@@ -311,7 +312,8 @@ class LicenceScheduleTimelineServiceTest {
         "description",
         null,
         "",
-        "",
+        ReverseRouter.route(on(OtherScheduleEventController.class)
+            .renderUpdateEventForm(endOfPhaseEvent.getId())),
         ""
     );
 
@@ -326,7 +328,8 @@ class LicenceScheduleTimelineServiceTest {
         "description",
         LocalDate.of(2026, 2, 1),
         "1 February 2026",
-        "",
+        ReverseRouter.route(on(OtherScheduleEventController.class)
+            .renderUpdateEventForm(midTerm2Event.getId())),
         ""
     );
 
@@ -340,7 +343,8 @@ class LicenceScheduleTimelineServiceTest {
         "description",
         null,
         "",
-        "",
+        ReverseRouter.route(on(OtherScheduleEventController.class)
+            .renderUpdateEventForm(endOfTerm2Event.getId())),
         ""
     );
 
@@ -551,7 +555,8 @@ class LicenceScheduleTimelineServiceTest {
         "description",
         LocalDate.of(2025, 2, 1),
         "1 February 2025",
-        "",
+        ReverseRouter.route(on(OtherScheduleEventController.class)
+            .renderUpdateEventForm(midPhaseEvent.getId())),
         ""
     );
 
@@ -565,7 +570,8 @@ class LicenceScheduleTimelineServiceTest {
         "description",
         null,
         "",
-        "",
+        ReverseRouter.route(on(OtherScheduleEventController.class)
+            .renderUpdateEventForm(endOfPhaseEvent.getId())),
         ""
     );
 
@@ -580,7 +586,8 @@ class LicenceScheduleTimelineServiceTest {
         "description",
         LocalDate.of(2026, 2, 1),
         "1 February 2026",
-        "",
+        ReverseRouter.route(on(OtherScheduleEventController.class)
+            .renderUpdateEventForm(midTerm2Event.getId())),
         ""
     );
 
@@ -594,7 +601,8 @@ class LicenceScheduleTimelineServiceTest {
         "description",
         null,
         "",
-        "",
+        ReverseRouter.route(on(OtherScheduleEventController.class)
+            .renderUpdateEventForm(endOfTerm2Event.getId())),
         ""
     );
     
@@ -741,7 +749,8 @@ class LicenceScheduleTimelineServiceTest {
         "description",
         LocalDate.of(2025, 2, 1),
         "1 February 2025",
-        "",
+        ReverseRouter.route(on(OtherScheduleEventController.class)
+            .renderUpdateEventForm(midPhaseEvent.getId())),
         ""
     );
 
@@ -755,7 +764,8 @@ class LicenceScheduleTimelineServiceTest {
         "description",
         null,
         "",
-        "",
+        ReverseRouter.route(on(OtherScheduleEventController.class)
+            .renderUpdateEventForm(endOfPhaseEvent.getId())),
         ""
     );
 
@@ -770,7 +780,8 @@ class LicenceScheduleTimelineServiceTest {
         "description",
         LocalDate.of(2026, 2, 1),
         "1 February 2026",
-        "",
+        ReverseRouter.route(on(OtherScheduleEventController.class)
+            .renderUpdateEventForm(midTerm2Event.getId())),
         ""
     );
 
@@ -784,7 +795,8 @@ class LicenceScheduleTimelineServiceTest {
         "description",
         null,
         "",
-        "",
+        ReverseRouter.route(on(OtherScheduleEventController.class)
+            .renderUpdateEventForm(endOfTerm2Event.getId())),
         ""
     );
     

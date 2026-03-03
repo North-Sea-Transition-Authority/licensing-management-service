@@ -27,6 +27,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDateOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
@@ -42,6 +45,7 @@ public class LicenceScheduleTimelineService {
   private final WorkProgrammeActivityService workProgrammeActivityService;
   private final LicenceScheduleRateService licenceScheduleRateService;
   private final LicenceScheduleExpiryService licenceScheduleExpiryService;
+  private final OtherScheduleEventService otherScheduleEventService;
 
   public LicenceScheduleTimelineService(
       LicenceStartDateService licenceStartDateService,
@@ -50,7 +54,8 @@ public class LicenceScheduleTimelineService {
       LicenceSchedulePhaseService licenceSchedulePhaseService,
       WorkProgrammeActivityService workProgrammeActivityService,
       LicenceScheduleRateService licenceScheduleRateService,
-      LicenceScheduleExpiryService licenceScheduleExpiryService
+      LicenceScheduleExpiryService licenceScheduleExpiryService,
+      OtherScheduleEventService otherScheduleEventService
   ) {
     this.licenceStartDateService = licenceStartDateService;
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
@@ -59,6 +64,7 @@ public class LicenceScheduleTimelineService {
     this.workProgrammeActivityService = workProgrammeActivityService;
     this.licenceScheduleRateService = licenceScheduleRateService;
     this.licenceScheduleExpiryService = licenceScheduleExpiryService;
+    this.otherScheduleEventService = otherScheduleEventService;
   }
 
   public TimelineSummaryCardView getTimelineSummaryCardView(LicenceScheduleDetail licenceScheduleDetail) {
@@ -239,7 +245,15 @@ public class LicenceScheduleTimelineService {
         .stream()
         .map(licenceScheduleRate -> TimelineRateView.getScheduleEventFrom(licenceScheduleRate, allowedActions));
 
-    return Stream.of(workProgrammeActivities, rates)
+    var otherScheduleEvents = otherScheduleEventService
+        .getActiveScheduleEventsByDateRangeFor(licenceScheduleTerm).stream()
+        .sorted(
+            Comparator.comparing(OtherScheduleEvent::getEventDate)
+                .thenComparing(OtherScheduleEvent::getCategoryString))
+        .map(otherScheduleEvent ->
+            TimelineOtherScheduleEventView.getScheduleEventFrom(otherScheduleEvent, allowedActions));
+
+    return Stream.of(workProgrammeActivities, rates, otherScheduleEvents)
         .flatMap(Function.identity())
         .filter(event -> includedEventTypes.contains(event.getEventType()))
         .sorted(Comparator.comparing(ScheduleEvent::getSortingDate)
@@ -252,17 +266,26 @@ public class LicenceScheduleTimelineService {
       List<ScheduleEventType> includedEventTypes,
       List<ScheduleEventAction> allowedActions
   ) {
-    if (!includedEventTypes.contains(ScheduleEventType.WORK_PROGRAMME_ACTIVITY)) {
-      return List.of();
-    }
-
-    return workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(
+    var workProgrammeActivities = workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(
         licenceScheduleTerm,
         WorkProgrammeActivityDateOption.WITHIN_A_TERM
     ).stream()
         .sorted(Comparator.comparing(WorkProgrammeActivity::getCategoryString))
         .map(workProgrammeActivity ->
-            TimelineWorkProgrammeActivityView.getScheduleEventFrom(workProgrammeActivity, allowedActions))
+            TimelineWorkProgrammeActivityView.getScheduleEventFrom(workProgrammeActivity, allowedActions));
+
+    var otherScheduleEvents = otherScheduleEventService.getActiveScheduleEventsByTermAndDateOption(
+        licenceScheduleTerm,
+        OtherScheduleEventDateOption.WITHIN_A_TERM
+    ).stream()
+        .sorted(Comparator.comparing(OtherScheduleEvent::getCategoryString))
+        .map(otherScheduleEvent ->
+            TimelineOtherScheduleEventView.getScheduleEventFrom(otherScheduleEvent, allowedActions));
+
+    return Stream.of(workProgrammeActivities, otherScheduleEvents)
+        .flatMap(Function.identity())
+        .filter(event -> includedEventTypes.contains(event.getEventType()))
+        .sorted(Comparator.comparing(event -> event.getEventType().getEventTypeOrder()))
         .toList();
   }
 
@@ -317,7 +340,15 @@ public class LicenceScheduleTimelineService {
     var rates = licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(licenceSchedulePhase, firstPhaseType).stream()
         .map(licenceScheduleRate -> TimelineRateView.getScheduleEventFrom(licenceScheduleRate, allowedActions));
 
-    return Stream.of(workProgrammeActivities, rates)
+    var otherScheduleEvents = otherScheduleEventService
+        .getActiveScheduleEventsByDateRangeFor(licenceSchedulePhase).stream()
+        .sorted(
+            Comparator.comparing(OtherScheduleEvent::getEventDate)
+                .thenComparing(OtherScheduleEvent::getCategoryString))
+        .map(otherScheduleEvent ->
+            TimelineOtherScheduleEventView.getScheduleEventFrom(otherScheduleEvent, allowedActions));
+
+    return Stream.of(workProgrammeActivities, rates, otherScheduleEvents)
         .flatMap(Function.identity())
         .filter(event -> includedEventTypes.contains(event.getEventType()))
         .sorted(Comparator.comparing(ScheduleEvent::getSortingDate)
@@ -330,17 +361,26 @@ public class LicenceScheduleTimelineService {
       List<ScheduleEventType> includedEventTypes,
       List<ScheduleEventAction> allowedActions
   ) {
-    if (!includedEventTypes.contains(ScheduleEventType.WORK_PROGRAMME_ACTIVITY)) {
-      return List.of();
-    }
-
-    return workProgrammeActivityService.getActiveWorkProgrammeActivitiesByPhaseAndDateOption(
+    var workProgrammeActivities = workProgrammeActivityService.getActiveWorkProgrammeActivitiesByPhaseAndDateOption(
             licenceSchedulePhase,
             WorkProgrammeActivityDateOption.WITHIN_A_PHASE
         ).stream()
         .sorted(Comparator.comparing(WorkProgrammeActivity::getCategoryString))
         .map(workProgrammeActivity ->
-            TimelineWorkProgrammeActivityView.getScheduleEventFrom(workProgrammeActivity, allowedActions))
+            TimelineWorkProgrammeActivityView.getScheduleEventFrom(workProgrammeActivity, allowedActions));
+
+    var otherScheduleEvents = otherScheduleEventService.getActiveScheduleEventsByPhaseAndDateOption(
+            licenceSchedulePhase,
+            OtherScheduleEventDateOption.WITHIN_A_PHASE
+        ).stream()
+        .sorted(Comparator.comparing(OtherScheduleEvent::getCategoryString))
+        .map(otherScheduleEvent ->
+            TimelineOtherScheduleEventView.getScheduleEventFrom(otherScheduleEvent, allowedActions));
+
+    return Stream.of(workProgrammeActivities, otherScheduleEvents)
+        .flatMap(Function.identity())
+        .filter(event -> includedEventTypes.contains(event.getEventType()))
+        .sorted(Comparator.comparing(event -> event.getEventType().getEventTypeOrder()))
         .toList();
   }
 

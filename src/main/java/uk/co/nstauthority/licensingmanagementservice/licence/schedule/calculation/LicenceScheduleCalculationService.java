@@ -16,6 +16,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDateOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 
@@ -27,19 +29,22 @@ public class LicenceScheduleCalculationService {
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
   private final WorkProgrammeActivityService workProgrammeActivityService;
   private final LicenceScheduleRateService licenceScheduleRateService;
+  private final OtherScheduleEventService otherScheduleEventService;
 
   public LicenceScheduleCalculationService(
       LicenceStartDateService licenceStartDateService,
       LicenceScheduleTermService licenceScheduleTermService,
       LicenceSchedulePhaseService licenceSchedulePhaseService,
       WorkProgrammeActivityService workProgrammeActivityService,
-      LicenceScheduleRateService licenceScheduleRateService
+      LicenceScheduleRateService licenceScheduleRateService,
+      OtherScheduleEventService otherScheduleEventService
   ) {
     this.licenceStartDateService = licenceStartDateService;
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
     this.workProgrammeActivityService = workProgrammeActivityService;
     this.licenceScheduleRateService = licenceScheduleRateService;
+    this.otherScheduleEventService = otherScheduleEventService;
   }
 
   @Transactional
@@ -62,6 +67,7 @@ public class LicenceScheduleCalculationService {
       calculateAndSavePhaseDatesForTerm(phases, term);
       calculateAndSaveWorkProgrammeActivityDatesForTerm(term);
       calculateAndSaveRateStartDatesForTerm(term);
+      calculateAndSaveOtherScheduleEventDatesForTerm(term);
 
       nextStartDate = endDate.plusDays(1);
     }
@@ -94,6 +100,7 @@ public class LicenceScheduleCalculationService {
 
       calculateAndSaveWorkProgrammeActivityDatesForPhase(phase);
       calculateAndSaveRateStartDatesForPhase(phase);
+      calculateAndSaveOtherScheduleEventDatesForPhase(phase);
 
       nextStartDate = endDate.plusDays(1);
     }
@@ -195,6 +202,44 @@ public class LicenceScheduleCalculationService {
 
     licenceScheduleRateService.saveLicenceScheduleRates(linkedRates);
     licenceScheduleRateService.saveLicenceScheduleRates(relativeRates);
+  }
+
+  void calculateAndSaveOtherScheduleEventDatesForTerm(LicenceScheduleTerm licenceScheduleTerm) {
+    var events = otherScheduleEventService.getActiveScheduleEventsByTermAndDateOption(
+        licenceScheduleTerm,
+        OtherScheduleEventDateOption.RELATIVE_DATE
+    );
+
+    if (events.isEmpty()) {
+      return;
+    }
+
+    var termStartDate = licenceScheduleTerm.getStartDate();
+
+    for (var event : events) {
+      event.setEventDate(calculateRelativeStartDueDate(termStartDate, event.getRelativeDuration()));
+    }
+
+    otherScheduleEventService.saveScheduleEvents(events);
+  }
+
+  void calculateAndSaveOtherScheduleEventDatesForPhase(LicenceSchedulePhase licenceSchedulePhase) {
+    var events = otherScheduleEventService.getActiveScheduleEventsByPhaseAndDateOption(
+        licenceSchedulePhase,
+        OtherScheduleEventDateOption.RELATIVE_DATE
+    );
+
+    if (events.isEmpty()) {
+      return;
+    }
+
+    var phaseStartDate = licenceSchedulePhase.getStartDate();
+
+    for (var event : events) {
+      event.setEventDate(calculateRelativeStartDueDate(phaseStartDate, event.getRelativeDuration()));
+    }
+
+    otherScheduleEventService.saveScheduleEvents(events);
   }
 
   LocalDate calculateDurationEndDate(LocalDate startDate, ThreeFieldDuration duration) {

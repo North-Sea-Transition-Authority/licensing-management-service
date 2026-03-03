@@ -46,6 +46,8 @@
                 <@workProgrammeActivity activityView=eventView/>
             <#elseif eventView.getEventType() = "RATE">
                 <@rate rateView=eventView/>
+            <#elseif eventView.getEventType() = "OTHER">
+                <@otherScheduleEvent eventView=eventView/>
             </#if>
         </#list>
 
@@ -55,8 +57,12 @@
                 timeStampHeadingHint=termView.endDateString()
             />
 
-            <#list termView.endOfTermEvents() as activityView>
-                <@workProgrammeActivityEndOfPeriodRequirement activityView=activityView/>
+            <#list termView.endOfTermEvents() as eventView>
+                <#if eventView.getEventType() = "WORK_PROGRAMME_ACTIVITY">
+                    <@workProgrammeActivityEndOfPeriodRequirement activityView=eventView/>
+                <#elseif eventView.getEventType() = "OTHER">
+                    <@otherScheduleEventEndOfPeriodRequirement eventView=eventView/>
+                </#if>
             </#list>
         </#if>
 
@@ -88,6 +94,8 @@
             <@workProgrammeActivity activityView=eventView/>
         <#elseif eventView.getEventType() = "RATE">
             <@rate eventView/>
+        <#elseif eventView.getEventType() = "OTHER">
+            <@otherScheduleEvent eventView=eventView/>
         </#if>
     </#list>
 
@@ -97,8 +105,12 @@
         timeStampHeadingHint=phaseView.endDateString()
         />
 
-        <#list phaseView.endOfPhaseEvents() as activityView>
-            <@workProgrammeActivityEndOfPeriodRequirement activityView=activityView/>
+        <#list phaseView.endOfPhaseEvents() as eventView>
+            <#if eventView.getEventType() = "WORK_PROGRAMME_ACTIVITY">
+                <@workProgrammeActivityEndOfPeriodRequirement activityView=eventView/>
+            <#elseif eventView.getEventType() = "OTHER">
+                <@otherScheduleEventEndOfPeriodRequirement eventView=eventView/>
+            </#if>
         </#list>
     </#if>
 
@@ -178,6 +190,49 @@
         <@fdsTimeline.timelineEvent>
             <p class="govuk-body">
                 ${rateView.rentalRateString()} per km<sup>2</sup>
+            </p>
+        </@fdsTimeline.timelineEvent>
+    </@lmsTimeStamp.lmsTimeStamp>
+</#macro>
+
+<#macro otherScheduleEvent eventView>
+    <#if eventView.updateUrl()?has_content>
+        <#assign timelineActions>
+            <@fdsAction.link linkText="Edit" linkUrl=springUrl(eventView.updateUrl()) linkClass="govuk-link"/>
+            <@fdsAction.link linkText="Remove" linkUrl=springUrl(eventView.deleteUrl()) linkClass="govuk-link"/>
+        </#assign>
+    </#if>
+
+    <@lmsTimeStamp.lmsTimeStamp
+    timeStampHeading=eventView.category()
+    timeStampHeadingHint=eventView.eventDateString()
+    timelineActionContent=timelineActions
+    nodeNumberClass="fds-timeline__node-number--small-dot"
+    >
+        <@fdsTimeline.timelineEvent>
+            <p class="govuk-body">
+                ${eventView.description()}
+            </p>
+        </@fdsTimeline.timelineEvent>
+    </@lmsTimeStamp.lmsTimeStamp>
+</#macro>
+
+<#macro otherScheduleEventEndOfPeriodRequirement eventView>
+    <#if eventView.updateUrl()?has_content>
+        <#assign timelineActions>
+            <@fdsAction.link linkText="Edit" linkUrl=springUrl(eventView.updateUrl()) linkClass="govuk-link"/>
+            <@fdsAction.link linkText="Remove" linkUrl=springUrl(eventView.deleteUrl()) linkClass="govuk-link"/>
+        </#assign>
+    </#if>
+
+    <@lmsTimeStamp.lmsTimeStamp
+    timeStampHeading=eventView.category()
+    timelineActionContent=timelineActions
+    nodeNumberClass="fds-timeline__node-number--no-dot"
+    >
+        <@fdsTimeline.timelineEvent>
+            <p class="govuk-body">
+                ${eventView.description()}
             </p>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>

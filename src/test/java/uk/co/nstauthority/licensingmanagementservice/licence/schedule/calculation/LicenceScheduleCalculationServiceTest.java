@@ -31,6 +31,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDateOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
@@ -53,6 +56,9 @@ class LicenceScheduleCalculationServiceTest {
   @Mock
   private LicenceScheduleRateService licenceScheduleRateService;
 
+  @Mock
+  private OtherScheduleEventService otherScheduleEventService;
+
   @InjectMocks
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
 
@@ -67,6 +73,9 @@ class LicenceScheduleCalculationServiceTest {
 
   @Captor
   private ArgumentCaptor<List<LicenceScheduleRate>> licenceScheduleRateArgumentCaptor;
+
+  @Captor
+  private ArgumentCaptor<List<OtherScheduleEvent>> otherScheduleEventArgumentCaptor;
 
   @Test
   void calculateAndSaveLicenceScheduleDates() {
@@ -407,6 +416,90 @@ class LicenceScheduleCalculationServiceTest {
     var secondResult = result.get(1);
     assertThat(secondResult.getFirst()).extracting(LicenceScheduleRate::getStartDate).isEqualTo(licenceSchedulePhase.getStartDate());
     assertThat(secondResult.get(1)).extracting(LicenceScheduleRate::getStartDate).isEqualTo(licenceSchedulePhase.getStartDate().plusMonths(1));
+  }
+
+  @Test
+  void calculateAndSaveOtherScheduleEventDatesForTerm() {
+    var licenceScheduleTerm = new LicenceScheduleTerm();
+    licenceScheduleTerm.setStartDate(LocalDate.of(2025, 1, 1));
+
+    var event = new OtherScheduleEvent();
+    event.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
+
+    var event2 = new OtherScheduleEvent();
+    event2.setRelativeDuration(new ThreeFieldDuration(1, 0, 1));
+
+    when(otherScheduleEventService.getActiveScheduleEventsByTermAndDateOption(
+        licenceScheduleTerm,
+        OtherScheduleEventDateOption.RELATIVE_DATE
+    ))
+        .thenReturn(List.of(event, event2));
+
+    licenceScheduleCalculationService.calculateAndSaveOtherScheduleEventDatesForTerm(licenceScheduleTerm);
+
+    verify(otherScheduleEventService).saveScheduleEvents(otherScheduleEventArgumentCaptor.capture());
+
+    var result = otherScheduleEventArgumentCaptor.getValue();
+
+    assertThat(result.getFirst()).extracting(OtherScheduleEvent::getEventDate).isEqualTo(LocalDate.of(2025, 2, 1));
+    assertThat(result.get(1)).extracting(OtherScheduleEvent::getEventDate).isEqualTo(LocalDate.of(2026, 1, 2));
+  }
+
+  @Test
+  void calculateAndSaveOtherScheduleEventDatesForTerm_noActivitiesToCalculate() {
+    var licenceScheduleTerm = new LicenceScheduleTerm();
+
+    when(otherScheduleEventService.getActiveScheduleEventsByTermAndDateOption(
+        licenceScheduleTerm,
+        OtherScheduleEventDateOption.RELATIVE_DATE
+    ))
+        .thenReturn(List.of());
+
+    licenceScheduleCalculationService.calculateAndSaveOtherScheduleEventDatesForTerm(licenceScheduleTerm);
+
+    verify(otherScheduleEventService, never()).saveScheduleEvents(any());
+  }
+
+  @Test
+  void calculateAndSaveOtherScheduleEventDatesForPhase() {
+    var licenceSchedulePhase = new LicenceSchedulePhase();
+    licenceSchedulePhase.setStartDate(LocalDate.of(2025, 1, 1));
+
+    var event = new OtherScheduleEvent();
+    event.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
+
+    var event2 = new OtherScheduleEvent();
+    event2.setRelativeDuration(new ThreeFieldDuration(0, 0, 1));
+
+    when(otherScheduleEventService.getActiveScheduleEventsByPhaseAndDateOption(
+        licenceSchedulePhase,
+        OtherScheduleEventDateOption.RELATIVE_DATE
+    ))
+        .thenReturn(List.of(event, event2));
+
+    licenceScheduleCalculationService.calculateAndSaveOtherScheduleEventDatesForPhase(licenceSchedulePhase);
+
+    verify(otherScheduleEventService).saveScheduleEvents(otherScheduleEventArgumentCaptor.capture());
+
+    var result = otherScheduleEventArgumentCaptor.getValue();
+
+    assertThat(result.getFirst()).extracting(OtherScheduleEvent::getEventDate).isEqualTo(LocalDate.of(2025, 2, 1));
+    assertThat(result.get(1)).extracting(OtherScheduleEvent::getEventDate).isEqualTo(LocalDate.of(2025, 1, 2));
+  }
+
+  @Test
+  void calculateAndSaveOtherScheduleEventDatesForPhase_noActivitiesToCalculate() {
+    var licenceSchedulePhase = new LicenceSchedulePhase();
+
+    when(otherScheduleEventService.getActiveScheduleEventsByPhaseAndDateOption(
+        licenceSchedulePhase,
+        OtherScheduleEventDateOption.RELATIVE_DATE
+    ))
+        .thenReturn(List.of());
+
+    licenceScheduleCalculationService.calculateAndSaveOtherScheduleEventDatesForPhase(licenceSchedulePhase);
+
+    verify(otherScheduleEventService, never()).saveScheduleEvents(any());
   }
 
   @Test

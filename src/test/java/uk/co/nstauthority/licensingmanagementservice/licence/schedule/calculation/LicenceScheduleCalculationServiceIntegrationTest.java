@@ -21,6 +21,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDateOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityRepository;
@@ -44,6 +47,9 @@ class LicenceScheduleCalculationServiceIntegrationTest {
 
   @Autowired
   private LicenceScheduleRateRepository licenceScheduleRateRepository;
+
+  @Autowired
+  private OtherScheduleEventRepository otherScheduleEventRepository;
 
   @Autowired
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
@@ -73,6 +79,10 @@ class LicenceScheduleCalculationServiceIntegrationTest {
   private LicenceScheduleRate startDateRate;
 
   private LicenceScheduleRate relativeRate;
+
+  private OtherScheduleEvent otherScheduleEvent;
+
+  private OtherScheduleEvent otherScheduleEvent2;
 
   @Test
   void calculateAndSaveLicenceScheduleDates() {
@@ -105,6 +115,9 @@ class LicenceScheduleCalculationServiceIntegrationTest {
     startDateRate.setStartDate(licenceSchedulePhase.getStartDate());
     relativeRate.setStartDate(licenceSchedulePhase.getStartDate().plusMonths(1));
 
+    otherScheduleEvent.setEventDate(licenceScheduleTerm.getStartDate().plusYears(1));
+    otherScheduleEvent2.setEventDate(licenceSchedulePhase2.getStartDate().plusMonths(1));
+
     var expectedTermResult = List.of(licenceScheduleTerm, licenceScheduleTerm2, licenceScheduleTerm3);
     var actualTermResult = licenceScheduleTermRepository.findAll();
 
@@ -136,6 +149,14 @@ class LicenceScheduleCalculationServiceIntegrationTest {
         .usingRecursiveComparison()
         .ignoringFields("id")
         .isEqualTo(expectedRateResult);
+
+    var expectedOtherScheduleEventResult = List.of(otherScheduleEvent, otherScheduleEvent2);
+    var actualOtherScheduleEventResult = otherScheduleEventRepository.findAll();
+
+    assertThat(actualOtherScheduleEventResult)
+        .usingRecursiveComparison()
+        .ignoringFields("id")
+        .isEqualTo(expectedOtherScheduleEventResult);
   }
 
   private void createDbBaseline() {
@@ -230,6 +251,22 @@ class LicenceScheduleCalculationServiceIntegrationTest {
     relativeRate.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
 
     em.persist(relativeRate);
+
+    otherScheduleEvent = new OtherScheduleEvent();
+    otherScheduleEvent.setLicenceScheduleDetail(licenceScheduleDetail);
+    otherScheduleEvent.setLicenceScheduleTerm(licenceScheduleTerm);
+    otherScheduleEvent.setDateOption(OtherScheduleEventDateOption.RELATIVE_DATE);
+    otherScheduleEvent.setRelativeDuration(new ThreeFieldDuration(1, 0, 0));
+
+    em.persist(otherScheduleEvent);
+
+    otherScheduleEvent2 = new OtherScheduleEvent();
+    otherScheduleEvent2.setLicenceScheduleDetail(licenceScheduleDetail);
+    otherScheduleEvent2.setLicenceSchedulePhase(licenceSchedulePhase2);
+    otherScheduleEvent2.setDateOption(OtherScheduleEventDateOption.RELATIVE_DATE);
+    otherScheduleEvent2.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
+
+    em.persist(otherScheduleEvent2);
     em.flush();
   }
 }

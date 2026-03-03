@@ -10,7 +10,7 @@ public enum ScheduleEventType implements Displayable {
   PHASE("Phases", 999, false),
   RATE("Rates", 1, true),
   WORK_PROGRAMME_ACTIVITY("Work programme activities", 2, true),
-  OTHER("Other schedule events", 3, false);
+  OTHER("Other schedule events", 3, true);
 
   private final String displayName;
   private final Integer eventTypeOrder;

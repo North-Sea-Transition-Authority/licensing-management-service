@@ -50,9 +50,11 @@ public class DocumentLinkingService {
     var applicationType = ApplicationType.valueOf(documentInstanceDto.itemType());
 
     return switch (applicationType) {
-      case CONTINUATION_APPLICATION -> licenceContinuationService.getDetailByIdOrThrow(applicationId)
+      case CONTINUATION_APPLICATION -> licenceContinuationService
+          .getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(applicationId)
           .getResponsibleOrganisationUnitId();
-      case SCHEDULE_AMENDMENT_APPLICATION ->  scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationId)
+      case SCHEDULE_AMENDMENT_APPLICATION -> scheduleWorkProgrammeApplicationService
+          .getLatestScheduleWorkProgrammeDetailByApplicationIdOrThrow(applicationId)
           .getResponsibleOrganisationUnitId();
     };
   }

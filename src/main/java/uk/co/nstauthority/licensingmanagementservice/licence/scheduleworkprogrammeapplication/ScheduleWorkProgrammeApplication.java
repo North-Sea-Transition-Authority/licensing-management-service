@@ -9,11 +9,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.util.UUID;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Audited
 @Entity(name = "schedule_work_programme_applications")
-public class ScheduleWorkProgrammeApplication {
+public class ScheduleWorkProgrammeApplication implements LicenceApplication {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -59,5 +61,10 @@ public class ScheduleWorkProgrammeApplication {
 
   public void setStewardWuaId(Long stewardWuaId) {
     this.stewardWuaId = stewardWuaId;
+  }
+
+  @Override
+  public ApplicationType getApplicationType() {
+    return ApplicationType.SCHEDULE_AMENDMENT_APPLICATION;
   }
 }

@@ -15,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 @Service
 public class LicenceContinuationService {
 
+  public static final String LICENCE_CONTINUATION_APPLICATION_DETAIL = "licence continuation application detail";
   private final LicenceContinuationApplicationDetailRepository licenceContinuationApplicationDetailRepository;
   private final LicenceContinuationApplicationRepository licenceContinuationApplicationRepository;
   private final LicenceScheduleDetailService licenceScheduleDetailService;
@@ -56,9 +57,26 @@ public class LicenceContinuationService {
     return licenceContinuationApplicationDetail;
   }
 
+  public LicenceContinuationApplicationDetail getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(
+      UUID applicationId
+  ) {
+    var licenceContinuationApplication = licenceContinuationApplicationRepository.findById(applicationId)
+        .orElseThrow(() -> new LmsEntityNotFoundException(LICENCE_CONTINUATION_APPLICATION_DETAIL, applicationId));
+
+    return licenceContinuationApplicationDetailRepository.findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(
+            licenceContinuationApplication
+        )
+        .orElseThrow(() -> new LmsEntityNotFoundException(LICENCE_CONTINUATION_APPLICATION_DETAIL, applicationId));
+  }
+
+  public LicenceContinuationApplication getApplicationByIdOrThrow(UUID applicationId) {
+    return licenceContinuationApplicationRepository.findById(applicationId)
+        .orElseThrow(() -> new LmsEntityNotFoundException("licence continuation application", applicationId));
+  }
+
   public LicenceContinuationApplicationDetail getDetailByIdOrThrow(UUID detailId) {
     return licenceContinuationApplicationDetailRepository.findById(detailId)
-        .orElseThrow(() -> new LmsEntityNotFoundException("licence continuation application detail", detailId));
+        .orElseThrow(() -> new LmsEntityNotFoundException(LICENCE_CONTINUATION_APPLICATION_DETAIL, detailId));
   }
 
   public List<LicenceContinuationApplicationDetail> getAllContinuationApplicationDetailsByStatus(

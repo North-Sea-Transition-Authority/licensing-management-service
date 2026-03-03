@@ -1,0 +1,81 @@
+package uk.co.nstauthority.licensingmanagementservice.licence.application.letter;
+
+import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.ModelAndView;
+import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceDto;
+import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceSectionsSummaryView;
+import uk.co.nstauthority.licensingmanagementservice.document.DocumentLinkingService;
+import uk.co.nstauthority.licensingmanagementservice.document.instance.LmsDocumentInstanceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+
+@Controller
+@RequestMapping("/application/{applicationType}/{applicationId}")
+public class ApplicationLetterController {
+
+  static final String APPLICATION_LETTERS_PAGE_TITLE = "Application letters";
+
+  private final LmsDocumentInstanceService lmsDocumentInstanceService;
+  private final ApplicationLetterService applicationLetterService;
+  private final ApplicationService applicationService;
+  private final DocumentLinkingService documentLinkingService;
+
+  @Autowired
+  ApplicationLetterController(
+      LmsDocumentInstanceService lmsDocumentInstanceService,
+      ApplicationLetterService applicationLetterService,
+      ApplicationService applicationService,
+      DocumentLinkingService documentLinkingService
+  ) {
+    this.lmsDocumentInstanceService = lmsDocumentInstanceService;
+    this.applicationLetterService = applicationLetterService;
+    this.applicationService = applicationService;
+    this.documentLinkingService = documentLinkingService;
+  }
+
+  @GetMapping("/letter/edit")
+  public ModelAndView renderEditLetterOverview(
+      @PathVariable ApplicationType applicationType,
+      @PathVariable UUID applicationId
+  ) {
+    LicenceApplication application = applicationService.getApplication(applicationType, applicationId);
+    DocumentInstanceDto documentInstance = applicationLetterService.getOrCreateDocumentInstance(application);
+    var documentInstanceSectionsSummaryView = lmsDocumentInstanceService.getDocumentInstanceSectionsSummaryView(
+        documentInstance,
+        true,
+        application
+    );
+
+    return getOverviewModelAndView(
+        documentInstance,
+        documentInstanceSectionsSummaryView
+    );
+  }
+
+  private ModelAndView getOverviewModelAndView(
+      DocumentInstanceDto documentInstanceDto,
+      DocumentInstanceSectionsSummaryView documentInstanceSectionsSummaryView
+  ) {
+    var hasMoreThanOneSection = documentInstanceSectionsSummaryView.topLevelDocumentInstanceSectionSummaryViews().size() > 1;
+    var organisationName = documentLinkingService.getApplicationCompanyNameFromDto(documentInstanceDto);
+
+    var pageTitle = "%s for %s".formatted(
+        documentInstanceDto.title(),
+        organisationName
+    );
+
+    return new ModelAndView("lms/licence/application/letter/editLetterOverview")
+        .addObject("documentInstanceDto", documentInstanceDto)
+        .addObject("pageTitle", pageTitle)
+        .addObject("accordionId", documentInstanceDto.id())
+        .addObject("documentInstanceSectionsSummaryView", documentInstanceSectionsSummaryView)
+        .addObject("hasMoreThanOneSection", hasMoreThanOneSection)
+        .addObject("userHasValidPermission", true);
+  }
+}

@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,4 +14,8 @@ public interface LicenceContinuationApplicationDetailRepository
   List<LicenceContinuationApplicationDetail> findAllByStatus(LicenceContinuationApplicationStatus status);
 
   List<LicenceContinuationApplicationDetail> findAllByStatusIn(Set<LicenceContinuationApplicationStatus> statuses);
+
+  Optional<LicenceContinuationApplicationDetail> findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(
+      LicenceContinuationApplication scheduleWorkProgrammeApplication
+  );
 }

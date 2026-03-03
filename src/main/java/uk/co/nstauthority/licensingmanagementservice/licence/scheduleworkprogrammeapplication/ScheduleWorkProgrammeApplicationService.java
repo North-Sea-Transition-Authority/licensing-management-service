@@ -103,6 +103,11 @@ public class ScheduleWorkProgrammeApplicationService {
     scheduleWorkProgrammeApplicationDetailRepository.save(scheduleWorkProgrammeApplicationDetail);
   }
 
+  public ScheduleWorkProgrammeApplication getApplicationByIdOrThrow(UUID applicationId) {
+    return scheduleWorkProgrammeApplicationRepository.findById(applicationId)
+        .orElseThrow(() -> new LmsEntityNotFoundException("schedule work programme application detail", applicationId));
+  }
+
   public ScheduleWorkProgrammeApplicationDetail getDetailByIdOrThrow(UUID detailId) {
     return scheduleWorkProgrammeApplicationDetailRepository.findById(detailId).orElseThrow(
         () -> new LmsEntityNotFoundException("schedule work programme application detail", detailId));
@@ -117,6 +122,16 @@ public class ScheduleWorkProgrammeApplicationService {
             "Schedule Work Programme Application Details not found",
             scheduleWorkProgrammeApplication.getId()
         ));
+  }
+
+  public ScheduleWorkProgrammeApplicationDetail getLatestScheduleWorkProgrammeDetailByApplicationIdOrThrow(UUID applicationId) {
+    var scheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationRepository.findById(applicationId)
+        .orElseThrow(() -> new LmsEntityNotFoundException("schedule work programme application", applicationId));
+
+    return scheduleWorkProgrammeApplicationDetailRepository.getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(
+        scheduleWorkProgrammeApplication
+        )
+        .orElseThrow(() -> new LmsEntityNotFoundException("schedule work programme application detail", applicationId));
   }
 
   public ScheduleWorkProgrammeApplication getScheduleWorkProgrammeApplicationById(UUID scheduleWorkProgrammeApplicationId) {

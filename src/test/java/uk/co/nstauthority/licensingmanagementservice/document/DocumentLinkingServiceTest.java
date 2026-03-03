@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -47,6 +48,8 @@ class DocumentLinkingServiceTest {
   private static final LicenceScheduleDetail LICENCE_SCHEDULE_DETAIL
       = LicenceScheduleTestUtil.createLicenceScheduleDetail(LicenceScheduleTestUtil.createLicenceSchedule(LICENCE));
 
+  private static final UUID APPLICATION_ID = UUID.randomUUID();
+
   private static final LicenceContinuationApplicationDetail LICENCE_CONTINUATION_APPLICATION_DETAIL
       = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(LICENCE_SCHEDULE_DETAIL);
 
@@ -55,12 +58,12 @@ class DocumentLinkingServiceTest {
 
   @Test
   void getContinuationApplicationCompanyNameFromDocumentInstanceDto() {
-    when(licenceContinuationService.getDetailByIdOrThrow(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId()))
+    when(licenceContinuationService.getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(APPLICATION_ID))
         .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
 
     var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
         .withItemType(ApplicationType.CONTINUATION_APPLICATION.name())
-        .withItemReference(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId().toString())
+        .withItemReference(APPLICATION_ID.toString())
         .build();
 
     when(organisationUnitQueryService.getOrganisationUnitNameById(any()))
@@ -68,17 +71,17 @@ class DocumentLinkingServiceTest {
 
     var result = documentLinkingService.getApplicationCompanyNameFromDto(documentInstanceDto);
     assertThat(result).isEqualTo("test name");
-    verify(licenceContinuationService).getDetailByIdOrThrow(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId());
+    verify(licenceContinuationService).getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(APPLICATION_ID);
   }
 
   @Test
   void getContinuationApplicationCompanyAddressFromDocumentInstanceDto() {
-    when(licenceContinuationService.getDetailByIdOrThrow(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId()))
+    when(licenceContinuationService.getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(APPLICATION_ID))
         .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
 
     var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
         .withItemType(ApplicationType.CONTINUATION_APPLICATION.name())
-        .withItemReference(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId().toString())
+        .withItemReference(APPLICATION_ID.toString())
         .build();
 
     when(organisationUnitQueryService.getOrganisationUnitAddressById(any()))
@@ -86,18 +89,18 @@ class DocumentLinkingServiceTest {
 
     var result = documentLinkingService.getApplicationCompanyAddressFromDto(documentInstanceDto);
     assertThat(result).isEqualTo(new Address("test address"));
-    verify(licenceContinuationService).getDetailByIdOrThrow(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId());
+    verify(licenceContinuationService).getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(APPLICATION_ID);
   }
 
   @Test
   void getScheduleAmendmentApplicationCompanyNameFromDocumentInstanceDto() {
-    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL.getId()))
+    when(scheduleWorkProgrammeApplicationService.getLatestScheduleWorkProgrammeDetailByApplicationIdOrThrow(APPLICATION_ID))
         .thenReturn(SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL);
 
     System.out.println(SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL.getId());
     var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
         .withItemType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name())
-        .withItemReference(SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL.getId().toString())
+        .withItemReference(APPLICATION_ID.toString())
         .build();
 
     when(organisationUnitQueryService.getOrganisationUnitNameById(any()))
@@ -105,17 +108,17 @@ class DocumentLinkingServiceTest {
 
     var result = documentLinkingService.getApplicationCompanyNameFromDto(documentInstanceDto);
     assertThat(result).isEqualTo("test name");
-    verify(scheduleWorkProgrammeApplicationService).getDetailByIdOrThrow(SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL.getId());
+    verify(scheduleWorkProgrammeApplicationService).getLatestScheduleWorkProgrammeDetailByApplicationIdOrThrow(APPLICATION_ID);
   }
 
   @Test
   void getScheduleAmendmentApplicationCompanyAddressFromDocumentInstanceDto() {
-    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL.getId()))
+    when(scheduleWorkProgrammeApplicationService.getLatestScheduleWorkProgrammeDetailByApplicationIdOrThrow(APPLICATION_ID))
         .thenReturn(SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL);
 
     var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
         .withItemType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name())
-        .withItemReference(SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL.getId().toString())
+        .withItemReference(APPLICATION_ID.toString())
         .build();
 
     when(organisationUnitQueryService.getOrganisationUnitAddressById(any()))
@@ -123,7 +126,7 @@ class DocumentLinkingServiceTest {
 
     var result = documentLinkingService.getApplicationCompanyAddressFromDto(documentInstanceDto);
     assertThat(result).isEqualTo(new Address("test address"));
-    verify(scheduleWorkProgrammeApplicationService).getDetailByIdOrThrow(SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL.getId());
+    verify(scheduleWorkProgrammeApplicationService).getLatestScheduleWorkProgrammeDetailByApplicationIdOrThrow(APPLICATION_ID);
   }
 
   @Test

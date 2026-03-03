@@ -7,11 +7,13 @@ import jakarta.persistence.ManyToOne;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Audited
 @Entity(name = "licence_continuation_applications")
-public class LicenceContinuationApplication {
+public class LicenceContinuationApplication implements LicenceApplication {
 
   @Id
   @UuidGenerator
@@ -35,5 +37,10 @@ public class LicenceContinuationApplication {
 
   public void setLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
     this.licenceScheduleDetail = licenceScheduleDetail;
+  }
+
+  @Override
+  public ApplicationType getApplicationType() {
+    return ApplicationType.CONTINUATION_APPLICATION;
   }
 }

@@ -10,6 +10,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,6 +28,9 @@ class OtherScheduleEventServiceTest {
   
   @InjectMocks
   private OtherScheduleEventService otherScheduleEventService;
+
+  @Captor
+  private ArgumentCaptor<OtherScheduleEvent> otherScheduleEventArgumentCaptor;
   
   @Test
   void getOtherScheduleEventByIdOrThrow() {
@@ -104,5 +109,19 @@ class OtherScheduleEventServiceTest {
         endDate,
         LicenceScheduleEventStatus.ACTIVE
     );
+  }
+
+  @Test
+  void deleteOtherScheduleEvent() {
+    var otherScheduleEvent = new OtherScheduleEvent();
+    otherScheduleEvent.setStatus(LicenceScheduleEventStatus.ACTIVE);
+
+    otherScheduleEventService.deleteOtherScheduleEvent(otherScheduleEvent);
+
+    verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
+
+    assertThat(otherScheduleEventArgumentCaptor.getValue())
+        .extracting(OtherScheduleEvent::getStatus)
+        .isEqualTo(LicenceScheduleEventStatus.DELETED);
   }
 }

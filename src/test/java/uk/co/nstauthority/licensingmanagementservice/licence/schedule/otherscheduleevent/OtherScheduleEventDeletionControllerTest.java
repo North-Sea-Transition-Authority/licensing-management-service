@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity;
+package uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -16,6 +16,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
@@ -26,16 +27,19 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
-@ContextConfiguration(classes = WorkProgrammeActivityDeletionController.class)
-class WorkProgrammeActivityDeletionControllerTest extends AbstractControllerTest {
+@ContextConfiguration(classes = OtherScheduleEventDeletionController.class)
+class OtherScheduleEventDeletionControllerTest extends AbstractControllerTest {
 
+  @MockitoBean
+  private OtherScheduleEventService otherScheduleEventService;
+  
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
 
   private Licence licence;
   private LicenceScheduleDetail licenceScheduleDetail;
 
-  private WorkProgrammeActivity workProgrammeActivity;
+  private OtherScheduleEvent otherScheduleEvent;
 
   @BeforeEach
   void setUp() {
@@ -49,45 +53,44 @@ class WorkProgrammeActivityDeletionControllerTest extends AbstractControllerTest
 
     licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
 
-    workProgrammeActivity = new WorkProgrammeActivity();
-    workProgrammeActivity.setId(UUID.randomUUID());
-    workProgrammeActivity.setLicenceScheduleDetail(licenceScheduleDetail);
-    workProgrammeActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
-    workProgrammeActivity.setDescription("description");
-    workProgrammeActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
-    workProgrammeActivity.setDueDate(LocalDate.of(2025, 1, 1));
-    workProgrammeActivity.setComments("comments");
+    otherScheduleEvent = new OtherScheduleEvent();
+    otherScheduleEvent.setId(UUID.randomUUID());
+    otherScheduleEvent.setLicenceScheduleDetail(licenceScheduleDetail);
+    otherScheduleEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
+    otherScheduleEvent.setDescription("description");
+    otherScheduleEvent.setEventDate(LocalDate.of(2025, 1, 1));
+    otherScheduleEvent.setComments("comments");
   }
 
   @SecurityTest
-  void renderDeleteActivityPage() throws Exception {
-    when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(workProgrammeActivity.getId())).thenReturn(workProgrammeActivity);
+  void renderDeleteEventPage() throws Exception {
+    when(otherScheduleEventService.getOtherScheduleEventByIdOrThrow(otherScheduleEvent.getId())).thenReturn(otherScheduleEvent);
     when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class).renderDeleteActivityPage(workProgrammeActivity.getId(), null)))
+            get(ReverseRouter.route(on(OtherScheduleEventDeletionController.class).renderDeleteEventPage(otherScheduleEvent.getId())))
                 .with(user(organisationUser))
         )
         .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/schedule/deleteWorkProgrammeActivity"))
-        .andExpect(model().attribute("pageTitle", "Do you want to delete the %s activity?".formatted(workProgrammeActivity.getCategoryString())))
-        .andExpect(model().attribute("summaryView", WorkProgrammeActivitySummaryView.fromWorkProgrammeActivity(workProgrammeActivity)))
+        .andExpect(view().name("lms/licence/schedule/deleteOtherScheduleEvent"))
+        .andExpect(model().attribute("pageTitle", "Do you want to delete the %s event?".formatted(otherScheduleEvent.getCategoryString())))
+        .andExpect(model().attribute("summaryView", OtherScheduleEventSummaryView.fromOtherScheduleEvent(otherScheduleEvent)))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
         .andExpect(model().attribute("pageCaption", "caption"));
   }
 
   @Test
-  void submitDeleteActivityPage() throws Exception {
-    when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(workProgrammeActivity.getId())).thenReturn(workProgrammeActivity);
+  void submitDeleteEventPage() throws Exception {
+    when(otherScheduleEventService.getOtherScheduleEventByIdOrThrow(otherScheduleEvent.getId())).thenReturn(otherScheduleEvent);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class).submitDeleteActivityPage(workProgrammeActivity.getId(), null, null)))
+            post(ReverseRouter.route(on(OtherScheduleEventDeletionController.class).submitDeleteEventPage(otherScheduleEvent.getId(), null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(workProgrammeActivityService).deleteWorkProgrammeActivity(workProgrammeActivity);
+    verify(otherScheduleEventService).deleteOtherScheduleEvent(otherScheduleEvent);
   }
 
 }

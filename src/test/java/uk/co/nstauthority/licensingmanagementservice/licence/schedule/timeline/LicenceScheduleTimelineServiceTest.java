@@ -47,6 +47,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.othersched
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventCategory;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDateOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCategory;
@@ -299,7 +300,8 @@ class LicenceScheduleTimelineServiceTest {
         "1 February 2025",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(midPhaseEvent.getId())),
-        ""
+        ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
+            .renderDeleteEventPage(midPhaseEvent.getId()))
     );
 
     var endOfPhaseEvent = new OtherScheduleEvent();
@@ -314,7 +316,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(endOfPhaseEvent.getId())),
-        ""
+        ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
+            .renderDeleteEventPage(endOfPhaseEvent.getId()))
     );
 
     var midTerm2Event = new OtherScheduleEvent();
@@ -330,7 +333,8 @@ class LicenceScheduleTimelineServiceTest {
         "1 February 2026",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(midTerm2Event.getId())),
-        ""
+        ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
+            .renderDeleteEventPage(midTerm2Event.getId()))
     );
 
     var endOfTerm2Event = new OtherScheduleEvent();
@@ -345,7 +349,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(endOfTerm2Event.getId())),
-        ""
+        ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
+            .renderDeleteEventPage(endOfTerm2Event.getId()))
     );
 
     var phase = new LicenceSchedulePhase();
@@ -557,7 +562,8 @@ class LicenceScheduleTimelineServiceTest {
         "1 February 2025",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(midPhaseEvent.getId())),
-        ""
+        ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
+            .renderDeleteEventPage(midPhaseEvent.getId()))
     );
 
     var endOfPhaseEvent = new OtherScheduleEvent();
@@ -572,7 +578,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(endOfPhaseEvent.getId())),
-        ""
+        ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
+            .renderDeleteEventPage(endOfPhaseEvent.getId()))
     );
 
     var midTerm2Event = new OtherScheduleEvent();
@@ -588,7 +595,8 @@ class LicenceScheduleTimelineServiceTest {
         "1 February 2026",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(midTerm2Event.getId())),
-        ""
+        ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
+            .renderDeleteEventPage(midTerm2Event.getId()))
     );
 
     var endOfTerm2Event = new OtherScheduleEvent();
@@ -603,7 +611,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(endOfTerm2Event.getId())),
-        ""
+        ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
+            .renderDeleteEventPage(endOfTerm2Event.getId()))
     );
     
     var phase = new LicenceSchedulePhase();
@@ -751,7 +760,8 @@ class LicenceScheduleTimelineServiceTest {
         "1 February 2025",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(midPhaseEvent.getId())),
-        ""
+        ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
+            .renderDeleteEventPage(midPhaseEvent.getId()))
     );
 
     var endOfPhaseEvent = new OtherScheduleEvent();
@@ -766,7 +776,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(endOfPhaseEvent.getId())),
-        ""
+        ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
+            .renderDeleteEventPage(endOfPhaseEvent.getId()))
     );
 
     var midTerm2Event = new OtherScheduleEvent();
@@ -782,7 +793,8 @@ class LicenceScheduleTimelineServiceTest {
         "1 February 2026",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(midTerm2Event.getId())),
-        ""
+        ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
+            .renderDeleteEventPage(midTerm2Event.getId()))
     );
 
     var endOfTerm2Event = new OtherScheduleEvent();
@@ -797,7 +809,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(endOfTerm2Event.getId())),
-        ""
+        ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
+            .renderDeleteEventPage(endOfTerm2Event.getId()))
     );
     
     var phase = new LicenceSchedulePhase();

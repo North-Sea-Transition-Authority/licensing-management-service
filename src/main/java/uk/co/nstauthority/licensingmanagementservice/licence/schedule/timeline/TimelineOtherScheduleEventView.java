@@ -7,6 +7,7 @@ import java.util.List;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 public record TimelineOtherScheduleEventView(
@@ -41,13 +42,18 @@ public record TimelineOtherScheduleEventView(
         .renderUpdateEventForm(otherScheduleEvent.getId()))
         : "";
 
+    var deleteUrl = allowedActions.contains(ScheduleEventAction.EDIT_WORK_PROGRAMME)
+        ? ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
+          .renderDeleteEventPage(otherScheduleEvent.getId()))
+        : "";
+
     return new TimelineOtherScheduleEventView(
         otherScheduleEvent.getCategoryString(),
         otherScheduleEvent.getDescription(),
         otherScheduleEvent.getEventDate(),
         eventDateString,
         editUrl,
-        ""
+        deleteUrl
     );
   }
 

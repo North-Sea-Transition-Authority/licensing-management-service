@@ -80,4 +80,10 @@ public class OtherScheduleEventService {
         LicenceScheduleEventStatus.ACTIVE
     );
   }
+
+  @Transactional
+  public void deleteOtherScheduleEvent(OtherScheduleEvent otherScheduleEvent) {
+    otherScheduleEvent.setStatus(LicenceScheduleEventStatus.DELETED);
+    otherScheduleEventRepository.save(otherScheduleEvent);
+  }
 }

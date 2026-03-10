@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -23,6 +24,9 @@ public class LicenceContinuationApplication implements LicenceApplication {
   @JoinColumn(name = "licence_schedule_detail_id")
   private LicenceScheduleDetail licenceScheduleDetail;
 
+  @Column
+  private String applicationReference;
+
   public UUID getId() {
     return id;
   }
@@ -37,6 +41,14 @@ public class LicenceContinuationApplication implements LicenceApplication {
 
   public void setLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
     this.licenceScheduleDetail = licenceScheduleDetail;
+  }
+
+  public String getApplicationReference() {
+    return applicationReference;
+  }
+
+  public void setApplicationReference(String applicationReference) {
+    this.applicationReference = applicationReference;
   }
 
   @Override

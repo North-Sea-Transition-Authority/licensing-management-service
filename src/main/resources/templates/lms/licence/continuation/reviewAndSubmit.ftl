@@ -14,5 +14,15 @@ extendContainerWidth=true
 backLinkUrl=springUrl(cancelUrl)>
     <@fdsForm.htmlForm>
         <@continuationApplicationSummary.continuationApplicationSummary accordionId=accordionId summarySections=summarySections/>
+        <#if isSubmittable>
+            <@fdsAction.submitButtons
+            primaryButtonText="Submit"
+            secondaryLinkText="Back to task list"
+            linkSecondaryAction=true
+            linkSecondaryActionUrl="${springUrl(cancelUrl)}"
+            />
+        <#else>
+            <@fdsAction.link linkText="Back to task list" linkUrl="${springUrl(cancelUrl)}"/>
+        </#if>
     </@fdsForm.htmlForm>
 </@defaultPage>

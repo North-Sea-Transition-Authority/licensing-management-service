@@ -96,7 +96,7 @@ public class ScheduleAmendmentApplicationReviewAndSubmitController {
     var scheduleWorkProgrammeApplication
         = scheduleWorkProgrammeApplicationService.submitApplication(scheduleWorkProgrammeApplicationDetail, user);
 
-    return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/submissionConfirmation")
+    return new ModelAndView("lms/licence/application/submissionConfirmation")
         .addObject("feedbackUrl", ReverseRouter.route(on(FeedbackController.class).getFeedback(null)))
         .addObject("workAreaUrl", ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)))
         .addObject("applicationReference", scheduleWorkProgrammeApplication.getApplicationReference());

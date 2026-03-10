@@ -167,7 +167,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
             .with(user(USER))
             .with(csrf()))
         .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/submissionConfirmation"))
+        .andExpect(view().name("lms/licence/application/submissionConfirmation"))
         .andExpect(model().attribute("feedbackUrl", ReverseRouter.route(on(FeedbackController.class).getFeedback(null))))
         .andExpect(model().attribute("workAreaUrl", ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))))
         .andExpect(model().attribute("applicationReference", application.getApplicationReference()));

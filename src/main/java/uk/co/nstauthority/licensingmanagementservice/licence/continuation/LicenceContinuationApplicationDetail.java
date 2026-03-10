@@ -40,6 +40,12 @@ public class LicenceContinuationApplicationDetail {
 
   private Integer responsibleOrganisationUnitId;
 
+  @Column
+  private Instant submittedDatetime;
+
+  @Column
+  private Long submittedByWuaId;
+
   public LicenceContinuationApplicationDetail() {
   }
 
@@ -95,5 +101,21 @@ public class LicenceContinuationApplicationDetail {
 
   public void setResponsibleOrganisationUnitId(Integer responsibleOrganisationUnitId) {
     this.responsibleOrganisationUnitId = responsibleOrganisationUnitId;
+  }
+
+  public Instant getSubmittedDatetime() {
+    return submittedDatetime;
+  }
+
+  public void setSubmittedDatetime(Instant submittedDatetime) {
+    this.submittedDatetime = submittedDatetime;
+  }
+
+  public Long getSubmittedByWuaId() {
+    return submittedByWuaId;
+  }
+
+  public void setSubmittedByWuaId(Long submittedByWuaId) {
+    this.submittedByWuaId = submittedByWuaId;
   }
 }

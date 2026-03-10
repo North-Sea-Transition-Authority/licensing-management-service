@@ -3,31 +3,43 @@ package uk.co.nstauthority.licensingmanagementservice.licence.continuation;
 import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
+import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
 @Service
 public class LicenceContinuationService {
 
+  private static final String APPLICATION_REFERENCE_FORMAT = "LMS/EAA/%d/%d";
+
+  private final ApplicationAccessService applicationAccessService;
   public static final String LICENCE_CONTINUATION_APPLICATION_DETAIL = "licence continuation application detail";
   private final LicenceContinuationApplicationDetailRepository licenceContinuationApplicationDetailRepository;
   private final LicenceContinuationApplicationRepository licenceContinuationApplicationRepository;
   private final LicenceScheduleDetailService licenceScheduleDetailService;
   private final Clock clock;
 
-  public LicenceContinuationService(LicenceContinuationApplicationDetailRepository licenceContinuationApplicationDetailRepository,
-                                    LicenceContinuationApplicationRepository licenceContinuationApplicationRepository,
-                                    LicenceScheduleDetailService licenceScheduleDetailService, Clock clock) {
+  public LicenceContinuationService(
+      LicenceContinuationApplicationDetailRepository licenceContinuationApplicationDetailRepository,
+      LicenceContinuationApplicationRepository licenceContinuationApplicationRepository,
+      LicenceScheduleDetailService licenceScheduleDetailService,
+      Clock clock,
+      ApplicationAccessService applicationAccessService
+  ) {
     this.licenceContinuationApplicationDetailRepository = licenceContinuationApplicationDetailRepository;
     this.licenceContinuationApplicationRepository = licenceContinuationApplicationRepository;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.clock = clock;
+    this.applicationAccessService = applicationAccessService;
   }
 
   @Transactional
@@ -99,5 +111,53 @@ public class LicenceContinuationService {
         .getLicenceScheduleDetail()
         .getLicenceSchedule()
         .getLicence();
+  }
+
+  @Transactional
+  public LicenceContinuationApplication submitApplication(
+      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
+      ServiceUserDetail user
+  ) {
+    var appReference = generateApplicationReference();
+
+    LicenceContinuationApplication licenceContinuationApplication
+        = licenceContinuationApplicationDetail.getLicenceContinuationApplication();
+    licenceContinuationApplication.setApplicationReference(appReference);
+
+    licenceContinuationApplicationRepository.save(licenceContinuationApplication);
+
+    licenceContinuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.SUBMITTED);
+    licenceContinuationApplicationDetail.setSubmittedDatetime(Instant.now(clock));
+    licenceContinuationApplicationDetail.setSubmittedByWuaId(user.wuaId());
+
+    licenceContinuationApplicationDetailRepository.save(licenceContinuationApplicationDetail);
+
+    return licenceContinuationApplication;
+  }
+
+  private String generateApplicationReference() {
+    var currentYear = LocalDate.now(clock).getYear();
+    var submissionsForYear = getSubmissionsForYear(currentYear);
+
+    return String.format(APPLICATION_REFERENCE_FORMAT, currentYear, submissionsForYear + 1);
+  }
+
+  private int getSubmissionsForYear(int currentYear) {
+    var startOfYear = DateUtil.getStartOfYear(clock, currentYear);
+    var endOfYear = DateUtil.getEndOfYear(clock, currentYear);
+
+    return licenceContinuationApplicationDetailRepository.countByVersionNumberAndStatusAndSubmittedDatetimeBetween(
+        1,
+        LicenceContinuationApplicationStatus.SUBMITTED,
+        startOfYear,
+        endOfYear
+    );
+  }
+
+  public boolean userCanSubmitApplication(LicenceContinuationApplicationDetail applicationDetail, ServiceUserDetail user) {
+    return applicationAccessService.userIsSubmitterForOrganisationUnit(
+        applicationDetail.getResponsibleOrganisationUnitId(),
+        user.wuaId()
+    );
   }
 }

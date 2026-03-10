@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -17,5 +18,12 @@ public interface LicenceContinuationApplicationDetailRepository
 
   Optional<LicenceContinuationApplicationDetail> findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(
       LicenceContinuationApplication scheduleWorkProgrammeApplication
+  );
+
+  int countByVersionNumberAndStatusAndSubmittedDatetimeBetween(
+      Integer versionNumber,
+      LicenceContinuationApplicationStatus status,
+      Instant startOfYear,
+      Instant endOfYear
   );
 }

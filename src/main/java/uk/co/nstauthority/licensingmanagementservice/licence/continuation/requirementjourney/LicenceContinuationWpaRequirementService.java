@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney;
 
+import java.util.Optional;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,5 +58,12 @@ public class LicenceContinuationWpaRequirementService {
         )
        .map(this::licenceContinuationWorkProgrammeActivitiesRequirementRequestToForm)
        .orElse(new LicenceContinuationWpaRequirementForm());
+  }
+
+  public Optional<LicenceContinuationWpaRequirementRequest> getWorkProgrammeActivitiesRequirementRequest(
+      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
+  ) {
+    return licenceContinuationWpaRequirementRepository
+        .findByLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail);
   }
 }

@@ -28,6 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.reviewandapply.DeleteDraftScheduleController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.reviewandapply.ReviewAndApplyScheduleController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
@@ -97,6 +98,9 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         )
         .andExpect(model().attribute("clearFilterUrl", ReverseRouter.route(on(LicenceScheduleTimelineController.class)
             .clearFilters(licenceScheduleDetail.getId(), null, null)))
+        )
+        .andExpect(model().attribute("deleteScheduleUrl", ReverseRouter.route(on(DeleteDraftScheduleController.class)
+            .renderDeleteDraftPage(licenceScheduleDetail.getId(), null)))
         );
   }
 

@@ -27,5 +27,8 @@ extendContainerWidth=true>
         clearFilterUrl=clearFilterUrl
     />
 
-    <@fdsAction.link linkText="Review and apply" linkUrl=springUrl(reviewAndApplyUrl) linkClass="govuk-button"/>
+    <@fdsAction.buttonGroup>
+        <@fdsAction.link linkText="Review and apply" linkUrl=springUrl(reviewAndApplyUrl) linkClass="govuk-button"/>
+        <@fdsAction.link linkText="Delete" linkUrl=springUrl(deleteScheduleUrl) linkClass="govuk-button govuk-button--warning"/>
+    </@fdsAction.buttonGroup>
 </@defaultPage>

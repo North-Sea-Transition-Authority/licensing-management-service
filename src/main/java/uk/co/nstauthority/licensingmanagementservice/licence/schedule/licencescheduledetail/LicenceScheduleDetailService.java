@@ -111,4 +111,16 @@ public class LicenceScheduleDetailService {
     licenceScheduleDetail.setStatus(LicenceScheduleDetailStatus.REPLACED);
     licenceScheduleDetailRepository.save(licenceScheduleDetail);
   }
+
+  @Transactional
+  public void deleteDraftScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
+    if (licenceScheduleDetail.getStatus() != LicenceScheduleDetailStatus.DRAFT) {
+      throw new IllegalStateException(
+          "LicenceScheduleDetail %s cannot be deleted as it is not a draft".formatted(licenceScheduleDetail.getId())
+      );
+    }
+
+    licenceScheduleDetail.setStatus(LicenceScheduleDetailStatus.DELETED);
+    licenceScheduleDetailRepository.save(licenceScheduleDetail);
+  }
 }

@@ -166,4 +166,24 @@ class LicenceScheduleDetailServiceTest {
         LicenceScheduleDetailStatus.ACTIVE
     );
   }
+
+  @Test
+  void deleteDraftScheduleDetail() {
+    var detail = new LicenceScheduleDetail();
+    detail.setStatus(LicenceScheduleDetailStatus.DRAFT);
+
+    licenceScheduleDetailService.deleteDraftScheduleDetail(detail);
+
+    verify(licenceScheduleDetailRepository).save(licenceScheduleDetailArgumentCaptor.capture());
+
+    assertThat(licenceScheduleDetailArgumentCaptor.getValue().getStatus()).isEqualTo(LicenceScheduleDetailStatus.DELETED);
+  }
+
+  @Test
+  void deleteDraftScheduleDetail_detailIsNotADraft() {
+    var detail = new LicenceScheduleDetail();
+    detail.setStatus(LicenceScheduleDetailStatus.ACTIVE);
+
+    assertThatThrownBy(() -> licenceScheduleDetailService.deleteDraftScheduleDetail(detail)).isInstanceOf(IllegalStateException.class);
+  }
 }

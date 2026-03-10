@@ -16,6 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.reviewandapply.DeleteDraftScheduleController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.reviewandapply.ReviewAndApplyScheduleController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -107,6 +108,9 @@ public class LicenceScheduleTimelineController {
         )
         .addObject("clearFilterUrl", ReverseRouter.route(on(LicenceScheduleTimelineController.class)
             .clearFilters(licenceScheduleDetail.getId(), null, null))
+        )
+        .addObject("deleteScheduleUrl", ReverseRouter.route(on(DeleteDraftScheduleController.class)
+            .renderDeleteDraftPage(licenceScheduleDetail.getId(), null))
         );
   }
 

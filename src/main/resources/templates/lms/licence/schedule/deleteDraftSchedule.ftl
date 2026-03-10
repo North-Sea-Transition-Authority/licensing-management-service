@@ -1,7 +1,7 @@
 <#include '../../layout/layout.ftl'>
 <#import 'timeline/scheduleComponents.ftl'as scheduleComponents>
 
-<#assign pageTitle = "Do you want to apply changes to the licence schedule?"/>
+<#assign pageTitle = "Do you want to delete the draft licence schedule?"/>
 
 <@defaultPage
 htmlTitle=pageTitle
@@ -15,10 +15,11 @@ errorSummaryItems=errorSummaryItems>
         />
 
         <@fdsAction.submitButtons
-        primaryButtonText="Apply"
-        secondaryLinkText="Cancel"
-        linkSecondaryAction=true
-        linkSecondaryActionUrl=springUrl(cancelUrl)
+            primaryButtonText="Delete"
+            secondaryLinkText="Cancel"
+            linkSecondaryAction=true
+            linkSecondaryActionUrl=springUrl(cancelUrl)
+            primaryButtonClass="govuk-button govuk-button--warning"
         />
     </@fdsForm.htmlForm>
 </@defaultPage>

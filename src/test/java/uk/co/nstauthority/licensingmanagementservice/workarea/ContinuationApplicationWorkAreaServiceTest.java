@@ -3,6 +3,8 @@ package uk.co.nstauthority.licensingmanagementservice.workarea;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
@@ -33,26 +35,31 @@ import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearc
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @ExtendWith(MockitoExtension.class)
 class ContinuationApplicationWorkAreaServiceTest {
 
-    @Mock
-    private LicenceContinuationService licenceContinuationService;
+  @Mock
+  private TeamQueryService teamQueryService;
 
-    @Mock
-    private LicenceSearchService licenceSearchService;
+  @Mock
+  private LicenceContinuationService licenceContinuationService;
 
-    @Mock
-    private ApplicationAccessService applicationAccessService;
+  @Mock
+  private LicenceSearchService licenceSearchService;
 
-    @InjectMocks
-    private ContinuationApplicationWorkAreaService continuationApplicationWorkAreaService;
+  @Mock
+  private ApplicationAccessService applicationAccessService;
 
-    private Licence licence1, licence2;
-    private LicenceContinuationApplicationDetail licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2;
-    private ServiceUserDetail serviceUserDetail;
-    private Instant testInstant;
+  @InjectMocks
+  private ContinuationApplicationWorkAreaService continuationApplicationWorkAreaService;
+
+  private Licence licence1, licence2;
+  private LicenceContinuationApplicationDetail licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2;
+  private ServiceUserDetail serviceUserDetail;
+  private Instant testInstant;
 
   @BeforeEach
   void setUp() {
@@ -86,181 +93,219 @@ class ContinuationApplicationWorkAreaServiceTest {
     licenceContinuationApplicationDetail2 = LicenceContinuationApplicationTestUtil
         .createLicenceContinuationApplicationDetail(scheduleDetail2);
     licenceContinuationApplicationDetail2.setCreatedDateTime(testInstant.minus(1, ChronoUnit.HOURS));
+    licenceContinuationApplicationDetail2.setStatus(LicenceContinuationApplicationStatus.SUBMITTED);
   }
 
-    @Test
-    void getWorkAreaItems_unfiltered() {
-      when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
-          .thenReturn(licence1);
+  @Test
+  void getWorkAreaItems_unfiltered() {
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(licence1);
 
-      when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
-          .thenReturn(licence2);
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
+        .thenReturn(licence2);
 
-      when(licenceContinuationService.getAllContinuationApplicationDetailsByStatus(
-          LicenceContinuationApplicationStatus.DRAFT))
-          .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
 
-      when(applicationAccessService.userHasAccessToApplication(any(),any(),any(),any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(),any(),any(),any())).thenReturn(true);
 
-      var org1 = "Org 1";
-      var org2 = "Org 2";
-      var orgList1 = List.of(org1, org2);
-      var orgList2 = List.of(org1);
-      var licenceResponsibleOrgMap = Map.of(licence1, orgList1, licence2, orgList2);
+    var org1 = "Org 1";
+    var org2 = "Org 2";
+    var orgList1 = List.of(org1, org2);
+    var orgList2 = List.of(org1);
+    var licenceResponsibleOrgMap = Map.of(licence1, orgList1, licence2, orgList2);
 
-      when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence1, licence2))).thenReturn(
-          licenceResponsibleOrgMap
-      );
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(any())).thenReturn(licenceResponsibleOrgMap);
 
-      var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
-      var summaryDataView1 = SummaryDataView
-          .newBuilder()
-          .addStringValue("Licence type", licence1.getType().getDisplayName())
-          .addStringValue("Licensees", String.join(", ", orgList1))
-          .build();
-      var summaryDataView2 = SummaryDataView.newBuilder()
-          .addStringValue("Licence type", licence2.getType().getDisplayName())
-          .addStringValue("Licensees", String.join(", ", orgList2))
-          .build();
+    var summaryDataView1 = SummaryDataView
+        .newBuilder()
+        .addStringValue("Licence type", licence1.getType().getDisplayName())
+        .addStringValue("Licensees", String.join(", ", orgList1))
+        .build();
+    var summaryDataView2 = SummaryDataView.newBuilder()
+        .addStringValue("Licence type", licence2.getType().getDisplayName())
+        .addStringValue("Licensees", String.join(", ", orgList2))
+        .build();
 
-      assertThat(workAreaItems)
-          .extracting(
-              SearchResultItem::id,
-              SearchResultItem::linkHeadingText,
-              SearchResultItem::linkHeadingUrl,
-              SearchResultItem::dataItemRows,
-              SearchResultItem::transactionDatetime
-          )
-          .containsExactly(
-              tuple(
-                  licenceContinuationApplicationDetail
-                      .getId().toString(),
-                  String.format("%s - Licence continuation application", licence1.getLicenceReference()),
-                  ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
-                                          .getTaskList(licenceContinuationApplicationDetail.getId(), null, null)),
-                  List.of(summaryDataView1),
-                  testInstant
-              ),
-              tuple(
-                  licenceContinuationApplicationDetail2
-                      .getId().toString(),
-                  String.format("%s - Licence continuation application", licence2.getLicenceReference()),
-                  ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
-                                          .getTaskList(licenceContinuationApplicationDetail2.getId(), null, null)),
-                  List.of(summaryDataView2),
-                  testInstant.minus(1, ChronoUnit.HOURS)
-              )
-          );
-    }
+    assertThat(workAreaItems)
+        .extracting(
+            SearchResultItem::id,
+            SearchResultItem::linkHeadingText,
+            SearchResultItem::linkHeadingUrl,
+            SearchResultItem::dataItemRows,
+            SearchResultItem::transactionDatetime
+        )
+        .containsExactly(
+            tuple(
+                licenceContinuationApplicationDetail.getId().toString(),
+                String.format("%s - Licence continuation application", licence1.getLicenceReference()),
+                ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(licenceContinuationApplicationDetail.getId(), null, null)),
+                List.of(summaryDataView1),
+                testInstant
+            ),
+            tuple(
+                licenceContinuationApplicationDetail2.getId().toString(),
+                String.format("%s - Licence continuation application", licence2.getLicenceReference()),
+                ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(licenceContinuationApplicationDetail2.getId(), null, null)),
+                List.of(summaryDataView2),
+                testInstant.minus(1, ChronoUnit.HOURS)
+            )
+        );
+  }
 
-    @Test
-    void getWorkAreaItems_filteredByLicenceReference() {
-      when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
-          .thenReturn(licence1);
-      when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
-          .thenReturn(licence2);
+  @Test
+  void getWorkAreaItems_filteredByLicenceReference() {
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(licence1);
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
+        .thenReturn(licence2);
 
-      when(licenceContinuationService.getAllContinuationApplicationDetailsByStatus(LicenceContinuationApplicationStatus.DRAFT))
-          .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
 
-      when(applicationAccessService.userHasAccessToApplication(any(),any(),any(),any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(),any(),any(),any())).thenReturn(true);
 
-      var org1 = "Org 1";
-      var licenceResponsibleOrgMap = Map.of(licence2, List.of(org1));
-      when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence2))).thenReturn(
-          licenceResponsibleOrgMap
-      );
+    var org1 = "Org 1";
+    var licenceResponsibleOrgMap = Map.of(licence2, List.of(org1));
 
-      var workAreaFilter = new WorkAreaFilterForm();
-      workAreaFilter.setLicenceReference("2");
-      var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(any()))
+        .thenReturn(licenceResponsibleOrgMap);
 
-      var summaryDataView = SummaryDataView.newBuilder()
-          .addStringValue("Licence type", licence2.getType().getDisplayName())
-          .addStringValue("Licensees", String.join(", ", org1))
-          .build();
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setLicenceReference("2");
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
 
-      assertThat(workAreaItems)
-          .extracting(
-              SearchResultItem::id,
-              SearchResultItem::linkHeadingText,
-              SearchResultItem::linkHeadingUrl,
-              SearchResultItem::dataItemRows,
-              SearchResultItem::transactionDatetime
-          )
-          .containsExactly(
-              tuple(
-                  licenceContinuationApplicationDetail2
-                      .getId().toString(),
-                  String.format("%s - Licence continuation application", licence2.getLicenceReference()),
-                  ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
-                                          .getTaskList(licenceContinuationApplicationDetail2.getId(), null, null)),
-                  List.of(summaryDataView),
-                  testInstant.minus(1, ChronoUnit.HOURS)
-              )
-          );
-    }
+    var summaryDataView = SummaryDataView.newBuilder()
+        .addStringValue("Licence type", licence2.getType().getDisplayName())
+        .addStringValue("Licensees", String.join(", ", org1))
+        .build();
 
-    @Test
-    void getWorkAreaItems_filteredByUser() {
-      when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
-          .thenReturn(licence1);
-      when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
-          .thenReturn(licence2);
+    assertThat(workAreaItems)
+        .extracting(
+            SearchResultItem::id,
+            SearchResultItem::linkHeadingText,
+            SearchResultItem::linkHeadingUrl,
+            SearchResultItem::dataItemRows,
+            SearchResultItem::transactionDatetime
+        )
+        .containsExactly(
+            tuple(
+                licenceContinuationApplicationDetail2.getId().toString(),
+                String.format("%s - Licence continuation application", licence2.getLicenceReference()),
+                ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(licenceContinuationApplicationDetail2.getId(), null, null)),
+                List.of(summaryDataView),
+                testInstant.minus(1, ChronoUnit.HOURS)
+            )
+        );
+  }
 
-      when(licenceContinuationService.getAllContinuationApplicationDetailsByStatus(LicenceContinuationApplicationStatus.DRAFT))
-          .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+  @Test
+  void getWorkAreaItems_filteredByUser() {
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(licence1);
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
+        .thenReturn(licence2);
 
-      when(applicationAccessService.userHasAccessToApplication(
-          licenceContinuationApplicationDetail.getId().toString(),
-          ApplicationType.CONTINUATION_APPLICATION,
-          null,
-          serviceUserDetail.wuaId()
-      )).thenReturn(true);
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
 
-      when(applicationAccessService.userHasAccessToApplication(
-          licenceContinuationApplicationDetail2.getId().toString(),
-          ApplicationType.CONTINUATION_APPLICATION,
-          null,
-          serviceUserDetail.wuaId()
-      )).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(
+        licenceContinuationApplicationDetail.getId().toString(),
+        ApplicationType.CONTINUATION_APPLICATION,
+        null,
+        serviceUserDetail.wuaId()
+    )).thenReturn(true);
 
-      var org1 = "Org 1";
-      var org2 = "Org 2";
-      var orgList1 = List.of(org1, org2);
-      var orgList2 = List.of(org1);
-      var licenceResponsibleOrgMap = Map.of(licence1, orgList1, licence2, orgList2);
+    when(applicationAccessService.userHasAccessToApplication(
+        licenceContinuationApplicationDetail2.getId().toString(),
+        ApplicationType.CONTINUATION_APPLICATION,
+        null,
+        serviceUserDetail.wuaId()
+    )).thenReturn(false);
 
-      when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence1))).thenReturn(
-          licenceResponsibleOrgMap
-      );
+    var org1 = "Org 1";
+    var org2 = "Org 2";
+    var orgList1 = List.of(org1, org2);
+    var orgList2 = List.of(org1);
+    var licenceResponsibleOrgMap = Map.of(licence1, orgList1, licence2, orgList2);
 
-      var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(any()))
+        .thenReturn(licenceResponsibleOrgMap);
 
-      var summaryDataView = SummaryDataView.newBuilder()
-          .addStringValue("Licence type", licence1.getType().getDisplayName())
-          .addStringValue("Licensees", String.join(", ", orgList1))
-          .build();
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
-      assertThat(workAreaItems)
-          .extracting(
-              SearchResultItem::id,
-              SearchResultItem::linkHeadingText,
-              SearchResultItem::linkHeadingUrl,
-              SearchResultItem::dataItemRows,
-              SearchResultItem::transactionDatetime
-          )
-          .containsExactly(
-              tuple(
-                  licenceContinuationApplicationDetail
-                      .getId().toString(),
-                  String.format("%s - Licence continuation application", licence1.getLicenceReference()),
-                  ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
-                                          .getTaskList(licenceContinuationApplicationDetail.getId(), null, null)),
-                  List.of(summaryDataView),
-                  testInstant
-              )
-          );
-    }
+    var summaryDataView = SummaryDataView.newBuilder()
+        .addStringValue("Licence type", licence1.getType().getDisplayName())
+        .addStringValue("Licensees", String.join(", ", orgList1))
+        .build();
+
+    assertThat(workAreaItems)
+        .extracting(
+            SearchResultItem::id,
+            SearchResultItem::linkHeadingText,
+            SearchResultItem::linkHeadingUrl,
+            SearchResultItem::dataItemRows,
+            SearchResultItem::transactionDatetime
+        )
+        .containsExactly(
+            tuple(
+                licenceContinuationApplicationDetail.getId().toString(),
+                String.format("%s - Licence continuation application", licence1.getLicenceReference()),
+                ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(licenceContinuationApplicationDetail.getId(), null, null)),
+                List.of(summaryDataView),
+                testInstant
+            )
+        );
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByUser_isContinuationReviewer() {
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(licence1);
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
+        .thenReturn(licence2);
+
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+
+    when(teamQueryService.userHasAtLeastOneStaticRole(
+        eq(serviceUserDetail.wuaId()),
+        eq(TeamType.OFFSHORE_PRODUCTION_LICENSING),
+        anySet()
+    )).thenReturn(true);
+
+    var org1 = "Org 1";
+    var licenceResponsibleOrgMap = Map.of(licence2, List.of(org1));
+
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(any()))
+        .thenReturn(licenceResponsibleOrgMap);
+
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    var summaryDataView = SummaryDataView.newBuilder()
+        .addStringValue("Licence type", licence2.getType().getDisplayName())
+        .addStringValue("Licensees", String.join(", ", org1))
+        .build();
+
+    assertThat(workAreaItems)
+        .extracting(
+            SearchResultItem::id,
+            SearchResultItem::linkHeadingText,
+            SearchResultItem::linkHeadingUrl,
+            SearchResultItem::dataItemRows,
+            SearchResultItem::transactionDatetime
+        )
+        .containsExactly(
+            tuple(
+                licenceContinuationApplicationDetail2.getId().toString(),
+                String.format("%s - Licence continuation application", licence2.getLicenceReference()),
+                ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(licenceContinuationApplicationDetail2.getId(), null, null)),
+                List.of(summaryDataView),
+                testInstant.minus(1, ChronoUnit.HOURS)
+            )
+        );
+  }
+
   }

@@ -5,6 +5,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
@@ -19,23 +20,34 @@ import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearc
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
 
 @Service
 public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvider {
 
+  public static final Set<LicenceContinuationApplicationStatus> ACTIVE_APPLICATION_STATUSES = Set.of(
+      LicenceContinuationApplicationStatus.DRAFT,
+      LicenceContinuationApplicationStatus.SUBMITTED
+  );
+
   private final LicenceContinuationService licenceContinuationService;
   private final LicenceSearchService licenceSearchService;
   private final ApplicationAccessService applicationAccessService;
+  private final TeamQueryService teamQueryService;
 
   public ContinuationApplicationWorkAreaService(
       LicenceContinuationService licenceContinuationService,
       LicenceSearchService licenceSearchService,
-      ApplicationAccessService applicationAccessService
+      ApplicationAccessService applicationAccessService,
+      TeamQueryService teamQueryService
   ) {
     this.licenceContinuationService = licenceContinuationService;
     this.licenceSearchService = licenceSearchService;
     this.applicationAccessService = applicationAccessService;
+    this.teamQueryService = teamQueryService;
   }
 
   @Override
@@ -44,7 +56,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       ServiceUserDetail serviceUserDetail
   ) {
     var applicationDetails = licenceContinuationService
-        .getAllContinuationApplicationDetailsByStatus(LicenceContinuationApplicationStatus.DRAFT).stream()
+        .getAllContinuationApplicationDetailsByStatuses(ACTIVE_APPLICATION_STATUSES).stream()
         .filter(applicationDetail -> matchesFilterAndHasAccess(applicationDetail, workAreaFilterForm, serviceUserDetail))
         .toList();
 
@@ -91,6 +103,19 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         .build();
   }
 
+  private boolean isContinuationReviewer(ServiceUserDetail userDetail) {
+    var reviewerRoles = Set.of(
+        Role.CONTINUATION_REVIEWER_NEW_VENTURES,
+        Role.CONTINUATION_REVIEWER_OPERATIONS
+    );
+
+    return teamQueryService.userHasAtLeastOneStaticRole(
+        userDetail.wuaId(),
+        TeamType.OFFSHORE_PRODUCTION_LICENSING,
+        reviewerRoles
+    );
+  }
+
   private boolean matchesFilterAndHasAccess(
       LicenceContinuationApplicationDetail applicationDetail,
       WorkAreaFilterForm filterForm,
@@ -102,11 +127,17 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       return false;
     }
 
-    return applicationAccessService.userHasAccessToApplication(
+    var hasApplicationAccess = applicationAccessService.userHasAccessToApplication(
         applicationDetail.getId().toString(),
         ApplicationType.CONTINUATION_APPLICATION,
         applicationDetail.getResponsibleOrganisationUnitId(),
         userDetail.wuaId()
     );
+
+    if (applicationDetail.getStatus() == LicenceContinuationApplicationStatus.DRAFT) {
+      return hasApplicationAccess;
+    }
+
+    return hasApplicationAccess || isContinuationReviewer(userDetail);
   }
 }

@@ -25,3 +25,9 @@ CVE-2024-47554
 
 # com.fasterxml.jackson.core:jackson-core
 GHSA-72hv-8253-57qq
+
+# org.apache.tomcat.embed:tomcat-embed-core
+CVE-2025-66614
+
+# tomcat: security constraint bypass with HTTP/0.9
+CVE-2026-24733

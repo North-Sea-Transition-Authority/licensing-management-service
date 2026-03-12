@@ -29,7 +29,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceTeam;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -148,7 +150,7 @@ class ContinuationApplicationWorkAreaServiceTest {
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
                 String.format("%s - Licence continuation application", licence2.getLicenceReference()),
-                ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(licenceContinuationApplicationDetail2.getId(), null, null)),
+                ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null)),
                 List.of(summaryDataView2),
                 testInstant.minus(1, ChronoUnit.HOURS)
             )
@@ -194,7 +196,7 @@ class ContinuationApplicationWorkAreaServiceTest {
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
                 String.format("%s - Licence continuation application", licence2.getLicenceReference()),
-                ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(licenceContinuationApplicationDetail2.getId(), null, null)),
+                ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null)),
                 List.of(summaryDataView),
                 testInstant.minus(1, ChronoUnit.HOURS)
             )
@@ -301,7 +303,7 @@ class ContinuationApplicationWorkAreaServiceTest {
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
                 String.format("%s - Licence continuation application", licence2.getLicenceReference()),
-                ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(licenceContinuationApplicationDetail2.getId(), null, null)),
+                ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null)),
                 List.of(summaryDataView),
                 testInstant.minus(1, ChronoUnit.HOURS)
             )

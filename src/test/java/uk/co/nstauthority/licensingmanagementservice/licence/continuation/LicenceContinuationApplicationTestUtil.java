@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation;
 
+import java.time.Instant;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
@@ -16,6 +17,9 @@ public class LicenceContinuationApplicationTestUtil {
     private LicenceContinuationApplication licenceContinuationApplication;
     private Integer versionNumber = 1;
     private LicenceContinuationApplicationStatus status = LicenceContinuationApplicationStatus.DRAFT;
+    private Instant submittedDatetime;
+    private Long submittedByWuaId;
+    private String applicationReference;
 
     private Builder() {}
 
@@ -39,16 +43,40 @@ public class LicenceContinuationApplicationTestUtil {
       return this;
     }
 
+    public Builder withSubmittedDatetime(Instant submittedDatetime) {
+      this.submittedDatetime = submittedDatetime;
+      return this;
+    }
+
+    public Builder withSubmittedByWuaId(Long submittedByWuaId) {
+      this.submittedByWuaId = submittedByWuaId;
+      return this;
+    }
+
+    public Builder withApplicationReference(String applicationReference) {
+      this.applicationReference = applicationReference;
+      return this;
+    }
+
     public LicenceContinuationApplicationDetail build() {
       var licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
       licenceContinuationApplicationDetail.setId(id);
-      licenceContinuationApplicationDetail.setLicenceContinuationApplication(licenceContinuationApplication);
       licenceContinuationApplicationDetail.setVersionNumber(versionNumber);
       licenceContinuationApplicationDetail.setStatus(status);
+      licenceContinuationApplicationDetail.setSubmittedDatetime(submittedDatetime);
+      licenceContinuationApplicationDetail.setSubmittedByWuaId(submittedByWuaId);
 
+      if (licenceContinuationApplication == null) {
+        var app = new LicenceContinuationApplication();
+        app.setId(UUID.randomUUID());
+        app.setApplicationReference(applicationReference);
+        licenceContinuationApplicationDetail.setLicenceContinuationApplication(app);
+      } else {
+        licenceContinuationApplication.setApplicationReference(applicationReference);
+        licenceContinuationApplicationDetail.setLicenceContinuationApplication(licenceContinuationApplication);
+      }
       return licenceContinuationApplicationDetail;
     }
-
   }
 
   public static LicenceContinuationApplication createLicenceContinuationApplication(LicenceScheduleDetail licenceScheduleDetail) {

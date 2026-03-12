@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.workarea;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+import static uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService.CONTINUATION_REVIEWER_ROLES;
 
 import java.util.List;
 import java.util.Map;
@@ -15,12 +16,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.Applica
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
-import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
@@ -91,12 +92,16 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         .addStringValue("Licensees", String.join(", ", licensees))
         .build();
 
+    var linkHeadingUrl = licenceContinuationApplicationDetail.getStatus() == LicenceContinuationApplicationStatus.SUBMITTED
+                         ? ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class)
+                                                   .renderOverview(licenceContinuationApplicationDetail.getId(), null, null))
+                         : ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
+                                                   .getTaskList(licenceContinuationApplicationDetail.getId(), null, null));
+
     return SearchResultItem.newBuilder()
         .withId(licenceContinuationApplicationDetail.getId().toString())
         .withLinkHeadingText(String.format("%s - Licence continuation application", licence.getLicenceReference()))
-        .withLinkHeadingUrl(ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
-            .getTaskList(licenceContinuationApplicationDetail.getId(), null, null))
-        )
+        .withLinkHeadingUrl(linkHeadingUrl)
         .withCaptionText(String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(createdDatetime)))
         .withDataItemRow(dataItemRow)
         .withTransactionDatetime(createdDatetime)
@@ -104,15 +109,10 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
   }
 
   private boolean isContinuationReviewer(ServiceUserDetail userDetail) {
-    var reviewerRoles = Set.of(
-        Role.CONTINUATION_REVIEWER_NEW_VENTURES,
-        Role.CONTINUATION_REVIEWER_OPERATIONS
-    );
-
     return teamQueryService.userHasAtLeastOneStaticRole(
         userDetail.wuaId(),
         TeamType.OFFSHORE_PRODUCTION_LICENSING,
-        reviewerRoles
+        CONTINUATION_REVIEWER_ROLES
     );
   }
 

@@ -307,4 +307,44 @@ class ApplicationAccessServiceTest {
 
     assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.CONTINUATION_APPLICATION, orgUnitId, USER_1_WUA_ID)).isTrue();
   }
+
+  @ParameterizedTest
+  @EnumSource(value = Role.class, names = {
+      "CONTINUATION_REVIEWER_OPERATIONS",
+      "CONTINUATION_REVIEWER_NEW_VENTURES"
+  })
+  void userHasAccessToApplication_whenUserIsContinuationReviewer_returnsTrue(Role continuationReviewerRole) {
+    String appId = "101112";
+    Integer orgUnitId = 100;
+
+    Team irrelevantTeam = new Team(UUID.randomUUID());
+    irrelevantTeam.setTeamType(TeamType.LICENCE_MANAGEMENT);
+
+    TeamRole role = new TeamRole();
+    role.setTeam(irrelevantTeam);
+    role.setRole(continuationReviewerRole);
+
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(orgUnitId)).thenReturn(Optional.of(111));
+
+    assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.CONTINUATION_APPLICATION, orgUnitId, USER_1_WUA_ID)).isTrue();
+  }
+
+  @Test
+  void userHasAccessToApplication_whenUserIsContinuationReviewer_andAppIsNotContinuation_returnsFalse() {
+    String appId = "101112";
+    Integer orgUnitId = 100;
+
+    Team team = new Team(UUID.randomUUID());
+    team.setTeamType(TeamType.LICENCE_MANAGEMENT);
+
+    TeamRole role = new TeamRole();
+    role.setTeam(team);
+    role.setRole(Role.CONTINUATION_REVIEWER_OPERATIONS);
+
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(orgUnitId)).thenReturn(Optional.of(111));
+
+    assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, orgUnitId, USER_1_WUA_ID)).isFalse();
+  }
 }

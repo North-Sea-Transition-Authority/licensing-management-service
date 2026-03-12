@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEntity;
@@ -51,6 +52,9 @@ public class ScheduleWorkProgrammeApplicationDetail {
 
   @Column
   private Integer responsibleOrganisationUnitId;
+
+  @Column
+  private LocalDate decisionDate;
 
   public ScheduleWorkProgrammeApplicationDetail() {
   }
@@ -131,5 +135,13 @@ public class ScheduleWorkProgrammeApplicationDetail {
 
   public void setResponsibleOrganisationUnitId(Integer responsibleOrganisationUnitId) {
     this.responsibleOrganisationUnitId = responsibleOrganisationUnitId;
+  }
+
+  public LocalDate getDecisionDate() {
+    return decisionDate;
+  }
+
+  public void setDecisionDate(LocalDate decisionDate) {
+    this.decisionDate = decisionDate;
   }
 }

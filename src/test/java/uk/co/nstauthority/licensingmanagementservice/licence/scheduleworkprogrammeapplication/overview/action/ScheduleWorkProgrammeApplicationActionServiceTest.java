@@ -98,4 +98,81 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
     assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
         .doesNotContain(ScheduleWorkProgrammeApplicationActionItem.ALLOCATE_STEWARD.toActionItemView(applicationDetail));
   }
+
+  @Test
+  void getAvailableUserActionItems_recordFinalDecision_availableWhenCaseManagerAndSubmitted() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+        .build();
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.CASE_MANAGER_CS_CTS)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
+        .contains(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION.toActionItemView(applicationDetail));
+  }
+
+  @Test
+  void getAvailableUserActionItems_recordFinalDecision_availableWhenUserIsAllocatedStewardAndSubmitted() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+        .build();
+    applicationDetail.getScheduleWorkProgrammeApplication().setStewardWuaId(USER_WUA_ID);
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.STEWARD_OPERATIONS)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
+        .contains(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION.toActionItemView(applicationDetail));
+  }
+
+  @Test
+  void getAvailableUserActionItems_recordFinalDecision_notAvailableWhenNotCaseManagerAndNotAllocatedSteward() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+        .build();
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.STEWARD_OPERATIONS)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
+        .doesNotContain(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION.toActionItemView(applicationDetail));
+  }
+
+  @Test
+  void getAvailableUserActionItems_recordFinalDecision_notAvailableWhenWrongStatus() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
+        .build();
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.CASE_MANAGER_CS_CTS)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
+        .doesNotContain(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION.toActionItemView(applicationDetail));
+  }
 }

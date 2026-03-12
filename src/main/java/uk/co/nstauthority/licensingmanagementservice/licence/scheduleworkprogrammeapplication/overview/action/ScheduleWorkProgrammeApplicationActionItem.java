@@ -5,14 +5,21 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.util.function.Function;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.finaldecision.RecordFinalDecisionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.steward.AllocateStewardController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
 public enum ScheduleWorkProgrammeApplicationActionItem implements Displayable {
+  RECORD_FINAL_DECISION(
+      "Record final decision",
+      10,
+      true,
+          detail -> ReverseRouter.route(on(RecordFinalDecisionController.class).render(detail.getId(), null))
+  ),
   ALLOCATE_STEWARD(
       "Allocate steward",
-      1,
+      20,
       false,
           detail -> ReverseRouter.route(on(AllocateStewardController.class).render(detail.getId(), null))
   );

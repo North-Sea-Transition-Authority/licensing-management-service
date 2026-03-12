@@ -8,8 +8,10 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 
@@ -24,13 +26,16 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
         new EnumMap<>(ScheduleWorkProgrammeApplicationStatus.class);
     public final Map<ScheduleWorkProgrammeApplicationActionItem, Set<Role>> roleMap =
         new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
+    public final Map<ScheduleWorkProgrammeApplicationActionItem,
+        Function<ScheduleWorkProgrammeApplicationDetail, Long>> userGrantPredicateMap =
+        new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
     private final Deque<ScheduleWorkProgrammeApplicationActionItem> actionItems = new LinkedList<>();
 
     private Builder() {
     }
 
     @Override
-    public SetRolesForAnAction registerAction(ScheduleWorkProgrammeApplicationActionItem actionItem) {
+    public SetStatusForAnAction registerAction(ScheduleWorkProgrammeApplicationActionItem actionItem) {
       if (actionItems.contains(actionItem)) {
         throw new IllegalStateException("You cannot register %s as it has already been registered".formatted(actionItem));
       }
@@ -40,13 +45,13 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
     }
 
     @Override
-    public SetStatusForAnAction requiresAnyRoleFrom(Role... roles) {
+    public RegisterAnAction requiresAnyRoleFrom(Role... roles) {
       roleMap.put(actionItems.peek(), Arrays.stream(roles).collect(Collectors.toSet()));
       return this;
     }
 
     @Override
-    public RegisterAnAction requiresAnyStatusFrom(ScheduleWorkProgrammeApplicationStatus... statuses) {
+    public SetRolesForAnAction requiresAnyStatusFrom(ScheduleWorkProgrammeApplicationStatus... statuses) {
       for (ScheduleWorkProgrammeApplicationStatus status : statuses) {
         statusMap.merge(
             status,
@@ -58,7 +63,14 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
     }
 
     @Override
-    public RegisterAnAction requiresAnyStatus() {
+    public RegisterAnAction orGrantedToUser(
+        Function<ScheduleWorkProgrammeApplicationDetail, Long> userExtractor) {
+      userGrantPredicateMap.put(actionItems.peek(), userExtractor);
+      return this;
+    }
+
+    @Override
+    public SetRolesForAnAction requiresAnyStatus() {
       var statuses = Arrays.stream(ScheduleWorkProgrammeApplicationStatus.values()).toList();
       for (ScheduleWorkProgrammeApplicationStatus status : statuses) {
         statusMap.merge(
@@ -89,18 +101,20 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
     }
   }
 
-  interface SetRolesForAnAction {
-    SetStatusForAnAction requiresAnyRoleFrom(Role... roles);
+  interface SetStatusForAnAction {
+    SetRolesForAnAction requiresAnyStatusFrom(ScheduleWorkProgrammeApplicationStatus... statuses);
+
+    SetRolesForAnAction requiresAnyStatus();
   }
 
-  interface SetStatusForAnAction {
-    RegisterAnAction requiresAnyStatusFrom(ScheduleWorkProgrammeApplicationStatus... statuses);
-
-    RegisterAnAction requiresAnyStatus();
+  interface SetRolesForAnAction {
+    RegisterAnAction requiresAnyRoleFrom(Role... roles);
   }
 
   interface RegisterAnAction {
-    SetRolesForAnAction registerAction(ScheduleWorkProgrammeApplicationActionItem actionItem);
+    SetStatusForAnAction registerAction(ScheduleWorkProgrammeApplicationActionItem actionItem);
+
+    RegisterAnAction orGrantedToUser(Function<ScheduleWorkProgrammeApplicationDetail, Long> userExtractor);
 
     Builder build();
   }

@@ -5,7 +5,9 @@ import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,9 @@ public class ScheduleWorkProgrammeApplicationActionService {
   private static final Map<ScheduleWorkProgrammeApplicationStatus,
       Set<ScheduleWorkProgrammeApplicationActionItem>> STATUS_TO_ACTIONS
       = new EnumMap<>(ScheduleWorkProgrammeApplicationStatus.class);
+  private static final Map<ScheduleWorkProgrammeApplicationActionItem,
+      Function<ScheduleWorkProgrammeApplicationDetail, Long>> ACTIONS_TO_USER_GRANT_PREDICATES
+      = new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
 
   private final TeamQueryService teamQueryService;
 
@@ -34,15 +39,20 @@ public class ScheduleWorkProgrammeApplicationActionService {
 
     var registeredActions = ScheduleWorkProgrammeApplicationActionBuilder.newBuilder()
         .registerAction(ScheduleWorkProgrammeApplicationActionItem.ALLOCATE_STEWARD)
+          .requiresAnyStatusFrom(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
           .requiresAnyRoleFrom(StreamUtil.unionSets(
               ApplicationAccessService.STEWARD_ROLES,
               ApplicationAccessService.CASE_MANAGER_ROLES
           ).toArray(Role[]::new))
+        .registerAction(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION)
           .requiresAnyStatusFrom(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+          .requiresAnyRoleFrom(ApplicationAccessService.CASE_MANAGER_ROLES.toArray(Role[]::new))
+            .orGrantedToUser(detail -> detail.getScheduleWorkProgrammeApplication().getStewardWuaId())
         .build();
 
     ACTIONS_TO_ROLES.putAll(registeredActions.roleMap);
     STATUS_TO_ACTIONS.putAll(registeredActions.statusMap);
+    ACTIONS_TO_USER_GRANT_PREDICATES.putAll(registeredActions.userGrantPredicateMap);
   }
 
   public List<ActionItemView> getAvailableUserActionItems(
@@ -55,7 +65,13 @@ public class ScheduleWorkProgrammeApplicationActionService {
 
     return EnumSet.allOf(ScheduleWorkProgrammeApplicationActionItem.class).stream()
         .filter(STATUS_TO_ACTIONS.getOrDefault(applicationDetail.getStatus(), Set.of())::contains)
-        .filter(action -> CollectionUtils.containsAny(ACTIONS_TO_ROLES.get(action), userRoles))
+        .filter(action -> {
+          var grantedUserId = ACTIONS_TO_USER_GRANT_PREDICATES
+              .getOrDefault(action, detail -> null)
+              .apply(applicationDetail);
+          return CollectionUtils.containsAny(ACTIONS_TO_ROLES.get(action), userRoles)
+              || Objects.equals(grantedUserId, user.wuaId());
+        })
         .map(actionItem -> actionItem.toActionItemView(applicationDetail))
         .sorted(Comparator.comparing(ActionItemView::displayOrder))
         .toList();

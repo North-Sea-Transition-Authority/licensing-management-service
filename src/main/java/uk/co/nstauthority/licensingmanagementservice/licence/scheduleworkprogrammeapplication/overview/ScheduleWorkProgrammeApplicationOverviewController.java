@@ -18,7 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 @Controller
 @RequestMapping("licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/overview")
 @ScheduleAmendmentApplicationHasStatus(value = {
-    ScheduleWorkProgrammeApplicationStatus.SUBMITTED
+    ScheduleWorkProgrammeApplicationStatus.SUBMITTED, ScheduleWorkProgrammeApplicationStatus.ISSUE_DECISION
 })
 @InvokingUserCanAccessScheduleApplication
 public class ScheduleWorkProgrammeApplicationOverviewController {

@@ -5,7 +5,8 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 public enum ScheduleWorkProgrammeApplicationStatus implements Displayable {
   DRAFT("Draft"),
   DELETED("Deleted"),
-  SUBMITTED("Submitted");
+  SUBMITTED("Submitted"),
+  ISSUE_DECISION("Issue decision");
 
   private final String displayName;
 

@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearc
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
@@ -31,7 +32,8 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
 
   public static final Set<LicenceContinuationApplicationStatus> ACTIVE_APPLICATION_STATUSES = Set.of(
       LicenceContinuationApplicationStatus.DRAFT,
-      LicenceContinuationApplicationStatus.SUBMITTED
+      LicenceContinuationApplicationStatus.SUBMITTED,
+      LicenceContinuationApplicationStatus.ISSUE_DECISION
   );
 
   private final LicenceContinuationService licenceContinuationService;
@@ -116,6 +118,14 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
     );
   }
 
+  private boolean isContinuationIssuer(ServiceUserDetail userDetail) {
+    return teamQueryService.userHasAtLeastOneStaticRole(
+        userDetail.wuaId(),
+        TeamType.REGULATIONS_LICENSING,
+        Set.of(Role.CONTINUATION_ISSUER)
+    );
+  }
+
   private boolean matchesFilterAndHasAccess(
       LicenceContinuationApplicationDetail applicationDetail,
       WorkAreaFilterForm filterForm,
@@ -136,6 +146,10 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
 
     if (applicationDetail.getStatus() == LicenceContinuationApplicationStatus.DRAFT) {
       return hasApplicationAccess;
+    }
+
+    if (applicationDetail.getStatus() == LicenceContinuationApplicationStatus.ISSUE_DECISION) {
+      return isContinuationIssuer(userDetail);
     }
 
     return hasApplicationAccess || isContinuationReviewer(userDetail);

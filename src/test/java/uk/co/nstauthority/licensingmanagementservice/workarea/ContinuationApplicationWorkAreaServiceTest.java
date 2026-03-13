@@ -31,7 +31,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceTeam;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -304,6 +303,56 @@ class ContinuationApplicationWorkAreaServiceTest {
                 licenceContinuationApplicationDetail2.getId().toString(),
                 String.format("%s - Licence continuation application", licence2.getLicenceReference()),
                 ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null)),
+                List.of(summaryDataView),
+                testInstant.minus(1, ChronoUnit.HOURS)
+            )
+        );
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByUser_isContinuationIssuer() {
+    licenceContinuationApplicationDetail2.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(licence1);
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
+        .thenReturn(licence2);
+
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+
+    when(teamQueryService.userHasAtLeastOneStaticRole(
+        eq(serviceUserDetail.wuaId()),
+        eq(TeamType.REGULATIONS_LICENSING),
+        anySet()
+    )).thenReturn(true);
+
+    var org1 = "Org 1";
+    var licenceResponsibleOrgMap = Map.of(licence2, List.of(org1));
+
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(any()))
+        .thenReturn(licenceResponsibleOrgMap);
+
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    var summaryDataView = SummaryDataView.newBuilder()
+        .addStringValue("Licence type", licence2.getType().getDisplayName())
+        .addStringValue("Licensees", String.join(", ", org1))
+        .build();
+
+    assertThat(workAreaItems)
+        .extracting(
+            SearchResultItem::id,
+            SearchResultItem::linkHeadingText,
+            SearchResultItem::linkHeadingUrl,
+            SearchResultItem::dataItemRows,
+            SearchResultItem::transactionDatetime
+        )
+        .containsExactly(
+            tuple(
+                licenceContinuationApplicationDetail2.getId().toString(),
+                String.format("%s - Licence continuation application", licence2.getLicenceReference()),
+                ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(licenceContinuationApplicationDetail2.getId(), null, null)),
                 List.of(summaryDataView),
                 testInstant.minus(1, ChronoUnit.HOURS)
             )

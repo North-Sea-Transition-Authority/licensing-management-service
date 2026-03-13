@@ -13,6 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continu
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.action.LicenceContinuationActionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.reviewandsubmit.ContinuationSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.WorkProgrammeActivityView;
@@ -29,17 +30,20 @@ public class LicenceContinuationApplicationOverviewController {
   private final LicenceContinuationApplicationOverviewService overviewService;
   private final ContinuationSummarySectionService continuationSummarySectionService;
   private final WorkProgrammeActivityService workProgrammeActivityService;
+  private final LicenceContinuationActionService  licenceContinuationActionService;
 
   public LicenceContinuationApplicationOverviewController(
       LicenceContinuationService licenceContinuationService,
       LicenceContinuationApplicationOverviewService overviewService,
       ContinuationSummarySectionService continuationSummarySectionService,
-      WorkProgrammeActivityService workProgrammeActivityService
+      WorkProgrammeActivityService workProgrammeActivityService,
+      LicenceContinuationActionService licenceContinuationActionService
   ) {
     this.licenceContinuationService = licenceContinuationService;
     this.overviewService = overviewService;
     this.continuationSummarySectionService = continuationSummarySectionService;
     this.workProgrammeActivityService = workProgrammeActivityService;
+    this.licenceContinuationActionService = licenceContinuationActionService;
   }
 
   @GetMapping
@@ -51,6 +55,7 @@ public class LicenceContinuationApplicationOverviewController {
     var licence = licenceContinuationService.getLicenceFromContinuationApplicationDetail(applicationDetail);
     var applicationContext = overviewService.getApplicationContext(applicationDetail, licence);
     var summarySections = continuationSummarySectionService.getSummarySections(applicationDetail, serviceUserDetail);
+    var applicationActions = licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail);
 
     List<WorkProgrammeActivityView> workProgrammeActivities = workProgrammeActivityService.getLicenceWorkProgramActivitiesViews(
         applicationDetail.getLicenceContinuationApplication().getLicenceScheduleDetail()
@@ -61,6 +66,7 @@ public class LicenceContinuationApplicationOverviewController {
         .addObject("summarySections", summarySections)
         .addObject("workProgrammeActivities", workProgrammeActivities)
         .addObject("accordionId", applicationDetail.getId())
-        .addObject("showWorkProgrammeActivities", true);
+        .addObject("showWorkProgrammeActivities", true)
+        .addObject("applicationActions", applicationActions);
   }
 }

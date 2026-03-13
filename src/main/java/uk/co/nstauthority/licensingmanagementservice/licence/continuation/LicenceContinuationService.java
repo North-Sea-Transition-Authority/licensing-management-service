@@ -135,6 +135,14 @@ public class LicenceContinuationService {
     return licenceContinuationApplication;
   }
 
+  @Transactional
+  public void confirmContinuationChangeStatus(
+      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
+  ) {
+    licenceContinuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+    licenceContinuationApplicationDetailRepository.save(licenceContinuationApplicationDetail);
+  }
+
   private String generateApplicationReference() {
     var currentYear = LocalDate.now(clock).getYear();
     var submissionsForYear = getSubmissionsForYear(currentYear);

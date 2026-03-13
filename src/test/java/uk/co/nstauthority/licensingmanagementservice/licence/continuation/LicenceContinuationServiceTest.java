@@ -187,4 +187,11 @@ class LicenceContinuationServiceTest {
     assertThat(result).isFalse();
     verify(applicationAccessService).userIsSubmitterForOrganisationUnit(ORG_UNIT_ID, WUA_ID);
   }
+
+  @Test
+  void confirmContinuationChangeStatus(){
+    licenceContinuationService.confirmContinuationChangeStatus(licenceContinuationApplicationDetail);
+    assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+  }
+
 }

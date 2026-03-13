@@ -21,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.action.LicenceContinuationActionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.reviewandsubmit.ContinuationSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
@@ -40,6 +41,9 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
 
   @MockitoBean
   private ContinuationSummarySectionService continuationSummarySectionService;
+
+  @MockitoBean
+  private LicenceContinuationActionService licenceContinuationActionService;
 
   @SecurityTest
   void renderOverview_displaysApplicationContextAndSummaries() throws Exception {
@@ -80,6 +84,8 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
     when(workProgrammeActivityService.getLicenceWorkProgramActivitiesViews(
         applicationDetail.getLicenceContinuationApplication().getLicenceScheduleDetail()))
         .thenReturn(List.of());
+    when(licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, USER))
+        .thenReturn(List.of());
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(applicationDetailId, applicationDetail, null)))
@@ -90,6 +96,7 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
         .andExpect(model().attribute("applicationContext", applicationContext))
         .andExpect(model().attribute("summarySections", List.of()))
         .andExpect(model().attribute("workProgrammeActivities", List.of()))
-        .andExpect(model().attribute("accordionId", applicationDetailId));
+        .andExpect(model().attribute("accordionId", applicationDetailId))
+        .andExpect(model().attribute("applicationActions", List.of()));
   }
 }

@@ -20,7 +20,7 @@ class RecordFinalDecisionFormValidatorTest {
 
   private RecordFinalDecisionForm buildValidForm() {
     var form = new RecordFinalDecisionForm();
-    form.getDecisionDate().setDate(LocalDate.of(2024, 3, 15));
+    form.getDecisionDate().setDate(LocalDate.now());
     form.setFinalDecisionSupportPapers(List.of(
         FileUploadTestUtil.getUploadedFileFormWithDescription("decision.pdf", "Final decision paper")));
     return form;
@@ -42,7 +42,7 @@ class RecordFinalDecisionFormValidatorTest {
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
     assertThat(validator.isValid(form, bindingResult)).isFalse();
-    assertThat(bindingResult.hasErrors()).isTrue();
+    assertThat(bindingResult.hasFieldErrors("decisionDate.dayInput.inputValue")).isTrue();
   }
 
   @Test
@@ -53,5 +53,15 @@ class RecordFinalDecisionFormValidatorTest {
 
     assertThat(validator.isValid(form, bindingResult)).isFalse();
     assertThat(bindingResult.hasFieldErrors("finalDecisionSupportPapers")).isTrue();
+  }
+
+  @Test
+  void isValid_whenDateInFuture_returnsFalse() {
+    var form = buildValidForm();
+    form.getDecisionDate().setDate(LocalDate.now().plusDays(1));
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(validator.isValid(form, bindingResult)).isFalse();
+    assertThat(bindingResult.hasFieldErrors("decisionDate.dayInput.inputValue")).isTrue();
   }
 }

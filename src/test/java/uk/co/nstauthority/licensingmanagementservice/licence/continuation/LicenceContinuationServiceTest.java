@@ -24,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
@@ -46,6 +47,9 @@ class LicenceContinuationServiceTest {
 
   @Mock
   private ApplicationAccessService applicationAccessService;
+
+  @Mock
+  private ApplicationLetterService applicationLetterService;
 
   @InjectMocks
   private LicenceContinuationService licenceContinuationService;
@@ -191,6 +195,7 @@ class LicenceContinuationServiceTest {
   @Test
   void confirmContinuationChangeStatus(){
     licenceContinuationService.confirmContinuationChangeStatus(licenceContinuationApplicationDetail);
+    verify(applicationLetterService).createDocumentInstance(licenceContinuationApplicationDetail.getLicenceContinuationApplication());
     assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.ISSUE_DECISION);
   }
 

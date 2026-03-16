@@ -13,6 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
@@ -94,11 +95,28 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         .addStringValue("Licensees", String.join(", ", licensees))
         .build();
 
-    var linkHeadingUrl = licenceContinuationApplicationDetail.getStatus() == LicenceContinuationApplicationStatus.SUBMITTED
-                         ? ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class)
-                                                   .renderOverview(licenceContinuationApplicationDetail.getId(), null, null))
-                         : ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
-                                                   .getTaskList(licenceContinuationApplicationDetail.getId(), null, null));
+    var linkHeadingUrl = switch (licenceContinuationApplicationDetail.getStatus()) {
+      case LicenceContinuationApplicationStatus.SUBMITTED ->
+          ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(
+              licenceContinuationApplicationDetail.getId(),
+              null,
+              null
+          ));
+
+      case LicenceContinuationApplicationStatus.ISSUE_DECISION ->
+          ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
+              ApplicationType.CONTINUATION_APPLICATION,
+              licenceContinuationApplicationDetail
+                  .getLicenceContinuationApplication()
+                  .getId()
+          ));
+
+      default -> ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(
+          licenceContinuationApplicationDetail.getId(),
+          null,
+          null
+      ));
+    };
 
     return SearchResultItem.newBuilder()
         .withId(licenceContinuationApplicationDetail.getId().toString())

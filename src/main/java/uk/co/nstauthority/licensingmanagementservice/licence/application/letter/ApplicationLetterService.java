@@ -35,13 +35,8 @@ public class ApplicationLetterService {
   }
 
   @Transactional
-  public DocumentInstanceDto getOrCreateDocumentInstance(LicenceApplication application) {
+  public DocumentInstanceDto createDocumentInstance(LicenceApplication application) {
     String itemReference = application.getId().toString();
-
-    var existingDocs = documentInstanceService.getDocumentInstanceDtosByItemReference(itemReference);
-    if (!CollectionUtils.isEmpty(existingDocs)) {
-      return existingDocs.getFirst();
-    }
 
     DocumentTemplateType templateType = switch (application.getApplicationType()) {
       case CONTINUATION_APPLICATION -> DocumentTemplateType.CONTINUATION_LETTER;
@@ -58,6 +53,19 @@ public class ApplicationLetterService {
         template.description(),
         template
     );
+  }
+
+  public DocumentInstanceDto getDocumentInstance(LicenceApplication application) {
+    String itemReference = application.getId().toString();
+
+    var existingDocs = documentInstanceService.getDocumentInstanceDtosByItemReference(itemReference);
+
+    return existingDocs.stream()
+        .findFirst()
+        .orElseThrow(
+            () -> new NoSuchElementException(
+                "No document instance found for application with id %s".formatted(application.getId())
+            ));
   }
 
   public List<DocumentInstanceDto> getApplicationLetters(List<LicenceApplication> applications) {

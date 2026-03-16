@@ -66,7 +66,7 @@ class ApplicationLetterControllerTest extends AbstractControllerTest {
     var documentInstance = DocumentInstanceDtoTestUtil.newBuilder().withTitle("Test Title").build();
 
     when(applicationService.getApplication(appType, appId)).thenReturn(application);
-    when(applicationLetterService.getOrCreateDocumentInstance(application)).thenReturn(documentInstance);
+    when(applicationLetterService.getDocumentInstance(application)).thenReturn(documentInstance);
     when(lmsDocumentInstanceService.getDocumentInstanceSectionsSummaryView(documentInstance, true, application))
         .thenReturn(sectionsSummaryView);
     when(documentLinkingService.getApplicationCompanyNameFromDto(documentInstance)).thenReturn("Company Name");

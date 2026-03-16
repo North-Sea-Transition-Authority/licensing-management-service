@@ -43,24 +43,21 @@ class ApplicationLetterServiceTest {
   private ApplicationLetterService applicationLetterService;
 
   @Test
-  void getOrCreateDocumentInstance_whenExists_returnsExisting() {
+  void getDocumentInstance_whenExists_returnsExisting() {
     when(application.getId()).thenReturn(UUID.randomUUID());
 
     var existingDoc = DocumentInstanceDtoTestUtil.newBuilder().build();
     when(documentInstanceService.getDocumentInstanceDtosByItemReference(application.getId().toString()))
         .thenReturn(List.of(existingDoc));
 
-    var result = applicationLetterService.getOrCreateDocumentInstance(application);
+    var result = applicationLetterService.getDocumentInstance(application);
     assertThat(result).isEqualTo(existingDoc);
   }
 
   @Test
-  void getOrCreateDocumentInstance_whenNotExists_createsNew() {
+  void createDocumentInstance_whenNotExists_createsNew() {
     when(application.getId()).thenReturn(UUID.randomUUID());
     when(application.getApplicationType()).thenReturn(ApplicationType.CONTINUATION_APPLICATION);
-
-    when(documentInstanceService.getDocumentInstanceDtosByItemReference(application.getId().toString()))
-        .thenReturn(List.of());
 
     var template = DocumentTemplateDtoTestUtil
         .newBuilder()
@@ -80,7 +77,7 @@ class ApplicationLetterServiceTest {
         template
     )).thenReturn(newDoc);
 
-    var result = applicationLetterService.getOrCreateDocumentInstance(application);
+    var result = applicationLetterService.createDocumentInstance(application);
     assertThat(result).isEqualTo(newDoc);
   }
 

@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
@@ -352,7 +353,7 @@ class ContinuationApplicationWorkAreaServiceTest {
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
                 String.format("%s - Licence continuation application", licence2.getLicenceReference()),
-                ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(licenceContinuationApplicationDetail2.getId(), null, null)),
+                ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(ApplicationType.CONTINUATION_APPLICATION, licenceContinuationApplicationDetail2.getLicenceContinuationApplication().getId())),
                 List.of(summaryDataView),
                 testInstant.minus(1, ChronoUnit.HOURS)
             )

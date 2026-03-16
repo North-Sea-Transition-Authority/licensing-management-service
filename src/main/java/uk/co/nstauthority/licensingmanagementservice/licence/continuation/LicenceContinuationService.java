@@ -12,6 +12,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
@@ -27,19 +28,22 @@ public class LicenceContinuationService {
   private final LicenceContinuationApplicationRepository licenceContinuationApplicationRepository;
   private final LicenceScheduleDetailService licenceScheduleDetailService;
   private final Clock clock;
+  private final ApplicationLetterService applicationLetterService;
 
   public LicenceContinuationService(
       LicenceContinuationApplicationDetailRepository licenceContinuationApplicationDetailRepository,
       LicenceContinuationApplicationRepository licenceContinuationApplicationRepository,
       LicenceScheduleDetailService licenceScheduleDetailService,
       Clock clock,
-      ApplicationAccessService applicationAccessService
+      ApplicationAccessService applicationAccessService,
+      ApplicationLetterService applicationLetterService
   ) {
     this.licenceContinuationApplicationDetailRepository = licenceContinuationApplicationDetailRepository;
     this.licenceContinuationApplicationRepository = licenceContinuationApplicationRepository;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.clock = clock;
     this.applicationAccessService = applicationAccessService;
+    this.applicationLetterService = applicationLetterService;
   }
 
   @Transactional
@@ -139,6 +143,9 @@ public class LicenceContinuationService {
   public void confirmContinuationChangeStatus(
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
   ) {
+    applicationLetterService.createDocumentInstance(
+        licenceContinuationApplicationDetail.getLicenceContinuationApplication()
+    );
     licenceContinuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
     licenceContinuationApplicationDetailRepository.save(licenceContinuationApplicationDetail);
   }

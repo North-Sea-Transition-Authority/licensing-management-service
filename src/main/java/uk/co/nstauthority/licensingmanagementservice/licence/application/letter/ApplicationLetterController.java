@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceDto;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceSectionsSummaryView;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.document.DocumentLinkingService;
 import uk.co.nstauthority.licensingmanagementservice.document.instance.LmsDocumentInstanceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
@@ -45,7 +47,7 @@ public class ApplicationLetterController {
       @PathVariable UUID applicationId
   ) {
     LicenceApplication application = applicationService.getApplication(applicationType, applicationId);
-    DocumentInstanceDto documentInstance = applicationLetterService.getOrCreateDocumentInstance(application);
+    DocumentInstanceDto documentInstance = applicationLetterService.getDocumentInstance(application);
     var documentInstanceSectionsSummaryView = lmsDocumentInstanceService.getDocumentInstanceSectionsSummaryView(
         documentInstance,
         true,
@@ -62,6 +64,8 @@ public class ApplicationLetterController {
       DocumentInstanceDto documentInstanceDto,
       DocumentInstanceSectionsSummaryView documentInstanceSectionsSummaryView
   ) {
+    var modelAndView = new ModelAndView("lms/licence/application/letter/editLetterOverview");
+
     var hasMoreThanOneSection = documentInstanceSectionsSummaryView.topLevelDocumentInstanceSectionSummaryViews().size() > 1;
     var organisationName = documentLinkingService.getApplicationCompanyNameFromDto(documentInstanceDto);
 
@@ -70,7 +74,13 @@ public class ApplicationLetterController {
         organisationName
     );
 
-    return new ModelAndView("lms/licence/application/letter/editLetterOverview")
+    var breadcrumbs = Breadcrumbs.builder("%s".formatted(documentInstanceDto.title()))
+        .addWorkAreaBreadcrumb()
+        .build();
+
+    BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
+
+    return modelAndView
         .addObject("documentInstanceDto", documentInstanceDto)
         .addObject("pageTitle", pageTitle)
         .addObject("accordionId", documentInstanceDto.id())

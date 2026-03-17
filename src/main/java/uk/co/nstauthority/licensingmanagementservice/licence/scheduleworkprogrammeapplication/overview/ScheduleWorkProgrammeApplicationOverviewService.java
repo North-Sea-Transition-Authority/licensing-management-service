@@ -38,8 +38,6 @@ class ScheduleWorkProgrammeApplicationOverviewService {
     );
 
     var summaryDataView = SummaryDataView.newBuilder()
-        .addStringValue("Status", applicationDetail.getStatus().getDisplayName())
-        .addStringValue("Licence reference", licence.getLicenceReference())
         .addStringValue("Submitted by", submittedByUser.displayName())
         .addStringValue("Submission date",
             DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getSubmittedDatetime()))

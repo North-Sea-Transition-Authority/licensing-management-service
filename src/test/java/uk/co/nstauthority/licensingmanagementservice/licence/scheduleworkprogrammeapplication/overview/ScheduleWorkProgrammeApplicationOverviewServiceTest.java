@@ -12,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
+import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
@@ -120,7 +121,7 @@ class ScheduleWorkProgrammeApplicationOverviewServiceTest {
     var keys = context.summaryDataView().get(0).keyValues().stream()
         .map(SummaryKeyValue::key)
         .toList();
-    assertThat(keys).containsExactly("Status", "Licence reference", "Submitted by", "Submission date", "Steward");
+    assertThat(keys).containsExactly("Submitted by", "Submission date", "Steward");
   }
 
   @Test
@@ -149,9 +150,10 @@ class ScheduleWorkProgrammeApplicationOverviewServiceTest {
     var context = overviewService.getApplicationContext(applicationDetail, licence);
 
     var keyValues = context.summaryDataView().get(0).keyValues();
-    assertThat(getSummaryValueData(keyValues.get(0))).isEqualTo("Submitted");
-    assertThat(getSummaryValueData(keyValues.get(1))).isEqualTo("CS1");
-    assertThat(getSummaryValueData(keyValues.get(2))).isEqualTo("John Smith");
+    assertThat(getSummaryValueData(keyValues.get(0))).isEqualTo("John Smith");
+    assertThat(getSummaryValueData(keyValues.get(1)))
+        .isEqualTo(DateFormatUtil.convertToDisplayTextWithTime(Instant.parse("2024-03-15T10:30:00Z")));
+    assertThat(getSummaryValueData(keyValues.get(2))).isEqualTo("Not allocated");
   }
 
   private static String getSummaryValueData(SummaryKeyValue summaryKeyValue) {

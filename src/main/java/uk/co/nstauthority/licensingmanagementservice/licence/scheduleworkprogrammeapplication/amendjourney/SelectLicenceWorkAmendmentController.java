@@ -15,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.schedul
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -30,15 +31,18 @@ public class SelectLicenceWorkAmendmentController {
   private final SelectLicenceAmendmentFormValidator selectLicenceAmendmentFormValidator;
   private final SelectLicenceAmendmentService selectLicenceAmendmentService;
   private final WorkProgrammeActivityService workProgrammeActivityService;
+  private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
 
   public SelectLicenceWorkAmendmentController(
       SelectLicenceAmendmentFormValidator selectLicenceAmendmentFormValidator,
       SelectLicenceAmendmentService selectLicenceAmendmentService,
-      WorkProgrammeActivityService workProgrammeActivityService
+      WorkProgrammeActivityService workProgrammeActivityService,
+      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService
   ) {
     this.selectLicenceAmendmentFormValidator = selectLicenceAmendmentFormValidator;
     this.selectLicenceAmendmentService = selectLicenceAmendmentService;
     this.workProgrammeActivityService = workProgrammeActivityService;
+    this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
   }
 
   @GetMapping("/create")
@@ -78,7 +82,7 @@ public class SelectLicenceWorkAmendmentController {
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("form", form)
         .addObject("workProgrammeAmendmentViews", workProgrammeActivityService.getLicenceWorkProgramActivitiesViews(
-                scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getLicenceScheduleDetail()
+            scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(scheduleWorkProgrammeApplicationDetail)
         ))
         .addObject("cancelUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
             scheduleWorkProgrammeApplicationDetail.getId(), null, null

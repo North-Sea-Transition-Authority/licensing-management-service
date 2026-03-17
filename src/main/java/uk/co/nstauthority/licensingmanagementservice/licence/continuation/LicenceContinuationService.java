@@ -13,6 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
@@ -57,7 +58,7 @@ public class LicenceContinuationService {
     );
 
     var licenceContinuationApplication = new LicenceContinuationApplication();
-    licenceContinuationApplication.setLicenceScheduleDetail(licenceScheduleDetail);
+    licenceContinuationApplication.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
 
     licenceContinuationApplicationRepository.save(licenceContinuationApplication);
 
@@ -107,14 +108,21 @@ public class LicenceContinuationService {
     return licenceContinuationApplicationDetailRepository.findAllByStatusIn(statuses);
   }
 
+  public LicenceScheduleDetail getScheduleDetailFromApplicationDetail(
+      LicenceContinuationApplicationDetail detail
+  ) {
+    var app = detail.getLicenceContinuationApplication();
+    if (app.getSubmittedLicenceScheduleDetail() != null) {
+      return app.getSubmittedLicenceScheduleDetail();
+    }
+    var licence = app.getLicenceSchedule().getLicence();
+    return licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE);
+  }
+
   public Licence getLicenceFromContinuationApplicationDetail(
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
   ) {
-    return licenceContinuationApplicationDetail
-        .getLicenceContinuationApplication()
-        .getLicenceScheduleDetail()
-        .getLicenceSchedule()
-        .getLicence();
+    return getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail).getLicenceSchedule().getLicence();
   }
 
   @Transactional
@@ -127,6 +135,11 @@ public class LicenceContinuationService {
     LicenceContinuationApplication licenceContinuationApplication
         = licenceContinuationApplicationDetail.getLicenceContinuationApplication();
     licenceContinuationApplication.setApplicationReference(appReference);
+
+    var activeDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
+        licenceContinuationApplication.getLicenceSchedule().getLicence(),
+        LicenceScheduleDetailStatus.ACTIVE);
+    licenceContinuationApplication.setSubmittedLicenceScheduleDetail(activeDetail);
 
     licenceContinuationApplicationRepository.save(licenceContinuationApplication);
 

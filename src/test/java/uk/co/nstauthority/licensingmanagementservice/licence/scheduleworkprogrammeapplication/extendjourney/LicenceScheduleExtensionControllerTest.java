@@ -95,7 +95,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
     licenceScheduleDetail.setLicenceSchedule(licenceSchedule);
 
     var scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
-    scheduleWorkProgrammeApplication.setLicenceScheduleDetail(licenceScheduleDetail);
+    scheduleWorkProgrammeApplication.setLicenceSchedule(licenceSchedule);
     scheduleWorkProgrammeApplication.setId(UUID.randomUUID());
     scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
@@ -106,6 +106,8 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
 
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(SCHEDULE_APPLICATION_DETAIL_ID)).thenReturn(
         scheduleWorkProgrammeApplicationDetail);
+    when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(licenceScheduleDetail);
   }
 
   @SecurityTest

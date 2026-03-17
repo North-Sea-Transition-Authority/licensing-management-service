@@ -105,7 +105,7 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
   public static ScheduleWorkProgrammeApplication createScheduleWorkProgrammeApplication(LicenceScheduleDetail licenceScheduleDetail) {
     var scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
     scheduleWorkProgrammeApplication.setId(UUID.randomUUID());
-    scheduleWorkProgrammeApplication.setLicenceScheduleDetail(licenceScheduleDetail);
+    scheduleWorkProgrammeApplication.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
     return scheduleWorkProgrammeApplication;
   }
 

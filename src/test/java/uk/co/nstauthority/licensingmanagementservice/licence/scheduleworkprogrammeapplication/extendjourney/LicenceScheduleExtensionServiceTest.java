@@ -39,6 +39,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceScheduleExtensionServiceTest {
@@ -61,6 +62,9 @@ class LicenceScheduleExtensionServiceTest {
   @Mock
   private Clock clock;
 
+  @Mock
+  private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
+
   @InjectMocks
   private LicenceScheduleExtensionService licenceScheduleExtensionService;
 
@@ -75,7 +79,6 @@ class LicenceScheduleExtensionServiceTest {
   void setUp() {
     scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(new ScheduleWorkProgrammeApplication());
-    scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().setLicenceScheduleDetail(new LicenceScheduleDetail());
   }
 
   @Test
@@ -189,6 +192,10 @@ class LicenceScheduleExtensionServiceTest {
   @Test
   void getLicenceScheduleExtensionFormBuildsFormFromExistingRequests() {
     mockClock();
+
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(licenceScheduleDetail);
 
     var termId = UUID.randomUUID();
     var phaseId = UUID.randomUUID();

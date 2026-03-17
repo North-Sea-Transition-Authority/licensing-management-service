@@ -82,7 +82,7 @@ public class LicenceContinuationApplicationTestUtil {
   public static LicenceContinuationApplication createLicenceContinuationApplication(LicenceScheduleDetail licenceScheduleDetail) {
     var licenceContinuationApplication = new LicenceContinuationApplication();
     licenceContinuationApplication.setId(UUID.randomUUID());
-    licenceContinuationApplication.setLicenceScheduleDetail(licenceScheduleDetail);
+    licenceContinuationApplication.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
     return licenceContinuationApplication;
   }
 

@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.continuation.requi
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
@@ -16,9 +15,9 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continu
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.WorkProgrammeActivityView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -31,17 +30,20 @@ public class LicenceContinuationWpaRequirementController {
   public final LicenceContinuationWpaRequirementService licenceContinuationWpaRequirementService;
   public final WorkProgrammeActivityService workProgrammeActivityService;
   public final LicenceContinuationWpaRequirementValidator licenceContinuationWpaRequirementValidator;
+  public final LicenceContinuationService licenceContinuationService;
 
   public LicenceContinuationWpaRequirementController(
       LicenceContinuationWpaRequirementService licenceContinuationWpaRequirementService,
       WorkProgrammeActivityService workProgrammeActivityService,
-      LicenceContinuationWpaRequirementValidator licenceContinuationWpaRequirementValidator
+      LicenceContinuationWpaRequirementValidator licenceContinuationWpaRequirementValidator,
+      LicenceContinuationService licenceContinuationService
   ) {
 
     this.licenceContinuationWpaRequirementService = licenceContinuationWpaRequirementService;
 
     this.workProgrammeActivityService = workProgrammeActivityService;
     this.licenceContinuationWpaRequirementValidator = licenceContinuationWpaRequirementValidator;
+    this.licenceContinuationService = licenceContinuationService;
   }
 
   @GetMapping
@@ -85,9 +87,8 @@ public class LicenceContinuationWpaRequirementController {
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
   ) {
 
-    List<WorkProgrammeActivityView> workProgrammeActivities = workProgrammeActivityService.getLicenceWorkProgramActivitiesViews(
-        licenceContinuationApplicationDetail.getLicenceContinuationApplication().getLicenceScheduleDetail()
-        );
+    var scheduleDetail = licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail);
+    var workProgrammeActivities = workProgrammeActivityService.getLicenceWorkProgramActivitiesViews(scheduleDetail);
 
     return new ModelAndView("lms/licence/continuation/licenceContinuationWpaRequirement")
         .addObject("pageTitle", PAGE_TITLE)

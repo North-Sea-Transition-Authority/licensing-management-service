@@ -79,8 +79,32 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
   @Test
   void getLicenceFromScheduleWorkProgrammeApplicationDetail_withValidDetail_returnsLicence() {
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(licenceScheduleDetail);
+
     Licence result = scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail);
     assertThat(result).isEqualTo(licence);
+  }
+
+  @Test
+  void getScheduleDetailFromApplicationDetail_whenDraft_returnsActiveDetail() {
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(licenceScheduleDetail);
+
+    var result = scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(scheduleWorkProgrammeApplicationDetail);
+
+    assertThat(result).isEqualTo(licenceScheduleDetail);
+  }
+
+  @Test
+  void getScheduleDetailFromApplicationDetail_whenSubmitted_returnsFrozenDetail() {
+    var frozenDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceScheduleDetail.getLicenceSchedule());
+    scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication()
+        .setSubmittedLicenceScheduleDetail(frozenDetail);
+
+    var result = scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(scheduleWorkProgrammeApplicationDetail);
+
+    assertThat(result).isEqualTo(frozenDetail);
   }
 
   @Test
@@ -106,7 +130,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
     verify(scheduleWorkProgrammeApplicationRepository).save(scheduleWorkProgrammeApplicationCaptor.capture());
     ScheduleWorkProgrammeApplication savedScheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationCaptor.getValue();
-    assertThat(savedScheduleWorkProgrammeApplication.getLicenceScheduleDetail()).isEqualTo(licenceScheduleDetail);
+    assertThat(savedScheduleWorkProgrammeApplication.getLicenceSchedule()).isEqualTo(licenceScheduleDetail.getLicenceSchedule());
 
     verify(scheduleWorkProgrammeApplicationDetailRepository).save(scheduleWorkProgrammeApplicationDetailCaptor.capture());
     ScheduleWorkProgrammeApplicationDetail savedDetail = scheduleWorkProgrammeApplicationDetailCaptor.getValue();
@@ -131,7 +155,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
     verify(scheduleWorkProgrammeApplicationRepository).save(scheduleWorkProgrammeApplicationCaptor.capture());
     var savedScheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationCaptor.getValue();
-    assertThat(savedScheduleWorkProgrammeApplication.getLicenceScheduleDetail()).isEqualTo(licenceScheduleDetail);
+    assertThat(savedScheduleWorkProgrammeApplication.getLicenceSchedule()).isEqualTo(licenceScheduleDetail.getLicenceSchedule());
 
     verify(scheduleWorkProgrammeApplicationDetailRepository).save(scheduleWorkProgrammeApplicationDetailCaptor.capture());
     var savedDetail = scheduleWorkProgrammeApplicationDetailCaptor.getValue();
@@ -156,6 +180,9 @@ class ScheduleWorkProgrammeApplicationServiceTest {
         any(Instant.class)
     )).thenReturn(2);
 
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(licenceScheduleDetail);
+
     var currentYear = LocalDate.now(clock).getYear();
 
     var user = mockUser();
@@ -169,6 +196,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     ScheduleWorkProgrammeApplicationDetail savedDetail = scheduleWorkProgrammeApplicationDetailCaptor.getValue();
 
     assertThat(savedApplication.getApplicationReference()).isEqualTo(String.format("LMS/EAA/%d/%d", currentYear, 3));
+    assertThat(savedApplication.getSubmittedLicenceScheduleDetail()).isEqualTo(licenceScheduleDetail);
     assertThat(result).isEqualTo(savedApplication);
     assertThat(savedDetail.getStatus()).isEqualTo(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
     assertThat(savedDetail.getSubmittedByWuaId()).isEqualTo(1L);

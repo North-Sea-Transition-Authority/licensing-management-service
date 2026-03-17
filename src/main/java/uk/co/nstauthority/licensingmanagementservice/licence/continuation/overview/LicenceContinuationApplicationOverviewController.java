@@ -58,7 +58,7 @@ public class LicenceContinuationApplicationOverviewController {
     var applicationActions = licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail);
 
     List<WorkProgrammeActivityView> workProgrammeActivities = workProgrammeActivityService.getLicenceWorkProgramActivitiesViews(
-        applicationDetail.getLicenceContinuationApplication().getLicenceScheduleDetail()
+        licenceContinuationService.getScheduleDetailFromApplicationDetail(applicationDetail)
     );
 
     return new ModelAndView("lms/licence/continuation/licenceContinuationApplicationOverview")

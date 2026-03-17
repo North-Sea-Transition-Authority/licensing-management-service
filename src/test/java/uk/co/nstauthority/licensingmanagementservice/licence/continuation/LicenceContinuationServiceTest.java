@@ -97,7 +97,7 @@ class LicenceContinuationServiceTest {
     verify(licenceContinuationApplicationDetailRepository).save(licenceContinuationApplicationDetailCaptor.capture());
     var savedDetail = licenceContinuationApplicationDetailCaptor.getValue();
 
-    assertThat(savedApplication.getLicenceScheduleDetail()).isEqualTo(LICENCE_SCHEDULE_DETAIL);
+    assertThat(savedApplication.getLicenceSchedule()).isEqualTo(LICENCE_SCHEDULE_DETAIL.getLicenceSchedule());
 
     assertThat(savedDetail.getLicenceContinuationApplication()).isEqualTo(savedApplication);
     assertThat(savedDetail.getVersionNumber()).isEqualTo(1);
@@ -109,10 +109,39 @@ class LicenceContinuationServiceTest {
 
   @Test
   void getLicenceFromScheduleWorkProgrammeApplicationDetail_withValidDetail_returnsLicence() {
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(LICENCE, LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(LICENCE_SCHEDULE_DETAIL);
+
     var licenceContinuationApplicationDetail = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(
         LICENCE_SCHEDULE_DETAIL);
     Licence result = licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail);
     assertThat(result).isEqualTo(LICENCE);
+  }
+
+  @Test
+  void getScheduleDetailFromApplicationDetail_whenDraft_returnsActiveDetail() {
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(LICENCE, LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(LICENCE_SCHEDULE_DETAIL);
+
+    var detail = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(LICENCE_SCHEDULE_DETAIL);
+
+    var result = licenceContinuationService.getScheduleDetailFromApplicationDetail(detail);
+
+    assertThat(result).isEqualTo(LICENCE_SCHEDULE_DETAIL);
+  }
+
+  @Test
+  void getScheduleDetailFromApplicationDetail_whenSubmitted_returnsFrozenDetail() {
+    var frozenDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(LICENCE_SCHEDULE_DETAIL.getLicenceSchedule());
+    var app = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplication(LICENCE_SCHEDULE_DETAIL);
+    app.setSubmittedLicenceScheduleDetail(frozenDetail);
+    var detail = LicenceContinuationApplicationTestUtil.builder()
+        .withLicenceContinuationApplication(app)
+        .build();
+
+    var result = licenceContinuationService.getScheduleDetailFromApplicationDetail(detail);
+
+    assertThat(result).isEqualTo(frozenDetail);
   }
 
   @Test
@@ -148,6 +177,8 @@ class LicenceContinuationServiceTest {
         any()
     )).thenReturn(existingSubmissions);
 
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(LICENCE, LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(LICENCE_SCHEDULE_DETAIL);
 
     LicenceContinuationApplication result = licenceContinuationService.submitApplication(licenceContinuationApplicationDetail, organisationUser);
 
@@ -159,7 +190,7 @@ class LicenceContinuationServiceTest {
 
     assertThat(savedApp).isEqualTo(result);
     assertThat(savedApp.getApplicationReference()).isNotNull();
-
+    assertThat(savedApp.getSubmittedLicenceScheduleDetail()).isEqualTo(LICENCE_SCHEDULE_DETAIL);
 
     assertThat(savedDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.SUBMITTED);
     assertThat(savedDetail.getSubmittedDatetime()).isEqualTo(FIXED_INSTANT);

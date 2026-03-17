@@ -27,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 
 @Service
 public class LicenceScheduleExtensionService {
@@ -36,6 +37,7 @@ public class LicenceScheduleExtensionService {
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
   private final LicenceSchedulePhaseRepository licenceSchedulePhaseRepository;
   private final LicenceScheduleTermRepository licenceScheduleTermRepository;
+  private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
 
   public LicenceScheduleExtensionService(
       Clock clock,
@@ -43,7 +45,8 @@ public class LicenceScheduleExtensionService {
       LicenceScheduleTermService licenceScheduleTermService,
       LicenceSchedulePhaseService licenceSchedulePhaseService,
       LicenceSchedulePhaseRepository licenceSchedulePhaseRepository,
-      LicenceScheduleTermRepository licenceScheduleTermRepository
+      LicenceScheduleTermRepository licenceScheduleTermRepository,
+      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService
   ) {
 
     this.clock = clock;
@@ -52,6 +55,7 @@ public class LicenceScheduleExtensionService {
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
     this.licenceSchedulePhaseRepository = licenceSchedulePhaseRepository;
     this.licenceScheduleTermRepository = licenceScheduleTermRepository;
+    this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
   }
 
   public LicenceScheduleTerm getCurrentTerm(LicenceScheduleDetail licenceScheduleDetail) {
@@ -200,7 +204,7 @@ public class LicenceScheduleExtensionService {
         .collect(Collectors.toMap(this::getRequestIdString, licenceScheduleExtensionRequest -> licenceScheduleExtensionRequest));
 
     var extendableTermAndPhases = getExtendableTermAndPhases(
-        applicationDetail.getScheduleWorkProgrammeApplication().getLicenceScheduleDetail()
+        scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(applicationDetail)
     );
 
     List<LicenceScheduleExtensionRequestView> licenceScheduleExtensionRequestViews = new ArrayList<>();

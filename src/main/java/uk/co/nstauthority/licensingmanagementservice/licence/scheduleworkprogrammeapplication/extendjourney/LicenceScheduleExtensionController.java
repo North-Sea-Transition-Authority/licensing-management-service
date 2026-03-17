@@ -15,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.schedul
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -29,13 +30,16 @@ public class LicenceScheduleExtensionController {
   public static final String PAGE_TITLE = "Extension Details";
   private final LicenceScheduleExtensionService licenceScheduleExtensionFormService;
   private final LicenceScheduleExtensionFormValidator licenceScheduleExtensionFormValidator;
+  private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
 
   public LicenceScheduleExtensionController(
       LicenceScheduleExtensionService licenceScheduleExtensionFormService,
-      LicenceScheduleExtensionFormValidator licenceScheduleExtensionFormValidator
+      LicenceScheduleExtensionFormValidator licenceScheduleExtensionFormValidator,
+      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService
   ) {
     this.licenceScheduleExtensionFormService = licenceScheduleExtensionFormService;
     this.licenceScheduleExtensionFormValidator = licenceScheduleExtensionFormValidator;
+    this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
   }
 
   @GetMapping
@@ -69,11 +73,11 @@ public class LicenceScheduleExtensionController {
   private ModelAndView getModelAndView(LicenceScheduleExtensionForm form,
                                        ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
 
-    var scheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication();
-    var licenceScheduleDetail = scheduleWorkProgrammeApplication.getLicenceScheduleDetail();
-
+    var licenceScheduleDetail = scheduleWorkProgrammeApplicationService
+        .getScheduleDetailFromApplicationDetail(scheduleWorkProgrammeApplicationDetail);
     var currentTerm = licenceScheduleExtensionFormService.getCurrentTerm(licenceScheduleDetail);
     var currentPhase = licenceScheduleExtensionFormService.getCurrentPhase(licenceScheduleDetail);
+    var extendableTermAndPhases = licenceScheduleExtensionFormService.getExtendableTermAndPhases(licenceScheduleDetail);
 
     var modelAndView = new ModelAndView(
         "lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceExtension")
@@ -81,10 +85,9 @@ public class LicenceScheduleExtensionController {
                 .addObject("form", form)
                 .addObject("currentTerm", currentTerm)
                 .addObject("currentPhase", currentPhase)
-                .addObject("validTermsAndPhases",
-                    licenceScheduleExtensionFormService.getExtendableTermAndPhases(licenceScheduleDetail))
-                .addObject("canExtendMoreThanOneOption", licenceScheduleExtensionFormService.canExtendMoreThanOneOption(
-                        licenceScheduleExtensionFormService.getExtendableTermAndPhases(licenceScheduleDetail)))
+                .addObject("validTermsAndPhases", extendableTermAndPhases)
+                .addObject("canExtendMoreThanOneOption",
+                    licenceScheduleExtensionFormService.canExtendMoreThanOneOption(extendableTermAndPhases))
                 .addObject("cancelUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
                             .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null)));
 

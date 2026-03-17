@@ -10,6 +10,7 @@ import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Audited
@@ -21,8 +22,12 @@ public class LicenceContinuationApplication implements LicenceApplication {
   private UUID id;
 
   @ManyToOne
-  @JoinColumn(name = "licence_schedule_detail_id")
-  private LicenceScheduleDetail licenceScheduleDetail;
+  @JoinColumn(name = "licence_schedule_id")
+  private LicenceSchedule licenceSchedule;
+
+  @ManyToOne
+  @JoinColumn(name = "submitted_licence_schedule_detail_id")
+  private LicenceScheduleDetail submittedLicenceScheduleDetail;
 
   @Column
   private String applicationReference;
@@ -35,12 +40,20 @@ public class LicenceContinuationApplication implements LicenceApplication {
     this.id = id;
   }
 
-  public LicenceScheduleDetail getLicenceScheduleDetail() {
-    return licenceScheduleDetail;
+  public LicenceSchedule getLicenceSchedule() {
+    return licenceSchedule;
   }
 
-  public void setLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
-    this.licenceScheduleDetail = licenceScheduleDetail;
+  public void setLicenceSchedule(LicenceSchedule licenceSchedule) {
+    this.licenceSchedule = licenceSchedule;
+  }
+
+  public LicenceScheduleDetail getSubmittedLicenceScheduleDetail() {
+    return submittedLicenceScheduleDetail;
+  }
+
+  public void setSubmittedLicenceScheduleDetail(LicenceScheduleDetail submittedLicenceScheduleDetail) {
+    this.submittedLicenceScheduleDetail = submittedLicenceScheduleDetail;
   }
 
   public String getApplicationReference() {

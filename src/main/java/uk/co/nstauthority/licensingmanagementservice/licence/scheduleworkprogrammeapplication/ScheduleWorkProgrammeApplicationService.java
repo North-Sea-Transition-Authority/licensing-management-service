@@ -13,6 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.LicenseeInformationForm;
@@ -59,14 +60,22 @@ public class ScheduleWorkProgrammeApplicationService {
     return scheduleWorkProgrammeApplicationDetail;
   }
 
+  public LicenceScheduleDetail getScheduleDetailFromApplicationDetail(
+      ScheduleWorkProgrammeApplicationDetail detail
+  ) {
+    var app = detail.getScheduleWorkProgrammeApplication();
+    if (app.getSubmittedLicenceScheduleDetail() != null) {
+      return app.getSubmittedLicenceScheduleDetail();
+    }
+    return licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
+        app.getLicenceSchedule().getLicence(), LicenceScheduleDetailStatus.ACTIVE);
+  }
+
   public Licence getLicenceFromScheduleWorkProgrammeApplicationDetail(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
-    return scheduleWorkProgrammeApplicationDetail
-        .getScheduleWorkProgrammeApplication()
-        .getLicenceScheduleDetail()
-        .getLicenceSchedule()
-        .getLicence();
+    return getScheduleDetailFromApplicationDetail(scheduleWorkProgrammeApplicationDetail)
+        .getLicenceSchedule().getLicence();
   }
 
   private ScheduleWorkProgrammeApplication createScheduleWorkProgrammeApplication(Licence licence) {
@@ -76,7 +85,7 @@ public class ScheduleWorkProgrammeApplicationService {
     );
 
     var scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
-    scheduleWorkProgrammeApplication.setLicenceScheduleDetail(licenceScheduleDetail);
+    scheduleWorkProgrammeApplication.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
     return scheduleWorkProgrammeApplication;
   }
 
@@ -157,6 +166,11 @@ public class ScheduleWorkProgrammeApplicationService {
     ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication
         = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication();
     scheduleWorkProgrammeApplication.setApplicationReference(appReference);
+
+    var activeDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
+        scheduleWorkProgrammeApplication.getLicenceSchedule().getLicence(),
+        LicenceScheduleDetailStatus.ACTIVE);
+    scheduleWorkProgrammeApplication.setSubmittedLicenceScheduleDetail(activeDetail);
 
     scheduleWorkProgrammeApplicationRepository.save(scheduleWorkProgrammeApplication);
 

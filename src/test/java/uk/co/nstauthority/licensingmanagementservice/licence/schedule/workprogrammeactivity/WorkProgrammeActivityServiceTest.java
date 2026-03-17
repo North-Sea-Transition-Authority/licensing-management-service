@@ -137,6 +137,20 @@ class WorkProgrammeActivityServiceTest {
   }
 
   @Test
+  void getActiveWorkProgrammeActivitiesAfterDate() {
+    var detail = new LicenceScheduleDetail();
+    var date = LocalDate.of(2026, 1, 1);
+
+    workProgrammeActivityService.getActiveWorkProgrammeActivitiesAfterDate(detail, date);
+
+    verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndDueDateAfterAndStatus(
+        detail,
+        date,
+        LicenceScheduleEventStatus.ACTIVE
+    );
+  }
+
+  @Test
   void deleteWorkProgrammeActivity() {
     var workProgrammeActivity = new WorkProgrammeActivity();
     workProgrammeActivity.setStatus(LicenceScheduleEventStatus.ACTIVE);

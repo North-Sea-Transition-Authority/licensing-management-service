@@ -96,6 +96,9 @@ public class LicenceScheduleTimelineController {
         .addObject("scheduleEventViews",
             licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, timelineFilterForm)
         )
+        .addObject("invalidScheduleEvents",
+            licenceScheduleTimelineService.getEventsBeyondFinalTerm(licenceScheduleDetail)
+        )
         .addObject("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions())
         .addObject("updateLicenceStartDateUrl", ReverseRouter.route(on(LicenceStartDateController.class)
             .renderLicenceStartDateUpdateForm(licenceScheduleDetail.getId(), null))

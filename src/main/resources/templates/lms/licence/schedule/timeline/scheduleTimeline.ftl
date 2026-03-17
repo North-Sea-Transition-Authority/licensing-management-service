@@ -25,6 +25,7 @@ extendContainerWidth=true>
         scheduleEventViews=scheduleEventViews
         timelineFilterOptions=timelineFilterOptions
         clearFilterUrl=clearFilterUrl
+        invalidScheduleEvents=invalidScheduleEvents
     />
 
     <@fdsAction.buttonGroup>

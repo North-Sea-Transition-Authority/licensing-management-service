@@ -180,6 +180,20 @@ class LicenceScheduleRateServiceTest {
   }
 
   @Test
+  void getActiveRatesAfterDate() {
+    var detail = new LicenceScheduleDetail();
+    var date = LocalDate.of(2026, 1, 1);
+
+    licenceScheduleRateService.getActiveRatesAfterDate(detail, date);
+
+    verify(licenceScheduleRateRepository).findAllByLicenceScheduleDetailAndStartDateAfterAndStatus(
+        detail,
+        date,
+        LicenceScheduleEventStatus.ACTIVE
+    );
+  }
+
+  @Test
   void saveLicenceScheduleRates() {
     licenceScheduleRateService.saveLicenceScheduleRates(List.of(rate));
 

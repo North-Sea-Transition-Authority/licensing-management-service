@@ -36,4 +36,10 @@ public interface WorkProgrammeActivityRepository extends JpaRepository<WorkProgr
       LocalDate endDate,
       LicenceScheduleEventStatus status
   );
+
+  List<WorkProgrammeActivity> findAllByLicenceScheduleDetailAndDueDateAfterAndStatus(
+      LicenceScheduleDetail licenceScheduleDetail,
+      LocalDate date,
+      LicenceScheduleEventStatus licenceScheduleEventStatus
+  );
 }

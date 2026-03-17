@@ -30,4 +30,10 @@ public interface OtherScheduleEventRepository extends JpaRepository<OtherSchedul
       LocalDate to,
       LicenceScheduleEventStatus licenceScheduleEventStatus
   );
+
+  List<OtherScheduleEvent> findAllByLicenceScheduleDetailAndEventDateAfterAndStatus(
+      LicenceScheduleDetail licenceScheduleDetail,
+      LocalDate date,
+      LicenceScheduleEventStatus status
+  );
 }

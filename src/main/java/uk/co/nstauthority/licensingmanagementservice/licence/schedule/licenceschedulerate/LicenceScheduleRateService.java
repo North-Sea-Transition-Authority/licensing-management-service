@@ -1,12 +1,14 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate;
 
 import jakarta.transaction.Transactional;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
@@ -101,6 +103,17 @@ public class LicenceScheduleRateService {
     return licenceScheduleRateRepository.findAllByLicenceSchedulePhaseAndRateDefinitionOptionAndStatus(
         licenceSchedulePhase,
         rateDefinitionOption,
+        LicenceScheduleEventStatus.ACTIVE
+    );
+  }
+
+  public List<LicenceScheduleRate> getActiveRatesAfterDate(
+      LicenceScheduleDetail licenceScheduleDetail,
+      LocalDate date
+  ) {
+    return licenceScheduleRateRepository.findAllByLicenceScheduleDetailAndStartDateAfterAndStatus(
+        licenceScheduleDetail,
+        date,
         LicenceScheduleEventStatus.ACTIVE
     );
   }

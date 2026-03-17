@@ -92,6 +92,17 @@ public class WorkProgrammeActivityService {
     );
   }
 
+  public List<WorkProgrammeActivity> getActiveWorkProgrammeActivitiesAfterDate(
+      LicenceScheduleDetail licenceScheduleDetail,
+      LocalDate date
+  ) {
+    return workProgrammeActivityRepository.findAllByLicenceScheduleDetailAndDueDateAfterAndStatus(
+        licenceScheduleDetail,
+        date,
+        LicenceScheduleEventStatus.ACTIVE
+    );
+  }
+
   @Transactional
   public void deleteWorkProgrammeActivity(WorkProgrammeActivity workProgrammeActivity) {
     workProgrammeActivity.setStatus(LicenceScheduleEventStatus.DELETED);

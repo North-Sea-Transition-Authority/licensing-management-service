@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,10 +72,12 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
     var timelineSummaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatus.EXTANT.getDisplayName());
     var timelineActionViews = List.of(new TimelineActionView(LicenceScheduleTimelineAction.ADD_A_TERM, ""));
     var scheduleEventViews = List.of(new TimelineTermView(List.of(), List.of(), TermType.INITIAL, "", "", "", "", true));
+    var invalidEventViews = List.of((ScheduleEvent) new TimelineRateView("", LocalDate.now(), "", "", "", ""));
 
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
     when(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail)).thenReturn(timelineActionViews);
     when(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(eq(licenceScheduleDetail), any())).thenReturn(scheduleEventViews);
+    when(licenceScheduleTimelineService.getEventsBeyondFinalTerm(licenceScheduleDetail)).thenReturn(invalidEventViews);
 
     mockMvc.perform(
             get(viewTimelineUrl)
@@ -86,6 +89,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("timelineSummaryCardView", timelineSummaryCardView))
         .andExpect(model().attribute("actions", timelineActionViews))
         .andExpect(model().attribute("scheduleEventViews", scheduleEventViews))
+        .andExpect(model().attribute("invalidScheduleEvents", invalidEventViews))
         .andExpect(model().attribute("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions()))
         .andExpect(model().attribute("updateLicenceStartDateUrl",
             ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateUpdateForm(licenceScheduleDetail.getId(), null)))

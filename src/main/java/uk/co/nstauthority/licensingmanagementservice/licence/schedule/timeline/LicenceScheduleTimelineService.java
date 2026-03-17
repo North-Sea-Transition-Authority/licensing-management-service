@@ -384,6 +384,49 @@ public class LicenceScheduleTimelineService {
         .toList();
   }
 
+  public List<ScheduleEvent> getEventsBeyondFinalTerm(
+      LicenceScheduleDetail licenceScheduleDetail
+  ) {
+    //TODO: LMS1-370 replace with users actions once implemented
+    var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
+
+    var finalTerm = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
+        .max(Comparator.comparing(term -> term.getTermType().getDisplayOrder()));
+
+    if (finalTerm.isEmpty()) {
+      return List.of();
+    }
+
+    var finalTermEndDate = finalTerm.get().getEndDate();
+
+    var workProgrammeActivities = workProgrammeActivityService.getActiveWorkProgrammeActivitiesAfterDate(
+        licenceScheduleDetail,
+        finalTermEndDate
+    )
+        .stream()
+        .map(activity -> TimelineWorkProgrammeActivityView.getScheduleEventFrom(activity, allowedActions));
+
+    var rates = licenceScheduleRateService.getActiveRatesAfterDate(
+        licenceScheduleDetail,
+        finalTermEndDate
+    )
+        .stream()
+        .map(rate -> TimelineRateView.getScheduleEventFrom(rate, allowedActions));
+
+    var otherScheduleEvents = otherScheduleEventService.getActiveEventsAfterDate(
+        licenceScheduleDetail,
+        finalTermEndDate
+    )
+        .stream()
+        .map(event -> TimelineOtherScheduleEventView.getScheduleEventFrom(event, allowedActions));
+
+    return Stream.of(workProgrammeActivities, rates, otherScheduleEvents)
+        .flatMap(Function.identity())
+        .sorted(Comparator.comparing(ScheduleEvent::getSortingDate)
+            .thenComparing(event -> event.getEventType().getEventTypeOrder()))
+        .toList();
+  }
+
   private String getDateDurationString(
       LocalDate startDate,
       LocalDate endDate,

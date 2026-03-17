@@ -81,6 +81,17 @@ public class OtherScheduleEventService {
     );
   }
 
+  public List<OtherScheduleEvent> getActiveEventsAfterDate(
+      LicenceScheduleDetail licenceScheduleDetail,
+      LocalDate date
+  ) {
+    return otherScheduleEventRepository.findAllByLicenceScheduleDetailAndEventDateAfterAndStatus(
+        licenceScheduleDetail,
+        date,
+        LicenceScheduleEventStatus.ACTIVE
+    );
+  }
+
   @Transactional
   public void deleteOtherScheduleEvent(OtherScheduleEvent otherScheduleEvent) {
     otherScheduleEvent.setStatus(LicenceScheduleEventStatus.DELETED);

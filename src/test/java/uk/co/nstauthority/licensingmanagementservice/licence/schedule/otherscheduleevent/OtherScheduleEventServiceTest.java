@@ -112,6 +112,20 @@ class OtherScheduleEventServiceTest {
   }
 
   @Test
+  void getActiveEventsAfterDate() {
+    var detail = new LicenceScheduleDetail();
+    var date = LocalDate.of(2026, 1, 1);
+
+    otherScheduleEventService.getActiveEventsAfterDate(detail, date);
+
+    verify(otherScheduleEventRepository).findAllByLicenceScheduleDetailAndEventDateAfterAndStatus(
+        detail,
+        date,
+        LicenceScheduleEventStatus.ACTIVE
+    );
+  }
+  
+  @Test
   void deleteOtherScheduleEvent() {
     var otherScheduleEvent = new OtherScheduleEvent();
     otherScheduleEvent.setStatus(LicenceScheduleEventStatus.ACTIVE);

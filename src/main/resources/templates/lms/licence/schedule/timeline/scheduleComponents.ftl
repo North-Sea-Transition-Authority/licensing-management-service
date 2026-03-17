@@ -35,7 +35,7 @@
     </@fdsSummaryList.summaryListCard>
 </#macro>
 
-<#macro timelineWithFilters scheduleEventViews timelineFilterOptions clearFilterUrl>
+<#macro timelineWithFilters scheduleEventViews timelineFilterOptions clearFilterUrl invalidScheduleEvents=[]>
     <@fdsSearch.searchPage>
         <@fdsSearch.searchFilter>
             <@fdsSearch.searchFilterList
@@ -60,6 +60,15 @@
                         </@fdsTimeline.timeline>
                     </@fdsAccordion.accordionSection>
                 </#list>
+                <#if invalidScheduleEvents?has_content>
+                    <@fdsAccordion.accordionSection sectionHeading="Events requiring attention">
+                        <@fdsTimeline.timeline>
+                            <@fdsTimeline.timelineSection>
+                                <@scheduleEvents.invalidEvents invalidEventViews=invalidScheduleEvents />
+                            </@fdsTimeline.timelineSection>
+                        </@fdsTimeline.timeline>
+                    </@fdsAccordion.accordionSection>
+                </#if>
             </@fdsAccordion.accordion>
         </@fdsSearch.searchPageContent>
     </@fdsSearch.searchPage>

@@ -31,4 +31,10 @@ public interface LicenceScheduleRateRepository extends JpaRepository<LicenceSche
       RateDefinitionOption rateDefinitionOption,
       LicenceScheduleEventStatus status
   );
+
+  List<LicenceScheduleRate> findAllByLicenceScheduleDetailAndStartDateAfterAndStatus(
+      LicenceScheduleDetail licenceScheduleDetail,
+      LocalDate date,
+      LicenceScheduleEventStatus status
+  );
 }

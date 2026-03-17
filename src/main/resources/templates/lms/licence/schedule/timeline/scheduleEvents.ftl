@@ -121,7 +121,7 @@
     />
 </#macro>
 
-<#macro workProgrammeActivity activityView>
+<#macro workProgrammeActivity activityView smallDot=true>
     <#if activityView.updateUrl()?has_content>
         <#assign timelineActions>
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(activityView.updateUrl()) linkClass="govuk-link"/>
@@ -129,11 +129,20 @@
         </#assign>
     </#if>
 
+    <#if smallDot=true>
+        <#assign nodeClass = "fds-timeline__node-number--small-dot">
+        <#assign timeStampClass = "">
+    <#else>
+        <#assign nodeClass = "">
+        <#assign timeStampClass = "fds-timeline__time-stamp--no-border">
+    </#if>
+
     <@lmsTimeStamp.lmsTimeStamp
         timeStampHeading=activityView.category()
         timeStampHeadingHint=activityView.dueDateString()
         timelineActionContent=timelineActions
-        nodeNumberClass="fds-timeline__node-number--small-dot"
+        timeStampClass=timeStampClass
+        nodeNumberClass=nodeClass
     >
         <@fdsTimeline.timelineEvent>
             <p class="govuk-body">
@@ -195,7 +204,7 @@
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>
 
-<#macro otherScheduleEvent eventView>
+<#macro otherScheduleEvent eventView smallDot = true>
     <#if eventView.updateUrl()?has_content>
         <#assign timelineActions>
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(eventView.updateUrl()) linkClass="govuk-link"/>
@@ -203,11 +212,20 @@
         </#assign>
     </#if>
 
+    <#if smallDot=true>
+        <#assign nodeClass = "fds-timeline__node-number--small-dot">
+        <#assign timeStampClass = "">
+    <#else>
+        <#assign nodeClass = "">
+        <#assign timeStampClass = "fds-timeline__time-stamp--no-border">
+    </#if>
+
     <@lmsTimeStamp.lmsTimeStamp
     timeStampHeading=eventView.category()
     timeStampHeadingHint=eventView.eventDateString()
     timelineActionContent=timelineActions
-    nodeNumberClass="fds-timeline__node-number--small-dot"
+    timeStampClass=timeStampClass
+    nodeNumberClass=nodeClass
     >
         <@fdsTimeline.timelineEvent>
             <p class="govuk-body">
@@ -236,4 +254,16 @@
             </p>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>
+</#macro>
+
+<#macro invalidEvents invalidEventViews>
+    <#list invalidEventViews as eventView>
+        <#if eventView.getEventType() = "WORK_PROGRAMME_ACTIVITY">
+            <@workProgrammeActivity activityView=eventView smallDot=false/>
+        <#elseif eventView.getEventType() = "RATE">
+            <@rate rateView=eventView smallDot=false/>
+        <#elseif eventView.getEventType() = "OTHER">
+            <@otherScheduleEvent eventView=eventView smallDot=false/>
+        </#if>
+    </#list>
 </#macro>

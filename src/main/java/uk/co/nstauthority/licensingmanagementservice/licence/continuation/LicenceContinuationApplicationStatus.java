@@ -1,7 +1,20 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation;
 
-public enum LicenceContinuationApplicationStatus {
-  DRAFT,
-  SUBMITTED,
-  ISSUE_DECISION
+import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
+
+public enum LicenceContinuationApplicationStatus implements Displayable {
+  DRAFT("Draft"),
+  SUBMITTED("Submitted"),
+  ISSUE_DECISION("Issue decision");
+
+  private final String displayName;
+
+  LicenceContinuationApplicationStatus(String displayName) {
+    this.displayName = displayName;
+  }
+
+  @Override
+  public String getDisplayName() {
+    return displayName;
+  }
 }

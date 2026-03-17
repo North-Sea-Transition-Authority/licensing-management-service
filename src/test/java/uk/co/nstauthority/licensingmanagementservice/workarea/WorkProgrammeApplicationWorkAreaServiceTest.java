@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -72,7 +73,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
         .withLicenceReference("P001")
         .build();
-    scheduleWorkProgrammeApplicationDetail1 = createScheduleWorkProgrammeApplicationDetail(licence1, testInstant);
+    scheduleWorkProgrammeApplicationDetail1 = createScheduleWorkProgrammeApplicationDetail(licence1, testInstant, "LMS/EEA/001");
     when(scheduleWorkProgrammeApplicationService
         .getLicenceFromScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail1)).thenReturn(licence1);
 
@@ -82,7 +83,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
         .withLicenceReference("CS002")
         .withResponsibleTeam(LicenceTeam.CS_CARBON_TRANSPORT_AND_STORAGE)
         .build();
-    scheduleWorkProgrammeApplicationDetail2 = createScheduleWorkProgrammeApplicationDetail(licence2, testInstant.minus(1, ChronoUnit.HOURS));
+    scheduleWorkProgrammeApplicationDetail2 = createScheduleWorkProgrammeApplicationDetail(licence2, testInstant.minus(1, ChronoUnit.HOURS), "LMS/EEA/002");
     when(scheduleWorkProgrammeApplicationService
         .getLicenceFromScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail2)).thenReturn(licence2);
   }
@@ -107,10 +108,12 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
     var workAreaItems = workProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     var summaryDataView1 = SummaryDataView.newBuilder()
+        .addStringValue("Status", scheduleWorkProgrammeApplicationDetail1.getStatus().getDisplayName())
         .addStringValue("Licence type", licence1.getType().getDisplayName())
         .addStringValue("Licensees", String.join(", ", orgList1))
         .build();
     var summaryDataView2 = SummaryDataView.newBuilder()
+        .addStringValue("Status", scheduleWorkProgrammeApplicationDetail2.getStatus().getDisplayName())
         .addStringValue("Licence type", licence2.getType().getDisplayName())
         .addStringValue("Licensees", String.join(", ", orgList2))
         .build();
@@ -120,6 +123,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
             SearchResultItem::id,
             SearchResultItem::linkHeadingText,
             SearchResultItem::linkHeadingUrl,
+            SearchResultItem::captionText,
             SearchResultItem::dataItemRows,
             SearchResultItem::transactionDatetime
         )
@@ -129,6 +133,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
                 String.format("%s - schedule work programme application", licence1.getLicenceReference()),
                 ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
                     .getTaskList(scheduleWorkProgrammeApplicationDetail1.getId(), null, null)),
+                String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant)),
                 List.of(summaryDataView1),
                 testInstant
             ),
@@ -137,6 +142,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
                 String.format("%s - schedule work programme application", licence2.getLicenceReference()),
                 ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
                     .getTaskList(scheduleWorkProgrammeApplicationDetail2.getId(), null, null)),
+                String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.minus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView2),
                 testInstant.minus(1, ChronoUnit.HOURS)
             )
@@ -146,6 +152,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
   @Test
   void getWorkAreaItems_whenSubmitted_linksToOverview() {
     scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
 
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
@@ -183,6 +190,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
     var workAreaItems = workProgrammeApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
 
     var summaryDataView = SummaryDataView.newBuilder()
+        .addStringValue("Status", scheduleWorkProgrammeApplicationDetail2.getStatus().getDisplayName())
         .addStringValue("Licence type", licence2.getType().getDisplayName())
         .addStringValue("Licensees", String.join(", ", org1))
         .build();
@@ -192,6 +200,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
             SearchResultItem::id,
             SearchResultItem::linkHeadingText,
             SearchResultItem::linkHeadingUrl,
+            SearchResultItem::captionText,
             SearchResultItem::dataItemRows,
             SearchResultItem::transactionDatetime
         )
@@ -201,6 +210,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
                 String.format("%s - schedule work programme application", licence2.getLicenceReference()),
                 ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
                     .getTaskList(scheduleWorkProgrammeApplicationDetail2.getId(), null, null)),
+                String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.minus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView),
                 testInstant.minus(1, ChronoUnit.HOURS)
             )
@@ -228,6 +238,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
     var workAreaItems = workProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     var summaryDataView = SummaryDataView.newBuilder()
+        .addStringValue("Status", scheduleWorkProgrammeApplicationDetail1.getStatus().getDisplayName())
         .addStringValue("Licence type", licence1.getType().getDisplayName())
         .addStringValue("Licensees", String.join(", ", orgList1))
         .build();
@@ -237,6 +248,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
             SearchResultItem::id,
             SearchResultItem::linkHeadingText,
             SearchResultItem::linkHeadingUrl,
+            SearchResultItem::captionText,
             SearchResultItem::dataItemRows,
             SearchResultItem::transactionDatetime
         )
@@ -245,7 +257,8 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
                 scheduleWorkProgrammeApplicationDetail1.getId().toString(),
                 String.format("%s - schedule work programme application", licence1.getLicenceReference()),
                 ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
-                                        .getTaskList(scheduleWorkProgrammeApplicationDetail1.getId(), null, null)),
+                    .getTaskList(scheduleWorkProgrammeApplicationDetail1.getId(), null, null)),
+                String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant)),
                 List.of(summaryDataView),
                 testInstant
             )
@@ -254,6 +267,9 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
 
   @Test
   void getWorkAreaItems_filteredByUser_isCaseManager() {
+    scheduleWorkProgrammeApplicationDetail2.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail2.setSubmittedDatetime(testInstant.minus(1, ChronoUnit.HOURS));
+
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
 
@@ -278,6 +294,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
     var workAreaItems = workProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     var summaryDataView = SummaryDataView.newBuilder()
+        .addStringValue("Status", scheduleWorkProgrammeApplicationDetail2.getStatus().getDisplayName())
         .addStringValue("Licence type", licence2.getType().getDisplayName())
         .addStringValue("Licensees", String.join(", ", orgList2))
         .build();
@@ -287,15 +304,17 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
             SearchResultItem::id,
             SearchResultItem::linkHeadingText,
             SearchResultItem::linkHeadingUrl,
+            SearchResultItem::captionText,
             SearchResultItem::dataItemRows,
             SearchResultItem::transactionDatetime
         )
         .containsExactly(
             tuple(
                 scheduleWorkProgrammeApplicationDetail2.getId().toString(),
-                String.format("%s - schedule work programme application", licence2.getLicenceReference()),
-                ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
-                                        .getTaskList(scheduleWorkProgrammeApplicationDetail2.getId(), null, null)),
+                "LMS/EEA/002 - schedule work programme application",
+                ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+                    .renderOverview(scheduleWorkProgrammeApplicationDetail2.getId(), null, null)),
+                String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.minus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView),
                 testInstant.minus(1, ChronoUnit.HOURS)
             )
@@ -312,7 +331,9 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
     )).thenReturn(hasAccess);
   }
 
-  private ScheduleWorkProgrammeApplicationDetail createScheduleWorkProgrammeApplicationDetail(Licence licence, Instant time) {
+  private ScheduleWorkProgrammeApplicationDetail createScheduleWorkProgrammeApplicationDetail(Licence licence, Instant time,
+                                                                                              String applicationReference
+  ) {
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
     var licenceScheduleDetail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule)
         .withId(UUID.randomUUID())
@@ -324,6 +345,8 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
         .builder()
         .withId(UUID.randomUUID())
         .withCreatedDate(time)
+        .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
+        .withApplicationReference(applicationReference)
         .withScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication)
         .build();
   }

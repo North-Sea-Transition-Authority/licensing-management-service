@@ -76,12 +76,10 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
   }
 
   private SearchResultItem createWorkAreaItem(
-      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
+      LicenceContinuationApplicationDetail applicationDetail,
       Map<Licence, List<String>> responsibleOrganisationNamesByLicences
   ) {
-    var licence = licenceContinuationService
-        .getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail);
-    var createdDatetime = licenceContinuationApplicationDetail.getCreatedDateTime();
+    var licence = licenceContinuationService.getLicenceFromContinuationApplicationDetail(applicationDetail);
     var licensees = responsibleOrganisationNamesByLicences.getOrDefault(
             licence,
             List.of()
@@ -91,40 +89,40 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         .toList();
 
     var dataItemRow = SummaryDataView.newBuilder()
+        .addStringValue("Status", applicationDetail.getStatus().getDisplayName())
         .addStringValue("Licence type", licence.getType().getDisplayName())
         .addStringValue("Licensees", String.join(", ", licensees))
         .build();
 
-    var linkHeadingUrl = switch (licenceContinuationApplicationDetail.getStatus()) {
-      case LicenceContinuationApplicationStatus.SUBMITTED ->
-          ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(
-              licenceContinuationApplicationDetail.getId(),
-              null,
-              null
-          ));
+    var linkHeadingUrl = switch (applicationDetail.getStatus()) {
+      case DRAFT -> ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
+          .getTaskList(applicationDetail.getId(), null, null));
 
       case LicenceContinuationApplicationStatus.ISSUE_DECISION ->
           ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
               ApplicationType.CONTINUATION_APPLICATION,
-              licenceContinuationApplicationDetail
-                  .getLicenceContinuationApplication()
-                  .getId()
+              applicationDetail.getLicenceContinuationApplication().getId()
           ));
 
-      default -> ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(
-          licenceContinuationApplicationDetail.getId(),
-          null,
-          null
-      ));
+      default -> ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class)
+          .renderOverview(applicationDetail.getId(), null, null));
     };
 
+    var itemReference = applicationDetail.getStatus() == LicenceContinuationApplicationStatus.DRAFT
+        ? licence.getLicenceReference()
+        : applicationDetail.getLicenceContinuationApplication().getApplicationReference();
+
+    var captionText = applicationDetail.getStatus() == LicenceContinuationApplicationStatus.DRAFT
+        ? String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getCreatedDateTime()))
+        : String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getSubmittedDatetime()));
+
     return SearchResultItem.newBuilder()
-        .withId(licenceContinuationApplicationDetail.getId().toString())
-        .withLinkHeadingText(String.format("%s - Licence continuation application", licence.getLicenceReference()))
+        .withId(applicationDetail.getId().toString())
+        .withLinkHeadingText(String.format("%s - Licence continuation application", itemReference))
         .withLinkHeadingUrl(linkHeadingUrl)
-        .withCaptionText(String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(createdDatetime)))
+        .withCaptionText(captionText)
         .withDataItemRow(dataItemRow)
-        .withTransactionDatetime(createdDatetime)
+        .withTransactionDatetime(applicationDetail.getCreatedDateTime())
         .build();
   }
 

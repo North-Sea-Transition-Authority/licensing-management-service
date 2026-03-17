@@ -69,12 +69,12 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
   }
 
   private SearchResultItem createWorkAreaItem(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
+      ScheduleWorkProgrammeApplicationDetail applicationDetail,
       Map<Licence, List<String>> responsibleOrganisationNamesByLicences
   ) {
     var licence = scheduleWorkProgrammeApplicationService
-        .getLicenceFromScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail);
-    var createdDatetime = scheduleWorkProgrammeApplicationDetail.getCreatedDatetime();
+        .getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail);
+    var createdDatetime = applicationDetail.getCreatedDatetime();
     var licensees = responsibleOrganisationNamesByLicences.getOrDefault(
             licence,
             List.of()
@@ -84,21 +84,30 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
         .toList();
 
     var dataItemRow = SummaryDataView.newBuilder()
+        .addStringValue("Status", applicationDetail.getStatus().getDisplayName())
         .addStringValue("Licence type", licence.getType().getDisplayName())
         .addStringValue("Licensees", String.join(", ", licensees))
         .build();
 
-    var linkHeadingUrl = scheduleWorkProgrammeApplicationDetail.getStatus() == ScheduleWorkProgrammeApplicationStatus.SUBMITTED
-        ? ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-            .renderOverview(scheduleWorkProgrammeApplicationDetail.getId(), null, null))
-        : ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
-            .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null));
+    var linkHeadingUrl = applicationDetail.getStatus() == ScheduleWorkProgrammeApplicationStatus.DRAFT
+        ? ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+            .getTaskList(applicationDetail.getId(), null, null))
+        : ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+            .renderOverview(applicationDetail.getId(), null, null));
+
+    var itemReference = applicationDetail.getStatus() == ScheduleWorkProgrammeApplicationStatus.DRAFT
+        ? licence.getLicenceReference()
+        : applicationDetail.getScheduleWorkProgrammeApplication().getApplicationReference();
+
+    var captionText = applicationDetail.getStatus() == ScheduleWorkProgrammeApplicationStatus.DRAFT
+        ? String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getCreatedDatetime()))
+        : String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getSubmittedDatetime()));
 
     return SearchResultItem.newBuilder()
-        .withId(scheduleWorkProgrammeApplicationDetail.getId().toString())
-        .withLinkHeadingText(String.format("%s - schedule work programme application", licence.getLicenceReference()))
+        .withId(applicationDetail.getId().toString())
+        .withLinkHeadingText(String.format("%s - schedule work programme application", itemReference))
         .withLinkHeadingUrl(linkHeadingUrl)
-        .withCaptionText(String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(createdDatetime)))
+        .withCaptionText(captionText)
         .withDataItemRow(dataItemRow)
         .withTransactionDatetime(createdDatetime)
         .build();

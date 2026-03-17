@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -81,6 +82,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     licenceContinuationApplicationDetail = LicenceContinuationApplicationTestUtil
         .createLicenceContinuationApplicationDetail(scheduleDetail1);
     licenceContinuationApplicationDetail.setCreatedDateTime(testInstant);
+    licenceContinuationApplicationDetail.getLicenceContinuationApplication().setApplicationReference("LMS/CONT/001");
 
     licence2 = LicenceTestUtil.builder()
         .withId(2)
@@ -96,6 +98,8 @@ class ContinuationApplicationWorkAreaServiceTest {
         .createLicenceContinuationApplicationDetail(scheduleDetail2);
     licenceContinuationApplicationDetail2.setCreatedDateTime(testInstant.minus(1, ChronoUnit.HOURS));
     licenceContinuationApplicationDetail2.setStatus(LicenceContinuationApplicationStatus.SUBMITTED);
+    licenceContinuationApplicationDetail2.setSubmittedDatetime(testInstant.plus(1, ChronoUnit.HOURS));
+    licenceContinuationApplicationDetail2.getLicenceContinuationApplication().setApplicationReference("LMS/CONT/002");
   }
 
   @Test
@@ -123,10 +127,12 @@ class ContinuationApplicationWorkAreaServiceTest {
 
     var summaryDataView1 = SummaryDataView
         .newBuilder()
+        .addStringValue("Status", licenceContinuationApplicationDetail.getStatus().getDisplayName())
         .addStringValue("Licence type", licence1.getType().getDisplayName())
         .addStringValue("Licensees", String.join(", ", orgList1))
         .build();
     var summaryDataView2 = SummaryDataView.newBuilder()
+        .addStringValue("Status", licenceContinuationApplicationDetail2.getStatus().getDisplayName())
         .addStringValue("Licence type", licence2.getType().getDisplayName())
         .addStringValue("Licensees", String.join(", ", orgList2))
         .build();
@@ -136,6 +142,7 @@ class ContinuationApplicationWorkAreaServiceTest {
             SearchResultItem::id,
             SearchResultItem::linkHeadingText,
             SearchResultItem::linkHeadingUrl,
+            SearchResultItem::captionText,
             SearchResultItem::dataItemRows,
             SearchResultItem::transactionDatetime
         )
@@ -144,13 +151,15 @@ class ContinuationApplicationWorkAreaServiceTest {
                 licenceContinuationApplicationDetail.getId().toString(),
                 String.format("%s - Licence continuation application", licence1.getLicenceReference()),
                 ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(licenceContinuationApplicationDetail.getId(), null, null)),
+                String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant)),
                 List.of(summaryDataView1),
                 testInstant
             ),
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
-                String.format("%s - Licence continuation application", licence2.getLicenceReference()),
+                "LMS/CONT/002 - Licence continuation application",
                 ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null)),
+                String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.plus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView2),
                 testInstant.minus(1, ChronoUnit.HOURS)
             )
@@ -180,6 +189,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
 
     var summaryDataView = SummaryDataView.newBuilder()
+        .addStringValue("Status", licenceContinuationApplicationDetail2.getStatus().getDisplayName())
         .addStringValue("Licence type", licence2.getType().getDisplayName())
         .addStringValue("Licensees", String.join(", ", org1))
         .build();
@@ -189,14 +199,16 @@ class ContinuationApplicationWorkAreaServiceTest {
             SearchResultItem::id,
             SearchResultItem::linkHeadingText,
             SearchResultItem::linkHeadingUrl,
+            SearchResultItem::captionText,
             SearchResultItem::dataItemRows,
             SearchResultItem::transactionDatetime
         )
         .containsExactly(
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
-                String.format("%s - Licence continuation application", licence2.getLicenceReference()),
+                "LMS/CONT/002 - Licence continuation application",
                 ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null)),
+                String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.plus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView),
                 testInstant.minus(1, ChronoUnit.HOURS)
             )
@@ -239,6 +251,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     var summaryDataView = SummaryDataView.newBuilder()
+        .addStringValue("Status", licenceContinuationApplicationDetail.getStatus().getDisplayName())
         .addStringValue("Licence type", licence1.getType().getDisplayName())
         .addStringValue("Licensees", String.join(", ", orgList1))
         .build();
@@ -248,6 +261,7 @@ class ContinuationApplicationWorkAreaServiceTest {
             SearchResultItem::id,
             SearchResultItem::linkHeadingText,
             SearchResultItem::linkHeadingUrl,
+            SearchResultItem::captionText,
             SearchResultItem::dataItemRows,
             SearchResultItem::transactionDatetime
         )
@@ -256,6 +270,7 @@ class ContinuationApplicationWorkAreaServiceTest {
                 licenceContinuationApplicationDetail.getId().toString(),
                 String.format("%s - Licence continuation application", licence1.getLicenceReference()),
                 ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(licenceContinuationApplicationDetail.getId(), null, null)),
+                String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant)),
                 List.of(summaryDataView),
                 testInstant
             )
@@ -287,6 +302,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     var summaryDataView = SummaryDataView.newBuilder()
+        .addStringValue("Status", licenceContinuationApplicationDetail2.getStatus().getDisplayName())
         .addStringValue("Licence type", licence2.getType().getDisplayName())
         .addStringValue("Licensees", String.join(", ", org1))
         .build();
@@ -296,14 +312,16 @@ class ContinuationApplicationWorkAreaServiceTest {
             SearchResultItem::id,
             SearchResultItem::linkHeadingText,
             SearchResultItem::linkHeadingUrl,
+            SearchResultItem::captionText,
             SearchResultItem::dataItemRows,
             SearchResultItem::transactionDatetime
         )
         .containsExactly(
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
-                String.format("%s - Licence continuation application", licence2.getLicenceReference()),
+                "LMS/CONT/002 - Licence continuation application",
                 ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null)),
+                String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.plus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView),
                 testInstant.minus(1, ChronoUnit.HOURS)
             )
@@ -313,6 +331,7 @@ class ContinuationApplicationWorkAreaServiceTest {
   @Test
   void getWorkAreaItems_filteredByUser_isContinuationIssuer() {
     licenceContinuationApplicationDetail2.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+    licenceContinuationApplicationDetail2.setSubmittedDatetime(testInstant.plus(1, ChronoUnit.HOURS));
 
     when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
         .thenReturn(licence1);
@@ -337,6 +356,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     var summaryDataView = SummaryDataView.newBuilder()
+        .addStringValue("Status", licenceContinuationApplicationDetail2.getStatus().getDisplayName())
         .addStringValue("Licence type", licence2.getType().getDisplayName())
         .addStringValue("Licensees", String.join(", ", org1))
         .build();
@@ -346,14 +366,16 @@ class ContinuationApplicationWorkAreaServiceTest {
             SearchResultItem::id,
             SearchResultItem::linkHeadingText,
             SearchResultItem::linkHeadingUrl,
+            SearchResultItem::captionText,
             SearchResultItem::dataItemRows,
             SearchResultItem::transactionDatetime
         )
         .containsExactly(
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
-                String.format("%s - Licence continuation application", licence2.getLicenceReference()),
+                "LMS/CONT/002 - Licence continuation application",
                 ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(ApplicationType.CONTINUATION_APPLICATION, licenceContinuationApplicationDetail2.getLicenceContinuationApplication().getId())),
+                String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.plus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView),
                 testInstant.minus(1, ChronoUnit.HOURS)
             )

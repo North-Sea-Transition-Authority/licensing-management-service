@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm;
 
 import jakarta.transaction.Transactional;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
@@ -30,6 +31,11 @@ public class LicenceScheduleTermFormService {
     licenceScheduleTerm.setTermType(licenceScheduleTermForm.getTermType());
     licenceScheduleTerm.setTermDuration(licenceScheduleTermForm.getTermDuration().toThreeFieldDuration());
     licenceScheduleTerm.setStatus(LicenceScheduleEventStatus.ACTIVE);
+
+    if (licenceScheduleTerm.getEventReference() == null) {
+      licenceScheduleTerm.setEventReference(UUID.randomUUID());
+    }
+
     licenceScheduleTermRepository.save(licenceScheduleTerm);
 
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);

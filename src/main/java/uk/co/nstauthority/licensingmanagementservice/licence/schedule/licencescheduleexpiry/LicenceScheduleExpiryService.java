@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesc
 
 import jakarta.transaction.Transactional;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
@@ -31,6 +32,10 @@ public class LicenceScheduleExpiryService {
     licenceScheduleExpiry.setLicenceScheduleDetail(licenceScheduleDetail);
     licenceScheduleExpiry.setExpiryDate(form.getExpiryDate().getAsLocalDate().orElse(null));
     licenceScheduleExpiry.setComments(form.getComments());
+
+    if (licenceScheduleExpiry.getEventReference() == null) {
+      licenceScheduleExpiry.setEventReference(UUID.randomUUID());
+    }
 
     licenceScheduleExpiryRepository.save(licenceScheduleExpiry);
   }

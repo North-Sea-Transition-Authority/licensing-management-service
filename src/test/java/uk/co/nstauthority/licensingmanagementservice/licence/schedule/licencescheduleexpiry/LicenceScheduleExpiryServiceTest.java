@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -62,6 +63,32 @@ class LicenceScheduleExpiryServiceTest {
         licenceScheduleDetail,
         form.getExpiryDate().getAsLocalDate().orElse(null),
         form.getComments()
+    );
+  }
+
+  @Test
+  void saveExpiryFromForm_existingExpiry_doesntOverwriteEventReference() {
+    var form = new LicenceScheduleExpiryForm();
+    form.getExpiryDate().setDate(LocalDate.of(2026, 1, 1));
+    form.setComments("Comments");
+
+    var expiry = new LicenceScheduleExpiry();
+    expiry.setEventReference(UUID.randomUUID());
+
+    licenceScheduleExpiryService.saveExpiryFromForm(form, licenceScheduleDetail, expiry);
+
+    verify(licenceScheduleExpiryRepository).save(licenceScheduleExpiryArgumentCaptor.capture());
+
+    assertThat(licenceScheduleExpiryArgumentCaptor.getValue()).extracting(
+        LicenceScheduleExpiry::getLicenceScheduleDetail,
+        LicenceScheduleExpiry::getExpiryDate,
+        LicenceScheduleExpiry::getComments,
+        LicenceScheduleExpiry::getEventReference
+    ).containsExactly(
+        licenceScheduleDetail,
+        form.getExpiryDate().getAsLocalDate().orElse(null),
+        form.getComments(),
+        expiry.getEventReference()
     );
   }
 

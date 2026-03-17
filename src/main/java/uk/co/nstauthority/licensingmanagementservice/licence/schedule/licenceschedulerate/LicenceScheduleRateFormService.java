@@ -84,6 +84,10 @@ public class LicenceScheduleRateFormService {
     licenceScheduleRate.setRentalRate(form.getRentalRate().getAsBigDecimal().orElse(null));
     licenceScheduleRate.setComments(form.getComments());
 
+    if (licenceScheduleRate.getEventReference() == null) {
+      licenceScheduleRate.setEventReference(UUID.randomUUID());
+    }
+
     licenceScheduleRateRepository.save(licenceScheduleRate);
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }

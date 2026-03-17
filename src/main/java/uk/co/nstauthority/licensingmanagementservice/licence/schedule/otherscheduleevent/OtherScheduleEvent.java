@@ -62,6 +62,8 @@ public class OtherScheduleEvent {
   @Enumerated(EnumType.STRING)
   private LicenceScheduleEventStatus status;
 
+  private UUID eventReference;
+
   public UUID getId() {
     return id;
   }
@@ -162,5 +164,13 @@ public class OtherScheduleEvent {
     return category.equals(OtherScheduleEventCategory.OTHER_ACTIVITY)
         ? otherCategoryName
         : category.getDisplayName();
+  }
+
+  public UUID getEventReference() {
+    return eventReference;
+  }
+
+  public void setEventReference(UUID eventReference) {
+    this.eventReference = eventReference;
   }
 }

@@ -171,6 +171,67 @@ class WorkProgrammeActivityFormServiceTest {
   }
 
   @Test
+  void saveActivityFromForm_relativeDate_relatedToTerm_existingActivity_doesntOverwriteEventReference() {
+    var form = new WorkProgrammeActivityForm();
+    form.setWorkProgrammeActivityCategory(WorkProgrammeActivityCategory.WELL_TEST);
+    form.setDescription("description");
+    form.setWorkProgrammeActivityCommitment(WorkProgrammeActivityCommitment.FIRM);
+    form.setWorkProgrammeActivityDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
+
+    var termId = UUID.randomUUID();
+
+    form.setRelativeEventId(String.valueOf(termId));
+
+    var term = new LicenceScheduleTerm();
+    term.setId(termId);
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+
+    var testDuration = new ThreeFieldDuration(1,0,0);
+
+    form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
+
+    var activity = new WorkProgrammeActivity();
+    activity.setEventReference(UUID.randomUUID());
+
+    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, activity);
+
+    verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
+
+    assertThat(workProgrammeActivityArgumentCaptor.getValue())
+        .extracting(
+            WorkProgrammeActivity::getLicenceScheduleDetail,
+            WorkProgrammeActivity::getCategory,
+            WorkProgrammeActivity::getOtherCategoryName,
+            WorkProgrammeActivity::getDescription,
+            WorkProgrammeActivity::getCommitment,
+            WorkProgrammeActivity::getDateOption,
+            WorkProgrammeActivity::getDueDate,
+            WorkProgrammeActivity::getLicenceScheduleTerm,
+            WorkProgrammeActivity::getLicenceSchedulePhase,
+            WorkProgrammeActivity::getRelativeDuration,
+            WorkProgrammeActivity::getStatus,
+            WorkProgrammeActivity::getEventReference
+        )
+        .containsExactly(
+            licenceScheduleDetail,
+            form.getWorkProgrammeActivityCategory(),
+            null,
+            form.getDescription(),
+            form.getWorkProgrammeActivityCommitment(),
+            form.getWorkProgrammeActivityDateOption(),
+            null,
+            term,
+            null,
+            testDuration,
+            LicenceScheduleEventStatus.ACTIVE,
+            activity.getEventReference()
+        );
+
+    verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  @Test
   void saveActivityFromForm_relativeDate_relatedToPhase() {
     var form = new WorkProgrammeActivityForm();
     form.setWorkProgrammeActivityCategory(WorkProgrammeActivityCategory.WELL_TEST);

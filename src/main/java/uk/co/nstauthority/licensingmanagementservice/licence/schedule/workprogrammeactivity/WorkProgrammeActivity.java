@@ -65,6 +65,8 @@ public class WorkProgrammeActivity {
   @Enumerated(EnumType.STRING)
   private LicenceScheduleEventStatus status;
 
+  private UUID eventReference;
+
   public UUID getId() {
     return id;
   }
@@ -173,5 +175,13 @@ public class WorkProgrammeActivity {
     return category.equals(WorkProgrammeActivityCategory.OTHER_ACTIVITY)
         ? otherCategoryName
         : category.getDisplayName();
+  }
+
+  public UUID getEventReference() {
+    return eventReference;
+  }
+
+  public void setEventReference(UUID eventReference) {
+    this.eventReference = eventReference;
   }
 }

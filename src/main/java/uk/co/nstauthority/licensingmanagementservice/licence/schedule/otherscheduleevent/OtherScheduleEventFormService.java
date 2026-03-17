@@ -61,44 +61,48 @@ public class OtherScheduleEventFormService {
   public void saveEventFromForm(
       OtherScheduleEventForm form,
       LicenceScheduleDetail licenceScheduleDetail,
-      OtherScheduleEvent activity
+      OtherScheduleEvent event
   ) {
-    activity.setLicenceScheduleDetail(licenceScheduleDetail);
-    activity.setCategory(form.getOtherScheduleEventCategory());
-    activity.setOtherCategoryName(form.getOtherCategoryName());
-    activity.setDescription(form.getDescription());
-    activity.setStatus(LicenceScheduleEventStatus.ACTIVE);
+    event.setLicenceScheduleDetail(licenceScheduleDetail);
+    event.setCategory(form.getOtherScheduleEventCategory());
+    event.setOtherCategoryName(form.getOtherCategoryName());
+    event.setDescription(form.getDescription());
+    event.setStatus(LicenceScheduleEventStatus.ACTIVE);
 
     var dateOption = form.getOtherScheduleEventDateOption();
 
-    activity.setDateOption(dateOption);
+    event.setDateOption(dateOption);
 
     if (dateOption.equals(OtherScheduleEventDateOption.WITHIN_A_TERM)) {
-      activity.setLicenceScheduleTerm(
+      event.setLicenceScheduleTerm(
           licenceScheduleTermService.getTermByIdOrThrow(UUID.fromString(form.getLicenceScheduleTermId()))
       );
     } else {
-      activity.setLicenceScheduleTerm(null);
+      event.setLicenceScheduleTerm(null);
     }
 
     if (dateOption.equals(OtherScheduleEventDateOption.WITHIN_A_PHASE)) {
-      activity.setLicenceSchedulePhase(
+      event.setLicenceSchedulePhase(
           licenceSchedulePhaseService.getPhaseByIdOrThrow(UUID.fromString(form.getLicenceSchedulePhaseId()))
       );
     } else {
-      activity.setLicenceSchedulePhase(null);
+      event.setLicenceSchedulePhase(null);
     }
 
     if (dateOption.equals(OtherScheduleEventDateOption.RELATIVE_DATE)) {
-      setRelativeEvent(form, licenceScheduleDetail, activity);
-      activity.setRelativeDuration(form.getRelativeDuration().toThreeFieldDuration());
+      setRelativeEvent(form, licenceScheduleDetail, event);
+      event.setRelativeDuration(form.getRelativeDuration().toThreeFieldDuration());
     } else {
-      activity.setRelativeDuration(null);
+      event.setRelativeDuration(null);
     }
 
-    activity.setComments(form.getComments());
+    event.setComments(form.getComments());
 
-    otherScheduleEventRepository.save(activity);
+    if (event.getEventReference() == null) {
+      event.setEventReference(UUID.randomUUID());
+    }
+    
+    otherScheduleEventRepository.save(event);
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -145,7 +149,7 @@ public class OtherScheduleEventFormService {
   private void setRelativeEvent(
       OtherScheduleEventForm form,
       LicenceScheduleDetail licenceScheduleDetail,
-      OtherScheduleEvent activity
+      OtherScheduleEvent event
   ) {
     var eventId = UUID.fromString(form.getRelativeEventId());
 
@@ -153,11 +157,11 @@ public class OtherScheduleEventFormService {
         .collect(StreamUtil.toLinkedHashMap(LicenceScheduleTerm::getId, Function.identity()));
 
     if (termMap.containsKey(eventId)) {
-      activity.setLicenceScheduleTerm(termMap.get(eventId));
-      activity.setLicenceSchedulePhase(null);
+      event.setLicenceScheduleTerm(termMap.get(eventId));
+      event.setLicenceSchedulePhase(null);
     } else {
-      activity.setLicenceScheduleTerm(null);
-      activity.setLicenceSchedulePhase(licenceSchedulePhaseService.getPhaseByIdOrThrow(eventId));
+      event.setLicenceScheduleTerm(null);
+      event.setLicenceSchedulePhase(licenceSchedulePhaseService.getPhaseByIdOrThrow(eventId));
     }
   }
 }

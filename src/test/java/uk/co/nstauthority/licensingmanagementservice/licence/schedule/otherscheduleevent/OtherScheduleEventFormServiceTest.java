@@ -168,6 +168,64 @@ class OtherScheduleEventFormServiceTest {
   }
 
   @Test
+  void saveEventFromForm_relativeDate_relatedToTerm_existingEvent_doesntOverwriteEventReference() {
+    var form = new OtherScheduleEventForm();
+    form.setOtherScheduleEventCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
+    form.setDescription("description");
+    form.setOtherScheduleEventDateOption(OtherScheduleEventDateOption.RELATIVE_DATE);
+
+    var termId = UUID.randomUUID();
+
+    form.setRelativeEventId(String.valueOf(termId));
+
+    var term = new LicenceScheduleTerm();
+    term.setId(termId);
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+
+    var testDuration = new ThreeFieldDuration(1,0,0);
+
+    form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
+
+    var event = new OtherScheduleEvent();
+    event.setEventReference(UUID.randomUUID());
+
+    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, event);
+
+    verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
+
+    assertThat(otherScheduleEventArgumentCaptor.getValue())
+        .extracting(
+            OtherScheduleEvent::getLicenceScheduleDetail,
+            OtherScheduleEvent::getCategory,
+            OtherScheduleEvent::getOtherCategoryName,
+            OtherScheduleEvent::getDescription,
+            OtherScheduleEvent::getDateOption,
+            OtherScheduleEvent::getEventDate,
+            OtherScheduleEvent::getLicenceScheduleTerm,
+            OtherScheduleEvent::getLicenceSchedulePhase,
+            OtherScheduleEvent::getRelativeDuration,
+            OtherScheduleEvent::getStatus,
+            OtherScheduleEvent::getEventReference
+        )
+        .containsExactly(
+            licenceScheduleDetail,
+            form.getOtherScheduleEventCategory(),
+            null,
+            form.getDescription(),
+            form.getOtherScheduleEventDateOption(),
+            null,
+            term,
+            null,
+            testDuration,
+            LicenceScheduleEventStatus.ACTIVE,
+            event.getEventReference()
+        );
+
+    verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  @Test
   void saveEventFromForm_relativeDate_relatedToPhase() {
     var form = new OtherScheduleEventForm();
     form.setOtherScheduleEventCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);

@@ -25,6 +25,8 @@ public class LicenceScheduleExpiry {
 
   private String comments;
 
+  private UUID eventReference;
+
   public UUID getId() {
     return id;
   }
@@ -55,6 +57,14 @@ public class LicenceScheduleExpiry {
 
   public void setComments(String comments) {
     this.comments = comments;
+  }
+
+  public UUID getEventReference() {
+    return eventReference;
+  }
+
+  public void setEventReference(UUID eventReference) {
+    this.eventReference = eventReference;
   }
 }
 

@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase;
 
 import jakarta.transaction.Transactional;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
@@ -39,6 +40,11 @@ public class LicenceSchedulePhaseFormService {
     licenceSchedulePhase.setComments(licenceSchedulePhaseForm.getComments());
     licenceSchedulePhase.setStatus(LicenceScheduleEventStatus.ACTIVE);
     licenceSchedulePhase.setLicenceScheduleTerm(getRelatedTerm(licenceScheduleDetail, licenceSchedulePhaseForm.getPhaseType()));
+
+    if (licenceSchedulePhase.getEventReference() == null) {
+      licenceSchedulePhase.setEventReference(UUID.randomUUID());
+    }
+
     licenceSchedulePhaseRepository.save(licenceSchedulePhase);
 
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);

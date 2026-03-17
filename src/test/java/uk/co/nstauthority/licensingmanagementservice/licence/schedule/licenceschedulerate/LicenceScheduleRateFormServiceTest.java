@@ -118,6 +118,54 @@ class LicenceScheduleRateFormServiceTest {
   }
 
   @Test
+  void saveRateFromForm_termOption_existingRate_doesntOverwriteEventReference() {
+    var form = new LicenceScheduleRateForm();
+    form.setRateDefinitionOption(RateDefinitionOption.TERM);
+    form.getRentalRate().setInputValue("1");
+
+    var termId = UUID.randomUUID();
+
+    form.setLicenceScheduleTermId(String.valueOf(termId));
+
+    var term = new LicenceScheduleTerm();
+
+    when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
+
+    var rate = new LicenceScheduleRate();
+    rate.setEventReference(UUID.randomUUID());
+
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, rate);
+
+    verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
+
+    assertThat(licenceScheduleRateArgumentCaptor.getValue()).extracting(
+        LicenceScheduleRate::getLicenceScheduleDetail,
+        LicenceScheduleRate::getStatus,
+        LicenceScheduleRate::getRateDefinitionOption,
+        LicenceScheduleRate::getLicenceScheduleTerm,
+        LicenceScheduleRate::getLicenceSchedulePhase,
+        LicenceScheduleRate::getRateRelativeDateOption,
+        LicenceScheduleRate::getRelativeDuration,
+        LicenceScheduleRate::getStartDate,
+        LicenceScheduleRate::getRentalRate,
+        LicenceScheduleRate::getEventReference
+    ).containsExactly(
+        licenceScheduleDetail,
+        LicenceScheduleEventStatus.ACTIVE,
+        RateDefinitionOption.TERM,
+        term,
+        null,
+        null,
+        null,
+        null,
+        BigDecimal.ONE,
+        rate.getEventReference()
+    );
+
+    verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  @Test
   void saveRateFromForm_phaseOption() {
     var form = new LicenceScheduleRateForm();
     form.setRateDefinitionOption(RateDefinitionOption.PHASE);

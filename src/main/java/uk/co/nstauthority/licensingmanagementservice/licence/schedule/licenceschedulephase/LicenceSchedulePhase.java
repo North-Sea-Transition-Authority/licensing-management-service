@@ -53,6 +53,8 @@ public class LicenceSchedulePhase {
   @Enumerated(EnumType.STRING)
   private LicenceScheduleEventStatus status;
 
+  private UUID eventReference;
+
   public UUID getId() {
     return id;
   }
@@ -123,5 +125,13 @@ public class LicenceSchedulePhase {
 
   public void setStatus(LicenceScheduleEventStatus status) {
     this.status = status;
+  }
+
+  public UUID getEventReference() {
+    return eventReference;
+  }
+
+  public void setEventReference(UUID eventReference) {
+    this.eventReference = eventReference;
   }
 }

@@ -99,6 +99,10 @@ public class WorkProgrammeActivityFormService {
 
     activity.setComments(form.getComments());
 
+    if (activity.getEventReference() == null) {
+      activity.setEventReference(UUID.randomUUID());
+    }
+
     workProgrammeActivityRepository.save(activity);
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }

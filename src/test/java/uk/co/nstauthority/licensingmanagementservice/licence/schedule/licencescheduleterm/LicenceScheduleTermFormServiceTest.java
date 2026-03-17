@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesc
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -56,6 +57,42 @@ class LicenceScheduleTermFormServiceTest {
         TermType.INITIAL,
         form.getTermDuration().toThreeFieldDuration(),
         LicenceScheduleEventStatus.ACTIVE
+    );
+
+    verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  @Test
+  void saveTermFromForm_existingTerm_doesntOverwriteEventReference() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+
+    var form = new LicenceScheduleTermForm();
+    form.setTermType(TermType.INITIAL);
+    form.getTermDuration().setYears("1");
+    form.getTermDuration().setMonths("0");
+    form.getTermDuration().setDays("0");
+
+    var term = new LicenceScheduleTerm();
+    term.setEventReference(UUID.randomUUID());
+
+    licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail, term);
+
+    verify(licenceScheduleTermRepository).save(licenceScheduleTermArgumentCaptor.capture());
+
+    var result = licenceScheduleTermArgumentCaptor.getValue();
+
+    assertThat(result).extracting(
+        LicenceScheduleTerm::getLicenceScheduleDetail,
+        LicenceScheduleTerm::getTermType,
+        LicenceScheduleTerm::getTermDuration,
+        LicenceScheduleTerm::getStatus,
+        LicenceScheduleTerm::getEventReference
+    ).containsExactly(
+        licenceScheduleDetail,
+        TermType.INITIAL,
+        form.getTermDuration().toThreeFieldDuration(),
+        LicenceScheduleEventStatus.ACTIVE,
+        term.getEventReference()
     );
 
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);

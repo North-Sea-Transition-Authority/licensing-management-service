@@ -40,13 +40,13 @@ public class CompanyRegisteredAddressMailMergeField implements DocumentMailMerge
 
   @Override
   public DocumentMailMergeFieldResolveResult resolve(DocumentInstanceDto documentInstanceDto) {
-    var applicationCompanyAddress = documentLinkingService.getApplicationCompanyAddressFromDto(documentInstanceDto);
+    var applicationCompanyAddressOpt = documentLinkingService.getApplicationCompanyAddressFromDto(documentInstanceDto);
 
-    if (applicationCompanyAddress == null) {
+    if (applicationCompanyAddressOpt.isEmpty()) {
       return DocumentMailMergeFieldResolveResult.success("");
     }
 
-    var registeredAddress = applicationCompanyAddress.getFormattedAddress()
+    var registeredAddress = applicationCompanyAddressOpt.get().getFormattedAddress()
         .replace("\r\n", "<br/>")
         .replace("\n", "<br/>");
 

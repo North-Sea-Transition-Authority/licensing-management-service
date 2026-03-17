@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.mai
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,21 +52,21 @@ class CompanyRegisteredAddressMailMergeFieldTest {
         .build();
 
     when(linkingService.getApplicationCompanyAddressFromDto(documentInstanceDto))
-        .thenReturn(new Address("Line 1<br/>Line 2<br/>Line 3"));
+        .thenReturn(Optional.of(new Address("Line 1<br/>Line 2<br/>Line 3")));
 
     assertThat(mailMergeField.resolve(documentInstanceDto))
         .isEqualTo(DocumentMailMergeFieldResolveResult.successNoEsc("Line 1<br/>Line 2<br/>Line 3"));
   }
 
   @Test
-  void resolve_whenAddressIsNull() {
+  void resolve_whenAddressIsEmpty() {
     var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
         .withItemType(ApplicationType.CONTINUATION_APPLICATION.name())
         .withItemReference(UUID.randomUUID().toString())
         .build();
 
     when(linkingService.getApplicationCompanyAddressFromDto(documentInstanceDto))
-        .thenReturn(null);
+        .thenReturn(Optional.empty());
 
     assertThat(mailMergeField.resolve(documentInstanceDto))
         .isEqualTo(DocumentMailMergeFieldResolveResult.success(""));

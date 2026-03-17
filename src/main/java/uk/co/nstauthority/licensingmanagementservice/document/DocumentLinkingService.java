@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.document;
 
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceDto;
@@ -36,13 +37,10 @@ public class DocumentLinkingService {
         ));
   }
 
-  public Address getApplicationCompanyAddressFromDto(DocumentInstanceDto documentInstanceDto) {
+  public Optional<Address> getApplicationCompanyAddressFromDto(DocumentInstanceDto documentInstanceDto) {
     var responsibleOrganisationUnitId = getApplicationResponsibleOrganisationUnitId(documentInstanceDto);
 
-    return organisationUnitQueryService.getOrganisationUnitAddressById(responsibleOrganisationUnitId)
-        .orElseThrow(() -> new LmsEntityNotFoundException(
-            "Could not find the address for organisation unit %d".formatted(responsibleOrganisationUnitId)
-        ));
+    return organisationUnitQueryService.getOrganisationUnitAddressById(responsibleOrganisationUnitId);
   }
 
   private Integer getApplicationResponsibleOrganisationUnitId(DocumentInstanceDto documentInstanceDto) {

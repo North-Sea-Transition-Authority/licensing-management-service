@@ -9,6 +9,20 @@
   errorSummaryItems=errorList
   pageHeadingClass="govuk-heading-xl govuk-!-margin-bottom-2"
 >
+    <@fdsAction.link
+    linkText="Preview document"
+    linkUrl=springUrl(previewUrl)
+    linkClass="govuk-button govuk-button--primary"
+    role=true
+    openInNewTab=true
+    />
+
+    <@fdsAction.link
+    linkText="Reload document"
+    linkUrl=springUrl(reloadUrl)
+    linkClass="govuk-button govuk-button--secondary"
+    />
+
     <@documentSections.documentSections
     topLevelDocumentSectionSummaryViews=documentInstanceSectionsSummaryView.topLevelDocumentInstanceSectionSummaryViews()
     accordionId=accordionId

@@ -88,7 +88,7 @@ class DocumentLinkingServiceTest {
         .thenReturn(Optional.of(new Address("test address")));
 
     var result = documentLinkingService.getApplicationCompanyAddressFromDto(documentInstanceDto);
-    assertThat(result).isEqualTo(new Address("test address"));
+    assertThat(result).isEqualTo(Optional.of(new Address("test address")));
     verify(licenceContinuationService).getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(APPLICATION_ID);
   }
 
@@ -125,7 +125,7 @@ class DocumentLinkingServiceTest {
         .thenReturn(Optional.of(new Address("test address")));
 
     var result = documentLinkingService.getApplicationCompanyAddressFromDto(documentInstanceDto);
-    assertThat(result).isEqualTo(new Address("test address"));
+    assertThat(result).isEqualTo(Optional.of(new Address("test address")));
     verify(scheduleWorkProgrammeApplicationService).getLatestScheduleWorkProgrammeDetailByApplicationIdOrThrow(APPLICATION_ID);
   }
 

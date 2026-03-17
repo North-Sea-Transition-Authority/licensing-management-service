@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.application.letter;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -16,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.document.instance.LmsDocume
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/application/{applicationType}/{applicationId}")
@@ -55,12 +58,16 @@ public class ApplicationLetterController {
     );
 
     return getOverviewModelAndView(
+        applicationId,
+        applicationType,
         documentInstance,
         documentInstanceSectionsSummaryView
     );
   }
 
   private ModelAndView getOverviewModelAndView(
+      UUID applicationId,
+      ApplicationType applicationType,
       DocumentInstanceDto documentInstanceDto,
       DocumentInstanceSectionsSummaryView documentInstanceSectionsSummaryView
   ) {
@@ -86,6 +93,22 @@ public class ApplicationLetterController {
         .addObject("accordionId", documentInstanceDto.id())
         .addObject("documentInstanceSectionsSummaryView", documentInstanceSectionsSummaryView)
         .addObject("hasMoreThanOneSection", hasMoreThanOneSection)
-        .addObject("userHasValidPermission", true);
+        .addObject("userHasValidPermission", true)
+        .addObject(
+            "reloadUrl",
+            ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderReloadDocumentPage(
+                applicationType,
+                applicationId,
+                documentInstanceDto.id()
+            ))
+        )
+        .addObject(
+            "previewUrl",
+            ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderPreviewPdf(
+                applicationType,
+                applicationId,
+                documentInstanceDto.id()
+            ))
+        );
   }
 }

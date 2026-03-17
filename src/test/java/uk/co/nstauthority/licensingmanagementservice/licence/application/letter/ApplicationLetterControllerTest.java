@@ -80,6 +80,8 @@ class ApplicationLetterControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("documentInstanceDto", documentInstance))
         .andExpect(model().attribute("pageTitle", "Test Title for Company Name"))
         .andExpect(model().attributeExists("accordionId"))
-        .andExpect(model().attribute("documentInstanceSectionsSummaryView", sectionsSummaryView));
+        .andExpect(model().attribute("documentInstanceSectionsSummaryView", sectionsSummaryView))
+        .andExpect(model().attribute("reloadUrl", ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderReloadDocumentPage(appType ,appId, documentInstance.id()))))
+        .andExpect(model().attribute("previewUrl", ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderPreviewPdf(appType ,appId, documentInstance.id()))));
   }
 }

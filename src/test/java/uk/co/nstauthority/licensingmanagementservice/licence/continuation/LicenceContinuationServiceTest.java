@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Set;
 import java.util.UUID;
@@ -170,15 +171,16 @@ class LicenceContinuationServiceTest {
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     int existingSubmissions = 5;
-    when(licenceContinuationApplicationDetailRepository.countByVersionNumberAndStatusAndSubmittedDatetimeBetween(
+    when(licenceContinuationApplicationDetailRepository.countByVersionNumberAndSubmittedDatetimeBetween(
         eq(1),
-        eq(LicenceContinuationApplicationStatus.SUBMITTED),
         any(),
         any()
     )).thenReturn(existingSubmissions);
 
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(LICENCE, LicenceScheduleDetailStatus.ACTIVE))
         .thenReturn(LICENCE_SCHEDULE_DETAIL);
+
+    var currentYear = LocalDate.now(clock).getYear();
 
     LicenceContinuationApplication result = licenceContinuationService.submitApplication(licenceContinuationApplicationDetail, organisationUser);
 
@@ -189,7 +191,7 @@ class LicenceContinuationServiceTest {
     LicenceContinuationApplicationDetail savedDetail = licenceContinuationApplicationDetailCaptor.getValue();
 
     assertThat(savedApp).isEqualTo(result);
-    assertThat(savedApp.getApplicationReference()).isNotNull();
+    assertThat(savedApp.getApplicationReference()).isEqualTo(String.format("LMS/CA/%d/%d", currentYear, existingSubmissions + 1));
     assertThat(savedApp.getSubmittedLicenceScheduleDetail()).isEqualTo(LICENCE_SCHEDULE_DETAIL);
 
     assertThat(savedDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.SUBMITTED);

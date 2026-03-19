@@ -173,9 +173,8 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     when(clock.instant()).thenReturn(CURRENT_INSTANT);
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
-    when(scheduleWorkProgrammeApplicationDetailRepository.countByVersionNumberAndStatusAndSubmittedDatetimeBetween(
+    when(scheduleWorkProgrammeApplicationDetailRepository.countByVersionNumberAndSubmittedDatetimeBetween(
         eq(1),
-        eq(ScheduleWorkProgrammeApplicationStatus.SUBMITTED),
         any(Instant.class),
         any(Instant.class)
     )).thenReturn(2);

@@ -82,7 +82,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     licenceContinuationApplicationDetail = LicenceContinuationApplicationTestUtil
         .createLicenceContinuationApplicationDetail(scheduleDetail1);
     licenceContinuationApplicationDetail.setCreatedDateTime(testInstant);
-    licenceContinuationApplicationDetail.getLicenceContinuationApplication().setApplicationReference("LMS/CONT/001");
+    licenceContinuationApplicationDetail.getLicenceContinuationApplication().setApplicationReference("LMS/CA/001");
 
     licence2 = LicenceTestUtil.builder()
         .withId(2)
@@ -99,7 +99,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     licenceContinuationApplicationDetail2.setCreatedDateTime(testInstant.minus(1, ChronoUnit.HOURS));
     licenceContinuationApplicationDetail2.setStatus(LicenceContinuationApplicationStatus.SUBMITTED);
     licenceContinuationApplicationDetail2.setSubmittedDatetime(testInstant.plus(1, ChronoUnit.HOURS));
-    licenceContinuationApplicationDetail2.getLicenceContinuationApplication().setApplicationReference("LMS/CONT/002");
+    licenceContinuationApplicationDetail2.getLicenceContinuationApplication().setApplicationReference("LMS/CA/002");
   }
 
   @Test
@@ -157,7 +157,7 @@ class ContinuationApplicationWorkAreaServiceTest {
             ),
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
-                "LMS/CONT/002 - Licence continuation application",
+                "LMS/CA/002 - Licence continuation application",
                 ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null)),
                 String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.plus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView2),
@@ -206,7 +206,7 @@ class ContinuationApplicationWorkAreaServiceTest {
         .containsExactly(
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
-                "LMS/CONT/002 - Licence continuation application",
+                "LMS/CA/002 - Licence continuation application",
                 ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null)),
                 String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.plus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView),
@@ -319,7 +319,7 @@ class ContinuationApplicationWorkAreaServiceTest {
         .containsExactly(
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
-                "LMS/CONT/002 - Licence continuation application",
+                "LMS/CA/002 - Licence continuation application",
                 ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null)),
                 String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.plus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView),
@@ -373,7 +373,7 @@ class ContinuationApplicationWorkAreaServiceTest {
         .containsExactly(
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
-                "LMS/CONT/002 - Licence continuation application",
+                "LMS/CA/002 - Licence continuation application",
                 ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(ApplicationType.CONTINUATION_APPLICATION, licenceContinuationApplicationDetail2.getLicenceContinuationApplication().getId())),
                 String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.plus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView),

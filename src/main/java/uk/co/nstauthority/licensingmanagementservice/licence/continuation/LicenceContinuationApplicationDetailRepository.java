@@ -20,10 +20,5 @@ public interface LicenceContinuationApplicationDetailRepository
       LicenceContinuationApplication scheduleWorkProgrammeApplication
   );
 
-  int countByVersionNumberAndStatusAndSubmittedDatetimeBetween(
-      Integer versionNumber,
-      LicenceContinuationApplicationStatus status,
-      Instant startOfYear,
-      Instant endOfYear
-  );
+  int countByVersionNumberAndSubmittedDatetimeBetween(Integer versionNumber, Instant startOfYear, Instant endOfYear);
 }

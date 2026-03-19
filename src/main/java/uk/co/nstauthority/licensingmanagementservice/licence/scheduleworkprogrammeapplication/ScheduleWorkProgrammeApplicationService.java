@@ -194,9 +194,8 @@ public class ScheduleWorkProgrammeApplicationService {
     var startOfYear = DateUtil.getStartOfYear(clock, currentYear);
     var endOfYear = DateUtil.getEndOfYear(clock, currentYear);
 
-    return scheduleWorkProgrammeApplicationDetailRepository.countByVersionNumberAndStatusAndSubmittedDatetimeBetween(
+    return scheduleWorkProgrammeApplicationDetailRepository.countByVersionNumberAndSubmittedDatetimeBetween(
         1,
-        ScheduleWorkProgrammeApplicationStatus.SUBMITTED,
         startOfYear,
         endOfYear
     );

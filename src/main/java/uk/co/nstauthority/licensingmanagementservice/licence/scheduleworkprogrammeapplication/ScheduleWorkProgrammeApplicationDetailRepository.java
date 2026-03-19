@@ -15,10 +15,7 @@ public interface ScheduleWorkProgrammeApplicationDetailRepository
   Optional<ScheduleWorkProgrammeApplicationDetail> getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(
       ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication);
 
-  int countByVersionNumberAndStatusAndSubmittedDatetimeBetween(Integer versionNumber,
-                                                               ScheduleWorkProgrammeApplicationStatus status,
-                                                               Instant startOfYear,
-                                                               Instant endOfYear);
+  int countByVersionNumberAndSubmittedDatetimeBetween(Integer versionNumber, Instant startOfYear, Instant endOfYear);
 
   List<ScheduleWorkProgrammeApplicationDetail> findAllByStatusIn(Set<ScheduleWorkProgrammeApplicationStatus> statuses);
 }

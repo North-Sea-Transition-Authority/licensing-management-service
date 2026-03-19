@@ -21,7 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 @Service
 public class LicenceContinuationService {
 
-  private static final String APPLICATION_REFERENCE_FORMAT = "LMS/EAA/%d/%d";
+  private static final String APPLICATION_REFERENCE_FORMAT = "LMS/CA/%d/%d";
 
   private final ApplicationAccessService applicationAccessService;
   public static final String LICENCE_CONTINUATION_APPLICATION_DETAIL = "licence continuation application detail";
@@ -174,9 +174,8 @@ public class LicenceContinuationService {
     var startOfYear = DateUtil.getStartOfYear(clock, currentYear);
     var endOfYear = DateUtil.getEndOfYear(clock, currentYear);
 
-    return licenceContinuationApplicationDetailRepository.countByVersionNumberAndStatusAndSubmittedDatetimeBetween(
+    return licenceContinuationApplicationDetailRepository.countByVersionNumberAndSubmittedDatetimeBetween(
         1,
-        LicenceContinuationApplicationStatus.SUBMITTED,
         startOfYear,
         endOfYear
     );

@@ -59,11 +59,11 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
         .withId(applicationDetailId)
         .withStatus(LicenceContinuationApplicationStatus.SUBMITTED)
         .withSubmittedDatetime(submittedDatetime)
-        .withApplicationReference("LMS/CONT/2024/1")
+        .withApplicationReference("LMS/CA/2024/1")
         .build();
 
     var applicationContext = new LicenceContinuationApplicationContext(
-        "LMS/CONT/2024/1",
+        "LMS/CA/2024/1",
         "Carbon storage licence - CS1",
         List.of(SummaryDataView.newBuilder()
                     .addStringValue("Submitted by", "John Smith")

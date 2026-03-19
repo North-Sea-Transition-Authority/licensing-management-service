@@ -44,7 +44,7 @@ class LicenceContinuationApplicationOverviewServiceTest {
         .withStatus(LicenceContinuationApplicationStatus.SUBMITTED)
         .withSubmittedDatetime(Instant.parse("2024-03-15T10:30:00Z"))
         .withSubmittedByWuaId(SUBMITTED_BY_WUA_ID)
-        .withApplicationReference("LMS/CONT/2024/1")
+        .withApplicationReference("LMS/CA/2024/1")
         .build();
 
     var submittedByUser = EnergyPortalUserTestUtil.newBuilder()
@@ -61,7 +61,7 @@ class LicenceContinuationApplicationOverviewServiceTest {
 
     var context = overviewService.getApplicationContext(applicationDetail, licence);
 
-    assertThat(context.reference()).isEqualTo("LMS/CONT/2024/1");
+    assertThat(context.reference()).isEqualTo("LMS/CA/2024/1");
   }
 
   @Test
@@ -72,7 +72,7 @@ class LicenceContinuationApplicationOverviewServiceTest {
         .withStatus(LicenceContinuationApplicationStatus.SUBMITTED)
         .withSubmittedDatetime(Instant.parse("2024-03-15T10:30:00Z"))
         .withSubmittedByWuaId(SUBMITTED_BY_WUA_ID)
-        .withApplicationReference("LMS/CONT/2024/1")
+        .withApplicationReference("LMS/CA/2024/1")
         .build();
 
     var submittedByUser = EnergyPortalUserTestUtil.newBuilder()
@@ -100,7 +100,7 @@ class LicenceContinuationApplicationOverviewServiceTest {
         .withStatus(LicenceContinuationApplicationStatus.SUBMITTED)
         .withSubmittedDatetime(Instant.parse("2024-03-15T10:30:00Z"))
         .withSubmittedByWuaId(SUBMITTED_BY_WUA_ID)
-        .withApplicationReference("LMS/CONT/2024/1")
+        .withApplicationReference("LMS/CA/2024/1")
         .build();
 
     var submittedByUser = EnergyPortalUserTestUtil.newBuilder()
@@ -132,7 +132,7 @@ class LicenceContinuationApplicationOverviewServiceTest {
         .withStatus(LicenceContinuationApplicationStatus.SUBMITTED)
         .withSubmittedDatetime(Instant.parse("2024-03-15T10:30:00Z"))
         .withSubmittedByWuaId(SUBMITTED_BY_WUA_ID)
-        .withApplicationReference("LMS/CONT/2024/1")
+        .withApplicationReference("LMS/CA/2024/1")
         .build();
 
     var submittedByUser = EnergyPortalUserTestUtil.newBuilder()

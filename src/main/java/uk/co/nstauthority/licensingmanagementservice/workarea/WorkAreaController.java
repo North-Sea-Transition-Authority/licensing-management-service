@@ -35,8 +35,7 @@ public class WorkAreaController {
 
   @GetMapping
   public ModelAndView getWorkArea(@ModelAttribute("workAreaSession") WorkAreaSession workAreaSession, ServiceUserDetail user) {
-    throw new RuntimeException("Not implemented");
-//    return getModelAndView(workAreaSession.getWorkAreaFilterForm(), user);
+    return getModelAndView(workAreaSession.getWorkAreaFilterForm(), user);
   }
 
   @PostMapping

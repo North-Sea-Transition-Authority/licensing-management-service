@@ -1,7 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -26,11 +25,13 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.energyportal.starter.configuration.WellKnownOrganisationGroupsConfigurationProperties;
 import uk.co.fivium.energyportalapi.client.RequestPurpose;
 import uk.co.fivium.energyportalapi.client.organisation.OrganisationApi;
 import uk.co.fivium.energyportalapi.generated.client.OrganisationGroupProjectionRoot;
 import uk.co.fivium.energyportalapi.generated.client.OrganisationGroupsProjectionRoot;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationGroup;
+import uk.co.fivium.energyportalapi.generated.types.OrganisationGroupEmailDomain;
 
 @ExtendWith(MockitoExtension.class)
 class OrganisationGroupQueryServiceTest {
@@ -43,11 +44,23 @@ class OrganisationGroupQueryServiceTest {
 
   private List<OrganisationGroup> groupList;
 
+  @Mock
+  private WellKnownOrganisationGroupsConfigurationProperties wellKnownGroups;
+
+  @Mock
+  private WellKnownOrganisationGroupsConfigurationProperties.WellKnownOrgGroup nsta;
+
   @BeforeEach
   void setup() {
-    groupList = List.of(
-        new OrganisationGroup(1, "Company 1", null, null, null, Collections.emptyList()),
-        new OrganisationGroup(2, "Company 2", null, null, null, Collections.emptyList())
+    groupList = List.of(OrganisationGroup.newBuilder().organisationGroupId(1)
+        .name("Company 1")
+        .emailDomains(List.of(OrganisationGroupEmailDomain.newBuilder().domain("company1.com").build()))
+        .build(),
+        OrganisationGroup.newBuilder()
+            .organisationGroupId(2)
+            .name("Company 2")
+            .emailDomains(List.of(OrganisationGroupEmailDomain.newBuilder().domain("company2.com").build()))
+            .build()
     );
   }
 
@@ -100,6 +113,7 @@ class OrganisationGroupQueryServiceTest {
         "Shell",
         "shell.com",
         "ACTIVE",
+        Collections.emptyList(),
         Collections.emptyList());
 
     when(organisationApi.findOrganisationGroup(
@@ -116,9 +130,7 @@ class OrganisationGroupQueryServiceTest {
         any(RequestPurpose.class));
 
     assertThat(argumentCaptor.getValue().getFields())
-        .containsOnly(
-            entry("organisationGroupId", null),
-            entry("name", null));
+        .containsOnlyKeys("organisationGroupId","name", "emailDomains");
   }
 
   @Test
@@ -129,6 +141,7 @@ class OrganisationGroupQueryServiceTest {
         "Shell",
         "shell.com",
         "ACTIVE",
+        Collections.emptyList(),
         Collections.emptyList());
 
     when(organisationApi.getAllOrganisationGroupsByIds(
@@ -157,6 +170,7 @@ class OrganisationGroupQueryServiceTest {
         "Shell",
         "shell.com",
         "ACTIVE",
+        Collections.emptyList(),
         Collections.emptyList());
 
     var organisationGroup2 = new OrganisationGroup(
@@ -165,6 +179,7 @@ class OrganisationGroupQueryServiceTest {
         "Shell",
         "shell.com",
         "ACTIVE",
+        Collections.emptyList(),
         Collections.emptyList());
 
     when(organisationApi.getAllOrganisationGroupsByIds(
@@ -270,5 +285,21 @@ class OrganisationGroupQueryServiceTest {
 
     assertThat(returnedOrganisationUnitJsons)
         .isEqualTo(Collections.emptyList());
+  }
+
+  @Test
+  void getRegulatorOganisationGroup() {
+    var expectedId = Math.toIntExact(10002L);
+
+    when(wellKnownGroups.nsta()).thenReturn(nsta);
+    when(nsta.idAsInteger()).thenReturn(expectedId);
+
+    organisationGroupQueryService.getRegulatorOrganisationGroup();
+
+    verify(organisationApi).findOrganisationGroup(
+        eq(expectedId),
+        any(),
+        any(RequestPurpose.class)
+    );
   }
 }

@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.energyportal.organisationg
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
+import uk.co.fivium.energyportal.starter.configuration.WellKnownOrganisationGroupsConfigurationProperties;
 import uk.co.fivium.energyportalapi.client.RequestPurpose;
 import uk.co.fivium.energyportalapi.client.organisation.OrganisationApi;
 import uk.co.fivium.energyportalapi.generated.client.OrganisationGroupProjectionRoot;
@@ -19,7 +20,10 @@ public class OrganisationGroupQueryService {
   public static final OrganisationGroupProjectionRoot ORGANISATION_GROUP_PROJECTION_ROOT =
       new OrganisationGroupProjectionRoot()
           .organisationGroupId()
-          .name();
+          .name()
+          .emailDomains()
+          .domain()
+          .root();
   public static final OrganisationGroupsProjectionRoot ORGANISATION_GROUPS_UNITS_PROJECTION_ROOT =
       ORGANISATION_GROUPS_PROJECTION_ROOT
           .organisationUnits()
@@ -30,9 +34,13 @@ public class OrganisationGroupQueryService {
           .root();
 
   private final OrganisationApi organisationApi;
+  private final WellKnownOrganisationGroupsConfigurationProperties wellKnownOrganisationGroups;
 
-  OrganisationGroupQueryService(OrganisationApi organisationApi) {
+  OrganisationGroupQueryService(OrganisationApi organisationApi,
+                                WellKnownOrganisationGroupsConfigurationProperties wellKnownOrganisationGroups
+  ) {
     this.organisationApi = organisationApi;
+    this.wellKnownOrganisationGroups = wellKnownOrganisationGroups;
   }
 
   public List<OrganisationGroupDto> getOrganisationGroupsByName(String name) {
@@ -70,5 +78,9 @@ public class OrganisationGroupQueryService {
             new RequestPurpose("getOrganisationGroupById")
         )
         .map(OrganisationGroupDto::from);
+  }
+
+  public Optional<OrganisationGroupDto> getRegulatorOrganisationGroup() {
+    return getOrganisationGroupById(wellKnownOrganisationGroups.nsta().idAsInteger());
   }
 }

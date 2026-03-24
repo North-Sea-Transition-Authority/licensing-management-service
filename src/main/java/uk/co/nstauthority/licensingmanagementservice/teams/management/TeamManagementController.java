@@ -21,6 +21,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.configuration.EnergyPortalConfiguration;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.user.AllowedDomainService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
@@ -57,6 +58,7 @@ public class TeamManagementController {
   private final EnergyPortalUserService energyPortalUserService;
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final LicenceContinuationService licenceContinuationService;
+  private final AllowedDomainService  allowedDomainService;
 
   public TeamManagementController(
       TeamManagementService teamManagementService,
@@ -66,7 +68,7 @@ public class TeamManagementController {
       EnergyPortalConfiguration energyPortalConfiguration,
       EnergyPortalUserService energyPortalUserService,
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
-      LicenceContinuationService licenceContinuationService
+      LicenceContinuationService licenceContinuationService, AllowedDomainService allowedDomainService
   ) {
     this.teamManagementService = teamManagementService;
     this.teamQueryService = teamQueryService;
@@ -76,6 +78,7 @@ public class TeamManagementController {
     this.energyPortalUserService = energyPortalUserService;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.licenceContinuationService = licenceContinuationService;
+    this.allowedDomainService = allowedDomainService;
   }
 
   @GetMapping
@@ -372,10 +375,13 @@ public class TeamManagementController {
     Map<String, String> rolesNamesMap = availableRoles.stream()
                                                       .collect(StreamUtil.toLinkedHashMap(Enum::name, Role::getName));
 
+    boolean userHasAllowedEmail = allowedDomainService.isAllowedDomain(teamMemberView.email(), team);
+
     ModelAndView modelAndView = new ModelAndView("lms/teamManagement/editMemberRoles")
         .addObject("rolesNamesMap", rolesNamesMap)
         .addObject("rolesInTeam", availableRoles)
-        .addObject("teamMemberView", teamMemberView);
+        .addObject("teamMemberView", teamMemberView)
+        .addObject("userHasAllowedEmail", userHasAllowedEmail);
 
     return addNavigationAttributes(team, modelAndView);
   }

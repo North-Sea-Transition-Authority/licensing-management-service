@@ -21,9 +21,6 @@ extendContainerWidth=true
                     licenseeOrgUnitUrl=licenseeOrgUnitUrl
                     preSelectedLicenseeOrgUnit=preSelectedLicenseeOrgUnit
                 />
-                <@fdsSearch.searchFilterItem itemName="Event year" expanded=true>
-                    <@fdsSearch.searchTextInput path="form.year" labelText="Event year" labelClass="govuk-visually-hidden"/>
-                </@fdsSearch.searchFilterItem>
                 <@fdsSearch.searchFilterItem itemName="Request type" expanded=true>
                     <@fdsSearch.searchCheckboxes path="form.requestTypes" checkboxes=requestTypes/>
                 </@fdsSearch.searchFilterItem>

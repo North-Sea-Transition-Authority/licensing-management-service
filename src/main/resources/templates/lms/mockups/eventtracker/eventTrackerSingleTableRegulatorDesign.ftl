@@ -21,8 +21,11 @@ extendContainerWidth=true
                     licenseeOrgUnitUrl=licenseeOrgUnitUrl
                     preSelectedLicenseeOrgUnit=preSelectedLicenseeOrgUnit
                 />
-                <@fdsSearch.searchFilterItem itemName="Event year" expanded=true>
-                    <@fdsSearch.searchTextInput path="form.year" labelText="Event year" labelClass="govuk-visually-hidden"/>
+                <@fdsSearch.searchFilterItem itemName="Event from" expanded=false>
+                    <@fdsDatePicker.datePicker path="form.fromDate" labelText="Event from" hintText="For example, 31/08/2025" labelClass="govuk-visually-hidden"/>
+                </@fdsSearch.searchFilterItem>
+                <@fdsSearch.searchFilterItem itemName="Event to" expanded=false>
+                    <@fdsDatePicker.datePicker path="form.toDate" labelText="Event to" hintText="For example, 31/08/2025" labelClass="govuk-visually-hidden"/>
                 </@fdsSearch.searchFilterItem>
                 <@fdsSearch.searchFilterItem itemName="Request type" expanded=true>
                     <@fdsSearch.searchCheckboxes path="form.requestTypes" checkboxes=requestTypes/>
@@ -212,7 +215,7 @@ extendContainerWidth=true
                         <td class="govuk-table__cell">Request pending</td>
                         <td class="govuk-table__cell">BP EXPLORATION</td>
                         <td class="govuk-table__cell">30</td>
-                        <td class="govuk-table__cell">Andy Admin</td>
+                        <td class="govuk-table__cell"></td>
                     </tr>
                     <tr class="govuk-table__row">
                         <th scope="row" class="govuk-table__header"><@fdsAction.link linkText="PEDL100 (NS1)" linkUrl="#"/></th>
@@ -222,7 +225,7 @@ extendContainerWidth=true
                         <td class="govuk-table__cell">Request pending</td>
                         <td class="govuk-table__cell">COASTAL OIL AND GAS LIMITED</td>
                         <td class="govuk-table__cell">28</td>
-                        <td class="govuk-table__cell">Andy Admin</td>
+                        <td class="govuk-table__cell"></td>
                     </tr>
                 </tbody>
             </table>

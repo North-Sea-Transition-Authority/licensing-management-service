@@ -6,7 +6,8 @@ public class EventTrackerForm {
 
   private List<String> licenceTypes;
   private List<String> requestTypes;
-  private String year;
+  private String fromDate;
+  private String toDate;
   private Integer licenseeOrgUnitId;
   private List<String> eventStatuses;
 
@@ -26,12 +27,20 @@ public class EventTrackerForm {
     this.requestTypes = requestTypes;
   }
 
-  public String getYear() {
-    return year;
+  public String getFromDate() {
+    return fromDate;
   }
 
-  public void setYear(String year) {
-    this.year = year;
+  public void setFromDate(String fromDate) {
+    this.fromDate = fromDate;
+  }
+
+  public String getToDate() {
+    return toDate;
+  }
+
+  public void setToDate(String toDate) {
+    this.toDate = toDate;
   }
 
   public Integer getLicenseeOrgUnitId() {

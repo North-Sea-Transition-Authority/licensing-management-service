@@ -29,9 +29,9 @@ public class EventTrackerController {
         .addObject("requestTypes", DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerRequestType.class));
   }
 
-  @GetMapping("/single-table-design")
-  ModelAndView renderSingleTablePage() {
-    return new ModelAndView("lms/mockups/eventtracker/eventTrackerSingleTableDesign")
+  @GetMapping("/single-table-design-regulator")
+  ModelAndView renderSingleTableRegulatorPage() {
+    return new ModelAndView("lms/mockups/eventtracker/eventTrackerSingleTableRegulatorDesign")
         .addObject("form", new EventTrackerForm())
         .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
         .addObject("licenseeOrgUnitUrl",
@@ -39,6 +39,18 @@ public class EventTrackerController {
         .addObject("preSelectedLicenseeOrgUnit", Collections.emptyMap())
         .addObject("requestTypes", DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerRequestType.class))
         .addObject("eventStatuses", DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerEventStatus.class));
+  }
+
+  @GetMapping("/single-table-design-industry")
+  ModelAndView renderSingleTableIndustryPage() {
+    return new ModelAndView("lms/mockups/eventtracker/eventTrackerSingleTableIndustryDesign")
+        .addObject("form", new EventTrackerForm())
+        .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
+        .addObject("licenseeOrgUnitUrl",
+            SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
+        .addObject("preSelectedLicenseeOrgUnit", Collections.emptyMap())
+        .addObject("requestTypes", DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerRequestType.class))
+        .addObject("eventStatuses", EventTrackerEventStatus.getIndustryStatuses());
   }
 
   @GetMapping("/accordion-design")

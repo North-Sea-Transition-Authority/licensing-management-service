@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.internalonly;
 import jakarta.persistence.EntityManager;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -11,6 +12,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
+import uk.co.fivium.energyportal.starter.accounts.EnergyPortalServiceAccessService;
+import uk.co.fivium.energyportal.starter.serviceproviders.EnergyPortalServiceProviderUserRolesService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -29,13 +32,20 @@ public class DataBootstrapper {
   private final EnergyPortalUserService energyPortalUserService;
   private final EntityManager entityManager;
   private final TeamQueryService teamQueryService;
+  private final EnergyPortalServiceProviderUserRolesService energyPortalServiceProviderUserRolesService;
+  private final EnergyPortalServiceAccessService energyPortalServiceAccessService;
 
   public DataBootstrapper(EnergyPortalUserService energyPortalUserService,
                           EntityManager entityManager,
-                          TeamQueryService teamQueryService) {
+                          TeamQueryService teamQueryService,
+                          EnergyPortalServiceProviderUserRolesService energyPortalServiceProviderUserRolesService,
+                          EnergyPortalServiceAccessService energyPortalServiceAccessService
+  ) {
     this.energyPortalUserService = energyPortalUserService;
     this.entityManager = entityManager;
     this.teamQueryService = teamQueryService;
+    this.energyPortalServiceProviderUserRolesService = energyPortalServiceProviderUserRolesService;
+    this.energyPortalServiceAccessService = energyPortalServiceAccessService;
   }
 
   @EventListener(ApplicationReadyEvent.class)
@@ -187,11 +197,22 @@ public class DataBootstrapper {
   }
 
   private void createTeamRole(Role role, Team team, EnergyPortalUserJson userJson) {
+    var wuaId = userJson.webUserAccountId();
+
     var teamRole = new TeamRole();
     teamRole.setTeam(team);
     teamRole.setRole(role);
-    teamRole.setWuaId(userJson.webUserAccountId());
+    teamRole.setWuaId(wuaId);
     entityManager.persist(teamRole);
     entityManager.flush();
+
+    energyPortalServiceProviderUserRolesService.publishUsersRolesForTeam(
+        wuaId,
+        team.getId().toString(),
+        team.getTeamType().name(),
+        Set.of(role.name())
+    );
+
+    energyPortalServiceAccessService.addUser(wuaId);
   }
 }

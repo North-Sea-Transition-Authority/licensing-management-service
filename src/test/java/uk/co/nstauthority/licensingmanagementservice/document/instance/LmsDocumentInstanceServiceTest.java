@@ -10,6 +10,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -28,8 +29,11 @@ import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceService;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentMailMergeFieldFormatter;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentMailMergeFieldResolveResult;
 import uk.co.fivium.digitaldocumentlibrary.document.PdfRenderResult;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.document.AddSectionOption;
 import uk.co.nstauthority.licensingmanagementservice.document.DocumentInstanceMailMergeFieldFormatter;
+import uk.co.nstauthority.licensingmanagementservice.document.signing.DocumentSigningService;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.DocumentInstanceDtoTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.LmsPdfRenderResult;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.mailmerge.mailmergefields.CompanyNameMailMergeField;
@@ -50,7 +54,7 @@ class LmsDocumentInstanceServiceTest {
   private DocumentInstanceSectionViewService documentInstanceSectionViewService;
 
   @Mock
-  LicenceApplication application;
+  private LicenceApplication application;
 
   @Mock
   private DocumentInstanceService documentInstanceService;
@@ -64,11 +68,23 @@ class LmsDocumentInstanceServiceTest {
   @Mock
   private CurrentDateMailMergeField currentDateMailMergeField;
 
+  @Mock
+  private DocumentSigningService documentSigningService;
+
+  private ServiceUserDetail serviceUserDetail;
+
   @Captor
   private ArgumentCaptor<Map<String, Object>> templateModelCaptor;
 
   @InjectMocks
   private LmsDocumentInstanceService lmsDocumentInstanceService;
+
+  @BeforeEach
+  void setUp() {
+    serviceUserDetail = ServiceUserDetailTestUtil.newBuilder()
+        .withWuaId(1L)
+        .build();
+  }
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
@@ -162,6 +178,7 @@ class LmsDocumentInstanceServiceTest {
         .thenReturn(DocumentMailMergeFieldResolveResult.success("123 Test Street\nTest City"));
     when(currentDateMailMergeField.resolve(documentInstance))
         .thenReturn(DocumentMailMergeFieldResolveResult.success("16 March 2026"));
+    when(documentSigningService.previewPdfSignature(pdfRenderResult.pdfContent())).thenReturn(expectedPdfContent);
 
     when(documentInstanceService.renderPdf(eq(documentInstance), any(Map.class)))
         .thenReturn(pdfRenderResult);
@@ -174,7 +191,7 @@ class LmsDocumentInstanceServiceTest {
         "currentDate", "16 March 2026"
     );
 
-    var result = lmsDocumentInstanceService.renderAndSignPdf(isPreview, documentInstance, summaryViews);
+    var result = lmsDocumentInstanceService.renderAndSignPdf(application, isPreview, documentInstance, summaryViews, null);
 
     verify(documentInstanceService).renderPdf(eq(documentInstance), templateModelCaptor.capture());
     assertThat(templateModelCaptor.getValue()).usingRecursiveComparison().isEqualTo(expectedTemplateModel);
@@ -196,6 +213,127 @@ class LmsDocumentInstanceServiceTest {
 
   @Test
   void renderAndSignPdf_whenFieldsAreNullOrEmpty_handlesGracefully() {
+    var isPreview = true;
+    var documentInstance = DocumentInstanceDtoTestUtil.newBuilder().build();
+    var summaryViews = List.of(new DocumentInstanceSectionSummaryView(
+        UUID.randomUUID(),
+        "1",
+        "Test title",
+        "Test content",
+        false,
+        List.of(),
+        Map.of(),
+        DocumentInstanceSectionUrlsTestUtil.newBuilder().build(),
+        List.of()
+    ));
+
+    var expectedPdfContent = new ByteArrayResource(new byte[]{4, 5, 6});
+    var expectedHtml = "<p>Empty Fields HTML</p>";
+    var pdfRenderResult = new PdfRenderResult(expectedPdfContent, expectedHtml);
+
+    when(companyNameMailMergeField.resolve(documentInstance))
+        .thenReturn(DocumentMailMergeFieldResolveResult.error("Failed to resolve"));
+    when(companyRegisteredAddressMailMergeField.resolve(documentInstance))
+        .thenReturn(DocumentMailMergeFieldResolveResult.error("Failed to resolve"));
+    when(currentDateMailMergeField.resolve(documentInstance))
+        .thenReturn(DocumentMailMergeFieldResolveResult.success(null));
+
+    when(documentSigningService.previewPdfSignature(pdfRenderResult.pdfContent())).thenReturn(new ByteArrayResource(new byte[]{4, 5, 6}));
+
+    when(documentInstanceService.renderPdf(eq(documentInstance), any(Map.class)))
+        .thenReturn(pdfRenderResult);
+
+    Map<String, Object> expectedTemplateModel = Map.of(
+        "documentInstanceSectionSummaryView", summaryViews,
+        "isPreview", isPreview,
+        "companyName", "",
+        "companyRegisteredAddress", List.of(),
+        "currentDate", ""
+    );
+
+    var result = lmsDocumentInstanceService.renderAndSignPdf(application, isPreview, documentInstance, summaryViews, null);
+
+    verify(documentInstanceService).renderPdf(eq(documentInstance), templateModelCaptor.capture());
+    assertThat(templateModelCaptor.getValue()).usingRecursiveComparison().isEqualTo(expectedTemplateModel);
+
+    var documentInstanceSectionsSummaryView = DocumentInstanceSectionsSummaryView.from(summaryViews);
+
+    assertThat(result)
+        .extracting(
+            LmsPdfRenderResult::pdfContent,
+            LmsPdfRenderResult::pdfHtml,
+            LmsPdfRenderResult::mailMergeResolvedValuesByMnemonic
+        )
+        .containsExactly(
+            expectedPdfContent,
+            expectedHtml,
+            documentInstanceSectionsSummaryView.allMailMergeResolvedValuesByMnemonic()
+        );
+  }
+
+  @Test
+  void renderAndSignPdf_whenFieldsResolveSuccessfully_returnsPdfRenderResult_IsNotPreview() {
+    var isPreview = false;
+    var documentInstance = DocumentInstanceDtoTestUtil.newBuilder().build();
+    var summaryViews = List.of(new DocumentInstanceSectionSummaryView(
+        UUID.randomUUID(),
+        "1",
+        "Test title",
+        "Test content",
+        false,
+        List.of(),
+        Map.of(),
+        DocumentInstanceSectionUrlsTestUtil.newBuilder().build(),
+        List.of()
+    ));
+
+    var expectedPdfContent = new ByteArrayResource(new byte[]{1, 2, 3});
+    var expectedHtml = "<p>Test PDF HTML</p>";
+    var pdfRenderResult = new PdfRenderResult(expectedPdfContent, expectedHtml);
+
+    when(companyNameMailMergeField.resolve(documentInstance))
+        .thenReturn(DocumentMailMergeFieldResolveResult.success("Test Company"));
+    when(companyRegisteredAddressMailMergeField.resolve(documentInstance))
+        .thenReturn(DocumentMailMergeFieldResolveResult.success("123 Test Street\nTest City"));
+    when(currentDateMailMergeField.resolve(documentInstance))
+        .thenReturn(DocumentMailMergeFieldResolveResult.success("16 March 2026"));
+
+    when(application.getApplicationType()).thenReturn(ApplicationType.CONTINUATION_APPLICATION);
+
+    when(documentInstanceService.renderPdf(eq(documentInstance), any(Map.class)))
+        .thenReturn(pdfRenderResult);
+
+    Map<String, Object> expectedTemplateModel = Map.of(
+        "documentInstanceSectionSummaryView", summaryViews,
+        "isPreview", isPreview,
+        "companyName", "Test Company",
+        "companyRegisteredAddress", new String[]{"123 Test Street", "Test City"},
+        "currentDate", "16 March 2026"
+    );
+    when(documentSigningService.signPdf(pdfRenderResult.pdfContent(), serviceUserDetail)).thenReturn(expectedPdfContent);
+
+    var result = lmsDocumentInstanceService.renderAndSignPdf(application, isPreview, documentInstance, summaryViews, serviceUserDetail);
+
+    verify(documentInstanceService).renderPdf(eq(documentInstance), templateModelCaptor.capture());
+    assertThat(templateModelCaptor.getValue()).usingRecursiveComparison().isEqualTo(expectedTemplateModel);
+
+    var documentInstanceSectionsSummaryView = DocumentInstanceSectionsSummaryView.from(summaryViews);
+
+    assertThat(result)
+        .extracting(
+            LmsPdfRenderResult::pdfContent,
+            LmsPdfRenderResult::pdfHtml,
+            LmsPdfRenderResult::mailMergeResolvedValuesByMnemonic
+        )
+        .containsExactly(
+            expectedPdfContent,
+            expectedHtml,
+            documentInstanceSectionsSummaryView.allMailMergeResolvedValuesByMnemonic()
+        );
+  }
+
+  @Test
+  void renderAndSignPdf_whenFieldsAreNullOrEmpty_handlesGracefully_IsNotPreview() {
     var isPreview = false;
     var documentInstance = DocumentInstanceDtoTestUtil.newBuilder().build();
     var summaryViews = List.of(new DocumentInstanceSectionSummaryView(
@@ -223,6 +361,9 @@ class LmsDocumentInstanceServiceTest {
 
     when(documentInstanceService.renderPdf(eq(documentInstance), any(Map.class)))
         .thenReturn(pdfRenderResult);
+    when(documentSigningService.signPdf(pdfRenderResult.pdfContent(), serviceUserDetail)).thenReturn(new ByteArrayResource(new byte[]{4, 5, 6}));
+
+    when(application.getApplicationType()).thenReturn(ApplicationType.CONTINUATION_APPLICATION);
 
     Map<String, Object> expectedTemplateModel = Map.of(
         "documentInstanceSectionSummaryView", summaryViews,
@@ -232,7 +373,7 @@ class LmsDocumentInstanceServiceTest {
         "currentDate", ""
     );
 
-    var result = lmsDocumentInstanceService.renderAndSignPdf(isPreview, documentInstance, summaryViews);
+    var result = lmsDocumentInstanceService.renderAndSignPdf(application, isPreview, documentInstance, summaryViews, serviceUserDetail);
 
     verify(documentInstanceService).renderPdf(eq(documentInstance), templateModelCaptor.capture());
     assertThat(templateModelCaptor.getValue()).usingRecursiveComparison().isEqualTo(expectedTemplateModel);

@@ -58,6 +58,9 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
   @MockitoBean
   private DocumentLinkingService documentLinkingService;
 
+  @MockitoBean
+  private IssueLettersService issueLettersService;
+
   @Mock
   private DocumentInstanceDto documentInstanceMock;
 
@@ -84,7 +87,7 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
   @AuthorisationSecurityTest
   void renderPreviewPdf_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
-            get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderPreviewPdf(applicationType, applicationId, documentInstanceId)))
+            get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderPreviewPdf(applicationType, applicationId, documentInstanceId, null)))
         )
         .andExpect(redirectionToLoginUrl());
   }
@@ -108,11 +111,11 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
   @Test
   void renderPreviewPdf_redirectsToRenderPdf() throws Exception {
     mockMvc.perform(
-            get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderPreviewPdf(applicationType, applicationId, documentInstanceId)))
+            get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderPreviewPdf(applicationType, applicationId, documentInstanceId, null )))
                 .with(user(regulatorUser))
         )
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderGeneratedPdf(applicationType, applicationId, documentInstanceId))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderGeneratedPdf(applicationType, applicationId, documentInstanceId, null))));
   }
 
   @Test
@@ -121,7 +124,7 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
         .thenThrow(DocumentInstanceNotFoundException.class);
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderGeneratedPdf(applicationType, applicationId, documentInstanceId)))
+            get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderGeneratedPdf(applicationType, applicationId, documentInstanceId, null)))
                 .with(user(regulatorUser))
         )
         .andExpect(status().isNotFound());
@@ -140,15 +143,17 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
     when(lmsPdfRenderResult.pdfContent()).thenReturn(new ByteArrayResource(pdfBytes));
 
     when(lmsDocumentInstanceService.renderAndSignPdf(
+        licenceApplication,
         true,
         documentInstanceMock,
-        summaryViews.topLevelDocumentInstanceSectionSummaryViews()
+        summaryViews.topLevelDocumentInstanceSectionSummaryViews(),
+        regulatorUser
     )).thenReturn(lmsPdfRenderResult);
 
     var expectedFileName = "PREVIEW Test Letter Template.pdf";
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderGeneratedPdf(applicationType, applicationId, documentInstanceId)))
+            get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderGeneratedPdf(applicationType, applicationId, documentInstanceId, null)))
                 .with(user(regulatorUser))
         )
         .andExpect(status().isOk())
@@ -212,5 +217,55 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
         .andExpect(redirectedUrl(ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(applicationType, applicationId))));
 
     verify(documentInstanceService).reloadDocumentInstance(documentInstanceMock);
+  }
+
+  @AuthorisationSecurityTest
+  void approveAndSignDocument_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
+    mockMvc.perform(
+            get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).approveAndSignDocument(applicationType, applicationId, documentInstanceId, null, regulatorUser)))
+        )
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void approveAndSignDocument_whenInstanceNotFound_assertNotFound() throws Exception {
+    when(documentInstanceService.getDocumentInstanceDtoOrThrow(documentInstanceId))
+        .thenThrow(DocumentInstanceNotFoundException.class);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).approveAndSignDocument(applicationType, applicationId, documentInstanceId, null, regulatorUser)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void approveAndSignDocument_assertRedirectsAndSavesLetter() throws Exception {
+    when(applicationService.getApplication(applicationType, applicationId))
+        .thenReturn(licenceApplication);
+
+    when(documentInstanceService.getDocumentInstanceDtoOrThrow(documentInstanceId))
+        .thenReturn(documentInstanceMock);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).approveAndSignDocument(applicationType, applicationId, documentInstanceId, null, regulatorUser)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(applicationType, applicationId))));
+
+    verify(applicationService)
+        .getApplication(applicationType, applicationId);
+
+    verify(documentInstanceService)
+        .getDocumentInstanceDtoOrThrow(documentInstanceId);
+
+    verify(issueLettersService).saveApplicationLetterToS3(
+        documentInstanceMock,
+        licenceApplication,
+        regulatorUser,
+        false,
+        lmsDocumentInstanceService
+    );
   }
 }

@@ -22,8 +22,10 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceSectionDto;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceSectionForm;
@@ -42,6 +44,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.Applica
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.AuthorisationSecurityTest;
 
+@WebMvcTest(ApplicationLetterDocumentController.class)
 @ContextConfiguration(classes = ApplicationLetterDocumentController.class)
 class ApplicationLetterDocumentControllerTest extends AbstractControllerTest {
 
@@ -71,6 +74,9 @@ class ApplicationLetterDocumentControllerTest extends AbstractControllerTest {
   @MockitoBean
   private LicenceApplication application;
 
+  @MockitoBean
+  private ApplicationLetterValidationService  applicationLetterValidationService;
+
   @BeforeEach
   void setUp() {
     when(application.getId()).thenReturn(APP_ID);
@@ -85,6 +91,9 @@ class ApplicationLetterDocumentControllerTest extends AbstractControllerTest {
         .withTitle("My Section")
         .withDisplayOrder(DISPLAY_ORDER)
         .build();
+
+    var bindingResult = new BeanPropertyBindingResult(DocumentInstanceSectionForm.from(documentInstanceSectionDto), "form");
+    when(applicationLetterValidationService.getDocumentSectionSpecificErrors(any(),any())).thenReturn(bindingResult);
 
     applicableDocumentMailMergeFieldViews = List.of(
         new DocumentMailMergeFieldView("MNEMONIC_1", "Desc 1"),

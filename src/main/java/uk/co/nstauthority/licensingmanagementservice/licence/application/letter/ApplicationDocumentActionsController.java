@@ -21,9 +21,11 @@ import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceDto;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceNotFoundException;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceSectionsSummaryView;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceService;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.document.DocumentLinkingService;
 import uk.co.nstauthority.licensingmanagementservice.document.instance.LmsDocumentInstanceService;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -36,35 +38,40 @@ public class ApplicationDocumentActionsController {
   private final LmsDocumentInstanceService lmsDocumentInstanceService;
   private final ApplicationService applicationService;
   private final DocumentLinkingService documentLinkingService;
+  private final IssueLettersService issueLettersService;
 
   @Autowired
   public ApplicationDocumentActionsController(
       DocumentInstanceService documentInstanceService,
       LmsDocumentInstanceService lmsDocumentInstanceService,
       ApplicationService applicationService,
-      DocumentLinkingService documentLinkingService
+      DocumentLinkingService documentLinkingService,
+      IssueLettersService issueLettersService
   ) {
     this.documentInstanceService = documentInstanceService;
     this.lmsDocumentInstanceService = lmsDocumentInstanceService;
     this.applicationService = applicationService;
     this.documentLinkingService = documentLinkingService;
+    this.issueLettersService = issueLettersService;
   }
 
   @GetMapping("preview")
   public ModelAndView renderPreviewPdf(
       @PathVariable ApplicationType applicationType,
       @PathVariable UUID applicationId,
-      @PathVariable("documentInstanceId") UUID documentInstanceId
+      @PathVariable("documentInstanceId") UUID documentInstanceId,
+      ServiceUserDetail user
   ) {
     return ReverseRouter.redirect(on(ApplicationDocumentActionsController.class)
-                                      .renderGeneratedPdf(applicationType, applicationId, documentInstanceId));
+                                      .renderGeneratedPdf(applicationType, applicationId, documentInstanceId, user));
   }
 
   @GetMapping("render")
   public ResponseEntity<ByteArrayResource> renderGeneratedPdf(
       @PathVariable ApplicationType applicationType,
       @PathVariable UUID applicationId,
-      @PathVariable("documentInstanceId") UUID documentInstanceId
+      @PathVariable("documentInstanceId") UUID documentInstanceId,
+      ServiceUserDetail user
   ) {
     var application = applicationService.getApplication(applicationType, applicationId);
     var documentInstance = getDocumentInstanceDtoOrThrowNotFound(documentInstanceId);
@@ -72,7 +79,29 @@ public class ApplicationDocumentActionsController {
     var sectionsSummaryView = lmsDocumentInstanceService
         .getDocumentInstanceSectionsSummaryView(documentInstance, false, application);
 
-    return renderPreviewPdf(documentInstance, sectionsSummaryView);
+    return renderPreviewPdf(application, documentInstance, sectionsSummaryView, user);
+  }
+
+  @GetMapping("approve")
+  public ModelAndView approveAndSignDocument(
+      @PathVariable ApplicationType applicationType,
+      @PathVariable UUID applicationId,
+      @PathVariable("documentInstanceId") UUID documentInstanceId,
+      RedirectAttributes redirectAttributes,
+      ServiceUserDetail user
+  ) {
+    var application = applicationService.getApplication(applicationType, applicationId);
+    var documentInstance = getDocumentInstanceDtoOrThrowNotFound(documentInstanceId);
+
+    issueLettersService.saveApplicationLetterToS3(documentInstance, application, user, false, lmsDocumentInstanceService);
+
+    NotificationBanner.newSuccessBannerWithHeader(
+        "Successfully approved the document %s".formatted(documentInstance.title()),
+        redirectAttributes
+    );
+
+    return ReverseRouter.redirect(on(ApplicationLetterController.class)
+                                      .renderEditLetterOverview(applicationType, applicationId));
   }
 
   @GetMapping("reload")
@@ -116,13 +145,17 @@ public class ApplicationDocumentActionsController {
   }
 
   private ResponseEntity<ByteArrayResource> renderPreviewPdf(
+      LicenceApplication licenceApplication,
       DocumentInstanceDto documentInstance,
-      DocumentInstanceSectionsSummaryView sectionsSummaryView
+      DocumentInstanceSectionsSummaryView sectionsSummaryView,
+      ServiceUserDetail user
   ) {
     var pdf = lmsDocumentInstanceService.renderAndSignPdf(
+        licenceApplication,
         true,
         documentInstance,
-        sectionsSummaryView.topLevelDocumentInstanceSectionSummaryViews()
+        sectionsSummaryView.topLevelDocumentInstanceSectionSummaryViews(),
+        user
     );
 
     ByteArrayResource pdfContent = pdf.pdfContent();

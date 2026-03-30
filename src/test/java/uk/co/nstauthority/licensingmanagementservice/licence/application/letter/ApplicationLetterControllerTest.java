@@ -12,6 +12,7 @@ import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLog
 
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceSectionsSummaryView;
@@ -26,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.Applica
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.AuthorisationSecurityTest;
 
+@WebMvcTest(ApplicationLetterController.class)
 @ContextConfiguration(classes = ApplicationLetterController.class)
 class ApplicationLetterControllerTest extends AbstractControllerTest {
 
@@ -49,6 +51,9 @@ class ApplicationLetterControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private DocumentInstanceSectionsSummaryView sectionsSummaryView;
+
+  @MockitoBean
+  private ApplicationLetterValidationService applicationLetterValidationService;
 
   @AuthorisationSecurityTest
   void renderEditLetterOverview_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
@@ -82,6 +87,6 @@ class ApplicationLetterControllerTest extends AbstractControllerTest {
         .andExpect(model().attributeExists("accordionId"))
         .andExpect(model().attribute("documentInstanceSectionsSummaryView", sectionsSummaryView))
         .andExpect(model().attribute("reloadUrl", ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderReloadDocumentPage(appType ,appId, documentInstance.id()))))
-        .andExpect(model().attribute("previewUrl", ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderPreviewPdf(appType ,appId, documentInstance.id()))));
+        .andExpect(model().attribute("previewUrl", ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderPreviewPdf(appType ,appId, documentInstance.id(), null))));
   }
 }

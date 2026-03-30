@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Service;
@@ -19,8 +21,10 @@ import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceService;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentMailMergeFieldFormatter;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentMailMergeFieldResolveResult;
 import uk.co.fivium.digitaldocumentlibrary.document.PdfRenderResult;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.document.AddSectionOption;
 import uk.co.nstauthority.licensingmanagementservice.document.DocumentInstanceMailMergeFieldFormatter;
+import uk.co.nstauthority.licensingmanagementservice.document.signing.DocumentSigningService;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.LmsPdfRenderResult;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.mailmerge.mailmergefields.CompanyNameMailMergeField;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.mailmerge.mailmergefields.CompanyRegisteredAddressMailMergeField;
@@ -39,6 +43,9 @@ public class LmsDocumentInstanceService {
   private final CurrentDateMailMergeField currentDateMailMergeField;
   private final CompanyRegisteredAddressMailMergeField companyRegisteredAddressMailMergeField;
   private final DocumentInstanceService documentInstanceService;
+  public final DocumentSigningService documentSigningService;
+  private static final Logger LOGGER = LoggerFactory.getLogger(LmsDocumentInstanceService.class);
+
 
   @Autowired
   public LmsDocumentInstanceService(
@@ -47,7 +54,8 @@ public class LmsDocumentInstanceService {
       CompanyNameMailMergeField companyNameMailMergeField,
       CurrentDateMailMergeField currentDateMailMergeField,
       CompanyRegisteredAddressMailMergeField companyRegisteredAddressMailMergeField,
-      DocumentInstanceService documentInstanceService
+      DocumentInstanceService documentInstanceService,
+      DocumentSigningService documentSigningService
   ) {
     this.documentMailMergeFieldFormatter = documentMailMergeFieldFormatter;
     this.documentInstanceSectionViewService = documentInstanceSectionViewService;
@@ -55,6 +63,7 @@ public class LmsDocumentInstanceService {
     this.currentDateMailMergeField = currentDateMailMergeField;
     this.companyRegisteredAddressMailMergeField = companyRegisteredAddressMailMergeField;
     this.documentInstanceService = documentInstanceService;
+    this.documentSigningService = documentSigningService;
   }
 
   public DocumentInstanceSectionsSummaryView getDocumentInstanceSectionsSummaryView(
@@ -113,12 +122,28 @@ public class LmsDocumentInstanceService {
   }
 
   public LmsPdfRenderResult renderAndSignPdf(
+      LicenceApplication application,
       boolean isPreview,
       DocumentInstanceDto documentInstanceDto,
-      List<DocumentInstanceSectionSummaryView> documentInstanceSectionSummaryViews
+      List<DocumentInstanceSectionSummaryView> documentInstanceSectionSummaryViews,
+      ServiceUserDetail user
   ) {
     PdfRenderResult unsignedPdf = renderPdf(documentInstanceDto, documentInstanceSectionSummaryViews, isPreview);
-    ByteArrayResource resultResource = unsignedPdf.pdfContent();
+    ByteArrayResource resultResource;
+
+    if (isPreview) {
+      resultResource = documentSigningService.previewPdfSignature(unsignedPdf.pdfContent());
+    } else {
+      resultResource = documentSigningService.signPdf(unsignedPdf.pdfContent(), user);
+
+      LOGGER.info(
+          "Digitally signed {} document for {} {} on behalf of user {}",
+          documentInstanceDto.title(),
+          application.getApplicationType().getDisplayName(),
+          application.getId(),
+          user.wuaId()
+      );
+    }
 
     var documentInstanceSectionsSummaryView = DocumentInstanceSectionsSummaryView.from(documentInstanceSectionSummaryViews);
 

@@ -30,18 +30,21 @@ public class ApplicationLetterController {
   private final ApplicationLetterService applicationLetterService;
   private final ApplicationService applicationService;
   private final DocumentLinkingService documentLinkingService;
+  private final ApplicationLetterValidationService applicationLetterValidationService;
 
   @Autowired
   ApplicationLetterController(
       LmsDocumentInstanceService lmsDocumentInstanceService,
       ApplicationLetterService applicationLetterService,
       ApplicationService applicationService,
-      DocumentLinkingService documentLinkingService
+      DocumentLinkingService documentLinkingService,
+      ApplicationLetterValidationService applicationLetterValidationService
   ) {
     this.lmsDocumentInstanceService = lmsDocumentInstanceService;
     this.applicationLetterService = applicationLetterService;
     this.applicationService = applicationService;
     this.documentLinkingService = documentLinkingService;
+    this.applicationLetterValidationService = applicationLetterValidationService;
   }
 
   @GetMapping("/letter/edit")
@@ -61,8 +64,9 @@ public class ApplicationLetterController {
         applicationId,
         applicationType,
         documentInstance,
-        documentInstanceSectionsSummaryView
-    );
+        documentInstanceSectionsSummaryView)
+            .addObject("errorList",
+                       applicationLetterValidationService.getDocumentSectionOverviewError(documentInstanceSectionsSummaryView));
   }
 
   private ModelAndView getOverviewModelAndView(
@@ -107,7 +111,18 @@ public class ApplicationLetterController {
             ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderPreviewPdf(
                 applicationType,
                 applicationId,
-                documentInstanceDto.id()
+                documentInstanceDto.id(),
+                null
+            ))
+        )
+        .addObject(
+            "signUrl",
+            ReverseRouter.route(on(ApplicationDocumentActionsController.class).approveAndSignDocument(
+                applicationType,
+                applicationId,
+                documentInstanceDto.id(),
+                null,
+                null
             ))
         );
   }

@@ -10,9 +10,17 @@
   pageHeadingClass="govuk-heading-xl govuk-!-margin-bottom-2"
 >
     <@fdsAction.link
+    linkText="Approve and issue letters"
+    linkUrl=springUrl(signUrl)
+    linkClass="govuk-button govuk-button--primary"
+    role=true
+    openInNewTab=true
+    />
+
+    <@fdsAction.link
     linkText="Preview document"
     linkUrl=springUrl(previewUrl)
-    linkClass="govuk-button govuk-button--primary"
+    linkClass="govuk-button govuk-button--secondary"
     role=true
     openInNewTab=true
     />

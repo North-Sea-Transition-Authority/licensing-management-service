@@ -39,19 +39,22 @@ public class ApplicationLetterDocumentController {
   private final DocumentInstanceSectionFormValidator documentInstanceSectionFormValidator;
   private final ApplicationLetterService applicationLetterService;
   private final ApplicationService applicationService;
+  private final ApplicationLetterValidationService applicationLetterValidationService;
 
   public ApplicationLetterDocumentController(
       DocumentInstanceSectionService documentInstanceSectionService,
       DocumentMailMergeFieldViewService documentMailMergeFieldViewService,
       DocumentInstanceSectionFormValidator documentInstanceSectionFormValidator,
       ApplicationLetterService applicationLetterService,
-      ApplicationService applicationService
+      ApplicationService applicationService,
+      ApplicationLetterValidationService applicationLetterValidationService
   ) {
     this.documentInstanceSectionService = documentInstanceSectionService;
     this.documentMailMergeFieldViewService = documentMailMergeFieldViewService;
     this.documentInstanceSectionFormValidator = documentInstanceSectionFormValidator;
     this.applicationLetterService = applicationLetterService;
     this.applicationService = applicationService;
+    this.applicationLetterValidationService = applicationLetterValidationService;
   }
 
   @GetMapping("/add")
@@ -122,13 +125,15 @@ public class ApplicationLetterDocumentController {
     );
     var documentSectionDto = getDocumentInstanceSectionOrThrowNotFound(documentSectionId);
     var form = DocumentInstanceSectionForm.from(documentSectionDto);
+    var bindingResult = applicationLetterValidationService.getDocumentSectionSpecificErrors(form, documentSectionDto);
 
     return getAddOrEditSectionModelAndView(
         documentSectionDto,
         form,
         "Edit %s".formatted(documentSectionDto.title()),
         application
-    );
+    )
+        .addObject("%sform".formatted(BindingResult.MODEL_KEY_PREFIX), bindingResult);
   }
 
   @PostMapping("/edit")

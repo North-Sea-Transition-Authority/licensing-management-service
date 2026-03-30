@@ -6,6 +6,7 @@ import uk.co.fivium.energyportalapi.client.EnergyPortal;
 import uk.co.fivium.energyportalapi.client.field.FieldApi;
 import uk.co.fivium.energyportalapi.client.licence.licence.LicenceApi;
 import uk.co.fivium.energyportalapi.client.organisation.OrganisationApi;
+import uk.co.fivium.energyportalapi.client.subarea.SubareaApi;
 import uk.co.fivium.energyportalapi.client.user.UserApi;
 import uk.co.nstauthority.licensingmanagementservice.correlationid.CorrelationIdUtil;
 
@@ -44,5 +45,10 @@ public class EnergyPortalApiBeans {
   @Bean
   public LicenceApi licenceApi(EnergyPortal energyPortal) {
     return new LicenceApi(energyPortal);
+  }
+
+  @Bean
+  public SubareaApi subareaApi(EnergyPortal energyPortal) {
+    return new SubareaApi(energyPortal);
   }
 }

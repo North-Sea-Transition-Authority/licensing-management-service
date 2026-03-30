@@ -6,9 +6,11 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationDisplayUtil;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
@@ -34,6 +36,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 
 @Service
 public class LicenceScheduleTimelineService {
@@ -46,6 +50,7 @@ public class LicenceScheduleTimelineService {
   private final LicenceScheduleRateService licenceScheduleRateService;
   private final LicenceScheduleExpiryService licenceScheduleExpiryService;
   private final OtherScheduleEventService otherScheduleEventService;
+  private final TeamQueryService teamQueryService;
 
   public LicenceScheduleTimelineService(
       LicenceStartDateService licenceStartDateService,
@@ -55,7 +60,8 @@ public class LicenceScheduleTimelineService {
       WorkProgrammeActivityService workProgrammeActivityService,
       LicenceScheduleRateService licenceScheduleRateService,
       LicenceScheduleExpiryService licenceScheduleExpiryService,
-      OtherScheduleEventService otherScheduleEventService
+      OtherScheduleEventService otherScheduleEventService,
+      TeamQueryService teamQueryService
   ) {
     this.licenceStartDateService = licenceStartDateService;
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
@@ -65,6 +71,7 @@ public class LicenceScheduleTimelineService {
     this.licenceScheduleRateService = licenceScheduleRateService;
     this.licenceScheduleExpiryService = licenceScheduleExpiryService;
     this.otherScheduleEventService = otherScheduleEventService;
+    this.teamQueryService = teamQueryService;
   }
 
   public TimelineSummaryCardView getTimelineSummaryCardView(LicenceScheduleDetail licenceScheduleDetail) {
@@ -128,14 +135,27 @@ public class LicenceScheduleTimelineService {
     );
   }
 
-  public List<TimelineTermView> getReadOnlyLicenceScheduleEventViews(
+  public List<TimelineTermView> getLicenceScheduleEventViewsForOverview(
       LicenceScheduleDetail licenceScheduleDetail,
-      TimelineFilterForm timelineFilterForm
+      TimelineFilterForm timelineFilterForm,
+      ServiceUserDetail userDetail
   ) {
+    var updateWorkProgrammeStatusRoles = Set.of(
+        Role.WORK_PROGRAMME_ADMINISTRATOR,
+        Role.WORK_PROGRAMME_STATUS_ADMINISTRATOR
+    );
+
+    List<ScheduleEventAction> eventActions = teamQueryService.userHasAtLeastOneRoleIn(
+        userDetail.wuaId(),
+        updateWorkProgrammeStatusRoles
+    )
+        ? List.of(ScheduleEventAction.EDIT_WORK_PROGRAMME_STATUS)
+        : List.of();
+
     return getLicenceScheduleEventViews(
         licenceScheduleDetail,
         timelineFilterForm,
-        List.of()
+        eventActions
     );
   }
 

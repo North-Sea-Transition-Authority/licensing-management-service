@@ -63,4 +63,14 @@ public class LicenceService {
     var licenceType = licence.getType();
     return licenceType.getDisplayName() + " - " + findLicenceByIdOrThrow(licenceId).getLicenceReference();
   }
+
+  public List<Licence> searchLicencesByReferenceAndTypes(
+      String searchTerm,
+      List<LicenceType> types
+  ) {
+    return licenceRepository.findAllByLicenceReferenceContainingIgnoreCaseAndTypeIn(
+        searchTerm,
+        types
+    );
+  }
 }

@@ -15,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusService;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
@@ -27,6 +28,7 @@ public class WorkProgrammeActivityFormService {
   private final LicenceTypeRulesResolver licenceTypeRulesResolver;
   private final LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
+  private final WorkProgrammeActivityStatusService workProgrammeActivityStatusService;
 
   public WorkProgrammeActivityFormService(
       WorkProgrammeActivityRepository workProgrammeActivityRepository,
@@ -34,7 +36,8 @@ public class WorkProgrammeActivityFormService {
       LicenceSchedulePhaseService licenceSchedulePhaseService,
       LicenceTypeRulesResolver licenceTypeRulesResolver,
       LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService,
-      LicenceScheduleCalculationService licenceScheduleCalculationService
+      LicenceScheduleCalculationService licenceScheduleCalculationService,
+      WorkProgrammeActivityStatusService workProgrammeActivityStatusService
   ) {
     this.workProgrammeActivityRepository = workProgrammeActivityRepository;
     this.licenceScheduleTermService = licenceScheduleTermService;
@@ -42,6 +45,7 @@ public class WorkProgrammeActivityFormService {
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
     this.licenceScheduleRelativeOptionsService = licenceScheduleRelativeOptionsService;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
+    this.workProgrammeActivityStatusService = workProgrammeActivityStatusService;
   }
 
   public Map<String, String> getDateOptions(LicenceScheduleDetail licenceScheduleDetail) {
@@ -104,6 +108,7 @@ public class WorkProgrammeActivityFormService {
     }
 
     workProgrammeActivityRepository.save(activity);
+    workProgrammeActivityStatusService.createInitialStatusFor(activity);
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 

@@ -60,6 +60,7 @@ class EnergyPortalDataServiceTest {
         createServiceRoleDto(Role.OFFLINE_LICENCE_ADMINISTRATOR, false),
         createServiceRoleDto(Role.SCHEDULE_ADMINISTRATOR, false),
         createServiceRoleDto(Role.WORK_PROGRAMME_ADMINISTRATOR, false),
+        createServiceRoleDto(Role.WORK_PROGRAMME_STATUS_ADMINISTRATOR, false),
         createServiceRoleDto(Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER, false),
         createServiceRoleDto(Role.DOCUMENT_TEMPLATE_MANAGER, false)
     );

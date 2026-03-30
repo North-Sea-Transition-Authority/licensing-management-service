@@ -128,7 +128,6 @@ class LicenceServiceTest {
 
   @Test
   void getLicencePageCaption() {
-
     var licenceId = 1;
     var licenceType = LicenceType.CARBON_STORAGE;
     var licenceRef = "P100";
@@ -139,5 +138,15 @@ class LicenceServiceTest {
         .build();
     when(licenceRepository.findById(licenceId)).thenReturn(Optional.of(licence));
     assertThat(licenceService.getLicencePageCaption(licence)).isEqualTo(licenceType.getDisplayName() + " - " + licenceRef);
+  }
+
+  @Test
+  void searchLicencesByReferenceAndTypes() {
+    var searchTerm = "term";
+    var licenceTypes = List.of(LicenceType.SEAWARD_PRODUCTION);
+
+    licenceService.searchLicencesByReferenceAndTypes(searchTerm, licenceTypes);
+
+    verify(licenceRepository).findAllByLicenceReferenceContainingIgnoreCaseAndTypeIn(searchTerm, licenceTypes);
   }
 }

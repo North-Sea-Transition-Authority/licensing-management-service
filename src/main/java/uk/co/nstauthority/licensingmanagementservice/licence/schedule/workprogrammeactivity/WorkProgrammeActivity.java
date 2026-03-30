@@ -14,6 +14,7 @@ import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
@@ -183,5 +184,11 @@ public class WorkProgrammeActivity {
 
   public void setEventReference(UUID eventReference) {
     this.eventReference = eventReference;
+  }
+
+  public Licence getLicence() {
+    return this.getLicenceScheduleDetail()
+        .getLicenceSchedule()
+        .getLicence();
   }
 }

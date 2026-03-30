@@ -24,6 +24,22 @@ public class LicenceInternalApiRestController {
     this.searchSelectorService = searchSelectorService;
   }
 
+  @GetMapping("/{licenceTypeSlugList}")
+  public RestSearchResult searchLicencesByReferenceAndType(
+      @PathVariable String licenceTypeSlugList,
+      @RequestParam(value = "term") String term
+  ) {
+    var licenceTypes = LicenceType.getFromSlugListOrThrow(licenceTypeSlugList);
+
+    return searchSelectorService.search(
+        term,
+        licenceInternalApiService.searchLicencesByReferenceAndType(
+            term,
+            licenceTypes
+        )
+    );
+  }
+
   @GetMapping("/schedule-work-programme-application/{licenceTypeSlugList}")
   public RestSearchResult searchActiveLicenceSchedulesByReferenceAndTypeForEaaApplication(
       @PathVariable String licenceTypeSlugList,

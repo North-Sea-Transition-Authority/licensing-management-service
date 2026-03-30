@@ -7,6 +7,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.util.List;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -25,6 +26,30 @@ class LicenceInternalApiRestControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private SearchSelectorService searchSelectorService;
+
+  @Test
+  void searchLicencesByReferenceAndType() throws Exception {
+    var user = ServiceUserDetailTestUtil.newBuilder().build();
+
+    var licenceType = LicenceType.SEAWARD_PRODUCTION;
+    var searchTerm = "searchTerm";
+
+    var response = List.of(new LicenceJson(1, "P001"));
+
+    when(licenceInternalApiService.searchLicencesByReferenceAndType(
+        searchTerm,
+        List.of(licenceType)
+        )
+    )
+        .thenReturn(response);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceInternalApiRestController.class).searchLicencesByReferenceAndType(licenceType.getUrlSlug(), null)))
+                .with(user(user))
+                .param("term", searchTerm)
+        )
+        .andExpect(status().isOk());
+  }
 
   @SecurityTest
   void searchActiveLicenceSchedulesByReferenceAndTypeForEaaApplication() throws Exception {

@@ -6,6 +6,7 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
@@ -26,19 +27,32 @@ public class LicenceInternalApiService {
   private final ApplicationAccessService applicationAccessService;
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final LicenceContinuationService licenceContinuationService;
+  private final LicenceService licenceService;
 
   public LicenceInternalApiService(
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
       LicenceScheduleDetailService licenceScheduleDetailService,
       ApplicationAccessService applicationAccessService,
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
-      LicenceContinuationService licenceContinuationService
+      LicenceContinuationService licenceContinuationService,
+      LicenceService licenceService
   ) {
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.applicationAccessService = applicationAccessService;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.licenceContinuationService = licenceContinuationService;
+    this.licenceService = licenceService;
+  }
+
+  List<LicenceJson> searchLicencesByReferenceAndType(
+      String searchTerm,
+      List<LicenceType> types
+  ) {
+    return licenceService.searchLicencesByReferenceAndTypes(searchTerm, types)
+        .stream()
+        .map(this::toLicenceJson)
+        .toList();
   }
 
   List<LicenceJson> searchLicencesWithInProgressSchedulesByReferenceTypeAndStatusForEaaApplication(

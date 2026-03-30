@@ -85,7 +85,7 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
     var scheduleEventViews = List.of(new TimelineTermView(List.of(), List.of(), TermType.INITIAL, "", "", "", "", true));
 
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
-    when(licenceScheduleTimelineService.getReadOnlyLicenceScheduleEventViews(eq(licenceScheduleDetail), any())).thenReturn(scheduleEventViews);
+    when(licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(eq(licenceScheduleDetail), any(), any())).thenReturn(scheduleEventViews);
 
     mockMvc.perform(
             get(viewOverviewUrl)
@@ -117,7 +117,7 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
     var scheduleEventViews = List.of(new TimelineTermView(List.of(), List.of(), TermType.INITIAL, "", "", "", "", true));
 
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
-    when(licenceScheduleTimelineService.getReadOnlyLicenceScheduleEventViews(eq(licenceScheduleDetail), any())).thenReturn(scheduleEventViews);
+    when(licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(eq(licenceScheduleDetail), any(), any())).thenReturn(scheduleEventViews);
 
     mockMvc.perform(
             get(viewOverviewUrl)

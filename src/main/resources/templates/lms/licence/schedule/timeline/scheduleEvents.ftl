@@ -24,8 +24,12 @@
             timeStampHeadingHint=termView.endDateString()
             />
 
-            <#list termView.endOfTermEvents() as activityView>
-                <@workProgrammeActivityEndOfPeriodRequirement activityView=activityView/>
+            <#list termView.endOfTermEvents() as eventView>
+                <#if eventView.getEventType() = "WORK_PROGRAMME_ACTIVITY">
+                    <@workProgrammeActivityEndOfPeriodRequirement activityView=eventView/>
+                <#elseif eventView.getEventType() = "OTHER">
+                    <@otherScheduleEventEndOfPeriodRequirement eventView=eventView/>
+                </#if>
             </#list>
 
             <@fdsTimeline.timelineTimeStamp
@@ -129,6 +133,12 @@
         </#assign>
     </#if>
 
+    <#if activityView.updateStatusUrl()?has_content>
+        <#assign timelineActions>
+            <@fdsAction.link linkText="Update status" linkUrl=springUrl(activityView.updateStatusUrl()) linkClass="govuk-link"/>
+        </#assign>
+    </#if>
+
     <#if smallDot=true>
         <#assign nodeClass = "fds-timeline__node-number--small-dot">
         <#assign timeStampClass = "">
@@ -157,6 +167,12 @@
         <#assign timelineActions>
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(activityView.updateUrl()) linkClass="govuk-link"/>
             <@fdsAction.link linkText="Remove" linkUrl=springUrl(activityView.deleteUrl()) linkClass="govuk-link"/>
+        </#assign>
+    </#if>
+
+    <#if activityView.updateStatusUrl()?has_content>
+        <#assign timelineActions>
+            <@fdsAction.link linkText="Update status" linkUrl=springUrl(activityView.updateStatusUrl()) linkClass="govuk-link"/>
         </#assign>
     </#if>
 

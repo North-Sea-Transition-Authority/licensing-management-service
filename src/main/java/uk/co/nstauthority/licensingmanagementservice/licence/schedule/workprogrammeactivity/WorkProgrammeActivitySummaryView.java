@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogr
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 
 public record WorkProgrammeActivitySummaryView(
+    String category,
     String description,
     String commitment,
     String dueDate,
@@ -15,6 +16,7 @@ public record WorkProgrammeActivitySummaryView(
         : "";
 
     return new WorkProgrammeActivitySummaryView(
+        workProgrammeActivity.getCategoryString(),
         workProgrammeActivity.getDescription(),
         workProgrammeActivity.getCommitment().getDisplayName(),
         dueDateString,

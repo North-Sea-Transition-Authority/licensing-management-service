@@ -8,6 +8,7 @@ import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDeletionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 public record TimelineWorkProgrammeActivityView(
@@ -16,7 +17,8 @@ public record TimelineWorkProgrammeActivityView(
     LocalDate dueDate,
     String dueDateString,
     String updateUrl,
-    String deleteUrl
+    String deleteUrl,
+    String updateStatusUrl
 ) implements ScheduleEvent {
 
   @Override
@@ -47,13 +49,19 @@ public record TimelineWorkProgrammeActivityView(
           .renderDeleteActivityPage(workProgrammeActivity.getId(), null))
         : "";
 
+    var editStatusUrl = allowedActions.contains(ScheduleEventAction.EDIT_WORK_PROGRAMME_STATUS)
+        ? ReverseRouter.route(on(WorkProgrammeActivityStatusController.class)
+          .renderStatusUpdatePage(workProgrammeActivity.getId(), null))
+        : "";
+
     return new TimelineWorkProgrammeActivityView(
         workProgrammeActivity.getCategoryString(),
         workProgrammeActivity.getDescription(),
         workProgrammeActivity.getDueDate(),
         dueDateString,
         editUrl,
-        deleteUrl
+        deleteUrl,
+        editStatusUrl
     );
   }
 

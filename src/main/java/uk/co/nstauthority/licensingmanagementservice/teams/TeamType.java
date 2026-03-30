@@ -23,6 +23,7 @@ public enum TeamType implements Displayable {
           Role.OFFLINE_LICENCE_ADMINISTRATOR,
           Role.SCHEDULE_ADMINISTRATOR,
           Role.WORK_PROGRAMME_ADMINISTRATOR,
+          Role.WORK_PROGRAMME_STATUS_ADMINISTRATOR,
           Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER,
           Role.DOCUMENT_TEMPLATE_MANAGER
      ),

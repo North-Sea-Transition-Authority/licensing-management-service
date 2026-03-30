@@ -6,7 +6,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
@@ -46,13 +46,33 @@ class LicenceInternalApiServiceTest {
   @Mock
   private LicenceContinuationService licenceContinuationService;
 
+  @Mock
+  private LicenceService licenceService;
+
   @InjectMocks
   private LicenceInternalApiService licenceInternalApiService;
 
   private ServiceUserDetail serviceUserDetail;
 
-  @BeforeEach
-  void setUp() {
+  @Test
+  void searchLicencesByReferenceAndType() {
+    var searchTerm = "term";
+    var licenceType = LicenceType.SEAWARD_PRODUCTION;
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceReference("P001")
+        .build();
+
+    when(licenceService.searchLicencesByReferenceAndTypes(searchTerm, List.of(licenceType))).thenReturn(List.of(licence));
+
+    var licenceJson = new LicenceJson(licence.getId(), licence.getLicenceReference());
+
+    assertThat(licenceInternalApiService.searchLicencesByReferenceAndType(searchTerm, List.of(licenceType)))
+        .isEqualTo(List.of(licenceJson));
+  }
+
+  @Test
+  void searchLicencesWithInProgressSchedulesByReferenceTypeAndStatusForEaaApplication() {
     serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().withWuaId(1L).build();
     int authorizedUnitId = 99;
     when(applicationAccessService.getOrganisationUnitIds(serviceUserDetail)).thenReturn(Set.of(authorizedUnitId));
@@ -60,10 +80,7 @@ class LicenceInternalApiServiceTest {
     var licenceResponsibleOrganisation = new LicenceResponsibleOrganisation();
     licenceResponsibleOrganisation.setResponsibleOrganisationId(authorizedUnitId);
     when(licenceResponsibleOrganisationService.getAllByLicence(any())).thenReturn(List.of(licenceResponsibleOrganisation));
-  }
 
-  @Test
-  void searchLicencesWithInProgressSchedulesByReferenceTypeAndStatusForEaaApplication() {
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(Set.of(
         ScheduleWorkProgrammeApplicationStatus.DRAFT,
         ScheduleWorkProgrammeApplicationStatus.SUBMITTED
@@ -104,6 +121,14 @@ class LicenceInternalApiServiceTest {
 
   @Test
   void searchLicencesWithInProgressSchedulesByReferenceTypeAndStatusForEaaApplication_testActiveApplicationFilter() {
+    serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().withWuaId(1L).build();
+    int authorizedUnitId = 99;
+    when(applicationAccessService.getOrganisationUnitIds(serviceUserDetail)).thenReturn(Set.of(authorizedUnitId));
+
+    var licenceResponsibleOrganisation = new LicenceResponsibleOrganisation();
+    licenceResponsibleOrganisation.setResponsibleOrganisationId(authorizedUnitId);
+    when(licenceResponsibleOrganisationService.getAllByLicence(any())).thenReturn(List.of(licenceResponsibleOrganisation));
+
     var scheduleAppDetail = new ScheduleWorkProgrammeApplicationDetail();
 
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(Set.of(
@@ -145,6 +170,14 @@ class LicenceInternalApiServiceTest {
 
   @Test
   void searchLicencesWithInProgressSchedulesByReferenceTypeAndStatusForContinuationApplication() {
+    serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().withWuaId(1L).build();
+    int authorizedUnitId = 99;
+    when(applicationAccessService.getOrganisationUnitIds(serviceUserDetail)).thenReturn(Set.of(authorizedUnitId));
+
+    var licenceResponsibleOrganisation = new LicenceResponsibleOrganisation();
+    licenceResponsibleOrganisation.setResponsibleOrganisationId(authorizedUnitId);
+    when(licenceResponsibleOrganisationService.getAllByLicence(any())).thenReturn(List.of(licenceResponsibleOrganisation));
+
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(Set.of(
         LicenceContinuationApplicationStatus.DRAFT,
         LicenceContinuationApplicationStatus.SUBMITTED

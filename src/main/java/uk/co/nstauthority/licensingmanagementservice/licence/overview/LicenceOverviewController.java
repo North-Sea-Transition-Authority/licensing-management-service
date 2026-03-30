@@ -69,7 +69,7 @@ public class LicenceOverviewController {
         .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(scheduleDetail))
         .addObject("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions())
         .addObject("scheduleEventViews",
-            licenceScheduleTimelineService.getReadOnlyLicenceScheduleEventViews(scheduleDetail, form)
+            licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(scheduleDetail, form, user)
         )
         .addObject("clearFilterUrl", ReverseRouter.route(on(LicenceOverviewController.class)
             .clearFilters(licenceId, null, null))

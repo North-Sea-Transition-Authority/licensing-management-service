@@ -31,6 +31,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusService;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,6 +54,9 @@ class WorkProgrammeActivityFormServiceTest {
 
   @Mock
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
+
+  @Mock
+  private WorkProgrammeActivityStatusService workProgrammeActivityStatusService;
 
   @InjectMocks
   private WorkProgrammeActivityFormService workProgrammeActivityFormService;
@@ -167,6 +171,7 @@ class WorkProgrammeActivityFormServiceTest {
             LicenceScheduleEventStatus.ACTIVE
         );
 
+    verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -228,6 +233,7 @@ class WorkProgrammeActivityFormServiceTest {
             activity.getEventReference()
         );
 
+    verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -284,6 +290,7 @@ class WorkProgrammeActivityFormServiceTest {
             LicenceScheduleEventStatus.ACTIVE
         );
 
+    verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -334,6 +341,7 @@ class WorkProgrammeActivityFormServiceTest {
             LicenceScheduleEventStatus.ACTIVE
         );
 
+    verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -384,6 +392,7 @@ class WorkProgrammeActivityFormServiceTest {
             LicenceScheduleEventStatus.ACTIVE
         );
 
+    verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 

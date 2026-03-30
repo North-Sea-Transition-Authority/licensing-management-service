@@ -46,6 +46,10 @@ public enum Role {
       "Work programme administrator",
       "Add, remove and update work programmes"
   ),
+  WORK_PROGRAMME_STATUS_ADMINISTRATOR(
+      "Work programme status administrator",
+      "Update the status of a work programme activity"
+  ),
   LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER(
       "Licence schedule and work programme view",
       "Can view the licence schedule and work programme. Users in any other role automatically have view access"

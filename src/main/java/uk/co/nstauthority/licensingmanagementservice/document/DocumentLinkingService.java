@@ -43,6 +43,26 @@ public class DocumentLinkingService {
     return organisationUnitQueryService.getOrganisationUnitAddressById(responsibleOrganisationUnitId);
   }
 
+  public String getApplicationLicenceReferenceFromDto(DocumentInstanceDto documentInstanceDto) {
+    var applicationId = UUID.fromString(documentInstanceDto.itemReference());
+    var applicationType = ApplicationType.valueOf(documentInstanceDto.itemType());
+
+    return switch (applicationType) {
+      case CONTINUATION_APPLICATION -> licenceContinuationService
+          .getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(applicationId)
+          .getLicenceContinuationApplication()
+          .getLicenceSchedule()
+          .getLicence()
+          .getLicenceReference();
+      case SCHEDULE_AMENDMENT_APPLICATION -> scheduleWorkProgrammeApplicationService
+          .getLatestScheduleWorkProgrammeDetailByApplicationIdOrThrow(applicationId)
+          .getScheduleWorkProgrammeApplication()
+          .getLicenceSchedule()
+          .getLicence()
+          .getLicenceReference();
+    };
+  }
+
   private Integer getApplicationResponsibleOrganisationUnitId(DocumentInstanceDto documentInstanceDto) {
     var applicationId = UUID.fromString(documentInstanceDto.itemReference());
     var applicationType = ApplicationType.valueOf(documentInstanceDto.itemType());

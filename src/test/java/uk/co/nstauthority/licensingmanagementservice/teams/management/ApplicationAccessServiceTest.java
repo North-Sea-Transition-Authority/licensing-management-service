@@ -330,6 +330,31 @@ class ApplicationAccessServiceTest {
     assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.CONTINUATION_APPLICATION, orgUnitId, USER_1_WUA_ID)).isTrue();
   }
 
+  @ParameterizedTest
+  @EnumSource(value = Role.class, names = {
+      "DECISION_ISSUER_NEW_VENTURES",
+      "DECISION_ISSUER_OPERATIONS",
+      "DECISION_ISSUER_CS_NEW_VENTURES",
+      "DECISION_ISSUER_CS_CTS",
+      "DECISION_ISSUER_ONSHORE"
+  })
+  void userHasAccessToApplication_whenUserIsDecisionIssuer_returnsTrue(Role decisionIssuerRole) {
+    String appId = "131415";
+    Integer orgUnitId = 100;
+
+    Team irrelevantTeam = new Team(UUID.randomUUID());
+    irrelevantTeam.setTeamType(TeamType.OFFSHORE_PRODUCTION_LICENSING);
+
+    TeamRole role = new TeamRole();
+    role.setTeam(irrelevantTeam);
+    role.setRole(decisionIssuerRole);
+
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(orgUnitId)).thenReturn(Optional.empty());
+
+    assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, orgUnitId, USER_1_WUA_ID)).isTrue();
+  }
+
   @Test
   void userHasAccessToApplication_whenUserIsContinuationReviewer_andAppIsNotContinuation_returnsFalse() {
     String appId = "101112";

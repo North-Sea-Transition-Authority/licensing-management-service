@@ -4,6 +4,6 @@
         <br/>
         ((SIGNATORY_NAME))
     </p>
-    <p><strong>((REGULATOR_SIGNATORY_NAME))</strong></p>
+    <p><strong>((REGULATOR_NAME))</strong></p>
     <p>((DIGITAL_SIGNATURE))</p>
 </#macro>

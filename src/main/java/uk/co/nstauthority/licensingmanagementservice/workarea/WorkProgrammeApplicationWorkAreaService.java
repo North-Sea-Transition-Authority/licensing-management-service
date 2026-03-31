@@ -12,6 +12,7 @@ import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
@@ -29,7 +30,9 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
 
   public static final Set<ScheduleWorkProgrammeApplicationStatus> ACTIVE_APPLICATION_STATUSES = Set.of(
       ScheduleWorkProgrammeApplicationStatus.DRAFT,
-      ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+      ScheduleWorkProgrammeApplicationStatus.SUBMITTED,
+      ScheduleWorkProgrammeApplicationStatus.ISSUE_DECISION
+  );
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final LicenceSearchService licenceSearchService;
   private final ApplicationAccessService applicationAccessService;
@@ -89,11 +92,19 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
         .addStringValue("Licensees", String.join(", ", licensees))
         .build();
 
-    var linkHeadingUrl = applicationDetail.getStatus() == ScheduleWorkProgrammeApplicationStatus.DRAFT
-        ? ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
-            .getTaskList(applicationDetail.getId(), null, null))
-        : ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-            .renderOverview(applicationDetail.getId(), null, null));
+    var linkHeadingUrl = switch (applicationDetail.getStatus()) {
+      case DRAFT -> ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+          .getTaskList(applicationDetail.getId(), null, null));
+
+      case ScheduleWorkProgrammeApplicationStatus.ISSUE_DECISION ->
+          ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
+              ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
+              applicationDetail.getScheduleWorkProgrammeApplication().getId()
+          ));
+
+      default -> ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+          .renderOverview(applicationDetail.getId(), null, null));
+    };
 
     var itemReference = applicationDetail.getStatus() == ScheduleWorkProgrammeApplicationStatus.DRAFT
         ? licence.getLicenceReference()

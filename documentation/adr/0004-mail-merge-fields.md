@@ -21,7 +21,7 @@ These fields are shared across all or most LMS templates. All are already implem
 | `CURRENT_DATE`               | Today's date (when document is generated)            | `Clock`                                                         |
 | `COMPANY_NAME`               | The name of the company the letter is being sent to  | EPA `OrganisationUnitQueryService` via `DocumentLinkingService` |
 | `COMPANY_REGISTERED_ADDRESS` | The company registered number (if a UK company)      | EPA `OrganisationUnitQueryService` via `DocumentLinkingService` |
-| `REGULATOR_SIGNATORY_NAME`   | The name of the person signing the document          | `EnergyPortalUserJson.displayName() `                           |
+| `SIGNATORY_NAME `            | The name of the person signing the document          | `EnergyPortalUserJson.displayName() `                           |
 | `DIGITAL_SIGNATURE`          | Digital signature placeholder                        | This will come from FTSS                                        |
 | `REGULATOR_NAME`             | The full name of the department                      | Use/extend property in `CustomerConfigurationProperties`        |
 | `REGULATOR_ADDRESS`          | The address of the regulator team                    | Use/extend property in `CustomerConfigurationProperties`        |

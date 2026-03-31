@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.fileuploadlibrary.FileUploadLibraryUtils;
 import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
@@ -13,13 +14,16 @@ public class RecordFinalDecisionService {
 
   private final ScheduleWorkProgrammeApplicationDetailRepository detailRepository;
   private final ApplicationFileService applicationFileService;
+  private final ApplicationLetterService applicationLetterService;
 
   public RecordFinalDecisionService(
       ScheduleWorkProgrammeApplicationDetailRepository detailRepository,
-      ApplicationFileService applicationFileService
+      ApplicationFileService applicationFileService,
+      ApplicationLetterService applicationLetterService
   ) {
     this.detailRepository = detailRepository;
     this.applicationFileService = applicationFileService;
+    this.applicationLetterService = applicationLetterService;
   }
 
   public RecordFinalDecisionForm getFormForApplication(
@@ -44,6 +48,7 @@ public class RecordFinalDecisionService {
   public void recordDecision(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
       RecordFinalDecisionForm form) {
+    applicationLetterService.createDocumentInstance(applicationDetail.getScheduleWorkProgrammeApplication());
     form.getDecisionDate().getAsLocalDate().ifPresent(applicationDetail::setDecisionDate);
     applicationDetail.setStatus(ScheduleWorkProgrammeApplicationStatus.ISSUE_DECISION);
     detailRepository.save(applicationDetail);

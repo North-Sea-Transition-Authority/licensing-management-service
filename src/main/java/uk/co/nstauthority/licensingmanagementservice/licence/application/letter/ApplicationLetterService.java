@@ -40,7 +40,7 @@ public class ApplicationLetterService {
 
     DocumentTemplateType templateType = switch (application.getApplicationType()) {
       case CONTINUATION_APPLICATION -> DocumentTemplateType.CONTINUATION_LETTER;
-      case SCHEDULE_AMENDMENT_APPLICATION -> DocumentTemplateType.SCHEDULE_AMENDMENT_LETTER;
+      case SCHEDULE_AMENDMENT_APPLICATION -> DocumentTemplateType.EXTENSION_APPROVAL_LETTER;
     };
 
     String templateMnemonic = "%s-%s".formatted(templateType.name(), application.getApplicationType().name());

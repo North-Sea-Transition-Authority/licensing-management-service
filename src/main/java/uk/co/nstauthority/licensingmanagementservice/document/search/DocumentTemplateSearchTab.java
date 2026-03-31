@@ -1,6 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.document.search;
 
-import java.util.Map;
 import java.util.function.Function;
 import uk.co.nstauthority.licensingmanagementservice.fds.TabView;
 
@@ -9,6 +8,11 @@ public enum DocumentTemplateSearchTab {
       "Continuation (%d)"::formatted,
       "continuation",
       "continuation"
+  ),
+  EXTENSION_AMENDMENT(
+      "Extension Amendment (%d)"::formatted,
+      "extension-amendment",
+      "extension-amendment"
   );
 
   private final Function<Integer, String> labelWithCount;
@@ -33,7 +37,7 @@ public enum DocumentTemplateSearchTab {
     return anchor;
   }
 
-  TabView getTabView(Map<DocumentTemplateSearchTab, Integer> tabToCount) {
-    return new TabView(this.name(), this.getLabelWithCount(tabToCount.get(this)), this.getValue(), this.getAnchor());
+  TabView getTabView(Integer count) {
+    return new TabView(this.name(), this.getLabelWithCount(count), this.getValue(), this.getAnchor());
   }
 }

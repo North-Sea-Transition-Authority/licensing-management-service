@@ -6,9 +6,9 @@ public enum DocumentTemplateType {
       "Continuation Letter",
       "Letter to confirm the continuation of a licence into a subsequent term."
   ),
-  SCHEDULE_AMENDMENT_LETTER(
-      "Schedule Amendment Letter",
-      "Letter to confirm the amendment of a schedule and work programme."
+  EXTENSION_APPROVAL_LETTER(
+      "Extension Approval Letter",
+      "Letter to approve an extension to a licence schedule."
   );
 
   private final String title;

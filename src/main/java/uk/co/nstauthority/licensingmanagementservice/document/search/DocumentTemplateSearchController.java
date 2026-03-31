@@ -76,19 +76,19 @@ public class DocumentTemplateSearchController {
 
   private ModelAndView getModelAndViewForDocumentTemplate(DocumentTemplateSearchFilterForm form,
                                                           int pageNumber,
-                                                          DocumentTemplateSearchTab tab
+                                                          DocumentTemplateSearchTab selectedTab
   ) {
     var filteredItems = documentTemplateSearchService.getDocumentTemplateSearchItems(form);
-    var searchItemsByTab = documentTemplateSearchTabService.getSearchTabItems(filteredItems, pageNumber, tab);
+    var searchItemsByTab = documentTemplateSearchTabService.getSearchTabItems(filteredItems, pageNumber, selectedTab);
     var tabs = searchItemsByTab.stream().map(SearchTabItem::tabView).toList();
     return new ModelAndView("lms/document/documentTemplateSearchPage")
         .addObject("form", form)
         .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
         .addObject("searchItemsByTab", searchItemsByTab)
         .addObject("tabs", tabs)
-        .addObject("selectedTab", tab)
+        .addObject("selectedTab", selectedTab)
         .addObject("clearFilterUrl", ReverseRouter.route(on(DocumentTemplateSearchController.class)
-            .clearDocumentTemplateSearchFilters(null, tab, null)))
+            .clearDocumentTemplateSearchFilters(null, selectedTab, null)))
         .addObject("controllerUrl", ReverseRouter.route(on(DocumentTemplateSearchController.class)
             .renderDocumentTemplateSearch(null, null, null)));
   }

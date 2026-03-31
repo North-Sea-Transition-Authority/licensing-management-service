@@ -41,6 +41,13 @@ public class ApplicationAccessService {
       Role.CONTINUATION_REVIEWER_OPERATIONS,
       Role.CONTINUATION_REVIEWER_NEW_VENTURES
   );
+  public static final Set<Role> DECISION_ISSUER_ROLES = EnumSet.of(
+      Role.DECISION_ISSUER_NEW_VENTURES,
+      Role.DECISION_ISSUER_OPERATIONS,
+      Role.DECISION_ISSUER_CS_NEW_VENTURES,
+      Role.DECISION_ISSUER_CS_CTS,
+      Role.DECISION_ISSUER_ONSHORE
+  );
 
   public ApplicationAccessService(
       OrganisationUnitQueryService organisationUnitQueryService,
@@ -66,7 +73,8 @@ public class ApplicationAccessService {
         ),
         STEWARD_ROLES,
         CASE_MANAGER_ROLES,
-        CONTINUATION_REVIEWER_ROLES
+        CONTINUATION_REVIEWER_ROLES,
+        DECISION_ISSUER_ROLES
     );
 
     var organisationGroupIds = organisationUnitQueryService.findOrganisationGroupIdByUnitId(organisationUnitId)
@@ -85,6 +93,7 @@ public class ApplicationAccessService {
                                )
                                || isCaseManagerOrSteward(teamRole.getRole())
                                || isContinuationReviewer(teamRole.getRole(), applicationType)
+                               || isDecisionIssuer(teamRole.getRole())
                            );
   }
 
@@ -118,6 +127,10 @@ public class ApplicationAccessService {
   private boolean isContinuationReviewer(Role role, ApplicationType applicationType) {
     return CONTINUATION_REVIEWER_ROLES.contains(role)
            && applicationType == ApplicationType.CONTINUATION_APPLICATION;
+  }
+
+  private boolean isDecisionIssuer(Role role) {
+    return DECISION_ISSUER_ROLES.contains(role);
   }
 
   public boolean userHasAccessToStartApplication(

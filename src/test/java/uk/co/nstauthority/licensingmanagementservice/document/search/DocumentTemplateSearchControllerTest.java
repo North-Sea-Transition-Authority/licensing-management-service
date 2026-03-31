@@ -163,7 +163,8 @@ class DocumentTemplateSearchControllerTest extends AbstractControllerTest {
     var pageView = PageView.fromPage(page, ReverseRouter.route(on(DocumentTemplateSearchController.class)
         .renderDocumentTemplateSearch(null, null, null)));
     return List.of(new SearchTabItem(pageView,
-        DocumentTemplateSearchTab.CONTINUATION.getTabView(Map.of(DocumentTemplateSearchTab.CONTINUATION, 1))));
+        DocumentTemplateSearchTab.CONTINUATION.getTabView(
+            Map.of(DocumentTemplateSearchTab.CONTINUATION, 1).get(DocumentTemplateSearchTab.CONTINUATION))));
   }
 
   @Test

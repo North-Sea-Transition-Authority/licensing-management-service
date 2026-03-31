@@ -3,7 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.document.search;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.document.LmsDocumentTemplateDto;
@@ -21,42 +20,60 @@ public class DocumentTemplateSearchTabService {
 
   public List<SearchTabItem> getSearchTabItems(List<LmsDocumentTemplateDto> filteredDocumentTemplateItems,
                                                int pageNumber,
-                                               DocumentTemplateSearchTab tab) {
-    var continuationItems = filteredDocumentTemplateItems.stream()
-        .filter(dataItemDto -> ApplicationType.CONTINUATION_APPLICATION.equals(dataItemDto.applicationType())
-                || Objects.isNull(dataItemDto.applicationType()))
-        .toList();
-
-    var continuationItemPages = PageView.fromPage(
-        QueryPaginationUtil.convertSearchResultsToPage(
-            fromDtos(continuationItems),
-            DocumentTemplateSearchTab.CONTINUATION.equals(tab) ? pageNumber : DEFAULT_PAGE_NUMBER
-        ),
-        ReverseRouter.route(on(DocumentTemplateSearchController.class).renderDocumentTemplateSearch(
-            null,
-            null,
-            DocumentTemplateSearchTab.CONTINUATION
-        ))
+                                               DocumentTemplateSearchTab selectedTab) {
+    var continuationSearchTabItem = buildSearchTabItem(
+        filteredDocumentTemplateItems,
+        DocumentTemplateSearchTab.CONTINUATION,
+        ApplicationType.CONTINUATION_APPLICATION,
+        pageNumber,
+        selectedTab
     );
 
-    var tabToCount = Map.of(
-        DocumentTemplateSearchTab.CONTINUATION, continuationItems.size()
+    var extensionAmendmentSearchTabItem = buildSearchTabItem(
+        filteredDocumentTemplateItems,
+        DocumentTemplateSearchTab.EXTENSION_AMENDMENT,
+        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
+        pageNumber,
+        selectedTab
     );
 
     return List.of(
-        new SearchTabItem(continuationItemPages, DocumentTemplateSearchTab.CONTINUATION.getTabView(tabToCount))
+        continuationSearchTabItem,
+        extensionAmendmentSearchTabItem
     );
   }
 
-  private SearchResultItem fromDto(LmsDocumentTemplateDto dataItemDto) {
-    return SearchResultItem.newBuilder()
-        .withLinkHeadingText(dataItemDto.title())
-        .withLinkHeadingUrl(dataItemDto.documentTemplateUrl())
-        .withCaptionText(dataItemDto.description())
-        .build();
+  private SearchTabItem buildSearchTabItem(
+      List<LmsDocumentTemplateDto> filteredDocumentTemplateItems,
+      DocumentTemplateSearchTab tab,
+      ApplicationType applicationType,
+      int pageNumber,
+      DocumentTemplateSearchTab selectedTab
+  ) {
+    var items = filteredDocumentTemplateItems.stream()
+        .filter(dataItemDto -> applicationType == dataItemDto.applicationType()
+            || Objects.isNull(dataItemDto.applicationType()))
+        .toList();
+
+    var itemPages = PageView.fromPage(
+        QueryPaginationUtil.convertSearchResultsToPage(
+            buildSearchResultItems(items),
+            tab.equals(selectedTab) ? pageNumber : DEFAULT_PAGE_NUMBER
+        ),
+        ReverseRouter.route(on(DocumentTemplateSearchController.class)
+            .renderDocumentTemplateSearch(null, null, tab))
+    );
+
+    return new SearchTabItem(itemPages, tab.getTabView(items.size()));
   }
 
-  private List<SearchResultItem> fromDtos(List<LmsDocumentTemplateDto> resultList) {
-    return resultList.stream().map(this::fromDto).toList();
+  private List<SearchResultItem> buildSearchResultItems(List<LmsDocumentTemplateDto> resultList) {
+    return resultList.stream()
+        .map(dataItemDto -> SearchResultItem.newBuilder()
+            .withLinkHeadingText(dataItemDto.title())
+            .withLinkHeadingUrl(dataItemDto.documentTemplateUrl())
+            .withCaptionText(dataItemDto.description())
+            .build())
+        .toList();
   }
 }

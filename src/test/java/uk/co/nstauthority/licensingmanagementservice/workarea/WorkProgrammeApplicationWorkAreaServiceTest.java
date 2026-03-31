@@ -26,6 +26,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterController;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterController;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceTeam;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
@@ -169,6 +171,30 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
                 .renderOverview(scheduleWorkProgrammeApplicationDetail1.getId(), null, null)),
             ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
                 .getTaskList(scheduleWorkProgrammeApplicationDetail2.getId(), null, null))
+        );
+  }
+
+  @Test
+  void getWorkAreaItems_whenIssueDecision_linksToLetterController() {
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.ISSUE_DECISION);
+    scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
+
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, true);
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail2, false);
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence1)))
+        .thenReturn(Map.of(licence1, List.of("Org 1")));
+
+    var workAreaItems = workProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::linkHeadingUrl)
+        .containsExactly(
+            ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
+                ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
+                scheduleWorkProgrammeApplicationDetail1.getScheduleWorkProgrammeApplication().getId()
+            ))
         );
   }
 
@@ -317,6 +343,35 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
                 String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.minus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView),
                 testInstant.minus(1, ChronoUnit.HOURS)
+            )
+        );
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByUser_isDecisionIssuer() {
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
+
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, true);
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail2, false);
+
+    var org1 = "Org 1";
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence1))).thenReturn(
+        Map.of(licence1, List.of(org1))
+    );
+
+    var workAreaItems = workProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id, SearchResultItem::linkHeadingUrl)
+        .containsExactly(
+            tuple(
+                scheduleWorkProgrammeApplicationDetail1.getId().toString(),
+                ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+                    .renderOverview(scheduleWorkProgrammeApplicationDetail1.getId(), null, null))
             )
         );
   }

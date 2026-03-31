@@ -130,6 +130,36 @@ class DocumentLinkingServiceTest {
   }
 
   @Test
+  void getContinuationApplicationLicenceReferenceFromDocumentInstanceDto() {
+    when(licenceContinuationService.getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(APPLICATION_ID))
+        .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
+
+    var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
+        .withItemType(ApplicationType.CONTINUATION_APPLICATION.name())
+        .withItemReference(APPLICATION_ID.toString())
+        .build();
+
+    var result = documentLinkingService.getApplicationLicenceReferenceFromDto(documentInstanceDto);
+    assertThat(result).isEqualTo(LICENCE.getLicenceReference());
+    verify(licenceContinuationService).getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(APPLICATION_ID);
+  }
+
+  @Test
+  void getScheduleAmendmentApplicationLicenceReferenceFromDocumentInstanceDto() {
+    when(scheduleWorkProgrammeApplicationService.getLatestScheduleWorkProgrammeDetailByApplicationIdOrThrow(APPLICATION_ID))
+        .thenReturn(SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL);
+
+    var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
+        .withItemType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name())
+        .withItemReference(APPLICATION_ID.toString())
+        .build();
+
+    var result = documentLinkingService.getApplicationLicenceReferenceFromDto(documentInstanceDto);
+    assertThat(result).isEqualTo(LICENCE.getLicenceReference());
+    verify(scheduleWorkProgrammeApplicationService).getLatestScheduleWorkProgrammeDetailByApplicationIdOrThrow(APPLICATION_ID);
+  }
+
+  @Test
   void getAmendmentApplicationCompanyFromDocumentInstanceDtoWrongItemType() {
     var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
         .withItemType("wrong item type")

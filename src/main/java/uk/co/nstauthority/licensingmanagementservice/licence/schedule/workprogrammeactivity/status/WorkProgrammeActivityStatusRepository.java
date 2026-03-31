@@ -10,4 +10,5 @@ public interface WorkProgrammeActivityStatusRepository extends JpaRepository<Wor
 
   List<WorkProgrammeActivityStatus> findAllByActivityEventReference(UUID eventReference);
 
+  List<WorkProgrammeActivityStatus> findAllByActivityEventReferenceIn(List<UUID> eventReferences);
 }

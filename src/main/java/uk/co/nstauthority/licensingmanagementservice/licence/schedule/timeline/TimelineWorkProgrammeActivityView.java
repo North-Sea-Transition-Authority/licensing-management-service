@@ -4,11 +4,15 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDeletionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeStatus;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 public record TimelineWorkProgrammeActivityView(
@@ -18,7 +22,8 @@ public record TimelineWorkProgrammeActivityView(
     String dueDateString,
     String updateUrl,
     String deleteUrl,
-    String updateStatusUrl
+    String updateStatusUrl,
+    WorkProgrammeStatus status
 ) implements ScheduleEvent {
 
   @Override
@@ -33,7 +38,8 @@ public record TimelineWorkProgrammeActivityView(
 
   public static ScheduleEvent getScheduleEventFrom(
       WorkProgrammeActivity workProgrammeActivity,
-      List<ScheduleEventAction> allowedActions
+      List<ScheduleEventAction> allowedActions,
+      Map<UUID, WorkProgrammeActivityStatus> eventRefWorkProgrammeStatusMap
   ) {
     var dueDateString = workProgrammeActivity.getDueDate() != null
         ? DateFormatUtil.convertToDisplayText(workProgrammeActivity.getDueDate())
@@ -54,6 +60,12 @@ public record TimelineWorkProgrammeActivityView(
           .renderStatusUpdatePage(workProgrammeActivity.getId(), null))
         : "";
 
+    var status = eventRefWorkProgrammeStatusMap.get(workProgrammeActivity.getEventReference());
+
+    var statusView = status != null
+        ? status.getStatus()
+        : null;
+
     return new TimelineWorkProgrammeActivityView(
         workProgrammeActivity.getCategoryString(),
         workProgrammeActivity.getDescription(),
@@ -61,7 +73,8 @@ public record TimelineWorkProgrammeActivityView(
         dueDateString,
         editUrl,
         deleteUrl,
-        editStatusUrl
+        editStatusUrl,
+        statusView
     );
   }
 

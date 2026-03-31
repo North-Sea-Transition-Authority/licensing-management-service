@@ -6,7 +6,9 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.othersched
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -51,6 +55,7 @@ public class LicenceScheduleTimelineService {
   private final LicenceScheduleExpiryService licenceScheduleExpiryService;
   private final OtherScheduleEventService otherScheduleEventService;
   private final TeamQueryService teamQueryService;
+  private final WorkProgrammeActivityStatusService workProgrammeActivityStatusService;
 
   public LicenceScheduleTimelineService(
       LicenceStartDateService licenceStartDateService,
@@ -61,7 +66,8 @@ public class LicenceScheduleTimelineService {
       LicenceScheduleRateService licenceScheduleRateService,
       LicenceScheduleExpiryService licenceScheduleExpiryService,
       OtherScheduleEventService otherScheduleEventService,
-      TeamQueryService teamQueryService
+      TeamQueryService teamQueryService,
+      WorkProgrammeActivityStatusService workProgrammeActivityStatusService
   ) {
     this.licenceStartDateService = licenceStartDateService;
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
@@ -72,6 +78,7 @@ public class LicenceScheduleTimelineService {
     this.licenceScheduleExpiryService = licenceScheduleExpiryService;
     this.otherScheduleEventService = otherScheduleEventService;
     this.teamQueryService = teamQueryService;
+    this.workProgrammeActivityStatusService = workProgrammeActivityStatusService;
   }
 
   public TimelineSummaryCardView getTimelineSummaryCardView(LicenceScheduleDetail licenceScheduleDetail) {
@@ -152,10 +159,15 @@ public class LicenceScheduleTimelineService {
         ? List.of(ScheduleEventAction.EDIT_WORK_PROGRAMME_STATUS)
         : List.of();
 
+    Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap = teamQueryService.userIsInRegulatorTeam(userDetail.wuaId())
+        ? getLatestWpStatusesForSchedule(licenceScheduleDetail)
+        : Map.of();
+    
     return getLicenceScheduleEventViews(
         licenceScheduleDetail,
         timelineFilterForm,
-        eventActions
+        eventActions,
+        eventRefWpStatusMap
     );
   }
 
@@ -163,17 +175,21 @@ public class LicenceScheduleTimelineService {
       LicenceScheduleDetail licenceScheduleDetail,
       TimelineFilterForm timelineFilterForm
   ) {
+    var eventRefWpStatusMap = getLatestWpStatusesForSchedule(licenceScheduleDetail);
+    
     return getLicenceScheduleEventViews(
         licenceScheduleDetail,
         timelineFilterForm,
-        List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME)
+        List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME),
+        eventRefWpStatusMap
     );
   }
 
   private List<TimelineTermView> getLicenceScheduleEventViews(
       LicenceScheduleDetail licenceScheduleDetail,
       TimelineFilterForm timelineFilterForm,
-      List<ScheduleEventAction> allowedActions
+      List<ScheduleEventAction> allowedActions,
+      Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap
   ) {
     var includedEventTypes = timelineFilterForm.getEventTypes().stream()
         .map(ScheduleEventType::valueOf)
@@ -181,14 +197,15 @@ public class LicenceScheduleTimelineService {
 
     return licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
         .sorted(Comparator.comparing(term -> term.getTermType().getDisplayOrder()))
-        .map(term -> convertToTimelineTermView(term, includedEventTypes, allowedActions))
+        .map(term -> convertToTimelineTermView(term, includedEventTypes, allowedActions, eventRefWpStatusMap))
         .toList();
   }
 
   private TimelineTermView convertToTimelineTermView(
       LicenceScheduleTerm licenceScheduleTerm,
       List<ScheduleEventType> includedEventTypes,
-      List<ScheduleEventAction> allowedActions
+      List<ScheduleEventAction> allowedActions,
+      Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap
   ) {
     var dateDurationString = getDateDurationString(
         licenceScheduleTerm.getStartDate(),
@@ -196,13 +213,23 @@ public class LicenceScheduleTimelineService {
         licenceScheduleTerm.getTermDuration()
     );
 
-    var scheduleEvents = getScheduleEventsForTerm(licenceScheduleTerm, includedEventTypes, allowedActions);
+    var scheduleEvents = getScheduleEventsForTerm(
+        licenceScheduleTerm, 
+        includedEventTypes, 
+        allowedActions, 
+        eventRefWpStatusMap
+    );
 
     var hasPhases = scheduleEvents.stream()
         .map(ScheduleEvent::getEventType)
         .anyMatch(eventType -> eventType.equals(ScheduleEventType.PHASE));
 
-    var endOfTermEvents = getEndOfTermRequirementEvents(licenceScheduleTerm, includedEventTypes, allowedActions);
+    var endOfTermEvents = getEndOfTermRequirementEvents(
+        licenceScheduleTerm,
+        includedEventTypes,
+        allowedActions, 
+        eventRefWpStatusMap
+    );
 
     var editUrl = allowedActions.contains(ScheduleEventAction.EDIT_SCHEDULE_EVENTS)
         ? ReverseRouter.route(on(LicenceScheduleTermController.class).renderUpdateTermForm(licenceScheduleTerm.getId()))
@@ -227,7 +254,8 @@ public class LicenceScheduleTimelineService {
   private List<ScheduleEvent> getScheduleEventsForTerm(
       LicenceScheduleTerm licenceScheduleTerm,
       List<ScheduleEventType> includedEventTypes,
-      List<ScheduleEventAction> allowedActions
+      List<ScheduleEventAction> allowedActions,
+      Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap
   ) {
     var phases = licenceSchedulePhaseService.getActivePhasesByTerm(licenceScheduleTerm);
 
@@ -238,7 +266,7 @@ public class LicenceScheduleTimelineService {
 
     var phaseViews = phases.stream()
         .sorted(Comparator.comparing(phase -> phase.getPhaseType().getDisplayOrder()))
-        .map(phase -> convertToTimelinePhaseView(phase, firstPhaseType, includedEventTypes, allowedActions))
+        .map(phase -> convertToTimelinePhaseView(phase, firstPhaseType, includedEventTypes, allowedActions, eventRefWpStatusMap))
         .toList();
 
     if (!phaseViews.isEmpty()) {
@@ -259,7 +287,7 @@ public class LicenceScheduleTimelineService {
             Comparator.comparing(WorkProgrammeActivity::getDueDate)
             .thenComparing(WorkProgrammeActivity::getCategoryString))
         .map(workProgrammeActivity ->
-            TimelineWorkProgrammeActivityView.getScheduleEventFrom(workProgrammeActivity, allowedActions));
+            TimelineWorkProgrammeActivityView.getScheduleEventFrom(workProgrammeActivity, allowedActions, eventRefWpStatusMap));
 
     var rates = licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(licenceScheduleTerm)
         .stream()
@@ -284,7 +312,8 @@ public class LicenceScheduleTimelineService {
   private List<ScheduleEvent> getEndOfTermRequirementEvents(
       LicenceScheduleTerm licenceScheduleTerm,
       List<ScheduleEventType> includedEventTypes,
-      List<ScheduleEventAction> allowedActions
+      List<ScheduleEventAction> allowedActions,
+      Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap
   ) {
     var workProgrammeActivities = workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(
         licenceScheduleTerm,
@@ -292,7 +321,7 @@ public class LicenceScheduleTimelineService {
     ).stream()
         .sorted(Comparator.comparing(WorkProgrammeActivity::getCategoryString))
         .map(workProgrammeActivity ->
-            TimelineWorkProgrammeActivityView.getScheduleEventFrom(workProgrammeActivity, allowedActions));
+            TimelineWorkProgrammeActivityView.getScheduleEventFrom(workProgrammeActivity, allowedActions, eventRefWpStatusMap));
 
     var otherScheduleEvents = otherScheduleEventService.getActiveScheduleEventsByTermAndDateOption(
         licenceScheduleTerm,
@@ -313,7 +342,8 @@ public class LicenceScheduleTimelineService {
       LicenceSchedulePhase licenceSchedulePhase,
       PhaseType firstPhaseType,
       List<ScheduleEventType> includedEventTypes,
-      List<ScheduleEventAction> allowedActions
+      List<ScheduleEventAction> allowedActions,
+      Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap
   ) {
     var dateDurationString = getDateDurationString(
         licenceSchedulePhase.getStartDate(),
@@ -331,8 +361,8 @@ public class LicenceScheduleTimelineService {
         : "";
 
     return new TimelinePhaseView(
-        getScheduleEventsForPhase(licenceSchedulePhase, firstPhaseType, includedEventTypes, allowedActions),
-        getEndOfPhaseRequirementEvents(licenceSchedulePhase, includedEventTypes, allowedActions),
+        getScheduleEventsForPhase(licenceSchedulePhase, firstPhaseType, includedEventTypes, allowedActions, eventRefWpStatusMap),
+        getEndOfPhaseRequirementEvents(licenceSchedulePhase, includedEventTypes, allowedActions, eventRefWpStatusMap),
         licenceSchedulePhase.getPhaseType(),
         licenceSchedulePhase.getStartDate(),
         dateDurationString,
@@ -346,7 +376,8 @@ public class LicenceScheduleTimelineService {
       LicenceSchedulePhase licenceSchedulePhase,
       PhaseType firstPhaseType,
       List<ScheduleEventType> includedEventTypes,
-      List<ScheduleEventAction> allowedActions
+      List<ScheduleEventAction> allowedActions,
+      Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap
   ) {
     var workProgrammeActivities = workProgrammeActivityService
         .getActiveWorkProgrammeActivitiesByDateRangeFor(licenceSchedulePhase).stream()
@@ -355,7 +386,7 @@ public class LicenceScheduleTimelineService {
                 .thenComparing(WorkProgrammeActivity::getCategoryString)
         )
         .map(workProgrammeActivity ->
-            TimelineWorkProgrammeActivityView.getScheduleEventFrom(workProgrammeActivity, allowedActions));
+            TimelineWorkProgrammeActivityView.getScheduleEventFrom(workProgrammeActivity, allowedActions, eventRefWpStatusMap));
 
     var rates = licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(licenceSchedulePhase, firstPhaseType).stream()
         .map(licenceScheduleRate -> TimelineRateView.getScheduleEventFrom(licenceScheduleRate, allowedActions));
@@ -379,7 +410,8 @@ public class LicenceScheduleTimelineService {
   private List<ScheduleEvent> getEndOfPhaseRequirementEvents(
       LicenceSchedulePhase licenceSchedulePhase,
       List<ScheduleEventType> includedEventTypes,
-      List<ScheduleEventAction> allowedActions
+      List<ScheduleEventAction> allowedActions,
+      Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap
   ) {
     var workProgrammeActivities = workProgrammeActivityService.getActiveWorkProgrammeActivitiesByPhaseAndDateOption(
             licenceSchedulePhase,
@@ -387,7 +419,7 @@ public class LicenceScheduleTimelineService {
         ).stream()
         .sorted(Comparator.comparing(WorkProgrammeActivity::getCategoryString))
         .map(workProgrammeActivity ->
-            TimelineWorkProgrammeActivityView.getScheduleEventFrom(workProgrammeActivity, allowedActions));
+            TimelineWorkProgrammeActivityView.getScheduleEventFrom(workProgrammeActivity, allowedActions, eventRefWpStatusMap));
 
     var otherScheduleEvents = otherScheduleEventService.getActiveScheduleEventsByPhaseAndDateOption(
             licenceSchedulePhase,
@@ -419,12 +451,14 @@ public class LicenceScheduleTimelineService {
 
     var finalTermEndDate = finalTerm.get().getEndDate();
 
+    var eventRefWpStatusMap = getLatestWpStatusesForSchedule(licenceScheduleDetail);
+    
     var workProgrammeActivities = workProgrammeActivityService.getActiveWorkProgrammeActivitiesAfterDate(
         licenceScheduleDetail,
         finalTermEndDate
     )
         .stream()
-        .map(activity -> TimelineWorkProgrammeActivityView.getScheduleEventFrom(activity, allowedActions));
+        .map(activity -> TimelineWorkProgrammeActivityView.getScheduleEventFrom(activity, allowedActions, eventRefWpStatusMap));
 
     var rates = licenceScheduleRateService.getActiveRatesAfterDate(
         licenceScheduleDetail,
@@ -456,6 +490,12 @@ public class LicenceScheduleTimelineService {
         DateFormatUtil.convertToDisplayText(startDate),
         DateFormatUtil.convertToDisplayText(endDate),
         ThreeFieldDurationDisplayUtil.convertToDisplayText(duration)
+    );
+  }
+
+  private Map<UUID, WorkProgrammeActivityStatus> getLatestWpStatusesForSchedule(LicenceScheduleDetail licenceScheduleDetail) {
+    return workProgrammeActivityStatusService.getLatestStatusesFor(
+        workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail)
     );
   }
 }

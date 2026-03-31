@@ -90,6 +90,12 @@ public class TeamQueryService {
     return new HashSet<>(teamRoleRepository.findAllByWuaId(wuaId));
   }
 
+  public boolean userIsInRegulatorTeam(long wuaId) {
+    return teamRoleRepository.findAllByWuaId(wuaId).stream()
+        .map(TeamRole::getTeam)
+        .anyMatch(team -> team.getTeamType().isRegulator());
+  }
+
   public List<TeamRole> getAllTeamRolesWithRoles(Collection<Role> roles) {
     return teamRoleRepository.findAllByRoleIn(roles);
   }

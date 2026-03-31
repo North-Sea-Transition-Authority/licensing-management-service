@@ -173,6 +173,32 @@ class TeamQueryServiceTest {
         .isFalse();
   }
 
+  @Test
+  void userIsInRegulatorTeam() {
+    var team = new Team(UUID.randomUUID());
+    team.setTeamType(TeamType.LICENCE_MANAGEMENT);
+
+    var teamRole = new TeamRole();
+    teamRole.setTeam(team);
+
+    when(teamRoleRepository.findAllByWuaId(1L)).thenReturn(List.of(teamRole));
+
+    assertThat(teamQueryService.userIsInRegulatorTeam(1L)).isTrue();
+  }
+
+  @Test
+  void userIsInRegulatorTeam_notInRegulatorTeam() {
+    var team = new Team(UUID.randomUUID());
+    team.setTeamType(TeamType.ORGANISATION);
+
+    var teamRole = new TeamRole();
+    teamRole.setTeam(team);
+
+    when(teamRoleRepository.findAllByWuaId(1L)).thenReturn(List.of(teamRole));
+
+    assertThat(teamQueryService.userIsInRegulatorTeam(1L)).isFalse();
+  }
+
   private void setupStaticTeamAndRoles(Long wuaId, TeamType teamType, List<Role> roles) {
     var team = new Team(UUID.randomUUID());
     team.setTeamType(teamType);

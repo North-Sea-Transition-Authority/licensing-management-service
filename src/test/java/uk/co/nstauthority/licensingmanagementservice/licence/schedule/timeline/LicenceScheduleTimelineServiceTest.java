@@ -7,6 +7,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -58,7 +59,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeStatus;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -92,6 +96,9 @@ class LicenceScheduleTimelineServiceTest {
 
   @Mock
   private TeamQueryService teamQueryService;
+
+  @Mock
+  private WorkProgrammeActivityStatusService workProgrammeActivityStatusService;
 
   @InjectMocks
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
@@ -235,6 +242,11 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
+    midPhaseActivity.setEventReference(UUID.randomUUID());
+
+    var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
+    midPhaseActivityStatus.setActivityEventReference(midPhaseActivity.getEventReference());
+    midPhaseActivityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName(),
@@ -245,13 +257,19 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateActivityForm(midPhaseActivity.getId(), null)),
         ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
             .renderDeleteActivityPage(midPhaseActivity.getId(), null)),
-        ""
+        "",
+        WorkProgrammeStatus.IN_PROGRESS
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
     endOfPhaseActivity.setId(UUID.randomUUID());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
     endOfPhaseActivity.setDescription("description");
+    endOfPhaseActivity.setEventReference(UUID.randomUUID());
+
+    var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
+    endOfPhaseActivityStatus.setActivityEventReference(endOfPhaseActivity.getEventReference());
+    endOfPhaseActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL.getDisplayName(),
@@ -262,7 +280,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateActivityForm(endOfPhaseActivity.getId(), null)),
         ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
             .renderDeleteActivityPage(endOfPhaseActivity.getId(), null)),
-        ""
+        "",
+        WorkProgrammeStatus.OPEN
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -270,6 +289,11 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
+    midTerm2Activity.setEventReference(UUID.randomUUID());
+
+    var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
+    midTerm2ActivityStatus.setActivityEventReference(midTerm2Activity.getEventReference());
+    midTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT.getDisplayName(),
@@ -280,13 +304,19 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateActivityForm(midTerm2Activity.getId(), null)),
         ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
             .renderDeleteActivityPage(midTerm2Activity.getId(), null)),
-        ""
+        "",
+        WorkProgrammeStatus.OPEN
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
     endOfTerm2Activity.setId(UUID.randomUUID());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
     endOfTerm2Activity.setDescription("description");
+    endOfTerm2Activity.setEventReference(UUID.randomUUID());
+
+    var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
+    endOfTerm2ActivityStatus.setActivityEventReference(endOfTerm2Activity.getEventReference());
+    endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA.getDisplayName(),
@@ -297,7 +327,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateActivityForm(endOfTerm2Activity.getId(), null)),
         ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
             .renderDeleteActivityPage(endOfTerm2Activity.getId(), null)),
-        ""
+        "",
+        WorkProgrammeStatus.OPEN
     );
 
     var midPhaseEvent = new OtherScheduleEvent();
@@ -462,6 +493,18 @@ class LicenceScheduleTimelineServiceTest {
     var form = new TimelineFilterForm();
     form.setEventTypes(ScheduleEventType.getFilterDefaults());
 
+    var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
+
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
+    when(workProgrammeActivityStatusService.getLatestStatusesFor(activities)).thenReturn(
+        Map.of(
+            midPhaseActivity.getEventReference(), midPhaseActivityStatus,
+            endOfPhaseActivity.getEventReference(), endOfPhaseActivityStatus,
+            midTerm2Activity.getEventReference(), midTerm2ActivityStatus,
+            endOfTerm2Activity.getEventReference(), endOfTerm2ActivityStatus
+        )
+    );
+
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
     when(licenceSchedulePhaseService.getActivePhasesByTerm(term)).thenReturn(List.of(phase));
 
@@ -500,6 +543,11 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
+    midPhaseActivity.setEventReference(UUID.randomUUID());
+
+    var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
+    midPhaseActivityStatus.setActivityEventReference(midPhaseActivity.getEventReference());
+    midPhaseActivityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName(),
@@ -510,13 +558,19 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateActivityForm(midPhaseActivity.getId(), null)),
         ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
             .renderDeleteActivityPage(midPhaseActivity.getId(), null)),
-        ""
+        "",
+        WorkProgrammeStatus.IN_PROGRESS
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
     endOfPhaseActivity.setId(UUID.randomUUID());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
     endOfPhaseActivity.setDescription("description");
+    endOfPhaseActivity.setEventReference(UUID.randomUUID());
+
+    var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
+    endOfPhaseActivityStatus.setActivityEventReference(endOfPhaseActivity.getEventReference());
+    endOfPhaseActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL.getDisplayName(),
@@ -527,7 +581,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateActivityForm(endOfPhaseActivity.getId(), null)),
         ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
             .renderDeleteActivityPage(endOfPhaseActivity.getId(), null)),
-        ""
+        "",
+        WorkProgrammeStatus.OPEN
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -535,6 +590,11 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
+    midTerm2Activity.setEventReference(UUID.randomUUID());
+
+    var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
+    midTerm2ActivityStatus.setActivityEventReference(midTerm2Activity.getEventReference());
+    midTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT.getDisplayName(),
@@ -545,13 +605,19 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateActivityForm(midTerm2Activity.getId(), null)),
         ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
             .renderDeleteActivityPage(midTerm2Activity.getId(), null)),
-        ""
+        "",
+        WorkProgrammeStatus.OPEN
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
     endOfTerm2Activity.setId(UUID.randomUUID());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
     endOfTerm2Activity.setDescription("description");
+    endOfTerm2Activity.setEventReference(UUID.randomUUID());
+
+    var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
+    endOfTerm2ActivityStatus.setActivityEventReference(endOfTerm2Activity.getEventReference());
+    endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA.getDisplayName(),
@@ -562,7 +628,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateActivityForm(endOfTerm2Activity.getId(), null)),
         ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
             .renderDeleteActivityPage(endOfTerm2Activity.getId(), null)),
-        ""
+        "",
+        WorkProgrammeStatus.OPEN
     );
 
 
@@ -709,6 +776,18 @@ class LicenceScheduleTimelineServiceTest {
         ScheduleEventType.OTHER.name()
     ));
 
+    var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
+
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
+    when(workProgrammeActivityStatusService.getLatestStatusesFor(activities)).thenReturn(
+        Map.of(
+            midPhaseActivity.getEventReference(), midPhaseActivityStatus,
+            endOfPhaseActivity.getEventReference(), endOfPhaseActivityStatus,
+            midTerm2Activity.getEventReference(), midTerm2ActivityStatus,
+            endOfTerm2Activity.getEventReference(), endOfTerm2ActivityStatus
+        )
+    );
+
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
     when(licenceSchedulePhaseService.getActivePhasesByTerm(term)).thenReturn(List.of(phase));
 
@@ -747,22 +826,42 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
+    midPhaseActivity.setEventReference(UUID.randomUUID());
+
+    var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
+    midPhaseActivityStatus.setActivityEventReference(midPhaseActivity.getEventReference());
+    midPhaseActivityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
     endOfPhaseActivity.setId(UUID.randomUUID());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
     endOfPhaseActivity.setDescription("description");
+    endOfPhaseActivity.setEventReference(UUID.randomUUID());
+
+    var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
+    endOfPhaseActivityStatus.setActivityEventReference(endOfPhaseActivity.getEventReference());
+    endOfPhaseActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var midTerm2Activity = new WorkProgrammeActivity();
     midTerm2Activity.setId(UUID.randomUUID());
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
+    midTerm2Activity.setEventReference(UUID.randomUUID());
+
+    var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
+    midTerm2ActivityStatus.setActivityEventReference(midTerm2Activity.getEventReference());
+    midTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
     endOfTerm2Activity.setId(UUID.randomUUID());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
     endOfTerm2Activity.setDescription("description");
+    endOfTerm2Activity.setEventReference(UUID.randomUUID());
+
+    var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
+    endOfTerm2ActivityStatus.setActivityEventReference(endOfTerm2Activity.getEventReference());
+    endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var midPhaseEvent = new OtherScheduleEvent();
     midPhaseEvent.setId(UUID.randomUUID());
@@ -929,6 +1028,18 @@ class LicenceScheduleTimelineServiceTest {
         ScheduleEventType.OTHER.name()
     ));
 
+    var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
+
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
+    when(workProgrammeActivityStatusService.getLatestStatusesFor(activities)).thenReturn(
+        Map.of(
+            midPhaseActivity.getEventReference(), midPhaseActivityStatus,
+            endOfPhaseActivity.getEventReference(), endOfPhaseActivityStatus,
+            midTerm2Activity.getEventReference(), midTerm2ActivityStatus,
+            endOfTerm2Activity.getEventReference(), endOfTerm2ActivityStatus
+        )
+    );
+
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
     when(licenceSchedulePhaseService.getActivePhasesByTerm(term)).thenReturn(List.of(phase));
 
@@ -967,6 +1078,11 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
+    midPhaseActivity.setEventReference(UUID.randomUUID());
+
+    var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
+    midPhaseActivityStatus.setActivityEventReference(midPhaseActivity.getEventReference());
+    midPhaseActivityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName(),
@@ -977,13 +1093,19 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateActivityForm(midPhaseActivity.getId(), null)),
         ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
             .renderDeleteActivityPage(midPhaseActivity.getId(), null)),
-        ""
+        "",
+        WorkProgrammeStatus.IN_PROGRESS
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
     endOfPhaseActivity.setId(UUID.randomUUID());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
     endOfPhaseActivity.setDescription("description");
+    endOfPhaseActivity.setEventReference(UUID.randomUUID());
+
+    var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
+    endOfPhaseActivityStatus.setActivityEventReference(endOfPhaseActivity.getEventReference());
+    endOfPhaseActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL.getDisplayName(),
@@ -994,7 +1116,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateActivityForm(endOfPhaseActivity.getId(), null)),
         ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
             .renderDeleteActivityPage(endOfPhaseActivity.getId(), null)),
-        ""
+        "",
+        WorkProgrammeStatus.OPEN
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -1002,6 +1125,11 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
+    midTerm2Activity.setEventReference(UUID.randomUUID());
+
+    var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
+    midTerm2ActivityStatus.setActivityEventReference(midTerm2Activity.getEventReference());
+    midTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT.getDisplayName(),
@@ -1012,13 +1140,19 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateActivityForm(midTerm2Activity.getId(), null)),
         ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
             .renderDeleteActivityPage(midTerm2Activity.getId(), null)),
-        ""
+        "",
+        WorkProgrammeStatus.OPEN
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
     endOfTerm2Activity.setId(UUID.randomUUID());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
     endOfTerm2Activity.setDescription("description");
+    endOfTerm2Activity.setEventReference(UUID.randomUUID());
+
+    var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
+    endOfTerm2ActivityStatus.setActivityEventReference(endOfTerm2Activity.getEventReference());
+    endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA.getDisplayName(),
@@ -1029,7 +1163,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateActivityForm(endOfTerm2Activity.getId(), null)),
         ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
             .renderDeleteActivityPage(endOfTerm2Activity.getId(), null)),
-        ""
+        "",
+        WorkProgrammeStatus.OPEN
     );
 
     var midPhaseEvent = new OtherScheduleEvent();
@@ -1153,6 +1288,18 @@ class LicenceScheduleTimelineServiceTest {
         ScheduleEventType.WORK_PROGRAMME_ACTIVITY.name()
     ));
 
+    var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
+
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
+    when(workProgrammeActivityStatusService.getLatestStatusesFor(activities)).thenReturn(
+        Map.of(
+            midPhaseActivity.getEventReference(), midPhaseActivityStatus,
+            endOfPhaseActivity.getEventReference(), endOfPhaseActivityStatus,
+            midTerm2Activity.getEventReference(), midTerm2ActivityStatus,
+            endOfTerm2Activity.getEventReference(), endOfTerm2ActivityStatus
+        )
+    );
+
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
     when(licenceSchedulePhaseService.getActivePhasesByTerm(term)).thenReturn(List.of(phase));
 
@@ -1191,6 +1338,11 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
+    midPhaseActivity.setEventReference(UUID.randomUUID());
+
+    var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
+    midPhaseActivityStatus.setActivityEventReference(midPhaseActivity.getEventReference());
+    midPhaseActivityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName(),
@@ -1200,13 +1352,19 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         ReverseRouter.route(on(WorkProgrammeActivityStatusController.class)
-            .renderStatusUpdatePage(midPhaseActivity.getId(), null))
+            .renderStatusUpdatePage(midPhaseActivity.getId(), null)),
+        WorkProgrammeStatus.IN_PROGRESS
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
     endOfPhaseActivity.setId(UUID.randomUUID());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
     endOfPhaseActivity.setDescription("description");
+    endOfPhaseActivity.setEventReference(UUID.randomUUID());
+
+    var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
+    endOfPhaseActivityStatus.setActivityEventReference(endOfPhaseActivity.getEventReference());
+    endOfPhaseActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL.getDisplayName(),
@@ -1216,7 +1374,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         ReverseRouter.route(on(WorkProgrammeActivityStatusController.class)
-            .renderStatusUpdatePage(endOfPhaseActivity.getId(), null))
+            .renderStatusUpdatePage(endOfPhaseActivity.getId(), null)),
+        WorkProgrammeStatus.OPEN
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -1224,6 +1383,11 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
+    midTerm2Activity.setEventReference(UUID.randomUUID());
+
+    var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
+    midTerm2ActivityStatus.setActivityEventReference(midTerm2Activity.getEventReference());
+    midTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT.getDisplayName(),
@@ -1233,13 +1397,19 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         ReverseRouter.route(on(WorkProgrammeActivityStatusController.class)
-            .renderStatusUpdatePage(midTerm2Activity.getId(), null))
+            .renderStatusUpdatePage(midTerm2Activity.getId(), null)),
+        WorkProgrammeStatus.OPEN
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
     endOfTerm2Activity.setId(UUID.randomUUID());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
     endOfTerm2Activity.setDescription("description");
+    endOfTerm2Activity.setEventReference(UUID.randomUUID());
+
+    var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
+    endOfTerm2ActivityStatus.setActivityEventReference(endOfTerm2Activity.getEventReference());
+    endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA.getDisplayName(),
@@ -1249,7 +1419,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         ReverseRouter.route(on(WorkProgrammeActivityStatusController.class)
-            .renderStatusUpdatePage(endOfTerm2Activity.getId(), null))
+            .renderStatusUpdatePage(endOfTerm2Activity.getId(), null)),
+        WorkProgrammeStatus.OPEN
     );
 
     var phase = new LicenceSchedulePhase();
@@ -1348,6 +1519,19 @@ class LicenceScheduleTimelineServiceTest {
 
     when(teamQueryService.userHasAtLeastOneRoleIn(user.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR, Role.WORK_PROGRAMME_STATUS_ADMINISTRATOR)))
         .thenReturn(true);
+    when(teamQueryService.userIsInRegulatorTeam(user.wuaId())).thenReturn(true);
+
+    var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
+
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
+    when(workProgrammeActivityStatusService.getLatestStatusesFor(activities)).thenReturn(
+        Map.of(
+            midPhaseActivity.getEventReference(), midPhaseActivityStatus,
+            endOfPhaseActivity.getEventReference(), endOfPhaseActivityStatus,
+            midTerm2Activity.getEventReference(), midTerm2ActivityStatus,
+            endOfTerm2Activity.getEventReference(), endOfTerm2ActivityStatus
+        )
+    );
 
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
     when(licenceSchedulePhaseService.getActivePhasesByTerm(term)).thenReturn(List.of(phase));
@@ -1371,12 +1555,13 @@ class LicenceScheduleTimelineServiceTest {
   }
 
   @Test
-  void getLicenceScheduleEventViewsForOverview_userDoesNotHaveWpStatusPermissions() {
+  void getLicenceScheduleEventViewsForOverview_userDoesNotHaveWpStatusPermissions_userIsNotRegulator() {
     var midPhaseActivity = new WorkProgrammeActivity();
     midPhaseActivity.setId(UUID.randomUUID());
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
+    midPhaseActivity.setEventReference(UUID.randomUUID());
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName(),
@@ -1385,13 +1570,15 @@ class LicenceScheduleTimelineServiceTest {
         "1 February 2025",
         "",
         "",
-        ""
+        "",
+        null
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
     endOfPhaseActivity.setId(UUID.randomUUID());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
     endOfPhaseActivity.setDescription("description");
+    endOfPhaseActivity.setEventReference(UUID.randomUUID());
 
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL.getDisplayName(),
@@ -1400,7 +1587,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        ""
+        "",
+        null
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -1408,6 +1596,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
+    midTerm2Activity.setEventReference(UUID.randomUUID());
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT.getDisplayName(),
@@ -1416,13 +1605,15 @@ class LicenceScheduleTimelineServiceTest {
         "1 February 2026",
         "",
         "",
-        ""
+        "",
+        null
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
     endOfTerm2Activity.setId(UUID.randomUUID());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
     endOfTerm2Activity.setDescription("description");
+    endOfTerm2Activity.setEventReference(UUID.randomUUID());
 
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA.getDisplayName(),
@@ -1431,7 +1622,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        ""
+        "",
+        null
     );
 
     var phase = new LicenceSchedulePhase();
@@ -1530,6 +1722,7 @@ class LicenceScheduleTimelineServiceTest {
 
     when(teamQueryService.userHasAtLeastOneRoleIn(user.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR, Role.WORK_PROGRAMME_STATUS_ADMINISTRATOR)))
         .thenReturn(false);
+    when(teamQueryService.userIsInRegulatorTeam(user.wuaId())).thenReturn(false);
 
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
     when(licenceSchedulePhaseService.getActivePhasesByTerm(term)).thenReturn(List.of(phase));
@@ -1586,6 +1779,11 @@ class LicenceScheduleTimelineServiceTest {
     activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     activity.setDescription("description");
     activity.setDueDate(finalTermEndDate.plusYears(2));
+    activity.setEventReference(UUID.randomUUID());
+
+    var activityStatus = new WorkProgrammeActivityStatus();
+    activityStatus.setActivityEventReference(activity.getEventReference());
+    activityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var activityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT.getDisplayName(),
@@ -1596,7 +1794,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateActivityForm(activity.getId(), null)),
         ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
             .renderDeleteActivityPage(activity.getId(), null)),
-        ""
+        "",
+        WorkProgrammeStatus.OPEN
     );
 
     var event = new OtherScheduleEvent();
@@ -1615,6 +1814,12 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(event.getId()))
     );
+
+    var activities = List.of(activity);
+
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
+    when(workProgrammeActivityStatusService.getLatestStatusesFor(activities))
+        .thenReturn(Map.of(activity.getEventReference(), activityStatus));
 
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(firstTerm, finalTerm));

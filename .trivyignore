@@ -7,6 +7,10 @@ CVE-2020-8908
 
 # io.netty:netty-codec-http
 CVE-2025-67735
+CVE-2026-33870
+
+# io.netty:netty-codec-http2
+CVE-2026-33871
 
 # org.bouncycastle:bcpkix-jdk18on
 CVE-2023-33202
@@ -28,6 +32,12 @@ GHSA-72hv-8253-57qq
 
 # org.apache.tomcat.embed:tomcat-embed-core
 CVE-2025-66614
-
-# tomcat: security constraint bypass with HTTP/0.9
 CVE-2026-24733
+CVE-2026-24734
+
+# org.springframework.security:spring-security-web
+CVE-2026-22732
+
+# org.springframework:spring-webmvc
+CVE-2026-22737
+CVE-2026-22735

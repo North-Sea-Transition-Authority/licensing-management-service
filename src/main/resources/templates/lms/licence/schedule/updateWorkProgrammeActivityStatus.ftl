@@ -41,6 +41,7 @@ errorSummaryItems=errorSummaryItems
                             path="form.transferredToLicenceId"
                             restUrl=springUrl(licenceSearchUrl)
                             labelText="Licence transferred to"
+                            nestingPath="form.status"
                         />
                     </#if>
                 </@fdsRadio.radioItem>

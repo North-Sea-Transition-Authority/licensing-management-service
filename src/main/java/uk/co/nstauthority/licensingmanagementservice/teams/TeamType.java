@@ -27,7 +27,8 @@ public enum TeamType implements Displayable {
           Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER,
           Role.DOCUMENT_TEMPLATE_MANAGER
      ),
-      null
+      null,
+      true
   ),
   OFFSHORE_PRODUCTION_LICENSING(
       "Offshore production licensing",
@@ -45,7 +46,8 @@ public enum TeamType implements Displayable {
           Role.CONTINUATION_REVIEWER_NEW_VENTURES,
           Role.CONTINUATION_REVIEWER_OPERATIONS
       ),
-      null
+      null,
+      true
   ),
   ONSHORE_PRODUCTION_LICENSING(
       "Onshore production licensing",
@@ -58,7 +60,8 @@ public enum TeamType implements Displayable {
           Role.STEWARD_ONSHORE,
           Role.DECISION_ISSUER_ONSHORE
       ),
-      null
+      null,
+      true
   ),
   CARBON_STORAGE_LICENSING(
       "Carbon Storage Licensing",
@@ -74,7 +77,8 @@ public enum TeamType implements Displayable {
           Role.DECISION_ISSUER_CS_NEW_VENTURES,
           Role.DECISION_ISSUER_CS_CTS
       ),
-      null
+      null,
+      true
   ),
   REGULATIONS_LICENSING(
       "Regulations Licensing",
@@ -86,7 +90,8 @@ public enum TeamType implements Displayable {
           Role.CONTINUATION_ISSUER,
           Role.DECISION_EXECUTOR
       ),
-      null
+      null,
+      true
   ),
   ORGANISATION(
       "Organisations",
@@ -95,7 +100,8 @@ public enum TeamType implements Displayable {
       false,
       List.of(Role.MANAGE_TEAM, Role.APPLICATION_EDITOR, Role.APPLICATION_SUBMITTER, Role.VIEW_ORGANISATION_LICENCES),
           () ->
-              ReverseRouter.route(on(ScopedTeamManagementController.class).renderCreateNewOrgTeam(null))
+              ReverseRouter.route(on(ScopedTeamManagementController.class).renderCreateNewOrgTeam(null)),
+      false
   ),
   EXTERNAL_CONTRIBUTORS(
       "External contributors",
@@ -103,7 +109,8 @@ public enum TeamType implements Displayable {
       true,
       true,
       List.of(Role.EXTERNAL_APPLICATION_EDITOR, Role.EXTERNAL_APPLICATION_VIEWER),
-      null
+      null,
+      false
   );
 
   private final String displayName;
@@ -112,6 +119,7 @@ public enum TeamType implements Displayable {
   private final boolean isApplicationScoped;
   private final List<Role> allowedRoles;
   private final Supplier<String> createNewInstanceRoute;
+  private final boolean isRegulator;
 
   TeamType(
       String displayName,
@@ -119,7 +127,8 @@ public enum TeamType implements Displayable {
       boolean isScoped,
       boolean isApplicationScoped,
       List<Role> allowedRoles,
-      Supplier<String> createNewInstanceRoute
+      Supplier<String> createNewInstanceRoute,
+      boolean isRegulator
   ) {
     this.displayName = displayName;
     this.urlSlug = urlSlug;
@@ -127,6 +136,7 @@ public enum TeamType implements Displayable {
     this.isApplicationScoped = isApplicationScoped;
     this.allowedRoles = allowedRoles;
     this.createNewInstanceRoute = createNewInstanceRoute;
+    this.isRegulator = isRegulator;
   }
 
   @Override
@@ -154,10 +164,13 @@ public enum TeamType implements Displayable {
     return createNewInstanceRoute.get();
   }
 
+  public boolean isRegulator() {
+    return isRegulator;
+  }
+
   public static Optional<TeamType> fromUrlSlug(String urlSlug) {
     return Arrays.stream(values())
         .filter(teamType -> teamType.urlSlug.equals(urlSlug))
         .findFirst();
   }
-
 }

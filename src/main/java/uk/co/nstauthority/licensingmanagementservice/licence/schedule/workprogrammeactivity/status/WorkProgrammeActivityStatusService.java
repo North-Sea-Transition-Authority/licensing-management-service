@@ -4,10 +4,17 @@ import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
+import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 @Service
 public class WorkProgrammeActivityStatusService {
@@ -64,6 +71,30 @@ public class WorkProgrammeActivityStatusService {
                 "No status found for WorkProgrammeActivity with event reference: %s".formatted(activity.getEventReference())
             )
         );
+  }
+
+  public Map<UUID, WorkProgrammeActivityStatus> getLatestStatusesFor(List<WorkProgrammeActivity> workProgrammeActivities) {
+    var eventReferences = workProgrammeActivities.stream()
+        .map(WorkProgrammeActivity::getEventReference)
+        .toList();
+
+    var eventReferenceStatusesMap = workProgrammeActivityStatusRepository.findAllByActivityEventReferenceIn(eventReferences)
+        .stream()
+        .collect(Collectors.groupingBy(WorkProgrammeActivityStatus::getActivityEventReference, Collectors.toList()));
+
+    return eventReferences.stream()
+        .map(ref -> eventReferenceStatusesMap.getOrDefault(ref, List.of()))
+        .map(this::getLatestStatusFromList)
+        .flatMap(Optional::stream)
+        .collect(StreamUtil.toLinkedHashMap(WorkProgrammeActivityStatus::getActivityEventReference, Function.identity()));
+  }
+
+  private Optional<WorkProgrammeActivityStatus> getLatestStatusFromList(
+      List<WorkProgrammeActivityStatus> workProgrammeActivityStatuses
+  ) {
+    return workProgrammeActivityStatuses
+        .stream()
+        .max(Comparator.comparing(WorkProgrammeActivityStatus::getAppliedDatetime));
   }
 
   public WorkProgrammeActivityStatusForm getStatusForm(WorkProgrammeActivity activity) {

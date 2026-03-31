@@ -1,11 +1,13 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -102,6 +104,38 @@ class WorkProgrammeActivityStatusServiceTest {
         .thenReturn(List.of(activityStatus, activityStatus2));
 
     assertThat(workProgrammeActivityStatusService.getLatestStatusFor(activity)).isEqualTo(activityStatus2);
+  }
+
+  @Test
+  void getLatestStatusesFor() {
+    var activity = new WorkProgrammeActivity();
+    activity.setEventReference(UUID.randomUUID());
+
+    var activityStatus = new WorkProgrammeActivityStatus();
+    activityStatus.setActivityEventReference(activity.getEventReference());
+    activityStatus.setAppliedDatetime(Instant.now());
+
+    var activityStatus2 = new WorkProgrammeActivityStatus();
+    activityStatus2.setActivityEventReference(activity.getEventReference());
+    activityStatus2.setAppliedDatetime(Instant.now().plus(1, ChronoUnit.DAYS));
+
+    var activity2 = new WorkProgrammeActivity();
+    activity2.setEventReference(UUID.randomUUID());
+
+    var activityStatus3 = new WorkProgrammeActivityStatus();
+    activityStatus3.setActivityEventReference(activity2.getEventReference());
+    activityStatus3.setAppliedDatetime(Instant.now());
+
+    var refList = List.of(activity.getEventReference(), activity2.getEventReference());
+
+    when(workProgrammeActivityStatusRepository.findAllByActivityEventReferenceIn(refList))
+        .thenReturn(List.of(activityStatus, activityStatus2, activityStatus3));
+
+    assertThat(workProgrammeActivityStatusService.getLatestStatusesFor(List.of(activity, activity2)))
+        .containsExactly(
+            entry(activity.getEventReference(), activityStatus2),
+            entry(activity2.getEventReference(), activityStatus3)
+        );
   }
 
   @Test

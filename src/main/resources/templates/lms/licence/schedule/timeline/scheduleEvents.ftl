@@ -155,6 +155,13 @@
         nodeNumberClass=nodeClass
     >
         <@fdsTimeline.timelineEvent>
+            <#if activityView.status()?has_content>
+                <@fdsTag.tag>
+                    ${activityView.status()}
+                </@fdsTag.tag>
+                <br>
+            </#if>
+
             <p class="govuk-body">
                 ${activityView.description()}
             </p>
@@ -182,6 +189,14 @@
         nodeNumberClass="fds-timeline__node-number--no-dot"
     >
         <@fdsTimeline.timelineEvent>
+            <#if activityView.status()?has_content>
+                <br>
+                <@fdsTag.tag tagClass=activityView.status().getTagDisplayClass()>
+                    ${activityView.status().getDisplayName()}
+                </@fdsTag.tag>
+                <br>
+                <br>
+            </#if>
             <p class="govuk-body">
                 ${activityView.description()}
             </p>

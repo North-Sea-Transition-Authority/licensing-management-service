@@ -69,6 +69,7 @@ public class LicenceContinuationApplicationReviewConfirmationController {
             ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(
                 licenceContinuationApplicationDetailId,
                 null,
+                null,
                 null
             ))
         );

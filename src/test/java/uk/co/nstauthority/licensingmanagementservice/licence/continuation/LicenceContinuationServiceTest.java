@@ -232,4 +232,10 @@ class LicenceContinuationServiceTest {
     assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.ISSUE_DECISION);
   }
 
+  @Test
+  void issueContinuationLetterChangeStatus(){
+    licenceContinuationService.issueContinuationLetterChangeStatus(licenceContinuationApplicationDetail);
+    assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.COMPLETE);
+  }
+
 }

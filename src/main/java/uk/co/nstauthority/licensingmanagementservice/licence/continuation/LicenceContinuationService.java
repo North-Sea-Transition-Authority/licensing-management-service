@@ -163,6 +163,14 @@ public class LicenceContinuationService {
     licenceContinuationApplicationDetailRepository.save(licenceContinuationApplicationDetail);
   }
 
+  @Transactional
+  public void issueContinuationLetterChangeStatus(
+      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
+  ) {
+    licenceContinuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.COMPLETE);
+    licenceContinuationApplicationDetailRepository.save(licenceContinuationApplicationDetail);
+  }
+
   private String generateApplicationReference() {
     var currentYear = LocalDate.now(clock).getYear();
     var submissionsForYear = getSubmissionsForYear(currentYear);

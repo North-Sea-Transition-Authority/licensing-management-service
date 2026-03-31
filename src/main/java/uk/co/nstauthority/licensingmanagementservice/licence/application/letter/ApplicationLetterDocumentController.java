@@ -22,16 +22,26 @@ import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceSectionFormV
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceSectionNotFoundException;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceSectionService;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentMailMergeFieldViewService;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTeamType;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.document.AddSectionOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @Controller
 @RequestMapping("/application/{applicationType}/{applicationId}/document/{documentInstanceSectionId}")
+@ContinuationApplicationHasStatus(value = LicenceContinuationApplicationStatus.ISSUE_DECISION)
+@HasRolesInTeamType(value = {
+    @RolesAndTeamType(roles = {Role.CONTINUATION_ISSUER}, teamType = TeamType.REGULATIONS_LICENSING)
+})
 public class ApplicationLetterDocumentController {
 
   private final DocumentInstanceSectionService documentInstanceSectionService;

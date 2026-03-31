@@ -39,7 +39,7 @@ class SummaryCardTest {
       )));
   private static final SummaryFileView SUMMARY_FILE_VIEW_2 = new SummaryFileView("Key 2", Collections.emptyList());
   private static final List<SummaryFileView> SUMMARY_FILE_VIEWS = List.of(SUMMARY_FILE_VIEW_1, SUMMARY_FILE_VIEW_2);
-
+  private static final SummaryFileAndDetailsView SUMMARY_FILE_AND_DETAILS_VIEW = new SummaryFileAndDetailsView(SUMMARY_DATA_VIEW, SUMMARY_FILE_VIEWS);
 
   @Test
   void simpleSummaryCardWithHeading() {
@@ -123,6 +123,18 @@ class SummaryCardTest {
                 "display name",
                 SummaryCardType.FILES_SUMMARY,
                 SUMMARY_FILE_VIEWS
+            )
+        );
+  }
+
+  @Test
+  void filesAndDetailsSummaryCard() {
+    assertThat(SummaryCard.filesAndDetailsSummaryCard("display name", SUMMARY_FILE_AND_DETAILS_VIEW))
+        .isEqualTo(
+            new SummaryCard(
+                "display name",
+                SummaryCardType.FILES_AND_DETAILS_SUMMARY,
+                SUMMARY_FILE_AND_DETAILS_VIEW
             )
         );
   }

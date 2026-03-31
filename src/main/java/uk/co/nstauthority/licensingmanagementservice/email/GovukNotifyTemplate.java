@@ -1,7 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.email;
 
 public enum GovukNotifyTemplate {
-  STUB_EMAIL("stub-uuid"); // TODO - Remove when adding a real notify template
+  CONTINUATION_LETTER_ISSUED("5209730e-37d9-40cc-838b-6686c7fcbf61");
 
   private final String templateId;
 

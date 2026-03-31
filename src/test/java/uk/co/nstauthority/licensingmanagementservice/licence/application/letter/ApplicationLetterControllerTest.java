@@ -10,6 +10,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -24,7 +25,11 @@ import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.Docu
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.AuthorisationSecurityTest;
 
 @WebMvcTest(ApplicationLetterController.class)
@@ -55,6 +60,8 @@ class ApplicationLetterControllerTest extends AbstractControllerTest {
   @MockitoBean
   private ApplicationLetterValidationService applicationLetterValidationService;
 
+  private LicenceContinuationApplicationDetail continuationApplicationDetail;
+
   @AuthorisationSecurityTest
   void renderEditLetterOverview_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
@@ -69,12 +76,19 @@ class ApplicationLetterControllerTest extends AbstractControllerTest {
     var appType = ApplicationType.CONTINUATION_APPLICATION;
     var appId = UUID.randomUUID();
     var documentInstance = DocumentInstanceDtoTestUtil.newBuilder().withTitle("Test Title").build();
+    continuationApplicationDetail = new LicenceContinuationApplicationDetail();
+    continuationApplicationDetail.setId(appId);
+    continuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
 
     when(applicationService.getApplication(appType, appId)).thenReturn(application);
     when(applicationLetterService.getDocumentInstance(application)).thenReturn(documentInstance);
     when(lmsDocumentInstanceService.getDocumentInstanceSectionsSummaryView(documentInstance, true, application))
         .thenReturn(sectionsSummaryView);
     when(documentLinkingService.getApplicationCompanyNameFromDto(documentInstance)).thenReturn("Company Name");
+    when(licenceContinuationService.getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(appId))
+        .thenReturn(continuationApplicationDetail);
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.REGULATIONS_LICENSING, Set.of(Role.CONTINUATION_ISSUER)))
+        .thenReturn(true);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(appType, appId)))

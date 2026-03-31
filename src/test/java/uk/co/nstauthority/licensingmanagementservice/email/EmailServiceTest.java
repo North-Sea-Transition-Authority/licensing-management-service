@@ -23,7 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.correlationid.CorrelationId
 
 class EmailServiceTest {
 
-  public static final GovukNotifyTemplate GOVUK_NOTIFY_TEMPLATE = GovukNotifyTemplate.STUB_EMAIL;
+  public static final GovukNotifyTemplate GOVUK_NOTIFY_TEMPLATE = GovukNotifyTemplate.CONTINUATION_LETTER_ISSUED;
 
   private static final Template TEMPLATE = new Template(
       GOVUK_NOTIFY_TEMPLATE.getTemplateId(),

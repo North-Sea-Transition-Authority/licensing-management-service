@@ -11,7 +11,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 
 @Service
-class LicenceContinuationApplicationOverviewService {
+public class LicenceContinuationApplicationOverviewService {
 
   static final String SUBMITTED_BY_USER_PURPOSE = "Fetch submitted by user for application overview";
 

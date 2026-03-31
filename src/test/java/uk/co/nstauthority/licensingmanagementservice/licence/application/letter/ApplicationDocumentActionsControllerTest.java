@@ -17,6 +17,7 @@ import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLog
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,8 +40,13 @@ import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.LmsP
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.AuthorisationSecurityTest;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @WebMvcTest(ApplicationDocumentActionsController.class)
 @ContextConfiguration(classes = ApplicationDocumentActionsController.class)
@@ -73,6 +79,8 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
   @Mock
   private LmsPdfRenderResult lmsPdfRenderResult;
 
+  private LicenceContinuationApplicationDetail continuationApplicationDetail;
+
   private final UUID applicationId = UUID.randomUUID();
   private final UUID documentInstanceId = UUID.randomUUID();
   private final ApplicationType applicationType = ApplicationType.values()[0];
@@ -82,6 +90,15 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
     when(documentInstanceMock.documentTemplateDto()).thenReturn(documentTemplateMock);
     when(documentTemplateMock.title()).thenReturn("Test Letter Template");
     when(documentInstanceMock.title()).thenReturn("Test Letter Template");
+
+    continuationApplicationDetail = new LicenceContinuationApplicationDetail();
+    continuationApplicationDetail.setId(applicationId);
+    continuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+
+    when(licenceContinuationService.getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(applicationId))
+        .thenReturn(continuationApplicationDetail);
+
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.REGULATIONS_LICENSING, Set.of(Role.CONTINUATION_ISSUER))).thenReturn(true);
   }
 
   @AuthorisationSecurityTest
@@ -252,7 +269,7 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
                 .with(user(regulatorUser))
         )
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(applicationType, applicationId))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))));
 
     verify(applicationService)
         .getApplication(applicationType, applicationId);
@@ -267,5 +284,11 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
         false,
         lmsDocumentInstanceService
     );
+
+    verify(licenceContinuationService)
+        .issueContinuationLetterChangeStatus(continuationApplicationDetail);
+
+    verify(issueLettersService)
+        .sendContinuationIssuanceEmails(licenceApplication, continuationApplicationDetail);
   }
 }

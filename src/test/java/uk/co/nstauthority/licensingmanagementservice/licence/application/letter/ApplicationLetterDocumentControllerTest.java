@@ -19,6 +19,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,7 +42,11 @@ import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.Docu
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.AuthorisationSecurityTest;
 
 @WebMvcTest(ApplicationLetterDocumentController.class)
@@ -77,6 +82,8 @@ class ApplicationLetterDocumentControllerTest extends AbstractControllerTest {
   @MockitoBean
   private ApplicationLetterValidationService  applicationLetterValidationService;
 
+  private LicenceContinuationApplicationDetail continuationApplicationDetail;
+
   @BeforeEach
   void setUp() {
     when(application.getId()).thenReturn(APP_ID);
@@ -99,6 +106,15 @@ class ApplicationLetterDocumentControllerTest extends AbstractControllerTest {
         new DocumentMailMergeFieldView("MNEMONIC_1", "Desc 1"),
         new DocumentMailMergeFieldView("MNEMONIC_2", "Desc 2")
     );
+
+    continuationApplicationDetail = new LicenceContinuationApplicationDetail();
+    continuationApplicationDetail.setId(APP_ID);
+    continuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+
+    when(licenceContinuationService.getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(APP_ID))
+        .thenReturn(continuationApplicationDetail);
+
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.REGULATIONS_LICENSING, Set.of(Role.CONTINUATION_ISSUER))).thenReturn(true);
   }
 
 

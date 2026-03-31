@@ -34,7 +34,8 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
   public static final Set<LicenceContinuationApplicationStatus> ACTIVE_APPLICATION_STATUSES = Set.of(
       LicenceContinuationApplicationStatus.DRAFT,
       LicenceContinuationApplicationStatus.SUBMITTED,
-      LicenceContinuationApplicationStatus.ISSUE_DECISION
+      LicenceContinuationApplicationStatus.ISSUE_DECISION,
+      LicenceContinuationApplicationStatus.COMPLETE
   );
 
   private final LicenceContinuationService licenceContinuationService;
@@ -71,13 +72,14 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
     var responsibleOrganisationNames = licenceSearchService.getLicenceToResponsibleOrganisationNameMap(licences);
 
     return applicationDetails.stream()
-        .map(applicationDetail -> createWorkAreaItem(applicationDetail, responsibleOrganisationNames))
+        .map(applicationDetail -> createWorkAreaItem(applicationDetail, responsibleOrganisationNames, serviceUserDetail))
         .toList();
   }
 
   private SearchResultItem createWorkAreaItem(
       LicenceContinuationApplicationDetail applicationDetail,
-      Map<Licence, List<String>> responsibleOrganisationNamesByLicences
+      Map<Licence, List<String>> responsibleOrganisationNamesByLicences,
+      ServiceUserDetail serviceUserDetail
   ) {
     var licence = licenceContinuationService.getLicenceFromContinuationApplicationDetail(applicationDetail);
     var licensees = responsibleOrganisationNamesByLicences.getOrDefault(
@@ -99,13 +101,16 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
           .getTaskList(applicationDetail.getId(), null, null));
 
       case LicenceContinuationApplicationStatus.ISSUE_DECISION ->
-          ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
+          (isContinuationIssuer(serviceUserDetail))
+              ? ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
               ApplicationType.CONTINUATION_APPLICATION,
               applicationDetail.getLicenceContinuationApplication().getId()
-          ));
+          ))
+              : ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class)
+                                    .renderOverview(applicationDetail.getId(), null, null, null));
 
       default -> ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class)
-          .renderOverview(applicationDetail.getId(), null, null));
+                                         .renderOverview(applicationDetail.getId(), null, null, null));
     };
 
     var itemReference = applicationDetail.getStatus() == LicenceContinuationApplicationStatus.DRAFT
@@ -153,21 +158,48 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       return false;
     }
 
-    var hasApplicationAccess = applicationAccessService.userHasAccessToApplication(
+    var status = applicationDetail.getStatus();
+    boolean isIssuer = isContinuationIssuer(userDetail);
+    boolean isReviewer = isContinuationReviewer(userDetail);
+    boolean hasAppAccess = applicationAccessService.userHasAccessToApplication(
         applicationDetail.getId().toString(),
         ApplicationType.CONTINUATION_APPLICATION,
         applicationDetail.getResponsibleOrganisationUnitId(),
         userDetail.wuaId()
     );
 
-    if (applicationDetail.getStatus() == LicenceContinuationApplicationStatus.DRAFT) {
-      return hasApplicationAccess;
-    }
+    return hasAppAccess(
+        status,
+        hasAppAccess,
+        isReviewer,
+        isIssuer
+    );
+  }
 
-    if (applicationDetail.getStatus() == LicenceContinuationApplicationStatus.ISSUE_DECISION) {
-      return isContinuationIssuer(userDetail);
-    }
+  private static boolean hasAppAccess(
+      LicenceContinuationApplicationStatus status,
+      boolean hasAppAccess,
+      boolean isReviewer,
+      boolean isIssuer
+  ) {
+    switch (status) {
+      case DRAFT:
+        return hasAppAccess;
 
-    return hasApplicationAccess || isContinuationReviewer(userDetail);
+      case SUBMITTED:
+        return hasAppAccess || isReviewer;
+
+      case ISSUE_DECISION:
+        if (isIssuer) {
+          return true;
+        }
+        if (isReviewer) {
+          return false;
+        }
+        return hasAppAccess;
+
+      default:
+        return hasAppAccess;
+    }
   }
 }

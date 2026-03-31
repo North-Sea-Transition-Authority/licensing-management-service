@@ -158,7 +158,7 @@ class ContinuationApplicationWorkAreaServiceTest {
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
                 "LMS/CA/002 - Licence continuation application",
-                ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null)),
+                ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null, null)),
                 String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.plus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView2),
                 testInstant.minus(1, ChronoUnit.HOURS)
@@ -207,7 +207,7 @@ class ContinuationApplicationWorkAreaServiceTest {
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
                 "LMS/CA/002 - Licence continuation application",
-                ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null)),
+                ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null, null)),
                 String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.plus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView),
                 testInstant.minus(1, ChronoUnit.HOURS)
@@ -287,11 +287,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
 
-    when(teamQueryService.userHasAtLeastOneStaticRole(
-        eq(serviceUserDetail.wuaId()),
-        eq(TeamType.OFFSHORE_PRODUCTION_LICENSING),
-        anySet()
-    )).thenReturn(true);
+    when(teamQueryService.userHasAtLeastOneStaticRole(any(), any(), any())).thenReturn(true);
 
     var org1 = "Org 1";
     var licenceResponsibleOrgMap = Map.of(licence2, List.of(org1));
@@ -320,7 +316,7 @@ class ContinuationApplicationWorkAreaServiceTest {
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
                 "LMS/CA/002 - Licence continuation application",
-                ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null)),
+                ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null, null)),
                 String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.plus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView),
                 testInstant.minus(1, ChronoUnit.HOURS)

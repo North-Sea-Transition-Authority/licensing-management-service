@@ -22,16 +22,28 @@ import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceNotFoundExce
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceSectionsSummaryView;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceService;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTeamType;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.document.DocumentLinkingService;
 import uk.co.nstauthority.licensingmanagementservice.document.instance.LmsDocumentInstanceService;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @Controller
 @RequestMapping("/application/{applicationType}/{applicationId}/document/{documentInstanceId}")
+@ContinuationApplicationHasStatus(value = LicenceContinuationApplicationStatus.ISSUE_DECISION)
+@HasRolesInTeamType(value = {
+    @RolesAndTeamType(roles = {Role.CONTINUATION_ISSUER}, teamType = TeamType.REGULATIONS_LICENSING)
+})
 public class ApplicationDocumentActionsController {
 
   private final DocumentInstanceService documentInstanceService;
@@ -39,6 +51,7 @@ public class ApplicationDocumentActionsController {
   private final ApplicationService applicationService;
   private final DocumentLinkingService documentLinkingService;
   private final IssueLettersService issueLettersService;
+  private final LicenceContinuationService  licenceContinuationService;
 
   @Autowired
   public ApplicationDocumentActionsController(
@@ -46,13 +59,15 @@ public class ApplicationDocumentActionsController {
       LmsDocumentInstanceService lmsDocumentInstanceService,
       ApplicationService applicationService,
       DocumentLinkingService documentLinkingService,
-      IssueLettersService issueLettersService
+      IssueLettersService issueLettersService,
+      LicenceContinuationService licenceContinuationService
   ) {
     this.documentInstanceService = documentInstanceService;
     this.lmsDocumentInstanceService = lmsDocumentInstanceService;
     this.applicationService = applicationService;
     this.documentLinkingService = documentLinkingService;
     this.issueLettersService = issueLettersService;
+    this.licenceContinuationService = licenceContinuationService;
   }
 
   @GetMapping("preview")
@@ -100,8 +115,14 @@ public class ApplicationDocumentActionsController {
         redirectAttributes
     );
 
-    return ReverseRouter.redirect(on(ApplicationLetterController.class)
-                                      .renderEditLetterOverview(applicationType, applicationId));
+    var continuationApplicationDetail = licenceContinuationService
+        .getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(applicationId);
+
+    licenceContinuationService.issueContinuationLetterChangeStatus(continuationApplicationDetail);
+
+    issueLettersService.sendContinuationIssuanceEmails(application, continuationApplicationDetail);
+
+    return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
   }
 
   @GetMapping("reload")

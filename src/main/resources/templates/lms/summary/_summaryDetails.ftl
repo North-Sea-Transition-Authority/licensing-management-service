@@ -3,6 +3,7 @@
 <#import '_tableSummary.ftl' as tableSummary>
 <#import '_emptySummary.ftl' as emptySummary>
 <#import '_filesSummary.ftl' as filesSummary>
+<#import '_fileAndDetailsSummary.ftl' as filesAndDetailsSummary>
 
 <#-- @ftlvariable name="summaryItem" type="uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem" -->
 <#-- @ftlvariable name="summaryCard" type="uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard" -->
@@ -23,6 +24,10 @@
         summaryHeading=summaryCard.displayName()!""/>
     <#elseif summaryCard.summaryCardType() == "EMPTY_SUMMARY">
       <@emptySummary.emptySummary/>
+    <#elseif summaryCard.summaryCardType() == "FILES_AND_DETAILS_SUMMARY">
+        <@filesAndDetailsSummary.filesAndDetailsSummary
+        mixedView=summaryCard.summaryData()
+        heading=summaryCard.displayName()!""/>
     </#if>
   </#list>
 </#macro>

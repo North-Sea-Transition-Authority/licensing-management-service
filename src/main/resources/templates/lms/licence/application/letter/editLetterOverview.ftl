@@ -14,7 +14,7 @@
     linkUrl=springUrl(signUrl)
     linkClass="govuk-button govuk-button--primary"
     role=true
-    openInNewTab=true
+    openInNewTab=false
     />
 
     <@fdsAction.link

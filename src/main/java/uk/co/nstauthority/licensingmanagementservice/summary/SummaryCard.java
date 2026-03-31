@@ -55,4 +55,15 @@ public record SummaryCard(
         fileViews
     );
   }
+
+  public static SummaryCard filesAndDetailsSummaryCard(
+      String heading,
+      SummaryFileAndDetailsView summaryFileAndDetailsView
+  ) {
+    return new SummaryCard(
+        heading,
+        SummaryCardType.FILES_AND_DETAILS_SUMMARY,
+        summaryFileAndDetailsView
+    );
+  }
 }

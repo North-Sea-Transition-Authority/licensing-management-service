@@ -156,8 +156,8 @@
     >
         <@fdsTimeline.timelineEvent>
             <#if activityView.status()?has_content>
-                <@fdsTag.tag>
-                    ${activityView.status()}
+                <@fdsTag.tag tagClass=activityView.status().getTagDisplayClass()>
+                    ${activityView.status().getDisplayName()}
                 </@fdsTag.tag>
                 <br>
             </#if>

@@ -120,6 +120,28 @@ steps:
       status:
         - success
 
+  - name: publish-ecr
+    image: plugins/ecr:21
+    settings:
+      repo: digital/licensing-management-service
+      registry: 847993322739.dkr.ecr.eu-west-2.amazonaws.com
+      access_key: AKIA4K4CXHTZ7KAUZJWL
+      secret_key:
+        from_secret: ecr_secret_key
+      config:
+        from_secret: docker_config
+      region: eu-west-2
+      tags:
+        - ${DRONE_BRANCH//\//-}-${DRONE_BUILD_NUMBER}
+    when:
+      branch:
+        - develop
+        - main
+        - hotfix/**
+        - release/**
+      status:
+        - success
+
   - name: trivy-build-image
     image: docker:20.10.9
     volumes:
@@ -354,3 +376,9 @@ data: /wpGnYGmv1Aj6SAdN/HncMwItJbEMfoUYbe6RhoTyuzF2vr5aLtW61+USmoRuOKLNz5nsiJ+d2
 kind: secret
 name: slack_token
 data: wbgEOfva9lkn70yfZy882ZZJn4p19887M4A/qxXAxt30RW29iQHvnPd9Og0foEseCzQRjVI48rzZ0yrqNPNiTBwCLaaMV2CYU2wE/zsSv3/fzVxdVIkP0wJnKRMaKkfVh/ZXOEdWWbb7m24=
+
+---
+
+kind: secret
+name: ecr_secret_key
+data: T1ks6mb9uwXv8bHQcuTGjpgA7qYMRrqqKSaJxpH/vzLqxUaJKGgcNF9CdPb4N0Rl+Neuzb8NeHj8K7HmJaIMjAEIFFk=

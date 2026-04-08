@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.summary;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static uk.co.nstauthority.licensingmanagementservice.summary.SummaryValueType.EXTERNAL_URL_VALUE;
 import static uk.co.nstauthority.licensingmanagementservice.summary.SummaryValueType.FILE_VALUE;
 import static uk.co.nstauthority.licensingmanagementservice.summary.SummaryValueType.STRING_VALUE;
 
@@ -39,6 +40,14 @@ class SummaryDataViewTest {
           "file desc2b",
           Instant.parse("2025-04-10T10:45:00Z"),
           "https://www.fivium.co.uk")
+  );
+
+  private static final String KEY_5 = "key5_url";
+  private static final ExternalUrlView VALUE_5 = new ExternalUrlView("View licence in PEARS", "https://example.com/view-licence");
+  private static final String KEY_6 = "key6_urls";
+  private static final List<ExternalUrlView> VALUE_6 = List.of(
+      new ExternalUrlView("Link 1", "https://example.com/link-1"),
+      new ExternalUrlView("Link 2", "https://example.com/link-2")
   );
 
   @Test
@@ -97,5 +106,29 @@ class SummaryDataViewTest {
     assertThatThrownBy(() -> summaryData.addStringValue(KEY_1, 1L))
         .isInstanceOf(RuntimeException.class)
         .hasMessage("Unexpected value class type: %s".formatted(Long.class.getName()));
+  }
+
+  @Test
+  void newBuilder_addExternalUrlValue_build() {
+    assertThat(SummaryDataView.newBuilder()
+        .addExternalUrlValue(KEY_5, VALUE_5)
+        .build())
+        .isEqualTo(new SummaryDataView(
+            List.of(
+                new SummaryKeyValue(KEY_5, EXTERNAL_URL_VALUE, List.of(VALUE_5)))
+            )
+        );
+  }
+
+  @Test
+  void newBuilder_addExternalUrlValue_collectionOfUrls_build() {
+    assertThat(SummaryDataView.newBuilder()
+        .addExternalUrlValue(KEY_6, VALUE_6)
+        .build())
+        .isEqualTo(new SummaryDataView(
+            List.of(
+                new SummaryKeyValue(KEY_6, EXTERNAL_URL_VALUE, VALUE_6))
+            )
+        );
   }
 }

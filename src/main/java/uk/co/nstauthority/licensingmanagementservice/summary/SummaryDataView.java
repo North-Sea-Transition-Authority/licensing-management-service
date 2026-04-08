@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.summary;
 
+import static uk.co.nstauthority.licensingmanagementservice.summary.SummaryValueType.EXTERNAL_URL_VALUE;
 import static uk.co.nstauthority.licensingmanagementservice.summary.SummaryValueType.FILE_VALUE;
 import static uk.co.nstauthority.licensingmanagementservice.summary.SummaryValueType.STRING_VALUE;
 
@@ -47,6 +48,21 @@ public record SummaryDataView(
           new SummaryKeyValue(
               key,
               FILE_VALUE,
+              value
+          )
+      );
+      return this;
+    }
+
+    public Builder addExternalUrlValue(String key, ExternalUrlView value) {
+      return addExternalUrlValue(key, List.of(value));
+    }
+
+    public Builder addExternalUrlValue(String key, Collection<ExternalUrlView> value) {
+      keyValues.add(
+          new SummaryKeyValue(
+              key,
+              EXTERNAL_URL_VALUE,
               value
           )
       );

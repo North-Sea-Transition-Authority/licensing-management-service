@@ -88,38 +88,6 @@ steps:
         - main
         - drone/*
 
-  - name: publish-docker-develop
-    image: plugins/docker:19.03.8
-    settings:
-      registry: quay.io
-      repo: quay.io/fivium/licensing-management-service
-      tags:
-        - develop-${DRONE_BUILD_NUMBER}
-      config:
-        from_secret: docker_config
-    when:
-      branch:
-        - develop
-      status:
-        - success
-
-  - name: publish-docker
-    image: plugins/docker:19.03.8
-    settings:
-      registry: quay.io
-      repo: quay.io/fivium/licensing-management-service
-      tags:
-        - ${DRONE_BRANCH/\//-}-${DRONE_BUILD_NUMBER}
-      config:
-        from_secret: docker_config
-    when:
-      branch:
-        - main
-        - hotfix/**
-        - release/**
-      status:
-        - success
-
   - name: publish-ecr
     image: plugins/ecr:21
     settings:
@@ -148,7 +116,7 @@ steps:
       - name: docker-sock
         path: /var/run/docker.sock
     commands:
-      - docker build -t quay.io/fivium/licensing-management-service:trivy-scan-target .
+      - docker build -t 847993322739.dkr.ecr.eu-west-2.amazonaws.com/digital/licensing-management-service:trivy-scan-target .
 
   - name: trivy-scan
     image: aquasec/trivy:0.58.0
@@ -162,7 +130,7 @@ steps:
         path: /var/webfiles
     commands:
       # timeout set as initial cache population can seemingly take a while sometimes
-      - trivy --cache-dir /drone/src/trivy_cache image --timeout 30m --exit-code 1 quay.io/fivium/licensing-management-service:trivy-scan-target
+      - trivy --cache-dir /drone/src/trivy_cache image --timeout 30m --exit-code 1 847993322739.dkr.ecr.eu-west-2.amazonaws.com/digital/licensing-management-service:trivy-scan-target
     when:
       status:
         - success

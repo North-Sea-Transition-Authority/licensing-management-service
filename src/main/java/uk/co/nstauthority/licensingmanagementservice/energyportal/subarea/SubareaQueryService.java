@@ -12,8 +12,18 @@ import uk.co.nstauthority.licensingmanagementservice.correlationid.CorrelationId
 public class SubareaQueryService {
 
   public static final SubareasProjectionRoot SUBAREAS_PROJECTION_ROOT =
-      new SubareasProjectionRoot().id().name().operator().organisationUnitId().name().getParent()
-          .licenceBlock().reference().root();
+      new SubareasProjectionRoot()
+          .id()
+          .name()
+          .status()
+            .getParent()
+          .operator()
+            .organisationUnitId()
+            .name()
+            .getParent()
+          .licenceBlock()
+            .reference()
+        .root();
 
   private final SubareaApi subareaApi;
 

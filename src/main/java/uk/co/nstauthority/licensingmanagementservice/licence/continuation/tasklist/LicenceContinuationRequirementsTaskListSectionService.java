@@ -8,6 +8,8 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationLicenceOperatorsController;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationLicenceOperatorsSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementController;
@@ -24,18 +26,22 @@ public class LicenceContinuationRequirementsTaskListSectionService
 
   private final LicenceContinuationWpaSubmissionService licenceContinuationWpaSubmissionService;
   private final LicenceContinuationOtherRequirementSubmissionService licenceContinuationOtherRequirementSubmissionService;
+  private final LicenceContinuationLicenceOperatorsSubmissionService licenceContinuationLicenceOperatorsSubmissionService;
   static final String LICENCE_CONTINUATION_REQUIREMENTS_SECTION_NAME = "Continuation requirements";
 
   public LicenceContinuationRequirementsTaskListSectionService(
       LicenceContinuationWpaSubmissionService licenceContinuationWpaSubmissionService,
-      LicenceContinuationOtherRequirementSubmissionService licenceContinuationOtherRequirementSubmissionService
+      LicenceContinuationOtherRequirementSubmissionService licenceContinuationOtherRequirementSubmissionService,
+      LicenceContinuationLicenceOperatorsSubmissionService licenceContinuationLicenceOperatorsSubmissionService
   ) {
     this.licenceContinuationWpaSubmissionService = licenceContinuationWpaSubmissionService;
     this.licenceContinuationOtherRequirementSubmissionService = licenceContinuationOtherRequirementSubmissionService;
+    this.licenceContinuationLicenceOperatorsSubmissionService = licenceContinuationLicenceOperatorsSubmissionService;
   }
 
   static final String WORK_PROGRAMMES = "Work programme activities";
   static final String OTHER_REQUIREMENTS = "Other requirements";
+  static final String LICENCE_OPERATORS = "Licence operators";
 
   static final int SECTION_ORDER = 20;
 
@@ -61,7 +67,16 @@ public class LicenceContinuationRequirementsTaskListSectionService
             )),
             ReverseRouter.route(on(LicenceContinuationOtherRequirementController.class)
                                     .renderForm(licenceContinuationApplicationDetail.getId(), null))
+        ),
+        new TaskListItem(
+            LICENCE_OPERATORS,
+            TaskListLabel.notStartedOrComplete(licenceContinuationLicenceOperatorsSubmissionService.isSectionSubmittable(
+                licenceContinuationApplicationDetail
+            )),
+            ReverseRouter.route(on(LicenceContinuationLicenceOperatorsController.class)
+                                    .renderForm(licenceContinuationApplicationDetail.getId(), null))
         )
+
     ));
 
     return Optional.of(new TaskListSection(LICENCE_CONTINUATION_REQUIREMENTS_SECTION_NAME, SECTION_ORDER, items));

@@ -14,6 +14,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationLicenceOperatorsController;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationLicenceOperatorsSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementController;
@@ -25,6 +27,9 @@ import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceContinuationRequirementsTaskListSectionServiceTest {
+
+  @Mock
+  private LicenceContinuationLicenceOperatorsSubmissionService licenceContinuationLicenceOperatorsSubmissionService;
 
   @Mock
   private LicenceContinuationWpaSubmissionService licenceContinuationWpaSubmissionService;
@@ -47,6 +52,8 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
 
   @Test
   void getSection_WhenNotSubmittable_ReturnsNotStartedLabel() {
+    when(licenceContinuationLicenceOperatorsSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
+        .thenReturn(false);
     when(licenceContinuationWpaSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
         .thenReturn(false);
     when(licenceContinuationOtherRequirementSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
@@ -82,11 +89,22 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
                 TaskListLabel.NOT_COMPLETE,
                 ReverseRouter.route(on(LicenceContinuationOtherRequirementController.class)
                                         .renderForm(licenceContinuationApplicationDetail.getId(), null))
-            ));
+            ),
+            new TaskListItem(
+                LicenceContinuationRequirementsTaskListSectionService.LICENCE_OPERATORS,
+                TaskListLabel.NOT_COMPLETE,
+                ReverseRouter.route(on(LicenceContinuationLicenceOperatorsController.class).renderForm(
+                    licenceContinuationApplicationDetail.getId(),
+                    null
+                ))
+            )
+        );
   }
 
   @Test
   void getSection_WhenSubmittable_ReturnsCompleteLabels() {
+    when(licenceContinuationLicenceOperatorsSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
+        .thenReturn(true);
     when(licenceContinuationWpaSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
         .thenReturn(true);
     when(licenceContinuationOtherRequirementSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
@@ -112,11 +130,22 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
                 TaskListLabel.COMPLETE,
                 ReverseRouter.route(on(LicenceContinuationOtherRequirementController.class)
                                         .renderForm(licenceContinuationApplicationDetail.getId(), null))
-            ));
+            ),
+            new TaskListItem(
+                LicenceContinuationRequirementsTaskListSectionService.LICENCE_OPERATORS,
+                TaskListLabel.COMPLETE,
+                ReverseRouter.route(on(LicenceContinuationLicenceOperatorsController.class).renderForm(
+                    licenceContinuationApplicationDetail.getId(),
+                    null
+                ))
+            )
+        );
   }
 
   @Test
   void getSection_MixedStatus_ReturnsCorrectLabels() {
+    when(licenceContinuationLicenceOperatorsSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
+        .thenReturn(false);
     when(licenceContinuationWpaSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
         .thenReturn(true);
     when(licenceContinuationOtherRequirementSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
@@ -142,6 +171,15 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
                 TaskListLabel.NOT_COMPLETE,
                 ReverseRouter.route(on(LicenceContinuationOtherRequirementController.class)
                                         .renderForm(licenceContinuationApplicationDetail.getId(), null))
-            ));
+            ),
+            new TaskListItem(
+                LicenceContinuationRequirementsTaskListSectionService.LICENCE_OPERATORS,
+                TaskListLabel.NOT_COMPLETE,
+                ReverseRouter.route(on(LicenceContinuationLicenceOperatorsController.class).renderForm(
+                    licenceContinuationApplicationDetail.getId(),
+                    null
+                ))
+            )
+        );
   }
 }

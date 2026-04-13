@@ -18,16 +18,23 @@ import uk.co.fivium.energyportalapi.generated.types.Address;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.DocumentInstanceDtoTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceSchedulePhaseTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduleTermTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
+import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 
 @ExtendWith(MockitoExtension.class)
 class DocumentLinkingServiceTest {
@@ -40,6 +47,12 @@ class DocumentLinkingServiceTest {
 
   @Mock
   private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
+
+  @Mock
+  private LicenceScheduleService licenceScheduleService;
+
+  @Mock
+  private LicenceTypeRulesResolver licenceTypeRulesResolver;
 
   @InjectMocks
   private DocumentLinkingService documentLinkingService;
@@ -97,7 +110,6 @@ class DocumentLinkingServiceTest {
     when(scheduleWorkProgrammeApplicationService.getLatestScheduleWorkProgrammeDetailByApplicationIdOrThrow(APPLICATION_ID))
         .thenReturn(SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL);
 
-    System.out.println(SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL.getId());
     var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
         .withItemType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name())
         .withItemReference(APPLICATION_ID.toString())
@@ -169,7 +181,205 @@ class DocumentLinkingServiceTest {
         () -> documentLinkingService.getApplicationCompanyNameFromDto(documentInstanceDto))
         .isInstanceOf(IllegalArgumentException.class);
 
-    verify(licenceContinuationService, never()).getDetailByIdOrThrow(any());
-    verify(scheduleWorkProgrammeApplicationService, never()).getDetailByIdOrThrow(any());
+    verify(licenceContinuationService, never()).getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(any());
+    verify(scheduleWorkProgrammeApplicationService, never()).getLatestScheduleWorkProgrammeDetailByApplicationIdOrThrow(any());
+  }
+
+  @Test
+  void getCurrentTermPhaseNameFromDto_continuationApplication_licenceHasNoPhases_returnsTermDisplayName() {
+    var licence = LicenceTestUtil.builder().withLicenceType(LicenceType.SEAWARD_PRODUCTION).build();
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+    var scheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
+    var applicationDetail = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(scheduleDetail);
+
+    var currentTerm = LicenceScheduleTermTestUtil.builder().withTermType(TermType.INITIAL).build();
+
+    when(licenceContinuationService.getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(APPLICATION_ID))
+        .thenReturn(applicationDetail);
+    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(applicationDetail))
+        .thenReturn(scheduleDetail);
+    when(licenceTypeRulesResolver.hasPhases(LicenceType.SEAWARD_PRODUCTION)).thenReturn(false);
+    when(licenceScheduleService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
+
+    var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
+        .withItemType(ApplicationType.CONTINUATION_APPLICATION.name())
+        .withItemReference(APPLICATION_ID.toString())
+        .build();
+
+    var result = documentLinkingService.getCurrentTermPhaseNameFromDto(documentInstanceDto);
+
+    assertThat(result).isEqualTo(TermType.INITIAL.getDisplayName());
+  }
+
+  @Test
+  void getCurrentTermPhaseNameFromDto_continuationApplication_licenceHasPhases_returnsPhaseDisplayName() {
+    var licence = LicenceTestUtil.builder().withLicenceType(LicenceType.SEAWARD_PRODUCTION).build();
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+    var scheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
+    var applicationDetail = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(scheduleDetail);
+
+    var currentTerm = LicenceScheduleTermTestUtil.builder().withTermType(TermType.INITIAL).build();
+    var currentPhase = LicenceSchedulePhaseTestUtil.builder().withPhaseType(PhaseType.PHASE_A).build();
+
+    when(licenceContinuationService.getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(APPLICATION_ID))
+        .thenReturn(applicationDetail);
+    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(applicationDetail))
+        .thenReturn(scheduleDetail);
+    when(licenceTypeRulesResolver.hasPhases(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
+    when(licenceScheduleService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
+    when(licenceScheduleService.getCurrentPhase(currentTerm)).thenReturn(currentPhase);
+
+    var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
+        .withItemType(ApplicationType.CONTINUATION_APPLICATION.name())
+        .withItemReference(APPLICATION_ID.toString())
+        .build();
+
+    var result = documentLinkingService.getCurrentTermPhaseNameFromDto(documentInstanceDto);
+
+    assertThat(result).isEqualTo(PhaseType.PHASE_A.getDisplayName());
+  }
+
+  @Test
+  void getCurrentTermPhaseNameFromDto_scheduleAmendmentApplication_licenceHasNoPhases_returnsTermDisplayName() {
+    var licence = LicenceTestUtil.builder().withLicenceType(LicenceType.SEAWARD_PRODUCTION).build();
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+    var scheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplicationDetail(scheduleDetail);
+
+    var currentTerm = LicenceScheduleTermTestUtil.builder().withTermType(TermType.INITIAL).build();
+
+    when(scheduleWorkProgrammeApplicationService.getLatestScheduleWorkProgrammeDetailByApplicationIdOrThrow(APPLICATION_ID))
+        .thenReturn(applicationDetail);
+    when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(applicationDetail))
+        .thenReturn(scheduleDetail);
+    when(licenceTypeRulesResolver.hasPhases(LicenceType.SEAWARD_PRODUCTION)).thenReturn(false);
+    when(licenceScheduleService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
+
+    var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
+        .withItemType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name())
+        .withItemReference(APPLICATION_ID.toString())
+        .build();
+
+    var result = documentLinkingService.getCurrentTermPhaseNameFromDto(documentInstanceDto);
+
+    assertThat(result).isEqualTo(TermType.INITIAL.getDisplayName());
+  }
+
+  @Test
+  void getCurrentTermPhaseNameFromDto_scheduleAmendmentApplication_licenceHasPhases_returnsPhaseDisplayName() {
+    var licence = LicenceTestUtil.builder().withLicenceType(LicenceType.SEAWARD_PRODUCTION).build();
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+    var scheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplicationDetail(scheduleDetail);
+
+    var currentTerm = LicenceScheduleTermTestUtil.builder().withTermType(TermType.INITIAL).build();
+    var currentPhase = LicenceSchedulePhaseTestUtil.builder().withPhaseType(PhaseType.PHASE_A).build();
+
+    when(scheduleWorkProgrammeApplicationService.getLatestScheduleWorkProgrammeDetailByApplicationIdOrThrow(APPLICATION_ID))
+        .thenReturn(applicationDetail);
+    when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(applicationDetail))
+        .thenReturn(scheduleDetail);
+    when(licenceTypeRulesResolver.hasPhases(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
+    when(licenceScheduleService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
+    when(licenceScheduleService.getCurrentPhase(currentTerm)).thenReturn(currentPhase);
+
+    var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
+        .withItemType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name())
+        .withItemReference(APPLICATION_ID.toString())
+        .build();
+
+    var result = documentLinkingService.getCurrentTermPhaseNameFromDto(documentInstanceDto);
+
+    assertThat(result).isEqualTo(PhaseType.PHASE_A.getDisplayName());
+  }
+
+  @Test
+  void getCurrentTermPhaseNameFromDto_continuationApplication_licenceHasPhases_noCurrentPhase_returnsTermDisplayName() {
+    var licence = LicenceTestUtil.builder().withLicenceType(LicenceType.SEAWARD_PRODUCTION).build();
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+    var scheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
+    var applicationDetail = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(scheduleDetail);
+
+    var currentTerm = LicenceScheduleTermTestUtil.builder().withTermType(TermType.INITIAL).build();
+
+    when(licenceContinuationService.getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(APPLICATION_ID))
+        .thenReturn(applicationDetail);
+    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(applicationDetail))
+        .thenReturn(scheduleDetail);
+    when(licenceTypeRulesResolver.hasPhases(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
+    when(licenceScheduleService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
+    when(licenceScheduleService.getCurrentPhase(currentTerm)).thenReturn(null);
+
+    var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
+        .withItemType(ApplicationType.CONTINUATION_APPLICATION.name())
+        .withItemReference(APPLICATION_ID.toString())
+        .build();
+
+    var result = documentLinkingService.getCurrentTermPhaseNameFromDto(documentInstanceDto);
+
+    assertThat(result).isEqualTo(TermType.INITIAL.getDisplayName());
+  }
+
+  @Test
+  void getCurrentTermPhaseNameFromDto_scheduleAmendmentApplication_licenceHasPhases_noCurrentPhase_returnsTermDisplayName() {
+    var licence = LicenceTestUtil.builder().withLicenceType(LicenceType.SEAWARD_PRODUCTION).build();
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+    var scheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplicationDetail(scheduleDetail);
+
+    var currentTerm = LicenceScheduleTermTestUtil.builder().withTermType(TermType.INITIAL).build();
+
+    when(scheduleWorkProgrammeApplicationService.getLatestScheduleWorkProgrammeDetailByApplicationIdOrThrow(APPLICATION_ID))
+        .thenReturn(applicationDetail);
+    when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(applicationDetail))
+        .thenReturn(scheduleDetail);
+    when(licenceTypeRulesResolver.hasPhases(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
+    when(licenceScheduleService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
+    when(licenceScheduleService.getCurrentPhase(currentTerm)).thenReturn(null);
+
+    var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
+        .withItemType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name())
+        .withItemReference(APPLICATION_ID.toString())
+        .build();
+
+    var result = documentLinkingService.getCurrentTermPhaseNameFromDto(documentInstanceDto);
+
+    assertThat(result).isEqualTo(TermType.INITIAL.getDisplayName());
+  }
+
+  @Test
+  void getNextTermPhaseStartDateFromDto_continuationApplication_returnsFormattedDate() {
+    var licence = LicenceTestUtil.builder().build();
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+    var scheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
+    var applicationDetail = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(scheduleDetail);
+    var nextStartDate = java.time.LocalDate.of(2026, 6, 1);
+
+    when(licenceContinuationService.getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(APPLICATION_ID))
+        .thenReturn(applicationDetail);
+    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(applicationDetail))
+        .thenReturn(scheduleDetail);
+    when(licenceScheduleService.getNextTermPhaseStartDate(scheduleDetail)).thenReturn(Optional.of(nextStartDate));
+
+    var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
+        .withItemType(ApplicationType.CONTINUATION_APPLICATION.name())
+        .withItemReference(APPLICATION_ID.toString())
+        .build();
+
+    var result = documentLinkingService.getNextTermPhaseStartDateFromDto(documentInstanceDto);
+
+    assertThat(result).isEqualTo("1 Jun 2026");
+  }
+
+  @Test
+  void getNextTermPhaseStartDateFromDto_scheduleAmendmentApplication_returnsEmpty() {
+    var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
+        .withItemType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name())
+        .withItemReference(UUID.randomUUID().toString())
+        .build();
+
+    var result = documentLinkingService.getNextTermPhaseStartDateFromDto(documentInstanceDto);
+
+    assertThat(result).isEmpty();
   }
 }

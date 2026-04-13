@@ -15,4 +15,6 @@ public class DocumentMailMergeFieldDisplayOrders {
   public static final int REGULATOR_NAME = 70;
   public static final int REGULATOR_MNEMONIC = 80;
   public static final int LICENCE_REFERENCE = 90;
+  public static final int CURRENT_TERM_PHASE_NAME = 100;
+  public static final int NEXT_TERM_PHASE_START_DATE = 110;
 }

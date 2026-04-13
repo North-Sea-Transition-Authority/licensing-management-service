@@ -14,6 +14,7 @@ import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
@@ -31,15 +32,18 @@ public class LicenceScheduleExtensionController {
   private final LicenceScheduleExtensionService licenceScheduleExtensionFormService;
   private final LicenceScheduleExtensionFormValidator licenceScheduleExtensionFormValidator;
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
+  private final LicenceScheduleService licenceScheduleService;
 
   public LicenceScheduleExtensionController(
       LicenceScheduleExtensionService licenceScheduleExtensionFormService,
       LicenceScheduleExtensionFormValidator licenceScheduleExtensionFormValidator,
-      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService
+      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
+      LicenceScheduleService licenceScheduleService
   ) {
     this.licenceScheduleExtensionFormService = licenceScheduleExtensionFormService;
     this.licenceScheduleExtensionFormValidator = licenceScheduleExtensionFormValidator;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
+    this.licenceScheduleService = licenceScheduleService;
   }
 
   @GetMapping
@@ -75,8 +79,8 @@ public class LicenceScheduleExtensionController {
 
     var licenceScheduleDetail = scheduleWorkProgrammeApplicationService
         .getScheduleDetailFromApplicationDetail(scheduleWorkProgrammeApplicationDetail);
-    var currentTerm = licenceScheduleExtensionFormService.getCurrentTerm(licenceScheduleDetail);
-    var currentPhase = licenceScheduleExtensionFormService.getCurrentPhase(licenceScheduleDetail);
+    var currentTerm = licenceScheduleService.getCurrentTerm(licenceScheduleDetail);
+    var currentPhase = licenceScheduleService.getCurrentPhase(licenceScheduleDetail);
     var extendableTermAndPhases = licenceScheduleExtensionFormService.getExtendableTermAndPhases(licenceScheduleDetail);
 
     var modelAndView = new ModelAndView(

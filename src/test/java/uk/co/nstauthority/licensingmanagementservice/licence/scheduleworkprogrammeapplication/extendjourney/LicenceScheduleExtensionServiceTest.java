@@ -30,6 +30,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceSchedulePhas
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduleTermTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseRepository;
@@ -60,10 +63,16 @@ class LicenceScheduleExtensionServiceTest {
   private LicenceScheduleTermRepository licenceScheduleTermRepository;
 
   @Mock
+  private LicenceScheduleRepository licenceScheduleRepository;
+
+  @Mock
   private Clock clock;
 
   @Mock
   private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
+
+  @Mock
+  private LicenceTypeRulesResolver licenceTypeRulesResolver;
 
   @InjectMocks
   private LicenceScheduleExtensionService licenceScheduleExtensionService;
@@ -74,11 +83,20 @@ class LicenceScheduleExtensionServiceTest {
   private static final LocalDate TODAY = LocalDate.parse("2025-09-09");
   private static final LocalDate DATE_FUTURE = TODAY.plusYears(2);
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail;
+  private LicenceScheduleService licenceScheduleService;
 
   @BeforeEach
   void setUp() {
     scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(new ScheduleWorkProgrammeApplication());
+
+    licenceScheduleService = new LicenceScheduleService(
+        licenceScheduleRepository,
+        licenceScheduleTermService,
+        licenceSchedulePhaseService,
+        licenceTypeRulesResolver,
+        clock
+    );
   }
 
   @Test
@@ -255,7 +273,7 @@ class LicenceScheduleExtensionServiceTest {
 
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(activeTerm));
 
-    var result = licenceScheduleExtensionService.getCurrentTerm(licenceScheduleDetail);
+    var result = licenceScheduleService.getCurrentTerm(licenceScheduleDetail);
     assertThat(result).isSameAs(activeTerm);
   }
 
@@ -275,16 +293,8 @@ class LicenceScheduleExtensionServiceTest {
 
     when(licenceSchedulePhaseService.getActivePhasesByTerm(term)).thenReturn(List.of(activePhase));
 
-    var result = licenceScheduleExtensionService.getCurrentPhase(term);
+    var result = licenceScheduleService.getCurrentPhase(term);
     assertThat(result).isSameAs(activePhase);
-  }
-
-  @Test
-  void isCurrentlyActive_returnsTrueForActivePeriod() {
-    mockClock();
-    var startDate = TODAY.minusDays(1);
-    var endDate = TODAY.plusDays(1);
-    assertThat(licenceScheduleExtensionService.isCurrentlyActive(startDate, endDate)).isTrue();
   }
 
   @Test

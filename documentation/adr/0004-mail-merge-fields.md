@@ -38,12 +38,12 @@ The current offline letters have the job title of the signatory listed below the
 
 **Template Type Enum Value:** (to be determined—likely `CONTINUATION_LETTER`)
 
-| Mnemonic                          | Description                                            | Data Source                                   |
-|-----------------------------------|--------------------------------------------------------|-----------------------------------------------|
-| `LICENCE_NUMBER`                  | The licence reference (e.g. "P1234")                   | Licence data                                  |
-| `CURRENT_TERM_NAME`               | Name of the term ending (e.g. "Initial")               | Continuation application data                 |
-| `START_DATE_OF_SUBSEQUENT_TERM`   | Date the subsequent term begins                        | Calculated from Continuation application data |
-| `SUBSEQUENT_TERM_NAME`            | Name of the new term (e.g. "Second")                   | Continuation application data                 |
+| Mnemonic                     | Description                                             | Data Source                                   |
+|------------------------------|---------------------------------------------------------|-----------------------------------------------|
+| `LICENCE_NUMBER`             | The licence reference (e.g. "P1234")                    | Licence data                                  |
+| `CURRENT_TERM_PHASE_NAME`    | Name of the current term or phase (e.g. "Initial Term") | Continuation application data                 |
+| `NEXT_TERM_PHASE_START_DATE` | Date the subsequent term or phase begins                | Calculated from Continuation application data |
+| `SUBSEQUENT_TERM_NAME`       | Name of the new term (e.g. "Second")                    | Continuation application data                 |
 
 The following area(s) of the continuation letter will need manual editing:
 * Heading of the contract clause permitting continuation

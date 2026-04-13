@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.document;
 
 import jakarta.transaction.Transactional;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,5 +30,9 @@ public class DocumentTemplateMetadataService {
 
   public List<DocumentTemplateMetadata> getAllDocumentTemplateMetadata() {
     return documentTemplateMetadataRepository.findAll();
+  }
+
+  public Optional<DocumentTemplateMetadata> getDocumentTemplateMetadata(UUID documentTemplateId) {
+    return documentTemplateMetadataRepository.findByDocumentTemplateId(documentTemplateId);
   }
 }

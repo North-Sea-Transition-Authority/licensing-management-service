@@ -58,52 +58,11 @@ public class LicenceScheduleExtensionService {
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
   }
 
-  public LicenceScheduleTerm getCurrentTerm(LicenceScheduleDetail licenceScheduleDetail) {
-
-    var licenceScheduleTerms = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(
-        licenceScheduleDetail);
-
-    return licenceScheduleTerms
-        .stream()
-        .filter(term -> isCurrentlyActive(term.getStartDate(), term.getEndDate()))
-        .findFirst()
-        .orElse(null);
-  }
-
-  public LicenceSchedulePhase getCurrentPhase(LicenceScheduleTerm licenceScheduleTerms) {
-
-    var licenceSchedulePhases = licenceSchedulePhaseService
-        .getActivePhasesByTerm(licenceScheduleTerms);
-
-    return licenceSchedulePhases
-        .stream()
-        .filter(phase -> isCurrentlyActive(phase.getStartDate(), phase.getEndDate()))
-        .findFirst()
-        .orElse(null);
-  }
-
-  public LicenceSchedulePhase getCurrentPhase(LicenceScheduleDetail licenceScheduleDetail) {
-    return getCurrentPhase(getCurrentTerm(licenceScheduleDetail));
-  }
 
   public boolean isExtensionRequested(ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
     return licenceScheduleExtensionRepository
         .existsLicenceScheduleExtensionRequestByScheduleWorkProgrammeApplicationDetails(
             scheduleWorkProgrammeApplicationDetail);
-  }
-
-  boolean isCurrentlyActive(LocalDate startDate, LocalDate endDate) {
-
-    LocalDate today = LocalDate.now(clock);
-
-    if (startDate == null || endDate == null) {
-      throw new IllegalArgumentException("Start date and end date cannot be null");
-    }
-
-    boolean hasStarted = startDate.isBefore(today) || startDate.isEqual(today);
-    boolean hasNotEnded = endDate.isAfter(today);
-
-    return hasStarted && hasNotEnded;
   }
 
   public List<LicenceScheduleTermAndPhases> getExtendableTermAndPhases(LicenceScheduleDetail licenceScheduleDetail) {

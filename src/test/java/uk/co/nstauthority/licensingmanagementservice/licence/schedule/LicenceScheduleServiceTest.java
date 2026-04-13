@@ -1,8 +1,14 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -11,16 +17,32 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceSchedulePhaseTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduleTermTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceScheduleServiceTest {
 
   @Mock
-  private LicenceService licenceService;
+  private LicenceScheduleRepository licenceScheduleRepository;
 
   @Mock
-  private LicenceScheduleRepository licenceScheduleRepository;
+  private LicenceScheduleTermService licenceScheduleTermService;
+
+  @Mock
+  private LicenceSchedulePhaseService licenceSchedulePhaseService;
+
+  @Mock
+  private LicenceTypeRulesResolver licenceTypeRulesResolver;
+
+  @Mock
+  private Clock clock;
 
   @InjectMocks
   private LicenceScheduleService licenceScheduleService;
@@ -37,5 +59,81 @@ class LicenceScheduleServiceTest {
     verify(licenceScheduleRepository).save(licenceScheduleArgumentCaptor.capture());
 
     assertEquals(licence, licenceScheduleArgumentCaptor.getValue().getLicence());
+  }
+
+  @Test
+  void getNextTermPhaseStartDate_findsNextPhaseInSameTerm() {
+    var licence = LicenceTestUtil.builder().withLicenceType(LicenceType.SEAWARD_PRODUCTION).build();
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+    var scheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
+
+    var currentTerm = LicenceScheduleTermTestUtil.builder()
+        .withStartDate(LocalDate.of(2025, 1, 1))
+        .withEndDate(LocalDate.of(2030, 1, 1))
+        .build();
+    var currentPhase = LicenceSchedulePhaseTestUtil.builder()
+        .withStartDate(LocalDate.of(2025, 1, 1))
+        .withEndDate(LocalDate.of(2026, 1, 1))
+        .build();
+    var nextPhase = LicenceSchedulePhaseTestUtil.builder()
+        .withStartDate(LocalDate.of(2026, 1, 1))
+        .withEndDate(LocalDate.of(2027, 1, 1))
+        .build();
+
+    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(scheduleDetail)).thenReturn(List.of(currentTerm));
+    when(licenceTypeRulesResolver.hasPhases(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
+    when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(List.of(currentPhase, nextPhase));
+
+    var result = licenceScheduleService.getNextTermPhaseStartDate(scheduleDetail);
+
+    assertThat(result).hasValue(LocalDate.of(2026, 1, 1));
+  }
+
+  @Test
+  void getNextTermPhaseStartDate_findsNextTermStartIfNoNextPhase() {
+    var licence = LicenceTestUtil.builder().withLicenceType(LicenceType.SEAWARD_PRODUCTION).build();
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+    var scheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
+
+    var currentTerm = LicenceScheduleTermTestUtil.builder()
+        .withStartDate(LocalDate.of(2025, 1, 1))
+        .withEndDate(LocalDate.of(2030, 1, 1))
+        .build();
+    var currentPhase = LicenceSchedulePhaseTestUtil.builder()
+        .withStartDate(LocalDate.of(2025, 1, 1))
+        .withEndDate(LocalDate.of(2030, 1, 1))
+        .build();
+    var nextTerm = LicenceScheduleTermTestUtil.builder()
+        .withStartDate(LocalDate.of(2030, 1, 1))
+        .withEndDate(LocalDate.of(2035, 1, 1))
+        .build();
+
+    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(scheduleDetail)).thenReturn(List.of(currentTerm, nextTerm));
+    when(licenceTypeRulesResolver.hasPhases(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
+    when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(List.of(currentPhase));
+    when(licenceSchedulePhaseService.getActivePhasesByTerm(nextTerm)).thenReturn(List.of());
+
+    var result = licenceScheduleService.getNextTermPhaseStartDate(scheduleDetail);
+
+    assertThat(result).hasValue(LocalDate.of(2030, 1, 1));
+  }
+
+  @Test
+  void getNextTermPhaseStartDate_returnsEmptyIfNoCurrentTerm() {
+    var licence = LicenceTestUtil.builder().withLicenceType(LicenceType.SEAWARD_PRODUCTION).build();
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+    var scheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(scheduleDetail)).thenReturn(List.of());
+
+    var result = licenceScheduleService.getNextTermPhaseStartDate(scheduleDetail);
+
+    assertThat(result).isEmpty();
   }
 }

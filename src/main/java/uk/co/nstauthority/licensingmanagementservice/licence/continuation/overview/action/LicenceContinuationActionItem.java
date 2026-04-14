@@ -13,25 +13,21 @@ public enum LicenceContinuationActionItem implements Displayable {
   CONFIRM_CONTINUATION(
       "Confirm continuation",
       1,
-      true,
           detail -> ReverseRouter.route(on(LicenceContinuationApplicationReviewConfirmationController.class)
                                             .renderOverviewConfirmation(detail.getId(), null))
   );
 
   private final String displayName;
   private final int displayOrder;
-  private final boolean primaryAction;
   private final Function<LicenceContinuationApplicationDetail, String> redirectUrl;
 
   LicenceContinuationActionItem(
       String displayName,
       int displayOrder,
-      boolean primaryAction,
       Function<LicenceContinuationApplicationDetail, String> redirectUrl
   ) {
     this.displayName = displayName;
     this.displayOrder = displayOrder;
-    this.primaryAction = primaryAction;
     this.redirectUrl = redirectUrl;
   }
 
@@ -49,7 +45,7 @@ public enum LicenceContinuationActionItem implements Displayable {
     return redirectUrl.apply(applicationDetail);
   }
 
-  public ActionItemView toActionItemView(LicenceContinuationApplicationDetail applicationDetail) {
+  public ActionItemView toActionItemView(LicenceContinuationApplicationDetail applicationDetail, boolean primaryAction) {
     return new ActionItemView(
         displayName,
         displayOrder,
@@ -57,5 +53,9 @@ public enum LicenceContinuationActionItem implements Displayable {
         getActionRedirectUrl(applicationDetail),
         null
     );
+  }
+
+  public ActionItemView toActionItemView(LicenceContinuationApplicationDetail applicationDetail) {
+    return toActionItemView(applicationDetail, false);
   }
 }

@@ -57,7 +57,7 @@ class LicenceContinuationActionServiceTest {
     when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
 
     assertThat(licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
-        .contains(LicenceContinuationActionItem.CONFIRM_CONTINUATION.toActionItemView(applicationDetail));
+        .contains(LicenceContinuationActionItem.CONFIRM_CONTINUATION.toActionItemView(applicationDetail, true));
   }
 
   @Test
@@ -98,4 +98,23 @@ class LicenceContinuationActionServiceTest {
         .doesNotContain(LicenceContinuationActionItem.CONFIRM_CONTINUATION.toActionItemView(applicationDetail));
   }
 
+  @Test
+  void getAvailableUserActionItems_correctlyAssignsPrimaryAndSecondaryFlags() {
+    var applicationDetail = LicenceContinuationApplicationTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(LicenceContinuationApplicationStatus.SUBMITTED)
+        .build();
+
+    TeamRole teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.CONTINUATION_REVIEWER_OPERATIONS)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    var availableActions = licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail);
+
+    assertThat(availableActions.get(0).primaryAction()).isTrue();
+  }
 }

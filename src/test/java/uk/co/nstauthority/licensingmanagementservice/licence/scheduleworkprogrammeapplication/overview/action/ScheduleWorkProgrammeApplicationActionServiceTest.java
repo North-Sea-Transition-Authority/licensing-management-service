@@ -115,7 +115,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
     when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
 
     assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
-        .contains(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION.toActionItemView(applicationDetail));
+        .contains(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION.toActionItemView(applicationDetail, true));
   }
 
   @Test
@@ -135,7 +135,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
     when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
 
     assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
-        .contains(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION.toActionItemView(applicationDetail));
+        .contains(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION.toActionItemView(applicationDetail, true));
   }
 
   @Test
@@ -174,5 +174,29 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
 
     assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
         .doesNotContain(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION.toActionItemView(applicationDetail));
+  }
+
+  @Test
+  void getAvailableUserActionItems_correctlyAssignsPrimaryAndSecondaryFlags() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+        .build();
+
+    TeamRole teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.CASE_MANAGER_CS_CTS)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    var availableActions = scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail);
+
+    var allocateAction = availableActions.get(0);
+    var recordDecisionAction = availableActions.get(1);
+
+    assertThat(allocateAction.primaryAction()).isTrue();
+    assertThat(recordDecisionAction.primaryAction()).isFalse();
   }
 }

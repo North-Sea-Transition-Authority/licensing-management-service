@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,9 @@ public class ScheduleWorkProgrammeApplicationActionService {
   private static final Map<ScheduleWorkProgrammeApplicationActionItem,
       Function<ScheduleWorkProgrammeApplicationDetail, Long>> ACTIONS_TO_USER_GRANT_PREDICATES
       = new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
+  private static final Map<ScheduleWorkProgrammeApplicationActionItem,
+      Predicate<ScheduleWorkProgrammeApplicationDetail>> ACTIONS_TO_PRIMARY_PREDICATES
+      = new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
 
   private final TeamQueryService teamQueryService;
 
@@ -44,15 +48,18 @@ public class ScheduleWorkProgrammeApplicationActionService {
               ApplicationAccessService.STEWARD_ROLES,
               ApplicationAccessService.CASE_MANAGER_ROLES
           ).toArray(Role[]::new))
+          .isPrimaryButton(false)
         .registerAction(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION)
           .requiresAnyStatusFrom(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
           .requiresAnyRoleFrom(ApplicationAccessService.CASE_MANAGER_ROLES.toArray(Role[]::new))
             .orGrantedToUser(detail -> detail.getScheduleWorkProgrammeApplication().getStewardWuaId())
+          .isPrimaryButton(true)
         .build();
 
     ACTIONS_TO_ROLES.putAll(registeredActions.roleMap);
     STATUS_TO_ACTIONS.putAll(registeredActions.statusMap);
     ACTIONS_TO_USER_GRANT_PREDICATES.putAll(registeredActions.userGrantPredicateMap);
+    ACTIONS_TO_PRIMARY_PREDICATES.putAll(registeredActions.primaryActionPredicateMap);
   }
 
   public List<ActionItemView> getAvailableUserActionItems(
@@ -72,8 +79,16 @@ public class ScheduleWorkProgrammeApplicationActionService {
           return CollectionUtils.containsAny(ACTIONS_TO_ROLES.get(action), userRoles)
               || Objects.equals(grantedUserId, user.wuaId());
         })
-        .map(actionItem -> actionItem.toActionItemView(applicationDetail))
+        .map(actionItem -> actionItem.toActionItemView(applicationDetail, isPrimary(applicationDetail, actionItem)))
         .sorted(Comparator.comparing(ActionItemView::displayOrder))
         .toList();
+  }
+
+  private static boolean isPrimary(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail,
+      ScheduleWorkProgrammeApplicationActionItem actionItem
+  ) {
+    return ACTIONS_TO_PRIMARY_PREDICATES.getOrDefault(actionItem, detail -> false)
+        .test(applicationDetail);
   }
 }

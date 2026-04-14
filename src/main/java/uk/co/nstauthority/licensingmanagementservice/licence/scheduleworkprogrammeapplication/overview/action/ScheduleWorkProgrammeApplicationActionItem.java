@@ -14,30 +14,25 @@ public enum ScheduleWorkProgrammeApplicationActionItem implements Displayable {
   RECORD_FINAL_DECISION(
       "Record final decision",
       10,
-      true,
           detail -> ReverseRouter.route(on(RecordFinalDecisionController.class).render(detail.getId(), null))
   ),
   ALLOCATE_STEWARD(
       "Allocate steward",
       20,
-      false,
           detail -> ReverseRouter.route(on(AllocateStewardController.class).render(detail.getId(), null))
   );
 
   private final String displayName;
   private final int displayOrder;
-  private final boolean primaryAction;
   private final Function<ScheduleWorkProgrammeApplicationDetail, String> redirectUrl;
 
   ScheduleWorkProgrammeApplicationActionItem(
       String displayName,
       int displayOrder,
-      boolean primaryAction,
       Function<ScheduleWorkProgrammeApplicationDetail, String> redirectUrl
   ) {
     this.displayName = displayName;
     this.displayOrder = displayOrder;
-    this.primaryAction = primaryAction;
     this.redirectUrl = redirectUrl;
   }
 
@@ -55,7 +50,7 @@ public enum ScheduleWorkProgrammeApplicationActionItem implements Displayable {
     return redirectUrl.apply(applicationDetail);
   }
 
-  public ActionItemView toActionItemView(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
+  public ActionItemView toActionItemView(ScheduleWorkProgrammeApplicationDetail applicationDetail, boolean primaryAction) {
     return new ActionItemView(
         displayName,
         displayOrder,
@@ -63,5 +58,9 @@ public enum ScheduleWorkProgrammeApplicationActionItem implements Displayable {
         getActionRedirectUrl(applicationDetail),
         null
     );
+  }
+
+  public ActionItemView toActionItemView(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
+    return toActionItemView(applicationDetail, false);
   }
 }

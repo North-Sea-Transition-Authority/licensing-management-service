@@ -15,39 +15,33 @@ public enum LicenceActionItem implements Displayable {
   CREATE_LICENCE_SCHEDULE(
       "Create licence schedule",
       1,
-      false,
           licence -> ReverseRouter.route(on(StartLicenceScheduleJourneyController.class)
               .renderStartLicenceScheduleJourney(licence.getId(), null))
   ),
   MANAGE_LICENSEES(
       "Manage licensees",
           2,
-      false,
           licence -> ReverseRouter.route(on(LicenceController.class)
               .renderManageLicenseesPage(licence.getId(), null))
   ),
   MANAGE_RESPONSIBLE_TEAM(
       "Manage responsible team",
       3,
-      false,
           licence -> ReverseRouter.route(on(LicenceResponsibleTeamController.class)
           .render(licence.getId(), null))
   );
 
   private final String displayName;
   private final int displayOrder;
-  private final boolean primaryAction;
   private final Function<Licence, String> redirectUrl;
 
   LicenceActionItem(
       String displayName,
       int displayOrder,
-      boolean primaryAction,
       Function<Licence, String> redirectUrl
   ) {
     this.displayName = displayName;
     this.displayOrder = displayOrder;
-    this.primaryAction = primaryAction;
     this.redirectUrl = redirectUrl;
   }
 
@@ -65,7 +59,7 @@ public enum LicenceActionItem implements Displayable {
     return redirectUrl.apply(licence);
   }
 
-  public ActionItemView toActionItemView(Licence licence) {
+  public ActionItemView toActionItemView(Licence licence, boolean primaryAction) {
     return new ActionItemView(
         displayName,
         displayOrder,
@@ -75,4 +69,7 @@ public enum LicenceActionItem implements Displayable {
     );
   }
 
+  public ActionItemView toActionItemView(Licence licence) {
+    return toActionItemView(licence, false);
+  }
 }

@@ -154,4 +154,25 @@ class LicenceActionServiceTest {
     assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
         .doesNotContain(LicenceActionItem.CREATE_LICENCE_SCHEDULE.toActionItemView(licence));
   }
+
+  @Test
+  void getAvailableUserActionItems_correctlyAssignsPrimaryAndSecondaryFlags() {
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withStatus(LicenceStatus.EXTANT)
+        .build();
+
+    var teamRole = TeamRoleTestUtil
+        .newBuilder()
+        .withRole(Role.SCHEDULE_ADMINISTRATOR)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(anyLong())).thenReturn(Set.of(teamRole));
+
+    var availableActions = licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail);
+
+    assertThat(availableActions).isNotEmpty();
+    assertThat(availableActions).allMatch(action -> action.primaryAction() == false);
+  }
 }

@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
@@ -30,6 +31,9 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
         Function<ScheduleWorkProgrammeApplicationDetail, Long>> userGrantPredicateMap =
         new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
     private final Deque<ScheduleWorkProgrammeApplicationActionItem> actionItems = new LinkedList<>();
+    public final Map<ScheduleWorkProgrammeApplicationActionItem,
+        Predicate<ScheduleWorkProgrammeApplicationDetail>> primaryActionPredicateMap
+        = new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
 
     private Builder() {
     }
@@ -83,6 +87,17 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
     }
 
     @Override
+    public RegisterAnAction isPrimaryButton(Predicate<ScheduleWorkProgrammeApplicationDetail> condition) {
+      primaryActionPredicateMap.put(actionItems.peek(), condition);
+      return this;
+    }
+
+    @Override
+    public RegisterAnAction isPrimaryButton(boolean isPrimary) {
+      return isPrimaryButton(detail -> isPrimary);
+    }
+
+    @Override
     public Builder build() {
       var missingActions = CollectionUtils.disjunction(
           actionItems,
@@ -113,6 +128,10 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
 
   interface RegisterAnAction {
     SetStatusForAnAction registerAction(ScheduleWorkProgrammeApplicationActionItem actionItem);
+
+    RegisterAnAction isPrimaryButton(Predicate<ScheduleWorkProgrammeApplicationDetail> condition);
+
+    RegisterAnAction isPrimaryButton(boolean isPrimary);
 
     RegisterAnAction orGrantedToUser(Function<ScheduleWorkProgrammeApplicationDetail, Long> userExtractor);
 

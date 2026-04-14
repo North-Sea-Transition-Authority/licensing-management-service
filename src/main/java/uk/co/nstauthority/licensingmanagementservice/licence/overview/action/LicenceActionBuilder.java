@@ -8,8 +8,10 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -36,6 +38,8 @@ public class LicenceActionBuilder {
     public final Map<LicenceActionItem, Set<LicenceScheduleRequirement>> licenceScheduleRequirementMap =
         new EnumMap<>(LicenceActionItem.class);
     private final Deque<LicenceActionItem> actionItems = new LinkedList<>();
+    public final Map<LicenceActionItem, Predicate<Licence>> primaryActionPredicateMap =
+        new EnumMap<>(LicenceActionItem.class);
 
     private Builder() {
     }
@@ -122,6 +126,18 @@ public class LicenceActionBuilder {
     }
 
     @Override
+    public RegisterAnAction isPrimaryButton(Predicate<Licence> condition) {
+      primaryActionPredicateMap.put(actionItems.peek(), condition);
+      return this;
+    }
+
+    @Override
+    public RegisterAnAction isPrimaryButton(boolean isPrimary) {
+      return isPrimaryButton(detail -> isPrimary);
+    }
+
+
+    @Override
     public Builder build() {
       var missingActions = CollectionUtils.disjunction(
           actionItems,
@@ -171,6 +187,10 @@ public class LicenceActionBuilder {
 
   interface RegisterAnAction {
     SetRolesForAnAction registerAction(LicenceActionItem actionItem);
+
+    RegisterAnAction isPrimaryButton(Predicate<Licence> condition);
+
+    RegisterAnAction isPrimaryButton(boolean isPrimary);
 
     Builder build();
   }

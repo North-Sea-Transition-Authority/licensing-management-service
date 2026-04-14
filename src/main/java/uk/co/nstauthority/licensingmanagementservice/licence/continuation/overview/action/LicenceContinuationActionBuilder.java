@@ -8,7 +8,9 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import org.apache.commons.collections4.CollectionUtils;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 
@@ -24,6 +26,8 @@ public class LicenceContinuationActionBuilder {
     public final Map<LicenceContinuationActionItem, Set<Role>> roleMap =
         new EnumMap<>(LicenceContinuationActionItem.class);
     private final Deque<LicenceContinuationActionItem> actionItems = new LinkedList<>();
+    public final Map<LicenceContinuationActionItem, Predicate<LicenceContinuationApplicationDetail>> primaryActionPredicateMap =
+        new EnumMap<>(LicenceContinuationActionItem.class);
 
     private Builder() {
     }
@@ -70,6 +74,17 @@ public class LicenceContinuationActionBuilder {
     }
 
     @Override
+    public RegisterAnAction isPrimaryButton(Predicate<LicenceContinuationApplicationDetail> condition) {
+      primaryActionPredicateMap.put(actionItems.peek(), condition);
+      return this;
+    }
+
+    @Override
+    public RegisterAnAction isPrimaryButton(boolean isPrimary) {
+      return isPrimaryButton(detail -> isPrimary);
+    }
+
+    @Override
     public Builder build() {
       var missingActions = CollectionUtils.disjunction(
           actionItems,
@@ -100,6 +115,10 @@ public class LicenceContinuationActionBuilder {
 
   interface RegisterAnAction {
     SetRolesForAnAction registerAction(LicenceContinuationActionItem actionItem);
+
+    RegisterAnAction isPrimaryButton(Predicate<LicenceContinuationApplicationDetail> condition);
+
+    RegisterAnAction isPrimaryButton(boolean isPrimary);
 
     Builder build();
   }

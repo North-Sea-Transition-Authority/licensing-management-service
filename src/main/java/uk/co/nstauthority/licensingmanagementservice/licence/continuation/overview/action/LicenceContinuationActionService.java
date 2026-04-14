@@ -6,6 +6,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
@@ -25,7 +26,9 @@ public class LicenceContinuationActionService {
   private static final Map<LicenceContinuationApplicationStatus,
       Set<LicenceContinuationActionItem>> STATUS_TO_ACTIONS
       = new EnumMap<>(LicenceContinuationApplicationStatus.class);
-
+  private static final Map<LicenceContinuationActionItem,
+      Predicate<LicenceContinuationApplicationDetail>> ACTIONS_TO_PRIMARY_PREDICATES =
+      new EnumMap<>(LicenceContinuationActionItem.class);
   private final TeamQueryService teamQueryService;
 
   public LicenceContinuationActionService(TeamQueryService teamQueryService) {
@@ -35,10 +38,12 @@ public class LicenceContinuationActionService {
         .registerAction(LicenceContinuationActionItem.CONFIRM_CONTINUATION)
           .requiresAnyRoleFrom(ApplicationAccessService.CONTINUATION_REVIEWER_ROLES)
           .requiresAnyStatusFrom(LicenceContinuationApplicationStatus.SUBMITTED)
+          .isPrimaryButton(true)
         .build();
 
     ACTIONS_TO_ROLES.putAll(registeredActions.roleMap);
     STATUS_TO_ACTIONS.putAll(registeredActions.statusMap);
+    ACTIONS_TO_PRIMARY_PREDICATES.putAll(registeredActions.primaryActionPredicateMap);
   }
 
   public List<ActionItemView> getAvailableUserActionItems(
@@ -52,8 +57,16 @@ public class LicenceContinuationActionService {
     return EnumSet.allOf(LicenceContinuationActionItem.class).stream()
         .filter(STATUS_TO_ACTIONS.getOrDefault(applicationDetail.getStatus(), Set.of())::contains)
         .filter(action -> CollectionUtils.containsAny(ACTIONS_TO_ROLES.get(action), userRoles))
-        .map(actionItem -> actionItem.toActionItemView(applicationDetail))
+        .map(actionItem -> actionItem.toActionItemView(applicationDetail, isPrimary(applicationDetail, actionItem)))
         .sorted(Comparator.comparing(ActionItemView::displayOrder))
         .toList();
+  }
+
+  private static boolean isPrimary(
+      LicenceContinuationApplicationDetail applicationDetail,
+      LicenceContinuationActionItem actionItem
+  ) {
+    return ACTIONS_TO_PRIMARY_PREDICATES.getOrDefault(actionItem, detail -> false)
+        .test(applicationDetail);
   }
 }

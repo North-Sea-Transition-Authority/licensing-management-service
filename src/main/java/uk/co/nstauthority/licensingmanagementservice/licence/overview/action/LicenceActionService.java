@@ -8,6 +8,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
@@ -30,6 +31,8 @@ public class LicenceActionService {
       = new EnumMap<>(LicenceActionItem.class);
   private static final Map<LicenceActionItem, Set<LicenceScheduleRequirement>> ACTIONS_TO_LICENCE_SCHEDULE_REQUIREMENT
       = new EnumMap<>(LicenceActionItem.class);
+  private static final Map<LicenceActionItem, Predicate<Licence>> ACTIONS_TO_PRIMARY_PREDICATES
+      = new EnumMap<>(LicenceActionItem.class);
 
   private final TeamQueryService teamQueryService;
   private final LicenceScheduleDetailService licenceScheduleDetailService;
@@ -47,22 +50,26 @@ public class LicenceActionService {
           .requiresAnyStatus()
           .requiresAnyTypeFrom(LicenceType.CARBON_STORAGE, LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION)
           .withLicenceScheduleRequirement(LicenceScheduleRequirement.NO_SCHEDULE_EXISTS)
+          .isPrimaryButton(false)
         .registerAction(LicenceActionItem.MANAGE_LICENSEES)
           .requiresAnyRoleFrom(Role.OFFLINE_LICENCE_ADMINISTRATOR)
           .requiresAnyStatus()
           .requiresAnyTypeManagedByLms()
           .withoutLicenceScheduleRequirement()
+          .isPrimaryButton(false)
         .registerAction(LicenceActionItem.MANAGE_RESPONSIBLE_TEAM)
           .requiresAnyRoleFrom(Role.OFFLINE_LICENCE_ADMINISTRATOR)
           .requiresAnyStatus()
           .requiresAnyTypeFrom(LicenceType.CARBON_STORAGE)
           .withoutLicenceScheduleRequirement()
+          .isPrimaryButton(false)
         .build();
 
     ACTIONS_TO_ROLES.putAll(registeredActions.roleMap);
     STATUS_TO_ACTIONS.putAll(registeredActions.statusMap);
     ACTIONS_TO_LICENCE_TYPE.putAll(registeredActions.licenceTypeMap);
     ACTIONS_TO_LICENCE_SCHEDULE_REQUIREMENT.putAll(registeredActions.licenceScheduleRequirementMap);
+    ACTIONS_TO_PRIMARY_PREDICATES.putAll(registeredActions.primaryActionPredicateMap);
   }
 
   public List<ActionItemView> getAvailableUserActionItems(
@@ -82,7 +89,7 @@ public class LicenceActionService {
         .filter(action -> ACTIONS_TO_LICENCE_TYPE.get(action).contains(licence.getType()))
         // remove the actions which do not meet the licence schedule requirement
         .filter(action -> satisfiesLicenceScheduleRequirement(licence, ACTIONS_TO_LICENCE_SCHEDULE_REQUIREMENT.get(action)))
-        .map(actionItem -> actionItem.toActionItemView(licence))
+        .map(actionItem -> actionItem.toActionItemView(licence, isPrimary(licence, actionItem)))
         .sorted(Comparator.comparing(ActionItemView::displayOrder))
         .toList();
   }
@@ -95,5 +102,10 @@ public class LicenceActionService {
 
     return requirements.contains(LicenceScheduleRequirement.NO_REQUIREMENT)
         || requirements.contains(LicenceScheduleRequirement.NO_SCHEDULE_EXISTS) && !scheduleExists;
+  }
+
+  private static boolean isPrimary(Licence licence, LicenceActionItem actionItem) {
+    return ACTIONS_TO_PRIMARY_PREDICATES.getOrDefault(actionItem, lice -> false)
+        .test(licence);
   }
 }

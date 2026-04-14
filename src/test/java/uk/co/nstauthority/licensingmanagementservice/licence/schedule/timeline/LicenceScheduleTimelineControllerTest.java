@@ -15,6 +15,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
@@ -32,6 +33,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesta
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.reviewandapply.DeleteDraftScheduleController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.reviewandapply.ReviewAndApplyScheduleController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceScheduleTimelineController.class)
@@ -48,6 +51,12 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
 
   @BeforeEach
   void setUp() {
+    when(teamQueryService.userHasRoleInTeamType(
+        regulatorUser.wuaId(),
+        TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR))
+    ).thenReturn(true);
+
     licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
@@ -61,7 +70,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
     licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
 
     viewTimelineUrl = ReverseRouter.route(on(LicenceScheduleTimelineController.class)
-        .renderLicenceScheduleTimeline(licenceScheduleDetail.getId(), null, null));
+        .renderLicenceScheduleTimeline(licenceScheduleDetail.getId(), null, null, null));
   }
 
   @SecurityTest
@@ -75,9 +84,9 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
     var invalidEventViews = List.of((ScheduleEvent) new TimelineRateView("", LocalDate.now(), "", "", "", ""));
 
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
-    when(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail)).thenReturn(timelineActionViews);
-    when(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(eq(licenceScheduleDetail), any())).thenReturn(scheduleEventViews);
-    when(licenceScheduleTimelineService.getEventsBeyondFinalTerm(licenceScheduleDetail)).thenReturn(invalidEventViews);
+    when(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, regulatorUser)).thenReturn(timelineActionViews);
+    when(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(eq(licenceScheduleDetail), any(), eq(regulatorUser))).thenReturn(scheduleEventViews);
+    when(licenceScheduleTimelineService.getEventsBeyondFinalTerm(licenceScheduleDetail, regulatorUser)).thenReturn(invalidEventViews);
 
     mockMvc.perform(
             get(viewTimelineUrl)

@@ -105,26 +105,37 @@ public class LicenceScheduleTimelineService {
     return DateFormatUtil.convertToDisplayText(licenceScheduleExpiry.getExpiryDate());
   }
 
-  List<TimelineActionView> getLicenceScheduleTimelineActions(LicenceScheduleDetail licenceScheduleDetail) {
+  List<TimelineActionView> getLicenceScheduleTimelineActions(
+      LicenceScheduleDetail licenceScheduleDetail,
+      ServiceUserDetail userDetail
+  ) {
     var licenceType = licenceScheduleDetail.getLicenceSchedule().getLicence().getType();
-
     var actions = new ArrayList<LicenceScheduleTimelineAction>();
 
-    actions.add(LicenceScheduleTimelineAction.ADD_A_TERM);
+    var allowedActions = getAllowedEventActionsForUser(userDetail);
 
-    if (licenceTypeRulesResolver.arePhasesCaptured(licenceType)) {
+    var canEditScheduleEvents = allowedActions.contains(ScheduleEventAction.EDIT_SCHEDULE_EVENTS);
+
+    if (canEditScheduleEvents) {
+      actions.add(LicenceScheduleTimelineAction.ADD_A_TERM);
+    }
+
+    if (licenceTypeRulesResolver.arePhasesCaptured(licenceType) && canEditScheduleEvents) {
       actions.add(LicenceScheduleTimelineAction.ADD_A_PHASE);
     }
 
-    if (licenceTypeRulesResolver.hasWorkProgramme(licenceType)) {
+    if (licenceTypeRulesResolver.hasWorkProgramme(licenceType)
+        && allowedActions.contains(ScheduleEventAction.EDIT_WORK_PROGRAMME)) {
       actions.add(LicenceScheduleTimelineAction.ADD_A_WORK_PROGRAMME_ACTIVITY);
     }
 
-    if (licenceTypeRulesResolver.hasRentalRate(licenceType)) {
+    if (licenceTypeRulesResolver.hasRentalRate(licenceType) && canEditScheduleEvents) {
       actions.add(LicenceScheduleTimelineAction.ADD_A_RATE);
     }
 
-    actions.add(LicenceScheduleTimelineAction.ADD_A_SCHEDULE_EVENT);
+    if (canEditScheduleEvents) {
+      actions.add(LicenceScheduleTimelineAction.ADD_A_SCHEDULE_EVENT);
+    }
 
     return actions.stream()
         .sorted(Comparator.comparing(LicenceScheduleTimelineAction::getDisplayOrder))
@@ -173,16 +184,32 @@ public class LicenceScheduleTimelineService {
 
   List<TimelineTermView> getEditableLicenceScheduleEventViews(
       LicenceScheduleDetail licenceScheduleDetail,
-      TimelineFilterForm timelineFilterForm
+      TimelineFilterForm timelineFilterForm,
+      ServiceUserDetail userDetail
   ) {
     var eventRefWpStatusMap = getLatestWpStatusesForSchedule(licenceScheduleDetail);
-    
+    var allowedActions = getAllowedEventActionsForUser(userDetail);
+
     return getLicenceScheduleEventViews(
         licenceScheduleDetail,
         timelineFilterForm,
-        List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME),
+        allowedActions,
         eventRefWpStatusMap
     );
+  }
+
+  private List<ScheduleEventAction> getAllowedEventActionsForUser(ServiceUserDetail userDetail) {
+    List<ScheduleEventAction> allowedActions = new ArrayList<>();
+
+    if (teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))) {
+      allowedActions.add(ScheduleEventAction.EDIT_SCHEDULE_EVENTS);
+    }
+
+    if (teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))) {
+      allowedActions.add(ScheduleEventAction.EDIT_WORK_PROGRAMME);
+    }
+
+    return allowedActions;
   }
 
   private List<TimelineTermView> getLicenceScheduleEventViews(
@@ -437,10 +464,10 @@ public class LicenceScheduleTimelineService {
   }
 
   public List<ScheduleEvent> getEventsBeyondFinalTerm(
-      LicenceScheduleDetail licenceScheduleDetail
+      LicenceScheduleDetail licenceScheduleDetail,
+      ServiceUserDetail userDetail
   ) {
-    //TODO: LMS1-370 replace with users actions once implemented
-    var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
+    var allowedActions = getAllowedEventActionsForUser(userDetail);
 
     var finalTerm = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
         .max(Comparator.comparing(term -> term.getTermType().getDisplayOrder()));

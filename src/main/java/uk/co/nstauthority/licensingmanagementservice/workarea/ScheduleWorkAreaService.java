@@ -74,7 +74,7 @@ public class ScheduleWorkAreaService implements WorkAreaItemProvider {
         .withId(licenceScheduleDetail.getId().toString())
         .withLinkHeadingText(String.format("%s - draft schedule", licence.getLicenceReference()))
         .withLinkHeadingUrl(ReverseRouter.route(on(LicenceScheduleTimelineController.class)
-            .renderLicenceScheduleTimeline(licenceScheduleDetail.getId(), null, null))
+            .renderLicenceScheduleTimeline(licenceScheduleDetail.getId(), null, null, null))
         )
         .withCaptionText(String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(createdDatetime)))
         .withDataItemRow(dataItemRow)

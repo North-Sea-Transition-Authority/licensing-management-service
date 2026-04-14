@@ -71,11 +71,11 @@ public class LicenceScheduleDetail {
 
   public String getScheduleTimelineRouteUrl() {
     return ReverseRouter.route(on(LicenceScheduleTimelineController.class)
-        .renderLicenceScheduleTimeline(this.id, null, null));
+        .renderLicenceScheduleTimeline(this.id, null, null, null));
   }
 
   public ModelAndView getScheduleTimelineRedirectUrl() {
     return ReverseRouter.redirect(on(LicenceScheduleTimelineController.class)
-        .renderLicenceScheduleTimeline(this.id, null, null));
+        .renderLicenceScheduleTimeline(this.id, null, null, null));
   }
 }

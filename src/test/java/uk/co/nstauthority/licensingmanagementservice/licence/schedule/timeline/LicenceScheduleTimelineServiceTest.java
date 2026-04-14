@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
@@ -107,6 +108,8 @@ class LicenceScheduleTimelineServiceTest {
 
   private LicenceScheduleDetail licenceScheduleDetail;
 
+  private ServiceUserDetail userDetail;
+
   @BeforeEach
   void setUp() {
     licence = LicenceTestUtil.builder()
@@ -118,6 +121,8 @@ class LicenceScheduleTimelineServiceTest {
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
 
     licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
+
+    userDetail = ServiceUserDetailTestUtil.newBuilder().build();
   }
 
   @Test
@@ -185,6 +190,9 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceTypeRulesResolver.hasWorkProgramme(licence.getType())).thenReturn(true);
     when(licenceTypeRulesResolver.hasRentalRate(licence.getType())).thenReturn(true);
 
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(true);
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(true);
+
     var expectedResult = List.of(
         new TimelineActionView(
             LicenceScheduleTimelineAction.ADD_A_TERM,
@@ -208,7 +216,61 @@ class LicenceScheduleTimelineServiceTest {
         )
     );
 
-    assertThat(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail))
+    assertThat(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, userDetail))
+        .usingRecursiveComparison()
+        .isEqualTo(expectedResult);
+  }
+
+  @Test
+  void getLicenceScheduleTimelineActions_noScheduleAdminRole() {
+    when(licenceTypeRulesResolver.arePhasesCaptured(licence.getType())).thenReturn(true);
+    when(licenceTypeRulesResolver.hasWorkProgramme(licence.getType())).thenReturn(true);
+    when(licenceTypeRulesResolver.hasRentalRate(licence.getType())).thenReturn(true);
+
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(false);
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(true);
+
+    var expectedResult = List.of(
+        new TimelineActionView(
+            LicenceScheduleTimelineAction.ADD_A_WORK_PROGRAMME_ACTIVITY,
+            ReverseRouter.route(on(WorkProgrammeActivityController.class).renderAddNewActivityForm(licenceScheduleDetail.getId(), null))
+        )
+    );
+
+    assertThat(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, userDetail))
+        .usingRecursiveComparison()
+        .isEqualTo(expectedResult);
+  }
+
+  @Test
+  void getLicenceScheduleTimelineActions_noWorkProgrammeAdminRole() {
+    when(licenceTypeRulesResolver.arePhasesCaptured(licence.getType())).thenReturn(true);
+    when(licenceTypeRulesResolver.hasWorkProgramme(licence.getType())).thenReturn(true);
+    when(licenceTypeRulesResolver.hasRentalRate(licence.getType())).thenReturn(true);
+
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(true);
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(false);
+
+    var expectedResult = List.of(
+        new TimelineActionView(
+            LicenceScheduleTimelineAction.ADD_A_TERM,
+            ReverseRouter.route(on(LicenceScheduleTermController.class).renderAddNewTermForm(licenceScheduleDetail.getId(), null))
+        ),
+        new TimelineActionView(
+            LicenceScheduleTimelineAction.ADD_A_PHASE,
+            ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderAddNewPhaseForm(licenceScheduleDetail.getId(), null))
+        ),
+        new TimelineActionView(
+            LicenceScheduleTimelineAction.ADD_A_RATE,
+            ReverseRouter.route(on(LicenceScheduleRateController.class).renderNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null))
+        ),
+        new TimelineActionView(
+            LicenceScheduleTimelineAction.ADD_A_SCHEDULE_EVENT,
+            ReverseRouter.route(on(OtherScheduleEventController.class).renderAddNewEventForm(licenceScheduleDetail.getId(), null))
+        )
+    );
+
+    assertThat(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, userDetail))
         .usingRecursiveComparison()
         .isEqualTo(expectedResult);
   }
@@ -218,6 +280,9 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceTypeRulesResolver.arePhasesCaptured(licence.getType())).thenReturn(false);
     when(licenceTypeRulesResolver.hasWorkProgramme(licence.getType())).thenReturn(false);
     when(licenceTypeRulesResolver.hasRentalRate(licence.getType())).thenReturn(false);
+
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(true);
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(true);
 
     var expectedResult = List.of(
         new TimelineActionView(
@@ -230,7 +295,7 @@ class LicenceScheduleTimelineServiceTest {
         )
     );
 
-    assertThat(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail))
+    assertThat(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, userDetail))
         .usingRecursiveComparison()
         .isEqualTo(expectedResult);
   }
@@ -495,6 +560,9 @@ class LicenceScheduleTimelineServiceTest {
 
     var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
 
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(true);
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(true);
+
     when(workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
     when(workProgrammeActivityStatusService.getLatestStatusesFor(activities)).thenReturn(
         Map.of(
@@ -531,7 +599,291 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
 
-    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form))
+    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, userDetail))
+        .usingRecursiveComparison()
+        .isEqualTo(List.of(termView, termView2));
+  }
+
+  @Test
+  void getEditableLicenceScheduleEventViews_noEditPermissions() {
+    var midPhaseActivity = new WorkProgrammeActivity();
+    midPhaseActivity.setId(UUID.randomUUID());
+    midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
+    midPhaseActivity.setDescription("description");
+    midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
+    midPhaseActivity.setEventReference(UUID.randomUUID());
+
+    var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
+    midPhaseActivityStatus.setActivityEventReference(midPhaseActivity.getEventReference());
+    midPhaseActivityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
+
+    var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
+        WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName(),
+        "description",
+        LocalDate.of(2025, 2, 1),
+        "1 February 2025",
+        "",
+        "",
+        "",
+        WorkProgrammeStatus.IN_PROGRESS
+    );
+
+    var endOfPhaseActivity = new WorkProgrammeActivity();
+    endOfPhaseActivity.setId(UUID.randomUUID());
+    endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
+    endOfPhaseActivity.setDescription("description");
+    endOfPhaseActivity.setEventReference(UUID.randomUUID());
+
+    var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
+    endOfPhaseActivityStatus.setActivityEventReference(endOfPhaseActivity.getEventReference());
+    endOfPhaseActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
+
+    var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
+        WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL.getDisplayName(),
+        "description",
+        null,
+        "",
+        "",
+        "",
+        "",
+        WorkProgrammeStatus.OPEN
+    );
+
+    var midTerm2Activity = new WorkProgrammeActivity();
+    midTerm2Activity.setId(UUID.randomUUID());
+    midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
+    midTerm2Activity.setDescription("description");
+    midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
+    midTerm2Activity.setEventReference(UUID.randomUUID());
+
+    var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
+    midTerm2ActivityStatus.setActivityEventReference(midTerm2Activity.getEventReference());
+    midTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
+
+    var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
+        WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT.getDisplayName(),
+        "description",
+        LocalDate.of(2026, 2, 1),
+        "1 February 2026",
+        "",
+        "",
+        "",
+        WorkProgrammeStatus.OPEN
+    );
+
+    var endOfTerm2Activity = new WorkProgrammeActivity();
+    endOfTerm2Activity.setId(UUID.randomUUID());
+    endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
+    endOfTerm2Activity.setDescription("description");
+    endOfTerm2Activity.setEventReference(UUID.randomUUID());
+
+    var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
+    endOfTerm2ActivityStatus.setActivityEventReference(endOfTerm2Activity.getEventReference());
+    endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
+
+    var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
+        WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA.getDisplayName(),
+        "description",
+        null,
+        "",
+        "",
+        "",
+        "",
+        WorkProgrammeStatus.OPEN
+    );
+
+    var midPhaseEvent = new OtherScheduleEvent();
+    midPhaseEvent.setId(UUID.randomUUID());
+    midPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
+    midPhaseEvent.setDescription("description");
+    midPhaseEvent.setEventDate(LocalDate.of(2025, 2, 1));
+
+    var midPhaseEventView = new TimelineOtherScheduleEventView(
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        "description",
+        LocalDate.of(2025, 2, 1),
+        "1 February 2025",
+        "",
+        ""
+    );
+
+    var endOfPhaseEvent = new OtherScheduleEvent();
+    endOfPhaseEvent.setId(UUID.randomUUID());
+    endOfPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
+    endOfPhaseEvent.setDescription("description");
+
+    var endOfPhaseEventView = new TimelineOtherScheduleEventView(
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        "description",
+        null,
+        "",
+        "",
+        ""
+    );
+
+    var midTerm2Event = new OtherScheduleEvent();
+    midTerm2Event.setId(UUID.randomUUID());
+    midTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
+    midTerm2Event.setDescription("description");
+    midTerm2Event.setEventDate(LocalDate.of(2026, 2, 1));
+
+    var midTerm2EventView = new TimelineOtherScheduleEventView(
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        "description",
+        LocalDate.of(2026, 2, 1),
+        "1 February 2026",
+        "",
+        ""
+    );
+
+    var endOfTerm2Event = new OtherScheduleEvent();
+    endOfTerm2Event.setId(UUID.randomUUID());
+    endOfTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
+    endOfTerm2Event.setDescription("description");
+
+    var endOfTerm2EventView = new TimelineOtherScheduleEventView(
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        "description",
+        null,
+        "",
+        "",
+        ""
+    );
+
+    var phase = new LicenceSchedulePhase();
+    phase.setId(UUID.randomUUID());
+    phase.setLicenceScheduleDetail(licenceScheduleDetail);
+    phase.setPhaseType(PhaseType.PHASE_A);
+    phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
+    phase.setStartDate(LocalDate.of(2025, 1, 1));
+    phase.setEndDate(LocalDate.of(2025, 12, 31));
+
+    var phaseRate = new LicenceScheduleRate();
+    phaseRate.setId(UUID.randomUUID());
+    phaseRate.setRateDefinitionOption(RateDefinitionOption.PHASE);
+    phaseRate.setLicenceSchedulePhase(phase);
+    phaseRate.setRentalRate(new BigDecimal("1.00"));
+    phaseRate.setStartDate(phase.getStartDate());
+
+    var phaseRateView = new TimelineRateView(
+        "Phase A rate",
+        phase.getStartDate(),
+        "1 January 2025",
+        "£1.00",
+        "",
+        ""
+    );
+
+    var phaseView = new TimelinePhaseView(
+        List.of(phaseRateView, midPhaseActivityView, midPhaseEventView),
+        List.of(endOfPhaseActivityView, endOfPhaseEventView),
+        PhaseType.PHASE_A,
+        phase.getStartDate(),
+        "1 January 2025 to 31 December 2025 (1 year)",
+        "31 December 2025",
+        "",
+        ""
+    );
+
+    var term = new LicenceScheduleTerm();
+    term.setId(UUID.randomUUID());
+    term.setLicenceScheduleDetail(licenceScheduleDetail);
+    term.setTermType(TermType.INITIAL);
+    term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
+    term.setStartDate(LocalDate.of(2025, 1, 1));
+    term.setEndDate(LocalDate.of(2025, 12, 31));
+
+    var termView = new TimelineTermView(
+        List.of(phaseView),
+        List.of(),
+        TermType.INITIAL,
+        "1 January 2025 to 31 December 2025 (1 year)",
+        "31 December 2025",
+        "",
+        "",
+        true
+    );
+
+    var term2 = new LicenceScheduleTerm();
+    term2.setId(UUID.randomUUID());
+    term2.setLicenceScheduleDetail(licenceScheduleDetail);
+    term2.setTermType(TermType.SECOND);
+    term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
+    term2.setStartDate(LocalDate.of(2026, 1, 1));
+    term2.setEndDate(LocalDate.of(2026, 12, 31));
+
+    var term2Rate = new LicenceScheduleRate();
+    term2Rate.setId(UUID.randomUUID());
+    term2Rate.setRateDefinitionOption(RateDefinitionOption.TERM);
+    term2Rate.setLicenceScheduleTerm(term2);
+    term2Rate.setRentalRate(new BigDecimal("2.00"));
+    term2Rate.setStartDate(term2.getStartDate());
+
+    var term2RateView = new TimelineRateView(
+        "Second Term rate",
+        term2.getStartDate(),
+        "1 January 2026",
+        "£2.00",
+        "",
+        ""
+    );
+
+    var termView2 = new TimelineTermView(
+        List.of(term2RateView, midTerm2ActivityView, midTerm2EventView),
+        List.of(endOfTerm2ActivityView, endOfTerm2EventView),
+        TermType.SECOND,
+        "1 January 2026 to 31 December 2026 (1 year)",
+        "31 December 2026",
+        "",
+        "",
+        false
+    );
+
+    var form = new TimelineFilterForm();
+    form.setEventTypes(ScheduleEventType.getFilterDefaults());
+
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(false);
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(false);
+
+    var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
+
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
+    when(workProgrammeActivityStatusService.getLatestStatusesFor(activities)).thenReturn(
+        Map.of(
+            midPhaseActivity.getEventReference(), midPhaseActivityStatus,
+            endOfPhaseActivity.getEventReference(), endOfPhaseActivityStatus,
+            midTerm2Activity.getEventReference(), midTerm2ActivityStatus,
+            endOfTerm2Activity.getEventReference(), endOfTerm2ActivityStatus
+        )
+    );
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
+    when(licenceSchedulePhaseService.getActivePhasesByTerm(term)).thenReturn(List.of(phase));
+
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRangeFor(phase)).thenReturn(List.of(midPhaseActivity));
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRangeFor(term2)).thenReturn(List.of(midTerm2Activity));
+
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByPhaseAndDateOption(phase, WorkProgrammeActivityDateOption.WITHIN_A_PHASE))
+        .thenReturn(List.of(endOfPhaseActivity));
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
+        .thenReturn(List.of());
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(term2, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
+        .thenReturn(List.of(endOfTerm2Activity));
+
+    when(otherScheduleEventService.getActiveScheduleEventsByDateRangeFor(phase)).thenReturn(List.of(midPhaseEvent));
+    when(otherScheduleEventService.getActiveScheduleEventsByDateRangeFor(term2)).thenReturn(List.of(midTerm2Event));
+
+    when(otherScheduleEventService.getActiveScheduleEventsByPhaseAndDateOption(phase, OtherScheduleEventDateOption.WITHIN_A_PHASE))
+        .thenReturn(List.of(endOfPhaseEvent));
+    when(otherScheduleEventService.getActiveScheduleEventsByTermAndDateOption(term, OtherScheduleEventDateOption.WITHIN_A_TERM))
+        .thenReturn(List.of());
+    when(otherScheduleEventService.getActiveScheduleEventsByTermAndDateOption(term2, OtherScheduleEventDateOption.WITHIN_A_TERM))
+        .thenReturn(List.of(endOfTerm2Event));
+
+    when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
+    when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
+
+    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, userDetail))
         .usingRecursiveComparison()
         .isEqualTo(List.of(termView, termView2));
   }
@@ -776,6 +1128,9 @@ class LicenceScheduleTimelineServiceTest {
         ScheduleEventType.OTHER.name()
     ));
 
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(true);
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(true);
+
     var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
 
     when(workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
@@ -814,7 +1169,7 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
 
-    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form))
+    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, userDetail))
         .usingRecursiveComparison()
         .isEqualTo(List.of(termView, termView2));
   }
@@ -1028,6 +1383,9 @@ class LicenceScheduleTimelineServiceTest {
         ScheduleEventType.OTHER.name()
     ));
 
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(true);
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(true);
+
     var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
 
     when(workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
@@ -1066,7 +1424,7 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
 
-    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form))
+    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, userDetail))
         .usingRecursiveComparison()
         .isEqualTo(List.of(termView, termView2));
   }
@@ -1288,6 +1646,9 @@ class LicenceScheduleTimelineServiceTest {
         ScheduleEventType.WORK_PROGRAMME_ACTIVITY.name()
     ));
 
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(true);
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(true);
+
     var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
 
     when(workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
@@ -1326,7 +1687,7 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
 
-    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form))
+    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, userDetail))
         .usingRecursiveComparison()
         .isEqualTo(List.of(termView, termView2));
   }
@@ -1815,6 +2176,9 @@ class LicenceScheduleTimelineServiceTest {
             .renderDeleteEventPage(event.getId()))
     );
 
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(true);
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(true);
+
     var activities = List.of(activity);
 
     when(workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
@@ -1833,7 +2197,7 @@ class LicenceScheduleTimelineServiceTest {
     when(otherScheduleEventService.getActiveEventsAfterDate(licenceScheduleDetail, finalTermEndDate))
         .thenReturn(List.of(event));
 
-    assertThat(licenceScheduleTimelineService.getEventsBeyondFinalTerm(licenceScheduleDetail))
+    assertThat(licenceScheduleTimelineService.getEventsBeyondFinalTerm(licenceScheduleDetail, userDetail))
         .isEqualTo(List.of(rateView, activityView, eventView));
   }
 }

@@ -37,12 +37,12 @@ public record TimelineOtherScheduleEventView(
         ? DateFormatUtil.convertToDisplayText(otherScheduleEvent.getEventDate())
         : "";
 
-    var editUrl = allowedActions.contains(ScheduleEventAction.EDIT_WORK_PROGRAMME)
+    var editUrl = allowedActions.contains(ScheduleEventAction.EDIT_SCHEDULE_EVENTS)
         ? ReverseRouter.route(on(OtherScheduleEventController.class)
         .renderUpdateEventForm(otherScheduleEvent.getId()))
         : "";
 
-    var deleteUrl = allowedActions.contains(ScheduleEventAction.EDIT_WORK_PROGRAMME)
+    var deleteUrl = allowedActions.contains(ScheduleEventAction.EDIT_SCHEDULE_EVENTS)
         ? ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
           .renderDeleteEventPage(otherScheduleEvent.getId()))
         : "";

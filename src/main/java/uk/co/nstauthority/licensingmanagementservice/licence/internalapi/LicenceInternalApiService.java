@@ -1,8 +1,11 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.internalapi;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
@@ -11,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -110,14 +114,22 @@ public class LicenceInternalApiService {
   ) {
     var usersOrganisationUnitIds = applicationAccessService.getOrganisationUnitIds(serviceUserDetail);
 
-    return licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
-            searchTerm,
-            types,
-            status
-        ).stream()
+    var licenceScheduleDetails = licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
+        searchTerm,
+        types,
+        status
+    );
+
+    var licences = licenceScheduleDetails.stream()
         .map(LicenceScheduleDetail::getLicenceSchedule)
         .map(LicenceSchedule::getLicence)
-        .filter(licence -> isUserInLicenseeOrganisation(licence, usersOrganisationUnitIds))
+        .toList();
+
+    var organisationByLicence = licenceResponsibleOrganisationService.getAllByLicenceIn(licences).stream()
+        .collect(Collectors.groupingBy(LicenceResponsibleOrganisation::getLicence));
+
+    return licences.stream()
+        .filter(licence -> isUserInLicenseeOrganisation(licence, organisationByLicence, usersOrganisationUnitIds))
         .filter(licence -> !excludedLicences.contains(licence))
         .sorted(Comparator.comparing(Licence::getPrefix).thenComparing(Licence::getLicenceNumber))
         .map(this::toLicenceJson)
@@ -126,18 +138,13 @@ public class LicenceInternalApiService {
 
   private boolean isUserInLicenseeOrganisation(
       Licence licence,
+      Map<Licence, List<LicenceResponsibleOrganisation>> organisationByLicence,
       Set<Integer> usersOrganisationUnitIds
   ) {
+    var organisations = organisationByLicence.getOrDefault(licence, Collections.emptyList());
 
-    return licenceResponsibleOrganisationService
-        .getAllByLicence(licence)
-        .stream()
-        .anyMatch(
-            responsibleOrganisationId ->
-                usersOrganisationUnitIds.contains(
-                    responsibleOrganisationId.getResponsibleOrganisationId()
-                )
-        );
+    return organisations.stream()
+        .anyMatch(org -> usersOrganisationUnitIds.contains(org.getResponsibleOrganisationId()));
   }
 
   private LicenceJson toLicenceJson(Licence licence) {

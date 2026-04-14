@@ -1,7 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.internalapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -77,16 +76,6 @@ class LicenceInternalApiServiceTest {
     int authorizedUnitId = 99;
     when(applicationAccessService.getOrganisationUnitIds(serviceUserDetail)).thenReturn(Set.of(authorizedUnitId));
 
-    var licenceResponsibleOrganisation = new LicenceResponsibleOrganisation();
-    licenceResponsibleOrganisation.setResponsibleOrganisationId(authorizedUnitId);
-    when(licenceResponsibleOrganisationService.getAllByLicence(any())).thenReturn(List.of(licenceResponsibleOrganisation));
-
-    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(Set.of(
-        ScheduleWorkProgrammeApplicationStatus.DRAFT,
-        ScheduleWorkProgrammeApplicationStatus.SUBMITTED
-    )))
-        .thenReturn(List.of());
-
     var searchTerm = "term";
     var licenceType = LicenceType.CARBON_STORAGE;
 
@@ -97,6 +86,16 @@ class LicenceInternalApiServiceTest {
         .withLicenceReference(licenceReference)
         .withLicenceType(licenceType)
         .build();
+
+    var licenceResponsibleOrganisation = new LicenceResponsibleOrganisation();
+    licenceResponsibleOrganisation.setResponsibleOrganisationId(authorizedUnitId);
+    licenceResponsibleOrganisation.setLicence(licence);
+    when(licenceResponsibleOrganisationService.getAllByLicenceIn(List.of(licence))).thenReturn(List.of(licenceResponsibleOrganisation));
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(Set.of(
+        ScheduleWorkProgrammeApplicationStatus.DRAFT,
+        ScheduleWorkProgrammeApplicationStatus.SUBMITTED
+    )))
+        .thenReturn(List.of());
 
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
     var licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
@@ -125,18 +124,6 @@ class LicenceInternalApiServiceTest {
     int authorizedUnitId = 99;
     when(applicationAccessService.getOrganisationUnitIds(serviceUserDetail)).thenReturn(Set.of(authorizedUnitId));
 
-    var licenceResponsibleOrganisation = new LicenceResponsibleOrganisation();
-    licenceResponsibleOrganisation.setResponsibleOrganisationId(authorizedUnitId);
-    when(licenceResponsibleOrganisationService.getAllByLicence(any())).thenReturn(List.of(licenceResponsibleOrganisation));
-
-    var scheduleAppDetail = new ScheduleWorkProgrammeApplicationDetail();
-
-    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(Set.of(
-        ScheduleWorkProgrammeApplicationStatus.DRAFT,
-        ScheduleWorkProgrammeApplicationStatus.SUBMITTED
-    )))
-        .thenReturn(List.of(scheduleAppDetail));
-
     var searchTerm = "term";
     var licenceType = LicenceType.CARBON_STORAGE;
 
@@ -147,6 +134,20 @@ class LicenceInternalApiServiceTest {
         .withLicenceReference(licenceReference)
         .withLicenceType(licenceType)
         .build();
+
+    var licenceResponsibleOrganisation = new LicenceResponsibleOrganisation();
+    licenceResponsibleOrganisation.setResponsibleOrganisationId(authorizedUnitId);
+    licenceResponsibleOrganisation.setLicence(licence);
+
+    when(licenceResponsibleOrganisationService.getAllByLicenceIn(List.of(licence))).thenReturn(List.of(licenceResponsibleOrganisation));
+
+    var scheduleAppDetail = new ScheduleWorkProgrammeApplicationDetail();
+
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(Set.of(
+        ScheduleWorkProgrammeApplicationStatus.DRAFT,
+        ScheduleWorkProgrammeApplicationStatus.SUBMITTED
+    )))
+        .thenReturn(List.of(scheduleAppDetail));
 
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
     var licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
@@ -174,16 +175,6 @@ class LicenceInternalApiServiceTest {
     int authorizedUnitId = 99;
     when(applicationAccessService.getOrganisationUnitIds(serviceUserDetail)).thenReturn(Set.of(authorizedUnitId));
 
-    var licenceResponsibleOrganisation = new LicenceResponsibleOrganisation();
-    licenceResponsibleOrganisation.setResponsibleOrganisationId(authorizedUnitId);
-    when(licenceResponsibleOrganisationService.getAllByLicence(any())).thenReturn(List.of(licenceResponsibleOrganisation));
-
-    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(Set.of(
-        LicenceContinuationApplicationStatus.DRAFT,
-        LicenceContinuationApplicationStatus.SUBMITTED
-    )))
-        .thenReturn(List.of());
-
     var searchTerm = "term";
     var licenceType = LicenceType.CARBON_STORAGE;
 
@@ -194,6 +185,17 @@ class LicenceInternalApiServiceTest {
         .withLicenceReference(licenceReference)
         .withLicenceType(licenceType)
         .build();
+
+    var licenceResponsibleOrganisation = new LicenceResponsibleOrganisation();
+    licenceResponsibleOrganisation.setResponsibleOrganisationId(authorizedUnitId);
+    licenceResponsibleOrganisation.setLicence(licence);
+
+    when(licenceResponsibleOrganisationService.getAllByLicenceIn(List.of(licence))).thenReturn(List.of(licenceResponsibleOrganisation));
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(Set.of(
+        LicenceContinuationApplicationStatus.DRAFT,
+        LicenceContinuationApplicationStatus.SUBMITTED
+    )))
+        .thenReturn(List.of());
 
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
     var licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);

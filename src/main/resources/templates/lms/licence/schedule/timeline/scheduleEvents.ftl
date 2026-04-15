@@ -7,6 +7,8 @@
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(termView.updateUrl()) linkClass="govuk-link"/>
             <@fdsAction.link linkText="Remove" linkUrl=springUrl(termView.deleteUrl()) linkClass="govuk-link"/>
         </#assign>
+    <#else>
+        <#assign timelineActions></#assign>
     </#if>
 
     <#if termView.events()?has_content && termView.hasPhases()>
@@ -85,6 +87,8 @@
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(phaseView.updateUrl()) linkClass="govuk-link"/>
             <@fdsAction.link linkText="Remove" linkUrl=springUrl(phaseView.deleteUrl()) linkClass="govuk-link"/>
         </#assign>
+    <#else>
+        <#assign timelineActions></#assign>
     </#if>
 
     <@fdsTimeline.timelineTimeStamp
@@ -131,12 +135,12 @@
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(activityView.updateUrl()) linkClass="govuk-link"/>
             <@fdsAction.link linkText="Remove" linkUrl=springUrl(activityView.deleteUrl()) linkClass="govuk-link"/>
         </#assign>
-    </#if>
-
-    <#if activityView.updateStatusUrl()?has_content>
+    <#elseif activityView.updateStatusUrl()?has_content>
         <#assign timelineActions>
             <@fdsAction.link linkText="Update status" linkUrl=springUrl(activityView.updateStatusUrl()) linkClass="govuk-link"/>
         </#assign>
+    <#else>
+        <#assign timelineActions></#assign>
     </#if>
 
     <#if smallDot=true>
@@ -175,6 +179,8 @@
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(activityView.updateUrl()) linkClass="govuk-link"/>
             <@fdsAction.link linkText="Remove" linkUrl=springUrl(activityView.deleteUrl()) linkClass="govuk-link"/>
         </#assign>
+    <#else>
+        <#assign timelineActions></#assign>
     </#if>
 
     <#if activityView.updateStatusUrl()?has_content>
@@ -210,6 +216,8 @@
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(rateView.updateUrl()) linkClass="govuk-link"/>
             <@fdsAction.link linkText="Remove" linkUrl=springUrl(rateView.deleteUrl()) linkClass="govuk-link"/>
         </#assign>
+        <#else>
+        <#assign timelineActions></#assign>
     </#if>
 
     <#if smallDot=true>
@@ -241,6 +249,8 @@
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(eventView.updateUrl()) linkClass="govuk-link"/>
             <@fdsAction.link linkText="Remove" linkUrl=springUrl(eventView.deleteUrl()) linkClass="govuk-link"/>
         </#assign>
+    <#else>
+        <#assign timelineActions></#assign>
     </#if>
 
     <#if smallDot=true>
@@ -272,6 +282,8 @@
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(eventView.updateUrl()) linkClass="govuk-link"/>
             <@fdsAction.link linkText="Remove" linkUrl=springUrl(eventView.deleteUrl()) linkClass="govuk-link"/>
         </#assign>
+    <#else>
+        <#assign timelineActions></#assign>
     </#if>
 
     <@lmsTimeStamp.lmsTimeStamp

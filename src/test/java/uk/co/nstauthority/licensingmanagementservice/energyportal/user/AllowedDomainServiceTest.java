@@ -26,7 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @ExtendWith(MockitoExtension.class)
-class EnergyPortalAllowedDomainServiceTest {
+class AllowedDomainServiceTest {
 
   private static final String USER_EMAIL = "user@example.com";
 
@@ -34,7 +34,7 @@ class EnergyPortalAllowedDomainServiceTest {
   private OrganisationGroupQueryService organisationGroupQueryService;
 
   @InjectMocks
-  private EnergyPortalAllowedDomainService energyPortalAllowedDomainService;
+  private AllowedDomainService allowedDomainService;
 
   @ParameterizedTest
   @MethodSource("provideDomainIsAllowedCombinations")
@@ -49,7 +49,7 @@ class EnergyPortalAllowedDomainServiceTest {
     when(organisationGroupQueryService.getOrganisationGroupById(123))
         .thenReturn(Optional.of(orgGroup));
 
-    assertThat(energyPortalAllowedDomainService.isAllowedDomain(USER_EMAIL, regTeam))
+    assertThat(allowedDomainService.isAllowedDomain(USER_EMAIL, regTeam))
         .isEqualTo(isAllowed);
   }
 
@@ -65,7 +65,7 @@ class EnergyPortalAllowedDomainServiceTest {
     when(organisationGroupQueryService.getRegulatorOrganisationGroup())
         .thenReturn(Optional.of(orgGroup));
 
-    assertThat(energyPortalAllowedDomainService.isAllowedDomain(USER_EMAIL, regTeam))
+    assertThat(allowedDomainService.isAllowedDomain(USER_EMAIL, regTeam))
         .isEqualTo(isAllowed);
   }
 
@@ -82,7 +82,7 @@ class EnergyPortalAllowedDomainServiceTest {
         .thenReturn(Optional.empty());
 
     assertDoesNotThrow(() ->
-        energyPortalAllowedDomainService.isAllowedDomain(USER_EMAIL, team)
+        allowedDomainService.isAllowedDomain(USER_EMAIL, team)
     );
   }
 

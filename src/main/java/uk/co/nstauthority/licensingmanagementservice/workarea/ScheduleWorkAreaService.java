@@ -24,17 +24,20 @@ public class ScheduleWorkAreaService implements WorkAreaItemProvider {
   private final LicenceScheduleDetailService licenceScheduleDetailService;
   private final LicenceSearchService licenceSearchService;
 
-  public ScheduleWorkAreaService(LicenceScheduleDetailService licenceScheduleDetailService,
-                                 LicenceSearchService licenceSearchService) {
+  public ScheduleWorkAreaService(
+      LicenceScheduleDetailService licenceScheduleDetailService,
+      LicenceSearchService licenceSearchService
+  ) {
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.licenceSearchService = licenceSearchService;
   }
 
   @Override
-  public List<SearchResultItem> getWorkAreaItems(WorkAreaFilterForm workAreaFilterForm,
-                                                 ServiceUserDetail serviceUserDetail) {
-    //TODO filter correctly by form and user
-    var licenceSchedules = licenceScheduleDetailService.getAllDraftLicenceScheduleDetails(serviceUserDetail).stream()
+  public List<SearchResultItem> getWorkAreaItems(
+      WorkAreaFilterForm workAreaFilterForm,
+      ServiceUserDetail serviceUserDetail
+  ) {
+    var licenceSchedules = licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail).stream()
         .filter(licenceScheduleDetail -> FilterUtil.filterTextInput(
             licenceScheduleDetail.getLicenceSchedule().getLicence().getLicenceReference(),
             workAreaFilterForm.getLicenceReference()
@@ -52,9 +55,10 @@ public class ScheduleWorkAreaService implements WorkAreaItemProvider {
         .toList();
   }
 
-  private SearchResultItem getScheduleWorkAreaItem(LicenceScheduleDetail licenceScheduleDetail,
-                                                   Map<Licence, List<String>> responsibleOrganisationNamesByLicences) {
-
+  private SearchResultItem getScheduleWorkAreaItem(
+      LicenceScheduleDetail licenceScheduleDetail,
+      Map<Licence, List<String>> responsibleOrganisationNamesByLicences
+  ) {
     var licence = licenceScheduleDetail.getLicenceSchedule().getLicence();
     var createdDatetime = licenceScheduleDetail.getCreatedInstant();
     var licensees = responsibleOrganisationNamesByLicences.getOrDefault(

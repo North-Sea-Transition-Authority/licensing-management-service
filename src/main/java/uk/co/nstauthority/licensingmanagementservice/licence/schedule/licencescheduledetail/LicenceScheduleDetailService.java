@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
@@ -12,19 +13,24 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 
 @Service
 public class LicenceScheduleDetailService {
 
   private final LicenceScheduleDetailRepository licenceScheduleDetailRepository;
   private final LicenceScheduleService licenceScheduleService;
+  private final TeamQueryService teamQueryService;
 
   public LicenceScheduleDetailService(
       LicenceScheduleDetailRepository licenceScheduleDetailRepository,
-      LicenceScheduleService licenceScheduleService
+      LicenceScheduleService licenceScheduleService,
+      TeamQueryService teamQueryService
   ) {
     this.licenceScheduleDetailRepository = licenceScheduleDetailRepository;
     this.licenceScheduleService = licenceScheduleService;
+    this.teamQueryService = teamQueryService;
   }
 
   public LicenceScheduleDetail getByIdOrThrow(UUID id) {
@@ -46,8 +52,13 @@ public class LicenceScheduleDetailService {
     return licenceScheduleDetailRepository.findByLicenceSchedule_LicenceAndStatus(licence, status);
   }
 
-  //TODO remove in place of draft schedules for the user
-  public List<LicenceScheduleDetail> getAllDraftLicenceScheduleDetails(ServiceUserDetail serviceUserDetail) {
+  public List<LicenceScheduleDetail> getAllDraftLicenceScheduleDetailsForUser(ServiceUserDetail serviceUserDetail) {
+    var roleSet = Set.of(Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR);
+
+    if (!teamQueryService.userHasAtLeastOneRoleIn(serviceUserDetail.wuaId(), roleSet)) {
+      return List.of();
+    }
+
     return licenceScheduleDetailRepository.findAllByStatus(LicenceScheduleDetailStatus.DRAFT);
   }
 

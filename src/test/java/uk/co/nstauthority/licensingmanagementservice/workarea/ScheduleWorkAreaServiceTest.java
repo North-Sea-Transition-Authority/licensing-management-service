@@ -66,7 +66,7 @@ class ScheduleWorkAreaServiceTest {
         .withCreatedInstant(testInstant.minus(1, ChronoUnit.HOURS))
         .build();
 
-    when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetails(serviceUserDetail)).thenReturn(
+    when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail)).thenReturn(
         List.of(licenceScheduleDetail1, licenceScheduleDetail2)
     );
 
@@ -141,7 +141,7 @@ class ScheduleWorkAreaServiceTest {
         .withCreatedInstant(testInstant)
         .build();
 
-    when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetails(serviceUserDetail)).thenReturn(
+    when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail)).thenReturn(
         List.of(licenceScheduleDetail1, licenceScheduleDetail2)
     );
 

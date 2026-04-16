@@ -2,12 +2,14 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesc
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,6 +18,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -23,6 +26,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceScheduleDetailServiceTest {
@@ -32,6 +37,9 @@ class LicenceScheduleDetailServiceTest {
 
   @Mock
   private LicenceScheduleService licenceScheduleService;
+
+  @Mock
+  private TeamQueryService teamQueryService;
 
   @InjectMocks
   private LicenceScheduleDetailService licenceScheduleDetailService;
@@ -66,6 +74,32 @@ class LicenceScheduleDetailServiceTest {
     licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(licence, LicenceScheduleDetailStatus.ACTIVE);
 
     verify(licenceScheduleDetailRepository).findByLicenceSchedule_LicenceAndStatus(licence, LicenceScheduleDetailStatus.ACTIVE);
+  }
+
+  @Test
+  void getAllDraftLicenceScheduleDetailsForUser() {
+    var user = ServiceUserDetailTestUtil.newBuilder().build();
+
+    var roleSet = Set.of(Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR);
+
+    when(teamQueryService.userHasAtLeastOneRoleIn(user.wuaId(), roleSet)).thenReturn(true);
+
+    licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(user);
+
+    verify(licenceScheduleDetailRepository).findAllByStatus(LicenceScheduleDetailStatus.DRAFT);
+  }
+
+  @Test
+  void getAllDraftLicenceScheduleDetailsForUser_noPermissions() {
+    var user = ServiceUserDetailTestUtil.newBuilder().build();
+
+    var roleSet = Set.of(Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR);
+
+    when(teamQueryService.userHasAtLeastOneRoleIn(user.wuaId(), roleSet)).thenReturn(false);
+
+    licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(user);
+
+    verify(licenceScheduleDetailRepository, never()).findAllByStatus(LicenceScheduleDetailStatus.DRAFT);
   }
 
   @Test

@@ -5,9 +5,10 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.data.repository.ListCrudRepository;
 import org.springframework.stereotype.Repository;
+import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationSource;
 
 @Repository
-public interface TeamRoleRepository extends ListCrudRepository<TeamRole, UUID> {
+public interface TeamRoleRepository extends ListCrudRepository<TeamRole, UUID>, NotDuplicationSource {
   List<TeamRole> findByWuaIdAndRole(Long wuaId, Role role);
 
   List<TeamRole> findByWuaIdAndTeam(Long wuaId, Team team);

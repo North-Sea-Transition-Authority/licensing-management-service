@@ -6,10 +6,12 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 
 @Repository
-public interface LicenceResponsibleOrganisationRepository extends JpaRepository<LicenceResponsibleOrganisation, UUID> {
+public interface LicenceResponsibleOrganisationRepository
+    extends JpaRepository<LicenceResponsibleOrganisation, UUID>, NotDuplicationSource {
 
   List<LicenceResponsibleOrganisation> findAllByManagedByLmsIsFalse();
 

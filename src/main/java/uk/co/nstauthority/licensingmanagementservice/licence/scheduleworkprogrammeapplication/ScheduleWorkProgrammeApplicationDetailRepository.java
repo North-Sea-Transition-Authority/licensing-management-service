@@ -7,10 +7,11 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationSource;
 
 @Repository
 public interface ScheduleWorkProgrammeApplicationDetailRepository
-    extends JpaRepository<ScheduleWorkProgrammeApplicationDetail, UUID> {
+    extends JpaRepository<ScheduleWorkProgrammeApplicationDetail, UUID>, NotDuplicationSource {
 
   Optional<ScheduleWorkProgrammeApplicationDetail> getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(
       ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication);

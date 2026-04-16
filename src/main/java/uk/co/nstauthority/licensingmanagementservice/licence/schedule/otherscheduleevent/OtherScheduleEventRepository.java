@@ -5,13 +5,15 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
 @Repository
-public interface OtherScheduleEventRepository extends JpaRepository<OtherScheduleEvent, UUID> {
+public interface OtherScheduleEventRepository
+    extends JpaRepository<OtherScheduleEvent, UUID>, DuplicationSource<LicenceScheduleDetail> {
   List<OtherScheduleEvent> findAllByLicenceScheduleTermAndDateOptionAndStatus(
       LicenceScheduleTerm licenceScheduleTerm,
       OtherScheduleEventDateOption dateOption,

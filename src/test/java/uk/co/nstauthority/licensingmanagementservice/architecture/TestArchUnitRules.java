@@ -9,6 +9,7 @@ import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.domain.properties.HasName;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.junit.ArchTests;
 import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
@@ -48,4 +49,7 @@ class TestArchUnitRules {
   @ArchTest
   public static final ArchRule displayableArchRule = theClass(Displayable.class)
       .should().beAssignableTo(MaterialisableEnum.class);
+
+  @ArchTest
+  final ArchTests duplicationEntityRules = ArchTests.in(DuplicationArchRule.class);
 }

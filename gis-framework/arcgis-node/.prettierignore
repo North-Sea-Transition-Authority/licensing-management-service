@@ -1,0 +1,14 @@
+node_modules/
+dist/
+
+# Auto-generated gRPC files
+generated/
+
+# Third-party assets
+public/assets/
+
+eslint.config.mjs
+package-lock.json
+package.json
+tsconfig.json
+.prettierrc

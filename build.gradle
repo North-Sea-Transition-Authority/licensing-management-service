@@ -1,5 +1,5 @@
 plugins {
-	id 'org.springframework.boot' version '3.5.8'
+	id 'org.springframework.boot' version '3.5.13'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'java'
 	id "org.sonarqube" version "5.1.0.4882"
@@ -49,6 +49,7 @@ dependencies {
 	implementation "uk.co.fivium:file-upload-spring-boot-starter:${fileUploadLibraryVersion}"
 	implementation 'uk.co.fivium:digital-enum-materialisation-library-spring-boot-starter:v1.1.2'
 	implementation 'uk.co.fivium:digital-notification-library-spring-boot-starter:v1.1.0'
+	implementation project(":gis-framework")
 // TODO re-add when payments required
 //	implementation 'uk.co.fivium:digital-payments-library-spring-boot-starter:1.0.0'
 	implementation 'uk.co.fivium.feedbackmanagementservice:client:v2.3.0'
@@ -104,7 +105,10 @@ sonarqube {
 			if (System.getenv('DRONE_BRANCH') != 'develop') {
 				property 'sonar.branch.target', 'develop'
 			}
-			property 'sonar.coverage.jacoco.xmlReportPaths', "${layout.buildDirectory}/reports/jacoco/test/jacocoTestReport.xml"
+			property 'sonar.coverage.jacoco.xmlReportPaths',
+					"${layout.buildDirectory}/reports/jacoco/test/jacocoTestReport.xml," +
+							"${project(':gis-framework').layout.buildDirectory}/reports/jacoco/test/jacocoTestReport.xml"
+
 		}
 	}
 }

@@ -131,7 +131,11 @@ npx gulp buildAll
 npm install && npx gulp buildAll
 ```
 
-### 5. Run the app
+### 5. Start the GIS framework
+
+See [GIS framework README](gis-framework/README.md).
+
+### 6. Run the app
 Create a run configuration for the Spring app and start the application.
 
 The application will be running on `localhost:8080/lms/<endpoint>`

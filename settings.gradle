@@ -1,1 +1,2 @@
 rootProject.name = 'licensing-management-service'
+include 'gis-framework'

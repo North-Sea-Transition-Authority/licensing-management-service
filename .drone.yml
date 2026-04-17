@@ -29,6 +29,28 @@ steps:
       BITBUCKET_SSH_KEY:
         from_secret: bitbucket_ssh_key
 
+  - name: build-gis-node-backend
+    image: node:22.21.1
+    commands:
+      - cd gis-framework/arcgis-node
+      - npm install
+      - npm run copy:core
+      - npm run proto-gen
+      - npm run lint
+      - npm run format:check
+      - npm test
+
+  - name: build-gis-java-backend
+    image: eclipse-temurin:21-jdk
+    privileged: false
+    environment:
+      TZ: Europe/London
+    commands:
+      - cd gis-framework
+      - chmod +x gradlew
+      - ./gradlew extractIncludeProto extractProto generateProto
+      - ./gradlew test check
+
   - name: build-frontend
     image: node:18
     commands:
@@ -109,6 +131,29 @@ steps:
         - release/**
       status:
         - success
+
+  - name: publish-gis-node-app
+    image: plugins/ecr:21
+    settings:
+      repo: digital/licensing-management-service
+      registry: 847993322739.dkr.ecr.eu-west-2.amazonaws.com
+      access_key: AKIA4K4CXHTZ7KAUZJWL
+      secret_key:
+        from_secret: ecr_secret_key
+      config:
+        from_secret: docker_config
+      region: eu-west-2
+      tags:
+        - ${DRONE_BRANCH//\//-}-node-app-${DRONE_BUILD_NUMBER}
+      dockerfile: ./gis-framework/arcgis-node/Dockerfile
+    when:
+      branch:
+        - develop
+        - main
+        - hotfix/**
+        - release/**
+      status:
+        success
 
   - name: trivy-build-image
     image: docker:20.10.9
@@ -241,13 +286,35 @@ steps:
       BITBUCKET_SSH_KEY:
         from_secret: bitbucket_ssh_key
 
+  - name: build-gis-node-backend
+    image: node:22.21.1
+    commands:
+      - cd gis-framework/arcgis-node
+      - npm install
+      - npm run copy:core
+      - npm run proto-gen
+      - npm run lint
+      - npm run format:check
+      - npm test
+
+  - name: build-gis-java-backend
+    image: eclipse-temurin:21-jdk
+    privileged: false
+    environment:
+      TZ: Europe/London
+    commands:
+      - cd gis-framework
+      - chmod +x gradlew
+      - ./gradlew extractIncludeProto extractProto generateProto
+      - ./gradlew test check
+
+  # This is in the PR pipeline so the code-analysis below can access the test data (to see coverage)
   - name: build-frontend
     image: node:18
     commands:
       - cd fivium-design-system-core && npm install && npx gulp buildAll && cd ..
       - npm install && npx gulp buildAll
 
-  # This is in the PR pipeline so the code-analysis below can access the test data (to see coverage)
   - name: build-backend
     image: quay.io/testcontainers/dind-drone-plugin
     privileged: true

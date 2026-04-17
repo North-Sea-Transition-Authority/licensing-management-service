@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+option java_multiple_files = true;
+option java_package = "uk.co.fivium.grpc";
+option java_outer_classname = "LineNavigationTypeProto";
+
+enum LineNavigationType {
+  LINE_NAVIGATION_TYPE_UNSPECIFIED = 0;
+  LOXODROME = 1;
+  GEODESIC = 2;
+  CARTESIAN = 3;
+}

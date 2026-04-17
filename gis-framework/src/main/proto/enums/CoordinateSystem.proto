@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+option java_multiple_files = true;
+option java_package = "uk.co.fivium.grpc";
+option java_outer_classname = "CoordinateSystemProto";
+
+enum CoordinateSystem {
+  COORDINATE_SYSTEM_UNSPECIFIED = 0;
+  ED50 = 1;
+  BRITISH_NATIONAL_GRID = 2;
+  WGS84 = 3;
+}

@@ -1,0 +1,113 @@
+import org.springframework.boot.gradle.plugin.SpringBootPlugin
+
+plugins {
+  id 'java'
+  // This plugin isn't applied as this isn't an executable app. It is still required as a dependency, see the below
+  // comment on the dependencyManagement block for why.
+  id 'org.springframework.boot' version '3.5.13' apply false
+  id 'io.spring.dependency-management' version '1.1.7'
+  id 'com.google.protobuf' version '0.9.4'
+  id 'jacoco'
+  id 'checkstyle'
+}
+
+// This starter uses Spring Boot’s dependency management in isolation without applying Spring Boot’s plugin as this
+// isn't an executable app. Instead, we use the Spring Boot plugin dependency to find the correct
+// spring-boot-dependencies bom to import. See https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#managing-dependencies.dependency-management-plugin.using-in-isolation
+dependencyManagement {
+  imports {
+    mavenBom SpringBootPlugin.BOM_COORDINATES
+  }
+}
+
+// This starter uses Spring Boot’s dependency management in isolation without applying Spring Boot’s plugin as this
+// isn't an executable app. Instead, we use the Spring Boot plugin dependency to find the correct
+// spring-boot-dependencies bom to import. See https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#managing-dependencies.dependency-management-plugin.using-in-isolation
+dependencyManagement {
+  imports {
+    mavenBom SpringBootPlugin.BOM_COORDINATES
+  }
+}
+
+group = 'uk.co.fivium'
+version = '0.0.1-SNAPSHOT'
+description = 'gis-framework'
+
+java {
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(21)
+  }
+}
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  implementation 'org.springframework.boot:spring-boot-starter'
+  implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+  implementation 'com.esri.geometry:esri-geometry-api:2.2.4'
+  implementation 'org.flywaydb:flyway-core'
+  implementation "org.springframework.data:spring-data-envers"
+
+  // The Spring Boot Starter for gRPC Client
+  implementation 'net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE'
+
+  // gRPC and Protobuf dependencies needed for the generated code
+  implementation 'io.grpc:grpc-stub:1.60.0'
+  implementation 'io.grpc:grpc-protobuf:1.60.0'
+  implementation 'com.google.protobuf:protobuf-java:4.28.2'
+  implementation 'javax.annotation:javax.annotation-api:1.3.2'
+
+  testImplementation 'org.springframework.boot:spring-boot-starter-test'
+  testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
+  testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+  useJUnitPlatform()
+  finalizedBy tasks.named('jacocoTestReport')
+}
+
+tasks.named('jacocoTestReport') {
+  dependsOn tasks.named('test')
+  reports {
+    xml.required = true
+  }
+}
+
+def checkstyleConfigFile = rootProject.file('devtools-lms/checkstyle.xml')
+if (!checkstyleConfigFile.exists()) {
+  checkstyleConfigFile = rootProject.file('../devtools-lms/checkstyle.xml')
+}
+
+checkstyle {
+  config = resources.text.fromFile(checkstyleConfigFile)
+  toolVersion '10.26.0'
+  ignoreFailures = false
+  maxWarnings = 0
+}
+
+//Ignore generated proto code for Checkstyle
+tasks.withType(Checkstyle).configureEach {
+  exclude { details ->
+    details.file.absolutePath.contains("${File.separator}build${File.separator}generated${File.separator}")
+  }
+}
+
+// Configuration for the Protobuf Plugin
+protobuf {
+  protoc {
+    artifact = "com.google.protobuf:protoc:3.25.1"
+  }
+  plugins {
+    grpc {
+      artifact = 'io.grpc:protoc-gen-grpc-java:1.60.0'
+    }
+  }
+  generateProtoTasks {
+    all()*.plugins {
+      grpc {}
+    }
+  }
+}

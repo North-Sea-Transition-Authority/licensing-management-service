@@ -6,7 +6,7 @@ COPY gis-framework/arcgis-node/package*.json .
 
 RUN npm install
 
-COPY src/main/proto /src/main/proto
+COPY gis-framework/src/main/proto /src/main/proto
 
 COPY gis-framework/arcgis-node/ ./
 RUN npm run copy:core && npm run proto-gen

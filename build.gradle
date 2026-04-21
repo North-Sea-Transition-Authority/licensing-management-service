@@ -88,11 +88,6 @@ tasks {
 sonarqube {
 	properties {
 		property 'sonar.exclusions', '**/nstauthority/licensingmanagementservice/mockups/**'
-		property 'sonar.javascript.lcov.reportPaths', 'gis-framework/arcgis-node/coverage/lcov.info'
-		property 'sonar.sources', sourceSets.main.allSource.srcDirs.findAll { it.exists() }.collect { it.path }.join(',') +
-				',gis-framework/arcgis-node/src'
-		property 'sonar.tests', sourceSets.test.allSource.srcDirs.findAll { it.exists() }.collect { it.path }.join(',') +
-				',gis-framework/arcgis-node/tests'
 		property 'sonar.projectKey', "Fivium_${rootProject.name}"
 		property 'sonar.organization', 'fivium-gh'
 		property 'sonar.host.url', 'https://sonarcloud.io'
@@ -114,6 +109,20 @@ sonarqube {
 					"${layout.buildDirectory}/reports/jacoco/test/jacocoTestReport.xml," +
 							"${project(':gis-framework').layout.buildDirectory}/reports/jacoco/test/jacocoTestReport.xml"
 
+		}
+	}
+}
+
+project(":gis-framework") {
+	sonarqube {
+		properties {
+			property 'sonar.javascript.lcov.reportPaths', 'arcgis-node/coverage/lcov.info'
+			property 'sonar.sources',
+					sourceSets.main.java.srcDirs.findAll { it.exists() }.collect { it.path }.join(',') +
+							',arcgis-node/src'
+			property 'sonar.tests',
+					sourceSets.test.java.srcDirs.findAll { it.exists() }.collect { it.path }.join(',') +
+							',arcgis-node/tests'
 		}
 	}
 }

@@ -56,6 +56,7 @@ class LicenceContinuationLicenceOperatorsControllerTest extends AbstractControll
 
     subarea = new Subarea();
     subarea.setId("test");
+    subarea.setName("Test Subarea");
     subarea.setLicence(new Licence());
     OrganisationUnit organisationUnit = new OrganisationUnit();
     organisationUnit.setName("test");

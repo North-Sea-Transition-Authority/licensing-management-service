@@ -14,12 +14,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationLicenceOperatorsController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationLicenceOperatorsSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaSubmissionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.OtherRequirementsVisibility;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.OtherRequirementsVisibilityResolverService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
@@ -37,21 +41,39 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
   @Mock
   private LicenceContinuationOtherRequirementSubmissionService licenceContinuationOtherRequirementSubmissionService;
 
+  @Mock
+  private OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService;
+
+  @Mock
+  private LicenceContinuationService licenceContinuationService;
+
   @InjectMocks
   private LicenceContinuationRequirementsTaskListSectionService licenceContinuationRequirementsTaskListSectionService;
 
   private LicenceContinuationApplicationDetail licenceContinuationApplicationDetail;
   private ServiceUserDetail user;
+  private LicenceScheduleDetail scheduleDetail;
+  private OtherRequirementsVisibility visibilityWithRequirements;
+  private OtherRequirementsVisibility visibilityNoRequirements;
 
   @BeforeEach
   void setUp() {
     user = ServiceUserDetailTestUtil.newBuilder().build();
     licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
     licenceContinuationApplicationDetail.setId(UUID.randomUUID());
+
+    scheduleDetail = new LicenceScheduleDetail();
+    visibilityWithRequirements = new OtherRequirementsVisibility(true, false, false);
+    visibilityNoRequirements = new OtherRequirementsVisibility(false, false, false);
   }
 
   @Test
   void getSection_WhenNotSubmittable_ReturnsNotStartedLabel() {
+    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(scheduleDetail);
+    when(otherRequirementsVisibilityResolverService.resolve(scheduleDetail))
+        .thenReturn(visibilityWithRequirements);
+
     when(licenceContinuationLicenceOperatorsSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
         .thenReturn(false);
     when(licenceContinuationWpaSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
@@ -103,6 +125,11 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
 
   @Test
   void getSection_WhenSubmittable_ReturnsCompleteLabels() {
+    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(scheduleDetail);
+    when(otherRequirementsVisibilityResolverService.resolve(scheduleDetail))
+        .thenReturn(visibilityWithRequirements);
+
     when(licenceContinuationLicenceOperatorsSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
         .thenReturn(true);
     when(licenceContinuationWpaSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
@@ -144,6 +171,11 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
 
   @Test
   void getSection_MixedStatus_ReturnsCorrectLabels() {
+    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(scheduleDetail);
+    when(otherRequirementsVisibilityResolverService.resolve(scheduleDetail))
+        .thenReturn(visibilityWithRequirements);
+
     when(licenceContinuationLicenceOperatorsSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
         .thenReturn(false);
     when(licenceContinuationWpaSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
@@ -170,6 +202,44 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
                 LicenceContinuationRequirementsTaskListSectionService.OTHER_REQUIREMENTS,
                 TaskListLabel.NOT_COMPLETE,
                 ReverseRouter.route(on(LicenceContinuationOtherRequirementController.class)
+                                        .renderForm(licenceContinuationApplicationDetail.getId(), null))
+            ),
+            new TaskListItem(
+                LicenceContinuationRequirementsTaskListSectionService.LICENCE_OPERATORS,
+                TaskListLabel.NOT_COMPLETE,
+                ReverseRouter.route(on(LicenceContinuationLicenceOperatorsController.class).renderForm(
+                    licenceContinuationApplicationDetail.getId(),
+                    null
+                ))
+            )
+        );
+  }
+
+  @Test
+  void getSection_WhenNoOtherRequirements_OmitsOtherRequirementsTask() {
+    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(scheduleDetail);
+    when(otherRequirementsVisibilityResolverService.resolve(scheduleDetail))
+        .thenReturn(visibilityNoRequirements);
+
+    when(licenceContinuationLicenceOperatorsSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
+        .thenReturn(false);
+    when(licenceContinuationWpaSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
+        .thenReturn(false);
+
+    var sectionOptional = licenceContinuationRequirementsTaskListSectionService.getSection(
+        licenceContinuationApplicationDetail, user);
+
+    assertThat(sectionOptional).isPresent();
+    var section = sectionOptional.get();
+
+    assertThat(section.items())
+        .usingRecursiveFieldByFieldElementComparator()
+        .containsExactly(
+            new TaskListItem(
+                LicenceContinuationRequirementsTaskListSectionService.WORK_PROGRAMMES,
+                TaskListLabel.NOT_COMPLETE,
+                ReverseRouter.route(on(LicenceContinuationWpaRequirementController.class)
                                         .renderForm(licenceContinuationApplicationDetail.getId(), null))
             ),
             new TaskListItem(

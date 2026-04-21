@@ -3,17 +3,18 @@ package uk.co.nstauthority.licensingmanagementservice.licence.continuation.taskl
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationLicenceOperatorsController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationLicenceOperatorsSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaSubmissionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.OtherRequirementsVisibilityResolverService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
@@ -27,16 +28,23 @@ public class LicenceContinuationRequirementsTaskListSectionService
   private final LicenceContinuationWpaSubmissionService licenceContinuationWpaSubmissionService;
   private final LicenceContinuationOtherRequirementSubmissionService licenceContinuationOtherRequirementSubmissionService;
   private final LicenceContinuationLicenceOperatorsSubmissionService licenceContinuationLicenceOperatorsSubmissionService;
+  private final OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService;
+
   static final String LICENCE_CONTINUATION_REQUIREMENTS_SECTION_NAME = "Continuation requirements";
+  private final LicenceContinuationService licenceContinuationService;
 
   public LicenceContinuationRequirementsTaskListSectionService(
       LicenceContinuationWpaSubmissionService licenceContinuationWpaSubmissionService,
       LicenceContinuationOtherRequirementSubmissionService licenceContinuationOtherRequirementSubmissionService,
-      LicenceContinuationLicenceOperatorsSubmissionService licenceContinuationLicenceOperatorsSubmissionService
+      LicenceContinuationLicenceOperatorsSubmissionService licenceContinuationLicenceOperatorsSubmissionService,
+      OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService,
+      LicenceContinuationService licenceContinuationService
   ) {
     this.licenceContinuationWpaSubmissionService = licenceContinuationWpaSubmissionService;
     this.licenceContinuationOtherRequirementSubmissionService = licenceContinuationOtherRequirementSubmissionService;
     this.licenceContinuationLicenceOperatorsSubmissionService = licenceContinuationLicenceOperatorsSubmissionService;
+    this.otherRequirementsVisibilityResolverService = otherRequirementsVisibilityResolverService;
+    this.licenceContinuationService = licenceContinuationService;
   }
 
   static final String WORK_PROGRAMMES = "Work programme activities";
@@ -51,32 +59,37 @@ public class LicenceContinuationRequirementsTaskListSectionService
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
       ServiceUserDetail user) {
 
-    var items = new ArrayList<>(List.of(
-        new TaskListItem(
-            WORK_PROGRAMMES,
-            TaskListLabel.notStartedOrComplete(licenceContinuationWpaSubmissionService.isSectionSubmittable(
-                licenceContinuationApplicationDetail
-            )),
-            ReverseRouter.route(on(LicenceContinuationWpaRequirementController.class)
-                                    .renderForm(licenceContinuationApplicationDetail.getId(), null))
-        ),
-        new TaskListItem(
-            OTHER_REQUIREMENTS,
-            TaskListLabel.notStartedOrComplete(licenceContinuationOtherRequirementSubmissionService.isSectionSubmittable(
-                licenceContinuationApplicationDetail
-            )),
-            ReverseRouter.route(on(LicenceContinuationOtherRequirementController.class)
-                                    .renderForm(licenceContinuationApplicationDetail.getId(), null))
-        ),
-        new TaskListItem(
-            LICENCE_OPERATORS,
-            TaskListLabel.notStartedOrComplete(licenceContinuationLicenceOperatorsSubmissionService.isSectionSubmittable(
-                licenceContinuationApplicationDetail
-            )),
-            ReverseRouter.route(on(LicenceContinuationLicenceOperatorsController.class)
-                                    .renderForm(licenceContinuationApplicationDetail.getId(), null))
-        )
+    var items = new ArrayList<TaskListItem>();
+    var scheduleDetail = licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail);
+    var otherRequirementsVisibility = otherRequirementsVisibilityResolverService.resolve(scheduleDetail);
 
+    items.add(new TaskListItem(
+        WORK_PROGRAMMES,
+        TaskListLabel.notStartedOrComplete(licenceContinuationWpaSubmissionService.isSectionSubmittable(
+            licenceContinuationApplicationDetail
+        )),
+        ReverseRouter.route(on(LicenceContinuationWpaRequirementController.class)
+                                .renderForm(licenceContinuationApplicationDetail.getId(), null))
+    ));
+
+    if (otherRequirementsVisibility.hasAnyRequirements()) {
+      items.add(new TaskListItem(
+          OTHER_REQUIREMENTS,
+          TaskListLabel.notStartedOrComplete(licenceContinuationOtherRequirementSubmissionService.isSectionSubmittable(
+              licenceContinuationApplicationDetail
+          )),
+          ReverseRouter.route(on(LicenceContinuationOtherRequirementController.class)
+                                  .renderForm(licenceContinuationApplicationDetail.getId(), null))
+      ));
+    }
+
+    items.add(new TaskListItem(
+        LICENCE_OPERATORS,
+        TaskListLabel.notStartedOrComplete(licenceContinuationLicenceOperatorsSubmissionService.isSectionSubmittable(
+            licenceContinuationApplicationDetail
+        )),
+        ReverseRouter.route(on(LicenceContinuationLicenceOperatorsController.class)
+                                .renderForm(licenceContinuationApplicationDetail.getId(), null))
     ));
 
     return Optional.of(new TaskListSection(LICENCE_CONTINUATION_REQUIREMENTS_SECTION_NAME, SECTION_ORDER, items));

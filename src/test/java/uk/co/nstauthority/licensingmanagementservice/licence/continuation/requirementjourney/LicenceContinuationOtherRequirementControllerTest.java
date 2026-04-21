@@ -46,6 +46,9 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
   @MockitoBean
   private LicenceContinuationOtherRequirementValidator licenceContinuationOtherRequirementValidator;
 
+  @MockitoBean
+  private OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService;
+
   private static final Licence LICENCE = LicenceTestUtil.builder().build();
   private static final LicenceScheduleDetail LICENCE_SCHEDULE_DETAIL
       = LicenceScheduleTestUtil.createLicenceScheduleDetail(LicenceScheduleTestUtil.createLicenceSchedule(LICENCE));
@@ -54,6 +57,12 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
 
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
+
+  private static final OtherRequirementsVisibility VISIBILITY_WITH_REQUIREMENTS =
+      new OtherRequirementsVisibility(true, false, false);
+
+  private static final OtherRequirementsVisibility VISIBILITY_NO_REQUIREMENTS =
+      new OtherRequirementsVisibility(false, false, false);
 
   @BeforeEach
   void setUp() {
@@ -77,6 +86,11 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
         organisationUser.wuaId()
     )).thenReturn(true);
 
+    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(any()))
+        .thenReturn(LICENCE_SCHEDULE_DETAIL);
+    when(otherRequirementsVisibilityResolverService.resolve(LICENCE_SCHEDULE_DETAIL))
+        .thenReturn(VISIBILITY_WITH_REQUIREMENTS);
+
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceContinuationOtherRequirementController.class).renderForm(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null)))
                 .with(user(organisationUser))
@@ -85,7 +99,32 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
         .andExpect(view().name("lms/licence/continuation/licenceContinuationOtherRequirement"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("form", licenceContinuationOtherRequirementForm))
+        .andExpect(model().attribute("otherRequirementsVisibility", VISIBILITY_WITH_REQUIREMENTS))
         .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null))));
+  }
+
+  @SecurityTest
+  void renderForm_RedirectsWhenNoRequirements() throws Exception {
+    when(licenceContinuationService.getDetailByIdOrThrow(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId()))
+        .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
+    when(applicationAccessService.userHasAccessToApplication(
+        String.valueOf(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId()),
+        ApplicationType.CONTINUATION_APPLICATION,
+        null,
+        organisationUser.wuaId()
+    )).thenReturn(true);
+
+    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(any()))
+        .thenReturn(LICENCE_SCHEDULE_DETAIL);
+    when(otherRequirementsVisibilityResolverService.resolve(LICENCE_SCHEDULE_DETAIL))
+        .thenReturn(VISIBILITY_NO_REQUIREMENTS);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceContinuationOtherRequirementController.class).renderForm(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null)))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null))));
   }
 
   @SecurityTest
@@ -128,6 +167,11 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
         organisationUser.wuaId()
     )).thenReturn(true);
 
+    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(any()))
+        .thenReturn(LICENCE_SCHEDULE_DETAIL);
+    when(otherRequirementsVisibilityResolverService.resolve(LICENCE_SCHEDULE_DETAIL))
+        .thenReturn(VISIBILITY_WITH_REQUIREMENTS);
+
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceContinuationOtherRequirementController.class).submitForm(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, licenceContinuationOtherRequirementForm, null)))
                 .with(user(organisationUser))
@@ -135,8 +179,8 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
                 .flashAttr("form", licenceContinuationOtherRequirementForm)
         )
         .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/continuation/licenceContinuationOtherRequirement"));
-
+        .andExpect(view().name("lms/licence/continuation/licenceContinuationOtherRequirement"))
+        .andExpect(model().attribute("otherRequirementsVisibility", VISIBILITY_WITH_REQUIREMENTS));
     verifyNoInteractions(licenceContinuationOtherRequirementService);
   }
 

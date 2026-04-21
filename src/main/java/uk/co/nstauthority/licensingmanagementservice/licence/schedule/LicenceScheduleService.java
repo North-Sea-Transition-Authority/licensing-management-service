@@ -158,4 +158,29 @@ public class LicenceScheduleService {
         .filter(phase -> phase.getStartDate().isAfter(currentPhase.getStartDate()))
         .min(Comparator.comparing(LicenceSchedulePhase::getStartDate));
   }
+
+  public Optional<LicenceScheduleTerm> getNextTerm(LicenceScheduleDetail licenceScheduleDetail) {
+    var currentTerm = getCurrentTerm(licenceScheduleDetail);
+    if (currentTerm == null) {
+      return Optional.empty();
+    }
+
+    var terms = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail);
+    return getNextTerm(terms, currentTerm);
+  }
+
+  public Optional<LicenceSchedulePhase> getNextPhase(LicenceScheduleDetail licenceScheduleDetail) {
+    var currentTerm = getCurrentTerm(licenceScheduleDetail);
+    if (currentTerm == null) {
+      return Optional.empty();
+    }
+
+    var currentPhase = getCurrentPhase(currentTerm);
+    if (currentPhase == null) {
+      return Optional.empty();
+    }
+
+    var phases = licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm);
+    return getNextPhase(phases, currentPhase);
+  }
 }

@@ -2,7 +2,7 @@
 
 <#macro subareaCard subarea>
     <@fdsSummaryList.summaryListCard
-    headingText="Block ${subarea.licenceBlock.reference}"
+    headingText="${subarea.name} - Block ${subarea.licenceBlock.reference}"
     summaryListId="subarea-${subarea.id}">
 
         <@fdsSummaryList.summaryListRowNoAction keyText="Status">

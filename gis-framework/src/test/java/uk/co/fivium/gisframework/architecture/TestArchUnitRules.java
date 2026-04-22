@@ -28,6 +28,7 @@ class TestArchUnitRules {
   static final ArchRule entityTableNamesMustStartWithGisFrameworkPrefix =
       classes()
           .that().areAnnotatedWith(Entity.class)
+          .and().resideOutsideOfPackage("..oracle..")
           .should(haveTableNameStartingWith(GIS_FRAMEWORK_PREFIX));
 
   private static ArchCondition<JavaClass> haveTableNameStartingWith(String prefix) {

@@ -50,3 +50,14 @@ When you commit changes to the repo, Husky will automatically run the linting an
 If any issues are found, the commit will be blocked until they are resolved, but any that can be automatically fixed will be.
 If using intellij to commit, you may need to go to settings > commit > advanced commit checks > run custom configurations and select `prepare`. 
 Disable Run advanced chjecks after a commit is done, so the commit is blocked if there are issues.
+
+## Production
+- In your IntelliJ run configuration for the Spring app, include `production` in your active profiles
+- The following environment variables are required when using this profile:
+
+| Environment Variable | Description                                                                                                                                     |
+|----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Migration**        |                                                                                                                                                 |
+| `ORACLE_DB_URL`      | The url to connect to the oracle database. This is needed for the GIS data migration. e.g.  `jdbc:oracle:thin:@db-ogadev1.sb2.dev:1521:ogadev1` |
+| `ORACLE_DB_USERNAME` | The username for the user to access the oracle GIS schema.                                                                                      |
+| `ORACLE_DB_PASSWORD` | The password for the user to access the oracle GIS schema.                                                                                      |

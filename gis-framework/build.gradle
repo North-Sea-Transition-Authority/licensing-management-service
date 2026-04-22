@@ -48,7 +48,10 @@ dependencies {
   implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
   implementation 'com.esri.geometry:esri-geometry-api:2.2.4'
   implementation 'org.flywaydb:flyway-core'
+  implementation 'org.flywaydb:flyway-database-oracle'
   implementation "org.springframework.data:spring-data-envers"
+
+  runtimeOnly 'com.oracle.database.jdbc:ojdbc11:23.3.0.23.09'
 
   // The Spring Boot Starter for gRPC Client
   implementation 'net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE'

@@ -2,7 +2,7 @@ package uk.co.fivium.gisframework.feature;
 
 import java.math.BigDecimal;
 import java.util.UUID;
-import uk.co.fivium.grpc.CoordinateSystem;
+import uk.co.fivium.grpc.gis.CoordinateSystem;
 
 public class FeatureTestUtil {
 

@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'vitest';
 import Polyline from '@arcgis/core/geometry/Polyline';
-import { CoordinateSystem } from '../../../generated/arcgisjs/CoordinateSystem.ts';
 import Point from '@arcgis/core/geometry/Point';
 import {
   getIndexOfPointOnLine,
@@ -11,6 +10,7 @@ import {
 } from '../../../src/migration/utils/migration-utils.ts';
 import SpatialReference from '@arcgis/core/geometry/SpatialReference';
 import { getCoordinateSystemWkid } from '../../../src/util/coordinate-system-utils.ts';
+import { CoordinateSystem } from '../../../generated/uk/co/fivium/grpc/gis/CoordinateSystem.ts';
 
 const ED50_WKID = getCoordinateSystemWkid(CoordinateSystem.ED50);
 

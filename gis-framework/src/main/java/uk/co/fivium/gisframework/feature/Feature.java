@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
-import uk.co.fivium.grpc.CoordinateSystem;
+import uk.co.fivium.grpc.gis.CoordinateSystem;
 
 @Entity
 @Table(name = "gis_framework_features")

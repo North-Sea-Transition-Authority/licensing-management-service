@@ -14,7 +14,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import org.hibernate.type.SqlTypes;
-import uk.co.fivium.grpc.LineNavigationType;
+import uk.co.fivium.grpc.gis.LineNavigationType;
 
 @Entity
 @Table(name = "gis_framework_lines")

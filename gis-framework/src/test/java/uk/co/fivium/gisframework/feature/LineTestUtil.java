@@ -2,7 +2,7 @@ package uk.co.fivium.gisframework.feature;
 
 import java.util.Map;
 import java.util.UUID;
-import uk.co.fivium.grpc.LineNavigationType;
+import uk.co.fivium.grpc.gis.LineNavigationType;
 
 public class LineTestUtil {
 

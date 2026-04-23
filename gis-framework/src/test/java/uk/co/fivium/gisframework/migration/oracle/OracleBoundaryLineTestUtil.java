@@ -1,6 +1,6 @@
 package uk.co.fivium.gisframework.migration.oracle;
 
-import uk.co.fivium.grpc.LineNavigationType;
+import uk.co.fivium.grpc.gis.LineNavigationType;
 
 public class OracleBoundaryLineTestUtil {
 

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { CoordinateSystem } from '../../generated/arcgisjs/CoordinateSystem';
 import { getCoordinateSystemWkid } from '../../src/util/coordinate-system-utils.ts';
+import { CoordinateSystem } from '../../generated/uk/co/fivium/grpc/gis/CoordinateSystem.ts';
 
 describe('coordinate-system-utils', () => {
   test.each([

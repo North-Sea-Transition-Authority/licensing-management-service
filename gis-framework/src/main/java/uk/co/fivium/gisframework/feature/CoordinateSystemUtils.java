@@ -1,6 +1,6 @@
 package uk.co.fivium.gisframework.feature;
 
-import uk.co.fivium.grpc.CoordinateSystem;
+import uk.co.fivium.grpc.gis.CoordinateSystem;
 
 public class CoordinateSystemUtils {
 

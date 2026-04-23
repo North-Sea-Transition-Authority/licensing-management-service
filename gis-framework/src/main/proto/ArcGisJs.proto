@@ -1,12 +1,11 @@
 syntax = "proto3";
 
-package arcgisjs;
+package uk.co.fivium.grpc.gis;
 
 import "enums/LineNavigationType.proto";
 import "enums/CoordinateSystem.proto";
 
 option java_multiple_files = true;
-option java_package = "uk.co.fivium.grpc";
 option java_outer_classname = "ArcGisServiceProto";
 
 service ArcGisService {

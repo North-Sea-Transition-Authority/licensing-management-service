@@ -1,4 +1,4 @@
-import { CoordinateSystem } from '../../generated/arcgisjs/CoordinateSystem';
+import { CoordinateSystem } from '../../generated/uk/co/fivium/grpc/gis/CoordinateSystem';
 
 export function getCoordinateSystemWkid(coordinateSystem: CoordinateSystem): number {
   switch (coordinateSystem) {

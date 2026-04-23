@@ -8,7 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import org.springframework.context.annotation.Profile;
-import uk.co.fivium.grpc.LineNavigationType;
+import uk.co.fivium.grpc.gis.LineNavigationType;
 
 @Profile("gis-migration")
 @Entity

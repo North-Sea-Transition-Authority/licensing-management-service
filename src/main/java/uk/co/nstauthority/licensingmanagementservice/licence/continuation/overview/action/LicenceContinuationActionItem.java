@@ -6,6 +6,7 @@ import java.util.function.Function;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationReviewConfirmationController;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationWithdrawConfirmationController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
@@ -15,6 +16,12 @@ public enum LicenceContinuationActionItem implements Displayable {
       1,
           detail -> ReverseRouter.route(on(LicenceContinuationApplicationReviewConfirmationController.class)
                                             .renderOverviewConfirmation(detail.getId(), null))
+  ),
+  WITHDRAW_CONTINUATION(
+      "Withdraw",
+      2,
+          detail -> ReverseRouter.route(on(LicenceContinuationApplicationWithdrawConfirmationController.class)
+                                            .renderWithdrawConfirmation(detail.getId(), null))
   );
 
   private final String displayName;

@@ -35,8 +35,8 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
-@ContextConfiguration(classes = LicenceContinuationApplicationReviewConfirmationController.class)
-class LicenceContinuationApplicationReviewConfirmationControllerTest extends AbstractControllerTest {
+@ContextConfiguration(classes = LicenceContinuationApplicationWithdrawConfirmationController.class)
+class LicenceContinuationApplicationWithdrawConfirmationControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   LicenceContinuationApplicationOverviewService licenceContinuationApplicationOverviewService;
@@ -73,24 +73,24 @@ class LicenceContinuationApplicationReviewConfirmationControllerTest extends Abs
   @SecurityTest
   void submitForm() throws Exception {
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceContinuationApplicationReviewConfirmationController.class).submitForm(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null)))
+            post(ReverseRouter.route(on(LicenceContinuationApplicationWithdrawConfirmationController.class).submitForm(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null)))
                 .with(user(USER))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))));
 
-    verify(licenceContinuationService).confirmContinuationChangeStatus(LICENCE_CONTINUATION_APPLICATION_DETAIL);
+    verify(licenceContinuationService).withdrawContinuationChangeStatus(LICENCE_CONTINUATION_APPLICATION_DETAIL);
   }
 
   @Test
-  void renderOverviewConfirmation() throws Exception {
+  void renderWithdrawConfirmation() throws Exception {
     mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceContinuationApplicationReviewConfirmationController.class).renderOverviewConfirmation(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null)))
+            get(ReverseRouter.route(on(LicenceContinuationApplicationWithdrawConfirmationController.class).renderWithdrawConfirmation(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null)))
                 .with(user(USER))
         )
         .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/continuation/licenceContinuationReviewConfirmation"))
+        .andExpect(view().name("lms/licence/continuation/licenceContinuationWithdrawConfirmation"))
         .andExpect(model().attributeExists("cancelUrl"));
   }
 }

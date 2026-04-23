@@ -39,6 +39,9 @@ public class LicenceContinuationActionService {
           .requiresAnyRoleFrom(ApplicationAccessService.CONTINUATION_REVIEWER_ROLES)
           .requiresAnyStatusFrom(LicenceContinuationApplicationStatus.SUBMITTED)
           .isPrimaryButton(true)
+        .registerAction(LicenceContinuationActionItem.WITHDRAW_CONTINUATION)
+          .requiresAnyRoleFrom(ApplicationAccessService.CONTINUATION_REVIEWER_ROLES)
+          .requiresAnyStatusFrom(LicenceContinuationApplicationStatus.SUBMITTED)
         .build();
 
     ACTIONS_TO_ROLES.putAll(registeredActions.roleMap);

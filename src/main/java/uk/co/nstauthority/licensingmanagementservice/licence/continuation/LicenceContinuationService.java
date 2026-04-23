@@ -195,4 +195,10 @@ public class LicenceContinuationService {
         user.wuaId()
     );
   }
+
+  @Transactional
+  public void withdrawContinuationChangeStatus(LicenceContinuationApplicationDetail licenceContinuationApplicationDetail) {
+    licenceContinuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.WITHDRAWN);
+    licenceContinuationApplicationDetailRepository.save(licenceContinuationApplicationDetail);
+  }
 }

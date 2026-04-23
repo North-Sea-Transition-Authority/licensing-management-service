@@ -57,7 +57,10 @@ class LicenceContinuationActionServiceTest {
     when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
 
     assertThat(licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
-        .contains(LicenceContinuationActionItem.CONFIRM_CONTINUATION.toActionItemView(applicationDetail, true));
+        .contains(
+            LicenceContinuationActionItem.CONFIRM_CONTINUATION.toActionItemView(applicationDetail, true),
+            LicenceContinuationActionItem.WITHDRAW_CONTINUATION.toActionItemView(applicationDetail, false)
+        );
   }
 
   @Test
@@ -76,7 +79,10 @@ class LicenceContinuationActionServiceTest {
     when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
 
     assertThat(licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
-        .doesNotContain(LicenceContinuationActionItem.CONFIRM_CONTINUATION.toActionItemView(applicationDetail));
+        .doesNotContain(
+            LicenceContinuationActionItem.CONFIRM_CONTINUATION.toActionItemView(applicationDetail),
+            LicenceContinuationActionItem.WITHDRAW_CONTINUATION.toActionItemView(applicationDetail)
+        );
   }
 
   @Test
@@ -95,7 +101,10 @@ class LicenceContinuationActionServiceTest {
     when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
 
     assertThat(licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
-        .doesNotContain(LicenceContinuationActionItem.CONFIRM_CONTINUATION.toActionItemView(applicationDetail));
+        .doesNotContain(
+            LicenceContinuationActionItem.CONFIRM_CONTINUATION.toActionItemView(applicationDetail),
+            LicenceContinuationActionItem.WITHDRAW_CONTINUATION.toActionItemView(applicationDetail)
+        );
   }
 
   @Test
@@ -115,6 +124,8 @@ class LicenceContinuationActionServiceTest {
 
     var availableActions = licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail);
 
+    assertThat(availableActions).hasSize(2);
     assertThat(availableActions.get(0).primaryAction()).isTrue();
+    assertThat(availableActions.get(1).primaryAction()).isFalse();
   }
 }

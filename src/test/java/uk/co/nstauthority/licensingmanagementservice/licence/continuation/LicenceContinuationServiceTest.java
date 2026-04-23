@@ -238,4 +238,10 @@ class LicenceContinuationServiceTest {
     assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.COMPLETE);
   }
 
+  @Test
+  void withdrawContinuationChangeStatus(){
+    licenceContinuationService.withdrawContinuationChangeStatus(licenceContinuationApplicationDetail);
+    verify(licenceContinuationApplicationDetailRepository).save(licenceContinuationApplicationDetail);
+    assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.WITHDRAWN);
+  }
 }

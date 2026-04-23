@@ -6,7 +6,8 @@ public enum LicenceContinuationApplicationStatus implements Displayable {
   DRAFT("Draft"),
   SUBMITTED("Submitted"),
   ISSUE_DECISION("Issue decision"),
-  COMPLETE("complete");
+  COMPLETE("Complete"),
+  WITHDRAWN("Withdrawn");
 
   private final String displayName;
 

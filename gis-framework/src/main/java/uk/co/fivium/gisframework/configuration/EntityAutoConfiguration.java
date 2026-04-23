@@ -18,7 +18,7 @@ import org.springframework.core.type.AnnotationMetadata;
 public class EntityAutoConfiguration implements ImportBeanDefinitionRegistrar {
 
   private static final String BASE_PACKAGE = "uk.co.fivium.gisframework";
-  private static final String EXCLUDED_PACKAGE = "uk.co.fivium.gisframework.migration.oracle";
+  private static final String EXCLUDED_PACKAGE = "uk.co.fivium.gisframework.migration";
 
   @Override
   public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {

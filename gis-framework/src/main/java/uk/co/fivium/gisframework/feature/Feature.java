@@ -38,6 +38,13 @@ public class Feature {
   @JoinColumn(name = "parent_feature_id")
   private Feature parentFeature;
 
+  Feature(UUID id) {
+    this.id = id;
+  }
+
+  public Feature() {
+  }
+
   public UUID getId() {
     return id;
   }

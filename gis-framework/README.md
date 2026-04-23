@@ -49,7 +49,7 @@ Or just run `npm run build-all` to generate the proto files (java and typescript
 When you commit changes to the repo, Husky will automatically run the linting and formatting checks.
 If any issues are found, the commit will be blocked until they are resolved, but any that can be automatically fixed will be.
 If using intellij to commit, you may need to go to settings > commit > advanced commit checks > run custom configurations and select `prepare`. 
-Disable Run advanced chjecks after a commit is done, so the commit is blocked if there are issues.
+Disable Run advanced checks after a commit is done, so the commit is blocked if there are issues.
 
 ## Production
 - In your IntelliJ run configuration for the Spring app, include `production` in your active profiles

@@ -42,6 +42,13 @@ public class Line {
   @Column(columnDefinition = "jsonb")
   private Map<String, Object> attributes;
 
+  Line(UUID id) {
+    this.id = id;
+  }
+
+  public Line() {
+  }
+
   public UUID getId() {
     return id;
   }

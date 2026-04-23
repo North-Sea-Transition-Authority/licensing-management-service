@@ -34,6 +34,13 @@ public class Polygon {
 
   private Long endDepth;
 
+  Polygon(UUID id) {
+    this.id = id;
+  }
+
+  public Polygon() {
+  }
+
   public UUID getId() {
     return id;
   }

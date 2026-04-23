@@ -100,12 +100,11 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       case DRAFT -> ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
           .getTaskList(applicationDetail.getId(), null, null));
 
-      case LicenceContinuationApplicationStatus.ISSUE_DECISION ->
-          (isContinuationIssuer(serviceUserDetail))
+      case LicenceContinuationApplicationStatus.ISSUE_DECISION -> (isContinuationIssuer(serviceUserDetail))
               ? ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
-              ApplicationType.CONTINUATION_APPLICATION,
-              applicationDetail.getLicenceContinuationApplication().getId()
-          ))
+                    ApplicationType.CONTINUATION_APPLICATION,
+                    applicationDetail.getLicenceContinuationApplication().getId()
+                ))
               : ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class)
                                     .renderOverview(applicationDetail.getId(), null, null, null));
 

@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterController;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterController;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceTeam;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
@@ -40,7 +40,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearc
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 
 @ExtendWith(MockitoExtension.class)
 class WorkProgrammeApplicationWorkAreaServiceTest {
@@ -175,7 +177,32 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
   }
 
   @Test
-  void getWorkAreaItems_whenIssueDecision_linksToLetterController() {
+  void getWorkAreaItems_whenIssueDecision_IsDecisionIssuer_linksToLetterController() {
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.ISSUE_DECISION);
+    scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
+
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, true);
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail2, false);
+    mockIsDecisionIssuer();
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence1)))
+        .thenReturn(Map.of(licence1, List.of("Org 1")));
+
+    var workAreaItems = workProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::linkHeadingUrl)
+        .containsExactly(
+            ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
+                ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
+                scheduleWorkProgrammeApplicationDetail1.getScheduleWorkProgrammeApplication().getId()
+            ))
+        );
+  }
+
+  @Test
+  void getWorkAreaItems_whenIssueDecision_IsNotDecisionIssuer_linksToOverview() {
     scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.ISSUE_DECISION);
     scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
 
@@ -191,11 +218,16 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
     assertThat(workAreaItems)
         .extracting(SearchResultItem::linkHeadingUrl)
         .containsExactly(
-            ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
-                ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
-                scheduleWorkProgrammeApplicationDetail1.getScheduleWorkProgrammeApplication().getId()
-            ))
+            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+                .renderOverview(scheduleWorkProgrammeApplicationDetail1.getId(), null, null))
         );
+  }
+
+  private void mockIsDecisionIssuer() {
+    TeamRole teamRole = new TeamRole();
+    teamRole.setRole(Role.DECISION_ISSUER_ONSHORE);
+    when(teamQueryService.getTeamRolesForUser(serviceUserDetail.wuaId()))
+        .thenReturn(Set.of(teamRole));
   }
 
   @Test

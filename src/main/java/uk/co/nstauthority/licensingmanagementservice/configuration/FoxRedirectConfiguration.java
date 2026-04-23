@@ -7,6 +7,7 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "fox")
 @Validated
 public record FoxRedirectConfiguration(
-    @NotNull String pearsRedirectUrl
+    @NotNull String pearsRedirectUrl,
+    @NotNull String epasRedirectUrl
 ) {
 }

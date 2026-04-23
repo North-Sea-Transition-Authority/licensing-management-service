@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.workarea;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+import static uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService.DECISION_ISSUER_ROLES;
 
 import java.util.List;
 import java.util.Map;
@@ -67,13 +68,14 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
     var responsibleOrganisationNames = licenceSearchService.getLicenceToResponsibleOrganisationNameMap(licences);
 
     return applicationDetails.stream()
-        .map(applicationDetail -> createWorkAreaItem(applicationDetail, responsibleOrganisationNames))
+        .map(applicationDetail -> createWorkAreaItem(applicationDetail, responsibleOrganisationNames, serviceUserDetail))
         .toList();
   }
 
   private SearchResultItem createWorkAreaItem(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
-      Map<Licence, List<String>> responsibleOrganisationNamesByLicences
+      Map<Licence, List<String>> responsibleOrganisationNamesByLicences,
+      ServiceUserDetail serviceUserDetail
   ) {
     var licence = scheduleWorkProgrammeApplicationService
         .getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail);
@@ -96,11 +98,13 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
       case DRAFT -> ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
           .getTaskList(applicationDetail.getId(), null, null));
 
-      case ScheduleWorkProgrammeApplicationStatus.ISSUE_DECISION ->
-          ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
+      case ScheduleWorkProgrammeApplicationStatus.ISSUE_DECISION -> (isDecisionIssuer(serviceUserDetail))
+          ? ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
               ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
               applicationDetail.getScheduleWorkProgrammeApplication().getId()
-          ));
+            ))
+          : ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+              .renderOverview(applicationDetail.getId(), null, null));
 
       default -> ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
           .renderOverview(applicationDetail.getId(), null, null));
@@ -122,6 +126,11 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
         .withDataItemRow(dataItemRow)
         .withTransactionDatetime(createdDatetime)
         .build();
+  }
+
+  private boolean isDecisionIssuer(ServiceUserDetail userDetail) {
+    return teamQueryService.getTeamRolesForUser(userDetail.wuaId()).stream()
+        .anyMatch(teamRole -> DECISION_ISSUER_ROLES.contains(teamRole.getRole()));
   }
 
   private boolean isCaseManager(ServiceUserDetail userDetail, Licence licence) {

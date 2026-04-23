@@ -13,6 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.fox.FoxRedirec
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
@@ -27,9 +28,17 @@ class ContinuationLicenseeInformationSummarySectionServiceTest {
       "https://test.example.com/fox/nsta/LMS_REDIRECT/view-licence?LICENCE_TYPE=P&LICENCE_NO=123";
 
   private static final Licence LICENCE = LicenceTestUtil.builder()
+      .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
       .withLicencePrefix("P")
       .withLicenceNumber("123")
       .withLicenceReference("P 123")
+      .build();
+
+  private static final Licence LICENCE_MANAGED_BY_LMS = LicenceTestUtil.builder()
+      .withLicenceType(LicenceType.CARBON_STORAGE)
+      .withLicencePrefix("CS")
+      .withLicenceNumber("456")
+      .withLicenceReference("CS 456")
       .build();
 
   private static final LicenceSchedule LICENCE_SCHEDULE =
@@ -37,6 +46,12 @@ class ContinuationLicenseeInformationSummarySectionServiceTest {
 
   private static final LicenceScheduleDetail LICENCE_SCHEDULE_DETAIL =
       LicenceScheduleTestUtil.createLicenceScheduleDetail(LICENCE_SCHEDULE);
+
+  private static final LicenceSchedule LICENCE_SCHEDULE_MANAGED_BY_LMS =
+      LicenceScheduleTestUtil.createLicenceSchedule(LICENCE_MANAGED_BY_LMS);
+
+  private static final LicenceScheduleDetail LICENCE_SCHEDULE_DETAIL_MANAGED_BY_LMS =
+      LicenceScheduleTestUtil.createLicenceScheduleDetail(LICENCE_SCHEDULE_MANAGED_BY_LMS);
 
   @Mock
   private OrganisationUnitQueryService organisationUnitQueryService;
@@ -79,6 +94,44 @@ class ContinuationLicenseeInformationSummarySectionServiceTest {
     assertThat(licenseeInformationSummaryCard.summaryData()).isEqualTo(
         SummaryDataView.newBuilder()
             .addStringValue("Who is the licensee for this application?", "Test Organisation")
+            .build()
+    );
+  }
+
+  @Test
+  void getSummarySection_whenLicenceManagedByLms_licenceCardDoesNotContainViewLicenceLink() {
+    var licenceContinuationApplicationDetail =
+        LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(LICENCE_SCHEDULE_DETAIL_MANAGED_BY_LMS);
+    licenceContinuationApplicationDetail.setResponsibleOrganisationUnitId(1);
+
+    when(organisationUnitQueryService.getOrganisationUnitNameById(1)).thenReturn(Optional.of("Test Organisation"));
+
+    var result = continuationLicenseeInformationSummarySectionService
+        .getSummarySection(licenceContinuationApplicationDetail, null).get();
+
+    var licenceSummaryCard = result.summaryItems().getFirst().summaryCards().getFirst();
+    assertThat(licenceSummaryCard.summaryData()).isEqualTo(
+        SummaryDataView.newBuilder()
+            .addStringValue("Licence reference", "CS 456")
+            .build()
+    );
+  }
+
+  @Test
+  void getSummarySection_whenOrganisationUnitNameNotFound_licenseeCardUsesEmptyString() {
+    var licenceContinuationApplicationDetail =
+        LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(LICENCE_SCHEDULE_DETAIL_MANAGED_BY_LMS);
+    licenceContinuationApplicationDetail.setResponsibleOrganisationUnitId(1);
+
+    when(organisationUnitQueryService.getOrganisationUnitNameById(1)).thenReturn(Optional.empty());
+
+    var result = continuationLicenseeInformationSummarySectionService
+        .getSummarySection(licenceContinuationApplicationDetail, null).get();
+
+    var licenseeInformationSummaryCard = result.summaryItems().getFirst().summaryCards().get(1);
+    assertThat(licenseeInformationSummaryCard.summaryData()).isEqualTo(
+        SummaryDataView.newBuilder()
+            .addStringValue("Who is the licensee for this application?", "")
             .build()
     );
   }

@@ -52,13 +52,17 @@ public class LicenseeInformationSummarySectionService implements SummarySectionS
 
   private SummaryCard getLicenceSummaryCard(ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
     var licence = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getLicenceSchedule().getLicence();
-    var viewPearsLicenceUrl = foxRedirectService.getViewPearsLicenceUrl(licence);
     var summaryDataView = SummaryDataView.newBuilder()
-        .addStringValue("Licence reference", licence.getLicenceReference())
-        .addExternalUrlValue("View licence", new ExternalUrlView("View licence in PEARS", viewPearsLicenceUrl))
-        .build();
+        .addStringValue("Licence reference", licence.getLicenceReference());
 
-    return SummaryCard.simpleSummaryCardWithHeading("Licence information", summaryDataView);
+    if (!licence.getType().isManagedByLms()) {
+      summaryDataView.addExternalUrlValue(
+          "View licence",
+          new ExternalUrlView("View licence in PEARS", foxRedirectService.getViewPearsLicenceUrl(licence))
+      );
+    }
+
+    return SummaryCard.simpleSummaryCardWithHeading("Licence information", summaryDataView.build());
   }
 
   private SummaryCard getLicenseeInformationSummaryCard(

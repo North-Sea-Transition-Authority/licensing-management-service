@@ -14,6 +14,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 @ExtendWith(MockitoExtension.class)
 class FoxRedirectServiceTest {
 
+  private static final String EPAS_REDIRECT_URL = "https://test.itportal.dev.fivium.co.uk/fox/nsta/EPAS_REDIRECT";
+
   private static final String REDIRECT_URL = "https://test.itportal.dev.fivium.co.uk/fox/nsta/LMS_REDIRECT";
 
   @Mock
@@ -25,16 +27,16 @@ class FoxRedirectServiceTest {
   @Test
   void getViewPearsLicenceUrl() {
     var licence = LicenceTestUtil.builder()
-        .withLicencePrefix("P")
-        .withLicenceNumber("123")
+        .withLicenceReference("P123")
         .build();
 
+    when(foxRedirectConfiguration.epasRedirectUrl()).thenReturn(EPAS_REDIRECT_URL);
     when(foxRedirectConfiguration.pearsRedirectUrl()).thenReturn(REDIRECT_URL);
 
     var result = foxRedirectService.getViewPearsLicenceUrl(licence);
 
     assertThat(result).isEqualTo(
-        FoxRedirectService.FOX_MODULE_AND_PARAMS.formatted(REDIRECT_URL, licence.getPrefix(), licence.getLicenceNumber())
+        EPAS_REDIRECT_URL + FoxRedirectService.VIEW_LICENCE_URL.formatted(REDIRECT_URL, licence.getLicenceReference())
     );
   }
 }

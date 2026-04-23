@@ -8,7 +8,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 @Service
 public class FoxRedirectService {
 
-  public static final String FOX_MODULE_AND_PARAMS = "%s/view-licence?LICENCE_TYPE=%s&LICENCE_NO=%s";
+  public static final String VIEW_LICENCE_URL = "%s/view-licence?LICENCE_REF=%s";
 
   private final FoxRedirectConfiguration foxRedirectConfiguration;
 
@@ -19,6 +19,8 @@ public class FoxRedirectService {
 
   public String getViewPearsLicenceUrl(Licence licence) {
     var pearsRedirectUrl = foxRedirectConfiguration.pearsRedirectUrl();
-    return FOX_MODULE_AND_PARAMS.formatted(pearsRedirectUrl, licence.getPrefix(), licence.getLicenceNumber());
+    var viewLicenceUrl = VIEW_LICENCE_URL.formatted(pearsRedirectUrl, licence.getLicenceReference());
+
+    return foxRedirectConfiguration.epasRedirectUrl() + viewLicenceUrl;
   }
 }

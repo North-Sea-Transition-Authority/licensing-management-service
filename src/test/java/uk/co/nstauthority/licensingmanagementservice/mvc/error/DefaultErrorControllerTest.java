@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.util.WebUtils;
+import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultErrorControllerTest {
@@ -38,7 +39,7 @@ class DefaultErrorControllerTest {
     controller = new DefaultErrorController(errorService);
   }
 
-  @Test
+  @SecurityTest
   void handleError_whenStatusIsNotFound_returnsNotFoundView() {
     when(request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE)).thenReturn(SC_NOT_FOUND);
 

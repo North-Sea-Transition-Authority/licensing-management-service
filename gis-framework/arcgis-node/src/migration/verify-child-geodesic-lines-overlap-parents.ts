@@ -1,8 +1,7 @@
 import * as containsOperator from '@arcgis/core/geometry/operators/containsOperator.js';
-
 import { logger } from '../config/logger';
-import { findParentLine, getLineStartAndEndPoints } from './migration-line-utils';
 import { esriJsonToPolyline } from '../util/esrijson-util';
+import { findParentLine, getLineStartAndEndPoints } from './utils/migration-line-utils';
 
 type Line = {
   esriJsonPolyline: string;

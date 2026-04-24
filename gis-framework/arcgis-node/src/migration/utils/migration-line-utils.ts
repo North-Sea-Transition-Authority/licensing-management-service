@@ -1,8 +1,8 @@
 import Polyline from '@arcgis/core/geometry/Polyline.js';
 import Point from '@arcgis/core/geometry/Point.js';
 import * as proximityOperator from '@arcgis/core/geometry/operators/proximityOperator.js';
-import { esriJsonToPolyline } from '../util/esrijson-util';
-import { logger } from '../config/logger';
+import { esriJsonToPolyline } from '../../util/esrijson-util';
+import { logger } from '../../config/logger';
 
 export const FIVE_CM_IN_DEGREES_AT_48N_ED50 = 0.00000067;
 

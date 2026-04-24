@@ -5,7 +5,7 @@ import {
   findParentLine,
   FIVE_CM_IN_DEGREES_AT_48N_ED50,
   getLineStartAndEndPoints,
-} from '../../src/migration/migration-line-utils';
+} from '../../src/migration/utils/migration-line-utils';
 
 describe('migration-line-utils', () => {
   describe('getLineStartAndEndPoints', () => {

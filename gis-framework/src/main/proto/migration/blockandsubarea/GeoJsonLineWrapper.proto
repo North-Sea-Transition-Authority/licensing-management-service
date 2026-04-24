@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "GeoJsonLineWrapperProto";
+
+message GeoJsonLineWrapper {
+  string geoJsonString = 1;
+  bool isGeodesic = 2;
+  int32 oracleLineSsid = 3;
+  int32 connectionOrder = 4;
+  int32 ringNumber = 5;
+}

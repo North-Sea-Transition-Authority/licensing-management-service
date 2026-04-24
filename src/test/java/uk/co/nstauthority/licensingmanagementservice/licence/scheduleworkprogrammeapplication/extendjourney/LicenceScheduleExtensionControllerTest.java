@@ -47,7 +47,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListSectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceScheduleExtensionController.class)
 class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
@@ -114,7 +113,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
         .thenReturn(licenceScheduleDetail);
   }
 
-  @SecurityTest
+  @Test
   void renderExtensionForm() throws Exception {
       LicenceScheduleTerm licenceScheduleTerm = new LicenceScheduleTerm();
       licenceScheduleTerm.setTermType(TermType.APPRAISAL);
@@ -148,7 +147,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
               .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
   }
 
-  @SecurityTest
+  @Test
   void renderExtensionForm_withCurrentPhase() throws Exception {
     LicenceScheduleTerm licenceScheduleTerm = new LicenceScheduleTerm();
     licenceScheduleTerm.setTermType(TermType.APPRAISAL);

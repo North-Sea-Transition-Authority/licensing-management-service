@@ -30,7 +30,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = OtherScheduleEventController.class)
 class OtherScheduleEventControllerTest extends AbstractControllerTest {
@@ -75,7 +74,7 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
     otherScheduleEvent.setLicenceScheduleDetail(licenceScheduleDetail);
   }
 
-  @SecurityTest
+  @Test
   void renderAddNewEventForm() throws Exception {
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
@@ -145,7 +144,7 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
     verify(otherScheduleEventFormService, never()).saveEventFromForm(any(), any(), any());
   }
 
-  @SecurityTest
+  @Test
   void renderUpdateEventForm() throws Exception {
     when(otherScheduleEventService.getOtherScheduleEventByIdOrThrow(otherScheduleEvent.getId())).thenReturn(otherScheduleEvent);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);

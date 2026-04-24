@@ -28,7 +28,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceScheduleTermDeletionController.class)
 class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
@@ -69,7 +68,7 @@ class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
     licenceScheduleTerm.setEndDate(LocalDate.of(2025, 12, 31));
   }
 
-  @SecurityTest
+  @Test
   void renderDeleteTermPage() throws Exception {
     when(licenceScheduleTermService.getTermByIdOrThrow(LICENCE_SCHEDULE_TERM_ID)).thenReturn(licenceScheduleTerm);
     when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");

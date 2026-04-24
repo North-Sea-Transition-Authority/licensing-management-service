@@ -32,7 +32,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = SelectLicenceWorkAmendmentController.class)
 class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
@@ -75,7 +74,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
   }
 
 
-  @SecurityTest
+  @Test
   void renderSelectAmendmentForm() throws Exception {
     when(selectLicenceAmendmentFormValidator.isValid(any(), any(), any())).thenReturn(true);
 

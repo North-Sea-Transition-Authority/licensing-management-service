@@ -16,6 +16,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -30,7 +31,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearc
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @ContextConfiguration(classes = LicenceController.class)
@@ -58,7 +58,7 @@ class LicenceControllerTest extends AbstractControllerTest {
         .build();
   }
 
-  @SecurityTest
+  @Test
   void renderNewLicenceForm() throws Exception {
     when(licenceFormService.getPreselectedOrganisationUnits(List.of())).thenReturn(List.of());
     when(teamQueryService.userHasRoleInTeamType(
@@ -83,7 +83,7 @@ class LicenceControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("backUrl", ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null, null))));
   }
 
-  @SecurityTest
+  @Test
   void saveNewLicence_formIsValid() throws Exception {
     var licence = new Licence();
     licence.setId(1);
@@ -106,7 +106,7 @@ class LicenceControllerTest extends AbstractControllerTest {
     verify(licenceFormService).saveNewLicenceFromForm(any());
   }
 
-  @SecurityTest
+  @Test
   void saveNewLicence_formIsNotValid() throws Exception {
     when(newLicenceValidator.isValid(any(), any())).thenReturn(false);
     when(licenceFormService.getPreselectedOrganisationUnits(List.of())).thenReturn(List.of());
@@ -132,7 +132,7 @@ class LicenceControllerTest extends AbstractControllerTest {
   }
 
 
-  @SecurityTest
+  @Test
   void renderManageLicenseesPage() throws Exception {
     var licence = new Licence();
     licence.setType(LicenceType.CARBON_STORAGE);
@@ -159,7 +159,7 @@ class LicenceControllerTest extends AbstractControllerTest {
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))));
   }
 
-  @SecurityTest
+  @Test
   void renderManageLicenseesPage_licenceNotManagedByLms() throws Exception {
     var licence = new Licence();
     licence.setType(LicenceType.SEAWARD_PRODUCTION);
@@ -178,7 +178,7 @@ class LicenceControllerTest extends AbstractControllerTest {
         .andExpect(status().isForbidden());
   }
 
-  @SecurityTest
+  @Test
   void saveManageLicenseesPage_formIsValid() throws Exception {
     var licence = new Licence();
     licence.setType(LicenceType.CARBON_STORAGE);
@@ -201,7 +201,7 @@ class LicenceControllerTest extends AbstractControllerTest {
     verify(licenceResponsibleOrganisationService).saveLicenseesFromForm(eq(licence), any());
   }
 
-  @SecurityTest
+  @Test
   void saveManageLicenseesPage_formIsNotValid() throws Exception {
     var licence = new Licence();
     licence.setType(LicenceType.CARBON_STORAGE);
@@ -230,7 +230,7 @@ class LicenceControllerTest extends AbstractControllerTest {
     verify(licenceFormService).getPreselectedOrganisationUnits(null);
   }
 
-  @SecurityTest
+  @Test
   void saveManageLicenseesPage_licenceNotManagedByLms() throws Exception {
     var licence = new Licence();
     licence.setType(LicenceType.LANDWARD_PRODUCTION);

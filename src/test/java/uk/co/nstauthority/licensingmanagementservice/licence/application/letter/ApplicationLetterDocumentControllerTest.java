@@ -47,7 +47,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.util.AuthorisationSecurityTest;
 
 @WebMvcTest(ApplicationLetterDocumentController.class)
 @ContextConfiguration(classes = ApplicationLetterDocumentController.class)
@@ -118,7 +117,7 @@ class ApplicationLetterDocumentControllerTest extends AbstractControllerTest {
   }
 
 
-  @AuthorisationSecurityTest
+  @Test
   void renderAddSectionPage_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
             get(ReverseRouter.route(on(ApplicationLetterDocumentController.class).renderAddSectionPage(APP_TYPE, APP_ID, SECTION_ID, AddSectionOption.ADD_SUBSECTION)))
@@ -126,7 +125,7 @@ class ApplicationLetterDocumentControllerTest extends AbstractControllerTest {
         .andExpect(redirectionToLoginUrl());
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void createSection_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
             post(ReverseRouter.route(on(ApplicationLetterDocumentController.class).createSection(APP_TYPE, APP_ID, SECTION_ID, AddSectionOption.ADD_SUBSECTION, null, null)))
@@ -135,7 +134,7 @@ class ApplicationLetterDocumentControllerTest extends AbstractControllerTest {
         .andExpect(redirectionToLoginUrl());
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void renderEditSectionPage_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
             get(ReverseRouter.route(on(ApplicationLetterDocumentController.class).renderEditSectionPage(APP_TYPE, APP_ID, SECTION_ID)))
@@ -143,7 +142,7 @@ class ApplicationLetterDocumentControllerTest extends AbstractControllerTest {
         .andExpect(redirectionToLoginUrl());
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void updateSection_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
             post(ReverseRouter.route(on(ApplicationLetterDocumentController.class).updateSection(APP_TYPE, APP_ID, SECTION_ID, null, null))).with(csrf())
@@ -151,7 +150,7 @@ class ApplicationLetterDocumentControllerTest extends AbstractControllerTest {
         .andExpect(redirectionToLoginUrl());
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void renderRemoveSectionPage_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
             get(ReverseRouter.route(on(ApplicationLetterDocumentController.class).renderRemoveSectionPage(APP_TYPE, APP_ID, SECTION_ID)))
@@ -159,7 +158,7 @@ class ApplicationLetterDocumentControllerTest extends AbstractControllerTest {
         .andExpect(redirectionToLoginUrl());
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void removeSectionPage_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
             post(ReverseRouter.route(on(ApplicationLetterDocumentController.class).removeSectionPage(APP_TYPE, APP_ID, SECTION_ID)))

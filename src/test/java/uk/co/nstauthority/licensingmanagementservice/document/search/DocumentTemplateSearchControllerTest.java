@@ -34,7 +34,6 @@ import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchTabItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.util.AuthorisationSecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @ContextConfiguration(classes = DocumentTemplateSearchController.class)
@@ -74,7 +73,7 @@ class DocumentTemplateSearchControllerTest extends AbstractControllerTest {
     );
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void renderDocumentTemplateResults_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
             post(ReverseRouter.route(on(DocumentTemplateSearchController.class)

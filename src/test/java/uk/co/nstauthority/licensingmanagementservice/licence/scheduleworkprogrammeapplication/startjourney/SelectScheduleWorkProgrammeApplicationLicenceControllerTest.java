@@ -15,6 +15,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.SelectScheduleWorkProgrammeApplicationLicenceController.PAGE_TITLE;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -25,7 +26,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.internalapi.LicenceInternalApiRestController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = SelectScheduleWorkProgrammeApplicationLicenceController.class)
 class SelectScheduleWorkProgrammeApplicationLicenceControllerTest extends AbstractControllerTest {
@@ -44,7 +44,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceControllerTest extends Abstra
         .build();
   }
 
-  @SecurityTest
+  @Test
   void renderSelectLicenceForScheduleWorkProgrammeApplication() throws Exception {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
@@ -63,7 +63,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceControllerTest extends Abstra
             ReverseRouter.route(on(StartScheduleWorkProgrammeApplicationJourneyController.class).renderStartScheduleWorkProgrammeApplicationJourney(licenceType.getUrlSlug()))));
   }
 
-  @SecurityTest
+  @Test
   void submitSelectLicenceForScheduleWorkProgrammeApplication() throws Exception {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
     var licenceId = 1;
@@ -88,7 +88,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceControllerTest extends Abstra
             .renderConfirmLicenseePermission(licenceType.getUrlSlug(), licenceId, null, null))));
   }
 
-  @SecurityTest
+  @Test
   void submit_SelectLicenceForScheduleWorkProgrammeApplication_invalidForm() throws Exception {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
@@ -110,7 +110,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceControllerTest extends Abstra
   }
 
 
-  @SecurityTest
+  @Test
   void render_SelectLicenceForScheduleWorkProgrammeApplicationForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
     mockMvc.perform(
@@ -119,7 +119,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceControllerTest extends Abstra
             .with(csrf()));
   }
 
-  @SecurityTest
+  @Test
   void submitSelectLicenceForScheduleWorkProgrammeApplicationForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
     mockMvc.perform(

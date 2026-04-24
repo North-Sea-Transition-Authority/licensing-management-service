@@ -14,6 +14,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -31,7 +32,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = WorkProgrammeActivityStatusController.class)
 class WorkProgrammeActivityStatusControllerTest extends AbstractControllerTest {
@@ -75,7 +75,7 @@ class WorkProgrammeActivityStatusControllerTest extends AbstractControllerTest {
         .thenReturn(workProgrammeActivity);
   }
   
-  @SecurityTest
+  @Test
   void renderStatusUpdatePage() throws Exception {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
 
@@ -102,7 +102,7 @@ class WorkProgrammeActivityStatusControllerTest extends AbstractControllerTest {
         );
   }
 
-  @SecurityTest
+  @Test
   void submitStatusUpdatePage() throws Exception {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(workProgrammeActivityStatusValidator.isValid(any(), any())).thenReturn(true);
@@ -116,7 +116,7 @@ class WorkProgrammeActivityStatusControllerTest extends AbstractControllerTest {
         .andExpect(status().is3xxRedirection());
   }
 
-  @SecurityTest
+  @Test
   void submitStatusUpdatePage_invalidForm() throws Exception {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(workProgrammeActivityStatusValidator.isValid(any(), any())).thenReturn(false);

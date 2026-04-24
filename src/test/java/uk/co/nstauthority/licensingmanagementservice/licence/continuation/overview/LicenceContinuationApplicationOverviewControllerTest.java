@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
@@ -36,7 +37,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overvi
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.reviewandsubmit.ContinuationSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceContinuationApplicationOverviewController.class)
 class LicenceContinuationApplicationOverviewControllerTest extends AbstractControllerTest {
@@ -62,7 +62,7 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
   @MockitoBean
   private ContinuationDecisionSummarySectionService continuationDecisionSummarySectionService;
 
-  @SecurityTest
+  @Test
   void renderOverview_displaysApplicationContextAndSummaries() throws Exception {
     var licence = LicenceTestUtil .builder()
         .withId(1)
@@ -122,7 +122,7 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
         .andExpect(model().attributeExists("controllerUrl"));
   }
 
-  @SecurityTest
+  @Test
   void downloadLetter_success() throws Exception {
     var applicationDetailId = UUID.randomUUID();
     var fileId = UUID.randomUUID();

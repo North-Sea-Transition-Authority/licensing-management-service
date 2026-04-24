@@ -17,6 +17,7 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.schedule.lic
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -29,7 +30,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculatio
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.StartLicenceScheduleJourneyController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceStartDateController.class)
 class LicenceStartDateControllerTest extends AbstractControllerTest {
@@ -68,7 +68,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
     when(licenceScheduleDetailService.getByIdOrThrow(LICENCE_SCHEDULE_DETAIL_ID)).thenReturn(licenceScheduleDetail);
   }
 
-  @SecurityTest
+  @Test
   void renderLicenceStartDateForm() throws Exception {
     when(licenceActionService.getAvailableUserActionItems(licence,organisationUser))
         .thenReturn(List.of(new ActionItemView(
@@ -91,7 +91,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
   }
 
-  @SecurityTest
+  @Test
   void submitLicenceStartDateForm_validForm() throws Exception {
     var licenceStartDate = new LicenceStartDate();
     licenceStartDate.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -115,7 +115,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
         .andExpect(status().is3xxRedirection());
   }
 
-  @SecurityTest
+  @Test
   void submitLicenceStartDateForm_invalidForm() throws Exception {
     when(licenceActionService.getAvailableUserActionItems(licence,organisationUser))
         .thenReturn(List.of(new ActionItemView(
@@ -139,7 +139,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("backUrl", ReverseRouter.route(on(StartLicenceScheduleJourneyController.class).renderStartLicenceScheduleJourney(LICENCE_ID, null))));
   }
 
-  @SecurityTest
+  @Test
   void renderLicenceStartDateForm_noAuth() throws Exception {
     when(licenceActionService.getAvailableUserActionItems(licence,organisationUser))
         .thenReturn(List.of(new ActionItemView("test", 1, false, "test", "test")));
@@ -151,7 +151,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
         .andExpect(status().isForbidden());
   }
 
-  @SecurityTest
+  @Test
   void submitLicenceStartDateForm_noAuth() throws Exception {
     when(licenceActionService.getAvailableUserActionItems(licence,organisationUser))
         .thenReturn(List.of(new ActionItemView("test", 1, false, "test", null)));
@@ -164,7 +164,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
         .andExpect(status().isForbidden());
   }
 
-  @SecurityTest
+  @Test
   void renderLicenceStartDateUpdateForm() throws Exception {
     when(licenceStartDateService.getLicenceStartDateForm(licenceScheduleDetail)).thenReturn(new LicenceStartDateForm());
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
@@ -180,7 +180,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
   }
 
-  @SecurityTest
+  @Test
   void submitLicenceStartDateUpdateForm_validForm() throws Exception {
     var licenceStartDate = new LicenceStartDate();
     licenceStartDate.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -198,7 +198,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
-  @SecurityTest
+  @Test
   void submitLicenceStartDateUpdateForm_invalidForm() throws Exception {
     when(licenceStartDateValidator.isValid(any(), any())).thenReturn(false);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);

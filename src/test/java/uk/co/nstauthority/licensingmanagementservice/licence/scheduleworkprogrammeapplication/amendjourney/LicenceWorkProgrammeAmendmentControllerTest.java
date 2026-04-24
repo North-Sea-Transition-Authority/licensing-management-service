@@ -37,7 +37,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListSectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceWorkProgrammeAmendmentController.class)
 class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest {
@@ -94,7 +93,7 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
         .thenReturn(workProgrammeActivity);
   }
 
-  @SecurityTest
+  @Test
   void renderForm() throws Exception {
     when(licenceWorkProgrammeAmendmentService.getLicenceWorkProgrammeActivityAmendmentForm(any(), any())).thenReturn(
         new LicenceWorkProgrammeAmendmentForm());

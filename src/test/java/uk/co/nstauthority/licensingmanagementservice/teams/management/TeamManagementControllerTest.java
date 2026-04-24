@@ -61,7 +61,6 @@ import uk.co.nstauthority.licensingmanagementservice.teams.management.form.Membe
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamMemberView;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamTypeView;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamView;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
@@ -193,7 +192,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         .containsExactly(TeamType.LICENCE_MANAGEMENT.getDisplayName(), TeamType.ORGANISATION.getDisplayName());
   }
 
-  @SecurityTest
+  @Test
   void renderTeamTypeList_noManageableTeams() throws Exception {
     when(teamManagementService.getTeamTypesUserIsMemberOf(invokingUser.wuaId()))
         .thenReturn(Set.of());
@@ -285,7 +284,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         );
   }
 
-  @SecurityTest
+  @Test
   void renderTeamsOfType_noManageableTeams() throws Exception {
     when(teamManagementService.getScopedTeamsOfTypeUserIsMemberOf(TeamType.ORGANISATION, invokingUser.wuaId()))
         .thenReturn(Set.of());
@@ -318,7 +317,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
   }
 
 
-  @SecurityTest
+  @Test
   void renderTeamMemberList_whenNotMemberOfTeam_thenForbidden() throws Exception {
 
     var team = regTeam;
@@ -491,7 +490,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         ));
   }
 
-  @SecurityTest
+  @Test
   void renderTeamMemberList_noTeamFound() throws Exception {
     var nonExistentTeamId = UUID.randomUUID();
     when(teamManagementService.getTeam(nonExistentTeamId))
@@ -503,7 +502,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         .andExpect(status().isNotFound());
   }
 
-  @SecurityTest
+  @Test
   void renderTeamMemberList_noAccess() throws Exception {
     when(teamManagementService.getTeam(regTeam.getId()))
         .thenReturn(regTeam);
@@ -552,7 +551,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         .andExpect(status().isNotFound());
   }
 
-  @SecurityTest
+  @Test
   void renderAddMemberToTeam_noAccess() throws Exception {
     when(teamManagementService.getTeam(organisationTeam.getId()))
         .thenReturn(organisationTeam);
@@ -639,7 +638,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         .andExpect(status().isBadRequest());
   }
 
-  @SecurityTest
+  @Test
   void handleAddMemberToTeam_noAccess() throws Exception {
     when(teamManagementService.getTeam(regTeam.getId()))
         .thenReturn(regTeam);
@@ -710,7 +709,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         );
   }
 
-  @SecurityTest
+  @Test
   void renderUserTeamRoles_noAccess() throws Exception {
     when(teamManagementService.getTeam(regTeam.getId()))
         .thenReturn(regTeam);
@@ -820,7 +819,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
     assertThat(canRemoveTeamMember).isTrue();
   }
 
-  @SecurityTest
+  @Test
   void renderRemoveTeamMember_noAccess() throws Exception {
     when(teamManagementService.getTeam(regTeam.getId()))
         .thenReturn(regTeam);
@@ -1003,7 +1002,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
            .andExpect(status().isNotFound());
   }
 
-  @SecurityTest
+  @Test
   void renderAddMemberToScheduleExternalContributorsTeam_noAccess() throws Exception {
     when(teamManagementService.getTeam(organisationTeam.getId()))
         .thenReturn(organisationTeam);
@@ -1094,7 +1093,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
            .andExpect(status().isBadRequest());
   }
 
-  @SecurityTest
+  @Test
   void handleAddMemberToScheduleExternalContributorsTeam_noAccess() throws Exception {
     when(teamManagementService.getTeam(externalContributors.getId()))
         .thenReturn(externalContributors);
@@ -1149,7 +1148,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         );
   }
 
-  @SecurityTest
+  @Test
   void renderUserScheduleExternalContributorsTeamRoles_noAccess() throws Exception {
     when(teamManagementService.getTeam(externalContributors.getId()))
         .thenReturn(externalContributors);
@@ -1264,7 +1263,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
     assertThat(canRemoveTeamMember).isTrue();
   }
 
-  @SecurityTest
+  @Test
   void renderRemoveScheduleExternalContributorsTeamMember_noAccess() throws Exception {
     when(teamManagementService.getTeam(externalContributors.getId()))
         .thenReturn(externalContributors);

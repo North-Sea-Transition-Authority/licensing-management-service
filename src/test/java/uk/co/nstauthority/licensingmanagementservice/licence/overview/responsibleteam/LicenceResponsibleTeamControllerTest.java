@@ -25,7 +25,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @ContextConfiguration(classes = LicenceResponsibleTeamController.class)
@@ -59,7 +58,7 @@ class LicenceResponsibleTeamControllerTest extends AbstractControllerTest {
     assertStandardModelAttributesArePresent(resultActions, licence);
   }
 
-  @SecurityTest
+  @Test
   void render_noAuth() throws Exception {
     var licence = createLicence("CS1", LicenceType.CARBON_STORAGE);
 

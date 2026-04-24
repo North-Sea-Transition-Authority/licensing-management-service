@@ -15,6 +15,7 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.schedulework
 
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -24,7 +25,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @ContextConfiguration(classes = SelectScheduleWorkProgrammeApplicationLicenceTypeController.class)
@@ -46,7 +46,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceTypeControllerTest extends Ab
         .build();
   }
 
-  @SecurityTest
+  @Test
   void renderSelectLicenceType() throws Exception {
     var licenceTypes = List.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.CARBON_STORAGE);
     when(licenceTypeRulesResolver.getLicenceTypesThatCanCreateScheduleWorkProgrammeApplications()).thenReturn(licenceTypes);
@@ -63,7 +63,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceTypeControllerTest extends Ab
         .andExpect(model().attribute("backUrl", ReverseRouter.route(on(SelectApplicationTypeController.class).render())));
   }
 
-  @SecurityTest
+  @Test
   void submitSelectedLicenceType() throws Exception {
     when(selectScheduleWorkProgrammeApplicationLicenceTypeFormValidator.isValid(any())).thenReturn(true);
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
@@ -84,7 +84,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceTypeControllerTest extends Ab
                 .renderStartScheduleWorkProgrammeApplicationJourney(licenceType.getUrlSlug()))));
   }
 
-  @SecurityTest
+  @Test
   void submitSelectedLicenceType_invalid() throws Exception {
     var licenceTypes = List.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.CARBON_STORAGE);
     when(licenceTypeRulesResolver.getLicenceTypesThatCanCreateScheduleWorkProgrammeApplications()).thenReturn(licenceTypes);
@@ -104,7 +104,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceTypeControllerTest extends Ab
         .andExpect(model().attribute("backUrl", ReverseRouter.route(on(SelectApplicationTypeController.class).render())));
   }
 
-  @SecurityTest
+  @Test
   void render_SelectLicenceTypeForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
     mockMvc.perform(
@@ -114,7 +114,7 @@ class SelectScheduleWorkProgrammeApplicationLicenceTypeControllerTest extends Ab
         .andExpect(status().isForbidden());
   }
 
-  @SecurityTest
+  @Test
   void submit_SelectedLicenceTypeForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
     mockMvc.perform(

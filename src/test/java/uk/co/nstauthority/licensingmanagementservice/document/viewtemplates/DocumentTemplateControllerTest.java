@@ -29,7 +29,6 @@ import uk.co.nstauthority.licensingmanagementservice.document.DocumentTemplateSe
 import uk.co.nstauthority.licensingmanagementservice.document.LmsDocumentTemplateService;
 import uk.co.nstauthority.licensingmanagementservice.document.search.DocumentTemplateSearchController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.AuthorisationSecurityTest;
 
 @ExtendWith(MockitoExtension.class)
 @ContextConfiguration(classes = DocumentTemplateController.class)
@@ -43,7 +42,7 @@ class DocumentTemplateControllerTest extends AbstractControllerTest {
   @MockitoBean
   DocumentTemplateMailMergeFieldFormatter documentTemplateMailMergeFieldFormatter;
 
-  @AuthorisationSecurityTest
+  @Test
   void renderDocumentTemplateOverview_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
             post(ReverseRouter.route(on(DocumentTemplateController.class).renderTemplateOverview(null, null)))

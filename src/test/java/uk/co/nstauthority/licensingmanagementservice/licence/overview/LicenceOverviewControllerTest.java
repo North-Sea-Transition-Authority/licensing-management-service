@@ -36,7 +36,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.S
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.TimelineSummaryCardView;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.TimelineTermView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceOverviewController.class)
 class LicenceOverviewControllerTest extends AbstractControllerTest {
@@ -72,7 +71,7 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
     viewOverviewUrl = ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licence.getId(), null, null, null));
   }
 
-  @SecurityTest
+  @Test
   void renderLicenceOverview_activeScheduleExists() throws Exception {
     when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(licence, LicenceScheduleDetailStatus.ACTIVE)).thenReturn(Optional.of(licenceScheduleDetail));
@@ -104,7 +103,7 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
         );
   }
 
-  @SecurityTest
+  @Test
   void renderLicenceOverview_activeScheduleDoesNotExist() throws Exception {
     when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(licence, LicenceScheduleDetailStatus.ACTIVE)).thenReturn(Optional.empty());

@@ -26,7 +26,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceScheduleRateDeletionController.class)
 class LicenceScheduleRateDeletionControllerTest extends AbstractControllerTest {
@@ -62,7 +61,7 @@ class LicenceScheduleRateDeletionControllerTest extends AbstractControllerTest {
     rate.setComments("comments");
   }
 
-  @SecurityTest
+  @Test
   void renderDeletePhasePage() throws Exception {
     when(licenceScheduleRateService.getRateByIdOrThrow(rate.getId())).thenReturn(rate);
     when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");

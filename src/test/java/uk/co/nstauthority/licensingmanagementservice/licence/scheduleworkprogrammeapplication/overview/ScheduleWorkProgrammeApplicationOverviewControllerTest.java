@@ -11,6 +11,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -24,7 +25,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.reviewandsubmit.LicenceScheduleSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = ScheduleWorkProgrammeApplicationOverviewController.class)
 class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractControllerTest {
@@ -41,7 +41,7 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
   @MockitoBean
   private LicenceScheduleSummarySectionService licenceScheduleSummarySectionService;
 
-  @SecurityTest
+  @Test
   void renderOverview_whenSubmitted_displaysApplicationContext() throws Exception {
     var licence = createLicence();
     var applicationDetailId = UUID.randomUUID();

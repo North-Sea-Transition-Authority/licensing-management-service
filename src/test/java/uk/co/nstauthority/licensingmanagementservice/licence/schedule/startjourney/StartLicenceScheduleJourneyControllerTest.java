@@ -10,6 +10,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
@@ -19,7 +20,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = StartLicenceScheduleJourneyController.class)
 class StartLicenceScheduleJourneyControllerTest extends AbstractControllerTest {
@@ -34,7 +34,7 @@ class StartLicenceScheduleJourneyControllerTest extends AbstractControllerTest {
         .build();
   }
 
-  @SecurityTest
+  @Test
   void renderStartLicenceScheduleJourney() throws Exception {
     var licenceId = 1;
     var licence = LicenceTestUtil.builder().build();
@@ -64,7 +64,7 @@ class StartLicenceScheduleJourneyControllerTest extends AbstractControllerTest {
             ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licenceId, null, null, null))));
   }
 
-  @SecurityTest
+  @Test
   void renderStartLicenceScheduleJourney_noAuth() throws Exception {
     var licenceId = 1;
     var licence = LicenceTestUtil.builder().build();

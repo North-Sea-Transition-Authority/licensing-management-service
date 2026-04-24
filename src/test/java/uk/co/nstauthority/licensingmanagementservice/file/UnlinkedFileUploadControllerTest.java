@@ -17,7 +17,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = UnlinkedFileUploadController.class)
 class UnlinkedFileUploadControllerTest extends AbstractControllerTest {
@@ -27,7 +26,7 @@ class UnlinkedFileUploadControllerTest extends AbstractControllerTest {
   @MockitoBean
   private FileControllerHelperService fileControllerHelperService;
 
-  @SecurityTest
+  @Test
   void upload_whenNotLoggedIn_thenRedirectToLoginUrl() throws Exception{
     mockMvc.perform(multipart(ReverseRouter.route(on(CONTROLLER)
             .upload(null, null)))

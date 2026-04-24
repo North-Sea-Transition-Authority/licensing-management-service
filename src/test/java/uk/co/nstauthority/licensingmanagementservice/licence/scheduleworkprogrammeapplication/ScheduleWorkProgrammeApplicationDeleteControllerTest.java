@@ -25,7 +25,6 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.reviewandsubmit.LicenceScheduleSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ContextConfiguration(classes = ScheduleWorkProgrammeApplicationDeleteController.class)
@@ -66,7 +65,7 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
         .thenReturn(scheduleWorkProgrammeApplicationDetail);
   }
 
-  @SecurityTest
+  @Test
   void renderForm() throws Exception {
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any()))
         .thenReturn(true);

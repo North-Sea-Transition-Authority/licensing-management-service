@@ -33,7 +33,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListSectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceWorkProgrammeAmendmentDeleteController.class)
 class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControllerTest {
@@ -92,7 +91,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
         scheduleWorkProgrammeApplicationDetail);
   }
 
-  @SecurityTest
+  @Test
   void renderConfirmationForm() throws Exception {
     when(licenceWorkProgrammeAmendmentService.getAmendmentRequestByScheduleWorkProgrammeApplicationDetail(any(),any())).thenReturn(
         Optional.of(amendmentRequest));
@@ -115,7 +114,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
         scheduleWorkProgrammeApplicationDetail, workProgrammeActivity);
   }
 
-  @SecurityTest
+  @Test
   void renderConfirmationForm_whenAmendmentNotFound() throws Exception {
     when(licenceWorkProgrammeAmendmentService.getAmendmentRequestByScheduleWorkProgrammeApplicationDetail(any(),any())).thenReturn(
         Optional.empty());

@@ -30,7 +30,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @ContextConfiguration(classes = WorkProgrammeActivityController.class)
@@ -73,7 +72,7 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
     workProgrammeActivity.setLicenceScheduleDetail(licenceScheduleDetail);
   }
 
-  @SecurityTest
+  @Test
   void renderAddNewActivityForm() throws Exception {
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
@@ -145,7 +144,7 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
     verify(workProgrammeActivityFormService, never()).saveActivityFromForm(any(), any(), any());
   }
 
-  @SecurityTest
+  @Test
   void renderUpdateActivityForm() throws Exception {
     when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(workProgrammeActivity.getId())).thenReturn(workProgrammeActivity);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);

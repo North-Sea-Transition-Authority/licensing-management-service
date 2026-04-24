@@ -35,7 +35,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.reviewanda
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceScheduleTimelineController.class)
 class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
@@ -73,7 +72,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         .renderLicenceScheduleTimeline(licenceScheduleDetail.getId(), null, null, null));
   }
 
-  @SecurityTest
+  @Test
   void renderLicenceScheduleTimeline() throws Exception {
     when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);

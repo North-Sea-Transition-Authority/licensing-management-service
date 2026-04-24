@@ -10,13 +10,13 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.StartScheduleWorkProgrammeApplicationJourneyController.PAGE_TITLE;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = StartScheduleWorkProgrammeApplicationJourneyController.class)
 class StartScheduleWorkProgrammeApplicationJourneyControllerTest extends AbstractControllerTest {
@@ -31,7 +31,7 @@ class StartScheduleWorkProgrammeApplicationJourneyControllerTest extends Abstrac
         .build();
   }
 
-  @SecurityTest
+  @Test
   void renderStartScheduleWorkProgrammeApplicationJourney() throws Exception {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
@@ -47,7 +47,7 @@ class StartScheduleWorkProgrammeApplicationJourneyControllerTest extends Abstrac
         .andExpect(model().attribute("backUrl", ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceTypeController.class).renderSelectLicenceType())));
   }
 
-  @SecurityTest
+  @Test
   void render_StartScheduleWorkProgrammeApplicationJourneyForbiddenUserNoAccess() throws Exception {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);

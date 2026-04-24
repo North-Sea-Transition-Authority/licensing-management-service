@@ -24,7 +24,6 @@ import uk.co.nstauthority.licensingmanagementservice.document.DocumentTemplateDt
 import uk.co.nstauthority.licensingmanagementservice.document.DocumentTemplateSectionUrlsTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.document.LmsDocumentTemplateService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.AuthorisationSecurityTest;
 
 @ContextConfiguration(classes = DocumentTemplatePdfController.class)
 class DocumentTemplatePdfControllerTest extends AbstractControllerTest {
@@ -32,7 +31,7 @@ class DocumentTemplatePdfControllerTest extends AbstractControllerTest {
   @MockitoBean
   private LmsDocumentTemplateService lmsDocumentTemplateService;
 
-  @AuthorisationSecurityTest
+  @Test
   void renderTemplatePreviewPdf_WithoutConditions_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(DocumentTemplatePdfController.class)
                                                 .renderTemplatePreviewPdfWithoutConditions(UUID.randomUUID(), null))))
@@ -77,7 +76,7 @@ class DocumentTemplatePdfControllerTest extends AbstractControllerTest {
         .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"%s\"".formatted(fileName)));
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void renderTemplatePreviewPdfWithConditions_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(DocumentTemplatePdfController.class)
                                                 .renderTemplatePreviewPdfWithConditions(UUID.randomUUID(), null))))

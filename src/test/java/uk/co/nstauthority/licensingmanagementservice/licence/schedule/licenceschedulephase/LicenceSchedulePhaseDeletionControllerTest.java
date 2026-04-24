@@ -28,7 +28,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceSchedulePhaseDeletionController.class)
 class LicenceSchedulePhaseDeletionControllerTest extends AbstractControllerTest {
@@ -70,7 +69,7 @@ class LicenceSchedulePhaseDeletionControllerTest extends AbstractControllerTest 
     licenceSchedulePhase.setComments("comments");
   }
 
-  @SecurityTest
+  @Test
   void renderDeletePhasePage() throws Exception {
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(LICENCE_SCHEDULE_PHASE_ID)).thenReturn(licenceSchedulePhase);
     when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");

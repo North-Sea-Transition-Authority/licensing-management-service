@@ -30,7 +30,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.util.AuthorisationSecurityTest;
 
 @WebMvcTest(ApplicationLetterController.class)
 @ContextConfiguration(classes = ApplicationLetterController.class)
@@ -62,7 +61,7 @@ class ApplicationLetterControllerTest extends AbstractControllerTest {
 
   private LicenceContinuationApplicationDetail continuationApplicationDetail;
 
-  @AuthorisationSecurityTest
+  @Test
   void renderEditLetterOverview_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
             get(ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(null, null)))

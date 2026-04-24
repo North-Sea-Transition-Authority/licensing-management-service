@@ -19,6 +19,7 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.continuation
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -37,7 +38,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.WorkProgrammeActivityView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceContinuationWpaRequirementController.class)
 class LicenceContinuationWpaRequirementControllerTest extends AbstractControllerTest {
@@ -79,7 +79,7 @@ class LicenceContinuationWpaRequirementControllerTest extends AbstractController
     );
   }
 
-  @SecurityTest
+  @Test
   void renderForm() throws Exception {
     var form = new LicenceContinuationWpaRequirementForm();
 
@@ -110,7 +110,7 @@ class LicenceContinuationWpaRequirementControllerTest extends AbstractController
         .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null))));
   }
 
-  @SecurityTest
+  @Test
   void submitForm_Valid() throws Exception {
     var form = new LicenceContinuationWpaRequirementForm();
 
@@ -142,7 +142,7 @@ class LicenceContinuationWpaRequirementControllerTest extends AbstractController
     verify(licenceContinuationWpaRequirementService).saveLicenceContinuationWorkProgrammeActivitiesRequirementForm(eq(form), any());
   }
 
-  @SecurityTest
+  @Test
   void renderForm_Invalid() throws Exception {
     when(licenceContinuationService.getDetailByIdOrThrow(any()))
         .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
@@ -157,7 +157,7 @@ class LicenceContinuationWpaRequirementControllerTest extends AbstractController
     verifyNoInteractions(licenceContinuationWpaRequirementService);
   }
 
-  @SecurityTest
+  @Test
   void submitForm_Invalid() throws Exception {
     when(licenceContinuationService.getDetailByIdOrThrow(any()))
         .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);

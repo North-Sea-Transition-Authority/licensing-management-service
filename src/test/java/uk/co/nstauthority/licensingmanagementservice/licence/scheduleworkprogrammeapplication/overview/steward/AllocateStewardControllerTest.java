@@ -31,7 +31,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action.ScheduleWorkProgrammeApplicationActionItem;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = AllocateStewardController.class)
 class AllocateStewardControllerTest extends AbstractControllerTest {
@@ -71,7 +70,7 @@ class AllocateStewardControllerTest extends AbstractControllerTest {
         .andExpect(model().attributeExists("form", "backUrl"));
   }
 
-  @SecurityTest
+  @Test
   void render_noActionAccess_returnsForbidden() throws Exception {
     var applicationDetailId = UUID.randomUUID();
     var applicationDetail = buildApplicationDetail(applicationDetailId);
@@ -115,7 +114,7 @@ class AllocateStewardControllerTest extends AbstractControllerTest {
                 .renderOverview(applicationDetailId, null, null))));
   }
 
-  @SecurityTest
+  @Test
   void save_invalidForm() throws Exception {
     var applicationDetailId = UUID.randomUUID();
     var applicationDetail = buildApplicationDetail(applicationDetailId);

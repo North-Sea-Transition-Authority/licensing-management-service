@@ -32,7 +32,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.AuthorisationSecurityTest;
 
 @WebMvcTest(LicenceContinuationLicenceOperatorsController.class)
 @ContextConfiguration(classes = LicenceContinuationLicenceOperatorsController.class)
@@ -64,7 +63,7 @@ class LicenceContinuationLicenceOperatorsControllerTest extends AbstractControll
     subarea.setLicenceBlock(new LicenceBlock("test", 1, "test", "test"));
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void renderForm_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceContinuationLicenceOperatorsController.class).renderForm(applicationId, null)))

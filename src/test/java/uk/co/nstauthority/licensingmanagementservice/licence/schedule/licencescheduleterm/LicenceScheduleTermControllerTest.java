@@ -29,7 +29,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceScheduleTermController.class)
 class LicenceScheduleTermControllerTest extends AbstractControllerTest {
@@ -78,7 +77,7 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
     licenceScheduleTerm.setLicenceScheduleDetail(licenceScheduleDetail);
   }
 
-  @SecurityTest
+  @Test
   void renderAddNewTermForm() throws Exception {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(licenceScheduleDetailService.getByIdOrThrow(LICENCE_SCHEDULE_DETAIL_ID)).thenReturn(licenceScheduleDetail);
@@ -128,7 +127,7 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
     verify(licenceScheduleTermFormService, never()).saveTermFromForm(any(), any(), any());
   }
 
-  @SecurityTest
+  @Test
   void renderUpdateTermForm() throws Exception {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(licenceScheduleTermService.getTermByIdOrThrow(LICENCE_SCHEDULE_TERM_ID)).thenReturn(licenceScheduleTerm);

@@ -33,7 +33,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
@@ -73,7 +72,7 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
         scheduleWorkProgrammeApplicationDetail);
   }
 
-  @SecurityTest
+  @Test
   void renderForm() throws Exception {
     when(swpApplicationRequestPurposeService.getFilledSwpApplicationRequestPurposeForm(scheduleWorkProgrammeApplicationDetail))
         .thenReturn(new SwpApplicationRequestPurposeForm());
@@ -90,7 +89,7 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
     expectStandardModelExists(resultActions);
   }
 
-  @SecurityTest
+  @Test
   void submitForm_validForm() throws Exception {
     when(swpApplicationRequestPurposeValidator.isValid(any(), any())).thenReturn(true);
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
@@ -105,7 +104,7 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
     verify(swpApplicationRequestPurposeService).saveOrUpdateRequestPurpose(eq(scheduleWorkProgrammeApplicationDetail), any());
   }
 
-  @SecurityTest
+  @Test
   void submitForm_invalidForm() throws Exception {
     when(swpApplicationRequestPurposeService.getFilledSwpApplicationRequestPurposeForm(scheduleWorkProgrammeApplicationDetail))
         .thenReturn(new SwpApplicationRequestPurposeForm());

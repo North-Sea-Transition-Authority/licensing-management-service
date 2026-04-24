@@ -10,13 +10,13 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.licence.continuation.startjourney.StartContinuationApplicationController.PAGE_TITLE;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = StartContinuationApplicationController.class)
 class StartContinuationApplicationControllerTest extends AbstractControllerTest {
@@ -31,7 +31,7 @@ class StartContinuationApplicationControllerTest extends AbstractControllerTest 
         .build();
   }
 
-  @SecurityTest
+  @Test
   void render() throws Exception {
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
 
@@ -46,7 +46,7 @@ class StartContinuationApplicationControllerTest extends AbstractControllerTest 
         .andExpect(model().attribute("backUrl", ReverseRouter.route(on(SelectApplicationTypeController.class).render())));
   }
 
-  @SecurityTest
+  @Test
   void render_ForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
 

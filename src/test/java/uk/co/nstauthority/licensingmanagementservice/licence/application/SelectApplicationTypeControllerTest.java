@@ -15,6 +15,7 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.application.
 
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -22,7 +23,6 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.startjourney.StartContinuationApplicationController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
@@ -45,7 +45,7 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
         .build();
   }
 
-  @SecurityTest
+  @Test
   void render() throws Exception {
     var applicationTypes = List.of(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, ApplicationType.CONTINUATION_APPLICATION);
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
@@ -60,7 +60,7 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))));
   }
 
-  @SecurityTest
+  @Test
   void submit() throws Exception {
     when(selectApplicationTypeFormValidator.isValid(any())).thenReturn(true);
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
@@ -83,7 +83,7 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
         .andExpect(redirectedUrl(ReverseRouter.route(on(StartContinuationApplicationController.class).render())));
   }
 
-  @SecurityTest
+  @Test
   void submit_invalid() throws Exception {
     var applicationTypes = List.of(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, ApplicationType.CONTINUATION_APPLICATION);
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
@@ -101,7 +101,7 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))));
   }
 
-  @SecurityTest
+  @Test
   void render_ForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
     mockMvc.perform(
@@ -112,7 +112,7 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
 
   }
 
-  @SecurityTest
+  @Test
   void submit_ForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
     mockMvc.perform(

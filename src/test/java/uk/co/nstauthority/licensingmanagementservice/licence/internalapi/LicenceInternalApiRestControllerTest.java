@@ -16,7 +16,6 @@ import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSe
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceInternalApiRestController.class)
 class LicenceInternalApiRestControllerTest extends AbstractControllerTest {
@@ -51,7 +50,7 @@ class LicenceInternalApiRestControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk());
   }
 
-  @SecurityTest
+  @Test
   void searchActiveLicenceSchedulesByReferenceAndTypeForEaaApplication() throws Exception {
     var user = ServiceUserDetailTestUtil.newBuilder().build();
 
@@ -76,7 +75,7 @@ class LicenceInternalApiRestControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk());
   }
 
-  @SecurityTest
+  @Test
   void searchActiveLicenceSchedulesByReferenceAndTypeForContinuationApplication() throws Exception {
     var user = ServiceUserDetailTestUtil.newBuilder().build();
 

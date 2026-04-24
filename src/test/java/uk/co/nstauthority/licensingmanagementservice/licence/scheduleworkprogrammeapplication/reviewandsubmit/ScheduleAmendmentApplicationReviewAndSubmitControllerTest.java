@@ -36,7 +36,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ContextConfiguration(classes = ScheduleAmendmentApplicationReviewAndSubmitController.class)
@@ -209,7 +208,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
         .andExpect(status().isForbidden());
   }
 
-  @SecurityTest
+  @Test
   void renderPage_assertForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
     mockMvc.perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
@@ -218,7 +217,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
            .andExpect(status().isForbidden());
   }
 
-  @SecurityTest
+  @Test
   void submitPage_assertForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
     mockMvc.perform(post(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).submitApplication(

@@ -50,8 +50,6 @@ import uk.co.nstauthority.licensingmanagementservice.document.search.DocumentTem
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.util.AuthorisationSecurityTest;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = DocumentTemplateSectionController.class)
 class DocumentTemplateSectionControllerTest extends AbstractControllerTest {
@@ -97,7 +95,7 @@ class DocumentTemplateSectionControllerTest extends AbstractControllerTest {
         .build();
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void renderCreateSectionPage_whenNotLoggedIn_thenRedirectToLogin() throws Exception {
     mockMvc.perform(
         get(ReverseRouter.route(on(DocumentTemplateSectionController.class).renderAddSectionPage(UUID.randomUUID(), null)))
@@ -105,7 +103,7 @@ class DocumentTemplateSectionControllerTest extends AbstractControllerTest {
         .andExpect(redirectionToLoginUrl());
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void createSection_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
         post(ReverseRouter.route(on(DocumentTemplateSectionController.class).createSection(UUID.randomUUID(), null, null, null)))
@@ -114,7 +112,7 @@ class DocumentTemplateSectionControllerTest extends AbstractControllerTest {
         .andExpect(redirectionToLoginUrl());
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void renderEditSectionPage_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
         get(ReverseRouter.route(on(DocumentTemplateSectionController.class).renderEditSectionPage(UUID.randomUUID())))
@@ -122,7 +120,7 @@ class DocumentTemplateSectionControllerTest extends AbstractControllerTest {
         .andExpect(redirectionToLoginUrl());
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void updateSection_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
         post(ReverseRouter.route(on(DocumentTemplateSectionController.class).updateSection(UUID.randomUUID(), null, null)))
@@ -131,7 +129,7 @@ class DocumentTemplateSectionControllerTest extends AbstractControllerTest {
         .andExpect(redirectionToLoginUrl());
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void renderRemoveSectionPage_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
         get(ReverseRouter.route(on(DocumentTemplateSectionController.class).renderRemoveSectionPage(UUID.randomUUID())))
@@ -139,7 +137,7 @@ class DocumentTemplateSectionControllerTest extends AbstractControllerTest {
         .andExpect(redirectionToLoginUrl());
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void removeSectionPage_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
         post(ReverseRouter.route(on(DocumentTemplateSectionController.class).removeSectionPage(UUID.randomUUID(), null, null)))
@@ -148,7 +146,7 @@ class DocumentTemplateSectionControllerTest extends AbstractControllerTest {
         .andExpect(redirectionToLoginUrl());
   }
 
-  @SecurityTest
+  @Test
   void renderRemoveSectionPage_whenOnly1SectionLeft_throwForbidden() throws Exception {
     givenUserIsRegulatorAndDocumentTemplateManager();
     when(documentTemplateSectionService.getDocumentTemplateSectionDtoOrThrow(DOCUMENT_SECTION_ID))
@@ -167,7 +165,7 @@ class DocumentTemplateSectionControllerTest extends AbstractControllerTest {
         ));
   }
 
-  @SecurityTest
+  @Test
   void renderAddSectionPage_whenNoTemplateExists_throwNotFound() throws Exception {
     givenUserIsRegulatorAndDocumentTemplateManager();
     when(documentTemplateSectionService.getDocumentTemplateSectionDtoOrThrow(DOCUMENT_SECTION_ID))
@@ -181,7 +179,7 @@ class DocumentTemplateSectionControllerTest extends AbstractControllerTest {
         .andExpect(status().reason("Cannot find document section with id %s".formatted(DOCUMENT_SECTION_ID)));
   }
 
-  @SecurityTest
+  @Test
   void createSection_whenNoTemplateExists_throwNotFound() throws Exception {
     givenUserIsRegulatorAndDocumentTemplateManager();
     when(documentTemplateSectionService.getDocumentTemplateSectionDtoOrThrow(DOCUMENT_SECTION_ID))
@@ -196,7 +194,7 @@ class DocumentTemplateSectionControllerTest extends AbstractControllerTest {
         .andExpect(status().reason("Cannot find document section with id %s".formatted(DOCUMENT_SECTION_ID)));
   }
 
-  @SecurityTest
+  @Test
   void renderEditSectionPage_whenNoTemplateExists_throwNotFound() throws Exception {
     givenUserIsRegulatorAndDocumentTemplateManager();
     when(documentTemplateSectionService.getDocumentTemplateSectionDtoOrThrow(DOCUMENT_SECTION_ID))
@@ -210,7 +208,7 @@ class DocumentTemplateSectionControllerTest extends AbstractControllerTest {
         .andExpect(status().reason("Cannot find document section with id %s".formatted(DOCUMENT_SECTION_ID)));
   }
 
-  @SecurityTest
+  @Test
   void updateSection_whenNoTemplateExists_throwNotFound() throws Exception {
     givenUserIsRegulatorAndDocumentTemplateManager();
     when(documentTemplateSectionService.getDocumentTemplateSectionDtoOrThrow(DOCUMENT_SECTION_ID)).thenThrow(
@@ -225,7 +223,7 @@ class DocumentTemplateSectionControllerTest extends AbstractControllerTest {
         .andExpect(status().reason("Cannot find document section with id %s".formatted(DOCUMENT_SECTION_ID)));
   }
 
-  @SecurityTest
+  @Test
   void renderRemoveSectionPage_whenNoTemplateExists_throwNotFound() throws Exception {
     givenUserIsRegulatorAndDocumentTemplateManager();
     when(documentTemplateSectionService.getDocumentTemplateSectionDtoOrThrow(DOCUMENT_SECTION_ID)).thenThrow(
@@ -239,7 +237,7 @@ class DocumentTemplateSectionControllerTest extends AbstractControllerTest {
         .andExpect(status().reason("Cannot find document section with id %s".formatted(DOCUMENT_SECTION_ID)));
   }
 
-  @SecurityTest
+  @Test
   void removeSectionPage_whenOnly1SectionLeft_throwForbidden() throws Exception {
     givenUserIsRegulatorAndDocumentTemplateManager();
     when(documentTemplateSectionService.getDocumentTemplateSectionDtoOrThrow(DOCUMENT_SECTION_ID))
@@ -259,7 +257,7 @@ class DocumentTemplateSectionControllerTest extends AbstractControllerTest {
                 DOCUMENT_SECTION_ID)));
   }
 
-  @SecurityTest
+  @Test
   void removeSectionPage_whenNoTemplateExists_throwNotFound() throws Exception {
     givenUserIsRegulatorAndDocumentTemplateManager();
     when(documentTemplateSectionService.getDocumentTemplateSectionDtoOrThrow(DOCUMENT_SECTION_ID)).thenThrow(

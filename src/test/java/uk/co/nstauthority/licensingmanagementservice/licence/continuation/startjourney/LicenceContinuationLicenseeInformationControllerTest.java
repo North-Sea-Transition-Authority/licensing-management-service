@@ -32,7 +32,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleo
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = {LicenceContinuationLicenseeInformationController.class})
 class LicenceContinuationLicenseeInformationControllerTest extends AbstractControllerTest {
@@ -114,7 +113,7 @@ class LicenceContinuationLicenseeInformationControllerTest extends AbstractContr
     verify(licenceContinuationService).createNewLicenceContinuationApplication(licence, 1);
   }
 
-  @SecurityTest
+  @Test
   void submitLicenseePermissionConfirmation_invalid() throws Exception {
     when(licenceContinuationLicenseeInformationFormValidator.isValid(any())).thenReturn(false);
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
@@ -133,7 +132,7 @@ class LicenceContinuationLicenseeInformationControllerTest extends AbstractContr
     verifyNoInteractions(scheduleWorkProgrammeApplicationService);
   }
 
-  @SecurityTest
+  @Test
   void render_ForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
 
@@ -144,7 +143,7 @@ class LicenceContinuationLicenseeInformationControllerTest extends AbstractContr
         .andExpect(status().isForbidden());
   }
 
-  @SecurityTest
+  @Test
   void submit_ForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
 

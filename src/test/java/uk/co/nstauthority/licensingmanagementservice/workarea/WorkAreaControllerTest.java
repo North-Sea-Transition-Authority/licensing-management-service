@@ -23,7 +23,6 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = WorkAreaController.class)
 class WorkAreaControllerTest extends AbstractControllerTest {
@@ -31,20 +30,20 @@ class WorkAreaControllerTest extends AbstractControllerTest {
   @MockitoBean
   private WorkAreaService workAreaService;
 
-  @SecurityTest
+  @Test
   void getWorkArea_whenNotLoggedIn_thenRedirectToLoginUrl() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))))
         .andExpect(redirectionToLoginUrl());
   }
 
-  @SecurityTest
+  @Test
   void renderWorkArea_whenNotLoggedIn_thenRedirectToLoginUrl() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(WorkAreaController.class).renderWorkAreaResults(null, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
 
-  @SecurityTest
+  @Test
   void clearWorkAreaFilters_whenNotLoggedIn_thenRedirectToLoginUrl() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(WorkAreaController.class).clearWorkAreaFilters(null, null))))
         .andExpect(redirectionToLoginUrl());

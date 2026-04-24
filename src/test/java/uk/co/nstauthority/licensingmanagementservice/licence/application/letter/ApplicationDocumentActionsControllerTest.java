@@ -45,7 +45,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.util.AuthorisationSecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @WebMvcTest(ApplicationDocumentActionsController.class)
@@ -101,7 +100,7 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.REGULATIONS_LICENSING, Set.of(Role.CONTINUATION_ISSUER))).thenReturn(true);
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void renderPreviewPdf_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
             get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderPreviewPdf(applicationType, applicationId, documentInstanceId, null)))
@@ -109,7 +108,7 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
         .andExpect(redirectionToLoginUrl());
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void renderReloadDocumentPage_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
             get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderReloadDocumentPage(applicationType, applicationId, documentInstanceId)))
@@ -117,7 +116,7 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
         .andExpect(redirectionToLoginUrl());
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void reloadDocument_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
         post(ReverseRouter.route(on(ApplicationDocumentActionsController.class).reloadDocument(applicationType, applicationId, documentInstanceId, null)))
@@ -236,7 +235,7 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
     verify(documentInstanceService).reloadDocumentInstance(documentInstanceMock);
   }
 
-  @AuthorisationSecurityTest
+  @Test
   void approveAndSignDocument_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
             get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).approveAndSignDocument(applicationType, applicationId, documentInstanceId, null, regulatorUser)))

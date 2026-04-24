@@ -28,7 +28,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceScheduleExpiryController.class)
 class LicenceScheduleExpiryControllerTest extends AbstractControllerTest {
@@ -66,7 +65,7 @@ class LicenceScheduleExpiryControllerTest extends AbstractControllerTest {
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
   }
 
-  @SecurityTest
+  @Test
   void renderAddUpdateLicenceExpiryPage() throws Exception {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
 

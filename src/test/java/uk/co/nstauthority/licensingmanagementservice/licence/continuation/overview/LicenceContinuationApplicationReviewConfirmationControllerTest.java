@@ -32,7 +32,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.review
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ContextConfiguration(classes = LicenceContinuationApplicationReviewConfirmationController.class)
@@ -70,7 +69,7 @@ class LicenceContinuationApplicationReviewConfirmationControllerTest extends Abs
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
   }
 
-  @SecurityTest
+  @Test
   void submitForm() throws Exception {
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceContinuationApplicationReviewConfirmationController.class).submitForm(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null)))

@@ -25,7 +25,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = OtherScheduleEventDeletionController.class)
 class OtherScheduleEventDeletionControllerTest extends AbstractControllerTest {
@@ -62,7 +61,7 @@ class OtherScheduleEventDeletionControllerTest extends AbstractControllerTest {
     otherScheduleEvent.setComments("comments");
   }
 
-  @SecurityTest
+  @Test
   void renderDeleteEventPage() throws Exception {
     when(otherScheduleEventService.getOtherScheduleEventByIdOrThrow(otherScheduleEvent.getId())).thenReturn(otherScheduleEvent);
     when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");

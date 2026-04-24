@@ -43,7 +43,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceScheduleSupportingInformationController.class)
 class LicenceScheduleSupportingInformationControllerTest extends AbstractControllerTest {
@@ -96,7 +95,7 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
         scheduleWorkProgrammeApplicationDetail);
   }
 
-  @SecurityTest
+  @Test
   void renderOverallRequestForm() throws Exception {
     when(licenceScheduleExtensionService.isExtensionRequested(scheduleWorkProgrammeApplicationDetail)).thenReturn(true);
 

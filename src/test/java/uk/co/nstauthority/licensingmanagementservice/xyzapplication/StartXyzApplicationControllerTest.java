@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
@@ -22,7 +23,6 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.tasklist.XyzApplicationTaskListController;
 
@@ -39,7 +39,7 @@ class StartXyzApplicationControllerTest extends AbstractControllerTest {
         .build();
   }
 
-  @SecurityTest
+  @Test
   void getStartApplicationPage() throws Exception {
     when(teamQueryService.userHasRoleInTeamType(
         organisationUser.wuaId(),
@@ -58,7 +58,7 @@ class StartXyzApplicationControllerTest extends AbstractControllerTest {
             .getWorkArea(null, null))));
   }
 
-  @SecurityTest
+  @Test
   void getStartApplicationPage_withoutRequiredRole() throws Exception {
     when(teamQueryService.userHasRoleInTeamType(
         organisationUser.wuaId(),
@@ -71,7 +71,7 @@ class StartXyzApplicationControllerTest extends AbstractControllerTest {
         .andExpect(status().isForbidden());
   }
 
-  @SecurityTest
+  @Test
   void createApplication() throws Exception {
     when(teamQueryService.userHasRoleInTeamType(
         organisationUser.wuaId(),
@@ -90,7 +90,7 @@ class StartXyzApplicationControllerTest extends AbstractControllerTest {
             .getTaskList(application.getId(), null,null))));
   }
 
-  @SecurityTest
+  @Test
   void createApplication_withoutRequiredRole() throws Exception {
     when(teamQueryService.userHasRoleInTeamType(
         organisationUser.wuaId(),

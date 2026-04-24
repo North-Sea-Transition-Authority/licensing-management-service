@@ -34,7 +34,6 @@ import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.form.NewOrganisationTeamFormValidator;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = ScopedTeamManagementController.class)
 class ScopedTeamManagementControllerTest extends AbstractControllerTest {
@@ -67,7 +66,7 @@ class ScopedTeamManagementControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk());
   }
 
-  @SecurityTest
+  @Test
   void renderCreateNewOrgTeam_noAccess() throws Exception {
     when(teamQueryService.userHasStaticRole(invokingUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
         .thenReturn(false);
@@ -136,7 +135,7 @@ class ScopedTeamManagementControllerTest extends AbstractControllerTest {
     verify(energyPortalServiceProviderTeamService, never()).publishTeam(any());
   }
 
-  @SecurityTest
+  @Test
   void handleCreateNewOrgTeam_noAccess() throws Exception {
     when(teamQueryService.userHasStaticRole(1L, TeamType.LICENCE_MANAGEMENT, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM))
         .thenReturn(false);

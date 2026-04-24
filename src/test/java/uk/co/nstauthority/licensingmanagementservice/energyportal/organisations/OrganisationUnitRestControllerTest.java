@@ -7,13 +7,13 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.util.List;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = OrganisationUnitRestController.class)
 class OrganisationUnitRestControllerTest extends AbstractControllerTest {
@@ -24,7 +24,7 @@ class OrganisationUnitRestControllerTest extends AbstractControllerTest {
   @MockitoBean
   private SearchSelectorService searchSelectorService;
 
-  @SecurityTest
+  @Test
   void searchOrganisationUnits() throws Exception {
     var user = ServiceUserDetailTestUtil.newBuilder().build();
 

@@ -35,7 +35,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListSectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceWorkProgrammeAmendmentSummaryController.class)
 class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControllerTest {
@@ -82,7 +81,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
         scheduleWorkProgrammeApplicationDetail);
   }
 
-  @SecurityTest
+  @Test
   void renderForm_withExistingAmendments() throws Exception {
     LicenceWorkProgrammeAmendmentRequest amendmentRequest = new LicenceWorkProgrammeAmendmentRequest();
     LicenceWorkProgrammeAmendmentSummaryForm form = new LicenceWorkProgrammeAmendmentSummaryForm();
@@ -128,7 +127,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
         scheduleWorkProgrammeApplicationDetail);
   }
 
-  @SecurityTest
+  @Test
   void renderFormWithNoAmendmentsRedirectsToSelectPage() throws Exception {
     when(licenceWorkProgrammeAmendmentRepository.findAllByScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail)).thenReturn(List.of());
@@ -252,7 +251,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
     verify(licenceWorkProgrammeAmendmentSummaryFormValidator).isValid(any());
   }
 
-  @SecurityTest
+  @Test
   void renderFormWithMultipleAmendments() throws Exception {
     LicenceWorkProgrammeAmendmentRequest amendmentRequest1 = new LicenceWorkProgrammeAmendmentRequest();
     LicenceWorkProgrammeAmendmentRequest amendmentRequest2 = new LicenceWorkProgrammeAmendmentRequest();

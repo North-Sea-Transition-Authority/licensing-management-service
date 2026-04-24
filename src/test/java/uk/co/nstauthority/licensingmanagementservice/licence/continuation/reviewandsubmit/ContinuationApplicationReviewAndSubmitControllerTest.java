@@ -31,7 +31,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.taskli
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ContextConfiguration(classes = ContinuationApplicationReviewAndSubmitController.class)
@@ -150,7 +149,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
         .andExpect(status().isForbidden());
   }
 
-  @SecurityTest
+  @Test
   void renderPage_assertForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
     mockMvc.perform(
@@ -178,7 +177,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
         .andExpect(status().isForbidden());
   }
 
-  @SecurityTest
+  @Test
   void submitPage_assertForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
     mockMvc.perform(

@@ -18,6 +18,7 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.schedulework
 
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -34,7 +35,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenseeInformationController.class)
 class LicenseeInformationControllerTest extends AbstractControllerTest {
@@ -67,7 +67,7 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
     when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(CAPTION);
   }
 
-  @SecurityTest
+  @Test
   void render() throws Exception {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
 
@@ -85,7 +85,7 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
             .renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))));
   }
 
-  @SecurityTest
+  @Test
   void submit() throws Exception {
     when(licenseeInformationFormValidator.isValid(any(), any())).thenReturn(true);
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
@@ -125,7 +125,7 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
     verify(scheduleWorkProgrammeApplicationService).createNewScheduleWorkProgrammeApplicationForLicence(licence, form);
   }
 
-  @SecurityTest
+  @Test
   void submitLicenseePermissionConfirmation_invalid() throws Exception {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
 
@@ -147,7 +147,7 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
     verifyNoInteractions(scheduleWorkProgrammeApplicationService);
   }
 
-  @SecurityTest
+  @Test
   void render_ForbiddenUserNoAccess() throws Exception {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
 
@@ -160,7 +160,7 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
         .andExpect(status().isForbidden());
   }
 
-  @SecurityTest
+  @Test
   void submit_ForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
 

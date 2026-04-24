@@ -30,7 +30,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceSchedulePhaseController.class)
 class LicenceSchedulePhaseControllerTest extends AbstractControllerTest {
@@ -81,7 +80,7 @@ class LicenceSchedulePhaseControllerTest extends AbstractControllerTest {
     when(licenceScheduleDetailService.getByIdOrThrow(LICENCE_SCHEDULE_DETAIL_ID)).thenReturn(licenceScheduleDetail);
   }
 
-  @SecurityTest
+  @Test
   void renderAddNewPhaseForm() throws Exception {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
 
@@ -129,7 +128,7 @@ class LicenceSchedulePhaseControllerTest extends AbstractControllerTest {
     verify(licenceSchedulePhaseFormService, never()).savePhaseFromForm(any(), any(), any());
   }
 
-  @SecurityTest
+  @Test
   void renderUpdatePhaseForm() throws Exception {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(LICENCE_SCHEDULE_PHASE_ID)).thenReturn(licenceSchedulePhase);

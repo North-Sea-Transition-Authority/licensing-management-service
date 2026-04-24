@@ -24,7 +24,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = WorkProgrammeActivityDeletionController.class)
 class WorkProgrammeActivityDeletionControllerTest extends AbstractControllerTest {
@@ -59,7 +58,7 @@ class WorkProgrammeActivityDeletionControllerTest extends AbstractControllerTest
     workProgrammeActivity.setComments("comments");
   }
 
-  @SecurityTest
+  @Test
   void renderDeleteActivityPage() throws Exception {
     when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(workProgrammeActivity.getId())).thenReturn(workProgrammeActivity);
     when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");

@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -14,7 +15,6 @@ import org.springframework.web.context.WebApplicationContext;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.configuration.EnergyPortalConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LogoutController.class)
 class LogoutControllerTest extends AbstractControllerTest {
@@ -30,7 +30,7 @@ class LogoutControllerTest extends AbstractControllerTest {
   @MockitoBean
   private LogoutService logoutService;
 
-  @SecurityTest
+  @Test
   void logoutService() throws Exception {
     mockMvc
         .perform(post(ReverseRouter.route(on(LogoutController.class).logoutOfService(null, WUA_ID)))
@@ -39,7 +39,7 @@ class LogoutControllerTest extends AbstractControllerTest {
     verify(logoutService).logoutUser(WUA_ID);
   }
 
-  @SecurityTest
+  @Test
   void logoutService_unauthorized() throws Exception {
     mockMvc
         .perform(post(ReverseRouter.route(on(LogoutController.class).logoutOfService(null, WUA_ID)))
@@ -48,7 +48,7 @@ class LogoutControllerTest extends AbstractControllerTest {
     verify(logoutService, never()).logoutUser(any());
   }
 
-  @SecurityTest
+  @Test
   void logoutService_invalidKey() throws Exception {
     mockMvc
         .perform(post(ReverseRouter.route(on(LogoutController.class).logoutOfService(null, WUA_ID)))

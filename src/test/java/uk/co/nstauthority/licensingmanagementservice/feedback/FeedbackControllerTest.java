@@ -29,7 +29,6 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplication;
@@ -68,7 +67,7 @@ class FeedbackControllerTest extends AbstractControllerTest {
         .build();
   }
 
-  @SecurityTest
+  @Test
   void getFeedback_whenNotLoggedIn() throws Exception {
     mockMvc.perform(
             get(ReverseRouter.route(on(FeedbackController.class).getFeedback(null))))
@@ -93,7 +92,7 @@ class FeedbackControllerTest extends AbstractControllerTest {
         .andReturn().getModelAndView();
   }
 
-  @SecurityTest
+  @Test
   void submitFeedback_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(FeedbackController.class)
             .submitFeedback(null, null, null)))
@@ -134,7 +133,7 @@ class FeedbackControllerTest extends AbstractControllerTest {
     verify(feedbackService, never()).saveFeedback(any(), any(), any());
   }
 
-  @SecurityTest
+  @Test
   void getApplicationFeedback_whenNotLoggedIn() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(FeedbackController.class)
             .getApplicationFeedback(xyzApplication, null))))
@@ -161,7 +160,7 @@ class FeedbackControllerTest extends AbstractControllerTest {
         ));
   }
 
-  @SecurityTest
+  @Test
   void submitApplicationFeedback_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(FeedbackController.class)
             .submitFeedback(null, null, null)))

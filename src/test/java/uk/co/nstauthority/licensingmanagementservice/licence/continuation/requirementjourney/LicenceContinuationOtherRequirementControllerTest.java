@@ -17,6 +17,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementController.PAGE_TITLE;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -32,7 +33,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceContinuationOtherRequirementController.class)
 class LicenceContinuationOtherRequirementControllerTest extends AbstractControllerTest {
@@ -71,7 +71,7 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
         .build();
   }
 
-  @SecurityTest
+  @Test
   void renderForm() throws Exception {
     var licenceContinuationOtherRequirementForm = new LicenceContinuationOtherRequirementForm();
 
@@ -103,7 +103,7 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
         .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null))));
   }
 
-  @SecurityTest
+  @Test
   void renderForm_RedirectsWhenNoRequirements() throws Exception {
     when(licenceContinuationService.getDetailByIdOrThrow(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId()))
         .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
@@ -127,7 +127,7 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null))));
   }
 
-  @SecurityTest
+  @Test
   void submitForm_Valid() throws Exception {
     var licenceContinuationOtherRequirementForm = new LicenceContinuationOtherRequirementForm();
 
@@ -154,7 +154,7 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
     verify(licenceContinuationOtherRequirementService).saveLicenceContinuationOtherRequirementForm(eq(licenceContinuationOtherRequirementForm), any());
   }
 
-  @SecurityTest
+  @Test
   void submitForm_Invalid() throws Exception {
     var licenceContinuationOtherRequirementForm = new LicenceContinuationOtherRequirementForm();
 
@@ -184,7 +184,7 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
     verifyNoInteractions(licenceContinuationOtherRequirementService);
   }
 
-  @SecurityTest
+  @Test
   void renderForm_ForbiddenUserNoAccess() throws Exception {
     when(licenceContinuationService.getDetailByIdOrThrow(any()))
         .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
@@ -200,7 +200,7 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
     verifyNoInteractions(licenceContinuationOtherRequirementService);
   }
 
-  @SecurityTest
+  @Test
   void submitForm_ForbiddenUserNoAccess() throws Exception {
     when(licenceContinuationService.getDetailByIdOrThrow(any()))
         .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);

@@ -18,10 +18,11 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.schedulework
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
-import uk.co.fivium.fileuploadlibrary.fds.FileUploadComponentAttributes;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.validation.Errors;
+import uk.co.fivium.fileuploadlibrary.fds.FileUploadComponentAttributes;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
@@ -37,10 +38,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action.ScheduleWorkProgrammeApplicationActionItem;
-import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.AnnotationSecurityTest;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ContextConfiguration(classes = RecordFinalDecisionController.class)
 class RecordFinalDecisionControllerTest extends AbstractControllerTest {
@@ -62,7 +61,7 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
   @MockitoBean
   private FileControllerHelperService fileControllerHelperService;
 
-  @AnnotationSecurityTest
+  @Test
   void render_classAnnotations_presentAndCorrect() {
     assertThat(RecordFinalDecisionController.class)
         .hasAnnotation(ScheduleAmendmentApplicationHasStatus.class);
@@ -77,7 +76,7 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
         .containsOnly(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION);
   }
 
-  @SecurityTest
+  @Test
   void render_noApplicationAccess_returnsForbidden() throws Exception {
     var applicationDetailId = UUID.randomUUID();
     var applicationDetail = buildApplicationDetail(applicationDetailId);
@@ -98,7 +97,7 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
         .andExpect(status().isForbidden());
   }
 
-  @SecurityTest
+  @Test
   void render_noActionAccess_returnsForbidden() throws Exception {
     var applicationDetailId = UUID.randomUUID();
     var applicationDetail = buildApplicationDetail(applicationDetailId);
@@ -121,7 +120,7 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
         .andExpect(status().isForbidden());
   }
 
-  @SecurityTest
+  @Test
   void render_withAccess_returnsOk() throws Exception {
     var applicationDetailId = UUID.randomUUID();
     var applicationDetail = buildApplicationDetail(applicationDetailId);
@@ -145,7 +144,7 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
         .andExpect(model().attributeExists("form", "backUrl"));
   }
 
-  @SecurityTest
+  @Test
   void save_validForm_redirectsToOverview() throws Exception {
     var applicationDetailId = UUID.randomUUID();
     var applicationDetail = buildApplicationDetail(applicationDetailId);
@@ -165,7 +164,7 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
             .getWorkArea(null, null))));
   }
 
-  @SecurityTest
+  @Test
   void save_invalidForm_returnsForm() throws Exception {
     var applicationDetailId = UUID.randomUUID();
     var applicationDetail = buildApplicationDetail(applicationDetailId);

@@ -8,13 +8,13 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
 import java.util.List;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = OrganisationGroupRestController.class)
 class OrganisationGroupRestControllerTest extends AbstractControllerTest {
@@ -22,7 +22,7 @@ class OrganisationGroupRestControllerTest extends AbstractControllerTest {
   @MockitoBean
   private SearchSelectorService searchSelectorService;
 
-  @SecurityTest
+  @Test
   void getOrganisationGroupSearchResults_thenOk() throws Exception {
     var user = ServiceUserDetailTestUtil.newBuilder().build();
     var groupList = List.of(
@@ -41,7 +41,7 @@ class OrganisationGroupRestControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk());
   }
 
-  @SecurityTest
+  @Test
   void getOrganisationGroupSearchResults_thenUnauthorised() throws Exception {
     mockMvc.perform(
         get(

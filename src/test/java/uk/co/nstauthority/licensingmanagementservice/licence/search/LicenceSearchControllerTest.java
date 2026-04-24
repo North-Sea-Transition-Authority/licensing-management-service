@@ -25,7 +25,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceAccessServic
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @ContextConfiguration(classes = LicenceSearchController.class)
@@ -53,7 +52,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
     when(licenceAccessService.userHasAccessToCreateLicence(ORGANISATION_USER_WUA_ID)).thenReturn(true);
   }
 
-  @SecurityTest
+  @Test
   void renderSearchPage_whenSessionHasNotBeenInvoked() throws Exception {
     var form = new LicenceSearchFilterForm();
     mockMvc.perform(
@@ -73,7 +72,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
     verify(licenceSearchService, never()).getSearchResultItems(form);
   }
 
-  @SecurityTest
+  @Test
   void renderSearchPage_whenSessionHasBeenInvoked() throws Exception {
     var form = new LicenceSearchFilterForm();
     form.setLicenceReference("reference");

@@ -31,7 +31,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = LicenceScheduleRateController.class)
 class LicenceScheduleRateControllerTest extends AbstractControllerTest {
@@ -72,7 +71,7 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
   }
 
-  @SecurityTest
+  @Test
   void renderNewLicenceScheduleRateForm() throws Exception {
     var pageCaption = "P001";
 
@@ -140,7 +139,7 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
     verify(licenceScheduleRateFormService, never()).saveRateFromForm(any(), any(), any());
   }
 
-  @SecurityTest
+  @Test
   void renderUpdateLicenceScheduleRateForm() throws Exception {
     var pageCaption = "P001";
 

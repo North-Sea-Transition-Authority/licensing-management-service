@@ -18,6 +18,7 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.continuation
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -30,7 +31,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTypeUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.internalapi.LicenceInternalApiRestController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 
 @ContextConfiguration(classes = SelectContinuationApplicationLicenceController.class)
 class SelectContinuationApplicationLicenceControllerTest extends AbstractControllerTest {
@@ -48,7 +48,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
         .build();
   }
 
-  @SecurityTest
+  @Test
   void render() throws Exception {
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
 
@@ -67,7 +67,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
             ReverseRouter.route(on(StartContinuationApplicationController.class).render())));
   }
 
-  @SecurityTest
+  @Test
   void submit() throws Exception {
     var licenceId = 1;
 
@@ -93,7 +93,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
             .renderConfirmLicenseePermission(licenceId, null , null))));
   }
 
-  @SecurityTest
+  @Test
   void submit_invalidForm() throws Exception {
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
 
@@ -115,7 +115,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
             ReverseRouter.route(on(StartContinuationApplicationController.class).render())));
   }
 
-  @SecurityTest
+  @Test
   void render_ForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
 
@@ -126,7 +126,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
         .andExpect(status().isForbidden());
   }
 
-  @SecurityTest
+  @Test
   void submit_ForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
 

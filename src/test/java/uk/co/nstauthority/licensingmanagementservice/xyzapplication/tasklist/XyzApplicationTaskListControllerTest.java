@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -20,7 +21,6 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
-import uk.co.nstauthority.licensingmanagementservice.util.SecurityTest;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplication;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationStatus;
@@ -31,7 +31,7 @@ class XyzApplicationTaskListControllerTest extends AbstractControllerTest {
   @MockitoBean
   private XyzApplicationTaskListService xyzApplicationTaskListService;
 
-  @SecurityTest
+  @Test
   void getTaskList_assertOk() throws Exception {
     var items = List.of(new TaskListItem("display name", TaskListLabel.NOT_COMPLETE, "url"));
     var sections = List.of(new TaskListSection("Section 1", 10, items));

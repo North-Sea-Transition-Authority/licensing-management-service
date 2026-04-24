@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package uk.co.fivium.grpc.gis;
+
+import "enums/LineNavigationType.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "EsriJsonLineWithNavigationAndIdProto";
+
+message EsriJsonLineWithNavigationAndId {
+  string esriJsonString = 1;
+  int32 oracleLineSsid = 2;
+  LineNavigationType navigationType = 3;
+}

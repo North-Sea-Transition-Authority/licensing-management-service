@@ -42,6 +42,8 @@ public class Line {
   @Column(columnDefinition = "jsonb")
   private Map<String, Object> attributes;
 
+  private Integer legacyId;
+
   Line(UUID id) {
     this.id = id;
   }
@@ -99,5 +101,13 @@ public class Line {
 
   public void setAttributes(Map<String, Object> attributes) {
     this.attributes = attributes;
+  }
+
+  public Integer getLegacyId() {
+    return legacyId;
+  }
+
+  public void setLegacyId(Integer legacyId) {
+    this.legacyId = legacyId;
   }
 }

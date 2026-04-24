@@ -2,60 +2,77 @@ import grpc from '@grpc/grpc-js';
 import protoLoader from '@grpc/proto-loader';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import esriConfig from '@arcgis/core/config.js';
 import express from 'express';
 import type { ProtoGrpcType } from '../generated/ArcGisJs.ts';
+import { migrateBlockOrSubarea } from './migration/handlers/migrate-block-or-sub-area';
 import { logger } from './config/logger';
 import { splitPolygonHandler } from './handlers/split-polygon-handler';
 import { buildPolygonHandler } from './handlers/build-polygon-handler';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-//We need to host a version of the ESRI CDN so the library can run offline.
-//https://developers.arcgis.com/javascript/latest/faq/#can-i-host-the-arcgis-cdn-modules-locally
-//https://developers.arcgis.com/javascript/latest/working-with-assets/
-const assetApp = express();
-assetApp.disable('x-powered-by');
 const ASSET_PORT = 3000;
-const assetFolder = path.resolve(process.cwd(), '../public/assets');
-logger.info(`[Asset Server] serving files in: ${assetFolder}`);
-assetApp.use('/assets', express.static(assetFolder));
-assetApp.listen(ASSET_PORT, () => {
-  logger.info(`[Asset Server] Running at http://localhost:${ASSET_PORT}/assets`);
-});
-esriConfig.assetsPath = `http://localhost:${ASSET_PORT}/assets`;
-
+const GRPC_BIND_ADDRESS = '0.0.0.0:8082';
 const PROTO_PATH = path.resolve(__dirname, '../../src/main/proto', 'ArcGisJs.proto');
-const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
-  keepCase: true,
-  longs: String,
-  enums: String,
-  defaults: true,
-  oneofs: true,
-  includeDirs: [path.resolve(__dirname, '../../src/main/proto')],
-});
 
-const arcGisJsProto: ProtoGrpcType['uk']['co']['fivium']['grpc']['gis'] = (
-  grpc.loadPackageDefinition(packageDefinition) as unknown as ProtoGrpcType
-).uk.co.fivium.grpc.gis;
+/**
+ * By default, the ArcGIS SDK operators call out to js.arcgis.com to fetch a WASM from their CDN. So that we don't have to rely on
+ * their CDN always being up or compromised, we our hosting a local server which will give us the assets we need.
+ */
+function startAssetServer() {
+  const assetApp = express();
+  assetApp.disable('x-powered-by');
+  const assetFolder = path.resolve(process.cwd(), '../public/assets');
+  logger.info(`[Asset Server] serving files in: ${assetFolder}`);
+  assetApp.use('/assets', express.static(assetFolder));
+  assetApp.listen(ASSET_PORT, () => {
+    logger.info(`[Asset Server] Running at http://localhost:${ASSET_PORT}/assets`);
+  });
+  esriConfig.assetsPath = `http://localhost:${ASSET_PORT}/assets`;
+}
 
-function main() {
+/**
+ * The Node.js library dynamically generates service descriptors and client stub definitions from .proto files loaded at runtime.
+ * This method loads all of proto files to be used by the server.
+ * https://grpc.io/docs/languages/node/basics/#loading-service-descriptors-from-proto-files
+ */
+function loadProtoDefinition() {
+  const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
+    keepCase: true,
+    longs: String,
+    enums: String,
+    defaults: true,
+    oneofs: true,
+    includeDirs: [path.resolve(__dirname, '../../src/main/proto')],
+  });
+
+  return (grpc.loadPackageDefinition(packageDefinition) as unknown as ProtoGrpcType).uk.co.fivium.grpc.gis;
+}
+
+function startGrpcServer(arcGisJsProto: ProtoGrpcType['uk']['co']['fivium']['grpc']['gis']) {
   const server = new grpc.Server();
 
   server.addService(arcGisJsProto.ArcGisService.service, {
     splitPolygonHandler,
     buildPolygonHandler,
+    migrateBlockOrSubarea,
   });
 
-  const bindAddress = '0.0.0.0:8082';
-
-  server.bindAsync(bindAddress, grpc.ServerCredentials.createInsecure(), (error) => {
+  server.bindAsync(GRPC_BIND_ADDRESS, grpc.ServerCredentials.createInsecure(), (error) => {
     if (error) {
       logger.error(error);
       return;
     }
-    logger.info(`gRPC Server running at ${bindAddress}`);
+    logger.info(`gRPC Server running at ${GRPC_BIND_ADDRESS}`);
   });
 }
 
-main();
+export function main() {
+  startAssetServer();
+  const arcGisJsProto = loadProtoDefinition();
+  startGrpcServer(arcGisJsProto);
+}
+
+if (process.env.VITEST !== 'true') {
+  main();
+}

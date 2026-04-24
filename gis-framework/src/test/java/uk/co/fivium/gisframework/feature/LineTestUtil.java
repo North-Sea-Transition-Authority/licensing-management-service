@@ -13,6 +13,7 @@ public class LineTestUtil {
   public static class Builder {
 
     private UUID id = UUID.randomUUID();
+    private Integer legacyId = 1;
     private Polygon polygon = PolygonTestUtil.newBuilder().build();
     private LineNavigationType navigationType = LineNavigationType.GEODESIC;
     private Integer ringNumber = 1;
@@ -24,6 +25,11 @@ public class LineTestUtil {
 
     public Builder withId(UUID id) {
       this.id = id;
+      return this;
+    }
+
+    public Builder withLegacyId(Integer legacyId) {
+      this.legacyId = legacyId;
       return this;
     }
 
@@ -59,6 +65,7 @@ public class LineTestUtil {
 
     public Line build() {
       var line = new Line(id);
+      line.setLegacyId(legacyId);
       line.setPolygon(polygon);
       line.setNavigationType(navigationType);
       line.setRingNumber(ringNumber);

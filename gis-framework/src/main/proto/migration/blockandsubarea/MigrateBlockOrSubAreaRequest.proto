@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package uk.co.fivium.grpc.gis;
+
+import "migration/blockandsubarea/GeoJsonLineWrapper.proto";
+import "enums/CoordinateSystem.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "MigrateBlockOrSubAreaRequestProto";
+
+message MigrateBlockOrSubAreaRequest {
+  repeated GeoJsonLineWrapper geoJsonLineWrappers = 1;
+  CoordinateSystem coordinateSystem = 2;
+  repeated string parentLineEsriJsonStrings = 3;
+}

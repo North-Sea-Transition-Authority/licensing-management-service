@@ -9,9 +9,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
+import org.hibernate.type.SqlTypes;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 
 @Entity
@@ -25,9 +28,9 @@ public class Feature {
 
   private String featureName;
 
-  @Enumerated(EnumType.STRING)
-  @Column(name = "feature_type")
-  private FeatureType type;
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(columnDefinition = "jsonb")
+  private Map<String, String> attributes;
 
   @Enumerated(EnumType.STRING)
   private CoordinateSystem coordinateSystem;
@@ -37,6 +40,10 @@ public class Feature {
   @ManyToOne
   @JoinColumn(name = "parent_feature_id")
   private Feature parentFeature;
+
+  private Integer legacyId;
+
+  private String testCase;
 
   Feature(UUID id) {
     this.id = id;
@@ -57,12 +64,12 @@ public class Feature {
     this.featureName = featureName;
   }
 
-  public FeatureType getType() {
-    return type;
+  public Map<String, String> getAttributes() {
+    return attributes;
   }
 
-  public void setType(FeatureType type) {
-    this.type = type;
+  public void setAttributes(Map<String, String> attributes) {
+    this.attributes = attributes;
   }
 
   public CoordinateSystem getCoordinateSystem() {
@@ -87,5 +94,21 @@ public class Feature {
 
   public void setParentFeature(Feature parentFeature) {
     this.parentFeature = parentFeature;
+  }
+
+  public Integer getLegacyId() {
+    return legacyId;
+  }
+
+  public void setLegacyId(Integer legacyId) {
+    this.legacyId = legacyId;
+  }
+
+  public String getTestCase() {
+    return testCase;
+  }
+
+  public void setTestCase(String testCase) {
+    this.testCase = testCase;
   }
 }

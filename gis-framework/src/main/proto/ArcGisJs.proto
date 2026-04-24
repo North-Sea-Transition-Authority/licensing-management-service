@@ -9,10 +9,14 @@ import "splitPolygon/SplitPolygonResponse.proto";
 import "buildPolygon/BuildPolygonRequest.proto";
 import "buildPolygon/BuildPolygonResponse.proto";
 
+import "migration/blockandsubarea/MigrateBlockOrSubAreaRequest.proto";
+import "migration/blockandsubarea/MigrateBlockOrSubAreaResponse.proto";
+
 option java_multiple_files = true;
 option java_outer_classname = "ArcGisServiceProto";
 
 service ArcGisService {
   rpc splitPolygon (SplitPolygonRequest) returns (SplitPolygonResponse) {};
   rpc buildPolygon (BuildPolygonRequest) returns (BuildPolygonResponse) {};
+  rpc migrateBlockOrSubarea (MigrateBlockOrSubAreaRequest) returns (MigrateBlockOrSubAreaResponse) {};
 }

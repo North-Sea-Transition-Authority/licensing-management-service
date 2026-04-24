@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package uk.co.fivium.grpc.gis;
+
+import "migration/blockandsubarea/EsriJsonPolylineAndOracleId.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "MigrateBlockOrSubAreaResponseProto";
+
+message MigrateBlockOrSubAreaResponse {
+  repeated EsriJsonPolylineAndOracleId esriJsonLineAndOracleIds = 1;
+  double area = 2;
+}

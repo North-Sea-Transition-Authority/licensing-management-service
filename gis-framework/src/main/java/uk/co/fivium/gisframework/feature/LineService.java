@@ -19,7 +19,17 @@ public class LineService {
     lineRepository.save(line);
   }
 
+  @Transactional
+  public void saveLines(Collection<Line> lines) {
+    lineRepository.saveAll(lines);
+  }
+
   public List<Line> findAllByFeatureIn(Collection<Feature> features) {
     return lineRepository.findAllByPolygon_FeatureIn(features);
+  }
+
+  @Transactional
+  public void deleteAll() {
+    lineRepository.deleteAll();
   }
 }

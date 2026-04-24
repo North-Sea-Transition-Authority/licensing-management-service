@@ -12,6 +12,7 @@ public class PolygonTestUtil {
   public static class Builder {
 
     private UUID id = UUID.randomUUID();
+    private Integer legacyId = 1;
     private Feature feature = FeatureTestUtil.newBuilder().build();
     private Map<String, Object> attributes = Map.of();
     private Long startDepth = 0L;
@@ -19,6 +20,11 @@ public class PolygonTestUtil {
 
     public Builder withId(UUID id) {
       this.id = id;
+      return this;
+    }
+
+    public Builder withLegacyId(Integer legacyId) {
+      this.legacyId = legacyId;
       return this;
     }
 
@@ -44,6 +50,7 @@ public class PolygonTestUtil {
 
     public Polygon build() {
       var polygon = new Polygon(id);
+      polygon.setLegacyId(legacyId);
       polygon.setFeature(feature);
       polygon.setAttributes(attributes);
       polygon.setStartDepth(startDepth);

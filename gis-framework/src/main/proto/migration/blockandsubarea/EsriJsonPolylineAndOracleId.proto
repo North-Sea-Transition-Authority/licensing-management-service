@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "EsriJsonPolylineAndOracleIdProto";
+
+message EsriJsonPolylineAndOracleId {
+  string esriJsonString = 1;
+  int32 oracleLineSsid = 2;
+}

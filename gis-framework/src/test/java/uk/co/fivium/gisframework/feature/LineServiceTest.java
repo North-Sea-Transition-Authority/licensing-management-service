@@ -35,6 +35,12 @@ class LineServiceTest {
   }
 
   @Test
+  void saveLines() {
+    lineService.saveLines(List.of(LINE_1, LINE_2));
+    verify(lineRepository).saveAll(List.of(LINE_1, LINE_2));
+  }
+
+  @Test
   void findAllByFeatureIn() {
     when(lineRepository.findAllByPolygon_FeatureIn(FEATURES)).thenReturn(List.of(LINE_1, LINE_2));
 
@@ -51,5 +57,11 @@ class LineServiceTest {
     var result = lineService.findAllByFeatureIn(FEATURES);
 
     assertThat(result).isEmpty();
+  }
+
+  @Test
+  void deleteAll() {
+    lineService.deleteAll();
+    verify(lineRepository).deleteAll();
   }
 }

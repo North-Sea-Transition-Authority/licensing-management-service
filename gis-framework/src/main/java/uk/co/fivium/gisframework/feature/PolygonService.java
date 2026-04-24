@@ -61,4 +61,9 @@ public class PolygonService {
 
     return polygonsAsEsriJson;
   }
+
+  @Transactional
+  public void deleteAll() {
+    polygonRepository.deleteAll();
+  }
 }

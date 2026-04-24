@@ -84,4 +84,10 @@ class PolygonServiceTest {
 
     assertThat(polygonService.getPolygonsAsEsriJson(feature)).containsExactly(polygonEsriJson);
   }
+
+  @Test
+  void deleteAll() {
+    polygonService.deleteAll();
+    verify(polygonRepository).deleteAll();
+  }
 }

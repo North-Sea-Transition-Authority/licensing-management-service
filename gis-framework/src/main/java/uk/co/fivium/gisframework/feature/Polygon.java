@@ -34,6 +34,8 @@ public class Polygon {
 
   private Long endDepth;
 
+  private Integer legacyId;
+
   Polygon(UUID id) {
     this.id = id;
   }
@@ -75,5 +77,13 @@ public class Polygon {
 
   public void setEndDepth(Long endDepth) {
     this.endDepth = endDepth;
+  }
+
+  public Integer getLegacyId() {
+    return legacyId;
+  }
+
+  public void setLegacyId(Integer legacyId) {
+    this.legacyId = legacyId;
   }
 }

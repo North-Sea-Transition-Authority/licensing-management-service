@@ -1,15 +1,19 @@
 package uk.co.fivium.gisframework.feature;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
+import java.util.Optional;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -76,5 +80,35 @@ class FeatureServiceTest {
 
     var expected = new EntityBackedFeature(FEATURE, Map.of(polygon1, List.of(line1), polygon2, List.of(line2)));
     assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
+  void getByLegacyIdAndTestCase() {
+    when(featureRepository.findByLegacyId(FEATURE.getLegacyId()))
+        .thenReturn(Optional.of(FEATURE));
+
+    var result = featureService.getByLegacyId(FEATURE.getLegacyId());
+
+    assertThat(result).usingRecursiveComparison().isEqualTo(FEATURE);
+  }
+
+  @Test
+  void getByLegacyIdAndTestCase_whenNothing_thenThrow() {
+    var legacyId = FEATURE.getLegacyId();
+    when(featureRepository.findByLegacyId(legacyId))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> featureService.getByLegacyId(legacyId))
+        .isInstanceOf(EntityNotFoundException.class)
+        .hasMessage("Unable to find parent feature for shape %s"
+            .formatted(FEATURE.getLegacyId()));
+  }
+
+  @Test
+  void deleteAll() {
+    featureService.deleteAll();
+    var inOrder = Mockito.inOrder(featureRepository);
+    inOrder.verify(featureRepository).deleteAllByParentFeatureIsNotNull();
+    inOrder.verify(featureRepository).deleteAll();
   }
 }

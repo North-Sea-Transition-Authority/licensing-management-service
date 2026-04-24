@@ -1,6 +1,7 @@
 package uk.co.fivium.gisframework.feature;
 
 import java.util.HashMap;
+import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
@@ -15,7 +16,8 @@ public class FeatureService {
 
   public FeatureService(FeatureRepository featureRepository,
                         PolygonRepository polygonRepository,
-                        LineRepository lineRepository) {
+                        LineRepository lineRepository
+  ) {
     this.featureRepository = featureRepository;
     this.polygonRepository = polygonRepository;
     this.lineRepository = lineRepository;
@@ -44,5 +46,17 @@ public class FeatureService {
             feature,
             polygonToLines
         );
+  }
+
+  public Feature getByLegacyId(Integer legacyId) {
+    return featureRepository.findByLegacyId(legacyId)
+        .orElseThrow(() -> new EntityNotFoundException("Unable to find parent feature for shape %s"
+            .formatted(legacyId)));
+  }
+
+  @Transactional
+  public void deleteAll() {
+    featureRepository.deleteAllByParentFeatureIsNotNull();
+    featureRepository.deleteAll();
   }
 }

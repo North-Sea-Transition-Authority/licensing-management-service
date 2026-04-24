@@ -32,6 +32,10 @@ public class PolygonService {
     return polygonRepository.findAllByFeatureIn(features);
   }
 
+  public List<Polygon> findAllByFeature(Feature feature) {
+    return polygonRepository.findAllByFeature(feature);
+  }
+
   /**
    * Generates all the EsriJSON polygons for a given feature.
    *
@@ -41,6 +45,11 @@ public class PolygonService {
   public List<String> getPolygonsAsEsriJson(Feature feature) {
     var entityBackedFeature = featureService.getEntityBackedFeature(feature);
     return getPolygonsAsEsriJson(entityBackedFeature);
+  }
+
+  @Transactional
+  public void deleteAll() {
+    polygonRepository.deleteAll();
   }
 
   private List<String> getPolygonsAsEsriJson(EntityBackedFeature entityBackedFeature) {
@@ -60,10 +69,5 @@ public class PolygonService {
     }
 
     return polygonsAsEsriJson;
-  }
-
-  @Transactional
-  public void deleteAll() {
-    polygonRepository.deleteAll();
   }
 }

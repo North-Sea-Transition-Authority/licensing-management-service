@@ -4,7 +4,7 @@ import Polyline from '@arcgis/core/geometry/Polyline.js';
 import { splitPolygonHandler } from '../../src/handlers/split-polygon-handler';
 import * as esriJsonUtil from '../../src/util/esrijson-util';
 import * as splitPolygonModule from '../../src/geometric-operators/split-operator';
-import { makePolygonEsriJson, makePolylineEsriJson } from '../testUtils/esrijson-test-util';
+import { makePolygonEsriJson, makePolylineEsriJson } from '../test-utils/esrijson-test-util';
 
 vi.mock('../../src/util/esrijson-util');
 vi.mock('../../src/geometric-operators/split-operator');

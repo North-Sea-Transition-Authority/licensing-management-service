@@ -1,9 +1,7 @@
 package uk.co.fivium.gisframework.feature;
 
-import java.util.HashMap;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
-import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,16 +9,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class FeatureService {
 
   private final FeatureRepository featureRepository;
-  private final PolygonRepository polygonRepository;
-  private final LineRepository lineRepository;
+  private final LineService lineService;
 
-  public FeatureService(FeatureRepository featureRepository,
-                        PolygonRepository polygonRepository,
-                        LineRepository lineRepository
+  public FeatureService(
+      FeatureRepository featureRepository,
+      LineService lineService
   ) {
     this.featureRepository = featureRepository;
-    this.polygonRepository = polygonRepository;
-    this.lineRepository = lineRepository;
+    this.lineService = lineService;
   }
 
   @Transactional
@@ -32,20 +28,16 @@ public class FeatureService {
     return featureRepository.findAllByParentFeatureId(parentFeature.getId());
   }
 
+  public List<Feature> findAllByAttribute(String key, String value) {
+    return featureRepository.findAllByAttribute(key, value);
+  }
+
   public EntityBackedFeature getEntityBackedFeature(Feature feature) {
-    var polygons = polygonRepository.findAllByFeature(feature);
+    return new EntityBackedFeature(feature, lineService.getPolygonToLines(feature));
+  }
 
-    Map<Polygon, List<Line>> polygonToLines = new HashMap<>();
-
-    for (var polygon : polygons) {
-      polygonToLines.put(polygon, lineRepository.findAllByPolygon(polygon));
-    }
-
-    return
-        new EntityBackedFeature(
-            feature,
-            polygonToLines
-        );
+  public List<Feature> findAllChildFeatures() {
+    return featureRepository.findAllByParentFeatureIsNotNull();
   }
 
   public Feature getByLegacyId(Integer legacyId) {

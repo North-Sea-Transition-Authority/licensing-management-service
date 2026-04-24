@@ -7,8 +7,8 @@ import static org.mockito.Mockito.when;
 
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
-import java.util.Optional;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -25,10 +25,7 @@ class FeatureServiceTest {
   private FeatureRepository featureRepository;
 
   @Mock
-  private PolygonRepository polygonRepository;
-
-  @Mock
-  private LineRepository lineRepository;
+  private LineService lineService;
 
   @InjectMocks
   private FeatureService featureService;
@@ -65,6 +62,13 @@ class FeatureServiceTest {
   }
 
   @Test
+  void findAllByAttribute() {
+    when(featureRepository.findAllByAttribute("key", "value")).thenReturn(List.of(FEATURE));
+
+    assertThat(featureService.findAllByAttribute("key", "value")).isEqualTo(List.of(FEATURE));
+  }
+
+  @Test
   void getEntityBackedFeature() {
     var polygon1 = PolygonTestUtil.newBuilder().withFeature(FEATURE).build();
     var polygon2 = PolygonTestUtil.newBuilder().withFeature(FEATURE).build();
@@ -72,13 +76,26 @@ class FeatureServiceTest {
     var line1 = LineTestUtil.newBuilder().withPolygon(polygon1).build();
     var line2 = LineTestUtil.newBuilder().withPolygon(polygon2).build();
 
-    when(polygonRepository.findAllByFeature(FEATURE)).thenReturn(List.of(polygon1, polygon2));
-    when(lineRepository.findAllByPolygon(polygon1)).thenReturn(List.of(line1));
-    when(lineRepository.findAllByPolygon(polygon2)).thenReturn(List.of(line2));
+    var polygonToLines = Map.of(polygon1, List.of(line1), polygon2, List.of(line2));
+    when(lineService.getPolygonToLines(FEATURE)).thenReturn(polygonToLines);
 
     var result = featureService.getEntityBackedFeature(FEATURE);
 
-    var expected = new EntityBackedFeature(FEATURE, Map.of(polygon1, List.of(line1), polygon2, List.of(line2)));
+    var expected = new EntityBackedFeature(FEATURE, polygonToLines);
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
+  void findAllChildFeatures() {
+    var childFeature1 = FeatureTestUtil.newBuilder().withParentFeature(FEATURE).build();
+    var childFeature2 = FeatureTestUtil.newBuilder().withParentFeature(FEATURE).build();
+
+    when(featureRepository.findAllByParentFeatureIsNotNull())
+        .thenReturn(List.of(childFeature1, childFeature2));
+
+    var result = featureService.findAllChildFeatures();
+
+    var expected = List.of(childFeature1, childFeature2);
     assertThat(result).usingRecursiveComparison().isEqualTo(expected);
   }
 

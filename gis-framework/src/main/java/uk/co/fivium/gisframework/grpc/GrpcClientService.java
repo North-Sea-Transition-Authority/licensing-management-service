@@ -5,17 +5,25 @@ import java.util.List;
 import java.util.Map;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Service;
+import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
+import uk.co.fivium.gisframework.feature.EntityBackedFeature;
+import uk.co.fivium.gisframework.feature.Line;
 import uk.co.fivium.gisframework.migration.MigrationResponseDto;
 import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineWithRing;
-import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
 import uk.co.fivium.grpc.gis.ArcGisServiceGrpc;
+import uk.co.fivium.grpc.gis.BlockAndSubareaValidationRequest;
 import uk.co.fivium.grpc.gis.BuildPolygonRequest;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
+import uk.co.fivium.grpc.gis.EsriJsonLineWithNavigationAndId;
+import uk.co.fivium.grpc.gis.EsriJsonPolygonLineWrappers;
+import uk.co.fivium.grpc.gis.EsriJsonPolygonLines;
 import uk.co.fivium.grpc.gis.GeoJsonLineWrapper;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaRequest;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
+import uk.co.fivium.grpc.gis.TopologicallyEqualValidationRequest;
+import uk.co.fivium.grpc.gis.ValidationResponse;
 
 @Service
 public class GrpcClientService {
@@ -86,5 +94,65 @@ public class GrpcClientService {
     }
 
     return new MigrationResponseDto(oracleSsidToEsriJsonLineString, response.getArea());
+  }
+
+  public ValidationResponse validateBlockAndSubarea(
+      EntityBackedFeature childFeature,
+      EntityBackedFeature parentFeature
+  ) {
+    var request = BlockAndSubareaValidationRequest.newBuilder()
+        .setCoordinateSystem(childFeature.feature().getCoordinateSystem());
+
+    buildPolygonLineWrappers(childFeature).forEach(request::addChildPolygonLineWrappersLists);
+    buildPolygonLineWrappers(parentFeature).forEach(request::addParentPolygonLineWrappersLists);
+
+    return arcgisClient.validateBlockAndSubarea(request.build());
+  }
+
+  public ValidationResponse validateTopologicallyEqual(
+      List<List<String>> childPolygonsLines,
+      EntityBackedFeature parentFeature
+  ) {
+    var request = TopologicallyEqualValidationRequest.newBuilder()
+        .setCoordinateSystem(parentFeature.feature().getCoordinateSystem())
+        .addAllChildPolygons(
+            childPolygonsLines
+                .stream()
+                .map(polygonLines -> EsriJsonPolygonLines.newBuilder()
+                    .addAllEsriJsonPolyline(polygonLines)
+                    .build()
+                )
+                .toList()
+        )
+        .addAllParentPolygons(
+            parentFeature.polygonToLines().values().stream()
+                .map(lines -> EsriJsonPolygonLines.newBuilder()
+                    .addAllEsriJsonPolyline(
+                        lines.stream().map(Line::getEsriJson).toList()
+                    )
+                    .build()
+                )
+                .toList()
+        );
+
+    return arcgisClient.validateTopologicallyEqual(request.build());
+  }
+
+  private List<EsriJsonPolygonLineWrappers.Builder> buildPolygonLineWrappers(
+      EntityBackedFeature feature
+  ) {
+    return feature.polygonToLines().values().stream()
+        .map(lines -> {
+          var lineWrappers = lines.stream()
+              .map(line -> EsriJsonLineWithNavigationAndId.newBuilder()
+                  .setEsriJsonString(line.getEsriJson())
+                  .setNavigationType(line.getNavigationType())
+                  .setOracleLineSsid(line.getLegacyId())
+                  .build())
+              .toList();
+          return EsriJsonPolygonLineWrappers.newBuilder()
+              .addAllLineWrapper(lineWrappers);
+        })
+        .toList();
   }
 }

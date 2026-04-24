@@ -6,6 +6,10 @@ import protoLoader from '@grpc/proto-loader';
 import express from 'express';
 import path from 'path';
 import process from 'node:process';
+import { validateBlockAndSubarea } from '../src/migration/handlers/validate-block-and-subarea.ts';
+import { validateTopologicallyEqual } from '../src/migration/handlers/validate-topologically-equal.ts';
+import { splitPolygonHandler } from '../src/handlers/split-polygon-handler.ts';
+import { buildPolygonHandler } from '../src/handlers/build-polygon-handler.ts';
 
 const MOCK_DIRNAME = '/mock/arcgis-node/src';
 
@@ -98,7 +102,11 @@ describe('main()', () => {
 
       const server = getGrpcServerInstance();
       expect(server.addService).toHaveBeenCalledWith('mock-service-def', {
+        splitPolygonHandler,
+        buildPolygonHandler,
         migrateBlockOrSubarea,
+        validateBlockAndSubarea,
+        validateTopologicallyEqual,
       });
     });
 

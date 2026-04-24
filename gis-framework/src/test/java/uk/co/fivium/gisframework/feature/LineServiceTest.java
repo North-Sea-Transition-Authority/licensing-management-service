@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -57,6 +58,36 @@ class LineServiceTest {
     var result = lineService.findAllByFeatureIn(FEATURES);
 
     assertThat(result).isEmpty();
+  }
+
+  @Test
+  void getPolygonToLines() {
+    var polygon1 = PolygonTestUtil.newBuilder().build();
+    var polygon2 = PolygonTestUtil.newBuilder().build();
+    var line1 = LineTestUtil.newBuilder().withPolygon(polygon1).build();
+    var line2 = LineTestUtil.newBuilder().withPolygon(polygon2).build();
+    var line3 = LineTestUtil.newBuilder().withPolygon(polygon1).build();
+
+    when(lineRepository.findAllByPolygon_Feature(FEATURE_1)).thenReturn(List.of(line1, line2, line3));
+
+    assertThat(lineService.getPolygonToLines(FEATURE_1)).isEqualTo(
+        Map.of(
+            polygon1, List.of(line1, line3),
+            polygon2, List.of(line2)
+        )
+    );
+  }
+
+  @Test
+  void findAllByPolygon() {
+    var polygon = PolygonTestUtil.newBuilder().build();
+
+    when(lineRepository.findAllByPolygon(polygon)).thenReturn(List.of(LINE_1, LINE_2));
+
+    var result = lineService.findAllByPolygon(polygon);
+
+    var expected = List.of(LINE_1, LINE_2);
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
   }
 
   @Test

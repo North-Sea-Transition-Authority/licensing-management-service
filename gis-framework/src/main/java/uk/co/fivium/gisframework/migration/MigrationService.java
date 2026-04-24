@@ -37,18 +37,22 @@ public class MigrationService {
   private final OracleService oracleService;
   private final GrpcClientService grpcClientService;
 
+  private final MigrationValidationService migrationValidationService;
+
   public MigrationService(
       FeatureService featureService,
       PolygonService polygonService,
       LineService lineService,
       OracleService oracleService,
-      GrpcClientService grpcClientService
+      GrpcClientService grpcClientService,
+      MigrationValidationService migrationValidationService
   ) {
     this.featureService = featureService;
     this.polygonService = polygonService;
     this.lineService = lineService;
     this.oracleService = oracleService;
     this.grpcClientService = grpcClientService;
+    this.migrationValidationService = migrationValidationService;
   }
 
   void migrateKnownIds() {
@@ -91,6 +95,9 @@ public class MigrationService {
             new OracleShapeCompositeKey(51662420, "GISA-115")
         ))
     );
+
+    migrationValidationService.blockAndSubareaValidation();
+    migrationValidationService.verifySubareasTopologicallyEqualToBlock();
   }
 
   void migrateBlocksAndSubarea(List<EntityBackedOracleShape> entityBackedOracleShapes) {
@@ -140,7 +147,9 @@ public class MigrationService {
         lineService.saveLines(lines);
       }
       var areaDifference = newFeature.getFeatureArea().subtract(BigDecimal.valueOf(entityBackedShape.shape().getShareAreaM2()));
-      LOGGER.info("Feature {} has area difference of {}", newFeature.getFeatureName(), areaDifference);
+      if (areaDifference.abs().compareTo(BigDecimal.valueOf(50)) > 0) {
+        LOGGER.warn("Feature {} has area difference of {}", newFeature.getFeatureName(), areaDifference);
+      }
     }
   }
 

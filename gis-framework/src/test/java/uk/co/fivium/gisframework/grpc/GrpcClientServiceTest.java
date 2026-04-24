@@ -11,14 +11,22 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
+import uk.co.fivium.gisframework.feature.EntityBackedFeature;
+import uk.co.fivium.gisframework.feature.FeatureTestUtil;
+import uk.co.fivium.gisframework.feature.LineTestUtil;
+import uk.co.fivium.gisframework.feature.PolygonTestUtil;
 import uk.co.fivium.gisframework.migration.MigrationResponseDto;
 import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineTestUtil;
 import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineWithRing;
-import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
 import uk.co.fivium.grpc.gis.ArcGisServiceGrpc;
+import uk.co.fivium.grpc.gis.BlockAndSubareaValidationRequest;
 import uk.co.fivium.grpc.gis.BuildPolygonRequest;
 import uk.co.fivium.grpc.gis.BuildPolygonResponse;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
+import uk.co.fivium.grpc.gis.EsriJsonLineWithNavigationAndId;
+import uk.co.fivium.grpc.gis.EsriJsonPolygonLineWrappers;
+import uk.co.fivium.grpc.gis.EsriJsonPolygonLines;
 import uk.co.fivium.grpc.gis.EsriJsonPolylineAndOracleId;
 import uk.co.fivium.grpc.gis.GeoJsonLineWrapper;
 import uk.co.fivium.grpc.gis.LineNavigationType;
@@ -26,6 +34,8 @@ import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaRequest;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonResponse;
+import uk.co.fivium.grpc.gis.TopologicallyEqualValidationRequest;
+import uk.co.fivium.grpc.gis.ValidationResponse;
 
 @ExtendWith(MockitoExtension.class)
 class GrpcClientServiceTest {
@@ -140,5 +150,98 @@ class GrpcClientServiceTest {
         ));
 
     verify(arcgisClient).migrateBlockOrSubarea(expectedRequest.build());
+  }
+
+  @Test
+  void validateBlockAndSubarea() {
+    var feature = FeatureTestUtil.newBuilder()
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .build();
+
+    var childPolygon = PolygonTestUtil.newBuilder().withFeature(feature).build();
+    var childLine = LineTestUtil.newBuilder()
+        .withPolygon(childPolygon)
+        .withEsriJson("child esri json")
+        .withNavigationType(LineNavigationType.GEODESIC)
+        .withLegacyId(10)
+        .build();
+    var childFeature = new EntityBackedFeature(feature, Map.of(childPolygon, List.of(childLine)));
+
+    var parentPolygon = PolygonTestUtil.newBuilder().withFeature(feature).build();
+    var parentLine = LineTestUtil.newBuilder()
+        .withPolygon(parentPolygon)
+        .withEsriJson("parent esri json")
+        .withNavigationType(LineNavigationType.LOXODROME)
+        .withLegacyId(20)
+        .build();
+    var parentFeature = new EntityBackedFeature(feature, Map.of(parentPolygon, List.of(parentLine)));
+
+    var expectedRequest = BlockAndSubareaValidationRequest.newBuilder()
+        .setCoordinateSystem(CoordinateSystem.ED50)
+        .addChildPolygonLineWrappersLists(EsriJsonPolygonLineWrappers.newBuilder()
+            .addLineWrapper(EsriJsonLineWithNavigationAndId.newBuilder()
+                .setEsriJsonString("child esri json")
+                .setNavigationType(LineNavigationType.GEODESIC)
+                .setOracleLineSsid(10)
+                .build()))
+        .addParentPolygonLineWrappersLists(EsriJsonPolygonLineWrappers.newBuilder()
+            .addLineWrapper(EsriJsonLineWithNavigationAndId.newBuilder()
+                .setEsriJsonString("parent esri json")
+                .setNavigationType(LineNavigationType.LOXODROME)
+                .setOracleLineSsid(20)
+                .build()));
+
+    var response = ValidationResponse.newBuilder()
+        .setIsValid(true)
+        .setMessage("Valid")
+        .build();
+    when(arcgisClient.validateBlockAndSubarea(expectedRequest.build())).thenReturn(response);
+
+    assertThat(grpcClientService.validateBlockAndSubarea(childFeature, parentFeature)).isEqualTo(response);
+
+    verify(arcgisClient).validateBlockAndSubarea(expectedRequest.build());
+  }
+
+  @Test
+  void validateTopologicallyEqual() {
+    var feature = FeatureTestUtil.newBuilder()
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .build();
+
+    var parentPolygon = PolygonTestUtil.newBuilder().withFeature(feature).build();
+    var parentLine = LineTestUtil.newBuilder()
+        .withPolygon(parentPolygon)
+        .withEsriJson("parent esri json")
+        .withNavigationType(LineNavigationType.LOXODROME)
+        .withLegacyId(20)
+        .build();
+    var parentFeature = new EntityBackedFeature(feature, Map.of(parentPolygon, List.of(parentLine)));
+
+    var childPolygonsLines = List.of(
+        List.of("child esri json line 1", "child esri json line 2"),
+        List.of("child esri json line 3")
+    );
+
+    var expectedRequest = TopologicallyEqualValidationRequest.newBuilder()
+        .setCoordinateSystem(CoordinateSystem.ED50)
+        .addChildPolygons(EsriJsonPolygonLines.newBuilder()
+            .addAllEsriJsonPolyline(List.of("child esri json line 1", "child esri json line 2"))
+            .build())
+        .addChildPolygons(EsriJsonPolygonLines.newBuilder()
+            .addAllEsriJsonPolyline(List.of("child esri json line 3"))
+            .build())
+        .addParentPolygons(EsriJsonPolygonLines.newBuilder()
+            .addAllEsriJsonPolyline(List.of("parent esri json"))
+            .build());
+
+    var response = ValidationResponse.newBuilder()
+        .setIsValid(true)
+        .setMessage("Valid")
+        .build();
+    when(arcgisClient.validateTopologicallyEqual(expectedRequest.build())).thenReturn(response);
+
+    assertThat(grpcClientService.validateTopologicallyEqual(childPolygonsLines, parentFeature)).isEqualTo(response);
+
+    verify(arcgisClient).validateTopologicallyEqual(expectedRequest.build());
   }
 }

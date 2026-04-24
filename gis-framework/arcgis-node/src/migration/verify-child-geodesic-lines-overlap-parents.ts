@@ -3,7 +3,7 @@ import { logger } from '../config/logger';
 import { esriJsonToPolyline } from '../util/esrijson-util';
 import { findParentLine, getLineStartAndEndPoints } from './utils/migration-line-utils';
 
-type Line = {
+export type EsriJsonLineStringToIsGeodesic = {
   esriJsonPolyline: string;
   isGeodesic: boolean;
 };
@@ -14,28 +14,35 @@ type Line = {
  * @param childLines
  * @return true if all child geodesic lines overlap with a parent geodesic line, false otherwise.
  */
-export function childGeodesicLinesOverlapParents(parentLines: Line[], childLines: Line[]): boolean {
+export function childGeodesicLinesOverlapParents(
+  parentLines: EsriJsonLineStringToIsGeodesic[],
+  childLines: EsriJsonLineStringToIsGeodesic[],
+): boolean {
   const parentGeodesicLines = parentLines.filter((line) => line.isGeodesic).map((line) => line.esriJsonPolyline);
+
+  const childGeodesics = childLines.filter((line) => line.isGeodesic);
+
+  if (!parentGeodesicLines.length && !childGeodesics.length) {
+    return true;
+  }
 
   const orphanedChildLinesJson: string[] = [];
   const nonOverlappingChildLinesJson: string[] = [];
 
-  childLines
-    .filter((childLine) => childLine.isGeodesic)
-    .forEach((childLine) => {
-      const child = esriJsonToPolyline(childLine.esriJsonPolyline);
-      const { startPoint, endPoint } = getLineStartAndEndPoints(child);
-      const parent = findParentLine(parentGeodesicLines, startPoint, endPoint);
+  childGeodesics.forEach((childLine) => {
+    const child = esriJsonToPolyline(childLine.esriJsonPolyline);
+    const { startPoint, endPoint } = getLineStartAndEndPoints(child);
+    const parent = findParentLine(parentGeodesicLines, startPoint, endPoint);
 
-      if (parent === undefined) {
-        orphanedChildLinesJson.push(childLine.esriJsonPolyline);
-        return;
-      }
+    if (parent === undefined) {
+      orphanedChildLinesJson.push(childLine.esriJsonPolyline);
+      return;
+    }
 
-      if (!containsOperator.execute(parent, child)) {
-        nonOverlappingChildLinesJson.push(childLine.esriJsonPolyline);
-      }
-    });
+    if (!containsOperator.execute(parent, child)) {
+      nonOverlappingChildLinesJson.push(childLine.esriJsonPolyline);
+    }
+  });
 
   orphanedChildLinesJson.forEach((line) =>
     logger.warn({ orphanedLineJson: line }, 'Parent geodesic not found for child geodesic line'),

@@ -121,5 +121,21 @@ describe('verify-child-geodesic-lines-overlap-parents', () => {
 
       expect(result).toBe(true);
     });
+
+    test('should return true when there are no child or parent geodesic lines', () => {
+      const line = makePolylineEsriJson([
+        [
+          [0, 0],
+          [10, 0],
+        ],
+      ]);
+
+      const result = childGeodesicLinesOverlapParents(
+        [{ esriJsonPolyline: line, isGeodesic: false }],
+        [{ esriJsonPolyline: line, isGeodesic: false }],
+      );
+
+      expect(result).toBe(true);
+    });
   });
 });

@@ -5,13 +5,22 @@ CVE-2026-1225
 CVE-2023-2976
 CVE-2020-8908
 
+# io.netty:netty-codec
+CVE-2026-42583
+
 # io.netty:netty-codec-http
 CVE-2025-67735
 CVE-2026-33870
 CVE-2026-41417
+CVE-2026-42584
+CVE-2026-42587
+CVE-2026-42580
+CVE-2026-42581
+CVE-2026-42585
 
 # io.netty:netty-codec-http2
 CVE-2026-33871
+CVE-2026-42587
 
 # org.bouncycastle:bcpkix-jdk18on
 CVE-2023-33202

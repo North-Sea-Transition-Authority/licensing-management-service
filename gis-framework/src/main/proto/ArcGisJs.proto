@@ -11,6 +11,9 @@ import "buildPolygon/BuildPolygonResponse.proto";
 
 import "migration/blockandsubarea/MigrateBlockOrSubAreaRequest.proto";
 import "migration/blockandsubarea/MigrateBlockOrSubAreaResponse.proto";
+import "migration/blockandsubarea/BlockAndSubareaValidationRequest.proto";
+import "migration/blockandsubarea/ValidationResponse.proto";
+import "migration/blockandsubarea/TopologicallyEqualValidationRequest.proto";
 
 option java_multiple_files = true;
 option java_outer_classname = "ArcGisServiceProto";
@@ -19,4 +22,6 @@ service ArcGisService {
   rpc splitPolygon (SplitPolygonRequest) returns (SplitPolygonResponse) {};
   rpc buildPolygon (BuildPolygonRequest) returns (BuildPolygonResponse) {};
   rpc migrateBlockOrSubarea (MigrateBlockOrSubAreaRequest) returns (MigrateBlockOrSubAreaResponse) {};
+  rpc validateBlockAndSubarea (BlockAndSubareaValidationRequest) returns (ValidationResponse) {};
+  rpc validateTopologicallyEqual (TopologicallyEqualValidationRequest) returns (ValidationResponse) {};
 }

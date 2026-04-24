@@ -2,6 +2,8 @@ package uk.co.fivium.gisframework.feature;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,16 @@ public class LineService {
 
   public List<Line> findAllByFeatureIn(Collection<Feature> features) {
     return lineRepository.findAllByPolygon_FeatureIn(features);
+  }
+
+  public Map<Polygon, List<Line>> getPolygonToLines(Feature feature) {
+    return lineRepository.findAllByPolygon_Feature(feature)
+        .stream()
+        .collect(Collectors.groupingBy(Line::getPolygon));
+  }
+
+  public List<Line> findAllByPolygon(Polygon polygon) {
+    return lineRepository.findAllByPolygon(polygon);
   }
 
   @Transactional

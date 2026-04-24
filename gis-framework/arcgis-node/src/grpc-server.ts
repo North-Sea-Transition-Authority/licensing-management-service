@@ -10,6 +10,8 @@ import { migrateBlockOrSubarea } from './migration/handlers/migrate-block-or-sub
 import { logger } from './config/logger';
 import { splitPolygonHandler } from './handlers/split-polygon-handler';
 import { buildPolygonHandler } from './handlers/build-polygon-handler';
+import { validateBlockAndSubarea } from './migration/handlers/validate-block-and-subarea';
+import { validateTopologicallyEqual } from './migration/handlers/validate-topologically-equal';
 
 const ASSET_PORT = 3000;
 const GRPC_BIND_ADDRESS = '0.0.0.0:8082';
@@ -56,6 +58,8 @@ function startGrpcServer(arcGisJsProto: ProtoGrpcType['uk']['co']['fivium']['grp
     splitPolygonHandler,
     buildPolygonHandler,
     migrateBlockOrSubarea,
+    validateBlockAndSubarea,
+    validateTopologicallyEqual,
   });
 
   server.bindAsync(GRPC_BIND_ADDRESS, grpc.ServerCredentials.createInsecure(), (error) => {

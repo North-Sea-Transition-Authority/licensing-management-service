@@ -4,7 +4,7 @@ import Polygon from '@arcgis/core/geometry/Polygon.js';
 import { buildPolygonHandler } from '../../src/handlers/build-polygon-handler';
 import * as esriJsonUtil from '../../src/util/esrijson-util';
 import * as buildPolygonModule from '../../src/geometric-operators/build-polygon';
-import { makePolylineEsriJson } from '../testUtils/esrijson-test-util';
+import { makePolylineEsriJson } from '../test-utils/esrijson-test-util';
 
 vi.mock('../../src/util/esrijson-util');
 vi.mock('../../src/geometric-operators/build-polygon');

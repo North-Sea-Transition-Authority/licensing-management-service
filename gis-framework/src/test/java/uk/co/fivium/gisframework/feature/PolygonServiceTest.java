@@ -64,6 +64,16 @@ class PolygonServiceTest {
   }
 
   @Test
+  void findAllByFeature() {
+    when(polygonRepository.findAllByFeature(FEATURE_1)).thenReturn(List.of(POLYGON_1, POLYGON_2));
+
+    var result = polygonService.findAllByFeature(FEATURE_1);
+
+    var expected = List.of(POLYGON_1, POLYGON_2);
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
   void getPolygonsAsEsriJson_assertLinesSorted() {
     var feature = FeatureTestUtil.newBuilder().build();
     var polygon = PolygonTestUtil.newBuilder().build();

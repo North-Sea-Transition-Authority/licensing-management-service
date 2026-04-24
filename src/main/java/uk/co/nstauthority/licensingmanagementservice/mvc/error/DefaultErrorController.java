@@ -8,7 +8,6 @@ import static jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Optional;
-import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,14 +30,17 @@ public class DefaultErrorController implements ErrorController {
    */
   @GetMapping("error")
   public ModelAndView handleError(HttpServletRequest request) {
-    var modelAndView = Optional.ofNullable(request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE))
+    int statusCode = Optional.ofNullable(request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE))
         .map(Integer.class::cast)
-        .map(this::getModelAndViewForStatus)
-        .orElse(new ModelAndView(""));
+        .orElse(0);
 
-    var dispatcherException = request.getAttribute(DispatcherServlet.EXCEPTION_ATTRIBUTE);
-    var servletException = request.getAttribute(WebUtils.ERROR_EXCEPTION_ATTRIBUTE);
-    var throwable = (Throwable) ObjectUtils.defaultIfNull(dispatcherException, servletException);
+    var modelAndView = getModelAndViewForStatus(statusCode);
+
+    var dispatcherException = (Throwable) request.getAttribute(DispatcherServlet.EXCEPTION_ATTRIBUTE);
+    var servletException = (Throwable) request.getAttribute(WebUtils.ERROR_EXCEPTION_ATTRIBUTE);
+    var throwable = statusCode >= 500
+        ? (dispatcherException != null ? dispatcherException : servletException)
+        : null;
 
     errorService.addErrorAttributesToModel(modelAndView, throwable, request);
 

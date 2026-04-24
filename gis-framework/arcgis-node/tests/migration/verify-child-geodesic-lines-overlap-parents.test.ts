@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { childGeodesicLinesOverlapParents } from '../../src/migration/verify-child-geodesic-lines-overlap-parents';
-import { makePolylineEsriJson } from '../testUtils/esrijson-test-util';
+import { makePolylineEsriJson } from '../test-utils/esrijson-test-util';
 
 describe('verify-child-geodesic-lines-overlap-parents', () => {
   describe('childGeodesicLinesOverlapParents', () => {

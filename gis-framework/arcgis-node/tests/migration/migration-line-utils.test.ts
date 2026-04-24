@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { esriJsonToPolyline } from '../../src/util/esrijson-util';
-import { makePolylineEsriJson } from '../testUtils/esrijson-test-util';
+import { makePolylineEsriJson } from '../test-utils/esrijson-test-util';
 import {
   findParentLine,
   FIVE_CM_IN_DEGREES_AT_48N_ED50,

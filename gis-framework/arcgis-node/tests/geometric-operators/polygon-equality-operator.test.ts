@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { makePolygonEsriJson } from '../testUtils/esrijson-test-util';
+import { makePolygonEsriJson } from '../test-utils/esrijson-test-util';
 import { polygonsAreTopologicallyEqual } from '../../src/geometric-operators/polygon-equality-operator';
 
 describe('polygon-equality-operator', () => {

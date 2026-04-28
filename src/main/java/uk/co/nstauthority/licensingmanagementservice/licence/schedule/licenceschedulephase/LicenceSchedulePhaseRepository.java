@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicateThisOnUpdate;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -13,6 +14,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 @Repository
 public interface LicenceSchedulePhaseRepository
     extends JpaRepository<LicenceSchedulePhase, UUID>, DuplicationSource<LicenceScheduleDetail> {
+
+  @DuplicateThisOnUpdate
+  List<LicenceSchedulePhase> findAllByLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail);
 
   List<LicenceSchedulePhase> findByLicenceScheduleDetailAndStatus(
       LicenceScheduleDetail licenceScheduleDetail,

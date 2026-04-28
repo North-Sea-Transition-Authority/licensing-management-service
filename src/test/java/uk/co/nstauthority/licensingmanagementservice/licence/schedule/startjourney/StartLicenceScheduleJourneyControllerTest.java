@@ -9,12 +9,9 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
-import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
@@ -24,23 +21,13 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @ContextConfiguration(classes = StartLicenceScheduleJourneyController.class)
 class StartLicenceScheduleJourneyControllerTest extends AbstractControllerTest {
 
-  private ServiceUserDetail organisationUser;
-  private static final Long ORGANISATION_USER_WUA_ID = 2L;
-
-  @BeforeEach
-  void setUp() {
-    organisationUser = ServiceUserDetailTestUtil.newBuilder()
-        .withWuaId(ORGANISATION_USER_WUA_ID)
-        .build();
-  }
-
   @Test
   void renderStartLicenceScheduleJourney() throws Exception {
     var licenceId = 1;
     var licence = LicenceTestUtil.builder().build();
     var pageCaption = "pageCaption";
 
-    when(licenceActionService.getAvailableUserActionItems(licence,organisationUser))
+    when(licenceActionService.getAvailableUserActionItems(licence, regulatorUser))
         .thenReturn(List.of(new ActionItemView(
             "Create licence schedule",
             1,
@@ -52,7 +39,7 @@ class StartLicenceScheduleJourneyControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             get(ReverseRouter.route(on(StartLicenceScheduleJourneyController.class).renderStartLicenceScheduleJourney(licenceId, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/startScheduleJourney"))
@@ -70,12 +57,12 @@ class StartLicenceScheduleJourneyControllerTest extends AbstractControllerTest {
     var licence = LicenceTestUtil.builder().build();
 
     when(licenceService.findLicenceByIdOrThrow(licenceId)).thenReturn(licence);
-    when(licenceActionService.getAvailableUserActionItems(licence,organisationUser))
+    when(licenceActionService.getAvailableUserActionItems(licence, regulatorUser))
         .thenReturn(List.of(new ActionItemView("test", 1, false, "test", null)));
 
     mockMvc.perform(
             get(ReverseRouter.route(on(StartLicenceScheduleJourneyController.class).renderStartLicenceScheduleJourney(licenceId, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
         )
         .andExpect(status().isForbidden());
   }

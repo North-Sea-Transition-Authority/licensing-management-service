@@ -25,6 +25,10 @@ public class OtherScheduleEventService {
         .orElseThrow(() -> new LmsEntityNotFoundException("OtherScheduleEvent", id));
   }
 
+  public List<OtherScheduleEvent> getOtherScheduleEvents(LicenceScheduleDetail licenceScheduleDetail) {
+    return otherScheduleEventRepository.findAllByLicenceScheduleDetail(licenceScheduleDetail);
+  }
+
   @Transactional
   public void saveScheduleEvents(List<OtherScheduleEvent> otherScheduleEvents) {
     otherScheduleEventRepository.saveAll(otherScheduleEvents);

@@ -43,6 +43,15 @@ class OtherScheduleEventServiceTest {
   }
 
   @Test
+  void getOtherScheduleEvents() {
+    var detail = new LicenceScheduleDetail();
+
+    otherScheduleEventService.getOtherScheduleEvents(detail);
+
+    verify(otherScheduleEventRepository).findAllByLicenceScheduleDetail(detail);
+  }
+
+  @Test
   void saveScheduleEvents() {
     var eventList = List.of(new OtherScheduleEvent());
 

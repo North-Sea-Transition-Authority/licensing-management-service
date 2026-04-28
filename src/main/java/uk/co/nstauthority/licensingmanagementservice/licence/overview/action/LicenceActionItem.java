@@ -7,6 +7,7 @@ import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionIt
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceResponsibleTeamController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailDuplicationController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.StartLicenceScheduleJourneyController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
@@ -18,15 +19,21 @@ public enum LicenceActionItem implements Displayable {
           licence -> ReverseRouter.route(on(StartLicenceScheduleJourneyController.class)
               .renderStartLicenceScheduleJourney(licence.getId(), null))
   ),
+  UPDATE_LICENCE_SCHEDULE(
+      "Update licence schedule",
+      2,
+          licence -> ReverseRouter.route(on(LicenceScheduleDetailDuplicationController.class)
+          .renderCreateDraftScheduleUpdatePage(licence.getId(), null))
+  ),
   MANAGE_LICENSEES(
       "Manage licensees",
-          2,
+          3,
           licence -> ReverseRouter.route(on(LicenceController.class)
               .renderManageLicenseesPage(licence.getId(), null))
   ),
   MANAGE_RESPONSIBLE_TEAM(
       "Manage responsible team",
-      3,
+      4,
           licence -> ReverseRouter.route(on(LicenceResponsibleTeamController.class)
           .render(licence.getId(), null))
   );

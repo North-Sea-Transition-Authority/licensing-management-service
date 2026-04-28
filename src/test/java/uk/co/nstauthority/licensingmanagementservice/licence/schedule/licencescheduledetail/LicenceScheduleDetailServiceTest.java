@@ -68,6 +68,15 @@ class LicenceScheduleDetailServiceTest {
   }
 
   @Test
+  void getAllScheduleDetailsByLicence() {
+    var licence = new Licence();
+
+    licenceScheduleDetailService.getAllScheduleDetailsByLicence(licence);
+
+    verify(licenceScheduleDetailRepository).findAllByLicenceSchedule_Licence(licence);
+  }
+
+  @Test
   void getScheduleDetailByLicenceAndStatus() {
     var licence = new Licence();
 

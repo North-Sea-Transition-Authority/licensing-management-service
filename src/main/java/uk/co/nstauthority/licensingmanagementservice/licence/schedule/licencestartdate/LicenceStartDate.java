@@ -10,12 +10,13 @@ import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Entity
 @Table(name = "licence_start_dates")
 @Audited
-public class LicenceStartDate {
+public class LicenceStartDate implements LinkedToDuplicationParent<LicenceScheduleDetail> {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -41,6 +42,11 @@ public class LicenceStartDate {
 
   public void setLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
     this.licenceScheduleDetail = licenceScheduleDetail;
+  }
+
+  @Override
+  public void setDuplicationParent(LicenceScheduleDetail licenceScheduleDetail) {
+    setLicenceScheduleDetail(licenceScheduleDetail);
   }
 
   public LocalDate getStartDate() {

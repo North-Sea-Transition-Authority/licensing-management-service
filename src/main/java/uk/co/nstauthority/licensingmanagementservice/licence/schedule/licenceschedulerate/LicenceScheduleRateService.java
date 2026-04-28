@@ -26,6 +26,10 @@ public class LicenceScheduleRateService {
         .orElseThrow(() -> new LmsEntityNotFoundException("LicenceScheduleRate not found", id));
   }
 
+  public List<LicenceScheduleRate> getLicenceScheduleRates(LicenceScheduleDetail licenceScheduleDetail) {
+    return licenceScheduleRateRepository.findAllByLicenceScheduleDetail(licenceScheduleDetail);
+  }
+
   public List<LicenceScheduleRate> getActiveLicenceScheduleRatesAttachedToTerm(LicenceScheduleTerm licenceScheduleTerm) {
     return licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOptionAndStatus(
         licenceScheduleTerm,

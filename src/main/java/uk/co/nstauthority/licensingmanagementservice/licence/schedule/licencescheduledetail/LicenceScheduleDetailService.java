@@ -45,6 +45,10 @@ public class LicenceScheduleDetailService {
         .orElseThrow(() -> new LmsEntityNotFoundException("licence schedule detail", licence.getId()));
   }
 
+  public List<LicenceScheduleDetail> getAllScheduleDetailsByLicence(Licence licence) {
+    return licenceScheduleDetailRepository.findAllByLicenceSchedule_Licence(licence);
+  }
+
   public Optional<LicenceScheduleDetail> getScheduleDetailByLicenceAndStatus(
       Licence licence,
       LicenceScheduleDetailStatus status

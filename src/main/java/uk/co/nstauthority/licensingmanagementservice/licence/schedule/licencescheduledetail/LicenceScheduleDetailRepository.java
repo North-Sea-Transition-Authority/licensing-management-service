@@ -14,6 +14,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 @Repository
 public interface LicenceScheduleDetailRepository extends JpaRepository<LicenceScheduleDetail, UUID>, NotDuplicationSource {
 
+  List<LicenceScheduleDetail> findAllByLicenceSchedule_Licence(Licence licence);
+
   Optional<LicenceScheduleDetail> findByLicenceSchedule_LicenceAndStatus(
       Licence licence,
       LicenceScheduleDetailStatus licenceScheduleDetailStatus

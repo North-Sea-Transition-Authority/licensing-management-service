@@ -15,13 +15,14 @@ import java.time.LocalDate;
 import java.util.UUID;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
+import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Audited
 @Entity(name = "licence_schedule_terms")
-public class LicenceScheduleTerm {
+public class LicenceScheduleTerm implements LinkedToDuplicationParent<LicenceScheduleDetail> {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -63,6 +64,11 @@ public class LicenceScheduleTerm {
 
   public void setLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
     this.licenceScheduleDetail = licenceScheduleDetail;
+  }
+
+  @Override
+  public void setDuplicationParent(LicenceScheduleDetail licenceScheduleDetail) {
+    setLicenceScheduleDetail(licenceScheduleDetail);
   }
 
   public TermType getTermType() {

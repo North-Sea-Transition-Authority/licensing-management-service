@@ -14,6 +14,7 @@ import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
+import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -22,7 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 
 @Audited
 @Entity(name = "work_programme_activities")
-public class WorkProgrammeActivity {
+public class WorkProgrammeActivity implements LinkedToDuplicationParent<LicenceScheduleDetail> {
 
   @Id
   @UuidGenerator
@@ -82,6 +83,11 @@ public class WorkProgrammeActivity {
 
   public void setLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
     this.licenceScheduleDetail = licenceScheduleDetail;
+  }
+
+  @Override
+  public void setDuplicationParent(LicenceScheduleDetail licenceScheduleDetail) {
+    setLicenceScheduleDetail(licenceScheduleDetail);
   }
 
   public WorkProgrammeActivityCategory getCategory() {

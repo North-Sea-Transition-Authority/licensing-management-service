@@ -58,6 +58,15 @@ class LicenceScheduleRateServiceTest {
   }
 
   @Test
+  void getLicenceScheduleRates() {
+    var detail = new LicenceScheduleDetail();
+
+    licenceScheduleRateService.getLicenceScheduleRates(detail);
+
+    verify(licenceScheduleRateRepository).findAllByLicenceScheduleDetail(detail);
+  }
+
+  @Test
   void getActiveLicenceScheduleRatesAttachedToTerm() {
     when(licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOptionAndStatus(
         term,

@@ -17,6 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
@@ -46,10 +47,16 @@ public class LicenceActionService {
 
     var registeredActions = LicenceActionBuilder.newBuilder()
         .registerAction(LicenceActionItem.CREATE_LICENCE_SCHEDULE)
-          .requiresAnyRoleFrom(Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR)
+          .requiresAnyRoleFrom(Role.SCHEDULE_ADMINISTRATOR)
           .requiresAnyStatus()
           .requiresAnyTypeFrom(LicenceType.CARBON_STORAGE, LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION)
           .withLicenceScheduleRequirement(LicenceScheduleRequirement.NO_SCHEDULE_EXISTS)
+          .isPrimaryButton(false)
+        .registerAction(LicenceActionItem.UPDATE_LICENCE_SCHEDULE)
+          .requiresAnyRoleFrom(Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR)
+          .requiresAnyStatus()
+          .requiresAnyTypeFrom(LicenceType.CARBON_STORAGE, LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION)
+          .withLicenceScheduleRequirement(LicenceScheduleRequirement.CAN_CREATE_DRAFT)
           .isPrimaryButton(false)
         .registerAction(LicenceActionItem.MANAGE_LICENSEES)
           .requiresAnyRoleFrom(Role.OFFLINE_LICENCE_ADMINISTRATOR)
@@ -98,14 +105,29 @@ public class LicenceActionService {
       Licence licence,
       Set<LicenceScheduleRequirement> requirements
   ) {
-    var scheduleExists = licenceScheduleDetailService.nonDeletedScheduleExistsForLicence(licence);
+    if (requirements.contains(LicenceScheduleRequirement.NO_REQUIREMENT)) {
+      return true;
+    }
 
-    return requirements.contains(LicenceScheduleRequirement.NO_REQUIREMENT)
-        || requirements.contains(LicenceScheduleRequirement.NO_SCHEDULE_EXISTS) && !scheduleExists;
+    var existingNonDeletedScheduleDetails = licenceScheduleDetailService.getAllScheduleDetailsByLicence(licence).stream()
+        .filter(detail -> !detail.getStatus().equals(LicenceScheduleDetailStatus.DELETED))
+        .toList();
+
+    if (requirements.contains(LicenceScheduleRequirement.NO_SCHEDULE_EXISTS)) {
+      return existingNonDeletedScheduleDetails.isEmpty();
+    }
+
+    var activeScheduleExists = existingNonDeletedScheduleDetails.stream()
+        .anyMatch(detail -> detail.getStatus().equals(LicenceScheduleDetailStatus.ACTIVE));
+
+    var openDraftExists = existingNonDeletedScheduleDetails.stream()
+        .anyMatch(detail -> detail.getStatus().equals(LicenceScheduleDetailStatus.DRAFT));
+
+    return activeScheduleExists && !openDraftExists;
   }
 
   private static boolean isPrimary(Licence licence, LicenceActionItem actionItem) {
-    return ACTIONS_TO_PRIMARY_PREDICATES.getOrDefault(actionItem, lice -> false)
+    return ACTIONS_TO_PRIMARY_PREDICATES.getOrDefault(actionItem, l -> false)
         .test(licence);
   }
 }

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,11 +19,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRoleTestUtil;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,13 +59,13 @@ class LicenceActionServiceTest {
         .withStatus(LicenceStatus.EXTANT)
         .build();
 
-    TeamRole teamRole = TeamRoleTestUtil.newBuilder()
+    var teamRole = TeamRoleTestUtil.newBuilder()
         .withRole(Role.OFFLINE_LICENCE_ADMINISTRATOR)
         .withTeam(new Team())
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
 
-    Set<TeamRole> teamRoles = Set.of(teamRole);
+    var teamRoles = Set.of(teamRole);
     when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(teamRoles);
 
     assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
@@ -83,15 +85,90 @@ class LicenceActionServiceTest {
   }
 
   @Test
-  void getAvailableUserActionItems_licenceScheduleExists() {
+  void getAvailableUserActionItems_draftLicenceScheduleExists() {
     var licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
         .withStatus(LicenceStatus.EXTANT)
         .build();
 
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.SCHEDULE_ADMINISTRATOR)
+        .withTeam(new Team())
+        .withWuaId(ORGANISATION_USER_WUA_ID)
+        .build();
+
+    var teamRoles = Set.of(teamRole);
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(teamRoles);
+
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    licenceScheduleDetail.setStatus(LicenceScheduleDetailStatus.DRAFT);
+
+    when(licenceScheduleDetailService.getAllScheduleDetailsByLicence(licence)).thenReturn(List.of(licenceScheduleDetail));
+
+    assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
+        .doesNotContainAnyElementsOf(List.of(
+            LicenceActionItem.CREATE_LICENCE_SCHEDULE.toActionItemView(licence),
+            LicenceActionItem.UPDATE_LICENCE_SCHEDULE.toActionItemView(licence)
+        ));
+  }
+
+  @Test
+  void getAvailableUserActionItems_activeLicenceScheduleExists() {
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withStatus(LicenceStatus.EXTANT)
+        .build();
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.SCHEDULE_ADMINISTRATOR)
+        .withTeam(new Team())
+        .withWuaId(ORGANISATION_USER_WUA_ID)
+        .build();
+
+    var teamRoles = Set.of(teamRole);
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(teamRoles);
+
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    licenceScheduleDetail.setStatus(LicenceScheduleDetailStatus.ACTIVE);
+
+    when(licenceScheduleDetailService.getAllScheduleDetailsByLicence(licence)).thenReturn(List.of(licenceScheduleDetail));
+
+    assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
+        .contains(LicenceActionItem.UPDATE_LICENCE_SCHEDULE.toActionItemView(licence));
+    
     assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
         .doesNotContain(LicenceActionItem.CREATE_LICENCE_SCHEDULE.toActionItemView(licence));
+  }
+
+  @Test
+  void getAvailableUserActionItems_deletedLicenceScheduleExists() {
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withStatus(LicenceStatus.EXTANT)
+        .build();
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.SCHEDULE_ADMINISTRATOR)
+        .withTeam(new Team())
+        .withWuaId(ORGANISATION_USER_WUA_ID)
+        .build();
+
+    var teamRoles = Set.of(teamRole);
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(teamRoles);
+
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    licenceScheduleDetail.setStatus(LicenceScheduleDetailStatus.DELETED);
+
+    when(licenceScheduleDetailService.getAllScheduleDetailsByLicence(licence)).thenReturn(List.of(licenceScheduleDetail));
+
+    assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
+        .contains(LicenceActionItem.CREATE_LICENCE_SCHEDULE.toActionItemView(licence));
+
+    assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
+        .doesNotContain(LicenceActionItem.UPDATE_LICENCE_SCHEDULE.toActionItemView(licence));
   }
 
   @Test
@@ -102,16 +179,14 @@ class LicenceActionServiceTest {
         .withStatus(LicenceStatus.EXTANT)
         .build();
 
-    TeamRole teamRole = TeamRoleTestUtil.newBuilder()
+    var teamRole = TeamRoleTestUtil.newBuilder()
         .withRole(Role.OFFLINE_LICENCE_ADMINISTRATOR)
         .withTeam(new Team())
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
 
-    Set<TeamRole> teamRoles = Set.of(teamRole);
+    var teamRoles = Set.of(teamRole);
     when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(teamRoles);
-
-    when(licenceScheduleDetailService.nonDeletedScheduleExistsForLicence(licence)).thenReturn(true);
 
     assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
         .contains(LicenceActionItem.MANAGE_LICENSEES.toActionItemView(licence));
@@ -130,11 +205,14 @@ class LicenceActionServiceTest {
         .withRole(Role.SCHEDULE_ADMINISTRATOR)
         .build();
 
-    when(licenceScheduleDetailService.nonDeletedScheduleExistsForLicence(licence)).thenReturn(false);
+    when(licenceScheduleDetailService.getAllScheduleDetailsByLicence(licence)).thenReturn(List.of());
     when(teamQueryService.getTeamRolesForUser(anyLong())).thenReturn(Set.of(teamRole));
 
     assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
         .contains(LicenceActionItem.CREATE_LICENCE_SCHEDULE.toActionItemView(licence));
+
+    assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
+        .doesNotContain(LicenceActionItem.UPDATE_LICENCE_SCHEDULE.toActionItemView(licence));
   }
 
   @Test

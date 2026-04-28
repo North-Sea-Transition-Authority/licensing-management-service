@@ -8,11 +8,12 @@ import java.time.LocalDate;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Audited
 @Entity(name = "licence_schedule_expiry_dates")
-public class LicenceScheduleExpiry {
+public class LicenceScheduleExpiry implements LinkedToDuplicationParent<LicenceScheduleDetail> {
   @Id
   @UuidGenerator
   private UUID id;
@@ -41,6 +42,11 @@ public class LicenceScheduleExpiry {
 
   public void setLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
     this.licenceScheduleDetail = licenceScheduleDetail;
+  }
+
+  @Override
+  public void setDuplicationParent(LicenceScheduleDetail licenceScheduleDetail) {
+    setLicenceScheduleDetail(licenceScheduleDetail);
   }
 
   public LocalDate getExpiryDate() {

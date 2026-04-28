@@ -8,8 +8,8 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -141,85 +141,115 @@ class LicenceScheduleServiceTest {
   }
 
   @Test
-  void getNextTerm_WhenNextTermExists_ReturnsNextTerm() {
-    var scheduleDetail = new LicenceScheduleDetail();
+  void getScheduleState_WhenNoCurrentTerm_ReturnsAllNulls() {
+    var detail = new LicenceScheduleDetail();
 
-    var currentTerm = LicenceScheduleTermTestUtil.builder()
-        .withStartDate(LocalDate.of(2025, 1, 1))
-        .withEndDate(LocalDate.of(2026, 1, 1))
-        .build();
-    var nextTerm = LicenceScheduleTermTestUtil.builder()
-        .withStartDate(LocalDate.of(2026, 1, 1))
-        .withEndDate(LocalDate.of(2027, 1, 1))
-        .build();
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(detail))
+        .thenReturn(Collections.emptyList());
 
-    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
-    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+    var state = licenceScheduleService.getScheduleState(detail);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(scheduleDetail)).thenReturn(List.of(currentTerm, nextTerm));
-
-    Optional<LicenceScheduleTerm> result = licenceScheduleService.getNextTerm(scheduleDetail);
-
-    assertThat(result).isPresent().contains(nextTerm);
+    assertThat(state.currentTerm()).isNull();
+    assertThat(state.currentPhase()).isNull();
+    assertThat(state.nextTerm()).isNull();
+    assertThat(state.nextPhase()).isNull();
   }
 
   @Test
-  void getNextTerm_WhenNoCurrentTerm_ReturnsEmpty() {
-    var scheduleDetail = new LicenceScheduleDetail();
-
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(scheduleDetail))
-        .thenReturn(List.of());
-
-    Optional<LicenceScheduleTerm> result = licenceScheduleService.getNextTerm(scheduleDetail);
-
-    assertThat(result).isEmpty();
-  }
-
-  @Test
-  void getNextPhase_WhenNextPhaseExists_ReturnsNextPhase() {
-    var scheduleDetail = new LicenceScheduleDetail();
-
-    var currentTerm = LicenceScheduleTermTestUtil.builder()
-        .withStartDate(LocalDate.of(2025, 1, 1))
-        .withEndDate(LocalDate.of(2030, 1, 1))
-        .build();
-    var currentPhase = LicenceSchedulePhaseTestUtil.builder()
-        .withStartDate(LocalDate.of(2025, 1, 1))
-        .withEndDate(LocalDate.of(2026, 1, 1))
-        .build();
-    var nextPhase = LicenceSchedulePhaseTestUtil.builder()
-        .withStartDate(LocalDate.of(2026, 1, 1))
-        .withEndDate(LocalDate.of(2027, 1, 1))
-        .build();
-
+  void getScheduleState_WhenHasNextTermAndNextPhase_ReturnsBoth() {
     when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(scheduleDetail)).thenReturn(List.of(currentTerm));
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(List.of(currentPhase, nextPhase));
+    var detail = new LicenceScheduleDetail();
 
-    Optional<LicenceSchedulePhase> result = licenceScheduleService.getNextPhase(scheduleDetail);
+    var currentTerm = new LicenceScheduleTerm();
+    currentTerm.setStartDate(LocalDate.of(2025, 1, 1));
+    currentTerm.setEndDate(LocalDate.of(2030, 1, 1));
 
-    assertThat(result).isPresent().contains(nextPhase);
+    var nextTerm = new LicenceScheduleTerm();
+    nextTerm.setStartDate(LocalDate.of(2030, 1, 1));
+    nextTerm.setEndDate(LocalDate.of(2035, 1, 1));
+
+    var currentPhase = new LicenceSchedulePhase();
+    currentPhase.setStartDate(LocalDate.of(2025, 1, 1));
+    currentPhase.setEndDate(LocalDate.of(2026, 1, 1));
+
+    var nextPhase = new LicenceSchedulePhase();
+    nextPhase.setStartDate(LocalDate.of(2026, 1, 1));
+    nextPhase.setEndDate(LocalDate.of(2027, 1, 1));
+
+    var terms = List.of(currentTerm, nextTerm);
+    var phases = List.of(currentPhase, nextPhase);
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
+    when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(phases);
+
+    var state = licenceScheduleService.getScheduleState(detail);
+
+    assertThat(state.currentTerm()).isEqualTo(currentTerm);
+    assertThat(state.currentPhase()).isEqualTo(currentPhase);
+    assertThat(state.nextTerm()).isEqualTo(nextTerm);
+    assertThat(state.nextPhase()).isEqualTo(nextPhase);
   }
 
   @Test
-  void getNextPhase_WhenNoCurrentPhase_ReturnsEmpty() {
-    var scheduleDetail = new LicenceScheduleDetail();
-
-    var currentTerm = LicenceScheduleTermTestUtil.builder()
-        .withStartDate(LocalDate.of(2025, 1, 1))
-        .withEndDate(LocalDate.of(2030, 1, 1))
-        .build();
-
+  void getScheduleState_WhenNoNextPhase_FindsNextTerm() {
     when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(scheduleDetail)).thenReturn(List.of(currentTerm));
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(List.of());
+    var detail = new LicenceScheduleDetail();
 
-    Optional<LicenceSchedulePhase> result = licenceScheduleService.getNextPhase(scheduleDetail);
+    var currentTerm = new LicenceScheduleTerm();
+    currentTerm.setStartDate(LocalDate.of(2025, 1, 1));
+    currentTerm.setEndDate(LocalDate.of(2030, 1, 1));
 
-    assertThat(result).isEmpty();
+    var nextTerm = new LicenceScheduleTerm();
+    nextTerm.setStartDate(LocalDate.of(2030, 1, 1));
+    nextTerm.setEndDate(LocalDate.of(2035, 1, 1));
+
+    var currentPhase = new LicenceSchedulePhase();
+    currentPhase.setStartDate(LocalDate.of(2025, 1, 1));
+    currentPhase.setEndDate(LocalDate.of(2030, 1, 1));
+
+    var terms = List.of(currentTerm, nextTerm);
+    var phases = List.of(currentPhase);
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
+    when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(phases);
+
+    var state = licenceScheduleService.getScheduleState(detail);
+
+    assertThat(state.currentTerm()).isEqualTo(currentTerm);
+    assertThat(state.currentPhase()).isEqualTo(currentPhase);
+    assertThat(state.nextTerm()).isEqualTo(nextTerm);
+    assertThat(state.nextPhase()).isNull();
+  }
+
+  @Test
+  void getScheduleState_WhenNoPhasesInCurrentTerm_FindsNextTerm() {
+    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
+    var detail = new LicenceScheduleDetail();
+
+    var currentTerm = new LicenceScheduleTerm();
+    currentTerm.setStartDate(LocalDate.of(2025, 1, 1));
+    currentTerm.setEndDate(LocalDate.of(2030, 1, 1));
+
+    var nextTerm = new LicenceScheduleTerm();
+    nextTerm.setStartDate(LocalDate.of(2030, 1, 1));
+    nextTerm.setEndDate(LocalDate.of(2035, 1, 1));
+
+    var terms = List.of(currentTerm, nextTerm);
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
+    when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(Collections.emptyList());
+
+    var state = licenceScheduleService.getScheduleState(detail);
+
+    assertThat(state.currentTerm()).isEqualTo(currentTerm);
+    assertThat(state.currentPhase()).isNull();
+    assertThat(state.nextTerm()).isEqualTo(nextTerm);
+    assertThat(state.nextPhase()).isNull();
   }
 }

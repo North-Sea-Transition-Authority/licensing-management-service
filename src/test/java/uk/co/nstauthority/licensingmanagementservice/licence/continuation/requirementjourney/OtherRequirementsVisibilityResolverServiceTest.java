@@ -3,7 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.continuation.requi
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -42,9 +42,9 @@ class OtherRequirementsVisibilityResolverServiceTest {
   @Test
   void resolve_WhenNextIsPhaseC_ShowsOnlyFinancialCapacity() {
     when(licenceSchedulePhase.getPhaseType()).thenReturn(PhaseType.PHASE_C);
-    when(licenceScheduleTerm.getTermType()).thenReturn(TermType.INITIAL);
-    when(licenceScheduleService.getNextPhase(licenceScheduleDetail)).thenReturn(Optional.of(licenceSchedulePhase));
-    when(licenceScheduleService.getCurrentTerm(licenceScheduleDetail)).thenReturn(licenceScheduleTerm);
+
+    var state = new ScheduleState(null, null, licenceScheduleTerm, licenceSchedulePhase);
+    when(licenceScheduleService.getScheduleState(licenceScheduleDetail)).thenReturn(state);
 
     var result = resolverService.resolve(licenceScheduleDetail);
 
@@ -57,9 +57,9 @@ class OtherRequirementsVisibilityResolverServiceTest {
   @Test
   void resolve_WhenNextIsPhaseB_ShowsNoRequirements() {
     when(licenceSchedulePhase.getPhaseType()).thenReturn(PhaseType.PHASE_B);
-    when(licenceScheduleTerm.getTermType()).thenReturn(TermType.INITIAL);
-    when(licenceScheduleService.getNextPhase(licenceScheduleDetail)).thenReturn(Optional.of(licenceSchedulePhase));
-    when(licenceScheduleService.getCurrentTerm(licenceScheduleDetail)).thenReturn(licenceScheduleTerm);
+
+    var state = new ScheduleState(null, null, licenceScheduleTerm, licenceSchedulePhase);
+    when(licenceScheduleService.getScheduleState(licenceScheduleDetail)).thenReturn(state);
 
     var result = resolverService.resolve(licenceScheduleDetail);
 
@@ -72,10 +72,9 @@ class OtherRequirementsVisibilityResolverServiceTest {
   @Test
   void resolve_WhenNextIsSecondTerm_ShowsFinancialAndRelinquishment() {
     when(licenceScheduleTerm.getTermType()).thenReturn(TermType.SECOND);
-    when(licenceScheduleService.getNextPhase(licenceScheduleDetail))
-        .thenReturn(Optional.empty());
-    when(licenceScheduleService.getNextTerm(licenceScheduleDetail))
-        .thenReturn(Optional.of(licenceScheduleTerm));
+
+    var state = new ScheduleState(null, null, licenceScheduleTerm, null);
+    when(licenceScheduleService.getScheduleState(licenceScheduleDetail)).thenReturn(state);
 
     var result = resolverService.resolve(licenceScheduleDetail);
 
@@ -88,8 +87,9 @@ class OtherRequirementsVisibilityResolverServiceTest {
   @Test
   void resolve_WhenNextTermIsThirdTerm_ShowsFinancialAndFieldDetermination() {
     when(licenceScheduleTerm.getTermType()).thenReturn(TermType.THIRD);
-    when(licenceScheduleService.getNextPhase(licenceScheduleDetail)).thenReturn(Optional.empty());
-    when(licenceScheduleService.getNextTerm(licenceScheduleDetail)).thenReturn(Optional.of(licenceScheduleTerm));
+
+    var state = new ScheduleState(null, null, licenceScheduleTerm, null);
+    when(licenceScheduleService.getScheduleState(licenceScheduleDetail)).thenReturn(state);
 
     var result = resolverService.resolve(licenceScheduleDetail);
 
@@ -101,8 +101,8 @@ class OtherRequirementsVisibilityResolverServiceTest {
 
   @Test
   void resolve_WhenNoNextPhaseOrTerm_ShowsNoRequirements() {
-    when(licenceScheduleService.getNextPhase(licenceScheduleDetail)).thenReturn(Optional.empty());
-    when(licenceScheduleService.getNextTerm(licenceScheduleDetail)).thenReturn(Optional.empty());
+    var state = new ScheduleState(null, null, null, null);
+    when(licenceScheduleService.getScheduleState(licenceScheduleDetail)).thenReturn(state);
 
     var result = resolverService.resolve(licenceScheduleDetail);
 

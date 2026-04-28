@@ -59,7 +59,10 @@ public class LicenceScheduleService {
   public LicenceScheduleTerm getCurrentTerm(LicenceScheduleDetail licenceScheduleDetail) {
     var licenceScheduleTerms = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(
         licenceScheduleDetail);
+    return getCurrentTerm(licenceScheduleTerms);
+  }
 
+  public LicenceScheduleTerm getCurrentTerm(List<LicenceScheduleTerm> licenceScheduleTerms) {
     return licenceScheduleTerms
         .stream()
         .filter(term -> isCurrentlyActive(term.getStartDate(), term.getEndDate()))
@@ -69,7 +72,10 @@ public class LicenceScheduleService {
 
   public LicenceSchedulePhase getCurrentPhase(LicenceScheduleTerm licenceScheduleTerm) {
     var licenceSchedulePhases = licenceSchedulePhaseService.getActivePhasesByTerm(licenceScheduleTerm);
+    return getCurrentPhase(licenceSchedulePhases);
+  }
 
+  public LicenceSchedulePhase getCurrentPhase(List<LicenceSchedulePhase> licenceSchedulePhases) {
     return licenceSchedulePhases
         .stream()
         .filter(phase -> isCurrentlyActive(phase.getStartDate(), phase.getEndDate()))
@@ -144,13 +150,13 @@ public class LicenceScheduleService {
     return term.getStartDate();
   }
 
-  private Optional<LicenceScheduleTerm> getNextTerm(List<LicenceScheduleTerm> terms, LicenceScheduleTerm currentTerm) {
+  public Optional<LicenceScheduleTerm> getNextTerm(List<LicenceScheduleTerm> terms, LicenceScheduleTerm currentTerm) {
     return terms.stream()
         .filter(term -> term.getStartDate().isAfter(currentTerm.getStartDate()))
         .min(Comparator.comparing(LicenceScheduleTerm::getStartDate));
   }
 
-  private Optional<LicenceSchedulePhase> getNextPhase(
+  public Optional<LicenceSchedulePhase> getNextPhase(
       List<LicenceSchedulePhase> phases,
       LicenceSchedulePhase currentPhase
   ) {
@@ -159,28 +165,23 @@ public class LicenceScheduleService {
         .min(Comparator.comparing(LicenceSchedulePhase::getStartDate));
   }
 
-  public Optional<LicenceScheduleTerm> getNextTerm(LicenceScheduleDetail licenceScheduleDetail) {
-    var currentTerm = getCurrentTerm(licenceScheduleDetail);
-    if (currentTerm == null) {
-      return Optional.empty();
-    }
-
+  public ScheduleState getScheduleState(LicenceScheduleDetail licenceScheduleDetail) {
     var terms = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail);
-    return getNextTerm(terms, currentTerm);
-  }
+    var currentTerm = getCurrentTerm(terms);
+    var nextTerm = currentTerm != null ? getNextTerm(terms, currentTerm).orElse(null) : null;
 
-  public Optional<LicenceSchedulePhase> getNextPhase(LicenceScheduleDetail licenceScheduleDetail) {
-    var currentTerm = getCurrentTerm(licenceScheduleDetail);
-    if (currentTerm == null) {
-      return Optional.empty();
+    LicenceSchedulePhase currentPhase = null;
+    LicenceSchedulePhase nextPhase = null;
+
+    if (currentTerm != null) {
+      var phases = licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm);
+      currentPhase = getCurrentPhase(phases);
+
+      if (currentPhase != null) {
+        nextPhase = getNextPhase(phases, currentPhase).orElse(null);
+      }
     }
 
-    var currentPhase = getCurrentPhase(currentTerm);
-    if (currentPhase == null) {
-      return Optional.empty();
-    }
-
-    var phases = licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm);
-    return getNextPhase(phases, currentPhase);
+    return new ScheduleState(currentTerm, currentPhase, nextTerm, nextPhase);
   }
 }

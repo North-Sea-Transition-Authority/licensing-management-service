@@ -33,7 +33,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseRepository;
@@ -68,9 +67,6 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private LicenceScheduleTermRepository licenceScheduleTermRepository;
-
-  @MockitoBean
-  private LicenceScheduleService licenceScheduleService;
 
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
@@ -120,7 +116,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
       licenceScheduleTerm.setId(UUID.randomUUID());
     licenceScheduleTerm.setEndDate(LocalDate.of(1,1,1));
 
-    when(licenceScheduleService.getCurrentTerm(any())).thenReturn(licenceScheduleTerm);
+    when(licenceScheduleService.getCurrentTerm(any(LicenceScheduleDetail.class))).thenReturn(licenceScheduleTerm);    when(licenceScheduleExtensionFormValidator.isValid(any(), any(), any())).thenReturn(false);
     when(licenceScheduleExtensionService.getlicenceScheduleExtensionForm(any())).thenReturn(new LicenceScheduleExtensionForm());
     when(licenceScheduleExtensionService.getExtendableTermAndPhases(any())).thenReturn(List.of(validTermAndPhases));
     when(licenceScheduleExtensionService.canExtendMoreThanOneOption(any())).thenReturn(false);
@@ -160,7 +156,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
 
     String expectedPhaseEndDateDisplay = DateFormatUtil.convertToDisplayText(phaseEndDate);
 
-    when(licenceScheduleService.getCurrentTerm(any())).thenReturn(licenceScheduleTerm);
+    when(licenceScheduleService.getCurrentTerm(any(LicenceScheduleDetail.class))).thenReturn(licenceScheduleTerm);    when(licenceScheduleExtensionFormValidator.isValid(any(), any(), any())).thenReturn(false);
 
     when(licenceScheduleService.getCurrentPhase(licenceScheduleDetail)).thenReturn(currentPhase);
 
@@ -214,7 +210,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
       licenceScheduleTerm.setId(UUID.randomUUID());
       licenceScheduleTerm.setEndDate(LocalDate.of(1,1,1));
 
-    when(licenceScheduleService.getCurrentTerm(any())).thenReturn(licenceScheduleTerm);
+    when(licenceScheduleService.getCurrentTerm(any(LicenceScheduleDetail.class))).thenReturn(licenceScheduleTerm);    when(licenceScheduleExtensionFormValidator.isValid(any(), any(), any())).thenReturn(false);
     when(licenceScheduleExtensionFormValidator.isValid(any(), any(), any())).thenReturn(false);
     when(licenceScheduleExtensionService.getExtendableTermAndPhases(any())).thenReturn(List.of(validTermAndPhases));
     when(licenceScheduleExtensionService.canExtendMoreThanOneOption(any())).thenReturn(false);

@@ -16,6 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 
 @Controller
 @RequestMapping("licence/continuation-application/{licenceContinuationApplicationDetailId}/task-list")
@@ -26,17 +27,20 @@ public class LicenceContinuationApplicationTaskListController {
   public static final String PAGE_TITLE = "Task list";
 
   private final LicenceService licenceService;
-
   private final LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService;
   private final LicenceContinuationService licenceContinuationService;
+  private final LicenceScheduleService licenceScheduleService;
 
   public LicenceContinuationApplicationTaskListController(
       LicenceService licenceService,
       LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService,
-      LicenceContinuationService licenceContinuationService) {
+      LicenceContinuationService licenceContinuationService,
+      LicenceScheduleService licenceScheduleService
+  ) {
     this.licenceService = licenceService;
     this.licenceContinuationApplicationTaskListService = licenceContinuationApplicationTaskListService;
     this.licenceContinuationService = licenceContinuationService;
+    this.licenceScheduleService = licenceScheduleService;
   }
 
   @GetMapping
@@ -50,8 +54,23 @@ public class LicenceContinuationApplicationTaskListController {
         licenceContinuationApplicationDetail,
         serviceUserDetail
     );
+    var scheduleDetailFromApplicationDetail = licenceContinuationService.getScheduleDetailFromApplicationDetail(
+        licenceContinuationApplicationDetail
+    );
+
+    var state = licenceScheduleService.getScheduleState(scheduleDetailFromApplicationDetail);
+
+    String currentTermName = state.currentTerm() != null ? state.currentTerm().getTermType().getDisplayName() : null;
+    String currentPhaseName = state.currentPhase() != null ? state.currentPhase().getPhaseType().getDisplayName() : null;
+    String nextTermName = state.nextTerm() != null ? state.nextTerm().getTermType().getDisplayName() : null;
+    String nextPhaseName = state.nextPhase() != null ? state.nextPhase().getPhaseType().getDisplayName() : null;
+
     var modelAndView = new ModelAndView("lms/licence/continuation/taskList")
         .addObject("pageTitle", PAGE_TITLE)
+        .addObject("currentTerm", currentTermName)
+        .addObject("currentPhase", currentPhaseName)
+        .addObject("nextTerm", nextTermName)
+        .addObject("nextPhase", nextPhaseName)
         .addObject("taskListSections", sections)
         .addObject("pageCaption",
             licenceService.getLicencePageCaption(getLicence(licenceContinuationApplicationDetail)));

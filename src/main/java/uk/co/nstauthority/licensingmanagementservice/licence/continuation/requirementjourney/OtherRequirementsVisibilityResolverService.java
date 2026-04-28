@@ -1,14 +1,11 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney;
 
-import java.util.Optional;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
 @Service
 public class OtherRequirementsVisibilityResolverService {
@@ -25,17 +22,14 @@ public class OtherRequirementsVisibilityResolverService {
   }
 
   public OtherRequirementsVisibility resolve(LicenceScheduleDetail licenceScheduleDetail) {
-    var nextPhase = licenceScheduleService.getNextPhase(licenceScheduleDetail);
+    var scheduleState = licenceScheduleService.getScheduleState(licenceScheduleDetail);
 
-    var nextTerm = nextPhase.isEmpty()
-                   ? licenceScheduleService.getNextTerm(licenceScheduleDetail)
-                   : Optional.ofNullable(licenceScheduleService.getCurrentTerm(licenceScheduleDetail));
-
-    var phaseType = nextPhase.map(LicenceSchedulePhase::getPhaseType).orElse(null);
-    var termType = nextTerm.map(LicenceScheduleTerm::getTermType).orElse(null);
+    var phaseType = scheduleState.nextPhase() != null ? scheduleState.nextPhase().getPhaseType() : null;
+    var targetTerm = scheduleState.nextPhase() != null ? scheduleState.currentTerm() : scheduleState.nextTerm();
+    var termType = targetTerm != null ? targetTerm.getTermType() : null;
 
     var showFinancial = (phaseType != null && FINANCIAL_CAPACITY_TARGET_PHASES.contains(phaseType))
-                            || (termType != null && FINANCIAL_CAPACITY_TARGET_TERMS.contains(termType));
+                        || (termType != null && FINANCIAL_CAPACITY_TARGET_TERMS.contains(termType));
 
     var showRelinquishment = termType != null && RELINQUISHMENT_TARGET_TERMS.contains(termType);
 

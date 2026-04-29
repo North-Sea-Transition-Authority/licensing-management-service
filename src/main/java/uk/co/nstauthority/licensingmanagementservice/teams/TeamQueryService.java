@@ -99,4 +99,6 @@ public class TeamQueryService {
   public List<TeamRole> getAllTeamRolesWithRoles(Collection<Role> roles) {
     return teamRoleRepository.findAllByRoleIn(roles);
   }
+
+
 }

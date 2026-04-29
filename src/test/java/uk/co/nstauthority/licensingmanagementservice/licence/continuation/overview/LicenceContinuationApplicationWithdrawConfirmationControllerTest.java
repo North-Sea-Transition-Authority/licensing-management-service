@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -23,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.withdraw.ApplicationWithdrawReasonValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
@@ -45,6 +47,9 @@ class LicenceContinuationApplicationWithdrawConfirmationControllerTest extends A
 
   @MockitoBean
   LicenceContinuationActionService licenceContinuationActionService;
+
+  @MockitoBean
+  ApplicationWithdrawReasonValidator applicationWithdrawReasonValidator;
 
   private static final Licence LICENCE = LicenceTestUtil.builder().build();
   private static final LicenceScheduleDetail LICENCE_SCHEDULE_DETAIL = LicenceScheduleTestUtil.createLicenceScheduleDetail(LicenceScheduleTestUtil.createLicenceSchedule(LICENCE));
@@ -70,16 +75,36 @@ class LicenceContinuationApplicationWithdrawConfirmationControllerTest extends A
   }
 
   @Test
-  void submitForm() throws Exception {
+  void submitForm_whenValid_redirectsToWorkArea() throws Exception {
+    String expectedReason = "Business decision changed";
+    when(applicationWithdrawReasonValidator.isValid(any())).thenReturn(true);
+
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceContinuationApplicationWithdrawConfirmationController.class).submitForm(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null)))
+            post(ReverseRouter.route(on(LicenceContinuationApplicationWithdrawConfirmationController.class).submitForm(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null, null, null)))
                 .with(user(USER))
                 .with(csrf())
+                .param("reasonForWithdrawal", expectedReason)
         )
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))));
 
-    verify(licenceContinuationService).withdrawContinuationChangeStatus(LICENCE_CONTINUATION_APPLICATION_DETAIL);
+    verify(licenceContinuationService).withdrawContinuationChangeStatus(LICENCE_CONTINUATION_APPLICATION_DETAIL, expectedReason);
+  }
+
+  @Test
+  void submitForm_whenInvalid_returnsToFormView() throws Exception {
+    when(applicationWithdrawReasonValidator.isValid(any())).thenReturn(false);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(LicenceContinuationApplicationWithdrawConfirmationController.class).submitForm(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null, null, null)))
+                .with(user(USER))
+                .with(csrf())
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/licence/continuation/licenceContinuationWithdrawConfirmation"))
+        .andExpect(model().attributeExists("cancelUrl", "form"));
+
+    verify(licenceContinuationService, never()).withdrawContinuationChangeStatus(any(), any());
   }
 
   @Test
@@ -90,6 +115,6 @@ class LicenceContinuationApplicationWithdrawConfirmationControllerTest extends A
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/continuation/licenceContinuationWithdrawConfirmation"))
-        .andExpect(model().attributeExists("cancelUrl"));
+        .andExpect(model().attributeExists("cancelUrl", "form"));
   }
 }

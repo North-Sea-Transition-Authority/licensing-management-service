@@ -32,6 +32,9 @@ public class LicenceContinuationApplication implements LicenceApplication {
   @Column
   private String applicationReference;
 
+  @Column
+  private String withdrawalReason;
+
   public UUID getId() {
     return id;
   }
@@ -62,6 +65,14 @@ public class LicenceContinuationApplication implements LicenceApplication {
 
   public void setApplicationReference(String applicationReference) {
     this.applicationReference = applicationReference;
+  }
+
+  public String getWithdrawalReason() {
+    return withdrawalReason;
+  }
+
+  public void setWithdrawalReason(String withdrawalReason) {
+    this.withdrawalReason = withdrawalReason;
   }
 
   @Override

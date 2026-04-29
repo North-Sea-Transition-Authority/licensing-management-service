@@ -7,4 +7,6 @@ public interface LicenceApplication {
   UUID getId();
 
   ApplicationType getApplicationType();
+
+  String getApplicationReference();
 }

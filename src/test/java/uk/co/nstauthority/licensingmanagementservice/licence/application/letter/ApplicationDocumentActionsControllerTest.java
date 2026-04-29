@@ -45,7 +45,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @WebMvcTest(ApplicationDocumentActionsController.class)
 @ContextConfiguration(classes = ApplicationDocumentActionsController.class)
@@ -233,61 +232,5 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
         .andExpect(redirectedUrl(ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(applicationType, applicationId))));
 
     verify(documentInstanceService).reloadDocumentInstance(documentInstanceMock);
-  }
-
-  @Test
-  void approveAndSignDocument_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
-    mockMvc.perform(
-            get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).approveAndSignDocument(applicationType, applicationId, documentInstanceId, null, regulatorUser)))
-        )
-        .andExpect(redirectionToLoginUrl());
-  }
-
-  @Test
-  void approveAndSignDocument_whenInstanceNotFound_assertNotFound() throws Exception {
-    when(documentInstanceService.getDocumentInstanceDtoOrThrow(documentInstanceId))
-        .thenThrow(DocumentInstanceNotFoundException.class);
-
-    mockMvc.perform(
-            get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).approveAndSignDocument(applicationType, applicationId, documentInstanceId, null, regulatorUser)))
-                .with(user(regulatorUser))
-        )
-        .andExpect(status().isNotFound());
-  }
-
-  @Test
-  void approveAndSignDocument_assertRedirectsAndSavesLetter() throws Exception {
-    when(applicationService.getApplication(applicationType, applicationId))
-        .thenReturn(licenceApplication);
-
-    when(documentInstanceService.getDocumentInstanceDtoOrThrow(documentInstanceId))
-        .thenReturn(documentInstanceMock);
-
-    mockMvc.perform(
-            get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).approveAndSignDocument(applicationType, applicationId, documentInstanceId, null, regulatorUser)))
-                .with(user(regulatorUser))
-        )
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))));
-
-    verify(applicationService)
-        .getApplication(applicationType, applicationId);
-
-    verify(documentInstanceService)
-        .getDocumentInstanceDtoOrThrow(documentInstanceId);
-
-    verify(issueLettersService).saveApplicationLetterToS3(
-        documentInstanceMock,
-        licenceApplication,
-        regulatorUser,
-        false,
-        lmsDocumentInstanceService
-    );
-
-    verify(licenceContinuationService)
-        .issueContinuationLetterChangeStatus(continuationApplicationDetail);
-
-    verify(issueLettersService)
-        .sendContinuationIssuanceEmails(licenceApplication, continuationApplicationDetail);
   }
 }

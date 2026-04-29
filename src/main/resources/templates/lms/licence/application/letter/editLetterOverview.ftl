@@ -9,13 +9,9 @@
   errorSummaryItems=errorList
   pageHeadingClass="govuk-heading-xl govuk-!-margin-bottom-2"
 >
-    <@fdsAction.link
-    linkText="Approve and issue letters"
-    linkUrl=springUrl(signUrl)
-    linkClass="govuk-button govuk-button--primary"
-    role=true
-    openInNewTab=false
-    />
+    <@fdsForm.htmlForm actionUrl=springUrl(signUrl)>
+      <@fdsAction.button buttonText="Approve and issue letters" buttonClass="govuk-button govuk-button--primary"/>
+    </@fdsForm.htmlForm>
 
     <@fdsAction.link
     linkText="Preview document"

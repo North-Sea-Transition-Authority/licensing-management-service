@@ -22,52 +22,34 @@ import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceNotFoundExce
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceSectionsSummaryView;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceService;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTeamType;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.document.DocumentLinkingService;
 import uk.co.nstauthority.licensingmanagementservice.document.instance.LmsDocumentInstanceService;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.teams.Role;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @Controller
 @RequestMapping("/application/{applicationType}/{applicationId}/document/{documentInstanceId}")
-@ContinuationApplicationHasStatus(value = LicenceContinuationApplicationStatus.ISSUE_DECISION)
-@HasRolesInTeamType(value = {
-    @RolesAndTeamType(roles = {Role.CONTINUATION_ISSUER}, teamType = TeamType.REGULATIONS_LICENSING)
-})
 public class ApplicationDocumentActionsController {
 
   private final DocumentInstanceService documentInstanceService;
   private final LmsDocumentInstanceService lmsDocumentInstanceService;
   private final ApplicationService applicationService;
   private final DocumentLinkingService documentLinkingService;
-  private final IssueLettersService issueLettersService;
-  private final LicenceContinuationService  licenceContinuationService;
 
   @Autowired
   public ApplicationDocumentActionsController(
       DocumentInstanceService documentInstanceService,
       LmsDocumentInstanceService lmsDocumentInstanceService,
       ApplicationService applicationService,
-      DocumentLinkingService documentLinkingService,
-      IssueLettersService issueLettersService,
-      LicenceContinuationService licenceContinuationService
+      DocumentLinkingService documentLinkingService
   ) {
     this.documentInstanceService = documentInstanceService;
     this.lmsDocumentInstanceService = lmsDocumentInstanceService;
     this.applicationService = applicationService;
     this.documentLinkingService = documentLinkingService;
-    this.issueLettersService = issueLettersService;
-    this.licenceContinuationService = licenceContinuationService;
   }
 
   @GetMapping("preview")
@@ -97,34 +79,6 @@ public class ApplicationDocumentActionsController {
     return renderPreviewPdf(application, documentInstance, sectionsSummaryView, user);
   }
 
-  @GetMapping("approve")
-  public ModelAndView approveAndSignDocument(
-      @PathVariable ApplicationType applicationType,
-      @PathVariable UUID applicationId,
-      @PathVariable("documentInstanceId") UUID documentInstanceId,
-      RedirectAttributes redirectAttributes,
-      ServiceUserDetail user
-  ) {
-    var application = applicationService.getApplication(applicationType, applicationId);
-    var documentInstance = getDocumentInstanceDtoOrThrowNotFound(documentInstanceId);
-
-    issueLettersService.saveApplicationLetterToS3(documentInstance, application, user, false, lmsDocumentInstanceService);
-
-    NotificationBanner.newSuccessBannerWithHeader(
-        "Successfully approved the document %s".formatted(documentInstance.title()),
-        redirectAttributes
-    );
-
-    var continuationApplicationDetail = licenceContinuationService
-        .getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(applicationId);
-
-    licenceContinuationService.issueContinuationLetterChangeStatus(continuationApplicationDetail);
-
-    issueLettersService.sendContinuationIssuanceEmails(application, continuationApplicationDetail);
-
-    return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
-  }
-
   @GetMapping("reload")
   public ModelAndView renderReloadDocumentPage(
       @PathVariable ApplicationType applicationType,
@@ -132,7 +86,6 @@ public class ApplicationDocumentActionsController {
       @PathVariable("documentInstanceId") UUID documentInstanceId
   ) {
     var documentInstance = getDocumentInstanceDtoOrThrowNotFound(documentInstanceId);
-
     var organisationName = documentLinkingService.getApplicationCompanyNameFromDto(documentInstance);
 
     return new ModelAndView("lms/licence/application/letter/reloadDocumentInstance")
@@ -180,7 +133,6 @@ public class ApplicationDocumentActionsController {
     );
 
     ByteArrayResource pdfContent = pdf.pdfContent();
-
     var fileName = "PREVIEW %s.pdf".formatted(documentInstance.title());
 
     return ResponseEntity.ok()

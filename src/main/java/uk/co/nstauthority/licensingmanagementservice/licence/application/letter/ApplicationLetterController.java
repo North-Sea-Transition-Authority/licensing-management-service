@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.letter.ContinuationApplicationDocumentActionsController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -127,7 +128,7 @@ public class ApplicationLetterController {
         )
         .addObject(
             "signUrl",
-            ReverseRouter.route(on(ApplicationDocumentActionsController.class).approveAndSignDocument(
+            ReverseRouter.route(on(ContinuationApplicationDocumentActionsController.class).approveAndSignDocument(
                 applicationType,
                 applicationId,
                 documentInstanceDto.id(),

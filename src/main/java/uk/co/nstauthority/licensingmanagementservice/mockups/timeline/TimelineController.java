@@ -8,7 +8,7 @@ import org.springframework.web.servlet.ModelAndView;
 
 @Controller
 @RequestMapping("/timeline")
-@Profile("internal-only")
+@Profile("mockups")
 public class TimelineController {
 
   @GetMapping("/production")

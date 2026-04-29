@@ -9,11 +9,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 
 @Controller
-@RequestMapping("/contact-mockup")
-@Profile("internal-only")
+@RequestMapping("/mockups/contacts")
+@Profile("mockups")
 public class ContactController {
 
   public static final String BP_EXPLORATION = "BP Exploration Limited";
+  public static final String BRITOIL_LIMITED = "Britoil Limited";
   public static final String SHELL_U_K = "Shell U.K. Limited";
   public static final String SHELL_U_K_PLC = "Shell U.K. Plc";
   public static final String SHELL_U_K_NORTH_ATLANTIC = "Shell U.K. North Atlantic Limited";
@@ -23,8 +24,10 @@ public class ContactController {
   public static final List<ContactRow> CONTACT_LIST = List.of(
       new ContactRow("101", "P1918", BP_EXPLORATION, BP_EXPLORATION, "licensing.uk@bp.com"),
       new ContactRow("102", "P2000", BP_EXPLORATION, BP_EXPLORATION, "licensing.uk@bp.com"),
-      new ContactRow("103", "P2400", BP_EXPLORATION, BP_EXPLORATION, "john.smith@bp.com"),
-      new ContactRow("104", "P3000", BP_EXPLORATION, BP_EXPLORATION, ""),
+      new ContactRow("103", "P2100", BP_EXPLORATION, BP_EXPLORATION, "licensing.uk@bp.com"),
+      new ContactRow("104", "P2400", BP_EXPLORATION, BRITOIL_LIMITED, "john.smith@britoil.com"),
+      new ContactRow("105", "P3000", BP_EXPLORATION, BP_EXPLORATION, ""),
+      new ContactRow("106", "P3200", BP_EXPLORATION, BRITOIL_LIMITED, ""),
       new ContactRow("201", "P1011", SHELL_U_K_PLC, SHELL_U_K, "uk-licensing@shell.com"),
       new ContactRow("202", "P1022", SHELL_U_K_PLC, SHELL_U_K, "uk-licensing@shell.com"),
       new ContactRow("203", "P1033", SHELL_U_K_PLC, SHELL_U_K, "uk-licensing@shell.com"),
@@ -38,7 +41,7 @@ public class ContactController {
       new ContactRow("402", "P2602", TOTAL_ENERGIES_E_P_UK, TOTAL_ENERGIES_E_P_UK, "")
   );
   public static final List<ContactRow> CONTACT_INDUSTRY_LIST = CONTACT_LIST.stream()
-      .filter(contactRow -> contactRow.licenseeGroup().equals(SHELL_U_K_PLC))
+      .filter(contactRow -> contactRow.licenseeGroup().equals(BP_EXPLORATION))
       .toList();
 
   @GetMapping("/manage-contacts-industry")

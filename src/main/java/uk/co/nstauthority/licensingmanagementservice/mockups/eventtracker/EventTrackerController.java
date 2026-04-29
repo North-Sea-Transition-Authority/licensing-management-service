@@ -15,7 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEn
 
 @Controller
 @RequestMapping("/mockups/event-tracker")
-@Profile("internal-only")
+@Profile("mockups")
 public class EventTrackerController {
 
   @GetMapping("/multi-table-design")

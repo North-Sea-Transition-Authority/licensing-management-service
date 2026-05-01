@@ -350,4 +350,59 @@ class LicenceContinuationServiceTest {
     when(mergedTemplateBuilder.withMailMergeField(anyString(), anyString())).thenReturn(mergedTemplateBuilder);
     when(mergedTemplateBuilder.merge()).thenReturn(mergedTemplateMock);
   }
+
+  @Test
+  void issueContinuationLetter_updatesStatusSavesAndSendsEmails() {
+    UUID appId = UUID.randomUUID();
+    when(licenceApplication.getId()).thenReturn(appId);
+
+    var licenceContinuationApp = licenceContinuationApplicationDetail.getLicenceContinuationApplication();
+
+    when(licenceContinuationApplicationRepository.findById(appId))
+        .thenReturn(Optional.of(licenceContinuationApp));
+
+    when(licenceContinuationApplicationDetailRepository.findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(licenceContinuationApp))
+        .thenReturn(Optional.of(licenceContinuationApplicationDetail));
+
+    licenceContinuationApplicationDetail.setResponsibleOrganisationUnitId(orgUnitId);
+    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(orgUnitId))
+        .thenReturn(Optional.of(orgGroupId));
+    when(industryTeamService.getSubmitterDetails(orgGroupId)).thenReturn(List.of());
+
+    licenceContinuationService.issueContinuationLetter(licenceApplication);
+
+    assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.COMPLETE);
+    verify(licenceContinuationApplicationDetailRepository).save(licenceContinuationApplicationDetail);
+    verify(organisationUnitQueryService).findOrganisationGroupIdByUnitId(orgUnitId);
+    verify(industryTeamService).getSubmitterDetails(orgGroupId);
+  }
+
+  @Test
+  void issueContinuationLetter_throwsException_whenApplicationNotFound() {
+    UUID appId = UUID.randomUUID();
+    when(licenceApplication.getId()).thenReturn(appId);
+    when(licenceContinuationApplicationRepository.findById(appId)).thenReturn(Optional.empty());
+
+    assertThrows(LmsEntityNotFoundException.class, () -> licenceContinuationService.issueContinuationLetter(licenceApplication));
+
+    verify(licenceContinuationApplicationDetailRepository, times(0)).save(any());
+  }
+
+  @Test
+  void issueContinuationLetter_throwsException_whenApplicationDetailNotFound() {
+    UUID appId = UUID.randomUUID();
+    when(licenceApplication.getId()).thenReturn(appId);
+
+    var licenceContinuationApp = licenceContinuationApplicationDetail.getLicenceContinuationApplication();
+
+    when(licenceContinuationApplicationRepository.findById(appId))
+        .thenReturn(Optional.of(licenceContinuationApp));
+
+    when(licenceContinuationApplicationDetailRepository.findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(licenceContinuationApp))
+        .thenReturn(Optional.empty());
+
+    assertThrows(LmsEntityNotFoundException.class, () -> licenceContinuationService.issueContinuationLetter(licenceApplication));
+
+    verify(licenceContinuationApplicationDetailRepository, times(0)).save(any());
+  }
 }

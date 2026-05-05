@@ -15,14 +15,13 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
-import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -30,6 +29,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @ContextConfiguration(classes = OtherScheduleEventController.class)
 class OtherScheduleEventControllerTest extends AbstractControllerTest {
@@ -46,9 +47,6 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
   @MockitoBean
   private LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
 
-  private ServiceUserDetail organisationUser;
-  private static final Long ORGANISATION_USER_WUA_ID = 2L;
-
   private Licence licence;
   private static final String PAGE_CAPTION = "page caption";
 
@@ -57,10 +55,6 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
 
   @BeforeEach
   void setUp() {
-    organisationUser = ServiceUserDetailTestUtil.newBuilder()
-        .withWuaId(ORGANISATION_USER_WUA_ID)
-        .build();
-
     licence = LicenceTestUtil.builder()
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
         .build();
@@ -76,6 +70,8 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
 
   @Test
   void renderAddNewEventForm() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(otherScheduleEventFormService.getDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
@@ -86,7 +82,7 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
     mockMvc.perform(
             get(ReverseRouter.route(on(OtherScheduleEventController.class)
                 .renderAddNewEventForm(licenceScheduleDetail.getId(), null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createOtherScheduleEvent"))
@@ -100,14 +96,29 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void renderAddNewEventForm_noRoles() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(OtherScheduleEventController.class)
+                .renderAddNewEventForm(licenceScheduleDetail.getId(), null)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
   void submitAddNewEventForm() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
     when(otherScheduleEventFormValidator.isValid(any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(OtherScheduleEventController.class)
                 .submitAddNewEventForm(licenceScheduleDetail.getId(), null, null, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
@@ -117,6 +128,8 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
 
   @Test
   void submitAddNewEventForm_invalid() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(otherScheduleEventFormValidator.isValid(any(), any())).thenReturn(false);
@@ -128,7 +141,7 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
     mockMvc.perform(
             post(ReverseRouter.route(on(OtherScheduleEventController.class)
                 .submitAddNewEventForm(licenceScheduleDetail.getId(), null, null, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().isOk())
@@ -145,7 +158,25 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void submitAddNewEventForm_noRoles() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(false);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(OtherScheduleEventController.class)
+                .submitAddNewEventForm(licenceScheduleDetail.getId(), null, null, null)))
+                .with(user(regulatorUser))
+                .with(csrf())
+        )
+        .andExpect(status().isForbidden());
+
+    verify(otherScheduleEventFormService, never()).saveEventFromForm(any(), any(), any());
+  }
+
+  @Test
   void renderUpdateEventForm() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
     when(otherScheduleEventService.getOtherScheduleEventByIdOrThrow(otherScheduleEvent.getId())).thenReturn(otherScheduleEvent);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(otherScheduleEventFormService.getDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
@@ -157,7 +188,7 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
     mockMvc.perform(
             get(ReverseRouter.route(on(OtherScheduleEventController.class)
                 .renderUpdateEventForm(otherScheduleEvent.getId())))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createOtherScheduleEvent"))
@@ -171,14 +202,29 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void renderUpdateEventForm_noRoles() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(OtherScheduleEventController.class)
+                .renderUpdateEventForm(otherScheduleEvent.getId())))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
   void submitUpdateEventForm() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
     when(otherScheduleEventService.getOtherScheduleEventByIdOrThrow(otherScheduleEvent.getId())).thenReturn(otherScheduleEvent);
     when(otherScheduleEventFormValidator.isValid(any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(OtherScheduleEventController.class)
                 .submitUpdateEventForm(otherScheduleEvent.getId(), null, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
@@ -188,6 +234,8 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
 
   @Test
   void submitUpdateEventForm_invalid() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
     when(otherScheduleEventService.getOtherScheduleEventByIdOrThrow(otherScheduleEvent.getId())).thenReturn(otherScheduleEvent);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(otherScheduleEventFormValidator.isValid(any(), any())).thenReturn(false);
@@ -200,7 +248,7 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
     mockMvc.perform(
             post(ReverseRouter.route(on(OtherScheduleEventController.class)
                 .submitUpdateEventForm(otherScheduleEvent.getId(), null, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().isOk())
@@ -212,6 +260,22 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("relativeOptions", Map.of()))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
+
+    verify(otherScheduleEventFormService, never()).saveEventFromForm(any(), any(), any());
+  }
+
+  @Test
+  void submitUpdateEventForm_noRoles() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(false);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(OtherScheduleEventController.class)
+                .submitUpdateEventForm(otherScheduleEvent.getId(), null, null)))
+                .with(user(regulatorUser))
+                .with(csrf())
+        )
+        .andExpect(status().isForbidden());
 
     verify(otherScheduleEventFormService, never()).saveEventFromForm(any(), any(), any());
   }

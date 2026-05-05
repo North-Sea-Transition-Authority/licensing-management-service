@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate;
 
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -13,28 +14,26 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
-import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @ContextConfiguration(classes = LicenceScheduleRateDeletionController.class)
 class LicenceScheduleRateDeletionControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private LicenceScheduleRateService licenceScheduleRateService;
-
-  private ServiceUserDetail organisationUser;
-  private static final Long ORGANISATION_USER_WUA_ID = 2L;
 
   private Licence licence;
   private LicenceScheduleDetail licenceScheduleDetail;
@@ -43,10 +42,6 @@ class LicenceScheduleRateDeletionControllerTest extends AbstractControllerTest {
 
   @BeforeEach
   void setUp() {
-    organisationUser = ServiceUserDetailTestUtil.newBuilder()
-        .withWuaId(ORGANISATION_USER_WUA_ID)
-        .build();
-
     licence = LicenceTestUtil.builder().build();
 
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
@@ -62,13 +57,15 @@ class LicenceScheduleRateDeletionControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderDeletePhasePage() throws Exception {
+  void renderDeleteRatePage() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
     when(licenceScheduleRateService.getRateByIdOrThrow(rate.getId())).thenReturn(rate);
     when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceScheduleRateDeletionController.class).renderDeleteRatePage(rate.getId())))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/deleteScheduleRate"))
@@ -79,17 +76,48 @@ class LicenceScheduleRateDeletionControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void submitDeletePhasePage() throws Exception {
+  void renderDeleteRatePage_noRoles() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(false);
+    when(licenceScheduleRateService.getRateByIdOrThrow(rate.getId())).thenReturn(rate);
+    when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceScheduleRateDeletionController.class).renderDeleteRatePage(rate.getId())))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void submitDeleteRatePage() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
     when(licenceScheduleRateService.getRateByIdOrThrow(rate.getId())).thenReturn(rate);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceScheduleRateDeletionController.class).submitDeleteRatePage(rate.getId(), null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
 
     verify(licenceScheduleRateService).deleteLicenceScheduleRate(rate);
+  }
+
+  @Test
+  void submitDeleteRatePage_noRoles() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(false);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(LicenceScheduleRateDeletionController.class).submitDeleteRatePage(rate.getId(), null)))
+                .with(user(regulatorUser))
+                .with(csrf())
+        )
+        .andExpect(status().isForbidden());
+
+    verify(licenceScheduleRateService, never()).deleteLicenceScheduleRate(rate);
   }
 
 }

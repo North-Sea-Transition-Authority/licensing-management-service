@@ -10,15 +10,21 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTeamType;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LicenceActionEndPointInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.licencescheduledetail.LicenceScheduleDetailHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.StartLicenceScheduleJourneyController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @Controller
 public class LicenceStartDateController {
@@ -75,6 +81,10 @@ public class LicenceStartDateController {
     return ReverseRouter.redirect(on(LicenceScheduleTermController.class).renderAddNewTermForm(scheduleDetailId, null));
   }
 
+  @HasRolesInTeamType(value = {
+      @RolesAndTeamType(roles = {Role.SCHEDULE_ADMINISTRATOR}, teamType = TeamType.LICENCE_MANAGEMENT)
+  })
+  @LicenceScheduleDetailHasStatus(value = LicenceScheduleDetailStatus.DRAFT)
   @GetMapping("/licence/schedule/{licenceScheduleDetailId}/start-date")
   public ModelAndView renderLicenceStartDateUpdateForm(
       @PathVariable UUID licenceScheduleDetailId,
@@ -86,6 +96,10 @@ public class LicenceStartDateController {
         licenceScheduleDetail.getLicenceSchedule().getLicence());
   }
 
+  @HasRolesInTeamType(value = {
+      @RolesAndTeamType(roles = {Role.SCHEDULE_ADMINISTRATOR}, teamType = TeamType.LICENCE_MANAGEMENT)
+  })
+  @LicenceScheduleDetailHasStatus(value = LicenceScheduleDetailStatus.DRAFT)
   @PostMapping("/licence/schedule/{licenceScheduleDetailId}/start-date")
   public ModelAndView submitLicenceStartDateUpdateForm(
       @PathVariable UUID licenceScheduleDetailId,

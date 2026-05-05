@@ -15,6 +15,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,8 +23,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.validation.Errors;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
-import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -31,6 +30,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @ContextConfiguration(classes = LicenceScheduleRateController.class)
 class LicenceScheduleRateControllerTest extends AbstractControllerTest {
@@ -47,18 +48,11 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
   @MockitoBean
   private LicenceScheduleRateService licenceScheduleRateService;
 
-  private ServiceUserDetail organisationUser;
-  private static final Long ORGANISATION_USER_WUA_ID = 2L;
-
   private Licence licence;
   private LicenceScheduleDetail licenceScheduleDetail;
 
   @BeforeEach
   void setUp() {
-    organisationUser = ServiceUserDetailTestUtil.newBuilder()
-        .withWuaId(ORGANISATION_USER_WUA_ID)
-        .build();
-
     licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
@@ -73,6 +67,9 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
 
   @Test
   void renderNewLicenceScheduleRateForm() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
+
     var pageCaption = "P001";
 
     when(licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
@@ -83,7 +80,7 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceScheduleRateController.class).renderNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createScheduleRate"))
@@ -97,12 +94,26 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void renderNewLicenceScheduleRateForm_noRoles() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceScheduleRateController.class).renderNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
   void submitNewLicenceScheduleRateForm() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
     when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class))).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null, null, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
@@ -112,6 +123,8 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
 
   @Test
   void submitNewLicenceScheduleRateForm_invalid() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
     when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class))).thenReturn(false);
 
     var pageCaption = "P001";
@@ -123,7 +136,7 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null, null, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().isOk())
@@ -140,7 +153,25 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void submitNewLicenceScheduleRateForm_noRoles() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(false);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null, null, null)))
+                .with(user(regulatorUser))
+                .with(csrf())
+        )
+        .andExpect(status().isForbidden());
+
+    verify(licenceScheduleRateFormService, never()).saveRateFromForm(any(), any(), any());
+  }
+
+  @Test
   void renderUpdateLicenceScheduleRateForm() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
+
     var pageCaption = "P001";
 
     var rate = new LicenceScheduleRate();
@@ -159,7 +190,7 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceScheduleRateController.class).renderUpdateLicenceScheduleRateForm(rate.getId())))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createScheduleRate"))
@@ -173,7 +204,25 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void renderUpdateLicenceScheduleRateForm_noRoles() throws Exception {
+    var rate = new LicenceScheduleRate();
+    rate.setId(UUID.randomUUID());
+    rate.setLicenceScheduleDetail(licenceScheduleDetail);
+
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceScheduleRateController.class).renderUpdateLicenceScheduleRateForm(rate.getId())))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
   void submitUpdateLicenceScheduleRateForm() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
     var rate = new LicenceScheduleRate();
     rate.setId(UUID.randomUUID());
     rate.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -183,7 +232,7 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitUpdateLicenceScheduleRateForm(rate.getId(), null, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
@@ -193,6 +242,8 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
 
   @Test
   void submitUpdateLicenceScheduleRateForm_invalid() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
     when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class))).thenReturn(false);
 
     var pageCaption = "P001";
@@ -208,7 +259,7 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitUpdateLicenceScheduleRateForm(rate.getId(), null, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().isOk())
@@ -220,6 +271,25 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("relativeDateOptions", RateRelativeDateOption.getRateRelativeDateOptions()))
         .andExpect(model().attribute("pageCaption", pageCaption))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
+
+    verify(licenceScheduleRateFormService, never()).saveRateFromForm(any(), any(), any());
+  }
+
+  @Test
+  void submitUpdateLicenceScheduleRateForm_noRoles() throws Exception {
+    var rate = new LicenceScheduleRate();
+    rate.setId(UUID.randomUUID());
+    rate.setLicenceScheduleDetail(licenceScheduleDetail);
+
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(false);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitUpdateLicenceScheduleRateForm(rate.getId(), null, null)))
+                .with(user(regulatorUser))
+                .with(csrf())
+        )
+        .andExpect(status().isForbidden());
 
     verify(licenceScheduleRateFormService, never()).saveRateFromForm(any(), any(), any());
   }

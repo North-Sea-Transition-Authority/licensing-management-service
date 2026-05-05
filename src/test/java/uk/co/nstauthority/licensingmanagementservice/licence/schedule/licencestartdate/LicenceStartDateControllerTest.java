@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencest
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -15,14 +16,13 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController.PAGE_TITLE;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
-import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
@@ -30,6 +30,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculatio
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.StartLicenceScheduleJourneyController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @ContextConfiguration(classes = LicenceStartDateController.class)
 class LicenceStartDateControllerTest extends AbstractControllerTest {
@@ -43,9 +45,6 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
   @MockitoBean
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
 
-  private ServiceUserDetail organisationUser;
-  private static final Long ORGANISATION_USER_WUA_ID = 2L;
-
   private Licence licence;
   private static final Integer LICENCE_ID = 1;
 
@@ -56,10 +55,6 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
 
   @BeforeEach
   void setUp() {
-    organisationUser = ServiceUserDetailTestUtil.newBuilder()
-        .withWuaId(ORGANISATION_USER_WUA_ID)
-        .build();
-    
     licence = new Licence();
     when(licenceService.findLicenceByIdOrThrow(LICENCE_ID)).thenReturn(licence);
 
@@ -70,7 +65,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
 
   @Test
   void renderLicenceStartDateForm() throws Exception {
-    when(licenceActionService.getAvailableUserActionItems(licence,organisationUser))
+    when(licenceActionService.getAvailableUserActionItems(licence, regulatorUser))
         .thenReturn(List.of(new ActionItemView(
             "Create licence schedule",
             1,
@@ -82,7 +77,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateForm(LICENCE_ID, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/startDate"))
@@ -96,7 +91,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
     var licenceStartDate = new LicenceStartDate();
     licenceStartDate.setLicenceScheduleDetail(licenceScheduleDetail);
 
-    when(licenceActionService.getAvailableUserActionItems(licence,organisationUser))
+    when(licenceActionService.getAvailableUserActionItems(licence,regulatorUser))
         .thenReturn(List.of(new ActionItemView(
             "Create licence schedule",
             1,
@@ -109,7 +104,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceStartDateController.class).submitLicenceStartDateForm(LICENCE_ID, null, null, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
@@ -117,7 +112,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
 
   @Test
   void submitLicenceStartDateForm_invalidForm() throws Exception {
-    when(licenceActionService.getAvailableUserActionItems(licence,organisationUser))
+    when(licenceActionService.getAvailableUserActionItems(licence,regulatorUser))
         .thenReturn(List.of(new ActionItemView(
             "Create licence schedule",
             1,
@@ -130,7 +125,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceStartDateController.class).submitLicenceStartDateForm(LICENCE_ID, null, null, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().isOk())
@@ -141,24 +136,24 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
 
   @Test
   void renderLicenceStartDateForm_noAuth() throws Exception {
-    when(licenceActionService.getAvailableUserActionItems(licence,organisationUser))
+    when(licenceActionService.getAvailableUserActionItems(licence,regulatorUser))
         .thenReturn(List.of(new ActionItemView("test", 1, false, "test", "test")));
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateForm(LICENCE_ID, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
         )
         .andExpect(status().isForbidden());
   }
 
   @Test
   void submitLicenceStartDateForm_noAuth() throws Exception {
-    when(licenceActionService.getAvailableUserActionItems(licence,organisationUser))
+    when(licenceActionService.getAvailableUserActionItems(licence,regulatorUser))
         .thenReturn(List.of(new ActionItemView("test", 1, false, "test", null)));
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceStartDateController.class).submitLicenceStartDateForm(LICENCE_ID, null, null, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().isForbidden());
@@ -166,12 +161,14 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
 
   @Test
   void renderLicenceStartDateUpdateForm() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
     when(licenceStartDateService.getLicenceStartDateForm(licenceScheduleDetail)).thenReturn(new LicenceStartDateForm());
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateUpdateForm(LICENCE_SCHEDULE_DETAIL_ID, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/startDate"))
@@ -181,7 +178,22 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void renderLicenceStartDateUpdateForm_noRoles() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateUpdateForm(LICENCE_SCHEDULE_DETAIL_ID, null)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
   void submitLicenceStartDateUpdateForm_validForm() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
+
     var licenceStartDate = new LicenceStartDate();
     licenceStartDate.setLicenceScheduleDetail(licenceScheduleDetail);
 
@@ -190,7 +202,7 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceStartDateController.class).submitLicenceStartDateUpdateForm(LICENCE_SCHEDULE_DETAIL_ID, null, null, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
@@ -200,12 +212,14 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
 
   @Test
   void submitLicenceStartDateUpdateForm_invalidForm() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
     when(licenceStartDateValidator.isValid(any(), any())).thenReturn(false);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceStartDateController.class).submitLicenceStartDateUpdateForm(LICENCE_SCHEDULE_DETAIL_ID, null, null, null)))
-                .with(user(organisationUser))
+                .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().isOk())
@@ -213,5 +227,24 @@ class LicenceStartDateControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("backUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
+
+    verify(licenceStartDateService, never()).saveOrUpdateLicenceStartDateFromForm(any(), any());
+    verify(licenceScheduleCalculationService, never()).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  @Test
+  void submitLicenceStartDateUpdateForm_noRoles() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(false);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(LicenceStartDateController.class).submitLicenceStartDateUpdateForm(LICENCE_SCHEDULE_DETAIL_ID, null, null, null)))
+                .with(user(regulatorUser))
+                .with(csrf())
+        )
+        .andExpect(status().isForbidden());
+
+    verify(licenceStartDateService, never()).saveOrUpdateLicenceStartDateFromForm(any(), any());
+    verify(licenceScheduleCalculationService, never()).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 }

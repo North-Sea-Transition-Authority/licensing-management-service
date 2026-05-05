@@ -32,8 +32,7 @@ public class OtherRequirementsVisibilityResolverService {
     var scheduleState = licenceScheduleService.getScheduleState(scheduleDetail);
 
     var phaseType = scheduleState.nextPhase() != null ? scheduleState.nextPhase().getPhaseType() : null;
-    var targetTerm = scheduleState.nextPhase() != null ? scheduleState.currentTerm() : scheduleState.nextTerm();
-    var termType = targetTerm != null ? targetTerm.getTermType() : null;
+    var termType = scheduleState.nextTerm() != null ? scheduleState.nextTerm().getTermType() : null;
 
     var showFinancial = (phaseType != null && FINANCIAL_CAPACITY_TARGET_PHASES.contains(phaseType))
                         || (termType != null && FINANCIAL_CAPACITY_TARGET_TERMS.contains(termType));

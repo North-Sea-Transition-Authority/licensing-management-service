@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,6 +23,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceSchedulePhas
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduleTermTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
+import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
@@ -156,7 +159,40 @@ class LicenceScheduleServiceTest {
   }
 
   @Test
-  void getScheduleState_WhenHasNextTermAndNextPhase_ReturnsBoth() {
+  void getScheduleState_WhenNextPhaseIsInSameTerm_NextTermRemainsCurrentTerm() {
+    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
+    var detail = new LicenceScheduleDetail();
+
+    var currentTerm = new LicenceScheduleTerm();
+    currentTerm.setStartDate(LocalDate.of(2025, 1, 1));
+    currentTerm.setEndDate(LocalDate.of(2030, 1, 1));
+
+    var currentPhase = new LicenceSchedulePhase();
+    currentPhase.setStartDate(LocalDate.of(2025, 1, 1));
+    currentPhase.setEndDate(LocalDate.of(2026, 1, 1));
+
+    var nextPhaseInSameTerm = new LicenceSchedulePhase();
+    nextPhaseInSameTerm.setStartDate(LocalDate.of(2026, 1, 1));
+    nextPhaseInSameTerm.setEndDate(LocalDate.of(2027, 1, 1));
+
+    var terms = List.of(currentTerm);
+    var phases = List.of(currentPhase, nextPhaseInSameTerm);
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
+    when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(phases);
+
+    var state = licenceScheduleService.getScheduleState(detail);
+
+    assertThat(state.currentTerm()).isEqualTo(currentTerm);
+    assertThat(state.currentPhase()).isEqualTo(currentPhase);
+    assertThat(state.nextTerm()).isEqualTo(currentTerm);
+    assertThat(state.nextPhase()).isEqualTo(nextPhaseInSameTerm);
+  }
+
+  @Test
+  void getScheduleState_WhenCurrentTermOutOfPhases_JumpsToNextTermAndItsFirstPhase() {
     when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
@@ -172,24 +208,23 @@ class LicenceScheduleServiceTest {
 
     var currentPhase = new LicenceSchedulePhase();
     currentPhase.setStartDate(LocalDate.of(2025, 1, 1));
-    currentPhase.setEndDate(LocalDate.of(2026, 1, 1));
+    currentPhase.setEndDate(LocalDate.of(2030, 1, 1));
 
-    var nextPhase = new LicenceSchedulePhase();
-    nextPhase.setStartDate(LocalDate.of(2026, 1, 1));
-    nextPhase.setEndDate(LocalDate.of(2027, 1, 1));
+    var firstPhaseOfNextTerm = new LicenceSchedulePhase();
+    firstPhaseOfNextTerm.setStartDate(LocalDate.of(2030, 1, 1));
+    firstPhaseOfNextTerm.setEndDate(LocalDate.of(2032, 1, 1));
 
-    var terms = List.of(currentTerm, nextTerm);
-    var phases = List.of(currentPhase, nextPhase);
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(currentTerm, nextTerm));
+    when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(List.of(currentPhase));
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(phases);
+    when(licenceSchedulePhaseService.getActivePhasesByTerm(nextTerm)).thenReturn(List.of(firstPhaseOfNextTerm));
 
     var state = licenceScheduleService.getScheduleState(detail);
 
     assertThat(state.currentTerm()).isEqualTo(currentTerm);
     assertThat(state.currentPhase()).isEqualTo(currentPhase);
     assertThat(state.nextTerm()).isEqualTo(nextTerm);
-    assertThat(state.nextPhase()).isEqualTo(nextPhase);
+    assertThat(state.nextPhase()).isEqualTo(firstPhaseOfNextTerm);
   }
 
   @Test
@@ -216,6 +251,8 @@ class LicenceScheduleServiceTest {
 
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
     when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(phases);
+
+    when(licenceSchedulePhaseService.getActivePhasesByTerm(nextTerm)).thenReturn(Collections.emptyList());
 
     var state = licenceScheduleService.getScheduleState(detail);
 
@@ -245,11 +282,40 @@ class LicenceScheduleServiceTest {
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
     when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(Collections.emptyList());
 
+    when(licenceSchedulePhaseService.getActivePhasesByTerm(nextTerm)).thenReturn(Collections.emptyList());
+
     var state = licenceScheduleService.getScheduleState(detail);
 
     assertThat(state.currentTerm()).isEqualTo(currentTerm);
     assertThat(state.currentPhase()).isNull();
     assertThat(state.nextTerm()).isEqualTo(nextTerm);
     assertThat(state.nextPhase()).isNull();
+  }
+
+  @Test
+  void formatTermPhaseDisplay_WhenBothPresent_ReturnsPhaseWithTermInParentheses() {
+    var term = new LicenceScheduleTerm();
+    term.setTermType(TermType.INITIAL);
+
+    var phase = new LicenceSchedulePhase();
+    phase.setPhaseType(PhaseType.PHASE_A);
+
+    String result = licenceScheduleService.formatTermPhaseDisplay(term, phase);
+    assertEquals("Phase A (Initial Term)", result);
+  }
+
+  @Test
+  void formatTermPhaseDisplay_WhenOnlyTermPresent_ReturnsTermName() {
+    var term = new LicenceScheduleTerm();
+    term.setTermType(TermType.INITIAL);
+
+    String result = licenceScheduleService.formatTermPhaseDisplay(term, null);
+    assertEquals("Initial Term", result);
+  }
+
+  @Test
+  void formatTermPhaseDisplay_WhenBothNull_ReturnsNull() {
+    String result = licenceScheduleService.formatTermPhaseDisplay(null, null);
+    assertNull(result);
   }
 }

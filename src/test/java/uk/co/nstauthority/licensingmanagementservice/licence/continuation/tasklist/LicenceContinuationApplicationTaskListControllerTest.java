@@ -94,6 +94,15 @@ class LicenceContinuationApplicationTaskListControllerTest extends AbstractContr
     var scheduleState = new ScheduleState(currentTerm, currentPhase, nextTerm, nextPhase);
     when(licenceScheduleService.getScheduleState(LICENCE_SCHEDULE_DETAIL)).thenReturn(scheduleState);
 
+    String expectedCurrentDisplay = String.format("%s (%s)", currentPhase.getPhaseType(), currentTerm.getTermType());
+    String expectedNextDisplay = String.format("%s (%s)", nextPhase.getPhaseType(), nextTerm.getTermType());
+
+    when(licenceScheduleService.formatTermPhaseDisplay(currentTerm, currentPhase))
+        .thenReturn(expectedCurrentDisplay);
+
+    when(licenceScheduleService.formatTermPhaseDisplay(nextTerm, nextPhase))
+        .thenReturn(expectedNextDisplay);
+
     mockMvc.perform(get(ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
                                                 .getTaskList(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null))
         ).with(user(USER)))
@@ -102,10 +111,8 @@ class LicenceContinuationApplicationTaskListControllerTest extends AbstractContr
         .andExpect(model().attribute("taskListSections", sections))
         .andExpect(model().attribute("pageTitle", LicenceContinuationApplicationTaskListController.PAGE_TITLE))
         .andExpect(model().attribute("pageCaption", CAPTION))
-        .andExpect(model().attribute("currentTerm", TermType.INITIAL.getDisplayName()))
-        .andExpect(model().attribute("currentPhase", PhaseType.PHASE_A.getDisplayName()))
-        .andExpect(model().attribute("nextTerm", TermType.SECOND.getDisplayName()))
-        .andExpect(model().attribute("nextPhase", PhaseType.PHASE_B.getDisplayName()))
+        .andExpect(model().attribute("currentTermPhaseDisplay", expectedCurrentDisplay))
+        .andExpect(model().attribute("nextTermPhaseDisplay", expectedNextDisplay))
         .andExpect(model().attribute("breadcrumbs", Map.of(
             ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)),
             "Work area"

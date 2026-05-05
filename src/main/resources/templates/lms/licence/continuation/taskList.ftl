@@ -10,10 +10,8 @@ pageSize=PageSize.TWO_THIRDS_COLUMN
 breadcrumbs=breadcrumbs>
 
     <@continuationDataItem.continuationDataItem
-    currentTerm=currentTerm!""
-    currentPhase=currentPhase!""
-    nextTerm=nextTerm!""
-    nextPhase=nextPhase!""
+    currentTermPhaseDisplay=currentTermPhaseDisplay!""
+    nextTermPhaseDisplay=nextTermPhaseDisplay!""
     />
 
     <@taskList.standardTaskList taskListSections=taskListSections />

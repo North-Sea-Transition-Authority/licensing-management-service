@@ -168,20 +168,53 @@ public class LicenceScheduleService {
   public ScheduleState getScheduleState(LicenceScheduleDetail licenceScheduleDetail) {
     var terms = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail);
     var currentTerm = getCurrentTerm(terms);
-    var nextTerm = currentTerm != null ? getNextTerm(terms, currentTerm).orElse(null) : null;
 
     LicenceSchedulePhase currentPhase = null;
+    LicenceScheduleTerm nextTerm = null;
     LicenceSchedulePhase nextPhase = null;
 
     if (currentTerm != null) {
-      var phases = licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm);
-      currentPhase = getCurrentPhase(phases);
+      var currentTermPhases = licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm);
+      currentPhase = getCurrentPhase(currentTermPhases);
 
-      if (currentPhase != null) {
-        nextPhase = getNextPhase(phases, currentPhase).orElse(null);
+      nextPhase = getNextPhaseInSameTerm(currentTermPhases, currentPhase);
+
+      if (nextPhase != null) {
+        nextTerm = currentTerm;
+      } else {
+        nextTerm = getNextTerm(terms, currentTerm).orElse(null);
+        nextPhase = getFirstPhaseOfTerm(nextTerm);
       }
     }
 
     return new ScheduleState(currentTerm, currentPhase, nextTerm, nextPhase);
+  }
+
+  private LicenceSchedulePhase getNextPhaseInSameTerm(
+      List<LicenceSchedulePhase> currentTermPhases,
+      LicenceSchedulePhase currentPhase
+  ) {
+    if (currentPhase == null) {
+      return null;
+    }
+    return getNextPhase(currentTermPhases, currentPhase).orElse(null);
+  }
+
+  private LicenceSchedulePhase getFirstPhaseOfTerm(LicenceScheduleTerm term) {
+    if (term == null) {
+      return null;
+    }
+    var phases = licenceSchedulePhaseService.getActivePhasesByTerm(term);
+    return phases.isEmpty() ? null : phases.getFirst();
+  }
+
+  public String formatTermPhaseDisplay(LicenceScheduleTerm term, LicenceSchedulePhase phase) {
+    if (term == null) {
+      return null;
+    }
+    if (phase != null) {
+      return String.format("%s (%s)", phase.getPhaseType().getDisplayName(), term.getTermType().getDisplayName());
+    }
+    return term.getTermType().getDisplayName();
   }
 }

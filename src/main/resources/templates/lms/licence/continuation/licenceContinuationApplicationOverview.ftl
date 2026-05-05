@@ -21,7 +21,7 @@ extendContainerWidth=true
             <@continuationApplicationSummary.continuationApplicationSummary accordionId=accordionId summarySections=summarySections showWorkProgrammeActivities=showWorkProgrammeActivities workProgrammeActivities=workProgrammeActivities![]/>
         </#if>
 
-        <#if selectedTab.value() == "decision">
+        <#if selectedTab.value() == "letter">
             <#if letterIssueSummarySection?has_content>
                 <@continuationLetterIssuedSummary.continuationLetterIssuedSummary
                 accordionId=accordionId

@@ -243,7 +243,7 @@ public class LicenceContinuationService {
                 applicationId,
                 licenceContinuationApplicationDetail,
                 null,
-                OverviewTab.DECISION
+                OverviewTab.LETTER
             ))
         );
 

@@ -60,17 +60,13 @@ public class LicenceContinuationApplicationTaskListController {
 
     var state = licenceScheduleService.getScheduleState(scheduleDetailFromApplicationDetail);
 
-    String currentTermName = state.currentTerm() != null ? state.currentTerm().getTermType().getDisplayName() : null;
-    String currentPhaseName = state.currentPhase() != null ? state.currentPhase().getPhaseType().getDisplayName() : null;
-    String nextTermName = state.nextTerm() != null ? state.nextTerm().getTermType().getDisplayName() : null;
-    String nextPhaseName = state.nextPhase() != null ? state.nextPhase().getPhaseType().getDisplayName() : null;
+    String currentTermPhaseDisplay = licenceScheduleService.formatTermPhaseDisplay(state.currentTerm(), state.currentPhase());
+    String nextTermPhaseDisplay = licenceScheduleService.formatTermPhaseDisplay(state.nextTerm(), state.nextPhase());
 
     var modelAndView = new ModelAndView("lms/licence/continuation/taskList")
         .addObject("pageTitle", PAGE_TITLE)
-        .addObject("currentTerm", currentTermName)
-        .addObject("currentPhase", currentPhaseName)
-        .addObject("nextTerm", nextTermName)
-        .addObject("nextPhase", nextPhaseName)
+        .addObject("currentTermPhaseDisplay", currentTermPhaseDisplay)
+        .addObject("nextTermPhaseDisplay", nextTermPhaseDisplay)
         .addObject("taskListSections", sections)
         .addObject("pageCaption",
             licenceService.getLicencePageCaption(getLicence(licenceContinuationApplicationDetail)));

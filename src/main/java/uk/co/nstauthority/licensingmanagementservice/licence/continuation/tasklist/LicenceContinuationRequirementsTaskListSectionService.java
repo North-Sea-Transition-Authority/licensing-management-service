@@ -7,7 +7,6 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationLicenceOperatorsController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationLicenceOperatorsSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementController;
@@ -31,20 +30,17 @@ public class LicenceContinuationRequirementsTaskListSectionService
   private final OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService;
 
   static final String LICENCE_CONTINUATION_REQUIREMENTS_SECTION_NAME = "Continuation requirements";
-  private final LicenceContinuationService licenceContinuationService;
 
   public LicenceContinuationRequirementsTaskListSectionService(
       LicenceContinuationWpaSubmissionService licenceContinuationWpaSubmissionService,
       LicenceContinuationOtherRequirementSubmissionService licenceContinuationOtherRequirementSubmissionService,
       LicenceContinuationLicenceOperatorsSubmissionService licenceContinuationLicenceOperatorsSubmissionService,
-      OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService,
-      LicenceContinuationService licenceContinuationService
+      OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService
   ) {
     this.licenceContinuationWpaSubmissionService = licenceContinuationWpaSubmissionService;
     this.licenceContinuationOtherRequirementSubmissionService = licenceContinuationOtherRequirementSubmissionService;
     this.licenceContinuationLicenceOperatorsSubmissionService = licenceContinuationLicenceOperatorsSubmissionService;
     this.otherRequirementsVisibilityResolverService = otherRequirementsVisibilityResolverService;
-    this.licenceContinuationService = licenceContinuationService;
   }
 
   static final String WORK_PROGRAMMES = "Work programme activities";
@@ -57,11 +53,13 @@ public class LicenceContinuationRequirementsTaskListSectionService
   @Override
   public Optional<TaskListSection> getSection(
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
-      ServiceUserDetail user) {
+      ServiceUserDetail user
+  ) {
 
     var items = new ArrayList<TaskListItem>();
-    var scheduleDetail = licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail);
-    var otherRequirementsVisibility = otherRequirementsVisibilityResolverService.resolve(scheduleDetail);
+    var otherRequirementsVisibility = otherRequirementsVisibilityResolverService.resolveVisibility(
+        licenceContinuationApplicationDetail
+    );
 
     items.add(new TaskListItem(
         WORK_PROGRAMMES,

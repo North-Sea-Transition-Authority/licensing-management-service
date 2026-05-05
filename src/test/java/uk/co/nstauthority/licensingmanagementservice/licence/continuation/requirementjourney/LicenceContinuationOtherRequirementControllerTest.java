@@ -88,7 +88,7 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
 
     when(licenceContinuationService.getScheduleDetailFromApplicationDetail(any()))
         .thenReturn(LICENCE_SCHEDULE_DETAIL);
-    when(otherRequirementsVisibilityResolverService.resolve(LICENCE_SCHEDULE_DETAIL))
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(LICENCE_CONTINUATION_APPLICATION_DETAIL))
         .thenReturn(VISIBILITY_WITH_REQUIREMENTS);
 
     mockMvc.perform(
@@ -116,7 +116,7 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
 
     when(licenceContinuationService.getScheduleDetailFromApplicationDetail(any()))
         .thenReturn(LICENCE_SCHEDULE_DETAIL);
-    when(otherRequirementsVisibilityResolverService.resolve(LICENCE_SCHEDULE_DETAIL))
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(LICENCE_CONTINUATION_APPLICATION_DETAIL))
         .thenReturn(VISIBILITY_NO_REQUIREMENTS);
 
     mockMvc.perform(
@@ -131,7 +131,6 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
   void submitForm_Valid() throws Exception {
     var licenceContinuationOtherRequirementForm = new LicenceContinuationOtherRequirementForm();
 
-    when(licenceContinuationOtherRequirementValidator.isValid(any(), any())).thenReturn(true);
     when(licenceContinuationService.getDetailByIdOrThrow(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId()))
         .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
     when(applicationAccessService.userHasAccessToApplication(
@@ -140,6 +139,14 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
         null,
         organisationUser.wuaId()
     )).thenReturn(true);
+
+    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(any()))
+        .thenReturn(LICENCE_SCHEDULE_DETAIL);
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(LICENCE_CONTINUATION_APPLICATION_DETAIL))
+        .thenReturn(VISIBILITY_WITH_REQUIREMENTS);
+
+    when(licenceContinuationOtherRequirementValidator.isValid(any(), any(), eq(VISIBILITY_WITH_REQUIREMENTS)))
+        .thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceContinuationOtherRequirementController.class).submitForm(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, licenceContinuationOtherRequirementForm, null)))
@@ -169,7 +176,7 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
 
     when(licenceContinuationService.getScheduleDetailFromApplicationDetail(any()))
         .thenReturn(LICENCE_SCHEDULE_DETAIL);
-    when(otherRequirementsVisibilityResolverService.resolve(LICENCE_SCHEDULE_DETAIL))
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(LICENCE_CONTINUATION_APPLICATION_DETAIL))
         .thenReturn(VISIBILITY_WITH_REQUIREMENTS);
 
     mockMvc.perform(

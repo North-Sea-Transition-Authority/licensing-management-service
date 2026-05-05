@@ -9,19 +9,28 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 public class LicenceContinuationOtherRequirementSubmissionService {
   private final LicenceContinuationOtherRequirementService licenceContinuationOtherRequirementService;
   private final LicenceContinuationOtherRequirementValidator licenceContinuationOtherRequirementValidator;
+  private final OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService;
 
   public LicenceContinuationOtherRequirementSubmissionService(
       LicenceContinuationOtherRequirementService licenceContinuationOtherRequirementService,
-      LicenceContinuationOtherRequirementValidator licenceContinuationOtherRequirementValidator
+      LicenceContinuationOtherRequirementValidator licenceContinuationOtherRequirementValidator,
+      OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService
   ) {
     this.licenceContinuationOtherRequirementService = licenceContinuationOtherRequirementService;
     this.licenceContinuationOtherRequirementValidator = licenceContinuationOtherRequirementValidator;
+    this.otherRequirementsVisibilityResolverService = otherRequirementsVisibilityResolverService;
   }
 
   public boolean isSectionSubmittable(LicenceContinuationApplicationDetail licenceContinuationApplicationDetail) {
     var form = licenceContinuationOtherRequirementService.getLicenceContinuationOtherRequirementForm(
-        licenceContinuationApplicationDetail);
+        licenceContinuationApplicationDetail
+    );
+    var otherRequirementsVisibility = otherRequirementsVisibilityResolverService.resolveVisibility(
+        licenceContinuationApplicationDetail
+    );
+
     BindingResult bindingResult = new BeanPropertyBindingResult(form, "form");
-    return licenceContinuationOtherRequirementValidator.isValid(form, bindingResult);
+
+    return licenceContinuationOtherRequirementValidator.isValid(form, bindingResult, otherRequirementsVisibility);
   }
 }

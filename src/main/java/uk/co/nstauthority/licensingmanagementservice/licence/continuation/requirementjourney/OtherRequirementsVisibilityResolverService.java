@@ -4,8 +4,9 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Service
 public class OtherRequirementsVisibilityResolverService {
@@ -16,13 +17,19 @@ public class OtherRequirementsVisibilityResolverService {
   private static final Set<TermType> DEVELOPMENT_CONSENT_TARGET_TERMS = Set.of(TermType.THIRD);
 
   private final LicenceScheduleService licenceScheduleService;
+  private final LicenceContinuationService licenceContinuationService;
 
-  public OtherRequirementsVisibilityResolverService(LicenceScheduleService licenceScheduleService) {
+  public OtherRequirementsVisibilityResolverService(
+      LicenceScheduleService licenceScheduleService,
+      LicenceContinuationService licenceContinuationService
+  ) {
     this.licenceScheduleService = licenceScheduleService;
+    this.licenceContinuationService = licenceContinuationService;
   }
 
-  public OtherRequirementsVisibility resolve(LicenceScheduleDetail licenceScheduleDetail) {
-    var scheduleState = licenceScheduleService.getScheduleState(licenceScheduleDetail);
+  public OtherRequirementsVisibility resolveVisibility(LicenceContinuationApplicationDetail applicationDetail) {
+    var scheduleDetail = licenceContinuationService.getScheduleDetailFromApplicationDetail(applicationDetail);
+    var scheduleState = licenceScheduleService.getScheduleState(scheduleDetail);
 
     var phaseType = scheduleState.nextPhase() != null ? scheduleState.nextPhase().getPhaseType() : null;
     var targetTerm = scheduleState.nextPhase() != null ? scheduleState.currentTerm() : scheduleState.nextTerm();

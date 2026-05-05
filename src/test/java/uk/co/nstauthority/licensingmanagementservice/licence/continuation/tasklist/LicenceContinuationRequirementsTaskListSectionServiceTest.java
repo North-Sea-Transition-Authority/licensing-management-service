@@ -23,7 +23,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requir
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.OtherRequirementsVisibility;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.OtherRequirementsVisibilityResolverService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
@@ -52,7 +51,6 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
 
   private LicenceContinuationApplicationDetail licenceContinuationApplicationDetail;
   private ServiceUserDetail user;
-  private LicenceScheduleDetail scheduleDetail;
   private OtherRequirementsVisibility visibilityWithRequirements;
   private OtherRequirementsVisibility visibilityNoRequirements;
 
@@ -62,16 +60,13 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
     licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
     licenceContinuationApplicationDetail.setId(UUID.randomUUID());
 
-    scheduleDetail = new LicenceScheduleDetail();
     visibilityWithRequirements = new OtherRequirementsVisibility(true, false, false);
     visibilityNoRequirements = new OtherRequirementsVisibility(false, false, false);
   }
 
   @Test
   void getSection_WhenNotSubmittable_ReturnsNotStartedLabel() {
-    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail))
-        .thenReturn(scheduleDetail);
-    when(otherRequirementsVisibilityResolverService.resolve(scheduleDetail))
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
         .thenReturn(visibilityWithRequirements);
 
     when(licenceContinuationLicenceOperatorsSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
@@ -125,9 +120,7 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
 
   @Test
   void getSection_WhenSubmittable_ReturnsCompleteLabels() {
-    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail))
-        .thenReturn(scheduleDetail);
-    when(otherRequirementsVisibilityResolverService.resolve(scheduleDetail))
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
         .thenReturn(visibilityWithRequirements);
 
     when(licenceContinuationLicenceOperatorsSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
@@ -171,9 +164,7 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
 
   @Test
   void getSection_MixedStatus_ReturnsCorrectLabels() {
-    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail))
-        .thenReturn(scheduleDetail);
-    when(otherRequirementsVisibilityResolverService.resolve(scheduleDetail))
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
         .thenReturn(visibilityWithRequirements);
 
     when(licenceContinuationLicenceOperatorsSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
@@ -217,9 +208,7 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
 
   @Test
   void getSection_WhenNoOtherRequirements_OmitsOtherRequirementsTask() {
-    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail))
-        .thenReturn(scheduleDetail);
-    when(otherRequirementsVisibilityResolverService.resolve(scheduleDetail))
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
         .thenReturn(visibilityNoRequirements);
 
     when(licenceContinuationLicenceOperatorsSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))

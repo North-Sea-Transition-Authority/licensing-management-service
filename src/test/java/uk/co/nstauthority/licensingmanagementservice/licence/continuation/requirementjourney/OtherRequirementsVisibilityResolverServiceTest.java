@@ -11,6 +11,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -22,31 +24,39 @@ class OtherRequirementsVisibilityResolverServiceTest {
 
   @Mock
   private LicenceScheduleService licenceScheduleService;
-  
+
+  @Mock
+  private LicenceContinuationService licenceContinuationService;
+
   @Mock
   private LicenceSchedulePhase licenceSchedulePhase;
-  
+
   @Mock
   private LicenceScheduleTerm licenceScheduleTerm;
 
   @InjectMocks
   private OtherRequirementsVisibilityResolverService resolverService;
 
+  private LicenceContinuationApplicationDetail applicationDetail;
   private LicenceScheduleDetail licenceScheduleDetail;
 
   @BeforeEach
   void setUp() {
+    applicationDetail = new LicenceContinuationApplicationDetail();
     licenceScheduleDetail = new LicenceScheduleDetail();
+
+    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(applicationDetail))
+        .thenReturn(licenceScheduleDetail);
   }
 
   @Test
-  void resolve_WhenNextIsPhaseC_ShowsOnlyFinancialCapacity() {
+  void resolveVisibility_WhenNextIsPhaseC_ShowsOnlyFinancialCapacity() {
     when(licenceSchedulePhase.getPhaseType()).thenReturn(PhaseType.PHASE_C);
 
-    var state = new ScheduleState(null, null, licenceScheduleTerm, licenceSchedulePhase);
+    var state = new ScheduleState(licenceScheduleTerm, null, null, licenceSchedulePhase);
     when(licenceScheduleService.getScheduleState(licenceScheduleDetail)).thenReturn(state);
 
-    var result = resolverService.resolve(licenceScheduleDetail);
+    var result = resolverService.resolveVisibility(applicationDetail);
 
     assertThat(result.showFinancialCapacity()).isTrue();
     assertThat(result.showRelinquishment()).isFalse();
@@ -55,13 +65,13 @@ class OtherRequirementsVisibilityResolverServiceTest {
   }
 
   @Test
-  void resolve_WhenNextIsPhaseB_ShowsNoRequirements() {
+  void resolveVisibility_WhenNextIsPhaseB_ShowsNoRequirements() {
     when(licenceSchedulePhase.getPhaseType()).thenReturn(PhaseType.PHASE_B);
 
-    var state = new ScheduleState(null, null, licenceScheduleTerm, licenceSchedulePhase);
+    var state = new ScheduleState(licenceScheduleTerm, null, null, licenceSchedulePhase);
     when(licenceScheduleService.getScheduleState(licenceScheduleDetail)).thenReturn(state);
 
-    var result = resolverService.resolve(licenceScheduleDetail);
+    var result = resolverService.resolveVisibility(applicationDetail);
 
     assertThat(result.showFinancialCapacity()).isFalse();
     assertThat(result.showRelinquishment()).isFalse();
@@ -70,13 +80,13 @@ class OtherRequirementsVisibilityResolverServiceTest {
   }
 
   @Test
-  void resolve_WhenNextIsSecondTerm_ShowsFinancialAndRelinquishment() {
+  void resolveVisibility_WhenNextIsSecondTerm_ShowsFinancialAndRelinquishment() {
     when(licenceScheduleTerm.getTermType()).thenReturn(TermType.SECOND);
 
     var state = new ScheduleState(null, null, licenceScheduleTerm, null);
     when(licenceScheduleService.getScheduleState(licenceScheduleDetail)).thenReturn(state);
 
-    var result = resolverService.resolve(licenceScheduleDetail);
+    var result = resolverService.resolveVisibility(applicationDetail);
 
     assertThat(result.showFinancialCapacity()).isTrue();
     assertThat(result.showRelinquishment()).isTrue();
@@ -85,13 +95,13 @@ class OtherRequirementsVisibilityResolverServiceTest {
   }
 
   @Test
-  void resolve_WhenNextTermIsThirdTerm_ShowsFinancialAndFieldDetermination() {
+  void resolveVisibility_WhenNextTermIsThirdTerm_ShowsFinancialAndFieldDetermination() {
     when(licenceScheduleTerm.getTermType()).thenReturn(TermType.THIRD);
 
     var state = new ScheduleState(null, null, licenceScheduleTerm, null);
     when(licenceScheduleService.getScheduleState(licenceScheduleDetail)).thenReturn(state);
 
-    var result = resolverService.resolve(licenceScheduleDetail);
+    var result = resolverService.resolveVisibility(applicationDetail);
 
     assertThat(result.showFinancialCapacity()).isTrue();
     assertThat(result.showRelinquishment()).isFalse();
@@ -100,11 +110,11 @@ class OtherRequirementsVisibilityResolverServiceTest {
   }
 
   @Test
-  void resolve_WhenNoNextPhaseOrTerm_ShowsNoRequirements() {
+  void resolveVisibility_WhenNoNextPhaseOrTerm_ShowsNoRequirements() {
     var state = new ScheduleState(null, null, null, null);
     when(licenceScheduleService.getScheduleState(licenceScheduleDetail)).thenReturn(state);
 
-    var result = resolverService.resolve(licenceScheduleDetail);
+    var result = resolverService.resolveVisibility(applicationDetail);
 
     assertThat(result.showFinancialCapacity()).isFalse();
     assertThat(result.showRelinquishment()).isFalse();

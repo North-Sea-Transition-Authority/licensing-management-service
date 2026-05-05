@@ -22,6 +22,12 @@ class LicenceContinuationOtherRequirementSubmissionServiceTest {
   @Mock
   private LicenceContinuationOtherRequirementValidator validator;
 
+  @Mock
+  private OtherRequirementsVisibilityResolverService visibilityResolverService;
+
+  @Mock
+  private OtherRequirementsVisibility otherRequirementsVisibility;
+
   @InjectMocks
   private LicenceContinuationOtherRequirementSubmissionService submissionService;
 
@@ -32,7 +38,10 @@ class LicenceContinuationOtherRequirementSubmissionServiceTest {
 
     when(requirementService.getLicenceContinuationOtherRequirementForm(licenceContinuationApplicationDetail))
         .thenReturn(licenceContinuationOtherRequirementForm);
-    when(validator.isValid(eq(licenceContinuationOtherRequirementForm), any(BindingResult.class)))
+
+    when(visibilityResolverService.resolveVisibility(any())).thenReturn(otherRequirementsVisibility);
+
+    when(validator.isValid(eq(licenceContinuationOtherRequirementForm), any(BindingResult.class), eq(otherRequirementsVisibility)))
         .thenReturn(true);
 
     boolean result = submissionService.isSectionSubmittable(licenceContinuationApplicationDetail);
@@ -47,7 +56,10 @@ class LicenceContinuationOtherRequirementSubmissionServiceTest {
 
     when(requirementService.getLicenceContinuationOtherRequirementForm(licenceContinuationApplicationDetail))
         .thenReturn(licenceContinuationOtherRequirementForm);
-    when(validator.isValid(eq(licenceContinuationOtherRequirementForm), any(BindingResult.class)))
+
+    when(visibilityResolverService.resolveVisibility(any())).thenReturn(otherRequirementsVisibility);
+
+    when(validator.isValid(eq(licenceContinuationOtherRequirementForm), any(BindingResult.class), eq(otherRequirementsVisibility)))
         .thenReturn(false);
 
     boolean result = submissionService.isSectionSubmittable(licenceContinuationApplicationDetail);

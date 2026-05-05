@@ -15,7 +15,6 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continu
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -29,18 +28,15 @@ public class LicenceContinuationOtherRequirementController {
   public final LicenceContinuationOtherRequirementService licenceContinuationOtherRequirementService;
   public final LicenceContinuationOtherRequirementValidator licenceContinuationOtherRequirementValidator;
   private final OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService;
-  private final LicenceContinuationService licenceContinuationService;
 
   public LicenceContinuationOtherRequirementController(
       LicenceContinuationOtherRequirementService licenceContinuationOtherRequirementService,
       LicenceContinuationOtherRequirementValidator licenceContinuationOtherRequirementValidator,
-      OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService,
-      LicenceContinuationService licenceContinuationService
+      OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService
   ) {
     this.licenceContinuationOtherRequirementService = licenceContinuationOtherRequirementService;
     this.licenceContinuationOtherRequirementValidator = licenceContinuationOtherRequirementValidator;
     this.otherRequirementsVisibilityResolverService = otherRequirementsVisibilityResolverService;
-    this.licenceContinuationService = licenceContinuationService;
   }
 
   @GetMapping
@@ -51,7 +47,9 @@ public class LicenceContinuationOtherRequirementController {
     return getModelAndView(
         licenceContinuationOtherRequirementService.getLicenceContinuationOtherRequirementForm(
             licenceContinuationApplicationDetail),
-        licenceContinuationApplicationDetail
+        licenceContinuationApplicationDetail,
+        otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail
+        )
     );
   }
 
@@ -62,8 +60,12 @@ public class LicenceContinuationOtherRequirementController {
       @ModelAttribute("form") LicenceContinuationOtherRequirementForm form,
       BindingResult bindingResult
   ) {
-    if (!licenceContinuationOtherRequirementValidator.isValid(form, bindingResult)) {
-      return getModelAndView(form, licenceContinuationApplicationDetail);
+    var otherRequirementsVisibility = otherRequirementsVisibilityResolverService.resolveVisibility(
+        licenceContinuationApplicationDetail
+    );
+
+    if (!licenceContinuationOtherRequirementValidator.isValid(form, bindingResult, otherRequirementsVisibility)) {
+      return getModelAndView(form, licenceContinuationApplicationDetail, otherRequirementsVisibility);
     }
 
     licenceContinuationOtherRequirementService.saveLicenceContinuationOtherRequirementForm(
@@ -72,19 +74,17 @@ public class LicenceContinuationOtherRequirementController {
     );
 
     return ReverseRouter.redirect(on(LicenceContinuationApplicationTaskListController.class).getTaskList(
-            licenceContinuationApplicationDetailId,
-            null,
-            null
-        ));
+        licenceContinuationApplicationDetailId,
+        null,
+        null
+    ));
   }
 
   private ModelAndView getModelAndView(
       LicenceContinuationOtherRequirementForm form,
-      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
+      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
+      OtherRequirementsVisibility otherRequirementsVisibility
   ) {
-    var scheduleDetail =  licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail);
-    var otherRequirementsVisibility = otherRequirementsVisibilityResolverService.resolve(scheduleDetail);
-
     if (!otherRequirementsVisibility.hasAnyRequirements()) {
       return ReverseRouter.redirect(on(LicenceContinuationApplicationTaskListController.class)
                                         .getTaskList(licenceContinuationApplicationDetail.getId(), null, null));

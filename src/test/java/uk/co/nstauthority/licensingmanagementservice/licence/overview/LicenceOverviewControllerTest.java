@@ -153,4 +153,15 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(viewOverviewUrl));
   }
+
+  @Test
+  void renderWorkProgrammesOnlyTimeline() throws Exception {
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceOverviewController.class)
+                .renderWorkProgrammesOnlyTimeline(licence.getId(), null)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(viewOverviewUrl));
+  }
 }

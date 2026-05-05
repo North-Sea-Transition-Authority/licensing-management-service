@@ -36,6 +36,11 @@ public class LicenceService {
     return licenceRepository.findByLicenceReference(licenceReference);
   }
 
+  public Licence findByLicenceReferenceOrThrow(String licenceReference) {
+    return findLicenceByReference(licenceReference)
+        .orElseThrow(() -> new LmsEntityNotFoundException("Could not find licence with ref: %s".formatted(licenceReference)));
+  }
+
   @Transactional
   public Iterable<Licence> saveLicences(Collection<Licence> licences) {
     return licenceRepository.saveAll(licences);

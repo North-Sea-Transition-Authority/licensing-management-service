@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.overview;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -97,6 +98,18 @@ public class LicenceOverviewController {
       SessionStatus sessionStatus
   ) {
     sessionStatus.setComplete();
+    return ReverseRouter.redirect(on(LicenceOverviewController.class)
+        .renderLicenceOverview(licenceId, null, null, null));
+  }
+
+  @GetMapping("/work-programmes-only")
+  public ModelAndView renderWorkProgrammesOnlyTimeline(
+      @PathVariable Integer licenceId,
+      @ModelAttribute("timelineSession") TimelineSession filterSession
+  ) {
+    var form = new TimelineFilterForm();
+    form.setEventTypes(List.of(ScheduleEventType.WORK_PROGRAMME_ACTIVITY.name()));
+    filterSession.update(form);
     return ReverseRouter.redirect(on(LicenceOverviewController.class)
         .renderLicenceOverview(licenceId, null, null, null));
   }

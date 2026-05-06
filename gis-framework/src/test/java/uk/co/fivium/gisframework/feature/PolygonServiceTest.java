@@ -5,11 +5,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.grpc.GrpcClientService;
 
 @ExtendWith(MockitoExtension.class)
 class PolygonServiceTest {
@@ -24,6 +26,12 @@ class PolygonServiceTest {
 
   @Mock
   private PolygonRepository polygonRepository;
+
+  @Mock
+  private FeatureService featureService;
+
+  @Mock
+  private GrpcClientService grpcClientService;
 
   @InjectMocks
   private PolygonService polygonService;
@@ -53,5 +61,27 @@ class PolygonServiceTest {
     var result = polygonService.findAllByFeatureIn(FEATURES);
 
     assertThat(result).isEmpty();
+  }
+
+  @Test
+  void getPolygonsAsEsriJson_assertLinesSorted() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var polygon = PolygonTestUtil.newBuilder().build();
+    var line1 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withRingConnectionOrder(1).build();
+    var line2 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withRingConnectionOrder(2).build();
+    var line3 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withRingConnectionOrder(3).build();
+    var entityBackedFeature = new EntityBackedFeature(
+        feature,
+        Map.of(polygon, List.of(line2, line3, line1))
+    );
+    var polygonEsriJson = "polygonEsriJson";
+
+    when(featureService.getEntityBackedFeature(feature)).thenReturn(entityBackedFeature);
+    when(grpcClientService.buildPolygon(
+        List.of(line1.getEsriJson(), line2.getEsriJson(), line3.getEsriJson()),
+        feature.getCoordinateSystem())
+    ).thenReturn(polygonEsriJson);
+
+    assertThat(polygonService.getPolygonsAsEsriJson(feature)).containsExactly(polygonEsriJson);
   }
 }

@@ -1,10 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import Polygon from '@arcgis/core/geometry/Polygon.js';
 import Polyline from '@arcgis/core/geometry/Polyline.js';
 import { splitPolygon } from '../../src/geometric-operators/split-operator.js';
 import * as unionOperator from '@arcgis/core/geometry/operators/unionOperator.js';
 import * as equalsOperator from '@arcgis/core/geometry/operators/equalsOperator.js';
-import { esriJsonToPolygon } from '../../src/util/esrijson-util';
 
 const spatialReference = { wkid: 27700 };
 
@@ -32,21 +31,8 @@ describe('splitPolygon', () => {
       spatialReference,
     });
 
-    const call = {
-      request: {
-        esriJsonPolygonTarget: JSON.stringify(targetPolygon.toJSON()),
-        esriJsonLineCutter: JSON.stringify(cutter.toJSON()),
-      },
-    };
-
-    const callback = vi.fn();
-    splitPolygon(call as any, callback);
-
-    expect(callback.mock.calls[0][0]).toBeNull();
-    const polygonsJson = callback.mock.calls[0][1].outputPolygonEsriJsons;
-    expect(polygonsJson).toHaveLength(2);
-
-    const polygons: Polygon[] = polygonsJson.map((json: string) => esriJsonToPolygon(json));
+    const polygons = splitPolygon(targetPolygon, cutter);
+    expect(polygons).toHaveLength(2);
     const mergedResult = unionOperator.execute(polygons[0], polygons[1]);
     expect(equalsOperator.execute(mergedResult, targetPolygon)).toBe(true);
   });
@@ -62,17 +48,8 @@ describe('splitPolygon', () => {
       spatialReference,
     });
 
-    const call = {
-      request: {
-        esriJsonPolygonTarget: JSON.stringify(targetPolygon.toJSON()),
-        esriJsonLineCutter: JSON.stringify(cutter.toJSON()),
-      },
-    };
-
-    const callback = vi.fn();
-    splitPolygon(call as any, callback);
-
-    expect(callback).toHaveBeenCalledWith(null, { outputPolygonEsriJsons: [] });
+    const polygons = splitPolygon(targetPolygon, cutter);
+    expect(polygons).toHaveLength(0);
   });
 
   it('should handle a cutter with overlapping/backtracking segments', () => {
@@ -87,21 +64,8 @@ describe('splitPolygon', () => {
       spatialReference,
     });
 
-    const call = {
-      request: {
-        esriJsonPolygonTarget: JSON.stringify(targetPolygon.toJSON()),
-        esriJsonLineCutter: JSON.stringify(cutter.toJSON()),
-      },
-    };
-
-    const callback = vi.fn();
-    splitPolygon(call as any, callback);
-
-    expect(callback.mock.calls[0][0]).toBeNull();
-    const polygonsJson = callback.mock.calls[0][1].outputPolygonEsriJsons;
-    expect(polygonsJson).toHaveLength(2);
-
-    const polygons: Polygon[] = polygonsJson.map((json: string) => esriJsonToPolygon(json));
+    const polygons = splitPolygon(targetPolygon, cutter);
+    expect(polygons).toHaveLength(2);
     const mergedResult = unionOperator.execute(polygons[0], polygons[1]);
     expect(equalsOperator.execute(mergedResult, targetPolygon)).toBe(true);
     polygons.forEach((poly) => {

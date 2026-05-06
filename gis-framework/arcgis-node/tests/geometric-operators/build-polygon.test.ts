@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import Polygon from '@arcgis/core/geometry/Polygon.js';
 import Polyline from '@arcgis/core/geometry/Polyline.js';
 import { buildPolygon } from '../../src/geometric-operators/build-polygon';
+import * as equalsOperator from '@arcgis/core/geometry/operators/equalsOperator';
 
 const spatialReference = { wkid: 27700 };
 
@@ -33,17 +34,8 @@ describe('buildPolygon', () => {
       spatialReference,
     });
 
-    const call = {
-      request: {
-        esriJsonPolylines: [JSON.stringify(polyline.toJSON())],
-        coordinateSystemWkid: spatialReference.wkid,
-      },
-    };
-
-    const callback = vi.fn();
-    buildPolygon(call as any, callback);
-
-    expect(callback).toHaveBeenCalledWith(null, { polygonEsriJson: JSON.stringify(expectedPolygon.toJSON()) });
+    const result = buildPolygon([polyline], spatialReference.wkid);
+    expect(equalsOperator.execute(result, expectedPolygon)).toBe(true);
   });
 
   it('should build a polygon from multiple polylines forming a closed shape', () => {
@@ -82,17 +74,8 @@ describe('buildPolygon', () => {
       spatialReference,
     });
 
-    const call = {
-      request: {
-        esriJsonPolylines: [JSON.stringify(polyline1.toJSON()), JSON.stringify(polyline2.toJSON())],
-        coordinateSystemWkid: spatialReference.wkid,
-      },
-    };
-
-    const callback = vi.fn();
-    buildPolygon(call as any, callback);
-
-    expect(callback).toHaveBeenCalledWith(null, { polygonEsriJson: JSON.stringify(expectedPolygon.toJSON()) });
+    const result = buildPolygon([polyline1, polyline2], spatialReference.wkid);
+    expect(equalsOperator.execute(result, expectedPolygon)).toBe(true);
   });
 
   it('should build a polygon with a hole', () => {
@@ -142,20 +125,11 @@ describe('buildPolygon', () => {
       spatialReference,
     });
 
-    const call = {
-      request: {
-        esriJsonPolylines: [JSON.stringify(polyline1.toJSON()), JSON.stringify(polyline2.toJSON())],
-        coordinateSystemWkid: spatialReference.wkid,
-      },
-    };
-
-    const callback = vi.fn();
-    buildPolygon(call as any, callback);
-
-    expect(callback).toHaveBeenCalledWith(null, { polygonEsriJson: JSON.stringify(expectedPolygon.toJSON()) });
+    const result = buildPolygon([polyline1, polyline2], spatialReference.wkid);
+    expect(equalsOperator.execute(result, expectedPolygon)).toBe(true);
   });
 
-  it('should return an error when no polygon can be reconstructed from the lines', () => {
+  it('should return undefined when no polygon can be reconstructed from the lines', () => {
     const polyline1 = new Polyline({
       paths: [
         [
@@ -176,16 +150,6 @@ describe('buildPolygon', () => {
       spatialReference,
     });
 
-    const call = {
-      request: {
-        esriJsonPolylines: [JSON.stringify(polyline1.toJSON()), JSON.stringify(polyline2.toJSON())],
-        coordinateSystemWkid: spatialReference.wkid,
-      },
-    };
-
-    const callback = vi.fn();
-    buildPolygon(call as any, callback);
-
-    expect(callback.mock.calls[0][0]).toEqual(new Error('No polygons could be built from the provided polylines'));
+    expect(buildPolygon([polyline1, polyline2], spatialReference.wkid)).toBeUndefined();
   });
 });

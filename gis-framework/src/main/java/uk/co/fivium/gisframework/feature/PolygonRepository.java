@@ -10,4 +10,6 @@ import org.springframework.stereotype.Repository;
 interface PolygonRepository extends ListCrudRepository<Polygon, UUID> {
 
   List<Polygon> findAllByFeatureIn(Collection<Feature> features);
+
+  List<Polygon> findAllByFeature(Feature feature);
 }

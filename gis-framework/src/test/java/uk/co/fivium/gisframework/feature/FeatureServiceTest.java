@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -18,6 +19,12 @@ class FeatureServiceTest {
 
   @Mock
   private FeatureRepository featureRepository;
+
+  @Mock
+  private PolygonRepository polygonRepository;
+
+  @Mock
+  private LineRepository lineRepository;
 
   @InjectMocks
   private FeatureService featureService;
@@ -51,5 +58,23 @@ class FeatureServiceTest {
     var result = featureService.findAllByParentFeature(FEATURE);
 
     assertThat(result).isEmpty();
+  }
+
+  @Test
+  void getEntityBackedFeature() {
+    var polygon1 = PolygonTestUtil.newBuilder().withFeature(FEATURE).build();
+    var polygon2 = PolygonTestUtil.newBuilder().withFeature(FEATURE).build();
+
+    var line1 = LineTestUtil.newBuilder().withPolygon(polygon1).build();
+    var line2 = LineTestUtil.newBuilder().withPolygon(polygon2).build();
+
+    when(polygonRepository.findAllByFeature(FEATURE)).thenReturn(List.of(polygon1, polygon2));
+    when(lineRepository.findAllByPolygon(polygon1)).thenReturn(List.of(line1));
+    when(lineRepository.findAllByPolygon(polygon2)).thenReturn(List.of(line2));
+
+    var result = featureService.getEntityBackedFeature(FEATURE);
+
+    var expected = new EntityBackedFeature(FEATURE, Map.of(polygon1, List.of(line1), polygon2, List.of(line2)));
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
   }
 }

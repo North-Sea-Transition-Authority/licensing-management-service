@@ -4,20 +4,17 @@ import * as cutOperator from '@arcgis/core/geometry/operators/cutOperator.js';
 import * as multiPartToSinglePartOperator from '@arcgis/core/geometry/operators/multiPartToSinglePartOperator.js';
 import * as containsOperator from '@arcgis/core/geometry/operators/containsOperator.js';
 import * as unionOperator from '@arcgis/core/geometry/operators/unionOperator.js';
-import type { ArcGisServiceHandlers } from '../../generated/arcgisjs/ArcGisService.js';
-import { esriJsonToPolygon, esriJsonToPolyline } from '../util/esrijson-util';
 
 /**
  * Split a polygon with a cutter line.
- * @param call GRPC call with a target polygon and a cutter line.
- * @param callback Response callback. Contains output polygons resulting from the split, returned as Esri JSON strings.
+ * @param target The polygon to split.
+ * @param cutterLine The line to cut the polygon with.
+ * @return An array of polygons resulting from the split. Disjoint polygons are split into separate polygons.
  */
-export const splitPolygon: ArcGisServiceHandlers['splitPolygon'] = (call, callback) => {
-  const target = esriJsonToPolygon(call.request.esriJsonPolygonTarget);
-  const rawCutter = esriJsonToPolyline(call.request.esriJsonLineCutter);
-  const cutter = removeOverlappingSegments(rawCutter);
+export function splitPolygon(target: Polygon, cutterLine: Polyline): Polygon[] {
+  const cutterLineClean = removeOverlappingSegments(cutterLine);
 
-  const cutResults = cutOperator.execute(target, cutter) as Polygon[];
+  const cutResults = cutOperator.execute(target, cutterLineClean) as Polygon[];
 
   let polygons: Polygon[] = [];
   //Only separate polygons if a cut actually took place.
@@ -27,10 +24,8 @@ export const splitPolygon: ArcGisServiceHandlers['splitPolygon'] = (call, callba
     polygons = multiPartToSinglePartOperator.executeMany(cutResults) as Polygon[];
   }
 
-  const response: string[] = (polygons || []).map((poly) => JSON.stringify(poly.toJSON()));
-
-  callback(null, { outputPolygonEsriJsons: response });
-};
+  return polygons;
+}
 
 /**
  * Removes overlapping segments from a polyline.

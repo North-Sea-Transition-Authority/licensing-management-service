@@ -6,6 +6,8 @@
 
         <@fdsSummaryList.summaryListCard summaryListId="wp-impact-card" headingText=workProgramme.description headingSize="h1">
             <@fdsSummaryList.summaryListRowNoAction keyText="Due date">27 July 2026</@fdsSummaryList.summaryListRowNoAction>
+            <@fdsSummaryList.summaryListRowNoAction keyText="Commitment">Firm</@fdsSummaryList.summaryListRowNoAction>
+            <@fdsSummaryList.summaryListRowNoAction keyText="Legal text">The licensee shall...</@fdsSummaryList.summaryListRowNoAction>
         </@fdsSummaryList.summaryListCard>
 
         <@fdsRadio.radioGroup
@@ -15,7 +17,7 @@
             fieldsetHeadingClass="govuk-fieldset__legend--m"
             hiddenContent=true>
 
-            <@fdsRadio.radioItem path="form.action" itemMap={"amend": "Amend or extend"} isFirstItem=true>
+            <@fdsRadio.radioItem path="form.action" itemMap={"amend": "Amend duration or text"} isFirstItem=true>
                 <@fdsCheckbox.checkboxGroup
                     path="form.action"
                     fieldsetHeadingText="What do you want to do?"
@@ -26,7 +28,7 @@
 
                     <@fdsCheckbox.checkboxItem
                         path="form.extendDuration"
-                        labelText="Extend duration">
+                        labelText="Amend duration">
                         <@duration.threeFieldDuration
                             dayPath="form.duration.days"
                             monthPath="form.duration.months"
@@ -53,7 +55,7 @@
 
             <@fdsRadio.radioItem path="form.action" itemMap={"waive": "Waive"} />
 
-            <@fdsRadio.radioItem path="form.action" itemMap={"transfer": "Transferred to another licence"}>
+            <@fdsRadio.radioItem path="form.action" itemMap={"transfer": "To be completed on another licence"}>
                 <@fdsAddToList.addToList
                     pathForList="form.targetLicences"
                     pathForSelector="form.transferSelector"
@@ -65,7 +67,7 @@
                 />
             </@fdsRadio.radioItem>
 
-            <@fdsRadio.radioItem path="form.action" itemMap={"delay": "Delay / No further action"} />
+            <@fdsRadio.radioItem path="form.action" itemMap={"delay": "Acknowldge - delay / No further action"} />
 
         </@fdsRadio.radioGroup>
 

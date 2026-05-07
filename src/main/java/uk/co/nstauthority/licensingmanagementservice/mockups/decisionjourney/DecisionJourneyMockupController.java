@@ -28,7 +28,7 @@ public class DecisionJourneyMockupController {
   ModelAndView renderTaskList() {
     var summaryItem = getSignDspSummaryItem();
     return new ModelAndView("lms/mockups/decisionjourney/taskList")
-        .addObject("pageTitle", "Record of Decision & Issue Decision Letter")
+        .addObject("pageTitle", "Record of Decision")
         .addObject("summaryItem", summaryItem);
   }
 

@@ -18,7 +18,7 @@
                 itemUrl=springUrl("/mockups/licence-extension/extension-only")
                 useNotCompletedLabels=true />
             <@fdsTaskList.taskListItem
-                itemText="Proportional reduction"
+                itemText="Corresponding reduction details"
                 itemUrl=springUrl("/mockups/licence-extension/reduction-only")
                 useNotCompletedLabels=true />
             <@fdsTaskList.taskListItem
@@ -28,15 +28,11 @@
         </@fdsTaskList.taskListSection>
         <@fdsTaskList.taskListSection
         sectionNumber="2"
-        sectionHeadingText="Prepare Letters">
+        sectionHeadingText="Review">
             <@fdsTaskList.taskListItem
-            itemText="Review and prepare letter"
+            itemText="Review record of decision"
             itemUrl=springUrl("#")
             useNotCompletedLabels=true />
-            <@fdsTaskList.taskListItem
-            itemText="Sign and Issue letter"
-            itemUrl=springUrl("#")
-            useNotCompletedLabels=false />
         </@fdsTaskList.taskListSection>
     </@fdsTaskList.singleTaskList>
 

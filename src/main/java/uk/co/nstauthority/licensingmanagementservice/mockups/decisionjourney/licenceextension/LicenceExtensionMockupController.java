@@ -40,7 +40,7 @@ public class LicenceExtensionMockupController {
     return new ModelAndView("lms/mockups/licenceextension/proportionalReduction")
         .addObject("form", new LicenceExtensionMockupForm())
         .addObject("terms", TERMS)
-        .addObject("pageTitle", "Extension and Proportional Reduction");
+        .addObject("pageTitle", "Extension and Corresponding Reduction");
   }
 
   @GetMapping("/reduction-only")
@@ -48,7 +48,7 @@ public class LicenceExtensionMockupController {
     return new ModelAndView("lms/mockups/licenceextension/reductionOnly")
         .addObject("form", new LicenceExtensionMockupForm())
         .addObject("terms", TERMS)
-        .addObject("pageTitle", "Proportional reduction details");
+        .addObject("pageTitle", "Corresponding reduction details");
   }
 
   @PostMapping("/reduction-only")

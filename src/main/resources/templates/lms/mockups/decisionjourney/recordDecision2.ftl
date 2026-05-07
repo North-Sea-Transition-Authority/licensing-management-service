@@ -5,27 +5,27 @@
 
         <@fdsRadio.radioGroup
             path="form.extensionDecision"
-            labelText="Has a schedule extension been granted?"
+            labelText="Has a phase/term extension been approved?"
             fieldsetHeadingSize="h2"
             fieldsetHeadingClass="govuk-fieldset__legend--m">
             <@fdsRadio.radioItem
                 path="form.extensionDecision"
-                itemMap={"GRANTED": "Granted"}
+                itemMap={"GRANTED": "Approved"}
                 isFirstItem=true
             />
             <@fdsRadio.radioItem
                 path="form.extensionDecision"
-                itemMap={"REJECTED": "Rejected"} />
+                itemMap={"REJECTED": "Not approved"} />
         </@fdsRadio.radioGroup>
 
         <@fdsRadio.radioGroup
             path="form.workProgrammeDecision"
-            labelText="Has a work programme amendment been granted?"
+            labelText="Has a work programme amendment been approved?"
             fieldsetHeadingSize="h2"
             fieldsetHeadingClass="govuk-fieldset__legend--m">
             <@fdsRadio.radioItem
                 path="form.workProgrammeDecision"
-                itemMap={"GRANTED": "Granted"}
+                itemMap={"GRANTED": "Approved"}
                 isFirstItem=true
             />
 

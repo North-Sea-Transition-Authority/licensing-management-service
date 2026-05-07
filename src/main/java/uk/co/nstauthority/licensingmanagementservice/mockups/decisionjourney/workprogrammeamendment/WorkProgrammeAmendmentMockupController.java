@@ -87,7 +87,7 @@ public class WorkProgrammeAmendmentMockupController {
             SearchSelectorService.route(on(LicenceInternalApiRestController.class)
                 .searchActiveLicenceSchedulesByReferenceAndTypeForContinuationApplication(
                     licenceTypeSlugList, null, null)))
-        .addObject("pageTitle", "How is this work programme activity impacted by the decision?");
+        .addObject("pageTitle", "What is the decision in relation to this activity?");
   }
 
   @PostMapping("/{wpId}/impact")
@@ -102,7 +102,7 @@ public class WorkProgrammeAmendmentMockupController {
         .orElse(new MockWorkProgramme(wpId, wpId));
 
     var actionLabel = switch (form.getAction() == null ? "" : form.getAction()) {
-      case "amend" -> "Amend or extend";
+      case "amend" -> "Amend deadline or text";
       case "waive" -> "Waive";
       case "transfer" -> "Transferred to another licence";
       case "delay" -> "Delay / No further action";

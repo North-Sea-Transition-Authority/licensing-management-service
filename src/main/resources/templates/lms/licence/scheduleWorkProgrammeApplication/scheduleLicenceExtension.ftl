@@ -95,16 +95,6 @@
                 </#if>
             </#list>
         </#if>
-
-        <@fdsDetails.summaryDetails summaryTitle="What do I need to provide?">
-          <p class="govuk-body">Provide detailed reason(s) for requiring an extension, including:</p>
-          <ul class="govuk-list govuk-list--bullet">
-            <li>details of any ongoing or proposed Licence assignments or changes of control</li>
-            <li>explain why the obligations have been unable to be delivered under the original timelines.</li>
-            <li>explain why additional time is required</li>
-          </ul>
-        </@fdsDetails.summaryDetails>
-
         <@fdsAction.submitButtons primaryButtonText="Save and complete" secondaryLinkText="Cancel" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>
 
     </@fdsForm.htmlForm>

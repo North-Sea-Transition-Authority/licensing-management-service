@@ -8,6 +8,7 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.schedulework
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +21,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionRequestView;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurpose;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurposeService;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryKeyValue;
 
@@ -30,6 +33,9 @@ class ExtensionRequestDetailsSummarySectionServiceTest {
 
   @Mock
   private LicenceScheduleExtensionService licenceScheduleExtensionService;
+
+  @Mock
+  private SwpApplicationRequestPurposeService swpApplicationRequestPurposeService;
 
   @InjectMocks
   private ExtensionRequestDetailsSummarySectionService extensionRequestDetailsSummarySectionService;
@@ -113,6 +119,64 @@ class ExtensionRequestDetailsSummarySectionServiceTest {
     when(licenceScheduleExtensionRequestView.duration()).thenReturn(new ThreeFieldDuration(2, 2, 2));
     when(licenceScheduleExtensionRequestView.isRequested()).thenReturn(true);
     return licenceScheduleExtensionRequestView;
+  }
+
+  @Test
+  void getSummarySection_whenRequestPurposeIsEmpty_returnsEmpty() {
+    when(swpApplicationRequestPurposeService.getRequestPurpose(scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(Optional.empty());
+
+    var result = extensionRequestDetailsSummarySectionService.getSummarySection(
+        scheduleWorkProgrammeApplicationDetail, null);
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  void getSummarySection_whenNeitherExtensionFlagIsSet_returnsEmpty() {
+    var requestPurpose = new SwpApplicationRequestPurpose();
+    requestPurpose.setExtendPhaseOrTerm(false);
+    requestPurpose.setExtendTerm(false);
+
+    when(swpApplicationRequestPurposeService.getRequestPurpose(scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(Optional.of(requestPurpose));
+
+    var result = extensionRequestDetailsSummarySectionService.getSummarySection(
+        scheduleWorkProgrammeApplicationDetail, null);
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  void getSummarySection_whenExtendPhaseOrTermIsTrue_returnsSummarySection() {
+    var requestPurpose = new SwpApplicationRequestPurpose();
+    requestPurpose.setExtendPhaseOrTerm(true);
+
+    when(swpApplicationRequestPurposeService.getRequestPurpose(scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(Optional.of(requestPurpose));
+    when(licenceScheduleExtensionService.getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(List.of());
+
+    var result = extensionRequestDetailsSummarySectionService.getSummarySection(
+        scheduleWorkProgrammeApplicationDetail, null);
+
+    assertThat(result).isPresent();
+  }
+
+  @Test
+  void getSummarySection_whenExtendTermIsTrue_returnsSummarySection() {
+    var requestPurpose = new SwpApplicationRequestPurpose();
+    requestPurpose.setExtendTerm(true);
+
+    when(swpApplicationRequestPurposeService.getRequestPurpose(scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(Optional.of(requestPurpose));
+    when(licenceScheduleExtensionService.getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(List.of());
+
+    var result = extensionRequestDetailsSummarySectionService.getSummarySection(
+        scheduleWorkProgrammeApplicationDetail, null);
+
+    assertThat(result).isPresent();
   }
 
   private SummaryDataView getLicenceSummaryData() {

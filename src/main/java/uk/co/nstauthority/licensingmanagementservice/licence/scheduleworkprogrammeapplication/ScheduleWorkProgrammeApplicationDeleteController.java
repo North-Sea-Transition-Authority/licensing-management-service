@@ -13,6 +13,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.reviewandsubmit.LicenceScheduleSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -77,7 +78,7 @@ public class ScheduleWorkProgrammeApplicationDeleteController {
 
   private void addRedirectNotification(RedirectAttributes redirectAttributes) {
     NotificationBanner.newSuccessBannerWithHeader(
-        "Schedule and work programme amendment application has been deleted",
+        String.format("%s has been deleted", ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.getDisplayName()),
         redirectAttributes
     );
   }

@@ -5,6 +5,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +16,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSummaryMode;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSummaryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSummaryView;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurpose;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurposeService;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCardType;
 
 @ExtendWith(MockitoExtension.class)
@@ -22,6 +25,9 @@ class WorkProgrammeAmendmentSummarySectionServiceTest {
 
   @Mock
   private LicenceWorkProgrammeAmendmentSummaryService licenceWorkProgrammeAmendmentSummaryService;
+
+  @Mock
+  private SwpApplicationRequestPurposeService swpApplicationRequestPurposeService;
 
   @InjectMocks
   private WorkProgrammeAmendmentSummarySectionService workProgrammeAmendmentSummarySectionService;
@@ -144,5 +150,47 @@ class WorkProgrammeAmendmentSummarySectionServiceTest {
 
     assertThat(result.summaryCards()).hasSize(1);
     assertThat(result.summaryCards().getFirst().displayName()).isEqualTo("Amendment 1");
+  }
+
+  @Test
+  void getSummarySection_whenRequestPurposeIsEmpty_returnsEmpty() {
+    when(swpApplicationRequestPurposeService.getRequestPurpose(scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(Optional.empty());
+
+    var result = workProgrammeAmendmentSummarySectionService.getSummarySection(
+        scheduleWorkProgrammeApplicationDetail, null);
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  void getSummarySection_whenAmendWorkProgrammeIsFalse_returnsEmpty() {
+    var requestPurpose = new SwpApplicationRequestPurpose();
+    requestPurpose.setAmendWorkProgramme(false);
+
+    when(swpApplicationRequestPurposeService.getRequestPurpose(scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(Optional.of(requestPurpose));
+
+    var result = workProgrammeAmendmentSummarySectionService.getSummarySection(
+        scheduleWorkProgrammeApplicationDetail, null);
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  void getSummarySection_whenAmendWorkProgrammeIsTrue_returnsSummarySection() {
+    var requestPurpose = new SwpApplicationRequestPurpose();
+    requestPurpose.setAmendWorkProgramme(true);
+
+    when(swpApplicationRequestPurposeService.getRequestPurpose(scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(Optional.of(requestPurpose));
+    when(licenceWorkProgrammeAmendmentSummaryService
+        .getWorkProgrammeAmendmentSummaryViewsFromScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(Collections.emptyList());
+
+    var result = workProgrammeAmendmentSummarySectionService.getSummarySection(
+        scheduleWorkProgrammeApplicationDetail, null);
+
+    assertThat(result).isPresent();
   }
 }

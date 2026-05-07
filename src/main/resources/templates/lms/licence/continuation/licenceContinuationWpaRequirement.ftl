@@ -31,6 +31,6 @@ errorSummaryItems=errorSummaryItems>
                 labelText="What actions are being taken to complete any incomplete work programme activities?"/>
             </@fdsRadio.radioNo>
         </@fdsRadio.radioGroup>
-        <@fdsAction.submitButtons primaryButtonText="Save" secondaryLinkText="Back" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>
+        <@fdsAction.submitButtons primaryButtonText="Save and continue" secondaryLinkText="Back" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>
     </@fdsForm.htmlForm>
 </@defaultPage>

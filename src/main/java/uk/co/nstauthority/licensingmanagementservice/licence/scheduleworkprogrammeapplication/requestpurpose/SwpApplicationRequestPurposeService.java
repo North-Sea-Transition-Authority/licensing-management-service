@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import jakarta.transaction.Transactional;
 import java.util.EnumSet;
+import java.util.Optional;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
@@ -30,6 +31,11 @@ public class SwpApplicationRequestPurposeService {
     this.licenceScheduleExtensionRepository = licenceScheduleExtensionRepository;
     this.licenceScheduleSupportingInformationService = licenceScheduleSupportingInformationService;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
+  }
+
+  public Optional<SwpApplicationRequestPurpose> getRequestPurpose(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail) {
+    return swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(applicationDetail);
   }
 
   public Set<SwpApplicationRequestPurposeOption> getPageOptions(

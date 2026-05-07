@@ -8,6 +8,7 @@ import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFi
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionRequestView;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurposeService;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
@@ -23,9 +24,14 @@ public class ExtensionRequestDetailsSummarySectionService
   public static final int SECTION_DISPLAY_ORDER = 20;
 
   private final LicenceScheduleExtensionService licenceScheduleExtensionService;
+  private final SwpApplicationRequestPurposeService swpApplicationRequestPurposeService;
 
-  public ExtensionRequestDetailsSummarySectionService(LicenceScheduleExtensionService licenceScheduleExtensionService) {
+  public ExtensionRequestDetailsSummarySectionService(
+      LicenceScheduleExtensionService licenceScheduleExtensionService,
+      SwpApplicationRequestPurposeService swpApplicationRequestPurposeService
+  ) {
     this.licenceScheduleExtensionService = licenceScheduleExtensionService;
+    this.swpApplicationRequestPurposeService = swpApplicationRequestPurposeService;
   }
 
   @Override
@@ -33,6 +39,17 @@ public class ExtensionRequestDetailsSummarySectionService
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
       ServiceUserDetail user
   ) {
+    var requestPurpose = swpApplicationRequestPurposeService
+        .getRequestPurpose(scheduleWorkProgrammeApplicationDetail);
+
+    var hasExtensionRequestPurpose = requestPurpose
+        .map(purpose -> purpose.getExtendPhaseOrTerm() || purpose.getExtendTerm())
+        .orElse(false);
+    
+    if (!hasExtensionRequestPurpose) {
+      return Optional.empty();
+    }
+
     var specificSummaryItem = getLicenceSummaryItem(scheduleWorkProgrammeApplicationDetail, LICENCE_SECTION_NAME);
     var summarySection = new SummarySection(SECTION_DISPLAY_ORDER, List.of(specificSummaryItem));
 

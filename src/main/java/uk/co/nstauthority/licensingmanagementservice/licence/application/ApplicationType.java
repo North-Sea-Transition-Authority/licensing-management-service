@@ -6,8 +6,8 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 public enum ApplicationType implements Displayable, PathVariableEnum {
 
   SCHEDULE_AMENDMENT_APPLICATION(
-      "Schedule and work programme amendment application",
-      "schedule-and-work-programme-amendment-application",
+      "Licence and work programme extension and amendment application",
+      "licence-and-work-programme-extension-and-amendment-application",
       10
   ),
   CONTINUATION_APPLICATION(
@@ -16,6 +16,7 @@ public enum ApplicationType implements Displayable, PathVariableEnum {
       20
   ),
   ;
+
 
   private final String displayName;
   private final String urlSlug;

@@ -61,6 +61,6 @@ errorSummaryItems=errorSummaryItems>
             </@fdsFieldset.fieldset>
         </#if>
 
-        <@fdsAction.submitButtons primaryButtonText="Save" secondaryLinkText="Back" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>
+        <@fdsAction.submitButtons primaryButtonText="Save and continue" secondaryLinkText="Back" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>
     </@fdsForm.htmlForm>
 </@defaultPage>

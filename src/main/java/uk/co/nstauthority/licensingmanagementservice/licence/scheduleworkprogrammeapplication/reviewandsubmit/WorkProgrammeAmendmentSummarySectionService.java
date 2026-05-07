@@ -8,6 +8,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSummaryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSummaryView;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurposeService;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
@@ -26,11 +27,14 @@ public class WorkProgrammeAmendmentSummarySectionService
   public static final int SECTION_DISPLAY_ORDER = 30;
 
   private final LicenceWorkProgrammeAmendmentSummaryService licenceWorkProgrammeAmendmentSummaryService;
+  private final SwpApplicationRequestPurposeService swpApplicationRequestPurposeService;
 
   WorkProgrammeAmendmentSummarySectionService(
-      LicenceWorkProgrammeAmendmentSummaryService licenceWorkProgrammeAmendmentSummaryService
+      LicenceWorkProgrammeAmendmentSummaryService licenceWorkProgrammeAmendmentSummaryService,
+      SwpApplicationRequestPurposeService swpApplicationRequestPurposeService
   ) {
     this.licenceWorkProgrammeAmendmentSummaryService = licenceWorkProgrammeAmendmentSummaryService;
+    this.swpApplicationRequestPurposeService = swpApplicationRequestPurposeService;
   }
 
   @Override
@@ -38,6 +42,12 @@ public class WorkProgrammeAmendmentSummarySectionService
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
       ServiceUserDetail user
   ) {
+    var requestPurpose = swpApplicationRequestPurposeService
+        .getRequestPurpose(scheduleWorkProgrammeApplicationDetail);
+
+    if (requestPurpose.isEmpty() || !requestPurpose.get().getAmendWorkProgramme()) {
+      return Optional.empty();
+    }
 
     var specificSummaryItem = getLicenceSummaryItem(scheduleWorkProgrammeApplicationDetail, LICENCE_SECTION_NAME);
     var summarySection = new SummarySection(SECTION_DISPLAY_ORDER, List.of(specificSummaryItem));

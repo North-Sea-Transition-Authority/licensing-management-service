@@ -22,7 +22,7 @@ errorSummaryItems=errorSummaryItems>
           <p class="govuk-body">All blocks currently have an assigned operator. No further action is required for this section.</p>
         </#if>
 
-        <@fdsAction.submitButtons primaryButtonText="Save" secondaryLinkText="Back" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>
+        <@fdsAction.submitButtons primaryButtonText="Save and continue" secondaryLinkText="Back" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>
 
     </@fdsForm.htmlForm>
 </@defaultPage>

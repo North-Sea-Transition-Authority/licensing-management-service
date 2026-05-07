@@ -69,7 +69,7 @@ public class ApplicationLetterDocumentController {
 
   @GetMapping("/add")
   public ModelAndView renderAddSectionPage(
-      @PathVariable ApplicationType applicationType,
+      ApplicationType applicationType,
       @PathVariable UUID applicationId,
       @PathVariable("documentInstanceSectionId") UUID documentSectionId,
       @RequestParam(name = "section") AddSectionOption addSectionOption
@@ -87,7 +87,7 @@ public class ApplicationLetterDocumentController {
 
   @PostMapping("/add")
   public ModelAndView createSection(
-      @PathVariable ApplicationType applicationType,
+      ApplicationType applicationType,
       @PathVariable UUID applicationId,
       @PathVariable("documentInstanceSectionId") UUID documentSectionId,
       @RequestParam(name = "section") AddSectionOption addSectionOption,
@@ -120,19 +120,19 @@ public class ApplicationLetterDocumentController {
         AddSectionOption.getDisplayOrder(addSectionOption, documentSectionDto.displayOrder())
     );
 
-    return ReverseRouter.redirect(on(ApplicationLetterController.class).renderEditLetterOverview(applicationType, applicationId));
+    return ReverseRouter.redirect(on(ApplicationLetterController.class).renderEditLetterOverview(
+        applicationType,
+        applicationId
+    ));
   }
 
   @GetMapping("/edit")
   public ModelAndView renderEditSectionPage(
-      @PathVariable ApplicationType applicationType,
+      ApplicationType applicationType,
       @PathVariable UUID applicationId,
       @PathVariable("documentInstanceSectionId") UUID documentSectionId
   ) {
-    var application = applicationService.getApplication(
-        applicationType,
-        applicationId
-    );
+    var application = applicationService.getApplication(applicationType, applicationId);
     var documentSectionDto = getDocumentInstanceSectionOrThrowNotFound(documentSectionId);
     var form = DocumentInstanceSectionForm.from(documentSectionDto);
     var bindingResult = applicationLetterValidationService.getDocumentSectionSpecificErrors(form, documentSectionDto);
@@ -148,7 +148,7 @@ public class ApplicationLetterDocumentController {
 
   @PostMapping("/edit")
   ModelAndView updateSection(
-      @PathVariable ApplicationType applicationType,
+      ApplicationType applicationType,
       @PathVariable UUID applicationId,
       @PathVariable("documentInstanceSectionId") UUID documentSectionId,
       @ModelAttribute("form") DocumentInstanceSectionForm form,
@@ -175,12 +175,15 @@ public class ApplicationLetterDocumentController {
 
     documentInstanceSectionService.editDocumentInstanceSection(documentSectionDto, form);
 
-    return ReverseRouter.redirect(on(ApplicationLetterController.class).renderEditLetterOverview(applicationType, applicationId));
+    return ReverseRouter.redirect(on(ApplicationLetterController.class).renderEditLetterOverview(
+        applicationType,
+        applicationId
+    ));
   }
 
   @GetMapping("/remove")
   public ModelAndView renderRemoveSectionPage(
-      @PathVariable ApplicationType applicationType,
+      ApplicationType applicationType,
       @PathVariable UUID applicationId,
       @PathVariable("documentInstanceSectionId") UUID documentSectionId
   ) {
@@ -200,7 +203,7 @@ public class ApplicationLetterDocumentController {
 
   @PostMapping("/remove")
   ModelAndView removeSectionPage(
-      @PathVariable ApplicationType applicationType,
+      ApplicationType applicationType,
       @PathVariable UUID applicationId,
       @PathVariable("documentInstanceSectionId") UUID documentSectionId
   ) {
@@ -211,7 +214,10 @@ public class ApplicationLetterDocumentController {
 
     documentInstanceSectionService.deleteDocumentInstanceSection(documentSectionDto);
 
-    return ReverseRouter.redirect(on(ApplicationLetterController.class).renderEditLetterOverview(applicationType, applicationId));
+    return ReverseRouter.redirect(on(ApplicationLetterController.class).renderEditLetterOverview(
+        applicationType,
+        applicationId
+    ));
   }
 
   private ModelAndView getAddOrEditSectionModelAndView(

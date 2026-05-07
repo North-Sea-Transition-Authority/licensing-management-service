@@ -19,6 +19,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
 import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEntity;
+import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEnum;
 
 public class ReverseRouter {
 
@@ -60,12 +61,24 @@ public class ReverseRouter {
 
     allUriVariables.putAll(uriVariables);
     allUriVariables.putAll(getPathVariableEntityIds(methodCall));
+    allUriVariables.putAll(getPathVariableEnumValues(methodCall));
 
     // Use a UriComponentsBuilder which is not scoped to the request to get relative URIs (instead of absolute)
     var uriComponentsBuilder = UriComponentsBuilder.newInstance();
     return MvcUriComponentsBuilder.fromMethodCall(uriComponentsBuilder, methodCall)
         .buildAndExpand(allUriVariables)
         .toUriString();
+  }
+
+  private static Map<String, Object> getPathVariableEnumValues(Object methodCall) {
+    var uriVariables = new HashMap<String, Object>();
+    var argumentValues = ((MvcUriComponentsBuilder.MethodInvocationInfo) methodCall).getArgumentValues();
+    for (Object currentArgument : argumentValues) {
+      if (currentArgument instanceof PathVariableEnum pathVariableEnum) {
+        uriVariables.put(pathVariableEnum.getPathVariableName(), pathVariableEnum.getUrlSlug());
+      }
+    }
+    return uriVariables;
   }
 
   private static Map<String, Object> getPathVariableEntityIds(Object methodCall) {

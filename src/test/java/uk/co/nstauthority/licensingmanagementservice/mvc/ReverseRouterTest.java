@@ -25,6 +25,7 @@ import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEntity;
+import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEnum;
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest
@@ -209,6 +210,32 @@ class ReverseRouterTest extends AbstractControllerTest {
   }
 
   @Test
+  void route_whenPathVariableEnum_thenUsesEnumValue() {
+    var route = ReverseRouter.route(
+        on(TestController.class).testEnumMethod(TestPathVariableEnum.TEST_VALUE)
+    );
+    assertThat(route).isEqualTo("/parent/request_parent_id/enum/test-value");
+  }
+
+  @Test
+  void route_whenPathVariableEnumAndUriVariablesVariant_thenExplicitVariableOverridesRequest() {
+    var route = ReverseRouter.route(
+        on(TestController.class).testEnumMethod(TestPathVariableEnum.TEST_VALUE),
+        Map.of("parentId", "map_parent_id")
+    );
+    assertThat(route).isEqualTo("/parent/map_parent_id/enum/test-value");
+  }
+
+  @Test
+  void redirect_whenPathVariableEnum_thenUsesEnumValue() {
+    var redirectModelAndView = ReverseRouter.redirect(
+        on(TestController.class).testEnumMethod(TestPathVariableEnum.TEST_VALUE)
+    );
+    assertThat(redirectModelAndView.getViewName())
+        .isEqualTo("redirect:/parent/request_parent_id/enum/test-value");
+  }
+
+  @Test
   void emptyBindingResult_verifyResponse() {
     var emptyBindingResult = (BeanPropertyBindingResult) ReverseRouter.emptyBindingResult();
     assertThat(emptyBindingResult.getTarget()).isNull();
@@ -241,6 +268,31 @@ class ReverseRouterTest extends AbstractControllerTest {
           doubleIdGrandchild.getId(),
           doubleIdGrandchild.getSecondId()
       ));
+    }
+
+    @GetMapping("/enum/{enumValue}")
+    ModelAndView testEnumMethod(TestPathVariableEnum testEnum) {
+      return new ModelAndView(testEnum.getUrlSlug());
+    }
+  }
+
+  enum TestPathVariableEnum implements PathVariableEnum {
+    TEST_VALUE("test-value");
+
+    private final String slug;
+
+    TestPathVariableEnum(String slug) {
+      this.slug = slug;
+    }
+
+    @Override
+    public String getPathVariableName() {
+      return "enumValue";
+    }
+
+    @Override
+    public String getUrlSlug() {
+      return slug;
     }
   }
 

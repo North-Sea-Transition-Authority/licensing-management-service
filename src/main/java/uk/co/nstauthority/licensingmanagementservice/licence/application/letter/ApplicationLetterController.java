@@ -60,7 +60,7 @@ public class ApplicationLetterController {
 
   @GetMapping("/letter/edit")
   public ModelAndView renderEditLetterOverview(
-      @PathVariable ApplicationType applicationType,
+      ApplicationType applicationType,
       @PathVariable UUID applicationId
   ) {
     LicenceApplication application = applicationService.getApplication(applicationType, applicationId);

@@ -49,6 +49,7 @@ import uk.co.nstauthority.licensingmanagementservice.hibernate.HibernateQueryCou
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationTypeArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
@@ -109,6 +110,7 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     InvokingUserCanAccessContinuationApplicationInterceptorRule.class,
     ContinuationApplicationHasStatusInterceptorRule.class,
     DocumentTemplateArgumentResolver.class,
+    ApplicationTypeArgumentResolver.class,
     HasAnyRoleInTeamTypeInterceptorRule.class,
     ContinuationApplicationHasStatusInterceptorRule.class,
     ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.class

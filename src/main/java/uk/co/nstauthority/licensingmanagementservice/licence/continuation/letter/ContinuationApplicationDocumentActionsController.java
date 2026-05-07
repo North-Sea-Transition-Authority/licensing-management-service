@@ -64,7 +64,7 @@ public class ContinuationApplicationDocumentActionsController {
 
   @PostMapping("approve")
   public ModelAndView approveAndSignDocument(
-      @PathVariable ApplicationType applicationType,
+      ApplicationType applicationType,
       @PathVariable UUID applicationId,
       @PathVariable("documentInstanceId") UUID documentInstanceId,
       RedirectAttributes redirectAttributes,

@@ -54,7 +54,7 @@ public class ApplicationDocumentActionsController {
 
   @GetMapping("preview")
   public ModelAndView renderPreviewPdf(
-      @PathVariable ApplicationType applicationType,
+      ApplicationType applicationType,
       @PathVariable UUID applicationId,
       @PathVariable("documentInstanceId") UUID documentInstanceId,
       ServiceUserDetail user
@@ -65,11 +65,12 @@ public class ApplicationDocumentActionsController {
 
   @GetMapping("render")
   public ResponseEntity<ByteArrayResource> renderGeneratedPdf(
-      @PathVariable ApplicationType applicationType,
+      ApplicationType applicationType,
       @PathVariable UUID applicationId,
       @PathVariable("documentInstanceId") UUID documentInstanceId,
       ServiceUserDetail user
   ) {
+
     var application = applicationService.getApplication(applicationType, applicationId);
     var documentInstance = getDocumentInstanceDtoOrThrowNotFound(documentInstanceId);
 
@@ -81,7 +82,7 @@ public class ApplicationDocumentActionsController {
 
   @GetMapping("reload")
   public ModelAndView renderReloadDocumentPage(
-      @PathVariable ApplicationType applicationType,
+      ApplicationType applicationType,
       @PathVariable UUID applicationId,
       @PathVariable("documentInstanceId") UUID documentInstanceId
   ) {
@@ -100,7 +101,7 @@ public class ApplicationDocumentActionsController {
 
   @PostMapping("reload")
   public ModelAndView reloadDocument(
-      @PathVariable ApplicationType applicationType,
+      ApplicationType applicationType,
       @PathVariable UUID applicationId,
       @PathVariable("documentInstanceId") UUID documentInstanceId,
       RedirectAttributes redirectAttributes

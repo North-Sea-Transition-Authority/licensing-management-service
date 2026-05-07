@@ -64,7 +64,9 @@ class ApplicationLetterControllerTest extends AbstractControllerTest {
   @Test
   void renderEditLetterOverview_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(
-            get(ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(null, null)))
+            get(ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
+                ApplicationType.CONTINUATION_APPLICATION, UUID.randomUUID()
+            )))
                 .with(csrf())
         )
         .andExpect(redirectionToLoginUrl());

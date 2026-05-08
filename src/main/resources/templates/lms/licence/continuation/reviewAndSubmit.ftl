@@ -13,7 +13,7 @@ pageSize=PageSize.FULL_COLUMN
 extendContainerWidth=true
 backLinkUrl=springUrl(cancelUrl)>
     <@fdsForm.htmlForm>
-        <@continuationApplicationSummary.continuationApplicationSummary accordionId=accordionId summarySections=summarySections/>
+        <@continuationApplicationSummary.continuationApplicationSummary accordionId=accordionId summarySections=summarySections workProgrammeActivities=workProgrammeActivities![]/>
         <#if isSubmittable>
             <@fdsAction.submitButtons
             primaryButtonText="Submit"

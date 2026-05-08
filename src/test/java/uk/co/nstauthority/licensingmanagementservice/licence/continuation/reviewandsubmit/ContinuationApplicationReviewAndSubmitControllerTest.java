@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,6 +60,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
         .build();
 
     when(licenceContinuationService.getDetailByIdOrThrow(LICENCE_CONTINUATION_APPLICATION_DETAIL_ID)).thenReturn(licenceContinuationApplicationDetail);
+    when(workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(any())).thenReturn(List.of());
   }
 
   @Test
@@ -84,7 +86,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
     when(licenceContinuationService.userCanSubmitApplication(licenceContinuationApplicationDetail, USER)).thenReturn(false);
 
     var resultActions = mockMvc.perform(
-        get(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).getReviewAndSubmit(applicationDetailId, null, null))).with(user(USER))
+            get(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).getReviewAndSubmit(applicationDetailId, null, null))).with(user(USER))
         )
         .andExpect(status().isOk());
 

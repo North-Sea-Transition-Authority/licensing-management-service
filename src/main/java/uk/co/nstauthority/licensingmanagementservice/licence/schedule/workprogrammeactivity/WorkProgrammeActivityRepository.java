@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogr
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicateThisOnUpdate;
@@ -47,5 +48,17 @@ public interface WorkProgrammeActivityRepository
       LicenceScheduleDetail licenceScheduleDetail,
       LocalDate date,
       LicenceScheduleEventStatus licenceScheduleEventStatus
+  );
+
+  @EntityGraph(attributePaths = {"licenceSchedulePhase.licenceScheduleTerm", "licenceScheduleTerm"})
+  List<WorkProgrammeActivity> findByLicenceSchedulePhaseAndStatus(
+      LicenceSchedulePhase licenceSchedulePhase,
+      LicenceScheduleEventStatus status
+  );
+
+  @EntityGraph(attributePaths = {"licenceSchedulePhase.licenceScheduleTerm", "licenceScheduleTerm"})
+  List<WorkProgrammeActivity> findByLicenceScheduleTermAndStatus(
+      LicenceScheduleTerm licenceScheduleTerm,
+      LicenceScheduleEventStatus status
   );
 }

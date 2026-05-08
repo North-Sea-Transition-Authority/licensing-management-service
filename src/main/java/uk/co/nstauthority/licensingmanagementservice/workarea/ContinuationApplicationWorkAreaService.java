@@ -1,7 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.workarea;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
-import static uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService.CONTINUATION_REVIEWER_ROLES;
 
 import java.util.List;
 import java.util.Map;
@@ -23,9 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearc
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
-import uk.co.nstauthority.licensingmanagementservice.teams.Role;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
+import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
 
 @Service
@@ -41,18 +38,18 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
   private final LicenceContinuationService licenceContinuationService;
   private final LicenceSearchService licenceSearchService;
   private final ApplicationAccessService applicationAccessService;
-  private final TeamQueryService teamQueryService;
+  private final RegulatorRoleService regulatorRoleService;
 
   public ContinuationApplicationWorkAreaService(
       LicenceContinuationService licenceContinuationService,
       LicenceSearchService licenceSearchService,
       ApplicationAccessService applicationAccessService,
-      TeamQueryService teamQueryService
+      RegulatorRoleService regulatorRoleService
   ) {
     this.licenceContinuationService = licenceContinuationService;
     this.licenceSearchService = licenceSearchService;
     this.applicationAccessService = applicationAccessService;
-    this.teamQueryService = teamQueryService;
+    this.regulatorRoleService = regulatorRoleService;
   }
 
   @Override
@@ -100,7 +97,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       case DRAFT -> ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
           .getTaskList(applicationDetail.getId(), null, null));
 
-      case LicenceContinuationApplicationStatus.ISSUE_DECISION -> (isContinuationIssuer(serviceUserDetail))
+      case LicenceContinuationApplicationStatus.ISSUE_DECISION -> (regulatorRoleService.isContinuationIssuer(serviceUserDetail))
               ? ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
                     ApplicationType.CONTINUATION_APPLICATION,
                     applicationDetail.getLicenceContinuationApplication().getId()
@@ -130,22 +127,6 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         .build();
   }
 
-  private boolean isContinuationReviewer(ServiceUserDetail userDetail) {
-    return teamQueryService.userHasAtLeastOneStaticRole(
-        userDetail.wuaId(),
-        TeamType.OFFSHORE_PRODUCTION_LICENSING,
-        CONTINUATION_REVIEWER_ROLES
-    );
-  }
-
-  private boolean isContinuationIssuer(ServiceUserDetail userDetail) {
-    return teamQueryService.userHasAtLeastOneStaticRole(
-        userDetail.wuaId(),
-        TeamType.REGULATIONS_LICENSING,
-        Set.of(Role.CONTINUATION_ISSUER)
-    );
-  }
-
   private boolean matchesFilterAndHasAccess(
       LicenceContinuationApplicationDetail applicationDetail,
       WorkAreaFilterForm filterForm,
@@ -158,8 +139,8 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
     }
 
     var status = applicationDetail.getStatus();
-    boolean isIssuer = isContinuationIssuer(userDetail);
-    boolean isReviewer = isContinuationReviewer(userDetail);
+    boolean isIssuer = regulatorRoleService.isContinuationIssuer(userDetail);
+    boolean isReviewer = regulatorRoleService.isContinuationReviewer(userDetail);
     boolean hasAppAccess = applicationAccessService.userHasAccessToApplication(
         applicationDetail.getId().toString(),
         ApplicationType.CONTINUATION_APPLICATION,

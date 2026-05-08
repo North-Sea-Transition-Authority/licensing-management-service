@@ -9,8 +9,6 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementRequest;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementService;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementRequest;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementService;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
@@ -20,16 +18,13 @@ import uk.co.nstauthority.licensingmanagementservice.summary.SummarySectionServi
 @Service
 public class ContinuationRequirementSummarySectionService implements SummarySectionService<LicenceContinuationApplicationDetail> {
 
-  public static final String SECTION_NAME = "Continuation requirement";
-  public static final int SECTION_DISPLAY_ORDER = 20;
-  private final LicenceContinuationWpaRequirementService  licenceContinuationWpaRequirementService;
+  public static final String SECTION_NAME = "Other requirement";
+  public static final int SECTION_DISPLAY_ORDER = 30;
   private final LicenceContinuationOtherRequirementService licenceContinuationOtherRequirementService;
 
   public ContinuationRequirementSummarySectionService(
-      LicenceContinuationWpaRequirementService licenceContinuationWpaRequirementService,
       LicenceContinuationOtherRequirementService licenceContinuationOtherRequirementService
   ) {
-    this.licenceContinuationWpaRequirementService = licenceContinuationWpaRequirementService;
     this.licenceContinuationOtherRequirementService = licenceContinuationOtherRequirementService;
   }
 
@@ -46,18 +41,10 @@ public class ContinuationRequirementSummarySectionService implements SummarySect
   private SummaryItem getContinuationRequirementSummaryItem(
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
   ) {
-    var wpaRequirementRequest = licenceContinuationWpaRequirementService.getWorkProgrammeActivitiesRequirementRequest(
-        licenceContinuationApplicationDetail
-    );
     var otherRequirementRequest = licenceContinuationOtherRequirementService.getLicenceContinuationApplicationDetail(
         licenceContinuationApplicationDetail
     );
     List<SummaryCard> summaryCards = new ArrayList<>();
-
-    if (wpaRequirementRequest.isPresent()) {
-      var wpaRequirementSummaryCard = buildWpaRequirementRequestSummaryCard(wpaRequirementRequest.get());
-      summaryCards.add(wpaRequirementSummaryCard);
-    }
 
     if (otherRequirementRequest.isPresent()) {
       var otherRequirementRequestSummaryCard = buildOtherRequirementRequestSummaryCard(otherRequirementRequest.get());
@@ -125,32 +112,5 @@ public class ContinuationRequirementSummarySectionService implements SummarySect
     );
 
     return List.of(financialCapacitySummaryCard, relinquishmentSummaryCard, developmentConsentSummaryCard);
-  }
-
-  private SummaryCard buildWpaRequirementRequestSummaryCard(
-      LicenceContinuationWpaRequirementRequest licenceContinuationWpaRequirementRequest
-  ) {
-    var wpaRequestBuilder = SummaryDataView.newBuilder()
-        .addStringValue(
-            "Work programme activities completed and evidenced",
-            licenceContinuationWpaRequirementRequest.getWorkProgrammeActivitiesCompletionStatus()
-        );
-
-    if (BooleanUtils.isFalse(licenceContinuationWpaRequirementRequest.getWorkProgrammeActivitiesCompletionStatus())) {
-      wpaRequestBuilder.addStringValue(
-          "Actions to complete work programme activities",
-          licenceContinuationWpaRequirementRequest.getActionsToCompleteWorkProgrammeActivities()
-      );
-    } else if (BooleanUtils.isTrue(licenceContinuationWpaRequirementRequest.getWorkProgrammeActivitiesCompletionStatus())) {
-      wpaRequestBuilder.addStringValue(
-          "Further information",
-          licenceContinuationWpaRequirementRequest.getFurtherInformation()
-      );
-    }
-
-    return SummaryCard.simpleSummaryCardWithHeading(
-        "Work programme activities",
-        wpaRequestBuilder.build()
-    );
   }
 }

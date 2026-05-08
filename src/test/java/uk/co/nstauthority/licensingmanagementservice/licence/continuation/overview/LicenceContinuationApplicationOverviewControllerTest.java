@@ -37,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overvi
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.reviewandsubmit.ContinuationSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
+import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 
 @ContextConfiguration(classes = LicenceContinuationApplicationOverviewController.class)
 class LicenceContinuationApplicationOverviewControllerTest extends AbstractControllerTest {
@@ -61,6 +62,9 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
 
   @MockitoBean
   private ContinuationDecisionSummarySectionService continuationDecisionSummarySectionService;
+
+  @MockitoBean
+  private RegulatorRoleService regulatorRoleService;
 
   @Test
   void renderOverview_displaysApplicationContextAndSummaries() throws Exception {
@@ -98,7 +102,7 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
         .thenReturn(applicationContext);
     when(continuationSummarySectionService.getSummarySections(applicationDetail, USER))
         .thenReturn(List.of());
-    when(workProgrammeActivityService.getLicenceWorkProgramActivitiesViews(any()))
+    when(workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(any()))
         .thenReturn(List.of());
     when(licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, USER))
         .thenReturn(List.of());

@@ -3,8 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.workarea;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anySet;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
@@ -38,14 +36,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearc
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
+import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 
 @ExtendWith(MockitoExtension.class)
 class ContinuationApplicationWorkAreaServiceTest {
 
   @Mock
-  private TeamQueryService teamQueryService;
+  private RegulatorRoleService regulatorRoleService;
 
   @Mock
   private LicenceContinuationService licenceContinuationService;
@@ -287,7 +284,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
 
-    when(teamQueryService.userHasAtLeastOneStaticRole(any(), any(), any())).thenReturn(true);
+    when(regulatorRoleService.isContinuationReviewer(serviceUserDetail)).thenReturn(true);
 
     var org1 = "Org 1";
     var licenceResponsibleOrgMap = Map.of(licence2, List.of(org1));
@@ -337,11 +334,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
 
-    when(teamQueryService.userHasAtLeastOneStaticRole(
-        eq(serviceUserDetail.wuaId()),
-        eq(TeamType.REGULATIONS_LICENSING),
-        anySet()
-    )).thenReturn(true);
+    when(regulatorRoleService.isContinuationIssuer(serviceUserDetail)).thenReturn(true);
 
     var org1 = "Org 1";
     var licenceResponsibleOrgMap = Map.of(licence2, List.of(org1));

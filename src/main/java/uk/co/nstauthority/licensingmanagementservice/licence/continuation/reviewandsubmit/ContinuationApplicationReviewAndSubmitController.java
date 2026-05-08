@@ -20,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
@@ -34,18 +35,20 @@ public class ContinuationApplicationReviewAndSubmitController {
   private final LicenceContinuationService licenceContinuationService;
   private final ContinuationSummarySectionService continuationSummarySectionService;
   private final LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService;
-
+  private final WorkProgrammeActivityService workProgrammeActivityService;
 
   public ContinuationApplicationReviewAndSubmitController(
       LicenceService licenceService,
       LicenceContinuationService licenceContinuationService,
       ContinuationSummarySectionService continuationSummarySectionService,
-      LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService
+      LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService,
+      WorkProgrammeActivityService workProgrammeActivityService
   ) {
     this.licenceService = licenceService;
     this.licenceContinuationService = licenceContinuationService;
     this.continuationSummarySectionService = continuationSummarySectionService;
     this.licenceContinuationApplicationTaskListService = licenceContinuationApplicationTaskListService;
+    this.workProgrammeActivityService = workProgrammeActivityService;
   }
 
   @GetMapping
@@ -92,6 +95,11 @@ public class ContinuationApplicationReviewAndSubmitController {
       boolean isSubmittable,
       ServiceUserDetail user
   ) {
+
+    var workProgrammeActivities = workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(
+        licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail)
+    );
+
     return new ModelAndView("lms/licence/continuation/reviewAndSubmit")
         .addObject(
             "cancelUrl",
@@ -126,6 +134,10 @@ public class ContinuationApplicationReviewAndSubmitController {
         .addObject(
             "submitterRoleName",
             Role.APPLICATION_SUBMITTER.getName()
+        )
+        .addObject(
+            "workProgrammeActivities",
+            workProgrammeActivities
         );
   }
 }

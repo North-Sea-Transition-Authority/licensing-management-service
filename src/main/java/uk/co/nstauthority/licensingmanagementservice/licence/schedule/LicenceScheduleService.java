@@ -183,7 +183,7 @@ public class LicenceScheduleService {
         nextTerm = currentTerm;
       } else {
         nextTerm = getNextTerm(terms, currentTerm).orElse(null);
-        nextPhase = getFirstPhaseOfTerm(nextTerm);
+        nextPhase = getFirstPhaseOfTerm(nextTerm).orElse(null);
       }
     }
 
@@ -200,12 +200,15 @@ public class LicenceScheduleService {
     return getNextPhase(currentTermPhases, currentPhase).orElse(null);
   }
 
-  private LicenceSchedulePhase getFirstPhaseOfTerm(LicenceScheduleTerm term) {
+  private Optional<LicenceSchedulePhase> getFirstPhaseOfTerm(LicenceScheduleTerm term) {
     if (term == null) {
-      return null;
+      return Optional.empty();
     }
-    var phases = licenceSchedulePhaseService.getActivePhasesByTerm(term);
-    return phases.isEmpty() ? null : phases.getFirst();
+    return licenceSchedulePhaseService.getActivePhasesByTerm(term).stream()
+        .sorted(Comparator.comparing(LicenceSchedulePhase::getStartDate))
+        .toList()
+        .stream()
+        .findFirst();
   }
 
   public String formatTermPhaseDisplay(LicenceScheduleTerm term, LicenceSchedulePhase phase) {

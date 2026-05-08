@@ -15,16 +15,11 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementRequest;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementService;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementRequest;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementService;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCardType;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
 
 @ExtendWith(MockitoExtension.class)
 class ContinuationRequirementSummarySectionServiceTest {
-
-  @Mock
-  private LicenceContinuationWpaRequirementService licenceContinuationWpaRequirementService;
 
   @Mock
   private LicenceContinuationOtherRequirementService licenceContinuationOtherRequirementService;
@@ -42,12 +37,11 @@ class ContinuationRequirementSummarySectionServiceTest {
   }
 
   @Test
-  void getSummarySection_withBothWpaAndOtherRequirements_returnsAllSummaryCards() {
-    var wpaRequest = createWpaRequirementRequest();
+  void getSummarySection_withOtherRequirements_returnsOtherRequirementSummaryCardsOnly() {
     var otherRequest = createOtherRequirementRequest();
 
-    when(licenceContinuationWpaRequirementService.getWorkProgrammeActivitiesRequirementRequest(licenceContinuationApplicationDetail)).thenReturn(Optional.of(wpaRequest));
-    when(licenceContinuationOtherRequirementService.getLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail)).thenReturn(Optional.of(otherRequest));
+    when(licenceContinuationOtherRequirementService.getLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(Optional.of(otherRequest));
 
     Optional<SummarySection> result = continuationRequirementSummarySectionService.getSummarySection(
         licenceContinuationApplicationDetail,
@@ -56,57 +50,11 @@ class ContinuationRequirementSummarySectionServiceTest {
 
     assertThat(result).isPresent();
     var summarySection = result.get();
+
     assertThat(summarySection.displayOrder()).isEqualTo(ContinuationRequirementSummarySectionService.SECTION_DISPLAY_ORDER);
 
-    var summaryItems = summarySection.summaryItems();
-    assertThat(summaryItems).hasSize(1);
-
-    var summaryItem = summaryItems.getFirst();
+    var summaryItem = summarySection.summaryItems().getFirst();
     assertThat(summaryItem.displayName()).isEqualTo(ContinuationRequirementSummarySectionService.SECTION_NAME);
-    assertThat(summaryItem.summaryCards()).hasSize(4);
-
-    assertThat(summaryItem.summaryCards().get(0).displayName()).isEqualTo("Work programme activities");
-    assertThat(summaryItem.summaryCards().get(1).displayName()).isEqualTo("Financial Capacity");
-    assertThat(summaryItem.summaryCards().get(2).displayName()).isEqualTo("Relinquishment");
-    assertThat(summaryItem.summaryCards().get(3).displayName()).isEqualTo("Development Consent");
-  }
-
-  @Test
-  void getSummarySection_withOnlyWpaRequirement_returnsWpaSummaryCardOnly() {
-    var wpaRequest = createWpaRequirementRequest();
-
-    when(licenceContinuationWpaRequirementService.getWorkProgrammeActivitiesRequirementRequest(licenceContinuationApplicationDetail)).thenReturn(Optional.of(wpaRequest));
-    when(licenceContinuationOtherRequirementService.getLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail)).thenReturn(Optional.empty());
-
-    Optional<SummarySection> result = continuationRequirementSummarySectionService.getSummarySection(
-        licenceContinuationApplicationDetail,
-        user
-    );
-
-    assertThat(result).isPresent();
-    var summaryItem = result
-        .get()
-        .summaryItems()
-        .getFirst();
-
-    assertThat(summaryItem.summaryCards()).hasSize(1);
-    assertThat(summaryItem.summaryCards().getFirst().displayName()).isEqualTo("Work programme activities");
-  }
-
-  @Test
-  void getSummarySection_withOnlyOtherRequirements_returnsOtherRequirementSummaryCardsOnly() {
-    var otherRequest = createOtherRequirementRequest();
-
-    when(licenceContinuationWpaRequirementService.getWorkProgrammeActivitiesRequirementRequest(licenceContinuationApplicationDetail)).thenReturn(Optional.empty());
-    when(licenceContinuationOtherRequirementService.getLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail)).thenReturn(Optional.of(otherRequest));
-
-    Optional<SummarySection> result = continuationRequirementSummarySectionService.getSummarySection(
-        licenceContinuationApplicationDetail,
-        user
-    );
-
-    assertThat(result).isPresent();
-    var summaryItem = result.get().summaryItems().getFirst();
 
     assertThat(summaryItem.summaryCards()).hasSize(3);
     assertThat(summaryItem.summaryCards().get(0).displayName()).isEqualTo("Financial Capacity");
@@ -116,8 +64,8 @@ class ContinuationRequirementSummarySectionServiceTest {
 
   @Test
   void getSummarySection_withNoRequirements_returnsEmptySummaryCardsList() {
-    when(licenceContinuationWpaRequirementService.getWorkProgrammeActivitiesRequirementRequest(licenceContinuationApplicationDetail)).thenReturn(Optional.empty());
-    when(licenceContinuationOtherRequirementService.getLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail)).thenReturn(Optional.empty());
+    when(licenceContinuationOtherRequirementService.getLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(Optional.empty());
 
     Optional<SummarySection> result = continuationRequirementSummarySectionService.getSummarySection(
         licenceContinuationApplicationDetail,
@@ -129,13 +77,6 @@ class ContinuationRequirementSummarySectionServiceTest {
 
     assertThat(summaryItem.summaryCards()).hasSize(1);
     assertThat(summaryItem.summaryCards().getFirst().summaryCardType()).isEqualTo(SummaryCardType.EMPTY_SUMMARY);
-  }
-
-  private LicenceContinuationWpaRequirementRequest createWpaRequirementRequest() {
-    var request = mock(LicenceContinuationWpaRequirementRequest.class);
-    when(request.getWorkProgrammeActivitiesCompletionStatus()).thenReturn(true);
-    when(request.getFurtherInformation()).thenReturn("Further info");
-    return request;
   }
 
   private LicenceContinuationOtherRequirementRequest createOtherRequirementRequest() {

@@ -8,20 +8,29 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.WorkProgrammeActivityView;
 
 @Service
 public class WorkProgrammeActivityService {
 
   private final WorkProgrammeActivityRepository workProgrammeActivityRepository;
+  private final LicenceScheduleService licenceScheduleService;
+  private final WorkProgrammeActivityStatusService workProgrammeActivityStatusService;
 
   public WorkProgrammeActivityService(
-      WorkProgrammeActivityRepository workProgrammeActivityRepository
+      WorkProgrammeActivityRepository workProgrammeActivityRepository,
+      LicenceScheduleService licenceScheduleService,
+      WorkProgrammeActivityStatusService workProgrammeActivityStatusService
   ) {
     this.workProgrammeActivityRepository = workProgrammeActivityRepository;
+    this.licenceScheduleService = licenceScheduleService;
+    this.workProgrammeActivityStatusService = workProgrammeActivityStatusService;
   }
 
   public WorkProgrammeActivity getWorkProgrammeActivityByIdOrThrow(UUID id) {
@@ -109,32 +118,83 @@ public class WorkProgrammeActivityService {
     workProgrammeActivityRepository.save(workProgrammeActivity);
   }
 
+  public List<WorkProgrammeActivityView> getCurrentWorkProgrammeActivitiesViews(
+      LicenceScheduleDetail licenceScheduleDetail
+  ) {
+    var scheduleState = licenceScheduleService.getScheduleState(licenceScheduleDetail);
+
+    if (scheduleState.currentPhase() != null) {
+      return getLicenceWorkProgramActivitiesViewsForGivenPhase(scheduleState.currentPhase());
+    }
+
+    if (scheduleState.currentTerm() != null) {
+      return getLicenceWorkProgramActivitiesViewsForGivenTerm(scheduleState.currentTerm());
+    }
+
+    return List.of();
+  }
+
+  public List<WorkProgrammeActivityView> getLicenceWorkProgramActivitiesViewsForGivenTerm(
+      LicenceScheduleTerm licenceScheduleTerm
+  ) {
+    var workProgrammeActivities = workProgrammeActivityRepository.findByLicenceScheduleTermAndStatus(
+        licenceScheduleTerm,
+        LicenceScheduleEventStatus.ACTIVE
+    );
+
+    return buildWorkProgrammeActivityViews(workProgrammeActivities);
+  }
+
+  public List<WorkProgrammeActivityView> getLicenceWorkProgramActivitiesViewsForGivenPhase(
+      LicenceSchedulePhase licenceSchedulePhase
+  ) {
+    var workProgrammeActivities = workProgrammeActivityRepository.findByLicenceSchedulePhaseAndStatus(
+        licenceSchedulePhase,
+        LicenceScheduleEventStatus.ACTIVE
+    );
+    return buildWorkProgrammeActivityViews(workProgrammeActivities);
+  }
+
   public List<WorkProgrammeActivityView> getLicenceWorkProgramActivitiesViews(
       LicenceScheduleDetail licenceScheduleDetail
   ) {
-    List<WorkProgrammeActivity> workProgrammeActivities = getActiveWorkProgrammeActivities(
-        licenceScheduleDetail
+    List<WorkProgrammeActivity> workProgrammeActivities = workProgrammeActivityRepository
+        .findAllByLicenceScheduleDetailAndStatus(
+        licenceScheduleDetail,
+        LicenceScheduleEventStatus.ACTIVE
     );
 
-    return workProgrammeActivities
-        .stream()
-        .map(this::createWorkProgrammeActivityView)
-        .toList();
+    return buildWorkProgrammeActivityViews(workProgrammeActivities);
   }
 
   public WorkProgrammeActivityView createWorkProgrammeActivityView(
       WorkProgrammeActivity workProgrammeActivity
   ) {
-    LocalDate dueDate = resolveWorkProgrammeActivityDueDate(workProgrammeActivity);
+    var latestActivityStatus = workProgrammeActivityStatusService.getLatestStatusFor(workProgrammeActivity);
+    return createWorkProgrammeActivityView(workProgrammeActivity, latestActivityStatus);
+  }
 
+  private WorkProgrammeActivityView createWorkProgrammeActivityView(
+      WorkProgrammeActivity workProgrammeActivity,
+      WorkProgrammeActivityStatus status
+  ) {
+    LocalDate dueDate = resolveWorkProgrammeActivityDueDate(workProgrammeActivity);
     return new WorkProgrammeActivityView(
         workProgrammeActivity.getId().toString(),
         DateFormatUtil.convertToDisplayText(dueDate),
         resolveCategory(workProgrammeActivity),
         workProgrammeActivity.getDescription(),
         getCategoryWithDueDate(workProgrammeActivity, dueDate),
-        workProgrammeActivity.getCommitment().getDisplayName()
+        workProgrammeActivity.getCommitment().getDisplayName(),
+        status.getStatus()
     );
+  }
+
+  private List<WorkProgrammeActivityView> buildWorkProgrammeActivityViews(List<WorkProgrammeActivity> activities) {
+    var statusByRef = workProgrammeActivityStatusService.getLatestStatusesFor(activities);
+    return activities.stream()
+        .map(activity -> createWorkProgrammeActivityView(activity, statusByRef.get(activity.getEventReference())))
+        .toList();
   }
 
   public String resolveCategory(WorkProgrammeActivity workProgrammeActivity) {

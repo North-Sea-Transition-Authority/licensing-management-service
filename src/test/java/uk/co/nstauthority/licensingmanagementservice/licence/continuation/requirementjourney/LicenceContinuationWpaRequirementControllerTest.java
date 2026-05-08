@@ -35,7 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCategory;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCommitment;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.WorkProgrammeActivityView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -44,9 +44,6 @@ class LicenceContinuationWpaRequirementControllerTest extends AbstractController
 
   @MockitoBean
   private LicenceContinuationWpaRequirementService licenceContinuationWpaRequirementService;
-
-  @MockitoBean
-  private LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
 
   @MockitoBean
   private LicenceContinuationWpaRequirementValidator licenceContinuationWpaRequirementValidator;
@@ -69,13 +66,13 @@ class LicenceContinuationWpaRequirementControllerTest extends AbstractController
         .build();
 
     workProgrammeActivityView = new WorkProgrammeActivityView(
-        "activity-id", LocalDate
-        .of(2026, 5, 10)
-        .toString(),
+        "activity-id",
+        LocalDate.of(2026, 5, 10).toString(),
         WorkProgrammeActivityCategory.WELL_TEST.getDisplayName(),
         "Test Description",
         WorkProgrammeActivityCategory.WELL_TEST.getDisplayName(),
-        WorkProgrammeActivityCommitment.FIRM.getDisplayName()
+        WorkProgrammeActivityCommitment.FIRM.getDisplayName(),
+        WorkProgrammeStatus.OPEN
     );
   }
 
@@ -87,7 +84,7 @@ class LicenceContinuationWpaRequirementControllerTest extends AbstractController
 
     when(licenceContinuationWpaRequirementService.getLicenceContinuationWorkProgrammeActivitiesRequirementForm(any()))
         .thenReturn(form);
-    when(workProgrammeActivityService.getLicenceWorkProgramActivitiesViews(any()))
+    when(workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(any()))
         .thenReturn(activities);
     when(applicationAccessService.userHasAccessToApplication(
         String.valueOf(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId()),

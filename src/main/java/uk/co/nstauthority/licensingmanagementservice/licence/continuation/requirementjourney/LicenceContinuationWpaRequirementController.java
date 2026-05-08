@@ -88,7 +88,8 @@ public class LicenceContinuationWpaRequirementController {
   ) {
 
     var scheduleDetail = licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail);
-    var workProgrammeActivities = workProgrammeActivityService.getLicenceWorkProgramActivitiesViews(scheduleDetail);
+
+    var workProgrammeActivities = workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(scheduleDetail);
 
     return new ModelAndView("lms/licence/continuation/licenceContinuationWpaRequirement")
         .addObject("pageTitle", PAGE_TITLE)

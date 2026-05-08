@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.continuation.overv
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.util.List;
 import java.util.UUID;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.ResponseEntity;
@@ -25,8 +24,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.decisi
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.action.LicenceContinuationActionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.reviewandsubmit.ContinuationSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.WorkProgrammeActivityView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 
 @Controller
 @RequestMapping("licence/continuation-application/{licenceContinuationApplicationDetailId}/overview")
@@ -48,6 +47,7 @@ public class LicenceContinuationApplicationOverviewController {
   private final LicenceContinuationActionService  licenceContinuationActionService;
   private final FileControllerHelperService fileControllerHelperService;
   private final ContinuationDecisionSummarySectionService continuationIssuePdfSummarySectionService;
+  private final RegulatorRoleService regulatorRoleService;
 
   public LicenceContinuationApplicationOverviewController(
       LicenceContinuationService licenceContinuationService,
@@ -56,7 +56,8 @@ public class LicenceContinuationApplicationOverviewController {
       WorkProgrammeActivityService workProgrammeActivityService,
       LicenceContinuationActionService licenceContinuationActionService,
       FileControllerHelperService fileControllerHelperService,
-      ContinuationDecisionSummarySectionService continuationIssuePdfSummarySectionService
+      ContinuationDecisionSummarySectionService continuationIssuePdfSummarySectionService,
+      RegulatorRoleService regulatorRoleService
   ) {
     this.licenceContinuationService = licenceContinuationService;
     this.overviewService = overviewService;
@@ -65,6 +66,7 @@ public class LicenceContinuationApplicationOverviewController {
     this.licenceContinuationActionService = licenceContinuationActionService;
     this.fileControllerHelperService = fileControllerHelperService;
     this.continuationIssuePdfSummarySectionService = continuationIssuePdfSummarySectionService;
+    this.regulatorRoleService = regulatorRoleService;
   }
 
   @GetMapping
@@ -79,9 +81,11 @@ public class LicenceContinuationApplicationOverviewController {
     var summarySections = continuationSummarySectionService.getSummarySections(applicationDetail, serviceUserDetail);
     var applicationActions = licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail);
 
-    List<WorkProgrammeActivityView> workProgrammeActivities = workProgrammeActivityService.getLicenceWorkProgramActivitiesViews(
+    var workProgrammeActivities = workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(
         licenceContinuationService.getScheduleDetailFromApplicationDetail(applicationDetail)
     );
+
+    var isReviewer = regulatorRoleService.isContinuationReviewer(serviceUserDetail);
 
     var letterIssueSummarySection = continuationIssuePdfSummarySectionService
         .getSummarySection(applicationDetail)
@@ -93,7 +97,7 @@ public class LicenceContinuationApplicationOverviewController {
         .addObject("letterIssueSummarySection", letterIssueSummarySection)
         .addObject("workProgrammeActivities", workProgrammeActivities)
         .addObject("accordionId", applicationDetail.getId())
-        .addObject("showWorkProgrammeActivities", true)
+        .addObject("isReviewer", isReviewer)
         .addObject("applicationActions", applicationActions)
         .addObject("availableTabs", OverviewTab.values())
         .addObject("selectedTab", tab)

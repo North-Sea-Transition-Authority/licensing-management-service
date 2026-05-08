@@ -18,7 +18,7 @@ extendContainerWidth=true
         <#if selectedTab.value() == "overview">
             <@applicationContextInfo.applicationContextInfo applicationContext=applicationContext/>
             <@actionItems.actionItems actionItems=applicationActions screenReaderText=applicationContext.reference()/>
-            <@continuationApplicationSummary.continuationApplicationSummary accordionId=accordionId summarySections=summarySections showWorkProgrammeActivities=showWorkProgrammeActivities workProgrammeActivities=workProgrammeActivities![]/>
+            <@continuationApplicationSummary.continuationApplicationSummary accordionId=accordionId summarySections=summarySections workProgrammeActivities=workProgrammeActivities![] isReviewer=isReviewer/>
         </#if>
 
         <#if selectedTab.value() == "letter">

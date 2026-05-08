@@ -82,10 +82,13 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
     var scheduleEventViews = List.of(new TimelineTermView(List.of(), List.of(), TermType.INITIAL, "", "", "", "", true));
     var invalidEventViews = List.of((ScheduleEvent) new TimelineRateView("", LocalDate.now(), "", "", "", ""));
 
+    var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
+
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
-    when(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, regulatorUser)).thenReturn(timelineActionViews);
-    when(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(eq(licenceScheduleDetail), any(), eq(regulatorUser))).thenReturn(scheduleEventViews);
-    when(licenceScheduleTimelineService.getEventsBeyondFinalTerm(licenceScheduleDetail, regulatorUser)).thenReturn(invalidEventViews);
+    when(licenceScheduleTimelineService.getAllowedEventActionsForUser(regulatorUser)).thenReturn(allowedActions);
+    when(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, allowedActions)).thenReturn(timelineActionViews);
+    when(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(eq(licenceScheduleDetail), any(), eq(allowedActions))).thenReturn(scheduleEventViews);
+    when(licenceScheduleTimelineService.getEventsBeyondFinalTerm(licenceScheduleDetail, allowedActions)).thenReturn(invalidEventViews);
 
     mockMvc.perform(
             get(viewTimelineUrl)
@@ -114,6 +117,29 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("deleteScheduleUrl", ReverseRouter.route(on(DeleteDraftScheduleController.class)
             .renderDeleteDraftPage(licenceScheduleDetail.getId(), null)))
         );
+  }
+
+  @Test
+  void renderLicenceScheduleTimeline_noScheduleAdminRole_doesNotAddEditDateUrls() throws Exception {
+    when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
+    when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
+
+    var timelineSummaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatus.EXTANT.getDisplayName());
+    var allowedActions = List.of(ScheduleEventAction.EDIT_WORK_PROGRAMME);
+
+    when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
+    when(licenceScheduleTimelineService.getAllowedEventActionsForUser(regulatorUser)).thenReturn(allowedActions);
+    when(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, allowedActions)).thenReturn(List.of());
+    when(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(eq(licenceScheduleDetail), any(), eq(allowedActions))).thenReturn(List.of());
+    when(licenceScheduleTimelineService.getEventsBeyondFinalTerm(licenceScheduleDetail, allowedActions)).thenReturn(List.of());
+
+    mockMvc.perform(
+            get(viewTimelineUrl)
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attributeDoesNotExist("updateLicenceStartDateUrl"))
+        .andExpect(model().attributeDoesNotExist("updateExpiryDateUrl"));
   }
 
   @Test

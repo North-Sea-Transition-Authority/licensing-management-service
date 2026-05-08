@@ -102,33 +102,29 @@ public class LicenceScheduleTimelineController {
       TimelineFilterForm timelineFilterForm,
       ServiceUserDetail serviceUserDetail
   ) {
-    return new ModelAndView("lms/licence/schedule/timeline/scheduleTimeline")
+    var allowedActions = licenceScheduleTimelineService.getAllowedEventActionsForUser(serviceUserDetail);
+
+    var modelAndView = new ModelAndView("lms/licence/schedule/timeline/scheduleTimeline")
         .addObject("form", timelineFilterForm)
         .addObject("pageTitle", PAGE_TITLE.formatted(licence.getLicenceReference()))
         .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .addObject("actions",
             licenceScheduleTimelineService.getLicenceScheduleTimelineActions(
                 licenceScheduleDetail,
-                serviceUserDetail
+                allowedActions
             )
         )
         .addObject("scheduleEventViews",
             licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(
                 licenceScheduleDetail,
                 timelineFilterForm,
-                serviceUserDetail
+                allowedActions
             )
         )
         .addObject("invalidScheduleEvents",
-            licenceScheduleTimelineService.getEventsBeyondFinalTerm(licenceScheduleDetail, serviceUserDetail)
+            licenceScheduleTimelineService.getEventsBeyondFinalTerm(licenceScheduleDetail, allowedActions)
         )
         .addObject("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions())
-        .addObject("updateLicenceStartDateUrl", ReverseRouter.route(on(LicenceStartDateController.class)
-            .renderLicenceStartDateUpdateForm(licenceScheduleDetail.getId(), null))
-        )
-        .addObject("updateExpiryDateUrl", ReverseRouter.route(on(LicenceScheduleExpiryController.class)
-            .renderAddUpdateLicenceExpiryPage(licenceScheduleDetail.getId(), null))
-        )
         .addObject("reviewAndApplyUrl", ReverseRouter.route(on(ReviewAndApplyScheduleController.class)
             .renderReviewAndApplyPage(licenceScheduleDetail.getId(), null))
         )
@@ -138,6 +134,18 @@ public class LicenceScheduleTimelineController {
         .addObject("deleteScheduleUrl", ReverseRouter.route(on(DeleteDraftScheduleController.class)
             .renderDeleteDraftPage(licenceScheduleDetail.getId(), null))
         );
+
+    if (allowedActions.contains(ScheduleEventAction.EDIT_SCHEDULE_EVENTS)) {
+      modelAndView
+          .addObject("updateLicenceStartDateUrl", ReverseRouter.route(on(LicenceStartDateController.class)
+              .renderLicenceStartDateUpdateForm(licenceScheduleDetail.getId(), null))
+          )
+          .addObject("updateExpiryDateUrl", ReverseRouter.route(on(LicenceScheduleExpiryController.class)
+              .renderAddUpdateLicenceExpiryPage(licenceScheduleDetail.getId(), null))
+          );
+    }
+
+    return modelAndView;
   }
 
 }

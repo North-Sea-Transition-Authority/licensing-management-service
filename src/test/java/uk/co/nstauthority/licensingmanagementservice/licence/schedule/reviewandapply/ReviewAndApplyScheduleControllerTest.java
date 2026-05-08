@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
@@ -25,6 +26,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.TimelineSummaryCardView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @ContextConfiguration(classes = ReviewAndApplyScheduleController.class)
 class ReviewAndApplyScheduleControllerTest extends AbstractControllerTest {
@@ -55,6 +58,12 @@ class ReviewAndApplyScheduleControllerTest extends AbstractControllerTest {
 
   @Test
   void renderReviewAndApplyPage() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(
+        organisationUser.wuaId(),
+        TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR))
+    ).thenReturn(true);
+
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
     var summaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", "status");
@@ -73,6 +82,11 @@ class ReviewAndApplyScheduleControllerTest extends AbstractControllerTest {
 
   @Test
   void applyDraftSchedule() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(
+        organisationUser.wuaId(),
+        TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR))
+    ).thenReturn(true);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
 
     mockMvc.perform(
@@ -83,6 +97,37 @@ class ReviewAndApplyScheduleControllerTest extends AbstractControllerTest {
         .andExpect(status().is3xxRedirection());
 
     verify(licenceScheduleDetailService).applyAndReplaceActiveScheduleDetail(licenceScheduleDetail);
+  }
+
+  @Test
+  void renderReviewAndApplyPage_noRoles() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(
+        organisationUser.wuaId(),
+        TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR))
+    ).thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(ReviewAndApplyScheduleController.class).renderReviewAndApplyPage(licenceScheduleDetail.getId(), null)))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void applyDraftSchedule_noRoles() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(
+        organisationUser.wuaId(),
+        TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR))
+    ).thenReturn(false);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(ReviewAndApplyScheduleController.class).applyDraftSchedule(licenceScheduleDetail.getId(), null, null)))
+                .with(user(organisationUser))
+                .with(csrf())
+        )
+        .andExpect(status().isForbidden());
   }
 
 }

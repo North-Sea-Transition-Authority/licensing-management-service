@@ -17,7 +17,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
@@ -108,8 +107,6 @@ class LicenceScheduleTimelineServiceTest {
 
   private LicenceScheduleDetail licenceScheduleDetail;
 
-  private ServiceUserDetail userDetail;
-
   @BeforeEach
   void setUp() {
     licence = LicenceTestUtil.builder()
@@ -121,8 +118,6 @@ class LicenceScheduleTimelineServiceTest {
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
 
     licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
-
-    userDetail = ServiceUserDetailTestUtil.newBuilder().build();
   }
 
   @Test
@@ -190,8 +185,7 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceTypeRulesResolver.hasWorkProgramme(licence.getType())).thenReturn(true);
     when(licenceTypeRulesResolver.hasRentalRate(licence.getType())).thenReturn(true);
 
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(true);
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(true);
+    var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
 
     var expectedResult = List.of(
         new TimelineActionView(
@@ -216,7 +210,7 @@ class LicenceScheduleTimelineServiceTest {
         )
     );
 
-    assertThat(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, userDetail))
+    assertThat(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, allowedActions))
         .usingRecursiveComparison()
         .isEqualTo(expectedResult);
   }
@@ -227,8 +221,7 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceTypeRulesResolver.hasWorkProgramme(licence.getType())).thenReturn(true);
     when(licenceTypeRulesResolver.hasRentalRate(licence.getType())).thenReturn(true);
 
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(false);
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(true);
+    var allowedActions = List.of(ScheduleEventAction.EDIT_WORK_PROGRAMME);
 
     var expectedResult = List.of(
         new TimelineActionView(
@@ -237,7 +230,7 @@ class LicenceScheduleTimelineServiceTest {
         )
     );
 
-    assertThat(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, userDetail))
+    assertThat(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, allowedActions))
         .usingRecursiveComparison()
         .isEqualTo(expectedResult);
   }
@@ -248,8 +241,7 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceTypeRulesResolver.hasWorkProgramme(licence.getType())).thenReturn(true);
     when(licenceTypeRulesResolver.hasRentalRate(licence.getType())).thenReturn(true);
 
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(true);
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(false);
+    var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS);
 
     var expectedResult = List.of(
         new TimelineActionView(
@@ -270,7 +262,7 @@ class LicenceScheduleTimelineServiceTest {
         )
     );
 
-    assertThat(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, userDetail))
+    assertThat(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, allowedActions))
         .usingRecursiveComparison()
         .isEqualTo(expectedResult);
   }
@@ -281,8 +273,7 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceTypeRulesResolver.hasWorkProgramme(licence.getType())).thenReturn(false);
     when(licenceTypeRulesResolver.hasRentalRate(licence.getType())).thenReturn(false);
 
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(true);
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(true);
+    var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
 
     var expectedResult = List.of(
         new TimelineActionView(
@@ -295,7 +286,7 @@ class LicenceScheduleTimelineServiceTest {
         )
     );
 
-    assertThat(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, userDetail))
+    assertThat(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, allowedActions))
         .usingRecursiveComparison()
         .isEqualTo(expectedResult);
   }
@@ -558,10 +549,9 @@ class LicenceScheduleTimelineServiceTest {
     var form = new TimelineFilterForm();
     form.setEventTypes(ScheduleEventType.getFilterDefaults());
 
-    var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
+    var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
 
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(true);
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(true);
+    var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
 
     when(workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
     when(workProgrammeActivityStatusService.getLatestStatusesFor(activities)).thenReturn(
@@ -599,7 +589,7 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
 
-    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, userDetail))
+    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, allowedActions))
         .usingRecursiveComparison()
         .isEqualTo(List.of(termView, termView2));
   }
@@ -842,9 +832,6 @@ class LicenceScheduleTimelineServiceTest {
     var form = new TimelineFilterForm();
     form.setEventTypes(ScheduleEventType.getFilterDefaults());
 
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(false);
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(false);
-
     var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
 
     when(workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
@@ -883,7 +870,7 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
 
-    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, userDetail))
+    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of()))
         .usingRecursiveComparison()
         .isEqualTo(List.of(termView, termView2));
   }
@@ -1128,8 +1115,7 @@ class LicenceScheduleTimelineServiceTest {
         ScheduleEventType.OTHER.name()
     ));
 
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(true);
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(true);
+    var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
 
     var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
 
@@ -1169,7 +1155,7 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
 
-    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, userDetail))
+    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, allowedActions))
         .usingRecursiveComparison()
         .isEqualTo(List.of(termView, termView2));
   }
@@ -1383,8 +1369,7 @@ class LicenceScheduleTimelineServiceTest {
         ScheduleEventType.OTHER.name()
     ));
 
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(true);
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(true);
+    var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
 
     var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
 
@@ -1424,7 +1409,7 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
 
-    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, userDetail))
+    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, allowedActions))
         .usingRecursiveComparison()
         .isEqualTo(List.of(termView, termView2));
   }
@@ -1646,8 +1631,7 @@ class LicenceScheduleTimelineServiceTest {
         ScheduleEventType.WORK_PROGRAMME_ACTIVITY.name()
     ));
 
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(true);
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(true);
+    var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
 
     var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
 
@@ -1687,7 +1671,7 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
 
-    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, userDetail))
+    assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, allowedActions))
         .usingRecursiveComparison()
         .isEqualTo(List.of(termView, termView2));
   }
@@ -2176,8 +2160,7 @@ class LicenceScheduleTimelineServiceTest {
             .renderDeleteEventPage(event.getId()))
     );
 
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))).thenReturn(true);
-    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(true);
+    var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
 
     var activities = List.of(activity);
 
@@ -2197,7 +2180,7 @@ class LicenceScheduleTimelineServiceTest {
     when(otherScheduleEventService.getActiveEventsAfterDate(licenceScheduleDetail, finalTermEndDate))
         .thenReturn(List.of(event));
 
-    assertThat(licenceScheduleTimelineService.getEventsBeyondFinalTerm(licenceScheduleDetail, userDetail))
+    assertThat(licenceScheduleTimelineService.getEventsBeyondFinalTerm(licenceScheduleDetail, allowedActions))
         .isEqualTo(List.of(rateView, activityView, eventView));
   }
 }

@@ -107,12 +107,10 @@ public class LicenceScheduleTimelineService {
 
   List<TimelineActionView> getLicenceScheduleTimelineActions(
       LicenceScheduleDetail licenceScheduleDetail,
-      ServiceUserDetail userDetail
+      List<ScheduleEventAction> allowedActions
   ) {
     var licenceType = licenceScheduleDetail.getLicenceSchedule().getLicence().getType();
     var actions = new ArrayList<LicenceScheduleTimelineAction>();
-
-    var allowedActions = getAllowedEventActionsForUser(userDetail);
 
     var canEditScheduleEvents = allowedActions.contains(ScheduleEventAction.EDIT_SCHEDULE_EVENTS);
 
@@ -185,10 +183,9 @@ public class LicenceScheduleTimelineService {
   List<TimelineTermView> getEditableLicenceScheduleEventViews(
       LicenceScheduleDetail licenceScheduleDetail,
       TimelineFilterForm timelineFilterForm,
-      ServiceUserDetail userDetail
+      List<ScheduleEventAction> allowedActions
   ) {
     var eventRefWpStatusMap = getLatestWpStatusesForSchedule(licenceScheduleDetail);
-    var allowedActions = getAllowedEventActionsForUser(userDetail);
 
     return getLicenceScheduleEventViews(
         licenceScheduleDetail,
@@ -198,7 +195,7 @@ public class LicenceScheduleTimelineService {
     );
   }
 
-  private List<ScheduleEventAction> getAllowedEventActionsForUser(ServiceUserDetail userDetail) {
+  public List<ScheduleEventAction> getAllowedEventActionsForUser(ServiceUserDetail userDetail) {
     List<ScheduleEventAction> allowedActions = new ArrayList<>();
 
     if (teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))) {
@@ -465,10 +462,8 @@ public class LicenceScheduleTimelineService {
 
   public List<ScheduleEvent> getEventsBeyondFinalTerm(
       LicenceScheduleDetail licenceScheduleDetail,
-      ServiceUserDetail userDetail
+      List<ScheduleEventAction> allowedActions
   ) {
-    var allowedActions = getAllowedEventActionsForUser(userDetail);
-
     var finalTerm = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
         .max(Comparator.comparing(term -> term.getTermType().getDisplayOrder()));
 

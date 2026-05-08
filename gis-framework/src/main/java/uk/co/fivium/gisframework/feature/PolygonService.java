@@ -36,6 +36,10 @@ public class PolygonService {
     return polygonRepository.findAllByFeature(feature);
   }
 
+  public List<Polygon> getPolygons(List<Feature> inputFeatures) {
+    return polygonRepository.findAllByFeatureIn(inputFeatures);
+  }
+
   /**
    * Generates all the EsriJSON polygons for a given feature.
    *

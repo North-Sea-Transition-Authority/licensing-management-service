@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "ChildLineMatchProto";
+
+message ChildLineMatch {
+  string parentId = 1;
+  string childEsriJsonPolyline = 2;
+}

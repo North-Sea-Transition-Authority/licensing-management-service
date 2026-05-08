@@ -1,0 +1,12 @@
+syntax = "proto3";
+import "findParentLines/ParentLine.proto";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "FindParentLinesRequestProto";
+
+message FindParentLinesRequest {
+  repeated ParentLine parentLines = 1;
+  repeated string childrenEsriJsonPolylines = 2;
+}

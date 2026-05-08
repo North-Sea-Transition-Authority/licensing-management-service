@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,15 +24,21 @@ import uk.co.fivium.grpc.gis.ArcGisServiceGrpc;
 import uk.co.fivium.grpc.gis.BlockAndSubareaValidationRequest;
 import uk.co.fivium.grpc.gis.BuildPolygonRequest;
 import uk.co.fivium.grpc.gis.BuildPolygonResponse;
+import uk.co.fivium.grpc.gis.ChildLineMatch;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.fivium.grpc.gis.EsriJsonLineWithNavigationAndId;
 import uk.co.fivium.grpc.gis.EsriJsonPolygonLineWrappers;
 import uk.co.fivium.grpc.gis.EsriJsonPolygonLines;
 import uk.co.fivium.grpc.gis.EsriJsonPolylineAndOracleId;
+import uk.co.fivium.grpc.gis.ExplodePolygonRequest;
+import uk.co.fivium.grpc.gis.ExplodePolygonResponse;
+import uk.co.fivium.grpc.gis.FindParentLinesRequest;
+import uk.co.fivium.grpc.gis.FindParentLinesResponse;
 import uk.co.fivium.grpc.gis.GeoJsonLineWrapper;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaRequest;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
+import uk.co.fivium.grpc.gis.ParentLine;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonResponse;
 import uk.co.fivium.grpc.gis.TopologicallyEqualValidationRequest;
@@ -83,6 +90,71 @@ class GrpcClientServiceTest {
 
     when(arcgisClient.buildPolygon(expectedRequest)).thenReturn(expectedResponse);
     assertThat(grpcClientService.buildPolygon(esriJsonPolylines, coordinateSystem)).isEqualTo(builtPolygon);
+  }
+
+  @Test
+  void explodePolygon_verifyServiceClientCall() {
+    var esriJsonPolygon = "dummy esriJson polygon";
+
+    var esriJsonLine1 = "dummy esriJson line 1";
+    var esriJsonLine2 = "dummy esriJson line 2";
+    var expectedRequest = ExplodePolygonRequest.newBuilder()
+        .setEsriJsonPolygon(esriJsonPolygon)
+        .build();
+    var expectedResponse = ExplodePolygonResponse.newBuilder()
+        .addAllEsriJsonLines(List.of(esriJsonLine1, esriJsonLine2))
+        .build();
+
+    when(arcgisClient.explodePolygon(expectedRequest)).thenReturn(expectedResponse);
+    assertThat(grpcClientService.explodePolygon(esriJsonPolygon)).containsExactly(esriJsonLine1, esriJsonLine2);
+  }
+
+  @Test
+  void findParentLines_verifyServiceClientCall() {
+    var parentLineId1 = UUID.randomUUID();
+    var parentLineId2 = UUID.randomUUID();
+    var parentLineEsriJson1 = "dummy parent line esriJson 1";
+    var parentLineEsriJson2 = "dummy parent line esriJson 2";
+    var parentLine1 = LineTestUtil.newBuilder().withId(parentLineId1).withEsriJson(parentLineEsriJson1).build();
+    var parentLine2 = LineTestUtil.newBuilder().withId(parentLineId2).withEsriJson(parentLineEsriJson2).build();
+
+    var childLineEsriJson1 = "dummy child line esriJson 1";
+    var childLineEsriJson2 = "dummy child line esriJson 2";
+    var orphanLineEsriJson = "dummy orphan line esriJson";
+    var childLineEsriJson = List.of(childLineEsriJson1, childLineEsriJson2, orphanLineEsriJson);
+
+    var expectedRequest = FindParentLinesRequest.newBuilder()
+        .addParentLines(ParentLine.newBuilder()
+            .setId(parentLineId1.toString())
+            .setEsriJsonPolyline(parentLineEsriJson1)
+            .build())
+        .addParentLines(ParentLine.newBuilder()
+            .setId(parentLineId2.toString())
+            .setEsriJsonPolyline(parentLineEsriJson2)
+            .build())
+        .addAllChildrenEsriJsonPolylines(childLineEsriJson)
+        .build();
+    var expectedResponse = FindParentLinesResponse.newBuilder()
+        .addLinesWithParentMatch(ChildLineMatch.newBuilder()
+            .setParentId(parentLineId1.toString())
+            .setChildEsriJsonPolyline(childLineEsriJson1)
+            .build())
+        .addLinesWithParentMatch(ChildLineMatch.newBuilder()
+            .setParentId(parentLineId2.toString())
+            .setChildEsriJsonPolyline(childLineEsriJson2)
+            .build())
+        .addOrphanedChildrenEsriJsonPolylines(orphanLineEsriJson)
+        .build();
+
+    when(arcgisClient.findParentLines(expectedRequest)).thenReturn(expectedResponse);
+    assertThat(grpcClientService.findParentLines(List.of(parentLine1, parentLine2), childLineEsriJson))
+        .isEqualTo(new FindParentLineResponse(
+            Map.of(
+                childLineEsriJson1, parentLineId1,
+                childLineEsriJson2, parentLineId2
+            ),
+            List.of(orphanLineEsriJson)
+        ));
   }
 
 

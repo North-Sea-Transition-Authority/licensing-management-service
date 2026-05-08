@@ -30,6 +30,10 @@ public class LineService {
     return lineRepository.findAllByPolygon_FeatureIn(features);
   }
 
+  public List<Line> getLines(List<Polygon> polygons) {
+    return lineRepository.findAllByPolygonIn(polygons);
+  }
+
   public Map<Polygon, List<Line>> getPolygonToLines(Feature feature) {
     return lineRepository.findAllByPolygon_Feature(feature)
         .stream()

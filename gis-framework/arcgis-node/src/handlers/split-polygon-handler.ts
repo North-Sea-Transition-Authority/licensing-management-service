@@ -1,6 +1,8 @@
 import { esriJsonToPolygon, esriJsonToPolyline } from '../util/esrijson-util';
 import { splitPolygon } from '../geometric-operators/split-operator';
 import { ArcGisServiceHandlers } from '../../generated/uk/co/fivium/grpc/gis/ArcGisService';
+import { logger } from '../config/logger';
+import { toGrpcInternalError } from './grpc-error';
 
 /**
  * Split a polygon with a cutter line.
@@ -17,7 +19,7 @@ export const splitPolygonHandler: ArcGisServiceHandlers['splitPolygon'] = (call,
 
     callback(null, { outputPolygonEsriJsons: response });
   } catch (error) {
-    console.error({ error: error }, 'Error splitting polygon');
-    callback(error, null);
+    logger.error({ error: error }, 'Error splitting polygon');
+    callback(toGrpcInternalError(error), null);
   }
 };

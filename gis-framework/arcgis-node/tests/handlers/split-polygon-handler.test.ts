@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Polygon from '@arcgis/core/geometry/Polygon.js';
 import Polyline from '@arcgis/core/geometry/Polyline.js';
+import { status } from '@grpc/grpc-js';
 import { splitPolygonHandler } from '../../src/handlers/split-polygon-handler';
 import * as esriJsonUtil from '../../src/util/esrijson-util';
 import * as splitPolygonModule from '../../src/geometric-operators/split-operator';
@@ -223,7 +224,11 @@ describe('splitPolygonHandler', () => {
       splitPolygonHandler(mockCall, mockCallback as any);
 
       // Assert
-      expect(mockCallback).toHaveBeenCalledWith(testError, null);
+      const callbackError = mockCallback.mock.calls[0][0];
+      expect(callbackError).toBe(testError);
+      expect(callbackError.message).toBe('Failed to split polygon');
+      expect(callbackError.code).toBe(status.INTERNAL);
+      expect(mockCallback).toHaveBeenCalledWith(callbackError, null);
       expect(mockCallback).toHaveBeenCalledOnce();
     });
   });

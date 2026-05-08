@@ -96,6 +96,12 @@ class PolygonServiceTest {
   }
 
   @Test
+  void getPolygons() {
+    when(polygonRepository.findAllByFeatureIn(FEATURES)).thenReturn(POLYGONS);
+    assertThat(polygonService.getPolygons(FEATURES)).containsExactlyInAnyOrder(POLYGON_1, POLYGON_2);
+  }
+
+  @Test
   void deleteAll() {
     polygonService.deleteAll();
     verify(polygonRepository).deleteAll();

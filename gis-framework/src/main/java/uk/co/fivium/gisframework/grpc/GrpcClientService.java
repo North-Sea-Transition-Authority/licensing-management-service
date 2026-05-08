@@ -3,6 +3,7 @@ package uk.co.fivium.gisframework.grpc;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
@@ -13,14 +14,18 @@ import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineWithRing;
 import uk.co.fivium.grpc.gis.ArcGisServiceGrpc;
 import uk.co.fivium.grpc.gis.BlockAndSubareaValidationRequest;
 import uk.co.fivium.grpc.gis.BuildPolygonRequest;
+import uk.co.fivium.grpc.gis.ChildLineMatch;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.fivium.grpc.gis.EsriJsonLineWithNavigationAndId;
 import uk.co.fivium.grpc.gis.EsriJsonPolygonLineWrappers;
 import uk.co.fivium.grpc.gis.EsriJsonPolygonLines;
+import uk.co.fivium.grpc.gis.ExplodePolygonRequest;
+import uk.co.fivium.grpc.gis.FindParentLinesRequest;
 import uk.co.fivium.grpc.gis.GeoJsonLineWrapper;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaRequest;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
+import uk.co.fivium.grpc.gis.ParentLine;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
 import uk.co.fivium.grpc.gis.TopologicallyEqualValidationRequest;
 import uk.co.fivium.grpc.gis.ValidationResponse;
@@ -63,6 +68,51 @@ public class GrpcClientService {
 
     var response = arcgisClient.buildPolygon(request);
     return response.getPolygonEsriJson();
+  }
+
+  /**
+   * Explode a polygon into its constituent lines.
+   * @param polygonEsriJson The EsriJSON of the polygon to explode.
+   * @return A list of EsriJSON lines that make up the polygon.
+   */
+  public List<String> explodePolygon(String polygonEsriJson) {
+    var request = ExplodePolygonRequest.newBuilder()
+        .setEsriJsonPolygon(polygonEsriJson)
+        .build();
+
+    var response = arcgisClient.explodePolygon(request);
+    return response.getEsriJsonLinesList();
+  }
+
+  /**
+   * Find the parent line for a list of child lines.
+   * If multiple child lines share the same parent line, they are merged into a single polyline if they form a
+   * continuous line.
+   *
+   * @param parentLines       The list of potential parent lines to match against.
+   * @param childLineEsriJson The list of child lines to match against the parent lines.
+   * @return A record containing the mapping of child lines to their parent lines and orphaned child lines.
+   */
+  public FindParentLineResponse findParentLines(List<Line> parentLines,
+                                                List<String> childLineEsriJson) {
+    var requestBuilder = FindParentLinesRequest.newBuilder();
+    for (Line parentLine : parentLines) {
+      requestBuilder.addParentLines(ParentLine.newBuilder()
+          .setId(parentLine.getId().toString())
+          .setEsriJsonPolyline(parentLine.getEsriJson())
+          .build());
+    }
+    requestBuilder.addAllChildrenEsriJsonPolylines(childLineEsriJson);
+
+    var response = arcgisClient.findParentLines(requestBuilder.build());
+
+    Map<String, UUID> polylineToParentLineId = new HashMap<>();
+    for (ChildLineMatch childLineMatch : response.getLinesWithParentMatchList()) {
+      polylineToParentLineId.put(childLineMatch.getChildEsriJsonPolyline(),
+          UUID.fromString(childLineMatch.getParentId()));
+    }
+
+    return new FindParentLineResponse(polylineToParentLineId, response.getOrphanedChildrenEsriJsonPolylinesList());
   }
 
   public MigrationResponseDto migrateBlockOrSubarea(

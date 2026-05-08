@@ -36,12 +36,6 @@ class LineServiceTest {
   }
 
   @Test
-  void saveLines() {
-    lineService.saveLines(List.of(LINE_1, LINE_2));
-    verify(lineRepository).saveAll(List.of(LINE_1, LINE_2));
-  }
-
-  @Test
   void findAllByFeatureIn() {
     when(lineRepository.findAllByPolygon_FeatureIn(FEATURES)).thenReturn(List.of(LINE_1, LINE_2));
 
@@ -58,6 +52,20 @@ class LineServiceTest {
     var result = lineService.findAllByFeatureIn(FEATURES);
 
     assertThat(result).isEmpty();
+  }
+
+  @Test
+  void saveLines() {
+    var lines = List.of(LINE_1, LINE_2);
+    lineService.saveLines(lines);
+    verify(lineRepository).saveAll(lines);
+  }
+
+  @Test
+  void getLines() {
+    var polygons = List.of(PolygonTestUtil.newBuilder().build(), PolygonTestUtil.newBuilder().build());
+    when(lineRepository.findAllByPolygonIn(polygons)).thenReturn(List.of(LINE_1, LINE_2));
+    assertThat(lineService.getLines(polygons)).containsExactlyInAnyOrder(LINE_1, LINE_2);
   }
 
   @Test

@@ -10,6 +10,8 @@ import { migrateBlockOrSubarea } from './migration/handlers/migrate-block-or-sub
 import { logger } from './config/logger';
 import { splitPolygonHandler } from './handlers/split-polygon-handler';
 import { buildPolygonHandler } from './handlers/build-polygon-handler';
+import { explodePolygonHandler } from './handlers/explode-polygon-handler';
+import { findParentLinesHandler } from './handlers/find-parent-lines-handler';
 import { validateBlockAndSubarea } from './migration/handlers/validate-block-and-subarea';
 import { validateTopologicallyEqual } from './migration/handlers/validate-topologically-equal';
 
@@ -55,8 +57,10 @@ function startGrpcServer(arcGisJsProto: ProtoGrpcType['uk']['co']['fivium']['grp
   const server = new grpc.Server();
 
   server.addService(arcGisJsProto.ArcGisService.service, {
-    splitPolygonHandler,
-    buildPolygonHandler,
+    splitPolygon: splitPolygonHandler,
+    buildPolygon: buildPolygonHandler,
+    explodePolygon: explodePolygonHandler,
+    findParentLines: findParentLinesHandler,
     migrateBlockOrSubarea,
     validateBlockAndSubarea,
     validateTopologicallyEqual,

@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "vitest run --coverage",
-    "proto-gen": "proto-loader-gen-types --longs=String --enums=String --defaults --oneofs --grpcLib=@grpc/grpc-js --outDir=generated -I ../src/main/proto -- ArcGisJs.proto",
+    "proto-gen": "proto-loader-gen-types --longs=String --enums=String --defaults --oneofs --grpcLib=@grpc/grpc-js -I ../src/main/proto --outDir=generated ../src/main/proto/ArcGisJs.proto",
     "copy:core": "cpx \"node_modules/@arcgis/core/assets/**/*.*\" ./public/assets",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

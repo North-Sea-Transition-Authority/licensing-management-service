@@ -1,0 +1,12 @@
+syntax = "proto3";
+import "findParentLines/ChildLineMatch.proto";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "FindParentLinesResponseProto";
+
+message FindParentLinesResponse {
+  repeated ChildLineMatch linesWithParentMatch = 1;
+  repeated string orphanedChildrenEsriJsonPolylines = 2;
+}

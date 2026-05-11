@@ -41,15 +41,30 @@ steps:
       - npm test
 
   - name: build-gis-java-backend
-    image: eclipse-temurin:21-jdk
-    privileged: false
+    image: quay.io/testcontainers/dind-drone-plugin
+    privileged: true
     environment:
       TZ: Europe/London
-    commands:
-      - cd gis-framework
-      - chmod +x gradlew
-      - ./gradlew extractIncludeProto extractProto generateProto
-      - ./gradlew test check
+      CI_WORKSPACE: /drone/src
+      GRADLE_USER_HOME: /drone/src/gradle_cache
+      DOCKER_CONFIG_JSON:
+        from_secret: docker_config
+      DOCKER_CONFIG: /drone/dockerconfig
+    volumes:
+      - name: docker-cache-overlay2
+        path: /drone/docker/overlay2
+      - name: docker-cache-image
+        path: /drone/docker/image
+    settings:
+      storage_driver: overlay2 --insecure-registry repo1.dev.fivium.local:5000 --dns=192.168.10.1
+      cmd:
+        - mkdir /drone/dockerconfig
+        - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
+        - cd gis-framework
+        - chmod +x gradlew
+        - ./gradlew extractIncludeProto extractProto generateProto
+        - ./gradlew test check
+      build_image: repo1.dev.fivium.local:5000/docker-compose-java21
 
   - name: build-frontend
     image: node:18
@@ -298,15 +313,30 @@ steps:
       - npm test
 
   - name: build-gis-java-backend
-    image: eclipse-temurin:21-jdk
-    privileged: false
+    image: quay.io/testcontainers/dind-drone-plugin
+    privileged: true
     environment:
       TZ: Europe/London
-    commands:
-      - cd gis-framework
-      - chmod +x gradlew
-      - ./gradlew extractIncludeProto extractProto generateProto
-      - ./gradlew test check
+      CI_WORKSPACE: /drone/src
+      GRADLE_USER_HOME: /drone/src/gradle_cache
+      DOCKER_CONFIG_JSON:
+        from_secret: docker_config
+      DOCKER_CONFIG: /drone/dockerconfig
+    volumes:
+      - name: docker-cache-overlay2
+        path: /drone/docker/overlay2
+      - name: docker-cache-image
+        path: /drone/docker/image
+    settings:
+      storage_driver: overlay2 --insecure-registry repo1.dev.fivium.local:5000 --dns=192.168.10.1
+      cmd:
+        - mkdir /drone/dockerconfig
+        - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
+        - cd gis-framework
+        - chmod +x gradlew
+        - ./gradlew extractIncludeProto extractProto generateProto
+        - ./gradlew test check
+      build_image: repo1.dev.fivium.local:5000/docker-compose-java21
 
   # This is in the PR pipeline so the code-analysis below can access the test data (to see coverage)
   - name: build-frontend

@@ -10,16 +10,4 @@ public record LicenceWorkProgrammeAmendmentSummaryView(String workProgrammeAmend
                                                        String deleteUrl,
                                                        Boolean workProgrammeCompletionDateChangeRequested,
                                                        Boolean workProgrammeChangeRequested) {
-
-  public static LicenceWorkProgrammeAmendmentSummaryView createDefaultLicenceWorkProgrammeAmendmentSummaryView(
-      String workProgrammeAmendmentLabel,
-      String changeUrl,
-      String deleteUrl) {
-    return new LicenceWorkProgrammeAmendmentSummaryView(workProgrammeAmendmentLabel, "", "", "", "",
-        LicenceWorkProgrammeAmendmentSummaryMode.VIEW,
-        changeUrl,
-        deleteUrl,
-        false,
-        false);
-  }
 }

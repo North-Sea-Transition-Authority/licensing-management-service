@@ -56,7 +56,7 @@ class LicenceWorkProgrammeAmendmentSubmissionServiceTest {
     LicenceWorkProgrammeAmendmentSummary summary = new LicenceWorkProgrammeAmendmentSummary();
     summary.setLicenceWorkProgrammeAmendmentSummaryOptions(LicenceWorkProgrammeAmendmentSummaryOptions.NO);
 
-    when(licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetail(
+    when(licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummary(
             detail))
         .thenReturn(Optional.of(summary));
 
@@ -74,7 +74,7 @@ class LicenceWorkProgrammeAmendmentSubmissionServiceTest {
     LicenceWorkProgrammeAmendmentSummary summary = new LicenceWorkProgrammeAmendmentSummary();
     summary.setLicenceWorkProgrammeAmendmentSummaryOptions(LicenceWorkProgrammeAmendmentSummaryOptions.YES_NOW);
 
-    when(licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetail(
+    when(licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummary(
             detail))
         .thenReturn(Optional.of(summary));
 
@@ -88,7 +88,7 @@ class LicenceWorkProgrammeAmendmentSubmissionServiceTest {
 
     ScheduleWorkProgrammeApplicationDetail detail = new ScheduleWorkProgrammeApplicationDetail(UUID.randomUUID());
 
-    when(licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetail(
+    when(licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummary(
             detail))
         .thenReturn(Optional.empty());
 

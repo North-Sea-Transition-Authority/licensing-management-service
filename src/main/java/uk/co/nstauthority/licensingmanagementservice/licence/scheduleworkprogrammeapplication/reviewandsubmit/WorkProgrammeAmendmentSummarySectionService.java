@@ -60,7 +60,7 @@ public class WorkProgrammeAmendmentSummarySectionService
       String sectionName
   ) {
     var amendmentViews = licenceWorkProgrammeAmendmentSummaryService
-        .getWorkProgrammeAmendmentSummaryViewsFromScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail);
+        .getWorkProgrammeAmendmentSummaryViews(scheduleWorkProgrammeApplicationDetail);
 
     var summaryCards = getWorkProgrammeAmendmentSummaryCards(amendmentViews);
 
@@ -78,20 +78,18 @@ public class WorkProgrammeAmendmentSummarySectionService
   private SummaryCard buildSummaryCardFromAmendmentView(LicenceWorkProgrammeAmendmentSummaryView view) {
     var builder = SummaryDataView.newBuilder();
 
-    builder.addStringValue(COMPLETION_DATE_CHANGE_REQUESTED,
-        view.workProgrammeCompletionDateChangeRequestedDisplay());
-
-    if (BooleanUtils.isTrue(view.workProgrammeCompletionDateChangeRequested())) {
-      builder.addStringValue(REQUESTED_EXTENSION_TO_COMPLETION_DATE,
-          view.workProgrammeExtensionDuration());
+    if (!view.workProgrammeCompletionDateChangeRequestedDisplay().isEmpty()) {
+      builder.addStringValue(COMPLETION_DATE_CHANGE_REQUESTED, view.workProgrammeCompletionDateChangeRequestedDisplay());
     }
 
-    builder.addStringValue(WORK_PROGRAMME_CONTENT_CHANGE_REQUESTED,
-        view.workProgrammeChangeRequestedDisplay());
+    if (BooleanUtils.isTrue(view.workProgrammeCompletionDateChangeRequested())) {
+      builder.addStringValue(REQUESTED_EXTENSION_TO_COMPLETION_DATE, view.workProgrammeExtensionDuration());
+    }
+
+    builder.addStringValue(WORK_PROGRAMME_CONTENT_CHANGE_REQUESTED, view.workProgrammeChangeRequestedDisplay());
 
     if (BooleanUtils.isTrue(view.workProgrammeChangeRequested())) {
-      builder.addStringValue(REQUESTED_CHANGE_TO_CONTENT,
-          view.workProgrammeAmendmentInformation());
+      builder.addStringValue(REQUESTED_CHANGE_TO_CONTENT, view.workProgrammeAmendmentInformation());
     }
 
     return SummaryCard.simpleSummaryCardWithHeading(

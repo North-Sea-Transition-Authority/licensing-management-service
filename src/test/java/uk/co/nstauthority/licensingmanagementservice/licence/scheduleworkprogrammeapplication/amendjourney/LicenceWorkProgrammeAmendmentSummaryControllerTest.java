@@ -99,9 +99,9 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
 
     when(licenceWorkProgrammeAmendmentRepository.findAllByScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail)).thenReturn(List.of(amendmentRequest));
-    when(licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentByScheduleWorkProgrammeApplicationDetail(
+    when(licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummaryForm(
         scheduleWorkProgrammeApplicationDetail)).thenReturn(form);
-    when(licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentSummaryViewsFromScheduleWorkProgrammeApplicationDetail(
+    when(licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentSummaryViews(
         scheduleWorkProgrammeApplicationDetail)).thenReturn(amendmentViews);
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
@@ -123,7 +123,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
 
     verify(licenceWorkProgrammeAmendmentRepository).findAllByScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail);
-    verify(licenceWorkProgrammeAmendmentSummaryService).getWorkProgrammeAmendmentByScheduleWorkProgrammeApplicationDetail(
+    verify(licenceWorkProgrammeAmendmentSummaryService).getLicenceWorkProgrammeAmendmentSummaryForm(
         scheduleWorkProgrammeApplicationDetail);
   }
 
@@ -143,7 +143,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
 
     verify(licenceWorkProgrammeAmendmentRepository).findAllByScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail);
-    verify(licenceWorkProgrammeAmendmentSummaryService, never()).getWorkProgrammeAmendmentByScheduleWorkProgrammeApplicationDetail(any());
+    verify(licenceWorkProgrammeAmendmentSummaryService, never()).getLicenceWorkProgrammeAmendmentSummaryForm(any());
   }
 
   @Test
@@ -228,7 +228,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
             false));
 
     when(licenceWorkProgrammeAmendmentSummaryFormValidator.isValid(any())).thenReturn(false);
-    when(licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentSummaryViewsFromScheduleWorkProgrammeApplicationDetail(
+    when(licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentSummaryViews(
         scheduleWorkProgrammeApplicationDetail)).thenReturn(amendmentViews);
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
@@ -281,9 +281,9 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
 
     when(licenceWorkProgrammeAmendmentRepository.findAllByScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail)).thenReturn(List.of(amendmentRequest1, amendmentRequest2));
-    when(licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentByScheduleWorkProgrammeApplicationDetail(
+    when(licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummaryForm(
         scheduleWorkProgrammeApplicationDetail)).thenReturn(form);
-    when(licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentSummaryViewsFromScheduleWorkProgrammeApplicationDetail(
+    when(licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentSummaryViews(
         scheduleWorkProgrammeApplicationDetail)).thenReturn(amendmentViews);
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 

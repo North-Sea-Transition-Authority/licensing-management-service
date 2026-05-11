@@ -32,39 +32,31 @@ public class LicenceWorkProgrammeAmendmentSummaryService {
     this.workProgrammeActivityService = workProgrammeActivityService;
   }
 
-  public Optional<LicenceWorkProgrammeAmendmentSummary>
-      getLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetail(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  public Optional<LicenceWorkProgrammeAmendmentSummary> getLicenceWorkProgrammeAmendmentSummary(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail
   ) {
     return licenceWorkProgrammeAmendmentSummaryRepository
-        .findLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetails(
-        scheduleWorkProgrammeApplicationDetail);
+        .findLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetails(applicationDetail);
   }
 
   public LicenceWorkProgrammeAmendmentSummaryView createSummaryViewFromWorkProgrammeAmendments(
       LicenceWorkProgrammeAmendmentRequest amendmentRequest,
-      LicenceWorkProgrammeAmendmentSummaryMode summaryMode) {
+      LicenceWorkProgrammeAmendmentSummaryMode summaryMode
+  ) {
+    var activityId = amendmentRequest.getWorkProgrammeActivity().getId();
+    var applicationDetailId = amendmentRequest.getScheduleWorkProgrammeApplicationDetails().getId();
 
-    WorkProgrammeActivity workProgrammeActivity = workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(
-        amendmentRequest.getWorkProgrammeActivity().getId());
-
-    String summaryCardTitle = resolveCategoryDisplay(workProgrammeActivity);
-
-    UUID activityId = amendmentRequest.getWorkProgrammeActivity().getId();
-    UUID applicationDetailId = amendmentRequest.getScheduleWorkProgrammeApplicationDetails().getId();
-
-    String changeUrl = buildChangeUrl(activityId, applicationDetailId);
-    String deleteUrl = buildDeleteUrl(activityId, applicationDetailId);
+    var workProgrammeActivity = workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(activityId);
 
     return new LicenceWorkProgrammeAmendmentSummaryView(
-        summaryCardTitle,
+        resolveCategoryDisplay(workProgrammeActivity),
         BooleanUtil.yesNoFromBoolean(amendmentRequest.getWorkProgrammeChangeRequested(), ""),
         StringUtils.defaultIfBlank(amendmentRequest.getWorkProgrammeAmendmentInformation(), ""),
         BooleanUtil.yesNoFromBoolean(amendmentRequest.getWorkProgrammeCompletionDateChangeRequested(), ""),
         ThreeFieldDurationDisplayUtil.convertToDisplayText(amendmentRequest.getWorkProgrammeExtensionDuration()),
         summaryMode,
-        changeUrl,
-        deleteUrl,
+        buildChangeUrl(activityId, applicationDetailId),
+        buildDeleteUrl(activityId, applicationDetailId),
         amendmentRequest.getWorkProgrammeCompletionDateChangeRequested(),
         amendmentRequest.getWorkProgrammeChangeRequested()
     );
@@ -95,13 +87,11 @@ public class LicenceWorkProgrammeAmendmentSummaryService {
     );
   }
 
-  public List<LicenceWorkProgrammeAmendmentSummaryView>
-      getWorkProgrammeAmendmentSummaryViewsFromScheduleWorkProgrammeApplicationDetail(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
-
+  public List<LicenceWorkProgrammeAmendmentSummaryView> getWorkProgrammeAmendmentSummaryViews(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail
+  ) {
     var workProgrammeAmendments = licenceWorkProgrammeAmendmentService
-        .getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(
-            scheduleWorkProgrammeApplicationDetail);
+        .getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(applicationDetail);
 
     return workProgrammeAmendments.stream()
         .map(wpa ->
@@ -110,18 +100,19 @@ public class LicenceWorkProgrammeAmendmentSummaryService {
   }
 
   private LicenceWorkProgrammeAmendmentSummaryForm licenceWorkProgramAmendmentSummaryToForm(
-      LicenceWorkProgrammeAmendmentSummary licenceWorkProgrammeAmendmentSummary) {
-
+      LicenceWorkProgrammeAmendmentSummary licenceWorkProgrammeAmendmentSummary
+  ) {
     var form = new LicenceWorkProgrammeAmendmentSummaryForm();
-
     form.setLicenceWorkProgrammeAmendmentSummaryOptions(
-        licenceWorkProgrammeAmendmentSummary.getLicenceWorkProgrammeAmendmentSummaryOptions());
+        licenceWorkProgrammeAmendmentSummary.getLicenceWorkProgrammeAmendmentSummaryOptions()
+    );
+
     return form;
   }
 
-  public LicenceWorkProgrammeAmendmentSummaryForm getWorkProgrammeAmendmentByScheduleWorkProgrammeApplicationDetail(
+  public LicenceWorkProgrammeAmendmentSummaryForm getLicenceWorkProgrammeAmendmentSummaryForm(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
-    return getLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetail(
+    return getLicenceWorkProgrammeAmendmentSummary(
         scheduleWorkProgrammeApplicationDetail)
         .map(this::licenceWorkProgramAmendmentSummaryToForm)
         .orElse(new LicenceWorkProgrammeAmendmentSummaryForm());
@@ -130,18 +121,15 @@ public class LicenceWorkProgrammeAmendmentSummaryService {
   @Transactional
   public void saveWorkProgrammeAmendmentSummaryForm(
       LicenceWorkProgrammeAmendmentSummaryForm form,
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+      ScheduleWorkProgrammeApplicationDetail applicationDetail
   ) {
+    var licenceWorkProgrammeAmendmentSummaryOptions = getLicenceWorkProgrammeAmendmentSummary(applicationDetail)
+        .orElse(new LicenceWorkProgrammeAmendmentSummary());
 
-    var licenceWorkProgrammeAmendmentSummaryOptions =
-        getLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetail(
-        scheduleWorkProgrammeApplicationDetail
-    ).orElse(new LicenceWorkProgrammeAmendmentSummary());
-
-    licenceWorkProgrammeAmendmentSummaryOptions.setLicenceWorkProgrammeAmendmentSummaryOptions(
-        form.getLicenceWorkProgrammeAmendmentSummaryOptions());
-    licenceWorkProgrammeAmendmentSummaryOptions.setScheduleWorkProgrammeApplicationDetails(
-        scheduleWorkProgrammeApplicationDetail);
+    licenceWorkProgrammeAmendmentSummaryOptions
+        .setLicenceWorkProgrammeAmendmentSummaryOptions(form.getLicenceWorkProgrammeAmendmentSummaryOptions());
+    licenceWorkProgrammeAmendmentSummaryOptions
+        .setScheduleWorkProgrammeApplicationDetails(applicationDetail);
 
     licenceWorkProgrammeAmendmentSummaryRepository.save(licenceWorkProgrammeAmendmentSummaryOptions);
   }

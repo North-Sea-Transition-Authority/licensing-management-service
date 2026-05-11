@@ -46,19 +46,23 @@ public class LicenceWorkProgrammeAmendmentSummaryController {
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
     var workProgrammeAmendmentRequests = licenceWorkProgrammeAmendmentRepository.findAllByScheduleWorkProgrammeApplicationDetails(
-        scheduleWorkProgrammeApplicationDetail);
+        scheduleWorkProgrammeApplicationDetail
+    );
 
     if (workProgrammeAmendmentRequests.isEmpty()) {
       return ReverseRouter.redirect(
           on(SelectLicenceWorkAmendmentController.class)
               .renderForm(scheduleWorkProgrammeApplicationDetailId, null));
-    } else {
-      return getModelAndView(
-          licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentByScheduleWorkProgrammeApplicationDetail(
-              scheduleWorkProgrammeApplicationDetail),
-          scheduleWorkProgrammeApplicationDetail
-      );
     }
+
+    var amendmentSummaryForm = licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummaryForm(
+        scheduleWorkProgrammeApplicationDetail
+    );
+
+    return getModelAndView(
+        amendmentSummaryForm,
+        scheduleWorkProgrammeApplicationDetail
+    );
   }
 
   @PostMapping
@@ -86,6 +90,7 @@ public class LicenceWorkProgrammeAmendmentSummaryController {
           scheduleWorkProgrammeApplicationDetail
       ));
     }
+
     return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
         scheduleWorkProgrammeApplicationDetailId,
         scheduleWorkProgrammeApplicationDetail,
@@ -97,14 +102,16 @@ public class LicenceWorkProgrammeAmendmentSummaryController {
       LicenceWorkProgrammeAmendmentSummaryForm form,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
+    var workProgrammeAmendmentSummaryViews = licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentSummaryViews(
+        scheduleWorkProgrammeApplicationDetail
+    );
+
     return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeAmendmentSummary")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("form", form)
         .addObject("licenceWorkProgrammeAmendmentSummaryOptions",
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceWorkProgrammeAmendmentSummaryOptions.class))
-        .addObject("licenceWorkProgrammeAmendments", licenceWorkProgrammeAmendmentSummaryService
-            .getWorkProgrammeAmendmentSummaryViewsFromScheduleWorkProgrammeApplicationDetail(
-                scheduleWorkProgrammeApplicationDetail))
+        .addObject("licenceWorkProgrammeAmendments", workProgrammeAmendmentSummaryViews)
         .addObject("cancelUrl", ReverseRouter.route(
         on(ScheduleWorkProgrammeApplicationTaskListController.class)
             .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null)));

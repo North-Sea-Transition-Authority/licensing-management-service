@@ -15,9 +15,11 @@
     headingText="${licenceWorkProgrammeAmendment.workProgrammeAmendmentLabel()}"
     summaryListId="licenceworkprogrammeamendmentvaluesresult"
     cardActionsContent=content>
-      <@fdsSummaryList.summaryListRowNoAction keyText="Completion date change requested">
-          ${licenceWorkProgrammeAmendment.workProgrammeCompletionDateChangeRequestedDisplay()}
-      </@fdsSummaryList.summaryListRowNoAction>
+      <#if licenceWorkProgrammeAmendment.workProgrammeCompletionDateChangeRequestedDisplay()?has_content>
+          <@fdsSummaryList.summaryListRowNoAction keyText="Completion date change requested">
+              ${licenceWorkProgrammeAmendment.workProgrammeCompletionDateChangeRequestedDisplay()}
+          </@fdsSummaryList.summaryListRowNoAction>
+      </#if>
       <#if (licenceWorkProgrammeAmendment.workProgrammeCompletionDateChangeRequested())!false>
           <@fdsSummaryList.summaryListRowNoAction keyText="Requested extension to completion date">
               ${licenceWorkProgrammeAmendment.workProgrammeExtensionDuration()!""}

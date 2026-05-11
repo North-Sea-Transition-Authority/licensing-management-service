@@ -34,17 +34,16 @@ public class LicenceWorkProgrammeAmendmentService {
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
       WorkProgrammeActivity workProgrammeActivity
   ) {
-    return licenceWorkProgrammeAmendmentRepository
-        .findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivity(
-            scheduleWorkProgrammeApplicationDetail, workProgrammeActivity);
+    return licenceWorkProgrammeAmendmentRepository.findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivity(
+        scheduleWorkProgrammeApplicationDetail,
+        workProgrammeActivity
+    );
   }
 
   public List<LicenceWorkProgrammeAmendmentRequest> getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+      ScheduleWorkProgrammeApplicationDetail applicationDetail
   ) {
-    return licenceWorkProgrammeAmendmentRepository
-        .findAllByScheduleWorkProgrammeApplicationDetails(
-            scheduleWorkProgrammeApplicationDetail);
+    return licenceWorkProgrammeAmendmentRepository.findAllByScheduleWorkProgrammeApplicationDetails(applicationDetail);
   }
 
   public boolean hasAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(
@@ -71,15 +70,20 @@ public class LicenceWorkProgrammeAmendmentService {
   ) {
     var licenceWorkProgrammeAmendmentRequest = licenceWorkProgrammeAmendmentRepository
         .findByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeActivity(
-            scheduleWorkProgrammeApplicationDetail, workProgrammeActivity)
+            scheduleWorkProgrammeApplicationDetail,
+            workProgrammeActivity
+        )
         .orElse(new LicenceWorkProgrammeAmendmentRequest());
 
     licenceWorkProgrammeAmendmentRequest.setScheduleWorkProgrammeApplicationDetails(
-        scheduleWorkProgrammeApplicationDetail);
+        scheduleWorkProgrammeApplicationDetail
+    );
     licenceWorkProgrammeAmendmentRequest.setWorkProgrammeCompletionDateChangeRequested(
-        licenceScheduleExtensionForm.getDurationExtensionRequired());
+        licenceScheduleExtensionForm.getDurationExtensionRequired()
+    );
     licenceWorkProgrammeAmendmentRequest.setWorkProgrammeChangeRequested(
-        licenceScheduleExtensionForm.getAdditionalInfoRequired());
+        licenceScheduleExtensionForm.getAdditionalInfoRequired()
+    );
 
     if (BooleanUtils.isNotTrue(licenceScheduleExtensionForm.getDurationExtensionRequired())) {
       licenceWorkProgrammeAmendmentRequest.setWorkProgrammeExtensionDuration(null);

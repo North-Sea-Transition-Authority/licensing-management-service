@@ -30,22 +30,17 @@ public class LicenceWorkProgrammeAmendmentSubmissionService {
   public boolean isAmendmentSectionComplete(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
-
     var workProgrammeApplicationDetails = licenceWorkProgrammeAmendmentService
         .getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail);
 
-    var licenceWorkProgrammeAmendmentSummaryOption =
-        licenceWorkProgrammeAmendmentSummaryService
-        .getLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetail(
-            scheduleWorkProgrammeApplicationDetail
-        );
+    var licenceWorkProgrammeAmendmentSummaryOption = licenceWorkProgrammeAmendmentSummaryService
+        .getLicenceWorkProgrammeAmendmentSummary(scheduleWorkProgrammeApplicationDetail);
 
     return licenceWorkProgrammeAmendmentSummaryOption
-        .map(summaryOption -> summaryOption
-                                  .getLicenceWorkProgrammeAmendmentSummaryOptions()
-                                  .equals(LicenceWorkProgrammeAmendmentSummaryOptions.NO)
-                              && licenceWorkProgrammeAmendmentService.validateAllWorkProgrammeAmendments(
-                                  workProgrammeApplicationDetails))
+        .map(summaryOption ->
+            summaryOption.getLicenceWorkProgrammeAmendmentSummaryOptions().equals(LicenceWorkProgrammeAmendmentSummaryOptions.NO)
+            && licenceWorkProgrammeAmendmentService.validateAllWorkProgrammeAmendments(workProgrammeApplicationDetails)
+        )
         .orElse(false);
   }
 

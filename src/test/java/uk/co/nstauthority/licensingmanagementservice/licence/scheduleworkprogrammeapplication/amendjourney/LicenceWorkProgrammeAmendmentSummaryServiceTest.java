@@ -69,14 +69,14 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
   }
 
   @Test
-  void getLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetail() {
+  void getLicenceWorkProgrammeAmendmentSummary() {
     when(licenceWorkProgrammeAmendmentSummaryRepository
         .findLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetails(
             scheduleWorkProgrammeApplicationDetail))
         .thenReturn(Optional.of(licenceWorkProgrammeAmendmentSummary));
 
     Optional<LicenceWorkProgrammeAmendmentSummary> result =
-        licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetail(
+        licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummary(
             scheduleWorkProgrammeApplicationDetail);
 
     assertThat(result).contains(licenceWorkProgrammeAmendmentSummary);
@@ -88,7 +88,7 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
             scheduleWorkProgrammeApplicationDetail))
         .thenReturn(Optional.empty());
 
-    result = licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummaryByScheduleWorkProgrammeApplicationDetail(
+    result = licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummary(
         scheduleWorkProgrammeApplicationDetail);
 
     assertThat(result).isEmpty();
@@ -142,7 +142,7 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
         .thenReturn(List.of(licenceWorkProgrammeAmendmentRequest, workProgrammeAmendmentRequest));
 
     List<LicenceWorkProgrammeAmendmentSummaryView> result =
-        licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentSummaryViewsFromScheduleWorkProgrammeApplicationDetail(
+        licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentSummaryViews(
             scheduleWorkProgrammeApplicationDetail);
 
     assertThat(result).hasSize(2);
@@ -153,7 +153,7 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
         scheduleWorkProgrammeApplicationDetail))
         .thenReturn(new ArrayList<>());
 
-    result = licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentSummaryViewsFromScheduleWorkProgrammeApplicationDetail(
+    result = licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentSummaryViews(
         scheduleWorkProgrammeApplicationDetail);
 
     assert(result).isEmpty();
@@ -167,7 +167,7 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
         .thenReturn(Optional.of(licenceWorkProgrammeAmendmentSummary));
 
     LicenceWorkProgrammeAmendmentSummaryForm result =
-        licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentByScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail);
+        licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummaryForm(scheduleWorkProgrammeApplicationDetail);
 
     assertNotNull(result);
     assertThat(result.getLicenceWorkProgrammeAmendmentSummaryOptions()).isEqualTo(LicenceWorkProgrammeAmendmentSummaryOptions.YES_LATER);
@@ -177,7 +177,7 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
             scheduleWorkProgrammeApplicationDetail))
         .thenReturn(Optional.empty());
 
-    result = licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentByScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail);
+    result = licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummaryForm(scheduleWorkProgrammeApplicationDetail);
 
     assertNotNull(result);
     assertThat(result.getLicenceWorkProgrammeAmendmentSummaryOptions()).isNull();

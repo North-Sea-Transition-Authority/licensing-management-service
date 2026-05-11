@@ -12,6 +12,8 @@ import { splitPolygonHandler } from '../src/handlers/split-polygon-handler.ts';
 import { buildPolygonHandler } from '../src/handlers/build-polygon-handler.ts';
 import { explodePolygonHandler } from '../src/handlers/explode-polygon-handler.ts';
 import { findParentLinesHandler } from '../src/handlers/find-parent-lines-handler.ts';
+import { migrateReferenceBlockHandler } from '../src/migration/handlers/migrate-reference-block.ts';
+import { validateReferenceBlock } from '../src/migration/handlers/validate-reference-block.ts';
 
 const MOCK_DIRNAME = '/mock/arcgis-node/src';
 
@@ -108,9 +110,11 @@ describe('main()', () => {
         buildPolygon: buildPolygonHandler,
         explodePolygon: explodePolygonHandler,
         findParentLines: findParentLinesHandler,
-        migrateBlockOrSubarea,
-        validateBlockAndSubarea,
-        validateTopologicallyEqual,
+        migrateBlockOrSubarea: migrateBlockOrSubarea,
+        validateBlockAndSubarea: validateBlockAndSubarea,
+        validateTopologicallyEqual: validateTopologicallyEqual,
+        migrateReferenceBlock: migrateReferenceBlockHandler,
+        validateReferenceBlock: validateReferenceBlock,
       });
     });
 

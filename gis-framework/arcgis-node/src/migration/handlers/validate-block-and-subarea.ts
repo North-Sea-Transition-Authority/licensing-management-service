@@ -46,7 +46,7 @@ function processPolygons(
   const lines: EsriJsonLineStringToIsGeodesic[] = [];
   polygonInputs.forEach((polygon) => {
     const polylines: Polyline[] = [];
-    polygon.lineWrapper.forEach((line) => {
+    polygon.lineWrappers.forEach((line) => {
       const polyline = Polyline.fromJSON(JSON.parse(line.esriJsonString));
       polylines.push(polyline);
       lines.push({

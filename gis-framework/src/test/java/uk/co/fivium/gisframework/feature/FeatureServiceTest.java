@@ -9,12 +9,13 @@ import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
 
 @ExtendWith(MockitoExtension.class)
 class FeatureServiceTest {
@@ -27,8 +28,16 @@ class FeatureServiceTest {
   @Mock
   private LineService lineService;
 
-  @InjectMocks
   private FeatureService featureService;
+
+  @BeforeEach
+  void setUp() {
+    featureService = new FeatureService(
+        featureRepository,
+        lineService,
+        new BrokenBlockConfigurationProperties(Map.of("16/30", List.of("16/29c")))
+    );
+  }
 
   @Test
   void saveFeature() {
@@ -127,5 +136,25 @@ class FeatureServiceTest {
     var inOrder = Mockito.inOrder(featureRepository);
     inOrder.verify(featureRepository).deleteAllByParentFeatureIsNotNull();
     inOrder.verify(featureRepository).deleteAll();
+  }
+
+  @Test
+  void findLicenseBlocksForRefBlock() {
+    var matchingBlock = FeatureTestUtil.newBuilder()
+        .withFeatureName("16/30a")
+        .build();
+    var matchingBrokenBlock = FeatureTestUtil.newBuilder()
+        .withFeatureName("16/29c")
+        .build();
+    var nonMatchingBlock = FeatureTestUtil.newBuilder()
+        .withFeatureName("16/31a")
+        .build();
+
+    when(featureRepository.findAllByAttribute("SHAPE_TYPE", "BLOCK"))
+        .thenReturn(List.of(matchingBlock, matchingBrokenBlock, nonMatchingBlock));
+
+    var result = featureService.findLicenseBlocksForRefBlock("16/30");
+
+    assertThat(result).containsExactly(matchingBlock, matchingBrokenBlock);
   }
 }

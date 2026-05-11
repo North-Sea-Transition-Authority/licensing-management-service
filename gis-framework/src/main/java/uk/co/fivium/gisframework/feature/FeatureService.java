@@ -4,19 +4,22 @@ import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
 
 @Service
 public class FeatureService {
 
   private final FeatureRepository featureRepository;
   private final LineService lineService;
+  private final BrokenBlockConfigurationProperties brokenBlockConfigurationProperties;
 
   public FeatureService(
       FeatureRepository featureRepository,
-      LineService lineService
-  ) {
+      LineService lineService,
+      BrokenBlockConfigurationProperties brokenBlockConfigurationProperties) {
     this.featureRepository = featureRepository;
     this.lineService = lineService;
+    this.brokenBlockConfigurationProperties = brokenBlockConfigurationProperties;
   }
 
   @Transactional
@@ -50,5 +53,24 @@ public class FeatureService {
   public void deleteAll() {
     featureRepository.deleteAllByParentFeatureIsNotNull();
     featureRepository.deleteAll();
+  }
+
+  /**
+   * This method finds all the license blocks for a given reference block.
+   * License blocks are linked to references blocks based on their name. A reference block would be called something like "11/24",
+   * and a license block would be called "11/24a". There are additionally some license blocks which span multiple references
+   * blocks. These special license blocks are defined in the configuration properties.
+   * @param refBlockName The name of the reference block.
+   * @return A list of features which are all the license block in the given reference block.
+   */
+  public List<Feature> findLicenseBlocksForRefBlock(String refBlockName) {
+    return findAllByAttribute("SHAPE_TYPE", "BLOCK")
+        .stream()
+        .filter(licenseBlock ->
+            licenseBlock.getFeatureName().startsWith(refBlockName)
+                || brokenBlockConfigurationProperties.getBrokenLicenseBlockNames(refBlockName)
+                .contains(licenseBlock.getFeatureName())
+        )
+        .toList();
   }
 }

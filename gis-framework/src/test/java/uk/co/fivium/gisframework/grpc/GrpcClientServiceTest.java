@@ -38,7 +38,10 @@ import uk.co.fivium.grpc.gis.GeoJsonLineWrapper;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaRequest;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
+import uk.co.fivium.grpc.gis.MigrateReferenceBlockRequest;
+import uk.co.fivium.grpc.gis.MigrateReferenceBlockResponse;
 import uk.co.fivium.grpc.gis.ParentLine;
+import uk.co.fivium.grpc.gis.ReferenceBlockValidationRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonResponse;
 import uk.co.fivium.grpc.gis.TopologicallyEqualValidationRequest;
@@ -225,6 +228,73 @@ class GrpcClientServiceTest {
   }
 
   @Test
+  void migrateReferenceBlock() {
+    var geodesicOracleLine = new OracleBoundaryLineWithRing(
+        OracleBoundaryLineTestUtil.newBuilder()
+            .withLineGeojson("some json 1")
+            .withLineNavigationType(LineNavigationType.GEODESIC)
+            .withConnectionOrder(1L)
+            .withLineSidId(10L)
+            .build(),
+        100
+    );
+    var loxodromeOracleLine = new OracleBoundaryLineWithRing(
+        OracleBoundaryLineTestUtil.newBuilder()
+            .withLineGeojson("some json 2")
+            .withLineNavigationType(LineNavigationType.LOXODROME)
+            .withConnectionOrder(2L)
+            .withLineSidId(20L)
+            .build(),
+        200
+    );
+    var licenseBlockLine = LineTestUtil.newBuilder()
+        .withEsriJson("license esri json")
+        .withNavigationType(LineNavigationType.GEODESIC)
+        .build();
+
+    var expectedRequest = MigrateReferenceBlockRequest.newBuilder()
+        .setCoordinateSystem(CoordinateSystem.ED50)
+        .addGeoJsonLineWrappers(GeoJsonLineWrapper.newBuilder()
+            .setGeoJsonString("some json 1")
+            .setIsGeodesic(true)
+            .setConnectionOrder(1)
+            .setOracleLineSsid(10)
+            .setRingNumber(100)
+            .build())
+        .addGeoJsonLineWrappers(GeoJsonLineWrapper.newBuilder()
+            .setGeoJsonString("some json 2")
+            .setIsGeodesic(false)
+            .setConnectionOrder(2)
+            .setOracleLineSsid(20)
+            .setRingNumber(200)
+            .build())
+        .addLicenseBlockLines(EsriJsonLineWithNavigationAndId.newBuilder()
+            .setEsriJsonString("license esri json")
+            .setNavigationType(LineNavigationType.GEODESIC)
+            .build());
+
+    var response = MigrateReferenceBlockResponse.newBuilder()
+        .addEsriJsonLineWithId(EsriJsonPolylineAndOracleId.newBuilder()
+            .setEsriJsonString("some new json 1")
+            .setOracleLineSsid(10)
+            .build())
+        .addEsriJsonLineWithId(EsriJsonPolylineAndOracleId.newBuilder()
+            .setEsriJsonString("some new json 2")
+            .setOracleLineSsid(20)
+            .build())
+        .build();
+    when(arcgisClient.migrateReferenceBlock(expectedRequest.build())).thenReturn(response);
+
+    assertThat(grpcClientService.migrateReferenceBlock(
+        List.of(geodesicOracleLine, loxodromeOracleLine),
+        CoordinateSystem.ED50,
+        List.of(licenseBlockLine)
+    )).isEqualTo(Map.of(10, "some new json 1", 20, "some new json 2"));
+
+    verify(arcgisClient).migrateReferenceBlock(expectedRequest.build());
+  }
+
+  @Test
   void validateBlockAndSubarea() {
     var feature = FeatureTestUtil.newBuilder()
         .withCoordinateSystem(CoordinateSystem.ED50)
@@ -251,13 +321,13 @@ class GrpcClientServiceTest {
     var expectedRequest = BlockAndSubareaValidationRequest.newBuilder()
         .setCoordinateSystem(CoordinateSystem.ED50)
         .addChildPolygonLineWrappersLists(EsriJsonPolygonLineWrappers.newBuilder()
-            .addLineWrapper(EsriJsonLineWithNavigationAndId.newBuilder()
+            .addLineWrappers(EsriJsonLineWithNavigationAndId.newBuilder()
                 .setEsriJsonString("child esri json")
                 .setNavigationType(LineNavigationType.GEODESIC)
                 .setOracleLineSsid(10)
                 .build()))
         .addParentPolygonLineWrappersLists(EsriJsonPolygonLineWrappers.newBuilder()
-            .addLineWrapper(EsriJsonLineWithNavigationAndId.newBuilder()
+            .addLineWrappers(EsriJsonLineWithNavigationAndId.newBuilder()
                 .setEsriJsonString("parent esri json")
                 .setNavigationType(LineNavigationType.LOXODROME)
                 .setOracleLineSsid(20)
@@ -315,5 +385,55 @@ class GrpcClientServiceTest {
     assertThat(grpcClientService.validateTopologicallyEqual(childPolygonsLines, parentFeature)).isEqualTo(response);
 
     verify(arcgisClient).validateTopologicallyEqual(expectedRequest.build());
+  }
+
+  @Test
+  void validateReferenceBlock() {
+    var feature = FeatureTestUtil.newBuilder()
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .build();
+
+    var refBlockPolygon = PolygonTestUtil.newBuilder().withFeature(feature).build();
+    var refBlockLine = LineTestUtil.newBuilder()
+        .withPolygon(refBlockPolygon)
+        .withEsriJson("ref block esri json")
+        .withNavigationType(LineNavigationType.GEODESIC)
+        .withLegacyId(10)
+        .build();
+    var refBlockFeature = new EntityBackedFeature(feature, Map.of(refBlockPolygon, List.of(refBlockLine)));
+
+    var licenceBlockPolygon = PolygonTestUtil.newBuilder().withFeature(feature).build();
+    var licenceBlockLine = LineTestUtil.newBuilder()
+        .withPolygon(licenceBlockPolygon)
+        .withEsriJson("licence block esri json")
+        .withNavigationType(LineNavigationType.LOXODROME)
+        .withLegacyId(20)
+        .build();
+    var licenceBlockFeature = new EntityBackedFeature(feature, Map.of(licenceBlockPolygon, List.of(licenceBlockLine)));
+
+    var expectedRequest = ReferenceBlockValidationRequest.newBuilder()
+        .setCoordinateSystem(CoordinateSystem.ED50)
+        .addRefBlockPolygonLineWrappersList(EsriJsonPolygonLineWrappers.newBuilder()
+            .addLineWrappers(EsriJsonLineWithNavigationAndId.newBuilder()
+                .setEsriJsonString("ref block esri json")
+                .setNavigationType(LineNavigationType.GEODESIC)
+                .setOracleLineSsid(10)
+                .build()))
+        .addLicenceBlockPolygonLineWrappersList(EsriJsonPolygonLineWrappers.newBuilder()
+            .addLineWrappers(EsriJsonLineWithNavigationAndId.newBuilder()
+                .setEsriJsonString("licence block esri json")
+                .setNavigationType(LineNavigationType.LOXODROME)
+                .setOracleLineSsid(20)
+                .build()));
+
+    var response = ValidationResponse.newBuilder()
+        .setIsValid(true)
+        .setMessage("Valid")
+        .build();
+    when(arcgisClient.validateReferenceBlock(expectedRequest.build())).thenReturn(response);
+
+    assertThat(grpcClientService.validateReferenceBlock(refBlockFeature, List.of(licenceBlockFeature))).isEqualTo(response);
+
+    verify(arcgisClient).validateReferenceBlock(expectedRequest.build());
   }
 }

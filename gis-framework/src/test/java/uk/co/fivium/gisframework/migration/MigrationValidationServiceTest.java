@@ -1,17 +1,24 @@
 package uk.co.fivium.gisframework.migration;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import uk.co.fivium.gisframework.feature.EntityBackedFeature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
@@ -20,10 +27,13 @@ import uk.co.fivium.gisframework.feature.LineTestUtil;
 import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.feature.PolygonTestUtil;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
+import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
 import uk.co.fivium.grpc.gis.ValidationResponse;
 
 @ExtendWith(MockitoExtension.class)
 class MigrationValidationServiceTest {
+
+  private static final String BROKEN_LICENSE_BLOCK_NAME = "16/30c";
 
   @Mock
   private FeatureService featureService;
@@ -37,8 +47,18 @@ class MigrationValidationServiceTest {
   @Mock
   private PolygonService polygonService;
 
-  @InjectMocks
   private MigrationValidationService migrationValidationService;
+
+  @BeforeEach
+  void setUp() {
+    migrationValidationService = new MigrationValidationService(
+        featureService,
+        grpcClientService,
+        lineService,
+        polygonService,
+        new BrokenBlockConfigurationProperties(Map.of("16/30", List.of(BROKEN_LICENSE_BLOCK_NAME)))
+    );
+  }
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
@@ -121,5 +141,77 @@ class MigrationValidationServiceTest {
         List.of(List.of("line json 1"), List.of("line json 2")),
         parentEntityBacked
     );
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void validateReferenceBlocks(boolean isValid) {
+    var logAppender = getLogAppender();
+
+    var refBlockFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("16/30")
+        .withAttributes(Map.of("SHAPE_TYPE", "REF_BLOCK"))
+        .build();
+    var licenseBlockFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("16/30a")
+        .withAttributes(Map.of("SHAPE_TYPE", "BLOCK"))
+        .build();
+    var brokenLicenseBlockFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName(BROKEN_LICENSE_BLOCK_NAME)
+        .withAttributes(Map.of("SHAPE_TYPE", "BLOCK"))
+        .build();
+
+    var refBlockEntityBacked = new EntityBackedFeature(refBlockFeature, Map.of());
+    var licenseBlockEntityBacked = new EntityBackedFeature(licenseBlockFeature, Map.of());
+
+    when(featureService.findAllByAttribute("SHAPE_TYPE", "REF_BLOCK")).thenReturn(List.of(refBlockFeature));
+    when(featureService.findAllByAttribute("SHAPE_TYPE", "BLOCK"))
+        .thenReturn(List.of(licenseBlockFeature, brokenLicenseBlockFeature));
+    when(featureService.getEntityBackedFeature(refBlockFeature)).thenReturn(refBlockEntityBacked);
+    when(featureService.getEntityBackedFeature(licenseBlockFeature)).thenReturn(licenseBlockEntityBacked);
+
+    var response = ValidationResponse.newBuilder()
+        .setIsValid(isValid)
+        .setMessage("some message")
+        .build();
+    when(grpcClientService.validateReferenceBlock(refBlockEntityBacked, List.of(licenseBlockEntityBacked)))
+        .thenReturn(response);
+
+    try {
+      migrationValidationService.validateReferenceBlocks();
+    } finally {
+      detachLogAppender(logAppender);
+    }
+
+    verify(featureService).findAllByAttribute("SHAPE_TYPE", "REF_BLOCK");
+    verify(featureService).findAllByAttribute("SHAPE_TYPE", "BLOCK");
+    verify(featureService).getEntityBackedFeature(refBlockFeature);
+    verify(featureService).getEntityBackedFeature(licenseBlockFeature);
+    verify(grpcClientService).validateReferenceBlock(refBlockEntityBacked, List.of(licenseBlockEntityBacked));
+
+    assertThat(logAppender.list)
+        .extracting(ILoggingEvent::getLevel, ILoggingEvent::getFormattedMessage)
+        .containsExactly(tuple(
+            isValid ? Level.INFO : Level.ERROR,
+            isValid
+                ? "All license blocks are contained by ref block 16/30"
+                : "Validation error: some message Reference Block: 16/30"
+        ));
+  }
+
+  private static ListAppender<ILoggingEvent> getLogAppender() {
+    var logger = (Logger) LoggerFactory.getLogger(MigrationValidationService.class);
+    var logAppender = new ListAppender<ILoggingEvent>();
+
+    logAppender.start();
+    logger.addAppender(logAppender);
+
+    return logAppender;
+  }
+
+  private static void detachLogAppender(ListAppender<ILoggingEvent> logAppender) {
+    var logger = (Logger) LoggerFactory.getLogger(MigrationValidationService.class);
+
+    logger.detachAppender(logAppender);
   }
 }

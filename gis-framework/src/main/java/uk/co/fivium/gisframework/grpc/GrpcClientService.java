@@ -25,7 +25,10 @@ import uk.co.fivium.grpc.gis.GeoJsonLineWrapper;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaRequest;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
+import uk.co.fivium.grpc.gis.MigrateReferenceBlockRequest;
+import uk.co.fivium.grpc.gis.MigrateReferenceBlockResponse;
 import uk.co.fivium.grpc.gis.ParentLine;
+import uk.co.fivium.grpc.gis.ReferenceBlockValidationRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
 import uk.co.fivium.grpc.gis.TopologicallyEqualValidationRequest;
 import uk.co.fivium.grpc.gis.ValidationResponse;
@@ -38,7 +41,8 @@ public class GrpcClientService {
 
   /**
    * Split a polygon using a cutter line.
-   * @param esriJsonPolygon The polygon to split.
+   *
+   * @param esriJsonPolygon    The polygon to split.
    * @param esriJsonCutterLine The cutter line.
    * @return A list of output EsriJSON polygons.
    */
@@ -55,8 +59,9 @@ public class GrpcClientService {
 
   /**
    * Takes a list of polylines EsriJSON and combines them into a polygon using the arcgis js sdk.
+   *
    * @param esriJsonPolylines An ordered list of EsriJSON polylines. Must be sorted by their ring connection order.
-   * @param coordinateSystem The coordinate system of the polylines. Must be the same for all polylines.
+   * @param coordinateSystem  The coordinate system of the polylines. Must be the same for all polylines.
    * @return EsriJSON of the built polygon as a string.
    */
   public String buildPolygon(List<String> esriJsonPolylines,
@@ -72,6 +77,7 @@ public class GrpcClientService {
 
   /**
    * Explode a polygon into its constituent lines.
+   *
    * @param polygonEsriJson The EsriJSON of the polygon to explode.
    * @return A list of EsriJSON lines that make up the polygon.
    */
@@ -146,6 +152,55 @@ public class GrpcClientService {
     return new MigrationResponseDto(oracleSsidToEsriJsonLineString, response.getArea());
   }
 
+  /**
+   * Migrates a reference block based on the licence lines within that reference block.
+   * When migrating reference blocks cartesian lines are treated as geodesic lines.
+   * When handling reference block lines we want to treat cartesian lines as geodesic.
+   *
+   * @param referenceBlockLinesWithRing a list of objects with link the lines to their ring number
+   * @param coordinateSystem            the coordinate system of the reference block
+   * @param licenseBlockLines           a list of all lines of all licence blocks within the reference block.
+   * @return a Map of the oracle line id to the migrated EsriJSON polyline string for the reference block.
+   */
+  public Map<Integer, String> migrateReferenceBlock(
+      List<OracleBoundaryLineWithRing> referenceBlockLinesWithRing,
+      CoordinateSystem coordinateSystem,
+      List<Line> licenseBlockLines
+  ) {
+    var requestBuilder = MigrateReferenceBlockRequest.newBuilder()
+        .setCoordinateSystem(coordinateSystem);
+
+    for (var entry : referenceBlockLinesWithRing) {
+      var oracleLine = entry.oracleBoundaryLine();
+      requestBuilder.addGeoJsonLineWrappers(GeoJsonLineWrapper.newBuilder()
+          .setGeoJsonString(oracleLine.getLineGeojson())
+          .setIsGeodesic(oracleLine.getLineNavigationType() != LineNavigationType.LOXODROME)
+          .setOracleLineSsid(oracleLine.getLineSidId().intValue())
+          .setConnectionOrder(oracleLine.getConnectionOrder().intValue())
+          .setRingNumber(entry.ringNumber())
+          .build()
+      );
+    }
+
+    for (Line line : licenseBlockLines) {
+      requestBuilder.addLicenseBlockLines(
+          EsriJsonLineWithNavigationAndId.newBuilder()
+              .setEsriJsonString(line.getEsriJson())
+              .setNavigationType(line.getNavigationType())
+              .build()
+      );
+    }
+
+    MigrateReferenceBlockResponse response =
+        arcgisClient.migrateReferenceBlock(requestBuilder.build());
+
+    Map<Integer, String> result = new HashMap<>();
+    for (var lineOutput : response.getEsriJsonLineWithIdList()) {
+      result.put(lineOutput.getOracleLineSsid(), lineOutput.getEsriJsonString());
+    }
+    return result;
+  }
+
   public ValidationResponse validateBlockAndSubarea(
       EntityBackedFeature childFeature,
       EntityBackedFeature parentFeature
@@ -188,6 +243,30 @@ public class GrpcClientService {
     return arcgisClient.validateTopologicallyEqual(request.build());
   }
 
+  /**
+   * Validates that all licence blocks for a given reference block are contained, and that any geodesic licence block lines
+   * overlap their the reference block's geodesic lines.
+   *
+   * @param refBlockFeature      The reference block represented as an object that maps a feature to its polygons and lines.
+   * @param licenseBlockFeatures All the licence blocks represent by objects that map the feature to their polygons and lines.
+   * @return a ValidationResponse object, indicating if the validation has passed or not, and if not, then the reason for why not.
+   */
+  public ValidationResponse validateReferenceBlock(
+      EntityBackedFeature refBlockFeature,
+      List<EntityBackedFeature> licenseBlockFeatures
+  ) {
+    var request = ReferenceBlockValidationRequest.newBuilder()
+        .setCoordinateSystem(refBlockFeature.feature().getCoordinateSystem());
+
+    buildPolygonLineWrappers(refBlockFeature).forEach(request::addRefBlockPolygonLineWrappersList);
+
+    for (var licenseBlockFeature : licenseBlockFeatures) {
+      buildPolygonLineWrappers(licenseBlockFeature).forEach(request::addLicenceBlockPolygonLineWrappersList);
+    }
+
+    return arcgisClient.validateReferenceBlock(request.build());
+  }
+
   private List<EsriJsonPolygonLineWrappers.Builder> buildPolygonLineWrappers(
       EntityBackedFeature feature
   ) {
@@ -201,7 +280,7 @@ public class GrpcClientService {
                   .build())
               .toList();
           return EsriJsonPolygonLineWrappers.newBuilder()
-              .addAllLineWrapper(lineWrappers);
+              .addAllLineWrappers(lineWrappers);
         })
         .toList();
   }

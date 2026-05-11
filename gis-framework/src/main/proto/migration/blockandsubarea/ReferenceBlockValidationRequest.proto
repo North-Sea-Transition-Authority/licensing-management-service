@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package uk.co.fivium.grpc.gis;
+
+import "migration/blockandsubarea/EsriJsonPolygonLineWrappers.proto";
+import "enums/CoordinateSystem.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "ReferenceBlockValidationRequestProto";
+
+message ReferenceBlockValidationRequest {
+    repeated EsriJsonPolygonLineWrappers refBlockPolygonLineWrappersList = 1;
+    repeated EsriJsonPolygonLineWrappers licenceBlockPolygonLineWrappersList = 2;
+    CoordinateSystem coordinateSystem = 3;
+}
+

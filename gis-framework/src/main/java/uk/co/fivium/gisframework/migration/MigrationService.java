@@ -116,7 +116,7 @@ public class MigrationService {
             newFeature,
             oraclePolygon.getFeatureOffsetHighM(),
             oraclePolygon.getFeatureOffsetLowM(),
-            Map.of() //TODO: Set attributes
+            Map.of() //TODO EPGF-120: Set attributes
         );
 
         var parentLines = new ArrayList<String>();

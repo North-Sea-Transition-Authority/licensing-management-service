@@ -5,6 +5,7 @@ import { esriJsonToPolyline } from '../../util/esrijson-util';
 import { logger } from '../../config/logger';
 
 export const FIVE_CM_IN_DEGREES_AT_48N_ED50 = 0.00000067;
+export const ONE_HUNDRED_METERS_ED50 = FIVE_CM_IN_DEGREES_AT_48N_ED50 * 2000;
 
 /**
  * Gets the start and end points of a polyline.

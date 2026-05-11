@@ -2,7 +2,6 @@ import grpc from '@grpc/grpc-js';
 import protoLoader from '@grpc/proto-loader';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import esriConfig from '@arcgis/core/config.js';
 import express from 'express';
 import type { ProtoGrpcType } from '../generated/ArcGisJs.ts';
@@ -14,6 +13,10 @@ import { explodePolygonHandler } from './handlers/explode-polygon-handler';
 import { findParentLinesHandler } from './handlers/find-parent-lines-handler';
 import { validateBlockAndSubarea } from './migration/handlers/validate-block-and-subarea';
 import { validateTopologicallyEqual } from './migration/handlers/validate-topologically-equal';
+import { migrateReferenceBlockHandler } from './migration/handlers/migrate-reference-block';
+import { validateReferenceBlock } from './migration/handlers/validate-reference-block';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const ASSET_PORT = 3000;
 const GRPC_BIND_ADDRESS = '0.0.0.0:8082';
@@ -61,9 +64,11 @@ function startGrpcServer(arcGisJsProto: ProtoGrpcType['uk']['co']['fivium']['grp
     buildPolygon: buildPolygonHandler,
     explodePolygon: explodePolygonHandler,
     findParentLines: findParentLinesHandler,
-    migrateBlockOrSubarea,
-    validateBlockAndSubarea,
-    validateTopologicallyEqual,
+    migrateBlockOrSubarea: migrateBlockOrSubarea,
+    validateBlockAndSubarea: validateBlockAndSubarea,
+    validateTopologicallyEqual: validateTopologicallyEqual,
+    migrateReferenceBlock: migrateReferenceBlockHandler,
+    validateReferenceBlock: validateReferenceBlock,
   });
 
   server.bindAsync(GRPC_BIND_ADDRESS, grpc.ServerCredentials.createInsecure(), (error) => {

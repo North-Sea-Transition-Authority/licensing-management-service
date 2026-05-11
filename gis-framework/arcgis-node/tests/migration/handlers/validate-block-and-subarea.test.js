@@ -2,54 +2,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { validateBlockAndSubarea } from '../../../src/migration/handlers/validate-block-and-subarea';
 import { CoordinateSystem } from '../../../generated/uk/co/fivium/grpc/gis/CoordinateSystem.ts';
 import { LineNavigationType } from '../../../generated/uk/co/fivium/grpc/gis/LineNavigationType.ts';
-import { makePolylineEsriJson } from '../../test-utils/esrijson-test-util.ts';
-
-function makeRectanglePolygonWrapper(x1, y1, x2, y2, navigationType = LineNavigationType.LOXODROME) {
-  return {
-    lineWrapper: [
-      {
-        esriJsonString: makePolylineEsriJson([
-          [
-            [x1, y1],
-            [x2, y1],
-          ],
-        ]),
-        oracleLineSsid: 1,
-        navigationType,
-      },
-      {
-        esriJsonString: makePolylineEsriJson([
-          [
-            [x2, y1],
-            [x2, y2],
-          ],
-        ]),
-        oracleLineSsid: 2,
-        navigationType,
-      },
-      {
-        esriJsonString: makePolylineEsriJson([
-          [
-            [x2, y2],
-            [x1, y2],
-          ],
-        ]),
-        oracleLineSsid: 3,
-        navigationType,
-      },
-      {
-        esriJsonString: makePolylineEsriJson([
-          [
-            [x1, y2],
-            [x1, y1],
-          ],
-        ]),
-        oracleLineSsid: 4,
-        navigationType,
-      },
-    ],
-  };
-}
+import { makeRectanglePolygonWrapper } from '../../test-utils/esrijson-test-util.ts';
 
 describe('validateBlockAndSubarea', () => {
   test('valid', async () => {

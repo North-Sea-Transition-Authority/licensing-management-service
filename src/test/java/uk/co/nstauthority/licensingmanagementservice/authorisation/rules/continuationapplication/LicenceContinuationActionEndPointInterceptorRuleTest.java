@@ -76,6 +76,24 @@ class LicenceContinuationActionEndPointInterceptorRuleTest extends AbstractInter
   }
 
   @Test
+  void check_matchesEndpointWithDifferentPrimaryAction_thenTrue() throws NoSuchMethodException {
+    setupMocks();
+
+    when(licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, user))
+        .thenReturn(List.of(LicenceContinuationActionItem.CONFIRM_CONTINUATION.toActionItemView(applicationDetail, true)));
+
+    var annotation = getAnnotation(
+        TestEndpoints.class.getDeclaredMethod("getAction"),
+        LicenceContinuationActionEndPointInterceptorRule.ActionEndPoint.class
+    );
+
+    var interceptorResult = rule.check(annotation, request, response);
+
+    assertThat(interceptorResult.hasRulePassed()).isTrue();
+    verifyNoInteractions(response);
+  }
+
+  @Test
   void check_doesNotMatchAction_thenFalse() throws NoSuchMethodException {
     setupMocks();
 

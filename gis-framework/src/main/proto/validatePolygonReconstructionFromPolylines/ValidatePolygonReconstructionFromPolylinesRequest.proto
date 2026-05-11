@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+import "validatePolygonReconstructionFromPolylines/OrderedLineSegment.proto";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "ValidatePolygonReconstructionFromPolylinesRequestProto";
+
+message ValidatePolygonReconstructionFromPolylinesRequest {
+  repeated OrderedLineSegment lines = 1;
+  string originalPolygonEsriJson = 2;
+}

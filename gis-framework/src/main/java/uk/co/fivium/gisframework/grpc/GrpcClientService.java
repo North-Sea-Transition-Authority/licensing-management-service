@@ -1,5 +1,6 @@
 package uk.co.fivium.gisframework.grpc;
 
+import com.esri.core.geometry.Point;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,26 +12,33 @@ import uk.co.fivium.gisframework.feature.EntityBackedFeature;
 import uk.co.fivium.gisframework.feature.Line;
 import uk.co.fivium.gisframework.migration.MigrationResponseDto;
 import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineWithRing;
+import uk.co.fivium.gisframework.operator.LineWithStartEndPoints;
 import uk.co.fivium.grpc.gis.ArcGisServiceGrpc;
 import uk.co.fivium.grpc.gis.BlockAndSubareaValidationRequest;
 import uk.co.fivium.grpc.gis.BuildPolygonRequest;
 import uk.co.fivium.grpc.gis.ChildLineMatch;
+import uk.co.fivium.grpc.gis.Coordinate;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.fivium.grpc.gis.EsriJsonLineWithNavigationAndId;
 import uk.co.fivium.grpc.gis.EsriJsonPolygonLineWrappers;
 import uk.co.fivium.grpc.gis.EsriJsonPolygonLines;
 import uk.co.fivium.grpc.gis.ExplodePolygonRequest;
+import uk.co.fivium.grpc.gis.FindNorthwestMostLineRequest;
 import uk.co.fivium.grpc.gis.FindParentLinesRequest;
 import uk.co.fivium.grpc.gis.GeoJsonLineWrapper;
+import uk.co.fivium.grpc.gis.GetLineStartAndEndPointsRequest;
 import uk.co.fivium.grpc.gis.LineNavigationType;
+import uk.co.fivium.grpc.gis.LineWithId;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaRequest;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockRequest;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockResponse;
+import uk.co.fivium.grpc.gis.OrderedLineSegment;
 import uk.co.fivium.grpc.gis.ParentLine;
 import uk.co.fivium.grpc.gis.ReferenceBlockValidationRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
 import uk.co.fivium.grpc.gis.TopologicallyEqualValidationRequest;
+import uk.co.fivium.grpc.gis.ValidatePolygonReconstructionFromPolylinesRequest;
 import uk.co.fivium.grpc.gis.ValidationResponse;
 
 @Service
@@ -119,6 +127,30 @@ public class GrpcClientService {
     }
 
     return new FindParentLineResponse(polylineToParentLineId, response.getOrphanedChildrenEsriJsonPolylinesList());
+  }
+
+
+  /**
+   * Validate that a polygon can be reconstructed from a list of lines using their ring number and connection order.
+   * @param lines the lines to validate.
+   * @param originalPolygonEsriJson the EsriJSON of the original polygon.
+   * @return true if the polygon can be reconstructed from the lines, false otherwise.
+   */
+  public boolean validatePolygonReconstructionFromPolylines(List<Line> lines, String originalPolygonEsriJson) {
+    var orderedLineSegments = lines.stream()
+        .map(line -> OrderedLineSegment.newBuilder()
+            .setEsriJsonPolyline(line.getEsriJson())
+            .setRingNumber(line.getRingNumber())
+            .setConnectionOrder(line.getRingConnectionOrder())
+            .build())
+        .toList();
+    var request = ValidatePolygonReconstructionFromPolylinesRequest.newBuilder()
+        .addAllLines(orderedLineSegments)
+        .setOriginalPolygonEsriJson(originalPolygonEsriJson)
+        .build();
+
+    var response = arcgisClient.validatePolygonReconstructionFromPolylines(request);
+    return response.getIsValid();
   }
 
   public MigrationResponseDto migrateBlockOrSubarea(
@@ -283,5 +315,60 @@ public class GrpcClientService {
               .addAllLineWrappers(lineWrappers);
         })
         .toList();
+  }
+
+  /**
+   * Get the start and end points of a list of lines.
+   * @param lines the lines to get the start and end points of.
+   * @return a list of lines with their start and end points.
+   */
+  public List<LineWithStartEndPoints> getLineStartAndEndPoints(List<Line> lines) {
+    //lines might not have an id yet
+    Map<UUID, Line> tempIdToLine = new HashMap<>();
+    lines.forEach(line -> tempIdToLine.put(UUID.randomUUID(), line));
+
+    var linesWithId = tempIdToLine.entrySet().stream()
+        .map(entry -> LineWithId.newBuilder()
+            .setId(entry.getKey().toString())
+            .setPolyLineEsriJson(entry.getValue().getEsriJson())
+            .build())
+        .toList();
+    var request = GetLineStartAndEndPointsRequest.newBuilder()
+        .addAllLines(linesWithId)
+        .build();
+
+    var response = arcgisClient.getLineStartAndEndPoints(request);
+
+    return response.getLinesList().stream()
+        .map(lineWithStartAndEndPoint -> {
+          var line = tempIdToLine.get(UUID.fromString(lineWithStartAndEndPoint.getLineId()));
+          Point startPoint = getEsriPoint(lineWithStartAndEndPoint.getStartPoint());
+          Point endPoint = getEsriPoint(lineWithStartAndEndPoint.getEndPoint());
+          return new LineWithStartEndPoints(line, startPoint, endPoint);
+        })
+        .toList();
+  }
+
+  /**
+   * Get the UUID of the line with the northwest-most start point.
+   * @param idToLine Map of line UUID to line entity. All lines should belong to the same ring.
+   * @return The UUID of the line with the northwest-most start point.
+   */
+  public UUID findNorthwestMostLine(Map<UUID, Line> idToLine) {
+    var request = FindNorthwestMostLineRequest.newBuilder()
+        .addAllLines(idToLine.entrySet().stream()
+            .map(lineEntry -> LineWithId.newBuilder()
+                .setId(lineEntry.getKey().toString())
+                .setPolyLineEsriJson(lineEntry.getValue().getEsriJson())
+                .build())
+            .toList())
+        .build();
+
+    var response = arcgisClient.findNorthwestMostLine(request);
+    return UUID.fromString(response.getLineId());
+  }
+
+  private Point getEsriPoint(Coordinate grpcPoint) {
+    return new Point(grpcPoint.getX(), grpcPoint.getY());
   }
 }

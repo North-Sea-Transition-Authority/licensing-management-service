@@ -12,6 +12,9 @@ import { splitPolygonHandler } from '../src/handlers/split-polygon-handler.ts';
 import { buildPolygonHandler } from '../src/handlers/build-polygon-handler.ts';
 import { explodePolygonHandler } from '../src/handlers/explode-polygon-handler.ts';
 import { findParentLinesHandler } from '../src/handlers/find-parent-lines-handler.ts';
+import { getLineStartAndEndPointsHandler } from '../src/handlers/get-line-start-and-end-points-handler.ts';
+import { findNorthwestMostLineHandler } from '../src/handlers/find-northwest-most-line-handler.ts';
+import { validatePolygonReconstructionFromPolylinesHandler } from '../src/handlers/validate-polygon-reconstruction-from-polylines-handler.ts';
 import { migrateReferenceBlockHandler } from '../src/migration/handlers/migrate-reference-block.ts';
 import { validateReferenceBlock } from '../src/migration/handlers/validate-reference-block.ts';
 
@@ -110,6 +113,9 @@ describe('main()', () => {
         buildPolygon: buildPolygonHandler,
         explodePolygon: explodePolygonHandler,
         findParentLines: findParentLinesHandler,
+        getLineStartAndEndPoints: getLineStartAndEndPointsHandler,
+        findNorthwestMostLine: findNorthwestMostLineHandler,
+        validatePolygonReconstructionFromPolylines: validatePolygonReconstructionFromPolylinesHandler,
         migrateBlockOrSubarea: migrateBlockOrSubarea,
         validateBlockAndSubarea: validateBlockAndSubarea,
         validateTopologicallyEqual: validateTopologicallyEqual,

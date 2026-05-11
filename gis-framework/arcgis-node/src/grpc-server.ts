@@ -11,8 +11,11 @@ import { splitPolygonHandler } from './handlers/split-polygon-handler';
 import { buildPolygonHandler } from './handlers/build-polygon-handler';
 import { explodePolygonHandler } from './handlers/explode-polygon-handler';
 import { findParentLinesHandler } from './handlers/find-parent-lines-handler';
+import { getLineStartAndEndPointsHandler } from './handlers/get-line-start-and-end-points-handler';
+import { findNorthwestMostLineHandler } from './handlers/find-northwest-most-line-handler';
 import { validateBlockAndSubarea } from './migration/handlers/validate-block-and-subarea';
 import { validateTopologicallyEqual } from './migration/handlers/validate-topologically-equal';
+import { validatePolygonReconstructionFromPolylinesHandler } from './handlers/validate-polygon-reconstruction-from-polylines-handler';
 import { migrateReferenceBlockHandler } from './migration/handlers/migrate-reference-block';
 import { validateReferenceBlock } from './migration/handlers/validate-reference-block';
 
@@ -64,6 +67,9 @@ function startGrpcServer(arcGisJsProto: ProtoGrpcType['uk']['co']['fivium']['grp
     buildPolygon: buildPolygonHandler,
     explodePolygon: explodePolygonHandler,
     findParentLines: findParentLinesHandler,
+    getLineStartAndEndPoints: getLineStartAndEndPointsHandler,
+    findNorthwestMostLine: findNorthwestMostLineHandler,
+    validatePolygonReconstructionFromPolylines: validatePolygonReconstructionFromPolylinesHandler,
     migrateBlockOrSubarea: migrateBlockOrSubarea,
     validateBlockAndSubarea: validateBlockAndSubarea,
     validateTopologicallyEqual: validateTopologicallyEqual,

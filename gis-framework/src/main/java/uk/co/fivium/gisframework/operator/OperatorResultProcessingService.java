@@ -1,9 +1,12 @@
 package uk.co.fivium.gisframework.operator;
 
+import com.esri.core.geometry.Point;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -38,8 +41,8 @@ class OperatorResultProcessingService {
     var inputPolygonLines = lineService.getLines(inputPolygons);
 
     var newLineEntities = buildLinesWithParentAttributes(outputEsriJsonPolygon, inputPolygonLines);
-    //numberLines(newLineEntities); TODO next pr
-    //validateLinesAreValid(newLineEntities, outputEsriJsonPolygon); TODO next pr
+    numberLines(newLineEntities);
+    validateLinesAreValid(newLineEntities, outputEsriJsonPolygon);
     //var newFeature = copyParentEntityAttributes(inputFeatures, inputPolygons, newLineEntities); TODO next pr
     lineService.saveLines(newLineEntities);
     //featureAreaService.calculateFeatureArea(newFeature); TODO next pr
@@ -52,7 +55,7 @@ class OperatorResultProcessingService {
    * found for the output line. If no parent line can be found, a new line entity is created with no attributes.
    *
    * @param outputPolygonEsriJson the raw EsriJSON of the output polygons after a polygon operation.
-   * @param inputPolygonLines the lines of the input polygons of the operation.
+   * @param inputPolygonLines     the lines of the input polygons of the operation.
    * @return a list of new line entities with attributes copied from the parent line if possible.
    */
   private List<Line> buildLinesWithParentAttributes(String outputPolygonEsriJson,
@@ -86,5 +89,104 @@ class OperatorResultProcessingService {
       newLineEntities.add(newLineEntity);
     });
     return newLineEntities;
+  }
+
+  /**
+   * Numbers the lines of the output polygon by finding connected lines and assigning them the same ring number
+   * and a connection order based on how they are connected.
+   * Numbering starts with the line with the northwest-most start point.
+   * @param unorderedLines the lines of the output polygon.
+   */
+  public void numberLines(List<Line> unorderedLines) {
+    var allLineWithStartEndPoints = grpcClientService.getLineStartAndEndPoints(unorderedLines);
+    var linePool = new ArrayList<>(allLineWithStartEndPoints);
+
+    int ringNumberCounter = 0;
+    while (!linePool.isEmpty()) {
+      int ringConnectionOrderCounter = 1;
+      LineWithStartEndPoints current = linePool.removeFirst();
+
+      current.line().setRingNumber(ringNumberCounter);
+      current.line().setRingConnectionOrder(ringConnectionOrderCounter);
+
+      var isRingClosed = false;
+      while (!isRingClosed && !linePool.isEmpty()) {
+        Point targetStart = current.end();
+        Optional<LineWithStartEndPoints> nextLine = findNextLine(linePool, targetStart);
+
+        if (nextLine.isPresent()) {
+          current = nextLine.get();
+          linePool.remove(current);
+          ringConnectionOrderCounter++;
+          current.line().setRingNumber(ringNumberCounter);
+          current.line().setRingConnectionOrder(ringConnectionOrderCounter);
+        } else {
+          isRingClosed = true;
+        }
+      }
+      rotateRingToStartAtNorthwestMostPoint(allLineWithStartEndPoints, ringNumberCounter);
+      ringNumberCounter++;
+    }
+  }
+
+  private Optional<LineWithStartEndPoints> findNextLine(List<LineWithStartEndPoints> linePool,
+                                                        Point targetStart) {
+    return linePool.stream()
+        .filter(lineWrapper -> lineWrapper.start().getXY().equals(targetStart.getXY()))
+        .findFirst();
+  }
+
+  void rotateRingToStartAtNorthwestMostPoint(List<LineWithStartEndPoints> lineWrappers,
+                                             int ringNumber) {
+    List<LineWithStartEndPoints> ringLines = lineWrappers.stream()
+        .filter(lw -> Objects.equals(ringNumber, lw.line().getRingNumber()))
+        .toList();
+    if (ringLines.isEmpty()) {
+      return;
+    }
+
+    //lines haven't been persisted yet
+    Map<UUID, Line> tempIdToLine = new HashMap<>();
+    Map<UUID, LineWithStartEndPoints> tempIdToLineWrapper = new HashMap<>();
+    ringLines.forEach(lineWrapper -> {
+      var tempId = UUID.randomUUID();
+      tempIdToLine.put(tempId, lineWrapper.line());
+      tempIdToLineWrapper.put(tempId, lineWrapper);
+    });
+
+    LineWithStartEndPoints startLine = tempIdToLineWrapper.get(grpcClientService.findNorthwestMostLine(tempIdToLine));
+
+    int startLineIndex = startLine.line().getRingConnectionOrder();
+    if (startLineIndex == 1) {
+      // Already starts at the correct line
+      return;
+    }
+
+    // Rotate the ring connection order so the NW-most line becomes #1
+    // This is a circular rotation that "cuts" at startLineIndex and moves it to the front
+    // Example: if startLineIndex=3 and there are 4 lines total: [1,2,3,4] -> [3,4,1,2]
+    ringLines.forEach(lineWrapper -> {
+      int oldIndex = lineWrapper.line().getRingConnectionOrder();
+      int newOrder;
+
+      if (oldIndex >= startLineIndex) {
+        newOrder = oldIndex - startLineIndex + 1;
+      } else {
+        newOrder = ringLines.size() - startLineIndex + 1 + oldIndex;
+      }
+
+      lineWrapper.line().setRingConnectionOrder(newOrder);
+    });
+  }
+
+  public void validateLinesAreValid(List<Line> newLineEntities, String outputPolygonEsriJson) {
+    boolean linesAreValid = grpcClientService
+        .validatePolygonReconstructionFromPolylines(newLineEntities, outputPolygonEsriJson);
+    if (!linesAreValid) {
+      throw new IllegalStateException(
+          "Cannot generate valid polygon from processed lines for output polygon with EsriJSON: %s"
+              .formatted(outputPolygonEsriJson)
+      );
+    }
   }
 }

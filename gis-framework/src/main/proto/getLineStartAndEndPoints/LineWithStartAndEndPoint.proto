@@ -1,0 +1,13 @@
+syntax = "proto3";
+import "getLineStartAndEndPoints/Coordinate.proto";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "LineWithStartAndEndPointProto";
+
+message LineWithStartAndEndPoint {
+  string lineId = 1;
+  Coordinate startPoint = 2;
+  Coordinate endPoint = 3;
+}

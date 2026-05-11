@@ -1,9 +1,13 @@
 package uk.co.fivium.gisframework.operator;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.esri.core.geometry.Point;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +67,7 @@ class OperatorResultProcessingServiceTest {
     when(grpcClientService.explodePolygon(outputPolygonEsriJson)).thenReturn(List.of(outputLineEsriJson));
     when(grpcClientService.findParentLines(List.of(parentLine), List.of(outputLineEsriJson)))
         .thenReturn(new FindParentLineResponse(Map.of(outputLineEsriJson, parentLineId), List.of()));
+    when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
 
     operatorResultProcessingService.processOutputPolygon(List.of(feature), outputPolygonEsriJson);
 
@@ -102,6 +107,7 @@ class OperatorResultProcessingServiceTest {
     when(grpcClientService.explodePolygon(outputPolygonEsriJson)).thenReturn(List.of(orphanLineEsriJson));
     when(grpcClientService.findParentLines(List.of(inputLine), List.of(orphanLineEsriJson)))
         .thenReturn(new FindParentLineResponse(Map.of(), List.of(orphanLineEsriJson)));
+    when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
 
     operatorResultProcessingService.processOutputPolygon(List.of(feature), outputPolygonEsriJson);
 
@@ -141,6 +147,7 @@ class OperatorResultProcessingServiceTest {
     when(grpcClientService.explodePolygon(outputPolygonEsriJson)).thenReturn(List.of(orphanLineEsriJson));
     when(grpcClientService.findParentLines(List.of(inputLine), List.of(orphanLineEsriJson)))
         .thenReturn(new FindParentLineResponse(Map.of(), List.of(orphanLineEsriJson)));
+    when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
 
     operatorResultProcessingService.processOutputPolygon(List.of(feature), outputPolygonEsriJson);
 
@@ -160,5 +167,123 @@ class OperatorResultProcessingServiceTest {
         .singleElement()
         .usingRecursiveComparison()
         .isEqualTo(expectedLine);
+  }
+
+  @Test
+  void numberLines_whenLinesFormSingleRing_numbersLinesFromNorthwestMostLine() {
+    var line1 = getUnnumberedLine("line 1"); //northwest-most line
+    var line2 = getUnnumberedLine("line 2");
+    var line3 = getUnnumberedLine("line 3");
+    var unorderedLines = List.of(line1, line2, line3);
+
+    when(grpcClientService.getLineStartAndEndPoints(unorderedLines)).thenReturn(List.of(
+        new LineWithStartEndPoints(line2, new Point(1, 0), new Point(1, 1)),
+        new LineWithStartEndPoints(line3, new Point(1, 1), new Point(0, 0)),
+        new LineWithStartEndPoints(line1, new Point(0, 0), new Point(1, 0))
+    ));
+    when(grpcClientService.findNorthwestMostLine(any())).thenAnswer(invocation ->
+        findIdForLineWithMatchingEsriJson(invocation.getArgument(0), line1.getEsriJson())
+    );
+
+    operatorResultProcessingService.numberLines(unorderedLines);
+
+    assertThat(unorderedLines)
+        .extracting(Line::getEsriJson, Line::getRingNumber, Line::getRingConnectionOrder)
+        .containsExactlyInAnyOrder(
+            tuple(line1.getEsriJson(), 0, 1),
+            tuple(line2.getEsriJson(), 0, 2),
+            tuple(line3.getEsriJson(), 0, 3)
+        );
+  }
+
+  @Test
+  void numberLines_whenLinesFormMultipleRings_numbersEachRingSeparately() {
+    var outerRingLine1 = getUnnumberedLine("outer ring line 1");
+    var outerRingLine2 = getUnnumberedLine("outer ring line 2");
+    var innerRingLine1 = getUnnumberedLine("inner ring line 1");
+    var innerRingLine2 = getUnnumberedLine("inner ring line 2");
+    var unorderedLines = List.of(outerRingLine1, outerRingLine2, innerRingLine1, innerRingLine2);
+
+    when(grpcClientService.getLineStartAndEndPoints(unorderedLines)).thenReturn(List.of(
+        new LineWithStartEndPoints(outerRingLine1, new Point(0, 0), new Point(1, 0)),
+        new LineWithStartEndPoints(outerRingLine2, new Point(1, 0), new Point(0, 0)),
+        new LineWithStartEndPoints(innerRingLine1, new Point(2, 2), new Point(3, 2)),
+        new LineWithStartEndPoints(innerRingLine2, new Point(3, 2), new Point(2, 2))
+    ));
+    when(grpcClientService.findNorthwestMostLine(any())).thenAnswer(invocation ->
+        findIdForLineWithRingConnectionOrder(invocation.getArgument(0), 1)
+    );
+
+    operatorResultProcessingService.numberLines(unorderedLines);
+
+    assertThat(unorderedLines)
+        .extracting(Line::getEsriJson, Line::getRingNumber, Line::getRingConnectionOrder)
+        .containsExactlyInAnyOrder(
+            tuple(outerRingLine1.getEsriJson(), 0, 1),
+            tuple(outerRingLine2.getEsriJson(), 0, 2),
+            tuple(innerRingLine1.getEsriJson(), 1, 1),
+            tuple(innerRingLine2.getEsriJson(), 1, 2)
+        );
+  }
+
+  private Line getUnnumberedLine(String esriJson) {
+    return LineTestUtil.newBuilder()
+        .withEsriJson(esriJson)
+        .withRingNumber(null)
+        .withRingConnectionOrder(null)
+        .build();
+  }
+
+  private UUID findIdForLineWithMatchingEsriJson(Map<UUID, Line> idToLine,
+                                                 String targetEsriJson) {
+    return idToLine.entrySet()
+        .stream()
+        .filter(entry -> entry.getValue().getEsriJson().equals(targetEsriJson))
+        .map(Map.Entry::getKey)
+        .findFirst()
+        .orElseThrow();
+  }
+
+  private UUID findIdForLineWithRingConnectionOrder(Map<UUID, Line> idToLine,
+                                                    int ringConnectionOrder) {
+    return idToLine.entrySet()
+        .stream()
+        .filter(entry -> entry.getValue().getRingConnectionOrder() == ringConnectionOrder)
+        .map(Map.Entry::getKey)
+        .findFirst()
+        .orElseThrow();
+  }
+
+  @Test
+  void validateLinesAreValid_whenLinesCanReconstructOutputPolygon_doesNotThrowException() {
+    var line = LineTestUtil.newBuilder().build();
+    var outputPolygonEsriJson = "output polygon";
+    var lines = List.of(line);
+
+    when(grpcClientService.validatePolygonReconstructionFromPolylines(lines, outputPolygonEsriJson))
+        .thenReturn(true);
+
+    operatorResultProcessingService.validateLinesAreValid(lines, outputPolygonEsriJson);
+
+    verify(grpcClientService).validatePolygonReconstructionFromPolylines(lines, outputPolygonEsriJson);
+  }
+
+  @Test
+  void validateLinesAreValid_whenLinesCannotReconstructOutputPolygon_throwsException() {
+    var line = LineTestUtil.newBuilder().build();
+    var outputPolygonEsriJson = "output polygon";
+    var lines = List.of(line);
+
+    when(grpcClientService.validatePolygonReconstructionFromPolylines(lines, outputPolygonEsriJson))
+        .thenReturn(false);
+
+    assertThatThrownBy(() -> operatorResultProcessingService.validateLinesAreValid(lines, outputPolygonEsriJson))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "Cannot generate valid polygon from processed lines for output polygon with EsriJSON: %s",
+            outputPolygonEsriJson
+        );
+
+    verify(grpcClientService).validatePolygonReconstructionFromPolylines(lines, outputPolygonEsriJson);
   }
 }

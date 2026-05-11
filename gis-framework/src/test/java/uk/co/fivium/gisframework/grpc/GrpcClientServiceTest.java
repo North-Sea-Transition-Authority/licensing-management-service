@@ -1,9 +1,12 @@
 package uk.co.fivium.gisframework.grpc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.esri.core.geometry.Point;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -15,16 +18,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
 import uk.co.fivium.gisframework.feature.EntityBackedFeature;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
+import uk.co.fivium.gisframework.feature.Line;
 import uk.co.fivium.gisframework.feature.LineTestUtil;
 import uk.co.fivium.gisframework.feature.PolygonTestUtil;
 import uk.co.fivium.gisframework.migration.MigrationResponseDto;
 import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineTestUtil;
 import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineWithRing;
+import uk.co.fivium.gisframework.operator.LineWithStartEndPoints;
 import uk.co.fivium.grpc.gis.ArcGisServiceGrpc;
 import uk.co.fivium.grpc.gis.BlockAndSubareaValidationRequest;
 import uk.co.fivium.grpc.gis.BuildPolygonRequest;
 import uk.co.fivium.grpc.gis.BuildPolygonResponse;
 import uk.co.fivium.grpc.gis.ChildLineMatch;
+import uk.co.fivium.grpc.gis.Coordinate;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.fivium.grpc.gis.EsriJsonLineWithNavigationAndId;
 import uk.co.fivium.grpc.gis.EsriJsonPolygonLineWrappers;
@@ -32,19 +38,28 @@ import uk.co.fivium.grpc.gis.EsriJsonPolygonLines;
 import uk.co.fivium.grpc.gis.EsriJsonPolylineAndOracleId;
 import uk.co.fivium.grpc.gis.ExplodePolygonRequest;
 import uk.co.fivium.grpc.gis.ExplodePolygonResponse;
+import uk.co.fivium.grpc.gis.FindNorthwestMostLineRequest;
+import uk.co.fivium.grpc.gis.FindNorthwestMostLineResponse;
 import uk.co.fivium.grpc.gis.FindParentLinesRequest;
 import uk.co.fivium.grpc.gis.FindParentLinesResponse;
 import uk.co.fivium.grpc.gis.GeoJsonLineWrapper;
+import uk.co.fivium.grpc.gis.GetLineStartAndEndPointsRequest;
+import uk.co.fivium.grpc.gis.GetLineStartAndEndPointsResponse;
 import uk.co.fivium.grpc.gis.LineNavigationType;
+import uk.co.fivium.grpc.gis.LineWithId;
+import uk.co.fivium.grpc.gis.LineWithStartAndEndPoint;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaRequest;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockRequest;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockResponse;
+import uk.co.fivium.grpc.gis.OrderedLineSegment;
 import uk.co.fivium.grpc.gis.ParentLine;
 import uk.co.fivium.grpc.gis.ReferenceBlockValidationRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonResponse;
 import uk.co.fivium.grpc.gis.TopologicallyEqualValidationRequest;
+import uk.co.fivium.grpc.gis.ValidatePolygonReconstructionFromPolylinesRequest;
+import uk.co.fivium.grpc.gis.ValidatePolygonReconstructionFromPolylinesResponse;
 import uk.co.fivium.grpc.gis.ValidationResponse;
 
 @ExtendWith(MockitoExtension.class)
@@ -160,6 +175,41 @@ class GrpcClientServiceTest {
         ));
   }
 
+  @Test
+  void validatePolygonReconstructionFromPolylines_verifyServiceClientCall() {
+    var line1 = LineTestUtil.newBuilder()
+        .withEsriJson("dummy esriJson line 1")
+        .withRingNumber(1)
+        .withRingConnectionOrder(1)
+        .build();
+    var line2 = LineTestUtil.newBuilder()
+        .withEsriJson("dummy esriJson line 2")
+        .withRingNumber(2)
+        .withRingConnectionOrder(3)
+        .build();
+    var originalPolygonEsriJson = "dummy original polygon esriJson";
+
+    var expectedRequest = ValidatePolygonReconstructionFromPolylinesRequest.newBuilder()
+        .addLines(OrderedLineSegment.newBuilder()
+            .setEsriJsonPolyline(line1.getEsriJson())
+            .setRingNumber(line1.getRingNumber())
+            .setConnectionOrder(line1.getRingConnectionOrder())
+            .build())
+        .addLines(OrderedLineSegment.newBuilder()
+            .setEsriJsonPolyline(line2.getEsriJson())
+            .setRingNumber(line2.getRingNumber())
+            .setConnectionOrder(line2.getRingConnectionOrder())
+            .build())
+        .setOriginalPolygonEsriJson(originalPolygonEsriJson)
+        .build();
+    var expectedResponse = ValidatePolygonReconstructionFromPolylinesResponse.newBuilder()
+        .setIsValid(true)
+        .build();
+
+    when(arcgisClient.validatePolygonReconstructionFromPolylines(expectedRequest)).thenReturn(expectedResponse);
+    assertThat(grpcClientService
+        .validatePolygonReconstructionFromPolylines(List.of(line1, line2), originalPolygonEsriJson)).isTrue();
+  }
 
   @Test
   void migrateBlockOrSubarea() {
@@ -385,6 +435,78 @@ class GrpcClientServiceTest {
     assertThat(grpcClientService.validateTopologicallyEqual(childPolygonsLines, parentFeature)).isEqualTo(response);
 
     verify(arcgisClient).validateTopologicallyEqual(expectedRequest.build());
+  }
+
+  @Test
+  void getLineStartAndEndPoints_verifyServiceClientCall() {
+    var line1 = LineTestUtil.newBuilder().withEsriJson("dummy esriJson line 1").build();
+    var line2 = LineTestUtil.newBuilder().withEsriJson("dummy esriJson line 2").build();
+
+    //lines have random IDs so we cannot create an expected request/response
+    when(arcgisClient.getLineStartAndEndPoints(any(GetLineStartAndEndPointsRequest.class)))
+        .thenAnswer(invocation -> {
+          var request = invocation.getArgument(0, GetLineStartAndEndPointsRequest.class);
+          var responseBuilder = GetLineStartAndEndPointsResponse.newBuilder();
+
+          for (var line : request.getLinesList()) {
+            if (line.getPolyLineEsriJson().equals(line1.getEsriJson())) {
+              responseBuilder.addLines(LineWithStartAndEndPoint.newBuilder()
+                  .setLineId(line.getId())
+                  .setStartPoint(Coordinate.newBuilder().setX(1.1).setY(2.2).build())
+                  .setEndPoint(Coordinate.newBuilder().setX(3.3).setY(4.4).build())
+                  .build());
+            } else {
+              responseBuilder.addLines(LineWithStartAndEndPoint.newBuilder()
+                  .setLineId(line.getId())
+                  .setStartPoint(Coordinate.newBuilder().setX(5.5).setY(6.6).build())
+                  .setEndPoint(Coordinate.newBuilder().setX(7.7).setY(8.8).build())
+                  .build());
+            }
+          }
+
+          return responseBuilder.build();
+        });
+
+    var result = grpcClientService.getLineStartAndEndPoints(List.of(line1, line2));
+
+    assertThat(result)
+        .extracting(LineWithStartEndPoints::line)
+        .containsExactlyInAnyOrder(line1, line2);
+
+    var expectedLine1Result = new LineWithStartEndPoints(line1,
+        new Point(1.1, 2.2),
+        new Point(3.3, 4.4));
+    var expectedLine2Result = new LineWithStartEndPoints(line2,
+        new com.esri.core.geometry.Point(5.5, 6.6),
+        new com.esri.core.geometry.Point(7.7, 8.8));
+
+    assertThat(result).containsExactlyInAnyOrder(expectedLine1Result, expectedLine2Result);
+  }
+
+  @Test
+  void findNorthwestMostLine_verifyServiceClientCall() {
+    var line1 = LineTestUtil.newBuilder().withEsriJson("dummy esriJson line 1").build();
+    var line2 = LineTestUtil.newBuilder().withEsriJson("dummy esriJson line 2").build();
+    var idToLine = new LinkedHashMap<UUID, Line>();
+    idToLine.put(line1.getId(), line1);
+    idToLine.put(line2.getId(), line2);
+
+    var expectedRequest = FindNorthwestMostLineRequest.newBuilder()
+        .addLines(LineWithId.newBuilder()
+            .setId(line1.getId().toString())
+            .setPolyLineEsriJson(line1.getEsriJson())
+            .build())
+        .addLines(LineWithId.newBuilder()
+            .setId(line2.getId().toString())
+            .setPolyLineEsriJson(line2.getEsriJson())
+            .build())
+        .build();
+    var expectedResponse = FindNorthwestMostLineResponse.newBuilder()
+        .setLineId(line2.getId().toString())
+        .build();
+
+    when(arcgisClient.findNorthwestMostLine(expectedRequest)).thenReturn(expectedResponse);
+    assertThat(grpcClientService.findNorthwestMostLine(idToLine)).isEqualTo(line2.getId());
   }
 
   @Test

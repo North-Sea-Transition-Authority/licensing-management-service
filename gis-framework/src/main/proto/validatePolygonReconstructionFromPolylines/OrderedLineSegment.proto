@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "OrderedLineSegmentProto";
+
+message OrderedLineSegment {
+  string esriJsonPolyline = 1;
+  int32 ringNumber = 2;
+  int32 connectionOrder = 3;
+}

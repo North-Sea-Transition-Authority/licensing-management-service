@@ -41,7 +41,7 @@ dependencies {
 	implementation "org.springframework.data:spring-data-envers"
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-database-postgresql'
-	implementation 'uk.co.fivium.energyportalapi:client:feature-LMS1-417-expose-subarea-operator-SNAPSHOT'
+	implementation 'uk.co.fivium.energyportalapi:client:v20.0.0'
 	implementation 'uk.co.fivium.energyportal.accounts:energy-portal-accounts-spring-boot-starter:v7.0.0'
 	implementation 'uk.co.fivium.energyportalmessagequeue:spring-boot-starter:v4.3.0'
 	implementation 'uk.co.fivium.feedbackmanagementservice:client:v2.3.0'

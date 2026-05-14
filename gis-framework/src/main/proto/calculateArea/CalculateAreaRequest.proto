@@ -1,0 +1,13 @@
+syntax = "proto3";
+import "calculateArea/LineWithNavigationType.proto";
+import "enums/CoordinateSystem.proto";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "CalculateAreaRequestProto";
+
+message CalculateAreaRequest {
+  repeated LineWithNavigationType linesWithNavigationType = 1;
+  CoordinateSystem coordinateSystem = 2;
+}

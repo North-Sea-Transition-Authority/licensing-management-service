@@ -26,6 +26,8 @@ import "migration/blockandsubarea/TopologicallyEqualValidationRequest.proto";
 import "migration/blockandsubarea/ReferenceBlockValidationRequest.proto";
 import "migration/referenceblock/MigrateReferenceBlockRequest.proto";
 import "migration/referenceblock/MigrateReferenceBlockResponse.proto";
+import "calculateArea/CalculateAreaRequest.proto";
+import "calculateArea/CalculateAreaResponse.proto";
 
 option java_multiple_files = true;
 option java_outer_classname = "ArcGisServiceProto";
@@ -38,6 +40,7 @@ service ArcGisService {
   rpc getLineStartAndEndPoints(GetLineStartAndEndPointsRequest) returns (GetLineStartAndEndPointsResponse) {};
   rpc findNorthwestMostLine (FindNorthwestMostLineRequest) returns (FindNorthwestMostLineResponse) {};
   rpc validatePolygonReconstructionFromPolylines (ValidatePolygonReconstructionFromPolylinesRequest) returns (ValidatePolygonReconstructionFromPolylinesResponse) {};
+  rpc calculateArea (CalculateAreaRequest) returns (CalculateAreaResponse) {};
   rpc migrateBlockOrSubarea (MigrateBlockOrSubAreaRequest) returns (MigrateBlockOrSubAreaResponse) {};
   rpc validateBlockAndSubarea (BlockAndSubareaValidationRequest) returns (ValidationResponse) {};
   rpc validateTopologicallyEqual (TopologicallyEqualValidationRequest) returns (ValidationResponse) {};

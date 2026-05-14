@@ -4,11 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.esri.core.geometry.Point;
+import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -19,10 +22,13 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.feature.Feature;
+import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
 import uk.co.fivium.gisframework.feature.Line;
 import uk.co.fivium.gisframework.feature.LineService;
 import uk.co.fivium.gisframework.feature.LineTestUtil;
+import uk.co.fivium.gisframework.feature.Polygon;
 import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.feature.PolygonTestUtil;
 import uk.co.fivium.gisframework.grpc.FindParentLineResponse;
@@ -41,8 +47,17 @@ class OperatorResultProcessingServiceTest {
   @Mock
   private GrpcClientService grpcClientService;
 
+  @Mock
+  private FeatureService featureService;
+
   @Captor
   private ArgumentCaptor<List<Line>> linesCaptor;
+
+  @Captor
+  private ArgumentCaptor<Feature> featureCaptor;
+
+  @Captor
+  private ArgumentCaptor<Polygon> polygonCaptor;
 
   @InjectMocks
   private OperatorResultProcessingService operatorResultProcessingService;
@@ -69,24 +84,21 @@ class OperatorResultProcessingServiceTest {
         .thenReturn(new FindParentLineResponse(Map.of(outputLineEsriJson, parentLineId), List.of()));
     when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
 
-    operatorResultProcessingService.processOutputPolygon(List.of(feature), outputPolygonEsriJson);
-
-    var expectedLine = LineTestUtil.newBuilder()
-        .withEsriJson(outputLineEsriJson)
-        .withAttributes(parentAttributes)
-        .withNavigationType(LineNavigationType.CARTESIAN)
-        .withId(null)
-        .withLegacyId(null)
-        .withPolygon(null)
-        .withRingNumber(null)
-        .withRingConnectionOrder(null)
-        .build();
+    operatorResultProcessingService.processOutputPolygon(List.of(feature), outputPolygonEsriJson, 1);
 
     verify(lineService).saveLines(linesCaptor.capture());
     assertThat(linesCaptor.getValue())
         .singleElement()
-        .usingRecursiveComparison()
-        .isEqualTo(expectedLine);
+        .extracting(
+            Line::getEsriJson,
+            Line::getAttributes,
+            Line::getNavigationType
+        )
+        .containsExactly(
+            outputLineEsriJson,
+            parentAttributes,
+            LineNavigationType.CARTESIAN
+        );
   }
 
   @Test
@@ -109,24 +121,21 @@ class OperatorResultProcessingServiceTest {
         .thenReturn(new FindParentLineResponse(Map.of(), List.of(orphanLineEsriJson)));
     when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
 
-    operatorResultProcessingService.processOutputPolygon(List.of(feature), outputPolygonEsriJson);
-
-    var expectedLine = LineTestUtil.newBuilder()
-        .withEsriJson(orphanLineEsriJson)
-        .withAttributes(Collections.emptyMap())
-        .withNavigationType(LineNavigationType.CARTESIAN)
-        .withId(null)
-        .withLegacyId(null)
-        .withPolygon(null)
-        .withRingNumber(null)
-        .withRingConnectionOrder(null)
-        .build();
+    operatorResultProcessingService.processOutputPolygon(List.of(feature), outputPolygonEsriJson, 1);
 
     verify(lineService).saveLines(linesCaptor.capture());
     assertThat(linesCaptor.getValue())
         .singleElement()
-        .usingRecursiveComparison()
-        .isEqualTo(expectedLine);
+        .extracting(
+            Line::getEsriJson,
+            Line::getAttributes,
+            Line::getNavigationType
+        )
+        .containsExactly(
+            orphanLineEsriJson,
+            Collections.emptyMap(),
+            LineNavigationType.CARTESIAN
+        );
   }
 
   @Test
@@ -149,24 +158,182 @@ class OperatorResultProcessingServiceTest {
         .thenReturn(new FindParentLineResponse(Map.of(), List.of(orphanLineEsriJson)));
     when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
 
-    operatorResultProcessingService.processOutputPolygon(List.of(feature), outputPolygonEsriJson);
-
-    var expectedLine = LineTestUtil.newBuilder()
-        .withEsriJson(orphanLineEsriJson)
-        .withAttributes(Collections.emptyMap())
-        .withNavigationType(LineNavigationType.LOXODROME)
-        .withId(null)
-        .withLegacyId(null)
-        .withPolygon(null)
-        .withRingNumber(null)
-        .withRingConnectionOrder(null)
-        .build();
+    operatorResultProcessingService.processOutputPolygon(List.of(feature), outputPolygonEsriJson, 1);
 
     verify(lineService).saveLines(linesCaptor.capture());
     assertThat(linesCaptor.getValue())
         .singleElement()
-        .usingRecursiveComparison()
-        .isEqualTo(expectedLine);
+        .extracting(
+            Line::getEsriJson,
+            Line::getAttributes,
+            Line::getNavigationType
+        )
+        .containsExactly(
+            orphanLineEsriJson,
+            Collections.emptyMap(),
+            LineNavigationType.LOXODROME
+        );
+  }
+
+  @Test
+  void processOutputPolygon_assertParentFeaturePropertiesAreCopiedWhenSingleInputPolygon() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var polygonAttributes = Map.<String, Object>of("source", "parent line");
+    var polygon = PolygonTestUtil.newBuilder()
+        .withFeature(feature)
+        .withAttributes(polygonAttributes)
+        .build();
+    var outputPolygonEsriJson = "output polygon";
+    var outputLineEsriJson = "output line";
+    var parentLineId = UUID.randomUUID();
+    var parentLine = LineTestUtil.newBuilder()
+        .withId(parentLineId)
+        .withPolygon(polygon)
+        .build();
+
+    when(polygonService.getPolygons(List.of(feature))).thenReturn(List.of(polygon));
+    when(lineService.getLines(List.of(polygon))).thenReturn(List.of(parentLine));
+    when(grpcClientService.explodePolygon(outputPolygonEsriJson)).thenReturn(List.of(outputLineEsriJson));
+    when(grpcClientService.findParentLines(List.of(parentLine), List.of(outputLineEsriJson)))
+        .thenReturn(new FindParentLineResponse(Map.of(outputLineEsriJson, parentLineId), List.of()));
+    when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
+    when(grpcClientService.calculateArea(eq(feature.getCoordinateSystem()), any())).thenReturn(BigDecimal.TEN);
+
+    operatorResultProcessingService.processOutputPolygon(List.of(feature), outputPolygonEsriJson, 1);
+
+    verify(featureService).saveFeature(featureCaptor.capture());
+    var savedFeature = featureCaptor.getValue();
+    var expectedFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("Test Feature_1")
+        .withCoordinateSystem(feature.getCoordinateSystem())
+        .withAttributes(new HashMap<>())
+        .withFeatureArea(BigDecimal.TEN)
+        .withTestCase(null)
+        .build();
+    assertThat(savedFeature).usingRecursiveComparison()
+        .ignoringFields("id", "legacyId")
+        .isEqualTo(expectedFeature);
+
+    verify(polygonService).savePolygon(polygonCaptor.capture());
+    var savedPolygon = polygonCaptor.getValue();
+    var expectedPolygon = PolygonTestUtil.newBuilder()
+        .withFeature(savedFeature)
+        .withAttributes(polygonAttributes)
+        .withStartDepth(polygon.getStartDepth())
+        .withEndDepth(polygon.getEndDepth())
+        .build();
+    assertThat(savedPolygon).usingRecursiveComparison()
+        .ignoringFields("id", "legacyId")
+        .isEqualTo(expectedPolygon);
+
+    verify(lineService).saveLines(linesCaptor.capture());
+    assertThat(linesCaptor.getValue())
+        .singleElement()
+        .extracting(Line::getPolygon)
+        .isEqualTo(savedPolygon);
+  }
+
+  @Test
+  void processOutputPolygon_assertParentFeaturePropertiesAreNotCopiedWhenMultipleInputPolygons() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var polygonAttributes = Map.<String, Object>of("source", "parent line");
+    var polygon1 = PolygonTestUtil.newBuilder()
+        .withFeature(feature)
+        .withAttributes(polygonAttributes)
+        .build();
+    var polygon2 = PolygonTestUtil.newBuilder()
+        .withFeature(feature)
+        .withAttributes(polygonAttributes)
+        .build();
+    var outputPolygonEsriJson = "output polygon";
+    var outputLineEsriJson = "output line";
+    var parentLineId = UUID.randomUUID();
+    var parentLine = LineTestUtil.newBuilder()
+        .withId(parentLineId)
+        .withPolygon(polygon1)
+        .build();
+
+    when(polygonService.getPolygons(List.of(feature))).thenReturn(List.of(polygon1, polygon2));
+    when(lineService.getLines(List.of(polygon1, polygon2))).thenReturn(List.of(parentLine));
+    when(grpcClientService.explodePolygon(outputPolygonEsriJson)).thenReturn(List.of(outputLineEsriJson));
+    when(grpcClientService.findParentLines(List.of(parentLine), List.of(outputLineEsriJson)))
+        .thenReturn(new FindParentLineResponse(Map.of(outputLineEsriJson, parentLineId), List.of()));
+    when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
+    when(grpcClientService.calculateArea(eq(feature.getCoordinateSystem()), any())).thenReturn(BigDecimal.TEN);
+
+    operatorResultProcessingService.processOutputPolygon(List.of(feature), outputPolygonEsriJson, 1);
+
+    verify(featureService).saveFeature(featureCaptor.capture());
+    var savedFeature = featureCaptor.getValue();
+    var expectedFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("Test Feature_1")
+        .withCoordinateSystem(feature.getCoordinateSystem())
+        .withAttributes(new HashMap<>())
+        .withFeatureArea(BigDecimal.TEN)
+        .withTestCase(null)
+        .build();
+    assertThat(savedFeature).usingRecursiveComparison()
+        .ignoringFields("id", "legacyId")
+        .isEqualTo(expectedFeature);
+
+    verify(polygonService).savePolygon(polygonCaptor.capture());
+    var savedPolygon = polygonCaptor.getValue();
+    var expectedPolygon = PolygonTestUtil.newBuilder()
+        .withFeature(savedFeature)
+        .withAttributes(new HashMap<>())
+        .withStartDepth(null)
+        .withEndDepth(null)
+        .build();
+    assertThat(savedPolygon).usingRecursiveComparison()
+        .ignoringFields("id", "legacyId")
+        .isEqualTo(expectedPolygon);
+
+    verify(lineService).saveLines(linesCaptor.capture());
+    assertThat(linesCaptor.getValue())
+        .singleElement()
+        .extracting(Line::getPolygon)
+        .isEqualTo(savedPolygon);
+  }
+
+  @Test
+  void processOutputPolygon_whenMulitpleInputFeatures_verifyFeatureName() {
+    var feature1 = FeatureTestUtil.newBuilder().build();
+    var feature2 = FeatureTestUtil.newBuilder().build();
+    var polygonAttributes = Map.<String, Object>of("source", "parent line");
+    var polygon1 = PolygonTestUtil.newBuilder()
+        .withFeature(feature1)
+        .withAttributes(polygonAttributes)
+        .build();
+    var outputPolygonEsriJson = "output polygon";
+    var outputLineEsriJson = "output line";
+    var parentLineId = UUID.randomUUID();
+    var parentLine = LineTestUtil.newBuilder()
+        .withId(parentLineId)
+        .withPolygon(polygon1)
+        .build();
+
+    when(polygonService.getPolygons(List.of(feature1, feature2))).thenReturn(List.of(polygon1));
+    when(lineService.getLines(List.of(polygon1))).thenReturn(List.of(parentLine));
+    when(grpcClientService.explodePolygon(outputPolygonEsriJson)).thenReturn(List.of(outputLineEsriJson));
+    when(grpcClientService.findParentLines(List.of(parentLine), List.of(outputLineEsriJson)))
+        .thenReturn(new FindParentLineResponse(Map.of(outputLineEsriJson, parentLineId), List.of()));
+    when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
+    when(grpcClientService.calculateArea(eq(feature1.getCoordinateSystem()), any())).thenReturn(BigDecimal.TEN);
+
+    operatorResultProcessingService.processOutputPolygon(List.of(feature1, feature2), outputPolygonEsriJson, 1);
+
+    verify(featureService).saveFeature(featureCaptor.capture());
+    var savedFeature = featureCaptor.getValue();
+    var expectedFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("mergeResult_1")
+        .withCoordinateSystem(feature1.getCoordinateSystem())
+        .withAttributes(new HashMap<>())
+        .withFeatureArea(BigDecimal.TEN)
+        .withTestCase(null)
+        .build();
+    assertThat(savedFeature).usingRecursiveComparison()
+        .ignoringFields("id", "legacyId")
+        .isEqualTo(expectedFeature);
   }
 
   @Test

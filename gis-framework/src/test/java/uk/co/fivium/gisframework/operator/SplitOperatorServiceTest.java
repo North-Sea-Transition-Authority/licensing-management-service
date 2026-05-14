@@ -1,6 +1,7 @@
 package uk.co.fivium.gisframework.operator;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
@@ -49,9 +50,9 @@ class SplitOperatorServiceTest {
         .thenReturn(List.of(rawSplitResult1, rawSplitResult2));
     when(grpcClientService.splitPolygon(esriJsonPolygon2, cutterLineEsriJson))
         .thenReturn(List.of());
-    when(operatorResultProcessingService.processOutputPolygon(List.of(feature), rawSplitResult1))
+    when(operatorResultProcessingService.processOutputPolygon(List.of(feature), rawSplitResult1, 1))
         .thenReturn(postProcessedFeature1);
-    when(operatorResultProcessingService.processOutputPolygon(List.of(feature), rawSplitResult2))
+    when(operatorResultProcessingService.processOutputPolygon(List.of(feature), rawSplitResult2, 2))
         .thenReturn(postProcessedFeature2);
 
     assertThat(splitOperatorService.splitPolygon(feature, cutterLineEsriJson))
@@ -68,6 +69,6 @@ class SplitOperatorServiceTest {
     when(grpcClientService.splitPolygon(esriJsonPolygon, cutterLineEsriJson)).thenReturn(List.of());
 
     assertThat(splitOperatorService.splitPolygon(feature, cutterLineEsriJson)).isEmpty();
-    verify(operatorResultProcessingService, never()).processOutputPolygon(anyList(), anyString());
+    verify(operatorResultProcessingService, never()).processOutputPolygon(anyList(), anyString(), anyInt());
   }
 }

@@ -17,6 +17,7 @@ import { findNorthwestMostLineHandler } from '../src/handlers/find-northwest-mos
 import { validatePolygonReconstructionFromPolylinesHandler } from '../src/handlers/validate-polygon-reconstruction-from-polylines-handler.ts';
 import { migrateReferenceBlockHandler } from '../src/migration/handlers/migrate-reference-block.ts';
 import { validateReferenceBlock } from '../src/migration/handlers/validate-reference-block.ts';
+import { calculateAreaHandler } from '../src/handlers/calculate-area-operator-handler.ts';
 
 const MOCK_DIRNAME = '/mock/arcgis-node/src';
 
@@ -116,6 +117,7 @@ describe('main()', () => {
         getLineStartAndEndPoints: getLineStartAndEndPointsHandler,
         findNorthwestMostLine: findNorthwestMostLineHandler,
         validatePolygonReconstructionFromPolylines: validatePolygonReconstructionFromPolylinesHandler,
+        calculateArea: calculateAreaHandler,
         migrateBlockOrSubarea: migrateBlockOrSubarea,
         validateBlockAndSubarea: validateBlockAndSubarea,
         validateTopologicallyEqual: validateTopologicallyEqual,

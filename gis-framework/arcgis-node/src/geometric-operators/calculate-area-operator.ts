@@ -2,12 +2,16 @@ import Polygon from '@arcgis/core/geometry/Polygon.js';
 import { CoordinateSystem } from '../../generated/uk/co/fivium/grpc/gis/CoordinateSystem';
 import * as geodeticAreaOperator from '@arcgis/core/geometry/operators/geodeticAreaOperator.js';
 import * as areaOperator from '@arcgis/core/geometry/operators/areaOperator.js';
-import { LineWithNavigationTypeAndId } from '../migration/types/line-with-navigation-wrapper';
 import { LineNavigationType } from '../../generated/uk/co/fivium/grpc/gis/LineNavigationType';
 import * as densifyOperator from '@arcgis/core/geometry/operators/densifyOperator.js';
 import Polyline from '@arcgis/core/geometry/Polyline.js';
 import { linesToSinglePolygon } from './lines-to-single-polygon-operator';
 import { getCoordinateSystemWkid } from '../util/coordinate-system-utils';
+
+export interface LineWithNavigationType {
+  line: Polyline;
+  navigationType: LineNavigationType;
+}
 
 /**
  * Calculates the area of a polygon based on the provided coordinate system.
@@ -51,17 +55,17 @@ export async function calculateArea(polygon: Polygon, coordinateSystem: Coordina
  *
  * //TODO EPGF-85: link to our docs which might have a visual explanation of this.
  *
- * @param lineWithNavigationTypeAndId - An array of {@link LineWithNavigationTypeAndId} objects representing the boundaries.
+ * @param lineWithNavigationType - An array of {@link LineWithNavigationType} objects representing the boundaries.
  * @param coordinateSystem - The {@link CoordinateSystem} of the input lines and the target for calculation.
  * @returns A promise that resolves to the calculated area in square meters.
  */
 export async function densifyLoxodromesAndCalculateArea(
-  lineWithNavigationTypeAndId: LineWithNavigationTypeAndId[],
+  lineWithNavigationType: LineWithNavigationType[],
   coordinateSystem: CoordinateSystem,
 ): Promise<number> {
   const processed = [];
 
-  for (const lineWrapper of lineWithNavigationTypeAndId) {
+  for (const lineWrapper of lineWithNavigationType) {
     if (
       lineWrapper.navigationType == LineNavigationType.LOXODROME &&
       coordinateSystem != CoordinateSystem.BRITISH_NATIONAL_GRID

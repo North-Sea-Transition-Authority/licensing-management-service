@@ -13,8 +13,10 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.feature.Feature;
+import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.Line;
 import uk.co.fivium.gisframework.feature.LineService;
+import uk.co.fivium.gisframework.feature.Polygon;
 import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 import uk.co.fivium.grpc.gis.LineNavigationType;
@@ -25,29 +27,31 @@ class OperatorResultProcessingService {
   private final PolygonService polygonService;
   private final LineService lineService;
   private final GrpcClientService grpcClientService;
+  private final FeatureService featureService;
 
   OperatorResultProcessingService(PolygonService polygonService,
                                   LineService lineService,
-                                  GrpcClientService grpcClientService) {
+                                  GrpcClientService grpcClientService,
+                                  FeatureService featureService) {
     this.polygonService = polygonService;
     this.lineService = lineService;
     this.grpcClientService = grpcClientService;
+    this.featureService = featureService;
   }
 
   @Transactional
   public Feature processOutputPolygon(List<Feature> inputFeatures,
-                                      String outputEsriJsonPolygon) {
+                                      String outputEsriJsonPolygon,
+                                      int resultFeatureNameSuffix) {
     var inputPolygons = polygonService.getPolygons(inputFeatures);
     var inputPolygonLines = lineService.getLines(inputPolygons);
 
     var newLineEntities = buildLinesWithParentAttributes(outputEsriJsonPolygon, inputPolygonLines);
     numberLines(newLineEntities);
     validateLinesAreValid(newLineEntities, outputEsriJsonPolygon);
-    //var newFeature = copyParentEntityAttributes(inputFeatures, inputPolygons, newLineEntities); TODO next pr
+    var newFeature = copyParentEntityAttributes(inputFeatures, inputPolygons, newLineEntities, resultFeatureNameSuffix);
     lineService.saveLines(newLineEntities);
-    //featureAreaService.calculateFeatureArea(newFeature); TODO next pr
-    //return newFeature;
-    return null;
+    return newFeature;
   }
 
   /**
@@ -188,5 +192,41 @@ class OperatorResultProcessingService {
               .formatted(outputPolygonEsriJson)
       );
     }
+  }
+
+  private Feature copyParentEntityAttributes(List<Feature> inputFeatures,
+                                             List<Polygon> inputPolygons,
+                                             List<Line> newLineEntities,
+                                             int featureNameSuffix) {
+    var newFeature = new Feature();
+    var target = inputFeatures.getFirst();
+
+    if (inputFeatures.size() == 1) {
+      newFeature.setFeatureName("%s_%s".formatted(target.getFeatureName(), featureNameSuffix));
+    } else {
+      //merge operation
+      newFeature.setFeatureName("mergeResult_%s".formatted(featureNameSuffix));
+    }
+    newFeature.setCoordinateSystem(target.getCoordinateSystem());
+    newFeature.setFeatureArea(grpcClientService.calculateArea(newFeature.getCoordinateSystem(), newLineEntities));
+    newFeature.setAttributes(new HashMap<>());
+    featureService.saveFeature(newFeature);
+
+    var newPolygon = new Polygon();
+    newPolygon.setFeature(newFeature);
+    if (inputPolygons.size() == 1) {
+      var inputPolygon = inputPolygons.getFirst();
+      newPolygon.setAttributes(new HashMap<>(inputPolygon.getAttributes()));
+      newPolygon.setStartDepth(inputPolygon.getStartDepth());
+      newPolygon.setEndDepth(inputPolygon.getEndDepth());
+    } else {
+      //used when merging 2 polygons, we don't cascade parent attributes.
+      newPolygon.setAttributes(new HashMap<>());
+    }
+
+    polygonService.savePolygon(newPolygon);
+    newLineEntities.forEach(line -> line.setPolygon(newPolygon));
+
+    return newFeature;
   }
 }

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.esri.core.geometry.Point;
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,8 @@ import uk.co.fivium.grpc.gis.ArcGisServiceGrpc;
 import uk.co.fivium.grpc.gis.BlockAndSubareaValidationRequest;
 import uk.co.fivium.grpc.gis.BuildPolygonRequest;
 import uk.co.fivium.grpc.gis.BuildPolygonResponse;
+import uk.co.fivium.grpc.gis.CalculateAreaRequest;
+import uk.co.fivium.grpc.gis.CalculateAreaResponse;
 import uk.co.fivium.grpc.gis.ChildLineMatch;
 import uk.co.fivium.grpc.gis.Coordinate;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
@@ -47,6 +50,7 @@ import uk.co.fivium.grpc.gis.GetLineStartAndEndPointsRequest;
 import uk.co.fivium.grpc.gis.GetLineStartAndEndPointsResponse;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 import uk.co.fivium.grpc.gis.LineWithId;
+import uk.co.fivium.grpc.gis.LineWithNavigationType;
 import uk.co.fivium.grpc.gis.LineWithStartAndEndPoint;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaRequest;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
@@ -507,6 +511,39 @@ class GrpcClientServiceTest {
 
     when(arcgisClient.findNorthwestMostLine(expectedRequest)).thenReturn(expectedResponse);
     assertThat(grpcClientService.findNorthwestMostLine(idToLine)).isEqualTo(line2.getId());
+  }
+
+  @Test
+  void calculateArea_verifyServiceClientCall_assertAbsoluteAreaIsReturned() {
+    var line1 = LineTestUtil.newBuilder()
+        .withEsriJson("dummy esriJson line 1")
+        .withNavigationType(LineNavigationType.LOXODROME)
+        .build();
+    var line2 = LineTestUtil.newBuilder()
+        .withEsriJson("dummy esriJson line 2")
+        .withNavigationType(LineNavigationType.GEODESIC)
+        .build();
+    var coordinateSystem = CoordinateSystem.ED50;
+
+    var expectedRequest = CalculateAreaRequest.newBuilder()
+        .setCoordinateSystem(coordinateSystem)
+        .addLinesWithNavigationType(LineWithNavigationType.newBuilder()
+            .setEsriJsonPolyline(line1.getEsriJson())
+            .setLineNavigationType(line1.getNavigationType())
+            .build())
+        .addLinesWithNavigationType(LineWithNavigationType.newBuilder()
+            .setEsriJsonPolyline(line2.getEsriJson())
+            .setLineNavigationType(line2.getNavigationType())
+            .build())
+        .build();
+    var response = CalculateAreaResponse.newBuilder()
+        .setArea(123.54321)
+        .build();
+
+    when(arcgisClient.calculateArea(expectedRequest)).thenReturn(response);
+
+    assertThat(grpcClientService.calculateArea(coordinateSystem, List.of(line1, line2)))
+        .isEqualByComparingTo(BigDecimal.valueOf(123.54321));
   }
 
   @Test

@@ -1,6 +1,7 @@
 package uk.co.fivium.gisframework.grpc;
 
 import com.esri.core.geometry.Point;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ import uk.co.fivium.gisframework.operator.LineWithStartEndPoints;
 import uk.co.fivium.grpc.gis.ArcGisServiceGrpc;
 import uk.co.fivium.grpc.gis.BlockAndSubareaValidationRequest;
 import uk.co.fivium.grpc.gis.BuildPolygonRequest;
+import uk.co.fivium.grpc.gis.CalculateAreaRequest;
 import uk.co.fivium.grpc.gis.ChildLineMatch;
 import uk.co.fivium.grpc.gis.Coordinate;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
@@ -29,6 +31,7 @@ import uk.co.fivium.grpc.gis.GeoJsonLineWrapper;
 import uk.co.fivium.grpc.gis.GetLineStartAndEndPointsRequest;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 import uk.co.fivium.grpc.gis.LineWithId;
+import uk.co.fivium.grpc.gis.LineWithNavigationType;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaRequest;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockRequest;
@@ -366,6 +369,30 @@ public class GrpcClientService {
 
     var response = arcgisClient.findNorthwestMostLine(request);
     return UUID.fromString(response.getLineId());
+  }
+
+  /**
+   * Calculate the area of a feature. Loxodrome lines that are not part of a feature with BRITISH_NATIONAL_GRID coordinate
+   * system will be densified before calculating the area to ensure the curvature of the earth is taken into account.
+   * @param coordinateSystem The coordinate system of the feature.
+   * @param featureLines The lines that make up a feature.
+   * @return The area of the feature.
+   */
+  public BigDecimal calculateArea(CoordinateSystem coordinateSystem, List<Line> featureLines) {
+    var linesWithNavigationType = featureLines.stream()
+        .map(line -> LineWithNavigationType.newBuilder()
+            .setEsriJsonPolyline(line.getEsriJson())
+            .setLineNavigationType(line.getNavigationType())
+            .build())
+        .toList();
+
+    var request = CalculateAreaRequest.newBuilder()
+        .setCoordinateSystem(coordinateSystem)
+        .addAllLinesWithNavigationType(linesWithNavigationType)
+        .build();
+
+    var response = arcgisClient.calculateArea(request);
+    return BigDecimal.valueOf(response.getArea());
   }
 
   private Point getEsriPoint(Coordinate grpcPoint) {

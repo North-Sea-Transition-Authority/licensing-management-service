@@ -18,6 +18,7 @@ import { validateTopologicallyEqual } from './migration/handlers/validate-topolo
 import { validatePolygonReconstructionFromPolylinesHandler } from './handlers/validate-polygon-reconstruction-from-polylines-handler';
 import { migrateReferenceBlockHandler } from './migration/handlers/migrate-reference-block';
 import { validateReferenceBlock } from './migration/handlers/validate-reference-block';
+import { calculateAreaHandler } from './handlers/calculate-area-operator-handler';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -70,6 +71,7 @@ function startGrpcServer(arcGisJsProto: ProtoGrpcType['uk']['co']['fivium']['grp
     getLineStartAndEndPoints: getLineStartAndEndPointsHandler,
     findNorthwestMostLine: findNorthwestMostLineHandler,
     validatePolygonReconstructionFromPolylines: validatePolygonReconstructionFromPolylinesHandler,
+    calculateArea: calculateAreaHandler,
     migrateBlockOrSubarea: migrateBlockOrSubarea,
     validateBlockAndSubarea: validateBlockAndSubarea,
     validateTopologicallyEqual: validateTopologicallyEqual,

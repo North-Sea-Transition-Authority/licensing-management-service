@@ -28,17 +28,19 @@ public class SplitOperatorService {
   public List<Feature> splitPolygon(Feature target,
                                     String cutterLineEsriJson) {
     List<String> esriJsonPolygons = polygonService.getPolygonsAsEsriJson(target);
-    List<String> resultPolygons = new ArrayList<>();
+    List<String> resultEsriJsonPolygons = new ArrayList<>();
 
     esriJsonPolygons.forEach(polygon ->
-        resultPolygons.addAll(grpcClientService.splitPolygon(polygon, cutterLineEsriJson))
+        resultEsriJsonPolygons.addAll(grpcClientService.splitPolygon(polygon, cutterLineEsriJson))
     );
 
     List<Feature> resultFeatures = new ArrayList<>();
-    resultPolygons.forEach(polygon -> {
-      var newFeature = operatorResultProcessingService.processOutputPolygon(List.of(target), polygon);
+
+    for (int i = 0; i < resultEsriJsonPolygons.size(); i++) {
+      var polygon = resultEsriJsonPolygons.get(i);
+      var newFeature = operatorResultProcessingService.processOutputPolygon(List.of(target), polygon, i + 1);
       resultFeatures.add(newFeature);
-    });
+    }
 
     return resultFeatures;
   }

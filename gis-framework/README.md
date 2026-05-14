@@ -6,7 +6,12 @@ in case it needs to be separated in the future.
 The GIS framework consists of spring services that you can inject into your main code and use to perform operations on GIS data.
 The framework also provides frontend components that can be used to display and interact with GIS data.
 
-//TODO add code examples
+## TLDR Initialization steps
+
+- Add the GIS framework as a dependency to your project
+- Add `<#include "../../gis/gisAssets/gisAssets.ftl">` to your `layout.ftl` to include the GIS frontend assets
+- run `cd gis-framework && npm install && npm run build-all && cd .. && npx gulp buildAll` to build the frontend components
+- run `cd gis-framework/arcgis-node && npm install && npx tsx src/grpc-server.ts` to start the arcGis node server
 
 ## Infrastructure
 
@@ -26,13 +31,54 @@ Additionally, the frontend also needs to build the vue components before they ca
 To build everything you can run `cd gis-framework` and `npm run build-all` to generate the proto for both apps and build the
 frontend vue components.
 
+The Gradle `processResources` task also runs the Vite frontend build so the starter jar contains the FreeMarker macros
+and the static JS/CSS assets.
+
 Alternatively, you can build the parts separately by:
-- running `cd arcgis-js-sdk/ && npm install && npm run copy:core && npm run proto-gen && cd .. ` to install dependencies and build the gRPC proto files.
+- running `cd arcgis-node/ && npm install && npm run copy:core && npm run proto-gen && cd .. ` to install dependencies and build the gRPC proto files.
 - running the gradle clean and build tasks to generate the java proto classes defined in `src/main/proto`
+
+## Frontend components
+
+The starter provides FreeMarker macros under `classpath:/templates/gis`. These macros render stable mount points for
+Vue components and include the Vite-built assets from `classpath:/public/gis/dist`.
+
+### Include the GIS assets in your app's layout
+
+You need to include the GIS assets in your app's `layout.ftl` as this will load the necessary CSS and JS files. For the framework components to load.
+You only need to add an include statement to the layout.ftl to include the [gisAssets.ftl](src/main/resources/templates/gis/gisAssets/gisAssets.ftl) file.
+
+```ftl
+<#include "../../gis/gisAssets/gisAssets.ftl">
+```
+
+This will include the GIS assets in all your app pages by default. However, this shouldn't be an issue as they will be cached by the browser.
+
+### Using the GIS components
+
+To reference the macros in a consuming app template:
+
+```ftl
+<#import "../gis/components/testMap/testMap.ftl" as gis>
+
+<@gis.testMap />
+```
+
+Vue source lives under `src/main/resources/js`. FreeMarker templates under `src/main/resources/templates` should only
+contain the macros consumed by the host app. `npm run build` creates the following resources that are served by the 
+spring app:
+
+- `/gis/dist/gis-bundle.js`
+- `/gis/dist/gis-framework.css`
+
+### Frontend development
+
+For more information on the frontend implementation, see the 
+[frontend-components.md](documentation/frontend-components.md) documentation.
 
 ## Starting the node server
 
-Go to `gis-alpha-test/arcgis-js-sdk` and right click `grpc-server.ts` then run
+Go to `gis-framework/arcgis-node` and run `npx tsx src/grpc-server.ts`.
 
 ## Developing proto features
 

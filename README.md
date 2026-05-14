@@ -139,7 +139,7 @@ npm install && npx gulp buildAll
 
 ### 5. Start the GIS framework
 
-See [GIS framework README](gis-framework/README.md).
+See [GIS framework README](gis-framework/README.md) for initialization instructions.
 
 ### 6. Run the app
 Create a run configuration for the Spring app and start the application.

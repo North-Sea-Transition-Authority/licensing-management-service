@@ -1,4 +1,5 @@
 .gradle
+.gradle-home/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
@@ -62,3 +63,6 @@ node_modules
 
 ### vitest test coverage
 /arcgis-node/coverage/*
+
+### GIS frontend generated classes
+/src/main/resources/public/gis/dist

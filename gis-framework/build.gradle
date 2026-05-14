@@ -1,3 +1,4 @@
+import com.github.gradle.node.npm.task.NpmTask
 import org.springframework.boot.gradle.plugin.SpringBootPlugin
 
 plugins {
@@ -7,6 +8,7 @@ plugins {
   id 'org.springframework.boot' version '3.5.14' apply false
   id 'io.spring.dependency-management' version '1.1.7'
   id 'com.google.protobuf' version '0.9.4'
+  id 'com.github.node-gradle.node' version '7.1.0'
   id 'jacoco'
   id 'checkstyle'
 }
@@ -68,6 +70,41 @@ dependencies {
   testImplementation 'org.testcontainers:jdbc'
   testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
   testRuntimeOnly 'org.postgresql:postgresql'
+}
+
+node {
+  version = '22.12.0'
+  npmVersion = '10.9.0'
+  download = true
+  nodeProjectDir = projectDir
+}
+
+def frontendBuildGroup = 'build frontend'
+
+tasks.register('installFrontendDependencies', NpmTask) {
+  group = frontendBuildGroup
+  description = 'Install frontend dependencies used to build GIS assets using the Gradle-provisioned npm.'
+  args = ['ci']
+  inputs.file('package.json')
+  inputs.file('package-lock.json')
+  outputs.dir('node_modules')
+}
+
+tasks.register('buildFrontend', NpmTask) {
+  group = frontendBuildGroup
+  description = 'Build GIS Vue components and static assets.'
+  dependsOn tasks.named('installFrontendDependencies')
+  inputs.file('package.json')
+  inputs.file('package-lock.json')
+  inputs.file('tsconfig.json')
+  inputs.file('vite.config.ts')
+  inputs.dir('src/main/resources/js')
+  outputs.dir('src/main/resources/public/gis/dist')
+  args = ['run', 'build']
+}
+
+tasks.named('processResources') {
+  dependsOn tasks.named('buildFrontend')
 }
 
 tasks.named('test') {

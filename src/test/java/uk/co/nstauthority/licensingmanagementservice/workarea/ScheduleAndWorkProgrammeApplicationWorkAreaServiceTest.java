@@ -45,7 +45,7 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 
 @ExtendWith(MockitoExtension.class)
-class WorkProgrammeApplicationWorkAreaServiceTest {
+class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
 
   @Mock
   private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
@@ -60,7 +60,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
   private TeamQueryService teamQueryService;
 
   @InjectMocks
-  private WorkProgrammeApplicationWorkAreaService workProgrammeApplicationWorkAreaService;
+  private ScheduleAndWorkProgrammeApplicationWorkAreaService scheduleAndWorkProgrammeApplicationWorkAreaService;
 
   private Licence licence1, licence2;
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2;
@@ -109,7 +109,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
         licenceResponsibleOrgMap
     );
 
-    var workAreaItems = workProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     var summaryDataView1 = SummaryDataView.newBuilder()
         .addStringValue("Status", scheduleWorkProgrammeApplicationDetail1.getStatus().getDisplayName())
@@ -134,7 +134,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
         .containsExactly(
             tuple(
                 scheduleWorkProgrammeApplicationDetail1.getId().toString(),
-                String.format("%s - schedule work programme application", licence1.getLicenceReference()),
+                String.format("%s - %s", licence1.getLicenceReference(), ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.getDisplayName().toLowerCase()),
                 ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
                     .getTaskList(scheduleWorkProgrammeApplicationDetail1.getId(), null, null)),
                 String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant)),
@@ -143,7 +143,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
             ),
             tuple(
                 scheduleWorkProgrammeApplicationDetail2.getId().toString(),
-                String.format("%s - schedule work programme application", licence2.getLicenceReference()),
+                String.format("%s - %s", licence2.getLicenceReference(), ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.getDisplayName().toLowerCase()),
                 ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
                     .getTaskList(scheduleWorkProgrammeApplicationDetail2.getId(), null, null)),
                 String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.minus(1, ChronoUnit.HOURS))),
@@ -164,7 +164,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
     when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence1, licence2)))
         .thenReturn(Map.of(licence1, List.of("Org 1"), licence2, List.of("Org 2")));
 
-    var workAreaItems = workProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::linkHeadingUrl)
@@ -173,6 +173,52 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
                 .renderOverview(scheduleWorkProgrammeApplicationDetail1.getId(), null, null)),
             ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
                 .getTaskList(scheduleWorkProgrammeApplicationDetail2.getId(), null, null))
+        );
+  }
+
+  @Test
+  void getWorkAreaItems_whenSubmitted_mapsAllFieldsCorrectly() {
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
+
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, true);
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail2, false);
+
+    var org1 = "Org 1";
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence1)))
+        .thenReturn(Map.of(licence1, List.of(org1)));
+
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    var summaryDataView = SummaryDataView.newBuilder()
+        .addStringValue("Status", ScheduleWorkProgrammeApplicationStatus.SUBMITTED.getDisplayName())
+        .addStringValue("Licence type", licence1.getType().getDisplayName())
+        .addStringValue("Licensees", org1)
+        .build();
+
+    assertThat(workAreaItems)
+        .extracting(
+            SearchResultItem::id,
+            SearchResultItem::linkHeadingText,
+            SearchResultItem::linkHeadingUrl,
+            SearchResultItem::captionText,
+            SearchResultItem::dataItemRows,
+            SearchResultItem::transactionDatetime
+        )
+        .containsExactly(
+            tuple(
+                scheduleWorkProgrammeApplicationDetail1.getId().toString(),
+                String.format("%s - %s",
+                    scheduleWorkProgrammeApplicationDetail1.getScheduleWorkProgrammeApplication().getApplicationReference(),
+                    ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.getDisplayName().toLowerCase()),
+                ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+                    .renderOverview(scheduleWorkProgrammeApplicationDetail1.getId(), null, null)),
+                String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant)),
+                List.of(summaryDataView),
+                testInstant
+            )
         );
   }
 
@@ -189,7 +235,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
     when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence1)))
         .thenReturn(Map.of(licence1, List.of("Org 1")));
 
-    var workAreaItems = workProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::linkHeadingUrl)
@@ -213,7 +259,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
     when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence1)))
         .thenReturn(Map.of(licence1, List.of("Org 1")));
 
-    var workAreaItems = workProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::linkHeadingUrl)
@@ -245,7 +291,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setLicenceReference("2");
-    var workAreaItems = workProgrammeApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
 
     var summaryDataView = SummaryDataView.newBuilder()
         .addStringValue("Status", scheduleWorkProgrammeApplicationDetail2.getStatus().getDisplayName())
@@ -265,7 +311,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
         .containsExactly(
             tuple(
                 scheduleWorkProgrammeApplicationDetail2.getId().toString(),
-                String.format("%s - schedule work programme application", licence2.getLicenceReference()),
+                String.format("%s - %s", licence2.getLicenceReference(), ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.getDisplayName().toLowerCase()),
                 ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
                     .getTaskList(scheduleWorkProgrammeApplicationDetail2.getId(), null, null)),
                 String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.minus(1, ChronoUnit.HOURS))),
@@ -293,7 +339,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
         licenceResponsibleOrgMap
     );
 
-    var workAreaItems = workProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     var summaryDataView = SummaryDataView.newBuilder()
         .addStringValue("Status", scheduleWorkProgrammeApplicationDetail1.getStatus().getDisplayName())
@@ -313,7 +359,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
         .containsExactly(
             tuple(
                 scheduleWorkProgrammeApplicationDetail1.getId().toString(),
-                String.format("%s - schedule work programme application", licence1.getLicenceReference()),
+                String.format("%s - %s", licence1.getLicenceReference(), ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.getDisplayName().toLowerCase()),
                 ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
                     .getTaskList(scheduleWorkProgrammeApplicationDetail1.getId(), null, null)),
                 String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant)),
@@ -349,7 +395,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
         licenceResponsibleOrgMap
     );
 
-    var workAreaItems = workProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     var summaryDataView = SummaryDataView.newBuilder()
         .addStringValue("Status", scheduleWorkProgrammeApplicationDetail2.getStatus().getDisplayName())
@@ -369,7 +415,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
         .containsExactly(
             tuple(
                 scheduleWorkProgrammeApplicationDetail2.getId().toString(),
-                "LMS/EEA/002 - schedule work programme application",
+                String.format("%s - %s", "LMS/EEA/002", ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.getDisplayName().toLowerCase()),
                 ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
                     .renderOverview(scheduleWorkProgrammeApplicationDetail2.getId(), null, null)),
                 String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.minus(1, ChronoUnit.HOURS))),
@@ -395,7 +441,7 @@ class WorkProgrammeApplicationWorkAreaServiceTest {
         Map.of(licence1, List.of(org1))
     );
 
-    var workAreaItems = workProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::id, SearchResultItem::linkHeadingUrl)

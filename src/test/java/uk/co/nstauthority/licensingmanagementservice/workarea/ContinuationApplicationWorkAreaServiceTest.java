@@ -146,7 +146,7 @@ class ContinuationApplicationWorkAreaServiceTest {
         .containsExactly(
             tuple(
                 licenceContinuationApplicationDetail.getId().toString(),
-                String.format("%s - Licence continuation application", licence1.getLicenceReference()),
+                String.format("%s - %s", licence1.getLicenceReference(), ApplicationType.CONTINUATION_APPLICATION.getDisplayName().toLowerCase()),
                 ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(licenceContinuationApplicationDetail.getId(), null, null)),
                 String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant)),
                 List.of(summaryDataView1),
@@ -154,11 +154,11 @@ class ContinuationApplicationWorkAreaServiceTest {
             ),
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
-                "LMS/CA/002 - Licence continuation application",
+                String.format("%s - %s", "LMS/CA/002", ApplicationType.CONTINUATION_APPLICATION.getDisplayName().toLowerCase()),
                 ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null, null)),
                 String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.plus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView2),
-                testInstant.minus(1, ChronoUnit.HOURS)
+                testInstant.plus(1, ChronoUnit.HOURS)
             )
         );
   }
@@ -203,11 +203,11 @@ class ContinuationApplicationWorkAreaServiceTest {
         .containsExactly(
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
-                "LMS/CA/002 - Licence continuation application",
+                String.format("%s - %s", "LMS/CA/002", ApplicationType.CONTINUATION_APPLICATION.getDisplayName().toLowerCase()),
                 ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null, null)),
                 String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.plus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView),
-                testInstant.minus(1, ChronoUnit.HOURS)
+                testInstant.plus(1, ChronoUnit.HOURS)
             )
         );
   }
@@ -265,7 +265,7 @@ class ContinuationApplicationWorkAreaServiceTest {
         .containsExactly(
             tuple(
                 licenceContinuationApplicationDetail.getId().toString(),
-                String.format("%s - Licence continuation application", licence1.getLicenceReference()),
+                String.format("%s - %s", licence1.getLicenceReference(), ApplicationType.CONTINUATION_APPLICATION.getDisplayName().toLowerCase()),
                 ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(licenceContinuationApplicationDetail.getId(), null, null)),
                 String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant)),
                 List.of(summaryDataView),
@@ -312,11 +312,11 @@ class ContinuationApplicationWorkAreaServiceTest {
         .containsExactly(
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
-                "LMS/CA/002 - Licence continuation application",
+                String.format("%s - %s", "LMS/CA/002", ApplicationType.CONTINUATION_APPLICATION.getDisplayName().toLowerCase()),
                 ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(licenceContinuationApplicationDetail2.getId(), null, null, null)),
                 String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.plus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView),
-                testInstant.minus(1, ChronoUnit.HOURS)
+                testInstant.plus(1, ChronoUnit.HOURS)
             )
         );
   }
@@ -362,13 +362,74 @@ class ContinuationApplicationWorkAreaServiceTest {
         .containsExactly(
             tuple(
                 licenceContinuationApplicationDetail2.getId().toString(),
-                "LMS/CA/002 - Licence continuation application",
+                String.format("%s - %s", "LMS/CA/002", ApplicationType.CONTINUATION_APPLICATION.getDisplayName().toLowerCase()),
                 ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(ApplicationType.CONTINUATION_APPLICATION, licenceContinuationApplicationDetail2.getLicenceContinuationApplication().getId())),
                 String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.plus(1, ChronoUnit.HOURS))),
                 List.of(summaryDataView),
-                testInstant.minus(1, ChronoUnit.HOURS)
+                testInstant.plus(1, ChronoUnit.HOURS)
             )
         );
+  }
+
+  @Test
+  void getWorkAreaItems_whenIssueDecision_isNotContinuationIssuer_linksToOverview() {
+    licenceContinuationApplicationDetail2.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(licence1);
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
+        .thenReturn(licence2);
+
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+
+    when(applicationAccessService.userHasAccessToApplication(
+        licenceContinuationApplicationDetail.getId().toString(),
+        ApplicationType.CONTINUATION_APPLICATION,
+        null,
+        serviceUserDetail.wuaId()
+    )).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(
+        licenceContinuationApplicationDetail2.getId().toString(),
+        ApplicationType.CONTINUATION_APPLICATION,
+        null,
+        serviceUserDetail.wuaId()
+    )).thenReturn(true);
+
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(any()))
+        .thenReturn(Map.of(licence2, List.of("Org 1")));
+
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::linkHeadingUrl)
+        .containsExactly(
+            ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class)
+                .renderOverview(licenceContinuationApplicationDetail2.getId(), null, null, null))
+        );
+  }
+
+  @Test
+  void getWorkAreaItems_whenIssueDecision_isContinuationReviewerButNotIssuer_isExcluded() {
+    licenceContinuationApplicationDetail2.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(licence1);
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
+        .thenReturn(licence2);
+
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(regulatorRoleService.isContinuationReviewer(serviceUserDetail)).thenReturn(true);
+
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(any()))
+        .thenReturn(Map.of());
+
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems).isEmpty();
   }
 
   }

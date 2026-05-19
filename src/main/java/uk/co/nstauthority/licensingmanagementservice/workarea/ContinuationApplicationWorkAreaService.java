@@ -109,6 +109,10 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
                                          .renderOverview(applicationDetail.getId(), null, null, null));
     };
 
+    var transactionDateTime = applicationDetail.getStatus() == LicenceContinuationApplicationStatus.DRAFT
+        ? applicationDetail.getCreatedDateTime()
+        : applicationDetail.getSubmittedDatetime();
+
     var itemReference = applicationDetail.getStatus() == LicenceContinuationApplicationStatus.DRAFT
         ? licence.getLicenceReference()
         : applicationDetail.getLicenceContinuationApplication().getApplicationReference();
@@ -119,11 +123,14 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
 
     return SearchResultItem.newBuilder()
         .withId(applicationDetail.getId().toString())
-        .withLinkHeadingText(String.format("%s - Licence continuation application", itemReference))
+        .withLinkHeadingText(String.format("%s - %s",
+            itemReference,
+            ApplicationType.CONTINUATION_APPLICATION.getDisplayName().toLowerCase())
+        )
         .withLinkHeadingUrl(linkHeadingUrl)
         .withCaptionText(captionText)
         .withDataItemRow(dataItemRow)
-        .withTransactionDatetime(applicationDetail.getCreatedDateTime())
+        .withTransactionDatetime(transactionDateTime)
         .build();
   }
 

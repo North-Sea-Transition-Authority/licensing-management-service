@@ -25,7 +25,7 @@ class WorkAreaServiceTest {
   private ScheduleWorkAreaService scheduleWorkAreaService;
 
   @Mock
-  private WorkProgrammeApplicationWorkAreaService workProgrammeApplicationWorkAreaService;
+  private ScheduleAndWorkProgrammeApplicationWorkAreaService scheduleAndWorkProgrammeApplicationWorkAreaService;
 
   Clock clock;
 
@@ -34,7 +34,8 @@ class WorkAreaServiceTest {
   @BeforeEach
   void setUp() {
     clock = Clock.fixed(Instant.from(INSTANT), ZoneId.systemDefault());
-    workAreaService = new WorkAreaService(List.of(scheduleWorkAreaService, workProgrammeApplicationWorkAreaService));
+    workAreaService = new WorkAreaService(List.of(scheduleWorkAreaService,
+        scheduleAndWorkProgrammeApplicationWorkAreaService));
   }
 
   @Test
@@ -46,7 +47,7 @@ class WorkAreaServiceTest {
     var newestItem = SearchResultItem.newBuilder().withTransactionDatetime(clock.instant()).build();
 
     when(scheduleWorkAreaService.getWorkAreaItems(form, user)).thenReturn(List.of(oldestItem, newestItem));
-    when(workProgrammeApplicationWorkAreaService.getWorkAreaItems(form, user)).thenReturn(List.of(middleItem));
+    when(scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(form, user)).thenReturn(List.of(middleItem));
 
     var workAreaResults = workAreaService.getWorkAreaResults(form, user);
 

@@ -27,7 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
 
 @Service
-public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProvider {
+public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkAreaItemProvider {
 
   public static final Set<ScheduleWorkProgrammeApplicationStatus> ACTIVE_APPLICATION_STATUSES = Set.of(
       ScheduleWorkProgrammeApplicationStatus.DRAFT,
@@ -39,7 +39,7 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
   private final ApplicationAccessService applicationAccessService;
   private final TeamQueryService teamQueryService;
 
-  public WorkProgrammeApplicationWorkAreaService(
+  public ScheduleAndWorkProgrammeApplicationWorkAreaService(
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
       LicenceSearchService licenceSearchService,
       ApplicationAccessService applicationAccessService,
@@ -79,7 +79,6 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
   ) {
     var licence = scheduleWorkProgrammeApplicationService
         .getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail);
-    var createdDatetime = applicationDetail.getCreatedDatetime();
     var licensees = responsibleOrganisationNamesByLicences.getOrDefault(
             licence,
             List.of()
@@ -110,6 +109,10 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
           .renderOverview(applicationDetail.getId(), null, null));
     };
 
+    var transactionDateTime = applicationDetail.getStatus() == ScheduleWorkProgrammeApplicationStatus.DRAFT
+        ? applicationDetail.getCreatedDatetime()
+        : applicationDetail.getSubmittedDatetime();
+
     var itemReference = applicationDetail.getStatus() == ScheduleWorkProgrammeApplicationStatus.DRAFT
         ? licence.getLicenceReference()
         : applicationDetail.getScheduleWorkProgrammeApplication().getApplicationReference();
@@ -120,11 +123,14 @@ public class WorkProgrammeApplicationWorkAreaService implements WorkAreaItemProv
 
     return SearchResultItem.newBuilder()
         .withId(applicationDetail.getId().toString())
-        .withLinkHeadingText(String.format("%s - schedule work programme application", itemReference))
+        .withLinkHeadingText(String.format("%s - %s",
+            itemReference,
+            ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.getDisplayName().toLowerCase())
+        )
         .withLinkHeadingUrl(linkHeadingUrl)
         .withCaptionText(captionText)
         .withDataItemRow(dataItemRow)
-        .withTransactionDatetime(createdDatetime)
+        .withTransactionDatetime(transactionDateTime)
         .build();
   }
 

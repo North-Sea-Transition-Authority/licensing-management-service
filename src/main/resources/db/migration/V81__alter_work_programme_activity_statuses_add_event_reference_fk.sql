@@ -1,0 +1,5 @@
+ALTER TABLE work_programme_activity_statuses RENAME work_programme_activity_event_reference TO event_reference_id;
+ALTER TABLE work_programme_activity_statuses
+    ADD CONSTRAINT work_programme_activity_statuses_event_reference_fk FOREIGN KEY (event_reference_id) REFERENCES event_references (id);
+
+ALTER TABLE work_programme_activity_statuses_aud RENAME work_programme_activity_event_reference TO event_reference_id;

@@ -6,7 +6,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
@@ -17,6 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiry;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
@@ -266,8 +266,11 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     licenceScheduleTerm.setLicenceScheduleDetail(oldLicenceScheduleDetail);
     licenceScheduleTerm.setTermType(TermType.INITIAL);
     licenceScheduleTerm.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    licenceScheduleTerm.setEventReference(UUID.randomUUID());
-    
+    var termEventRef = new EventReference();
+    termEventRef.setLicenceSchedule(licenceSchedule);
+    em.persist(termEventRef);
+    licenceScheduleTerm.setEventReference(termEventRef);
+
     em.persist(licenceScheduleTerm);
 
     licenceSchedulePhase = new LicenceSchedulePhase();
@@ -275,8 +278,11 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     licenceSchedulePhase.setLicenceScheduleTerm(licenceScheduleTerm);
     licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
     licenceSchedulePhase.setPhaseDuration(new ThreeFieldDuration(0, 1, 0));
-    licenceSchedulePhase.setEventReference(UUID.randomUUID());
-    
+    var phaseEventRef = new EventReference();
+    phaseEventRef.setLicenceSchedule(licenceSchedule);
+    em.persist(phaseEventRef);
+    licenceSchedulePhase.setEventReference(phaseEventRef);
+
     em.persist(licenceSchedulePhase);
 
     termLinkedActivity = new WorkProgrammeActivity();
@@ -284,8 +290,11 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     termLinkedActivity.setLicenceScheduleTerm(licenceScheduleTerm);
     termLinkedActivity.setDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
     termLinkedActivity.setRelativeDuration(new ThreeFieldDuration(1, 0, 0));
-    termLinkedActivity.setEventReference(UUID.randomUUID());
-    
+    var termActivityEventRef = new EventReference();
+    termActivityEventRef.setLicenceSchedule(licenceSchedule);
+    em.persist(termActivityEventRef);
+    termLinkedActivity.setEventReference(termActivityEventRef);
+
     em.persist(termLinkedActivity);
 
     phaseLinkedActivity = new WorkProgrammeActivity();
@@ -293,7 +302,10 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     phaseLinkedActivity.setLicenceSchedulePhase(licenceSchedulePhase);
     phaseLinkedActivity.setDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
     phaseLinkedActivity.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
-    phaseLinkedActivity.setEventReference(UUID.randomUUID());
+    var phaseActivityEventRef = new EventReference();
+    phaseActivityEventRef.setLicenceSchedule(licenceSchedule);
+    em.persist(phaseActivityEventRef);
+    phaseLinkedActivity.setEventReference(phaseActivityEventRef);
 
     em.persist(phaseLinkedActivity);
 
@@ -301,7 +313,10 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     termLinkedRate.setLicenceScheduleDetail(oldLicenceScheduleDetail);
     termLinkedRate.setLicenceScheduleTerm(licenceScheduleTerm);
     termLinkedRate.setRateDefinitionOption(RateDefinitionOption.TERM);
-    termLinkedRate.setEventReference(UUID.randomUUID());
+    var termRateEventRef = new EventReference();
+    termRateEventRef.setLicenceSchedule(licenceSchedule);
+    em.persist(termRateEventRef);
+    termLinkedRate.setEventReference(termRateEventRef);
 
     em.persist(termLinkedRate);
 
@@ -310,7 +325,10 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     phaseLinkedRate.setLicenceSchedulePhase(licenceSchedulePhase);
     phaseLinkedRate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
     phaseLinkedRate.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
-    phaseLinkedRate.setEventReference(UUID.randomUUID());
+    var phaseRateEventRef = new EventReference();
+    phaseRateEventRef.setLicenceSchedule(licenceSchedule);
+    em.persist(phaseRateEventRef);
+    phaseLinkedRate.setEventReference(phaseRateEventRef);
 
     em.persist(phaseLinkedRate);
 
@@ -319,7 +337,10 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     termLinkedEvent.setLicenceScheduleTerm(licenceScheduleTerm);
     termLinkedEvent.setDateOption(OtherScheduleEventDateOption.RELATIVE_DATE);
     termLinkedEvent.setRelativeDuration(new ThreeFieldDuration(1, 0, 0));
-    termLinkedEvent.setEventReference(UUID.randomUUID());
+    var termEventEventRef = new EventReference();
+    termEventEventRef.setLicenceSchedule(licenceSchedule);
+    em.persist(termEventEventRef);
+    termLinkedEvent.setEventReference(termEventEventRef);
 
     em.persist(termLinkedEvent);
 
@@ -328,7 +349,10 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     phaseLinkedEvent.setLicenceSchedulePhase(licenceSchedulePhase);
     phaseLinkedEvent.setDateOption(OtherScheduleEventDateOption.RELATIVE_DATE);
     phaseLinkedEvent.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
-    phaseLinkedEvent.setEventReference(UUID.randomUUID());
+    var phaseEventEventRef = new EventReference();
+    phaseEventEventRef.setLicenceSchedule(licenceSchedule);
+    em.persist(phaseEventEventRef);
+    phaseLinkedEvent.setEventReference(phaseEventEventRef);
 
     em.persist(phaseLinkedEvent);
     em.flush();

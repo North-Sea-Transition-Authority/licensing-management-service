@@ -2,8 +2,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesc
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -12,7 +12,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,6 +27,9 @@ class LicenceScheduleTermFormServiceTest {
   @Mock
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
 
+  @Mock
+  private EventReferenceService eventReferenceService;
+
   @InjectMocks
   private LicenceScheduleTermFormService licenceScheduleTermFormService;
 
@@ -33,12 +39,17 @@ class LicenceScheduleTermFormServiceTest {
   @Test
   void saveTermFromForm() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
+    var licenceSchedule = new LicenceSchedule();
+    licenceScheduleDetail.setLicenceSchedule(licenceSchedule);
 
     var form = new LicenceScheduleTermForm();
     form.setTermType(TermType.INITIAL);
     form.getTermDuration().setYears("1");
     form.getTermDuration().setMonths("0");
     form.getTermDuration().setDays("0");
+
+    var eventReference = new EventReference();
+    when(eventReferenceService.createEventReference(licenceSchedule)).thenReturn(eventReference);
 
     licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail, new LicenceScheduleTerm());
 
@@ -49,11 +60,13 @@ class LicenceScheduleTermFormServiceTest {
     assertThat(result).extracting(
         LicenceScheduleTerm::getLicenceScheduleDetail,
         LicenceScheduleTerm::getTermType,
-        LicenceScheduleTerm::getTermDuration
+        LicenceScheduleTerm::getTermDuration,
+        LicenceScheduleTerm::getEventReference
     ).containsExactly(
         licenceScheduleDetail,
         TermType.INITIAL,
-        form.getTermDuration().toThreeFieldDuration()
+        form.getTermDuration().toThreeFieldDuration(),
+        eventReference
     );
 
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
@@ -70,7 +83,7 @@ class LicenceScheduleTermFormServiceTest {
     form.getTermDuration().setDays("0");
 
     var term = new LicenceScheduleTerm();
-    term.setEventReference(UUID.randomUUID());
+    term.setEventReference(new EventReference());
 
     licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail, term);
 

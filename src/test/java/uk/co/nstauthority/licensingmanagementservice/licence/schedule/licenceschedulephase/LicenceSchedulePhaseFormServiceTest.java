@@ -5,7 +5,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -15,7 +14,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
@@ -32,6 +34,9 @@ class LicenceSchedulePhaseFormServiceTest {
   @Mock
   private LicenceScheduleTermService licenceScheduleTermService;
 
+  @Mock
+  private EventReferenceService eventReferenceService;
+
   @InjectMocks
   private LicenceSchedulePhaseFormService licenceSchedulePhaseFormService;
 
@@ -41,6 +46,8 @@ class LicenceSchedulePhaseFormServiceTest {
   @Test
   void savePhaseFromForm() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
+    var licenceSchedule = new LicenceSchedule();
+    licenceScheduleDetail.setLicenceSchedule(licenceSchedule);
 
     var form = new LicenceSchedulePhaseForm();
     form.setPhaseType(PhaseType.PHASE_A);
@@ -53,6 +60,8 @@ class LicenceSchedulePhaseFormServiceTest {
     term.setTermType(TermType.INITIAL);
 
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+    var eventReference = new EventReference();
+    when(eventReferenceService.createEventReference(licenceSchedule)).thenReturn(eventReference);
 
     licenceSchedulePhaseFormService.savePhaseFromForm(form, licenceScheduleDetail, new LicenceSchedulePhase());
 
@@ -65,13 +74,15 @@ class LicenceSchedulePhaseFormServiceTest {
         LicenceSchedulePhase::getPhaseType,
         LicenceSchedulePhase::getPhaseDuration,
         LicenceSchedulePhase::getComments,
-        LicenceSchedulePhase::getLicenceScheduleTerm
+        LicenceSchedulePhase::getLicenceScheduleTerm,
+        LicenceSchedulePhase::getEventReference
     ).containsExactly(
         licenceScheduleDetail,
         PhaseType.PHASE_A,
         form.getPhaseDuration().toThreeFieldDuration(),
         form.getComments(),
-        term
+        term,
+        eventReference
     );
 
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
@@ -94,7 +105,7 @@ class LicenceSchedulePhaseFormServiceTest {
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
 
     var phase = new LicenceSchedulePhase();
-    phase.setEventReference(UUID.randomUUID());
+    phase.setEventReference(new EventReference());
 
     licenceSchedulePhaseFormService.savePhaseFromForm(form, licenceScheduleDetail, phase);
 

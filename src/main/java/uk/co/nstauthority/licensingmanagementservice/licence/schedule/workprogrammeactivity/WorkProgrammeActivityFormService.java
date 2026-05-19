@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -28,6 +29,7 @@ public class WorkProgrammeActivityFormService {
   private final LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
   private final WorkProgrammeActivityStatusService workProgrammeActivityStatusService;
+  private final EventReferenceService eventReferenceService;
 
   public WorkProgrammeActivityFormService(
       WorkProgrammeActivityRepository workProgrammeActivityRepository,
@@ -36,7 +38,8 @@ public class WorkProgrammeActivityFormService {
       LicenceTypeRulesResolver licenceTypeRulesResolver,
       LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService,
       LicenceScheduleCalculationService licenceScheduleCalculationService,
-      WorkProgrammeActivityStatusService workProgrammeActivityStatusService
+      WorkProgrammeActivityStatusService workProgrammeActivityStatusService,
+      EventReferenceService eventReferenceService
   ) {
     this.workProgrammeActivityRepository = workProgrammeActivityRepository;
     this.licenceScheduleTermService = licenceScheduleTermService;
@@ -45,6 +48,7 @@ public class WorkProgrammeActivityFormService {
     this.licenceScheduleRelativeOptionsService = licenceScheduleRelativeOptionsService;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
     this.workProgrammeActivityStatusService = workProgrammeActivityStatusService;
+    this.eventReferenceService = eventReferenceService;
   }
 
   public Map<String, String> getDateOptions(LicenceScheduleDetail licenceScheduleDetail) {
@@ -102,7 +106,9 @@ public class WorkProgrammeActivityFormService {
     activity.setComments(form.getComments());
 
     if (activity.getEventReference() == null) {
-      activity.setEventReference(UUID.randomUUID());
+      activity.setEventReference(
+          eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule())
+      );
     }
 
     workProgrammeActivityRepository.save(activity);

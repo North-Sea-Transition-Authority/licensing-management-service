@@ -5,12 +5,13 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationSource;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 
 @Repository
 public interface WorkProgrammeActivityStatusRepository
     extends JpaRepository<WorkProgrammeActivityStatus, UUID>, NotDuplicationSource {
 
-  List<WorkProgrammeActivityStatus> findAllByActivityEventReference(UUID eventReference);
+  List<WorkProgrammeActivityStatus> findAllByEventReference(EventReference eventReference);
 
-  List<WorkProgrammeActivityStatus> findAllByActivityEventReferenceIn(List<UUID> eventReferences);
+  List<WorkProgrammeActivityStatus> findAllByEventReferenceIn(List<EventReference> eventReferences);
 }

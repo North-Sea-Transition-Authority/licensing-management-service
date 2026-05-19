@@ -129,14 +129,14 @@ public class LicenceScheduleDetailDuplicationService {
     var oldDetailTerms = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(oldDetail);
     var newDetailTermsRefMap = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(newDetail).stream()
         .collect(StreamUtil.toLinkedHashMap(
-            LicenceScheduleTerm::getEventReference,
+            term -> term.getEventReference().getId(),
             Function.identity()
         ));
 
     return oldDetailTerms.stream()
         .collect(StreamUtil.toLinkedHashMap(
             Function.identity(),
-            term -> newDetailTermsRefMap.get(term.getEventReference())
+            term -> newDetailTermsRefMap.get(term.getEventReference().getId())
         ));
   }
 
@@ -147,14 +147,14 @@ public class LicenceScheduleDetailDuplicationService {
     var oldDetailPhases = licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(oldDetail);
     var newDetailPhasesRefMap = licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(newDetail).stream()
         .collect(StreamUtil.toLinkedHashMap(
-            LicenceSchedulePhase::getEventReference,
+            phase -> phase.getEventReference().getId(),
             Function.identity()
         ));
 
     return oldDetailPhases.stream()
         .collect(StreamUtil.toLinkedHashMap(
             Function.identity(),
-            phase -> newDetailPhasesRefMap.get(phase.getEventReference())
+            phase -> newDetailPhasesRefMap.get(phase.getEventReference().getId())
         ));
   }
 }

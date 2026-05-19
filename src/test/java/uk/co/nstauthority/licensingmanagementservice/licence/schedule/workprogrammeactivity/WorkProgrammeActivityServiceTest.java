@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -169,7 +170,8 @@ class WorkProgrammeActivityServiceTest {
 
   @Test
   void getCurrentWorkProgrammeActivitiesViews_whenCurrentPhaseIsNotNull_returnsViewsForPhase() {
-    var eventReference = UUID.randomUUID();
+    var eventRef = new EventReference();
+    eventRef.setId(UUID.randomUUID());
     var detail = new LicenceScheduleDetail();
     var phase = new LicenceSchedulePhase();
     phase.setStartDate(LocalDate.now());
@@ -181,13 +183,13 @@ class WorkProgrammeActivityServiceTest {
 
     var activity = mock(WorkProgrammeActivity.class);
     when(activity.getId()).thenReturn(ACTIVITY_ID);
-    when(activity.getEventReference()).thenReturn(eventReference);
+    when(activity.getEventReference()).thenReturn(eventRef);
     when(activity.getDateOption()).thenReturn(WorkProgrammeActivityDateOption.RELATIVE_DATE);
     when(activity.getDueDate()).thenReturn(LocalDate.of(2026, 5, 10));
     when(activity.getCategory()).thenReturn(WorkProgrammeActivityCategory.WELL_TEST);
     when(activity.getCommitment()).thenReturn(WorkProgrammeActivityCommitment.FIRM);
     when(workProgrammeActivityStatusService.getLatestStatusesFor(List.of(activity)))
-        .thenReturn(Map.of(eventReference, workProgrammeActivityStatus));
+        .thenReturn(Map.of(eventRef.getId(), workProgrammeActivityStatus));
 
     when(workProgrammeActivityRepository.findByLicenceSchedulePhase(phase)).thenReturn(List.of(activity));
 
@@ -199,7 +201,8 @@ class WorkProgrammeActivityServiceTest {
 
   @Test
   void getCurrentWorkProgrammeActivitiesViews_whenCurrentPhaseIsNullAndTermIsNotNull_returnsViewsForTerm() {
-    var eventReference = UUID.randomUUID();
+    var eventRef = new EventReference();
+    eventRef.setId(UUID.randomUUID());
     var detail = new LicenceScheduleDetail();
     var term = new LicenceScheduleTerm();
     term.setStartDate(LocalDate.now());
@@ -212,13 +215,13 @@ class WorkProgrammeActivityServiceTest {
 
     var activity = mock(WorkProgrammeActivity.class);
     when(activity.getId()).thenReturn(ACTIVITY_ID);
-    when(activity.getEventReference()).thenReturn(eventReference);
+    when(activity.getEventReference()).thenReturn(eventRef);
     when(activity.getDateOption()).thenReturn(WorkProgrammeActivityDateOption.RELATIVE_DATE);
     when(activity.getDueDate()).thenReturn(LocalDate.of(2026, 5, 10));
     when(activity.getCategory()).thenReturn(WorkProgrammeActivityCategory.WELL_TEST);
     when(activity.getCommitment()).thenReturn(WorkProgrammeActivityCommitment.FIRM);
     when(workProgrammeActivityStatusService.getLatestStatusesFor(List.of(activity)))
-        .thenReturn(Map.of(eventReference, workProgrammeActivityStatus));
+        .thenReturn(Map.of(eventRef.getId(), workProgrammeActivityStatus));
 
     when(workProgrammeActivityRepository.findByLicenceScheduleTerm(term)).thenReturn(List.of(activity));
 
@@ -246,10 +249,11 @@ class WorkProgrammeActivityServiceTest {
   void getLicenceWorkProgramActivitiesViews_mapsAllFieldsCorrectly() {
     LocalDate fixedDate = LocalDate.of(2026, 5, 10);
     WorkProgrammeActivity workProgrammeActivity = mock(WorkProgrammeActivity.class);
-    var eventReference = UUID.randomUUID();
+    var eventRef = new EventReference();
+    eventRef.setId(UUID.randomUUID());
 
     when(workProgrammeActivity.getId()).thenReturn(ACTIVITY_ID);
-    when(workProgrammeActivity.getEventReference()).thenReturn(eventReference);
+    when(workProgrammeActivity.getEventReference()).thenReturn(eventRef);
     when(workProgrammeActivity.getDateOption()).thenReturn(WorkProgrammeActivityDateOption.RELATIVE_DATE);
     when(workProgrammeActivity.getCategory()).thenReturn(WorkProgrammeActivityCategory.WELL_TEST);
     when(workProgrammeActivity.getOtherCategoryName()).thenReturn(null);
@@ -257,7 +261,7 @@ class WorkProgrammeActivityServiceTest {
     when(workProgrammeActivity.getDescription()).thenReturn("Test Description");
     when(workProgrammeActivity.getCommitment()).thenReturn(WorkProgrammeActivityCommitment.FIRM);
     when(workProgrammeActivityStatusService.getLatestStatusesFor(List.of(workProgrammeActivity)))
-        .thenReturn(Map.of(eventReference, workProgrammeActivityStatus));
+        .thenReturn(Map.of(eventRef.getId(), workProgrammeActivityStatus));
 
     when(workProgrammeActivityRepository.findAllByLicenceScheduleDetail(any()))
         .thenReturn(List.of(workProgrammeActivity));

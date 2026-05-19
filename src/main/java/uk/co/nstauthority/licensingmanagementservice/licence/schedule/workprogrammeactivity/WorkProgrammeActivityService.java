@@ -160,7 +160,7 @@ public class WorkProgrammeActivityService {
   private List<WorkProgrammeActivityView> buildWorkProgrammeActivityViews(List<WorkProgrammeActivity> activities) {
     var statusByRef = workProgrammeActivityStatusService.getLatestStatusesFor(activities);
     return activities.stream()
-        .map(activity -> createWorkProgrammeActivityView(activity, statusByRef.get(activity.getEventReference())))
+        .map(activity -> createWorkProgrammeActivityView(activity, statusByRef.get(activity.getEventReference().getId())))
         .toList();
   }
 

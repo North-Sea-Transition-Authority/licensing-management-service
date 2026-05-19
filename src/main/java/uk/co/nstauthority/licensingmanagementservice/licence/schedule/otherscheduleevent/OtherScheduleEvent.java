@@ -15,6 +15,7 @@ import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -59,7 +60,9 @@ public class OtherScheduleEvent implements LinkedToDuplicationParent<LicenceSche
 
   private String comments;
 
-  private UUID eventReference;
+  @ManyToOne
+  @JoinColumn(name = "event_reference_id")
+  private EventReference eventReference;
 
   public UUID getId() {
     return id;
@@ -160,11 +163,11 @@ public class OtherScheduleEvent implements LinkedToDuplicationParent<LicenceSche
         : category.getDisplayName();
   }
 
-  public UUID getEventReference() {
+  public EventReference getEventReference() {
     return eventReference;
   }
 
-  public void setEventReference(UUID eventReference) {
+  public void setEventReference(EventReference eventReference) {
     this.eventReference = eventReference;
   }
 }

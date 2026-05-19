@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -26,6 +27,7 @@ public class OtherScheduleEventFormService {
   private final LicenceTypeRulesResolver licenceTypeRulesResolver;
   private final LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
+  private final EventReferenceService eventReferenceService;
 
   public OtherScheduleEventFormService(
       OtherScheduleEventRepository otherScheduleEventRepository,
@@ -33,7 +35,8 @@ public class OtherScheduleEventFormService {
       LicenceSchedulePhaseService licenceSchedulePhaseService,
       LicenceTypeRulesResolver licenceTypeRulesResolver,
       LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService,
-      LicenceScheduleCalculationService licenceScheduleCalculationService
+      LicenceScheduleCalculationService licenceScheduleCalculationService,
+      EventReferenceService eventReferenceService
   ) {
     this.otherScheduleEventRepository = otherScheduleEventRepository;
     this.licenceScheduleTermService = licenceScheduleTermService;
@@ -41,6 +44,7 @@ public class OtherScheduleEventFormService {
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
     this.licenceScheduleRelativeOptionsService = licenceScheduleRelativeOptionsService;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
+    this.eventReferenceService = eventReferenceService;
   }
 
   public Map<String, String> getDateOptions(LicenceScheduleDetail licenceScheduleDetail) {
@@ -97,7 +101,9 @@ public class OtherScheduleEventFormService {
     event.setComments(form.getComments());
 
     if (event.getEventReference() == null) {
-      event.setEventReference(UUID.randomUUID());
+      event.setEventReference(
+          eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule())
+      );
     }
     
     otherScheduleEventRepository.save(event);

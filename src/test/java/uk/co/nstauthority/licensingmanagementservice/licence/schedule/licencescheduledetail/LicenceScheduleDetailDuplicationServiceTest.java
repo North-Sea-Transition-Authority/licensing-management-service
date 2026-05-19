@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationSour
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
@@ -127,15 +128,19 @@ class LicenceScheduleDetailDuplicationServiceTest {
 
     var oldTerm = new LicenceScheduleTerm();
     oldTerm.setLicenceScheduleDetail(oldDetail);
-    oldTerm.setEventReference(UUID.randomUUID());
-    
+    var oldTermRef = new EventReference();
+    oldTermRef.setId(UUID.randomUUID());
+    oldTerm.setEventReference(oldTermRef);
+
     var newTerm = new LicenceScheduleTerm();
     newTerm.setLicenceScheduleDetail(newDetail);
     newTerm.setEventReference(oldTerm.getEventReference());
 
     var oldPhase = new LicenceSchedulePhase();
     oldPhase.setLicenceScheduleDetail(oldDetail);
-    oldPhase.setEventReference(UUID.randomUUID());
+    var oldPhaseRef = new EventReference();
+    oldPhaseRef.setId(UUID.randomUUID());
+    oldPhase.setEventReference(oldPhaseRef);
 
     var newPhase = new LicenceSchedulePhase();
     newPhase.setLicenceScheduleDetail(newDetail);

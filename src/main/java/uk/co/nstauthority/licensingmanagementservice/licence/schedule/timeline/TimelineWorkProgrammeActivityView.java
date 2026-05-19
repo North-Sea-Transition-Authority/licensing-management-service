@@ -60,7 +60,7 @@ public record TimelineWorkProgrammeActivityView(
           .renderStatusUpdatePage(workProgrammeActivity.getId(), null))
         : "";
 
-    var status = eventRefWorkProgrammeStatusMap.get(workProgrammeActivity.getEventReference());
+    var status = eventRefWorkProgrammeStatusMap.get(workProgrammeActivity.getEventReference().getId());
 
     var statusView = status != null
         ? status.getStatus()

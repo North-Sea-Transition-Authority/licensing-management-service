@@ -1,9 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm;
 
 import jakarta.transaction.Transactional;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Service
@@ -11,13 +11,16 @@ public class LicenceScheduleTermFormService {
 
   private final LicenceScheduleTermRepository licenceScheduleTermRepository;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
+  private final EventReferenceService eventReferenceService;
 
   public LicenceScheduleTermFormService(
       LicenceScheduleTermRepository licenceScheduleTermRepository,
-      LicenceScheduleCalculationService licenceScheduleCalculationService
+      LicenceScheduleCalculationService licenceScheduleCalculationService,
+      EventReferenceService eventReferenceService
   ) {
     this.licenceScheduleTermRepository = licenceScheduleTermRepository;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
+    this.eventReferenceService = eventReferenceService;
   }
 
   @Transactional
@@ -31,7 +34,9 @@ public class LicenceScheduleTermFormService {
     licenceScheduleTerm.setTermDuration(licenceScheduleTermForm.getTermDuration().toThreeFieldDuration());
 
     if (licenceScheduleTerm.getEventReference() == null) {
-      licenceScheduleTerm.setEventReference(UUID.randomUUID());
+      licenceScheduleTerm.setEventReference(
+          eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule())
+      );
     }
 
     licenceScheduleTermRepository.save(licenceScheduleTerm);

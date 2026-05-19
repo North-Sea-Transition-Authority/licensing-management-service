@@ -17,6 +17,7 @@ import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Audited
@@ -44,7 +45,9 @@ public class LicenceScheduleTerm implements LinkedToDuplicationParent<LicenceSch
 
   private LocalDate endDate;
 
-  private UUID eventReference;
+  @ManyToOne
+  @JoinColumn(name = "event_reference_id")
+  private EventReference eventReference;
 
   public UUID getId() {
     return id;
@@ -100,11 +103,11 @@ public class LicenceScheduleTerm implements LinkedToDuplicationParent<LicenceSch
     this.endDate = endDate;
   }
 
-  public UUID getEventReference() {
+  public EventReference getEventReference() {
     return eventReference;
   }
 
-  public void setEventReference(UUID eventReference) {
+  public void setEventReference(EventReference eventReference) {
     this.eventReference = eventReference;
   }
 }

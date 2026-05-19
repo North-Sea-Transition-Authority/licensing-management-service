@@ -1,11 +1,11 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase;
 
 import jakarta.transaction.Transactional;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
@@ -16,15 +16,18 @@ public class LicenceSchedulePhaseFormService {
   private final LicenceSchedulePhaseRepository licenceSchedulePhaseRepository;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
   private final LicenceScheduleTermService licenceScheduleTermService;
+  private final EventReferenceService eventReferenceService;
 
   public LicenceSchedulePhaseFormService(
       LicenceSchedulePhaseRepository licenceSchedulePhaseRepository,
       LicenceScheduleCalculationService licenceScheduleCalculationService,
-      LicenceScheduleTermService licenceScheduleTermService
+      LicenceScheduleTermService licenceScheduleTermService,
+      EventReferenceService eventReferenceService
   ) {
     this.licenceSchedulePhaseRepository = licenceSchedulePhaseRepository;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
     this.licenceScheduleTermService = licenceScheduleTermService;
+    this.eventReferenceService = eventReferenceService;
   }
 
   @Transactional
@@ -40,7 +43,9 @@ public class LicenceSchedulePhaseFormService {
     licenceSchedulePhase.setLicenceScheduleTerm(getRelatedTerm(licenceScheduleDetail, licenceSchedulePhaseForm.getPhaseType()));
 
     if (licenceSchedulePhase.getEventReference() == null) {
-      licenceSchedulePhase.setEventReference(UUID.randomUUID());
+      licenceSchedulePhase.setEventReference(
+          eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule())
+      );
     }
 
     licenceSchedulePhaseRepository.save(licenceSchedulePhase);

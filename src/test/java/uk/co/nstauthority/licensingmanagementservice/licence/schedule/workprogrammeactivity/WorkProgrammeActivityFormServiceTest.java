@@ -25,6 +25,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRu
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
@@ -57,6 +59,9 @@ class WorkProgrammeActivityFormServiceTest {
   @Mock
   private WorkProgrammeActivityStatusService workProgrammeActivityStatusService;
 
+  @Mock
+  private EventReferenceService eventReferenceService;
+
   @InjectMocks
   private WorkProgrammeActivityFormService workProgrammeActivityFormService;
 
@@ -81,7 +86,6 @@ class WorkProgrammeActivityFormServiceTest {
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
     phase.setPhaseType(PhaseType.PHASE_A);
-
 
     when(licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(
         Map.of(phase.getId().toString(),
@@ -134,6 +138,9 @@ class WorkProgrammeActivityFormServiceTest {
 
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
 
+    var eventReference = new EventReference();
+    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule())).thenReturn(eventReference);
+
     var testDuration = new ThreeFieldDuration(1,0,0);
 
     form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
@@ -153,7 +160,8 @@ class WorkProgrammeActivityFormServiceTest {
             WorkProgrammeActivity::getDueDate,
             WorkProgrammeActivity::getLicenceScheduleTerm,
             WorkProgrammeActivity::getLicenceSchedulePhase,
-            WorkProgrammeActivity::getRelativeDuration
+            WorkProgrammeActivity::getRelativeDuration,
+            WorkProgrammeActivity::getEventReference
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -165,7 +173,8 @@ class WorkProgrammeActivityFormServiceTest {
             null,
             term,
             null,
-            testDuration
+            testDuration,
+            eventReference
         );
 
     verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
@@ -194,7 +203,7 @@ class WorkProgrammeActivityFormServiceTest {
     form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
 
     var activity = new WorkProgrammeActivity();
-    activity.setEventReference(UUID.randomUUID());
+    activity.setEventReference(new EventReference());
 
     workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, activity);
 
@@ -249,6 +258,9 @@ class WorkProgrammeActivityFormServiceTest {
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
 
+    var eventReference = new EventReference();
+    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule())).thenReturn(eventReference);
+
     var testDuration = new ThreeFieldDuration(1,0,0);
 
     form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
@@ -268,7 +280,8 @@ class WorkProgrammeActivityFormServiceTest {
             WorkProgrammeActivity::getDueDate,
             WorkProgrammeActivity::getLicenceScheduleTerm,
             WorkProgrammeActivity::getLicenceSchedulePhase,
-            WorkProgrammeActivity::getRelativeDuration
+            WorkProgrammeActivity::getRelativeDuration,
+            WorkProgrammeActivity::getEventReference
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -280,7 +293,8 @@ class WorkProgrammeActivityFormServiceTest {
             null,
             null,
             phase,
-            testDuration
+            testDuration,
+            eventReference
         );
 
     verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
@@ -304,6 +318,9 @@ class WorkProgrammeActivityFormServiceTest {
 
     when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
 
+    var eventReference = new EventReference();
+    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule())).thenReturn(eventReference);
+
     workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, new WorkProgrammeActivity());
 
     verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
@@ -318,7 +335,8 @@ class WorkProgrammeActivityFormServiceTest {
             WorkProgrammeActivity::getDateOption,
             WorkProgrammeActivity::getDueDate,
             WorkProgrammeActivity::getLicenceScheduleTerm,
-            WorkProgrammeActivity::getLicenceSchedulePhase
+            WorkProgrammeActivity::getLicenceSchedulePhase,
+            WorkProgrammeActivity::getEventReference
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -329,7 +347,8 @@ class WorkProgrammeActivityFormServiceTest {
             form.getWorkProgrammeActivityDateOption(),
             null,
             term,
-            null
+            null,
+            eventReference
         );
 
     verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
@@ -353,6 +372,9 @@ class WorkProgrammeActivityFormServiceTest {
 
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
 
+    var eventReference = new EventReference();
+    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule())).thenReturn(eventReference);
+
     workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, new WorkProgrammeActivity());
 
     verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
@@ -367,7 +389,8 @@ class WorkProgrammeActivityFormServiceTest {
             WorkProgrammeActivity::getDateOption,
             WorkProgrammeActivity::getDueDate,
             WorkProgrammeActivity::getLicenceScheduleTerm,
-            WorkProgrammeActivity::getLicenceSchedulePhase
+            WorkProgrammeActivity::getLicenceSchedulePhase,
+            WorkProgrammeActivity::getEventReference
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -378,7 +401,8 @@ class WorkProgrammeActivityFormServiceTest {
             form.getWorkProgrammeActivityDateOption(),
             null,
             null,
-            phase
+            phase,
+            eventReference
         );
 
     verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());

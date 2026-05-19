@@ -81,10 +81,10 @@ public class WorkProgrammeActivityStatusService {
 
     var eventReferenceStatusesMap = workProgrammeActivityStatusRepository.findAllByEventReferenceIn(eventReferences)
         .stream()
-        .collect(Collectors.groupingBy(WorkProgrammeActivityStatus::getEventReference, Collectors.toList()));
+        .collect(Collectors.groupingBy(e -> e.getEventReference().getId(), Collectors.toList()));
 
     return eventReferences.stream()
-        .map(ref -> eventReferenceStatusesMap.getOrDefault(ref, List.of()))
+        .map(ref -> eventReferenceStatusesMap.getOrDefault(ref.getId(), List.of()))
         .map(this::getLatestStatusFromList)
         .flatMap(Optional::stream)
         .collect(StreamUtil.toLinkedHashMap(s -> s.getEventReference().getId(), Function.identity()));

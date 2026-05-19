@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Service
@@ -18,7 +17,7 @@ public class LicenceScheduleTermService {
   }
 
   public List<LicenceScheduleTerm> getActiveTermsByLicenceScheduleDetail(LicenceScheduleDetail scheduleDetail) {
-    return licenceScheduleTermRepository.findByLicenceScheduleDetailAndStatus(scheduleDetail, LicenceScheduleEventStatus.ACTIVE);
+    return licenceScheduleTermRepository.findAllByLicenceScheduleDetail(scheduleDetail);
   }
 
   @Transactional
@@ -33,7 +32,6 @@ public class LicenceScheduleTermService {
 
   @Transactional
   void deleteTerm(LicenceScheduleTerm licenceScheduleTerm) {
-    licenceScheduleTerm.setStatus(LicenceScheduleEventStatus.DELETED);
-    licenceScheduleTermRepository.save(licenceScheduleTerm);
+    licenceScheduleTermRepository.delete(licenceScheduleTerm);
   }
 }

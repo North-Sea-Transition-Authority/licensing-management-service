@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
@@ -24,10 +23,7 @@ public class LicenceSchedulePhaseService {
   }
 
   public List<LicenceSchedulePhase> getActivePhasesByLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
-    return licenceSchedulePhaseRepository.findByLicenceScheduleDetailAndStatus(
-        licenceScheduleDetail,
-        LicenceScheduleEventStatus.ACTIVE
-    );
+    return licenceSchedulePhaseRepository.findAllByLicenceScheduleDetail(licenceScheduleDetail);
   }
 
   @Transactional
@@ -36,15 +32,11 @@ public class LicenceSchedulePhaseService {
   }
 
   public List<LicenceSchedulePhase> getActivePhasesByTerm(LicenceScheduleTerm licenceScheduleTerm) {
-    return licenceSchedulePhaseRepository.findByLicenceScheduleTermAndStatus(
-        licenceScheduleTerm,
-        LicenceScheduleEventStatus.ACTIVE
-    );
+    return licenceSchedulePhaseRepository.findAllByLicenceScheduleTerm(licenceScheduleTerm);
   }
 
   @Transactional
   void deletePhase(LicenceSchedulePhase licenceSchedulePhase) {
-    licenceSchedulePhase.setStatus(LicenceScheduleEventStatus.DELETED);
-    licenceSchedulePhaseRepository.save(licenceSchedulePhase);
+    licenceSchedulePhaseRepository.delete(licenceSchedulePhase);
   }
 }

@@ -22,7 +22,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
@@ -154,8 +153,7 @@ class WorkProgrammeActivityFormServiceTest {
             WorkProgrammeActivity::getDueDate,
             WorkProgrammeActivity::getLicenceScheduleTerm,
             WorkProgrammeActivity::getLicenceSchedulePhase,
-            WorkProgrammeActivity::getRelativeDuration,
-            WorkProgrammeActivity::getStatus
+            WorkProgrammeActivity::getRelativeDuration
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -167,8 +165,7 @@ class WorkProgrammeActivityFormServiceTest {
             null,
             term,
             null,
-            testDuration,
-            LicenceScheduleEventStatus.ACTIVE
+            testDuration
         );
 
     verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
@@ -215,7 +212,6 @@ class WorkProgrammeActivityFormServiceTest {
             WorkProgrammeActivity::getLicenceScheduleTerm,
             WorkProgrammeActivity::getLicenceSchedulePhase,
             WorkProgrammeActivity::getRelativeDuration,
-            WorkProgrammeActivity::getStatus,
             WorkProgrammeActivity::getEventReference
         )
         .containsExactly(
@@ -229,7 +225,6 @@ class WorkProgrammeActivityFormServiceTest {
             term,
             null,
             testDuration,
-            LicenceScheduleEventStatus.ACTIVE,
             activity.getEventReference()
         );
 
@@ -273,8 +268,7 @@ class WorkProgrammeActivityFormServiceTest {
             WorkProgrammeActivity::getDueDate,
             WorkProgrammeActivity::getLicenceScheduleTerm,
             WorkProgrammeActivity::getLicenceSchedulePhase,
-            WorkProgrammeActivity::getRelativeDuration,
-            WorkProgrammeActivity::getStatus
+            WorkProgrammeActivity::getRelativeDuration
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -286,8 +280,7 @@ class WorkProgrammeActivityFormServiceTest {
             null,
             null,
             phase,
-            testDuration,
-            LicenceScheduleEventStatus.ACTIVE
+            testDuration
         );
 
     verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
@@ -325,8 +318,7 @@ class WorkProgrammeActivityFormServiceTest {
             WorkProgrammeActivity::getDateOption,
             WorkProgrammeActivity::getDueDate,
             WorkProgrammeActivity::getLicenceScheduleTerm,
-            WorkProgrammeActivity::getLicenceSchedulePhase,
-            WorkProgrammeActivity::getStatus
+            WorkProgrammeActivity::getLicenceSchedulePhase
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -337,8 +329,7 @@ class WorkProgrammeActivityFormServiceTest {
             form.getWorkProgrammeActivityDateOption(),
             null,
             term,
-            null,
-            LicenceScheduleEventStatus.ACTIVE
+            null
         );
 
     verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
@@ -376,8 +367,7 @@ class WorkProgrammeActivityFormServiceTest {
             WorkProgrammeActivity::getDateOption,
             WorkProgrammeActivity::getDueDate,
             WorkProgrammeActivity::getLicenceScheduleTerm,
-            WorkProgrammeActivity::getLicenceSchedulePhase,
-            WorkProgrammeActivity::getStatus
+            WorkProgrammeActivity::getLicenceSchedulePhase
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -388,8 +378,7 @@ class WorkProgrammeActivityFormServiceTest {
             form.getWorkProgrammeActivityDateOption(),
             null,
             null,
-            phase,
-            LicenceScheduleEventStatus.ACTIVE
+            phase
         );
 
     verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());

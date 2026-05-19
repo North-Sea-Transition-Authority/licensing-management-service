@@ -16,7 +16,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiry;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryRepository;
@@ -174,7 +173,6 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     expectedNewTermLinkedActivity.setDateOption(termLinkedActivity.getDateOption());
     expectedNewTermLinkedActivity.setRelativeDuration(termLinkedActivity.getRelativeDuration());
     expectedNewTermLinkedActivity.setEventReference(termLinkedActivity.getEventReference());
-    expectedNewTermLinkedActivity.setStatus(LicenceScheduleEventStatus.ACTIVE);
 
     var expectedNewPhaseLinkedActivity = new WorkProgrammeActivity();
     expectedNewPhaseLinkedActivity.setLicenceScheduleDetail(newLicenceScheduleDetail);
@@ -182,7 +180,6 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     expectedNewPhaseLinkedActivity.setDateOption(phaseLinkedActivity.getDateOption());
     expectedNewPhaseLinkedActivity.setRelativeDuration(phaseLinkedActivity.getRelativeDuration());
     expectedNewPhaseLinkedActivity.setEventReference(phaseLinkedActivity.getEventReference());
-    expectedNewPhaseLinkedActivity.setStatus(LicenceScheduleEventStatus.ACTIVE);
     
     assertThat(newActivities)
         .usingRecursiveComparison()
@@ -270,7 +267,6 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     licenceScheduleTerm.setTermType(TermType.INITIAL);
     licenceScheduleTerm.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     licenceScheduleTerm.setEventReference(UUID.randomUUID());
-    licenceScheduleTerm.setStatus(LicenceScheduleEventStatus.ACTIVE);
     
     em.persist(licenceScheduleTerm);
 
@@ -280,7 +276,6 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
     licenceSchedulePhase.setPhaseDuration(new ThreeFieldDuration(0, 1, 0));
     licenceSchedulePhase.setEventReference(UUID.randomUUID());
-    licenceSchedulePhase.setStatus(LicenceScheduleEventStatus.ACTIVE);
     
     em.persist(licenceSchedulePhase);
 
@@ -290,7 +285,6 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     termLinkedActivity.setDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
     termLinkedActivity.setRelativeDuration(new ThreeFieldDuration(1, 0, 0));
     termLinkedActivity.setEventReference(UUID.randomUUID());
-    termLinkedActivity.setStatus(LicenceScheduleEventStatus.ACTIVE);
     
     em.persist(termLinkedActivity);
 
@@ -300,7 +294,6 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     phaseLinkedActivity.setDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
     phaseLinkedActivity.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
     phaseLinkedActivity.setEventReference(UUID.randomUUID());
-    phaseLinkedActivity.setStatus(LicenceScheduleEventStatus.ACTIVE);
 
     em.persist(phaseLinkedActivity);
 

@@ -22,7 +22,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
@@ -94,7 +93,6 @@ class LicenceScheduleRateFormServiceTest {
 
     assertThat(licenceScheduleRateArgumentCaptor.getValue()).extracting(
         LicenceScheduleRate::getLicenceScheduleDetail,
-        LicenceScheduleRate::getStatus,
         LicenceScheduleRate::getRateDefinitionOption,
         LicenceScheduleRate::getLicenceScheduleTerm,
         LicenceScheduleRate::getLicenceSchedulePhase,
@@ -104,7 +102,6 @@ class LicenceScheduleRateFormServiceTest {
         LicenceScheduleRate::getRentalRate
     ).containsExactly(
         licenceScheduleDetail,
-        LicenceScheduleEventStatus.ACTIVE,
         RateDefinitionOption.TERM,
         term,
         null,
@@ -140,7 +137,6 @@ class LicenceScheduleRateFormServiceTest {
 
     assertThat(licenceScheduleRateArgumentCaptor.getValue()).extracting(
         LicenceScheduleRate::getLicenceScheduleDetail,
-        LicenceScheduleRate::getStatus,
         LicenceScheduleRate::getRateDefinitionOption,
         LicenceScheduleRate::getLicenceScheduleTerm,
         LicenceScheduleRate::getLicenceSchedulePhase,
@@ -151,7 +147,6 @@ class LicenceScheduleRateFormServiceTest {
         LicenceScheduleRate::getEventReference
     ).containsExactly(
         licenceScheduleDetail,
-        LicenceScheduleEventStatus.ACTIVE,
         RateDefinitionOption.TERM,
         term,
         null,
@@ -185,7 +180,6 @@ class LicenceScheduleRateFormServiceTest {
 
     assertThat(licenceScheduleRateArgumentCaptor.getValue()).extracting(
         LicenceScheduleRate::getLicenceScheduleDetail,
-        LicenceScheduleRate::getStatus,
         LicenceScheduleRate::getRateDefinitionOption,
         LicenceScheduleRate::getLicenceScheduleTerm,
         LicenceScheduleRate::getLicenceSchedulePhase,
@@ -195,7 +189,6 @@ class LicenceScheduleRateFormServiceTest {
         LicenceScheduleRate::getRentalRate
     ).containsExactly(
         licenceScheduleDetail,
-        LicenceScheduleEventStatus.ACTIVE,
         RateDefinitionOption.PHASE,
         null,
         phase,
@@ -229,7 +222,6 @@ class LicenceScheduleRateFormServiceTest {
 
     assertThat(licenceScheduleRateArgumentCaptor.getValue()).extracting(
         LicenceScheduleRate::getLicenceScheduleDetail,
-        LicenceScheduleRate::getStatus,
         LicenceScheduleRate::getRateDefinitionOption,
         LicenceScheduleRate::getLicenceScheduleTerm,
         LicenceScheduleRate::getLicenceSchedulePhase,
@@ -239,7 +231,6 @@ class LicenceScheduleRateFormServiceTest {
         LicenceScheduleRate::getRentalRate
     ).containsExactly(
         licenceScheduleDetail,
-        LicenceScheduleEventStatus.ACTIVE,
         RateDefinitionOption.CUSTOM_PERIOD,
         term,
         null,
@@ -274,7 +265,6 @@ class LicenceScheduleRateFormServiceTest {
 
     assertThat(licenceScheduleRateArgumentCaptor.getValue()).extracting(
         LicenceScheduleRate::getLicenceScheduleDetail,
-        LicenceScheduleRate::getStatus,
         LicenceScheduleRate::getRateDefinitionOption,
         LicenceScheduleRate::getLicenceScheduleTerm,
         LicenceScheduleRate::getLicenceSchedulePhase,
@@ -284,7 +274,6 @@ class LicenceScheduleRateFormServiceTest {
         LicenceScheduleRate::getRentalRate
     ).containsExactly(
         licenceScheduleDetail,
-        LicenceScheduleEventStatus.ACTIVE,
         RateDefinitionOption.CUSTOM_PERIOD,
         null,
         phase,
@@ -321,7 +310,6 @@ class LicenceScheduleRateFormServiceTest {
 
     assertThat(licenceScheduleRateArgumentCaptor.getValue()).extracting(
         LicenceScheduleRate::getLicenceScheduleDetail,
-        LicenceScheduleRate::getStatus,
         LicenceScheduleRate::getRateDefinitionOption,
         LicenceScheduleRate::getLicenceScheduleTerm,
         LicenceScheduleRate::getLicenceSchedulePhase,
@@ -331,7 +319,6 @@ class LicenceScheduleRateFormServiceTest {
         LicenceScheduleRate::getRentalRate
     ).containsExactly(
         licenceScheduleDetail,
-        LicenceScheduleEventStatus.ACTIVE,
         RateDefinitionOption.CUSTOM_PERIOD,
         term,
         null,
@@ -369,7 +356,6 @@ class LicenceScheduleRateFormServiceTest {
 
     assertThat(licenceScheduleRateArgumentCaptor.getValue()).extracting(
         LicenceScheduleRate::getLicenceScheduleDetail,
-        LicenceScheduleRate::getStatus,
         LicenceScheduleRate::getRateDefinitionOption,
         LicenceScheduleRate::getLicenceScheduleTerm,
         LicenceScheduleRate::getLicenceSchedulePhase,
@@ -379,7 +365,6 @@ class LicenceScheduleRateFormServiceTest {
         LicenceScheduleRate::getRentalRate
     ).containsExactly(
         licenceScheduleDetail,
-        LicenceScheduleEventStatus.ACTIVE,
         RateDefinitionOption.CUSTOM_PERIOD,
         null,
         phase,

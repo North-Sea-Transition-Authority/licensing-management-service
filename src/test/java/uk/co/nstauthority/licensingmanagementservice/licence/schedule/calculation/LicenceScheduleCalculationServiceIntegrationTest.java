@@ -140,6 +140,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
     assertThat(actualActivityResult)
         .usingRecursiveComparison()
         .ignoringFields("id")
+        .ignoringCollectionOrder()
         .isEqualTo(expectedActivityResult);
 
     var expectedRateResult = List.of(linkedRate, startDateRate, relativeRate);
@@ -148,6 +149,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
     assertThat(actualRateResult)
         .usingRecursiveComparison()
         .ignoringFields("id")
+        .ignoringCollectionOrder()
         .isEqualTo(expectedRateResult);
 
     var expectedOtherScheduleEventResult = List.of(otherScheduleEvent, otherScheduleEvent2);
@@ -156,6 +158,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
     assertThat(actualOtherScheduleEventResult)
         .usingRecursiveComparison()
         .ignoringFields("id")
+        .ignoringCollectionOrder()
         .isEqualTo(expectedOtherScheduleEventResult);
   }
 

@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicateThisOnUpdate;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationSource;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -19,28 +18,24 @@ public interface OtherScheduleEventRepository
   @DuplicateThisOnUpdate
   List<OtherScheduleEvent> findAllByLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail);
 
-  List<OtherScheduleEvent> findAllByLicenceScheduleTermAndDateOptionAndStatus(
+  List<OtherScheduleEvent> findAllByLicenceScheduleTermAndDateOption(
       LicenceScheduleTerm licenceScheduleTerm,
-      OtherScheduleEventDateOption dateOption,
-      LicenceScheduleEventStatus licenceScheduleEventStatus
+      OtherScheduleEventDateOption dateOption
   );
 
-  List<OtherScheduleEvent> findAllByLicenceSchedulePhaseAndDateOptionAndStatus(
+  List<OtherScheduleEvent> findAllByLicenceSchedulePhaseAndDateOption(
       LicenceSchedulePhase licenceSchedulePhase,
-      OtherScheduleEventDateOption dateOption,
-      LicenceScheduleEventStatus licenceScheduleEventStatus
+      OtherScheduleEventDateOption dateOption
   );
 
-  List<OtherScheduleEvent> findAllByLicenceScheduleDetailAndEventDateBetweenAndStatus(
+  List<OtherScheduleEvent> findAllByLicenceScheduleDetailAndEventDateBetween(
       LicenceScheduleDetail licenceScheduleDetail,
       LocalDate from,
-      LocalDate to,
-      LicenceScheduleEventStatus licenceScheduleEventStatus
+      LocalDate to
   );
 
-  List<OtherScheduleEvent> findAllByLicenceScheduleDetailAndEventDateAfterAndStatus(
+  List<OtherScheduleEvent> findAllByLicenceScheduleDetailAndEventDateAfter(
       LicenceScheduleDetail licenceScheduleDetail,
-      LocalDate date,
-      LicenceScheduleEventStatus status
+      LocalDate date
   );
 }

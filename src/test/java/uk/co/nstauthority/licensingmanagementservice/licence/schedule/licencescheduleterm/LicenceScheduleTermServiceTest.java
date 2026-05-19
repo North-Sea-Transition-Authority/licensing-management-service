@@ -11,13 +11,10 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,16 +26,13 @@ class LicenceScheduleTermServiceTest {
   @InjectMocks
   private LicenceScheduleTermService licenceScheduleTermService;
 
-  @Captor
-  private ArgumentCaptor<LicenceScheduleTerm> licenceScheduleTermArgumentCaptor;
-
   @Test
   void getActiveTermsByLicenceScheduleDetail() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
 
     licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail);
 
-    verify(licenceScheduleTermRepository).findByLicenceScheduleDetailAndStatus(licenceScheduleDetail, LicenceScheduleEventStatus.ACTIVE);
+    verify(licenceScheduleTermRepository).findAllByLicenceScheduleDetail(licenceScheduleDetail);
   }
 
   @Test
@@ -71,12 +65,9 @@ class LicenceScheduleTermServiceTest {
   @Test
   void deleteTerm() {
     var licenceScheduleTerm = new LicenceScheduleTerm();
-    licenceScheduleTerm.setStatus(LicenceScheduleEventStatus.ACTIVE);
 
     licenceScheduleTermService.deleteTerm(licenceScheduleTerm);
 
-    verify(licenceScheduleTermRepository).save(licenceScheduleTermArgumentCaptor.capture());
-
-    assertThat(licenceScheduleTermArgumentCaptor.getValue().getStatus()).isEqualTo(LicenceScheduleEventStatus.DELETED);
+    verify(licenceScheduleTermRepository).delete(licenceScheduleTerm);
   }
 }

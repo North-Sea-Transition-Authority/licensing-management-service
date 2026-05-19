@@ -11,13 +11,10 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
@@ -29,9 +26,6 @@ class LicenceSchedulePhaseServiceTest {
 
   @InjectMocks
   private LicenceSchedulePhaseService licenceSchedulePhaseService;
-
-  @Captor
-  private ArgumentCaptor<LicenceSchedulePhase> licenceSchedulePhaseArgumentCaptor;
 
   @Test
   void getPhaseByIdOrThrow() {
@@ -57,7 +51,7 @@ class LicenceSchedulePhaseServiceTest {
 
     licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail);
 
-    verify(licenceSchedulePhaseRepository).findByLicenceScheduleDetailAndStatus(licenceScheduleDetail, LicenceScheduleEventStatus.ACTIVE);
+    verify(licenceSchedulePhaseRepository).findAllByLicenceScheduleDetail(licenceScheduleDetail);
   }
 
   @Test
@@ -75,18 +69,15 @@ class LicenceSchedulePhaseServiceTest {
 
     licenceSchedulePhaseService.getActivePhasesByTerm(licenceScheduleTerm);
 
-    verify(licenceSchedulePhaseRepository).findByLicenceScheduleTermAndStatus(licenceScheduleTerm, LicenceScheduleEventStatus.ACTIVE);
+    verify(licenceSchedulePhaseRepository).findAllByLicenceScheduleTerm(licenceScheduleTerm);
   }
 
   @Test
   void deletePhase() {
     var licenceSchedulePhase = new LicenceSchedulePhase();
-    licenceSchedulePhase.setStatus(LicenceScheduleEventStatus.ACTIVE);
 
     licenceSchedulePhaseService.deletePhase(licenceSchedulePhase);
 
-    verify(licenceSchedulePhaseRepository).save(licenceSchedulePhaseArgumentCaptor.capture());
-
-    assertThat(licenceSchedulePhaseArgumentCaptor.getValue().getStatus()).isEqualTo(LicenceScheduleEventStatus.DELETED);
+    verify(licenceSchedulePhaseRepository).delete(licenceSchedulePhase);
   }
 }

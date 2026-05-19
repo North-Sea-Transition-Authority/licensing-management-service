@@ -22,7 +22,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
@@ -148,8 +147,7 @@ class OtherScheduleEventFormServiceTest {
             OtherScheduleEvent::getEventDate,
             OtherScheduleEvent::getLicenceScheduleTerm,
             OtherScheduleEvent::getLicenceSchedulePhase,
-            OtherScheduleEvent::getRelativeDuration,
-            OtherScheduleEvent::getStatus
+            OtherScheduleEvent::getRelativeDuration
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -160,8 +158,7 @@ class OtherScheduleEventFormServiceTest {
             null,
             term,
             null,
-            testDuration,
-            LicenceScheduleEventStatus.ACTIVE
+            testDuration
         );
 
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
@@ -205,7 +202,6 @@ class OtherScheduleEventFormServiceTest {
             OtherScheduleEvent::getLicenceScheduleTerm,
             OtherScheduleEvent::getLicenceSchedulePhase,
             OtherScheduleEvent::getRelativeDuration,
-            OtherScheduleEvent::getStatus,
             OtherScheduleEvent::getEventReference
         )
         .containsExactly(
@@ -218,7 +214,6 @@ class OtherScheduleEventFormServiceTest {
             term,
             null,
             testDuration,
-            LicenceScheduleEventStatus.ACTIVE,
             event.getEventReference()
         );
 
@@ -259,8 +254,7 @@ class OtherScheduleEventFormServiceTest {
             OtherScheduleEvent::getEventDate,
             OtherScheduleEvent::getLicenceScheduleTerm,
             OtherScheduleEvent::getLicenceSchedulePhase,
-            OtherScheduleEvent::getRelativeDuration,
-            OtherScheduleEvent::getStatus
+            OtherScheduleEvent::getRelativeDuration
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -271,8 +265,7 @@ class OtherScheduleEventFormServiceTest {
             null,
             null,
             phase,
-            testDuration,
-            LicenceScheduleEventStatus.ACTIVE
+            testDuration
         );
 
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
@@ -307,8 +300,7 @@ class OtherScheduleEventFormServiceTest {
             OtherScheduleEvent::getDateOption,
             OtherScheduleEvent::getEventDate,
             OtherScheduleEvent::getLicenceScheduleTerm,
-            OtherScheduleEvent::getLicenceSchedulePhase,
-            OtherScheduleEvent::getStatus
+            OtherScheduleEvent::getLicenceSchedulePhase
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -318,8 +310,7 @@ class OtherScheduleEventFormServiceTest {
             form.getOtherScheduleEventDateOption(),
             null,
             term,
-            null,
-            LicenceScheduleEventStatus.ACTIVE
+            null
         );
 
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
@@ -354,8 +345,7 @@ class OtherScheduleEventFormServiceTest {
             OtherScheduleEvent::getDateOption,
             OtherScheduleEvent::getEventDate,
             OtherScheduleEvent::getLicenceScheduleTerm,
-            OtherScheduleEvent::getLicenceSchedulePhase,
-            OtherScheduleEvent::getStatus
+            OtherScheduleEvent::getLicenceSchedulePhase
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -365,8 +355,7 @@ class OtherScheduleEventFormServiceTest {
             form.getOtherScheduleEventDateOption(),
             null,
             null,
-            phase,
-            LicenceScheduleEventStatus.ACTIVE
+            phase
         );
 
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);

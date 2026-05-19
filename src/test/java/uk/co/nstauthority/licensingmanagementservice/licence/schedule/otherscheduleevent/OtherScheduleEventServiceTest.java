@@ -10,12 +10,9 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -25,13 +22,10 @@ class OtherScheduleEventServiceTest {
 
   @Mock
   private OtherScheduleEventRepository otherScheduleEventRepository;
-  
+
   @InjectMocks
   private OtherScheduleEventService otherScheduleEventService;
 
-  @Captor
-  private ArgumentCaptor<OtherScheduleEvent> otherScheduleEventArgumentCaptor;
-  
   @Test
   void getOtherScheduleEventByIdOrThrow() {
     var event = new OtherScheduleEvent();
@@ -66,7 +60,7 @@ class OtherScheduleEventServiceTest {
 
     otherScheduleEventService.getActiveScheduleEventsByTermAndDateOption(term, OtherScheduleEventDateOption.RELATIVE_DATE);
 
-    verify(otherScheduleEventRepository).findAllByLicenceScheduleTermAndDateOptionAndStatus(term, OtherScheduleEventDateOption.RELATIVE_DATE, LicenceScheduleEventStatus.ACTIVE);
+    verify(otherScheduleEventRepository).findAllByLicenceScheduleTermAndDateOption(term, OtherScheduleEventDateOption.RELATIVE_DATE);
   }
 
   @Test
@@ -75,7 +69,7 @@ class OtherScheduleEventServiceTest {
 
     otherScheduleEventService.getActiveScheduleEventsByPhaseAndDateOption(phase, OtherScheduleEventDateOption.RELATIVE_DATE);
 
-    verify(otherScheduleEventRepository).findAllByLicenceSchedulePhaseAndDateOptionAndStatus(phase, OtherScheduleEventDateOption.RELATIVE_DATE, LicenceScheduleEventStatus.ACTIVE);
+    verify(otherScheduleEventRepository).findAllByLicenceSchedulePhaseAndDateOption(phase, OtherScheduleEventDateOption.RELATIVE_DATE);
   }
 
   @Test
@@ -91,11 +85,10 @@ class OtherScheduleEventServiceTest {
 
     otherScheduleEventService.getActiveScheduleEventsByDateRangeFor(term);
 
-    verify(otherScheduleEventRepository).findAllByLicenceScheduleDetailAndEventDateBetweenAndStatus(
+    verify(otherScheduleEventRepository).findAllByLicenceScheduleDetailAndEventDateBetween(
         licenceScheduleDetail,
         startDate,
-        endDate,
-        LicenceScheduleEventStatus.ACTIVE
+        endDate
     );
   }
 
@@ -112,11 +105,10 @@ class OtherScheduleEventServiceTest {
 
     otherScheduleEventService.getActiveScheduleEventsByDateRangeFor(phase);
 
-    verify(otherScheduleEventRepository).findAllByLicenceScheduleDetailAndEventDateBetweenAndStatus(
+    verify(otherScheduleEventRepository).findAllByLicenceScheduleDetailAndEventDateBetween(
         licenceScheduleDetail,
         startDate,
-        endDate,
-        LicenceScheduleEventStatus.ACTIVE
+        endDate
     );
   }
 
@@ -127,24 +119,15 @@ class OtherScheduleEventServiceTest {
 
     otherScheduleEventService.getActiveEventsAfterDate(detail, date);
 
-    verify(otherScheduleEventRepository).findAllByLicenceScheduleDetailAndEventDateAfterAndStatus(
-        detail,
-        date,
-        LicenceScheduleEventStatus.ACTIVE
-    );
+    verify(otherScheduleEventRepository).findAllByLicenceScheduleDetailAndEventDateAfter(detail, date);
   }
-  
+
   @Test
   void deleteOtherScheduleEvent() {
     var otherScheduleEvent = new OtherScheduleEvent();
-    otherScheduleEvent.setStatus(LicenceScheduleEventStatus.ACTIVE);
 
     otherScheduleEventService.deleteOtherScheduleEvent(otherScheduleEvent);
 
-    verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
-
-    assertThat(otherScheduleEventArgumentCaptor.getValue())
-        .extracting(OtherScheduleEvent::getStatus)
-        .isEqualTo(LicenceScheduleEventStatus.DELETED);
+    verify(otherScheduleEventRepository).delete(otherScheduleEvent);
   }
 }

@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicateThisOnUpdate;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationSource;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
@@ -18,15 +17,7 @@ public interface LicenceSchedulePhaseRepository
   @DuplicateThisOnUpdate
   List<LicenceSchedulePhase> findAllByLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail);
 
-  List<LicenceSchedulePhase> findByLicenceScheduleDetailAndStatus(
-      LicenceScheduleDetail licenceScheduleDetail,
-      LicenceScheduleEventStatus licenceScheduleEventStatus
-  );
-
-  List<LicenceSchedulePhase> findByLicenceScheduleTermAndStatus(
-      LicenceScheduleTerm licenceScheduleTerm,
-      LicenceScheduleEventStatus licenceScheduleEventStatus
-  );
+  List<LicenceSchedulePhase> findAllByLicenceScheduleTerm(LicenceScheduleTerm licenceScheduleTerm);
 
   boolean existsByLicenceScheduleTermId(UUID id);
 

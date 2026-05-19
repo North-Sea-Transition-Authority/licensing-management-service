@@ -5,7 +5,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -38,7 +37,6 @@ public class LicenceSchedulePhaseFormService {
     licenceSchedulePhase.setPhaseType(licenceSchedulePhaseForm.getPhaseType());
     licenceSchedulePhase.setPhaseDuration(licenceSchedulePhaseForm.getPhaseDuration().toThreeFieldDuration());
     licenceSchedulePhase.setComments(licenceSchedulePhaseForm.getComments());
-    licenceSchedulePhase.setStatus(LicenceScheduleEventStatus.ACTIVE);
     licenceSchedulePhase.setLicenceScheduleTerm(getRelatedTerm(licenceScheduleDetail, licenceSchedulePhaseForm.getPhaseType()));
 
     if (licenceSchedulePhase.getEventReference() == null) {

@@ -15,7 +15,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -66,14 +65,12 @@ class LicenceSchedulePhaseFormServiceTest {
         LicenceSchedulePhase::getPhaseType,
         LicenceSchedulePhase::getPhaseDuration,
         LicenceSchedulePhase::getComments,
-        LicenceSchedulePhase::getStatus,
         LicenceSchedulePhase::getLicenceScheduleTerm
     ).containsExactly(
         licenceScheduleDetail,
         PhaseType.PHASE_A,
         form.getPhaseDuration().toThreeFieldDuration(),
         form.getComments(),
-        LicenceScheduleEventStatus.ACTIVE,
         term
     );
 
@@ -110,7 +107,6 @@ class LicenceSchedulePhaseFormServiceTest {
         LicenceSchedulePhase::getPhaseType,
         LicenceSchedulePhase::getPhaseDuration,
         LicenceSchedulePhase::getComments,
-        LicenceSchedulePhase::getStatus,
         LicenceSchedulePhase::getLicenceScheduleTerm,
         LicenceSchedulePhase::getEventReference
     ).containsExactly(
@@ -118,7 +114,6 @@ class LicenceSchedulePhaseFormServiceTest {
         PhaseType.PHASE_A,
         form.getPhaseDuration().toThreeFieldDuration(),
         form.getComments(),
-        LicenceScheduleEventStatus.ACTIVE,
         term,
         phase.getEventReference()
     );

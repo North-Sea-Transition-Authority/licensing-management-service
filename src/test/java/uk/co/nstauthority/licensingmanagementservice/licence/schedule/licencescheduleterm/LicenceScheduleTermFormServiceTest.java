@@ -12,7 +12,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
@@ -50,13 +49,11 @@ class LicenceScheduleTermFormServiceTest {
     assertThat(result).extracting(
         LicenceScheduleTerm::getLicenceScheduleDetail,
         LicenceScheduleTerm::getTermType,
-        LicenceScheduleTerm::getTermDuration,
-        LicenceScheduleTerm::getStatus
+        LicenceScheduleTerm::getTermDuration
     ).containsExactly(
         licenceScheduleDetail,
         TermType.INITIAL,
-        form.getTermDuration().toThreeFieldDuration(),
-        LicenceScheduleEventStatus.ACTIVE
+        form.getTermDuration().toThreeFieldDuration()
     );
 
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
@@ -85,13 +82,11 @@ class LicenceScheduleTermFormServiceTest {
         LicenceScheduleTerm::getLicenceScheduleDetail,
         LicenceScheduleTerm::getTermType,
         LicenceScheduleTerm::getTermDuration,
-        LicenceScheduleTerm::getStatus,
         LicenceScheduleTerm::getEventReference
     ).containsExactly(
         licenceScheduleDetail,
         TermType.INITIAL,
         form.getTermDuration().toThreeFieldDuration(),
-        LicenceScheduleEventStatus.ACTIVE,
         term.getEventReference()
     );
 

@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicateThisOnUpdate;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationSource;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -20,45 +19,30 @@ public interface WorkProgrammeActivityRepository
   @DuplicateThisOnUpdate
   List<WorkProgrammeActivity> findAllByLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail);
 
-  List<WorkProgrammeActivity> findAllByLicenceScheduleDetailAndStatus(
-      LicenceScheduleDetail licenceScheduleDetail,
-      LicenceScheduleEventStatus status
-  );
-
-  List<WorkProgrammeActivity> findAllByLicenceScheduleTermAndDateOptionAndStatus(
+  List<WorkProgrammeActivity> findAllByLicenceScheduleTermAndDateOption(
       LicenceScheduleTerm licenceScheduleTerm,
-      WorkProgrammeActivityDateOption dateOption,
-      LicenceScheduleEventStatus status
+      WorkProgrammeActivityDateOption dateOption
   );
 
-  List<WorkProgrammeActivity> findAllByLicenceSchedulePhaseAndDateOptionAndStatus(
+  List<WorkProgrammeActivity> findAllByLicenceSchedulePhaseAndDateOption(
       LicenceSchedulePhase licenceSchedulePhase,
-      WorkProgrammeActivityDateOption dateOption,
-      LicenceScheduleEventStatus status
+      WorkProgrammeActivityDateOption dateOption
   );
 
-  List<WorkProgrammeActivity> findAllByLicenceScheduleDetailAndDueDateBetweenAndStatus(
+  List<WorkProgrammeActivity> findAllByLicenceScheduleDetailAndDueDateBetween(
       LicenceScheduleDetail licenceScheduleDetail,
       LocalDate startDate,
-      LocalDate endDate,
-      LicenceScheduleEventStatus status
+      LocalDate endDate
   );
 
-  List<WorkProgrammeActivity> findAllByLicenceScheduleDetailAndDueDateAfterAndStatus(
+  List<WorkProgrammeActivity> findAllByLicenceScheduleDetailAndDueDateAfter(
       LicenceScheduleDetail licenceScheduleDetail,
-      LocalDate date,
-      LicenceScheduleEventStatus licenceScheduleEventStatus
+      LocalDate date
   );
 
   @EntityGraph(attributePaths = {"licenceSchedulePhase.licenceScheduleTerm", "licenceScheduleTerm"})
-  List<WorkProgrammeActivity> findByLicenceSchedulePhaseAndStatus(
-      LicenceSchedulePhase licenceSchedulePhase,
-      LicenceScheduleEventStatus status
-  );
+  List<WorkProgrammeActivity> findByLicenceSchedulePhase(LicenceSchedulePhase licenceSchedulePhase);
 
   @EntityGraph(attributePaths = {"licenceSchedulePhase.licenceScheduleTerm", "licenceScheduleTerm"})
-  List<WorkProgrammeActivity> findByLicenceScheduleTermAndStatus(
-      LicenceScheduleTerm licenceScheduleTerm,
-      LicenceScheduleEventStatus status
-  );
+  List<WorkProgrammeActivity> findByLicenceScheduleTerm(LicenceScheduleTerm licenceScheduleTerm);
 }

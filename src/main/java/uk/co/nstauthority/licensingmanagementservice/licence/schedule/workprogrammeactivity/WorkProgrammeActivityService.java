@@ -7,7 +7,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
@@ -39,32 +38,21 @@ public class WorkProgrammeActivityService {
   }
 
   public List<WorkProgrammeActivity> getActiveWorkProgrammeActivities(LicenceScheduleDetail licenceScheduleDetail) {
-    return workProgrammeActivityRepository.findAllByLicenceScheduleDetailAndStatus(
-        licenceScheduleDetail,
-        LicenceScheduleEventStatus.ACTIVE
-    );
+    return workProgrammeActivityRepository.findAllByLicenceScheduleDetail(licenceScheduleDetail);
   }
 
   public List<WorkProgrammeActivity> getActiveWorkProgrammeActivitiesByTermAndDateOption(
       LicenceScheduleTerm licenceScheduleTerm,
       WorkProgrammeActivityDateOption dateOption
   ) {
-    return workProgrammeActivityRepository.findAllByLicenceScheduleTermAndDateOptionAndStatus(
-        licenceScheduleTerm,
-        dateOption,
-        LicenceScheduleEventStatus.ACTIVE
-    );
+    return workProgrammeActivityRepository.findAllByLicenceScheduleTermAndDateOption(licenceScheduleTerm, dateOption);
   }
 
   public List<WorkProgrammeActivity> getActiveWorkProgrammeActivitiesByPhaseAndDateOption(
       LicenceSchedulePhase licenceSchedulePhase,
       WorkProgrammeActivityDateOption dateOption
   ) {
-    return workProgrammeActivityRepository.findAllByLicenceSchedulePhaseAndDateOptionAndStatus(
-        licenceSchedulePhase,
-        dateOption,
-        LicenceScheduleEventStatus.ACTIVE
-    );
+    return workProgrammeActivityRepository.findAllByLicenceSchedulePhaseAndDateOption(licenceSchedulePhase, dateOption);
   }
 
   @Transactional
@@ -93,29 +81,19 @@ public class WorkProgrammeActivityService {
       LocalDate from,
       LocalDate to
   ) {
-    return workProgrammeActivityRepository.findAllByLicenceScheduleDetailAndDueDateBetweenAndStatus(
-        licenceScheduleDetail,
-        from,
-        to,
-        LicenceScheduleEventStatus.ACTIVE
-    );
+    return workProgrammeActivityRepository.findAllByLicenceScheduleDetailAndDueDateBetween(licenceScheduleDetail, from, to);
   }
 
   public List<WorkProgrammeActivity> getActiveWorkProgrammeActivitiesAfterDate(
       LicenceScheduleDetail licenceScheduleDetail,
       LocalDate date
   ) {
-    return workProgrammeActivityRepository.findAllByLicenceScheduleDetailAndDueDateAfterAndStatus(
-        licenceScheduleDetail,
-        date,
-        LicenceScheduleEventStatus.ACTIVE
-    );
+    return workProgrammeActivityRepository.findAllByLicenceScheduleDetailAndDueDateAfter(licenceScheduleDetail, date);
   }
 
   @Transactional
   public void deleteWorkProgrammeActivity(WorkProgrammeActivity workProgrammeActivity) {
-    workProgrammeActivity.setStatus(LicenceScheduleEventStatus.DELETED);
-    workProgrammeActivityRepository.save(workProgrammeActivity);
+    workProgrammeActivityRepository.delete(workProgrammeActivity);
   }
 
   public List<WorkProgrammeActivityView> getCurrentWorkProgrammeActivitiesViews(
@@ -137,33 +115,22 @@ public class WorkProgrammeActivityService {
   public List<WorkProgrammeActivityView> getLicenceWorkProgramActivitiesViewsForGivenTerm(
       LicenceScheduleTerm licenceScheduleTerm
   ) {
-    var workProgrammeActivities = workProgrammeActivityRepository.findByLicenceScheduleTermAndStatus(
-        licenceScheduleTerm,
-        LicenceScheduleEventStatus.ACTIVE
-    );
-
+    var workProgrammeActivities = workProgrammeActivityRepository.findByLicenceScheduleTerm(licenceScheduleTerm);
     return buildWorkProgrammeActivityViews(workProgrammeActivities);
   }
 
   public List<WorkProgrammeActivityView> getLicenceWorkProgramActivitiesViewsForGivenPhase(
       LicenceSchedulePhase licenceSchedulePhase
   ) {
-    var workProgrammeActivities = workProgrammeActivityRepository.findByLicenceSchedulePhaseAndStatus(
-        licenceSchedulePhase,
-        LicenceScheduleEventStatus.ACTIVE
-    );
+    var workProgrammeActivities = workProgrammeActivityRepository.findByLicenceSchedulePhase(licenceSchedulePhase);
     return buildWorkProgrammeActivityViews(workProgrammeActivities);
   }
 
   public List<WorkProgrammeActivityView> getLicenceWorkProgramActivitiesViews(
       LicenceScheduleDetail licenceScheduleDetail
   ) {
-    List<WorkProgrammeActivity> workProgrammeActivities = workProgrammeActivityRepository
-        .findAllByLicenceScheduleDetailAndStatus(
-        licenceScheduleDetail,
-        LicenceScheduleEventStatus.ACTIVE
-    );
-
+    List<WorkProgrammeActivity> workProgrammeActivities =
+        workProgrammeActivityRepository.findAllByLicenceScheduleDetail(licenceScheduleDetail);
     return buildWorkProgrammeActivityViews(workProgrammeActivities);
   }
 

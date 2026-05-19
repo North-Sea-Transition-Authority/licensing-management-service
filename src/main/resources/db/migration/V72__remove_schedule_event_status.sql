@@ -1,0 +1,10 @@
+ALTER TABLE licence_schedule_terms DROP COLUMN status;
+ALTER TABLE licence_schedule_terms_aud DROP COLUMN status;
+ALTER TABLE licence_schedule_phases DROP COLUMN status;
+ALTER TABLE licence_schedule_phases_aud DROP COLUMN status;
+ALTER TABLE work_programme_activities DROP COLUMN status;
+ALTER TABLE work_programme_activities_aud DROP COLUMN status;
+ALTER TABLE licence_schedule_rates DROP COLUMN status;
+ALTER TABLE licence_schedule_rates_aud DROP COLUMN status;
+ALTER TABLE other_schedule_events DROP COLUMN status;
+ALTER TABLE other_schedule_events_aud DROP COLUMN status;

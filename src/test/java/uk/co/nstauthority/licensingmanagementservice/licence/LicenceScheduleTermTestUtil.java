@@ -3,7 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence;
 import java.time.LocalDate;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
@@ -23,7 +22,6 @@ public class LicenceScheduleTermTestUtil {
     private ThreeFieldDuration termDuration;
     private LocalDate startDate;
     private LocalDate endDate;
-    private LicenceScheduleEventStatus status;
 
     private Builder() {}
 
@@ -57,11 +55,6 @@ public class LicenceScheduleTermTestUtil {
       return this;
     }
 
-    public Builder withStatus(LicenceScheduleEventStatus status) {
-      this.status = status;
-      return this;
-    }
-
     public LicenceScheduleTerm build() {
       var licenceScheduleTerm = new LicenceScheduleTerm();
       licenceScheduleTerm.setId(id);
@@ -70,7 +63,6 @@ public class LicenceScheduleTermTestUtil {
       licenceScheduleTerm.setTermDuration(termDuration);
       licenceScheduleTerm.setStartDate(startDate);
       licenceScheduleTerm.setEndDate(endDate);
-      licenceScheduleTerm.setStatus(status);
 
       return licenceScheduleTerm;
     }

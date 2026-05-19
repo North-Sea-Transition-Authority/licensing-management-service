@@ -12,14 +12,11 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -32,9 +29,6 @@ class LicenceScheduleRateServiceTest {
 
   @InjectMocks
   private LicenceScheduleRateService licenceScheduleRateService;
-
-  @Captor
-  private ArgumentCaptor<LicenceScheduleRate> licenceScheduleRateArgumentCaptor;
 
   private final LicenceScheduleTerm term = new LicenceScheduleTerm();
   private final LicenceSchedulePhase phase = new LicenceSchedulePhase();
@@ -68,11 +62,7 @@ class LicenceScheduleRateServiceTest {
 
   @Test
   void getActiveLicenceScheduleRatesAttachedToTerm() {
-    when(licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOptionAndStatus(
-        term,
-        RateDefinitionOption.TERM,
-        LicenceScheduleEventStatus.ACTIVE
-    ))
+    when(licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOption(term, RateDefinitionOption.TERM))
         .thenReturn(List.of(rate));
 
     assertThat(licenceScheduleRateService.getActiveLicenceScheduleRatesAttachedToTerm(term)).isEqualTo(List.of(rate));
@@ -80,11 +70,7 @@ class LicenceScheduleRateServiceTest {
 
   @Test
   void getActiveLicenceScheduleRatesByTerm_forTerm() {
-    when(licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOptionAndStatus(
-        term,
-        RateDefinitionOption.TERM,
-        LicenceScheduleEventStatus.ACTIVE
-    ))
+    when(licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOption(term, RateDefinitionOption.TERM))
         .thenReturn(List.of(rate));
 
     assertThat(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term)).isEqualTo(List.of(rate));
@@ -96,20 +82,15 @@ class LicenceScheduleRateServiceTest {
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
 
-    when(licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOptionAndStatus(
-        term,
-        RateDefinitionOption.TERM,
-        LicenceScheduleEventStatus.ACTIVE
-    ))
+    when(licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOption(term, RateDefinitionOption.TERM))
         .thenReturn(List.of());
 
     licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term);
 
-    verify(licenceScheduleRateRepository).findAllByLicenceScheduleDetailAndStartDateBetweenAndStatus(
+    verify(licenceScheduleRateRepository).findAllByLicenceScheduleDetailAndStartDateBetween(
         term.getLicenceScheduleDetail(),
         term.getStartDate(),
-        term.getEndDate(),
-        LicenceScheduleEventStatus.ACTIVE
+        term.getEndDate()
     );
   }
 
@@ -118,11 +99,7 @@ class LicenceScheduleRateServiceTest {
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setLicenceScheduleTerm(term);
 
-    when(licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOptionAndStatus(
-        term,
-        RateDefinitionOption.TERM,
-        LicenceScheduleEventStatus.ACTIVE
-    ))
+    when(licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOption(term, RateDefinitionOption.TERM))
         .thenReturn(List.of(rate));
 
     assertThat(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).isEqualTo(List.of());
@@ -132,11 +109,7 @@ class LicenceScheduleRateServiceTest {
   void getActiveLicenceScheduleRatesByPhase_forPhase() {
     phase.setPhaseType(PhaseType.PHASE_B);
 
-    when(licenceScheduleRateRepository.findAllByLicenceSchedulePhaseAndRateDefinitionOptionAndStatus(
-        phase,
-        RateDefinitionOption.PHASE,
-        LicenceScheduleEventStatus.ACTIVE
-    ))
+    when(licenceScheduleRateRepository.findAllByLicenceSchedulePhaseAndRateDefinitionOption(phase, RateDefinitionOption.PHASE))
         .thenReturn(List.of(rate));
 
     assertThat(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).isEqualTo(List.of(rate));
@@ -149,20 +122,15 @@ class LicenceScheduleRateServiceTest {
     phase.setEndDate(LocalDate.of(2025, 12, 31));
     phase.setPhaseType(PhaseType.PHASE_B);
 
-    when(licenceScheduleRateRepository.findAllByLicenceSchedulePhaseAndRateDefinitionOptionAndStatus(
-        phase,
-        RateDefinitionOption.PHASE,
-        LicenceScheduleEventStatus.ACTIVE
-    ))
+    when(licenceScheduleRateRepository.findAllByLicenceSchedulePhaseAndRateDefinitionOption(phase, RateDefinitionOption.PHASE))
         .thenReturn(List.of());
 
     licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A);
 
-    verify(licenceScheduleRateRepository).findAllByLicenceScheduleDetailAndStartDateBetweenAndStatus(
+    verify(licenceScheduleRateRepository).findAllByLicenceScheduleDetailAndStartDateBetween(
         phase.getLicenceScheduleDetail(),
         phase.getStartDate(),
-        phase.getEndDate(),
-        LicenceScheduleEventStatus.ACTIVE
+        phase.getEndDate()
     );
   }
 
@@ -170,10 +138,9 @@ class LicenceScheduleRateServiceTest {
   void getActiveLicenceScheduleRatesForTermAndDefinitionOption() {
     licenceScheduleRateService.getActiveLicenceScheduleRatesForTermAndDefinitionOption(term, RateDefinitionOption.CUSTOM_PERIOD);
 
-    verify(licenceScheduleRateRepository).findAllByLicenceScheduleTermAndRateDefinitionOptionAndStatus(
+    verify(licenceScheduleRateRepository).findAllByLicenceScheduleTermAndRateDefinitionOption(
         term,
-        RateDefinitionOption.CUSTOM_PERIOD,
-        LicenceScheduleEventStatus.ACTIVE
+        RateDefinitionOption.CUSTOM_PERIOD
     );
   }
 
@@ -181,10 +148,9 @@ class LicenceScheduleRateServiceTest {
   void getActiveLicenceScheduleRatesForPhaseAndDefinitionOption() {
     licenceScheduleRateService.getActiveLicenceScheduleRatesForPhaseAndDefinitionOption(phase, RateDefinitionOption.CUSTOM_PERIOD);
 
-    verify(licenceScheduleRateRepository).findAllByLicenceSchedulePhaseAndRateDefinitionOptionAndStatus(
+    verify(licenceScheduleRateRepository).findAllByLicenceSchedulePhaseAndRateDefinitionOption(
         phase,
-        RateDefinitionOption.CUSTOM_PERIOD,
-        LicenceScheduleEventStatus.ACTIVE
+        RateDefinitionOption.CUSTOM_PERIOD
     );
   }
 
@@ -195,11 +161,7 @@ class LicenceScheduleRateServiceTest {
 
     licenceScheduleRateService.getActiveRatesAfterDate(detail, date);
 
-    verify(licenceScheduleRateRepository).findAllByLicenceScheduleDetailAndStartDateAfterAndStatus(
-        detail,
-        date,
-        LicenceScheduleEventStatus.ACTIVE
-    );
+    verify(licenceScheduleRateRepository).findAllByLicenceScheduleDetailAndStartDateAfter(detail, date);
   }
 
   @Test
@@ -211,12 +173,8 @@ class LicenceScheduleRateServiceTest {
 
   @Test
   void deleteLicenceScheduleRate() {
-    rate.setStatus(LicenceScheduleEventStatus.ACTIVE);
-
     licenceScheduleRateService.deleteLicenceScheduleRate(rate);
 
-    verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
-
-    assertThat(licenceScheduleRateArgumentCaptor.getValue().getStatus()).isEqualTo(LicenceScheduleEventStatus.DELETED);
+    verify(licenceScheduleRateRepository).delete(rate);
   }
 }

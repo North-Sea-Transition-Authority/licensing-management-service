@@ -16,7 +16,6 @@ import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -58,9 +57,6 @@ public class LicenceScheduleRate implements LinkedToDuplicationParent<LicenceSch
   private BigDecimal rentalRate;
 
   private String comments;
-
-  @Enumerated(value = EnumType.STRING)
-  private LicenceScheduleEventStatus status;
 
   private UUID eventReference;
 
@@ -147,14 +143,6 @@ public class LicenceScheduleRate implements LinkedToDuplicationParent<LicenceSch
 
   public void setComments(String comments) {
     this.comments = comments;
-  }
-
-  public LicenceScheduleEventStatus getStatus() {
-    return status;
-  }
-
-  public void setStatus(LicenceScheduleEventStatus status) {
-    this.status = status;
   }
 
   public UUID getEventReference() {

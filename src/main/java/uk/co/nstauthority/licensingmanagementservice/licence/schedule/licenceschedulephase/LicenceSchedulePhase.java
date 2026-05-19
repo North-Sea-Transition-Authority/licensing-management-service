@@ -16,7 +16,6 @@ import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
@@ -50,9 +49,6 @@ public class LicenceSchedulePhase implements LinkedToDuplicationParent<LicenceSc
   private LocalDate endDate;
 
   private String comments;
-
-  @Enumerated(EnumType.STRING)
-  private LicenceScheduleEventStatus status;
 
   private UUID eventReference;
 
@@ -123,14 +119,6 @@ public class LicenceSchedulePhase implements LinkedToDuplicationParent<LicenceSc
 
   public void setLicenceScheduleTerm(LicenceScheduleTerm licenceScheduleTerm) {
     this.licenceScheduleTerm = licenceScheduleTerm;
-  }
-
-  public LicenceScheduleEventStatus getStatus() {
-    return status;
-  }
-
-  public void setStatus(LicenceScheduleEventStatus status) {
-    this.status = status;
   }
 
   public UUID getEventReference() {

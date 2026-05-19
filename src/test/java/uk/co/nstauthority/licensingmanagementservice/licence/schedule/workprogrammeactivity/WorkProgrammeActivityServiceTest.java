@@ -15,13 +15,10 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -46,9 +43,6 @@ class WorkProgrammeActivityServiceTest {
 
   @InjectMocks
   private WorkProgrammeActivityService workProgrammeActivityService;
-
-  @Captor
-  private ArgumentCaptor<WorkProgrammeActivity> workProgrammeActivityArgumentCaptor;
 
   private static final String DUE_DATE_DISPLAY = "10 May 2026";
   private static final UUID ACTIVITY_ID = UUID.randomUUID();
@@ -84,7 +78,7 @@ class WorkProgrammeActivityServiceTest {
 
     workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail);
 
-    verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndStatus(licenceScheduleDetail, LicenceScheduleEventStatus.ACTIVE);
+    verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetail(licenceScheduleDetail);
   }
 
   @Test
@@ -93,7 +87,7 @@ class WorkProgrammeActivityServiceTest {
 
     workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.RELATIVE_DATE);
 
-    verify(workProgrammeActivityRepository).findAllByLicenceScheduleTermAndDateOptionAndStatus(term, WorkProgrammeActivityDateOption.RELATIVE_DATE, LicenceScheduleEventStatus.ACTIVE);
+    verify(workProgrammeActivityRepository).findAllByLicenceScheduleTermAndDateOption(term, WorkProgrammeActivityDateOption.RELATIVE_DATE);
   }
 
   @Test
@@ -102,7 +96,7 @@ class WorkProgrammeActivityServiceTest {
 
     workProgrammeActivityService.getActiveWorkProgrammeActivitiesByPhaseAndDateOption(phase, WorkProgrammeActivityDateOption.RELATIVE_DATE);
 
-    verify(workProgrammeActivityRepository).findAllByLicenceSchedulePhaseAndDateOptionAndStatus(phase, WorkProgrammeActivityDateOption.RELATIVE_DATE, LicenceScheduleEventStatus.ACTIVE);
+    verify(workProgrammeActivityRepository).findAllByLicenceSchedulePhaseAndDateOption(phase, WorkProgrammeActivityDateOption.RELATIVE_DATE);
   }
 
   @Test
@@ -127,11 +121,10 @@ class WorkProgrammeActivityServiceTest {
 
     workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRangeFor(term);
 
-    verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndDueDateBetweenAndStatus(
+    verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndDueDateBetween(
         licenceScheduleDetail,
         startDate,
-        endDate,
-        LicenceScheduleEventStatus.ACTIVE
+        endDate
     );
   }
 
@@ -148,11 +141,10 @@ class WorkProgrammeActivityServiceTest {
 
     workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRangeFor(phase);
 
-    verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndDueDateBetweenAndStatus(
+    verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndDueDateBetween(
         licenceScheduleDetail,
         startDate,
-        endDate,
-        LicenceScheduleEventStatus.ACTIVE
+        endDate
     );
   }
 
@@ -163,25 +155,16 @@ class WorkProgrammeActivityServiceTest {
 
     workProgrammeActivityService.getActiveWorkProgrammeActivitiesAfterDate(detail, date);
 
-    verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndDueDateAfterAndStatus(
-        detail,
-        date,
-        LicenceScheduleEventStatus.ACTIVE
-    );
+    verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndDueDateAfter(detail, date);
   }
 
   @Test
   void deleteWorkProgrammeActivity() {
     var workProgrammeActivity = new WorkProgrammeActivity();
-    workProgrammeActivity.setStatus(LicenceScheduleEventStatus.ACTIVE);
 
     workProgrammeActivityService.deleteWorkProgrammeActivity(workProgrammeActivity);
 
-    verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
-
-    assertThat(workProgrammeActivityArgumentCaptor.getValue())
-        .extracting(WorkProgrammeActivity::getStatus)
-        .isEqualTo(LicenceScheduleEventStatus.DELETED);
+    verify(workProgrammeActivityRepository).delete(workProgrammeActivity);
   }
 
   @Test
@@ -206,8 +189,7 @@ class WorkProgrammeActivityServiceTest {
     when(workProgrammeActivityStatusService.getLatestStatusesFor(List.of(activity)))
         .thenReturn(Map.of(eventReference, workProgrammeActivityStatus));
 
-    when(workProgrammeActivityRepository.findByLicenceSchedulePhaseAndStatus(phase, LicenceScheduleEventStatus.ACTIVE))
-        .thenReturn(List.of(activity));
+    when(workProgrammeActivityRepository.findByLicenceSchedulePhase(phase)).thenReturn(List.of(activity));
 
     var result = workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(detail);
 
@@ -238,8 +220,7 @@ class WorkProgrammeActivityServiceTest {
     when(workProgrammeActivityStatusService.getLatestStatusesFor(List.of(activity)))
         .thenReturn(Map.of(eventReference, workProgrammeActivityStatus));
 
-    when(workProgrammeActivityRepository.findByLicenceScheduleTermAndStatus(term, LicenceScheduleEventStatus.ACTIVE))
-        .thenReturn(List.of(activity));
+    when(workProgrammeActivityRepository.findByLicenceScheduleTerm(term)).thenReturn(List.of(activity));
 
     var result = workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(detail);
 
@@ -278,7 +259,7 @@ class WorkProgrammeActivityServiceTest {
     when(workProgrammeActivityStatusService.getLatestStatusesFor(List.of(workProgrammeActivity)))
         .thenReturn(Map.of(eventReference, workProgrammeActivityStatus));
 
-    when(workProgrammeActivityRepository.findAllByLicenceScheduleDetailAndStatus(any(), any()))
+    when(workProgrammeActivityRepository.findAllByLicenceScheduleDetail(any()))
         .thenReturn(List.of(workProgrammeActivity));
 
     List<WorkProgrammeActivityView> result = workProgrammeActivityService.getLicenceWorkProgramActivitiesViews(new LicenceScheduleDetail());

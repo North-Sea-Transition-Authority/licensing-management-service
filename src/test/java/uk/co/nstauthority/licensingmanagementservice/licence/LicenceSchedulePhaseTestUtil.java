@@ -3,7 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence;
 import java.time.LocalDate;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -26,7 +25,6 @@ public class LicenceSchedulePhaseTestUtil {
     private LocalDate startDate;
     private LocalDate endDate;
     private String comments;
-    private LicenceScheduleEventStatus status;
 
     private Builder() {}
 
@@ -70,11 +68,6 @@ public class LicenceSchedulePhaseTestUtil {
       return this;
     }
 
-    public Builder withStatus(LicenceScheduleEventStatus status) {
-      this.status = status;
-      return this;
-    }
-
     public LicenceSchedulePhase build() {
       var licenceSchedulePhase = new LicenceSchedulePhase();
 
@@ -86,7 +79,6 @@ public class LicenceSchedulePhaseTestUtil {
       licenceSchedulePhase.setStartDate(startDate);
       licenceSchedulePhase.setEndDate(endDate);
       licenceSchedulePhase.setComments(comments);
-      licenceSchedulePhase.setStatus(status);
 
       return licenceSchedulePhase;
     }

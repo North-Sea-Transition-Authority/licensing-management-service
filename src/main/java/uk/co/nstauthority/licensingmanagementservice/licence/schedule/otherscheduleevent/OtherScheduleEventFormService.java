@@ -8,7 +8,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleEventStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -67,7 +66,6 @@ public class OtherScheduleEventFormService {
     event.setCategory(form.getOtherScheduleEventCategory());
     event.setOtherCategoryName(form.getOtherCategoryName());
     event.setDescription(form.getDescription());
-    event.setStatus(LicenceScheduleEventStatus.ACTIVE);
 
     var dateOption = form.getOtherScheduleEventDateOption();
 

@@ -78,7 +78,6 @@ public class WorkProgrammeActivityController {
       @PathVariable UUID workProgrammeActivityId,
       WorkProgrammeActivity workProgrammeActivity
   ) {
-
     return getActivityModelAndView(
         workProgrammeActivityFormService.getActivityForm(workProgrammeActivity),
         workProgrammeActivity.getLicenceScheduleDetail()

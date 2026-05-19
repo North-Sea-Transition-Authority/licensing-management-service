@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -337,6 +338,29 @@ class OtherScheduleEventFormServiceTest {
   }
 
   @Test
+  void saveEventFromForm_termOption_clearsExistingEventDate() {
+    var form = new OtherScheduleEventForm();
+    form.setOtherScheduleEventCategory(OtherScheduleEventCategory.OTHER_ACTIVITY);
+    form.setOtherCategoryName("otherCategoryName");
+    form.setDescription("description");
+    form.setOtherScheduleEventDateOption(OtherScheduleEventDateOption.WITHIN_A_TERM);
+
+    var termId = UUID.randomUUID();
+    form.setLicenceScheduleTermId(String.valueOf(termId));
+
+    when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(new LicenceScheduleTerm());
+
+    var event = new OtherScheduleEvent();
+    event.setEventDate(LocalDate.of(2025, 1, 1));
+
+    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, event);
+
+    verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
+
+    assertThat(otherScheduleEventArgumentCaptor.getValue().getEventDate()).isNull();
+  }
+
+  @Test
   void saveEventFromForm_phaseOption() {
     var form = new OtherScheduleEventForm();
     form.setOtherScheduleEventCategory(OtherScheduleEventCategory.OTHER_ACTIVITY);
@@ -384,6 +408,29 @@ class OtherScheduleEventFormServiceTest {
         );
 
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  @Test
+  void saveEventFromForm_phaseOption_clearsExistingEventDate() {
+    var form = new OtherScheduleEventForm();
+    form.setOtherScheduleEventCategory(OtherScheduleEventCategory.OTHER_ACTIVITY);
+    form.setOtherCategoryName("otherCategoryName");
+    form.setDescription("description");
+    form.setOtherScheduleEventDateOption(OtherScheduleEventDateOption.WITHIN_A_PHASE);
+
+    var phaseId = UUID.randomUUID();
+    form.setLicenceSchedulePhaseId(String.valueOf(phaseId));
+
+    when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(new LicenceSchedulePhase());
+
+    var event = new OtherScheduleEvent();
+    event.setEventDate(LocalDate.of(2025, 1, 1));
+
+    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, event);
+
+    verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
+
+    assertThat(otherScheduleEventArgumentCaptor.getValue().getEventDate()).isNull();
   }
 
   @Test

@@ -84,6 +84,7 @@ public class WorkProgrammeActivityFormService {
       activity.setLicenceScheduleTerm(
           licenceScheduleTermService.getTermByIdOrThrow(UUID.fromString(form.getLicenceScheduleTermId()))
       );
+      activity.setDueDate(null);
     } else {
       activity.setLicenceScheduleTerm(null);
     }
@@ -92,6 +93,7 @@ public class WorkProgrammeActivityFormService {
       activity.setLicenceSchedulePhase(
           licenceSchedulePhaseService.getPhaseByIdOrThrow(UUID.fromString(form.getLicenceSchedulePhaseId()))
       );
+      activity.setDueDate(null);
     } else {
       activity.setLicenceSchedulePhase(null);
     }

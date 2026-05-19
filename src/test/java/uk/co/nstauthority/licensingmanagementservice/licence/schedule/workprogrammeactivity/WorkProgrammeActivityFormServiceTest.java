@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -356,6 +357,30 @@ class WorkProgrammeActivityFormServiceTest {
   }
 
   @Test
+  void saveActivityFromForm_termOption_clearsExistingDueDate() {
+    var form = new WorkProgrammeActivityForm();
+    form.setWorkProgrammeActivityCategory(WorkProgrammeActivityCategory.OTHER_ACTIVITY);
+    form.setOtherCategoryName("otherCategoryName");
+    form.setDescription("description");
+    form.setWorkProgrammeActivityCommitment(WorkProgrammeActivityCommitment.FIRM);
+    form.setWorkProgrammeActivityDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
+
+    var termId = UUID.randomUUID();
+    form.setLicenceScheduleTermId(String.valueOf(termId));
+
+    when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(new LicenceScheduleTerm());
+
+    var activity = new WorkProgrammeActivity();
+    activity.setDueDate(LocalDate.of(2025, 1, 1));
+
+    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, activity);
+
+    verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
+
+    assertThat(workProgrammeActivityArgumentCaptor.getValue().getDueDate()).isNull();
+  }
+
+  @Test
   void saveActivityFromForm_phaseOption() {
     var form = new WorkProgrammeActivityForm();
     form.setWorkProgrammeActivityCategory(WorkProgrammeActivityCategory.OTHER_ACTIVITY);
@@ -407,6 +432,30 @@ class WorkProgrammeActivityFormServiceTest {
 
     verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  @Test
+  void saveActivityFromForm_phaseOption_clearsExistingDueDate() {
+    var form = new WorkProgrammeActivityForm();
+    form.setWorkProgrammeActivityCategory(WorkProgrammeActivityCategory.OTHER_ACTIVITY);
+    form.setOtherCategoryName("otherCategoryName");
+    form.setDescription("description");
+    form.setWorkProgrammeActivityCommitment(WorkProgrammeActivityCommitment.FIRM);
+    form.setWorkProgrammeActivityDateOption(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
+
+    var phaseId = UUID.randomUUID();
+    form.setLicenceSchedulePhaseId(String.valueOf(phaseId));
+
+    when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(new LicenceSchedulePhase());
+
+    var activity = new WorkProgrammeActivity();
+    activity.setDueDate(LocalDate.of(2025, 1, 1));
+
+    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, activity);
+
+    verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
+
+    assertThat(workProgrammeActivityArgumentCaptor.getValue().getDueDate()).isNull();
   }
 
   @Test

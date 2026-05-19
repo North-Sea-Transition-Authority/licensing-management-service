@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -171,6 +172,27 @@ class LicenceScheduleRateFormServiceTest {
   }
 
   @Test
+  void saveRateFromForm_termOption_clearsExistingStartDate() {
+    var form = new LicenceScheduleRateForm();
+    form.setRateDefinitionOption(RateDefinitionOption.TERM);
+    form.getRentalRate().setInputValue("1");
+
+    var termId = UUID.randomUUID();
+    form.setLicenceScheduleTermId(String.valueOf(termId));
+
+    when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(new LicenceScheduleTerm());
+
+    var rate = new LicenceScheduleRate();
+    rate.setStartDate(LocalDate.of(2025, 1, 1));
+
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, rate);
+
+    verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
+
+    assertThat(licenceScheduleRateArgumentCaptor.getValue().getStartDate()).isNull();
+  }
+
+  @Test
   void saveRateFromForm_phaseOption() {
     var form = new LicenceScheduleRateForm();
     form.setRateDefinitionOption(RateDefinitionOption.PHASE);
@@ -214,6 +236,27 @@ class LicenceScheduleRateFormServiceTest {
     );
 
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  @Test
+  void saveRateFromForm_phaseOption_clearsExistingStartDate() {
+    var form = new LicenceScheduleRateForm();
+    form.setRateDefinitionOption(RateDefinitionOption.PHASE);
+    form.getRentalRate().setInputValue("1");
+
+    var phaseId = UUID.randomUUID();
+    form.setLicenceSchedulePhaseId(String.valueOf(phaseId));
+
+    when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(new LicenceSchedulePhase());
+
+    var rate = new LicenceScheduleRate();
+    rate.setStartDate(LocalDate.of(2025, 1, 1));
+
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, rate);
+
+    verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
+
+    assertThat(licenceScheduleRateArgumentCaptor.getValue().getStartDate()).isNull();
   }
 
   @Test

@@ -79,6 +79,7 @@ public class OtherScheduleEventFormService {
       event.setLicenceScheduleTerm(
           licenceScheduleTermService.getTermByIdOrThrow(UUID.fromString(form.getLicenceScheduleTermId()))
       );
+      event.setEventDate(null);
     } else {
       event.setLicenceScheduleTerm(null);
     }
@@ -87,6 +88,7 @@ public class OtherScheduleEventFormService {
       event.setLicenceSchedulePhase(
           licenceSchedulePhaseService.getPhaseByIdOrThrow(UUID.fromString(form.getLicenceSchedulePhaseId()))
       );
+      event.setEventDate(null);
     } else {
       event.setLicenceSchedulePhase(null);
     }

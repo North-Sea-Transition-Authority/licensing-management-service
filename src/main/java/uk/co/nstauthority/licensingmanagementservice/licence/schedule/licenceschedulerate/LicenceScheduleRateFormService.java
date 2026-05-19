@@ -60,6 +60,7 @@ public class LicenceScheduleRateFormService {
       licenceScheduleRate.setLicenceScheduleTerm(
           licenceScheduleTermService.getTermByIdOrThrow(UUID.fromString(form.getLicenceScheduleTermId()))
       );
+      licenceScheduleRate.setStartDate(null);
     } else {
       licenceScheduleRate.setLicenceScheduleTerm(null);
     }
@@ -68,6 +69,7 @@ public class LicenceScheduleRateFormService {
       licenceScheduleRate.setLicenceSchedulePhase(
           licenceSchedulePhaseService.getPhaseByIdOrThrow(UUID.fromString(form.getLicenceSchedulePhaseId()))
       );
+      licenceScheduleRate.setStartDate(null);
     } else {
       licenceScheduleRate.setLicenceSchedulePhase(null);
     }

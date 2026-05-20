@@ -1,5 +1,5 @@
-import * as containsOperator from '@arcgis/core/geometry/operators/containsOperator.js';
-import { esriJsonToPolygon } from '../util/esrijson-util';
+import * as containsOperator from "@arcgis/core/geometry/operators/containsOperator.js";
+import { esriJsonToPolygon } from "../util/esrijson-util";
 
 /**
  * Verifies that a parent polygon fully contains a child polygon.

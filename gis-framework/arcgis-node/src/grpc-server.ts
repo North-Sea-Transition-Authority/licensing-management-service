@@ -1,30 +1,33 @@
-import grpc from '@grpc/grpc-js';
-import protoLoader from '@grpc/proto-loader';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import esriConfig from '@arcgis/core/config.js';
-import express from 'express';
-import type { ProtoGrpcType } from '../generated/ArcGisJs.ts';
-import { migrateBlockOrSubarea } from './migration/handlers/migrate-block-or-sub-area';
-import { logger } from './config/logger';
-import { splitPolygonHandler } from './handlers/split-polygon-handler';
-import { buildPolygonHandler } from './handlers/build-polygon-handler';
-import { explodePolygonHandler } from './handlers/explode-polygon-handler';
-import { findParentLinesHandler } from './handlers/find-parent-lines-handler';
-import { getLineStartAndEndPointsHandler } from './handlers/get-line-start-and-end-points-handler';
-import { findNorthwestMostLineHandler } from './handlers/find-northwest-most-line-handler';
-import { validateBlockAndSubarea } from './migration/handlers/validate-block-and-subarea';
-import { validateTopologicallyEqual } from './migration/handlers/validate-topologically-equal';
-import { validatePolygonReconstructionFromPolylinesHandler } from './handlers/validate-polygon-reconstruction-from-polylines-handler';
-import { migrateReferenceBlockHandler } from './migration/handlers/migrate-reference-block';
-import { validateReferenceBlock } from './migration/handlers/validate-reference-block';
-import { calculateAreaHandler } from './handlers/calculate-area-operator-handler';
+import type { ProtoGrpcType } from "../generated/ArcGisJs.ts";
+import path from "node:path";
+import process from "node:process";
+import { fileURLToPath } from "node:url";
+import esriConfig from "@arcgis/core/config.js";
+import grpc from "@grpc/grpc-js";
+import protoLoader from "@grpc/proto-loader";
+import express from "express";
+import { logger } from "./config/logger";
+import { buildPolygonHandler } from "./handlers/build-polygon-handler";
+import { calculateAreaHandler } from "./handlers/calculate-area-operator-handler";
+import { explodePolygonHandler } from "./handlers/explode-polygon-handler";
+import { findNorthwestMostLineHandler } from "./handlers/find-northwest-most-line-handler";
+import { findParentLinesHandler } from "./handlers/find-parent-lines-handler";
+import { getLineStartAndEndPointsHandler } from "./handlers/get-line-start-and-end-points-handler";
+import { splitPolygonHandler } from "./handlers/split-polygon-handler";
+import {
+  validatePolygonReconstructionFromPolylinesHandler,
+} from "./handlers/validate-polygon-reconstruction-from-polylines-handler";
+import { migrateBlockOrSubarea } from "./migration/handlers/migrate-block-or-sub-area";
+import { migrateReferenceBlockHandler } from "./migration/handlers/migrate-reference-block";
+import { validateBlockAndSubarea } from "./migration/handlers/validate-block-and-subarea";
+import { validateReferenceBlock } from "./migration/handlers/validate-reference-block";
+import { validateTopologicallyEqual } from "./migration/handlers/validate-topologically-equal";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const ASSET_PORT = 3000;
-const GRPC_BIND_ADDRESS = '0.0.0.0:8082';
-const PROTO_PATH = path.resolve(__dirname, '../../src/main/proto', 'ArcGisJs.proto');
+const GRPC_BIND_ADDRESS = "0.0.0.0:8082";
+const PROTO_PATH = path.resolve(__dirname, "../../src/main/proto", "ArcGisJs.proto");
 
 /**
  * By default, the ArcGIS SDK operators call out to js.arcgis.com to fetch a WASM from their CDN. So that we don't have to rely on
@@ -32,10 +35,10 @@ const PROTO_PATH = path.resolve(__dirname, '../../src/main/proto', 'ArcGisJs.pro
  */
 function startAssetServer() {
   const assetApp = express();
-  assetApp.disable('x-powered-by');
-  const assetFolder = path.resolve(process.cwd(), '../public/assets');
+  assetApp.disable("x-powered-by");
+  const assetFolder = path.resolve(process.cwd(), "../public/assets");
   logger.info(`[Asset Server] serving files in: ${assetFolder}`);
-  assetApp.use('/assets', express.static(assetFolder));
+  assetApp.use("/assets", express.static(assetFolder));
   assetApp.listen(ASSET_PORT, () => {
     logger.info(`[Asset Server] Running at http://localhost:${ASSET_PORT}/assets`);
   });
@@ -54,13 +57,13 @@ function loadProtoDefinition() {
     enums: String,
     defaults: true,
     oneofs: true,
-    includeDirs: [path.resolve(__dirname, '../../src/main/proto')],
+    includeDirs: [path.resolve(__dirname, "../../src/main/proto")],
   });
 
   return (grpc.loadPackageDefinition(packageDefinition) as unknown as ProtoGrpcType).uk.co.fivium.grpc.gis;
 }
 
-function startGrpcServer(arcGisJsProto: ProtoGrpcType['uk']['co']['fivium']['grpc']['gis']) {
+function startGrpcServer(arcGisJsProto: ProtoGrpcType["uk"]["co"]["fivium"]["grpc"]["gis"]) {
   const server = new grpc.Server();
 
   server.addService(arcGisJsProto.ArcGisService.service, {
@@ -72,11 +75,11 @@ function startGrpcServer(arcGisJsProto: ProtoGrpcType['uk']['co']['fivium']['grp
     findNorthwestMostLine: findNorthwestMostLineHandler,
     validatePolygonReconstructionFromPolylines: validatePolygonReconstructionFromPolylinesHandler,
     calculateArea: calculateAreaHandler,
-    migrateBlockOrSubarea: migrateBlockOrSubarea,
-    validateBlockAndSubarea: validateBlockAndSubarea,
-    validateTopologicallyEqual: validateTopologicallyEqual,
+    migrateBlockOrSubarea,
+    validateBlockAndSubarea,
+    validateTopologicallyEqual,
     migrateReferenceBlock: migrateReferenceBlockHandler,
-    validateReferenceBlock: validateReferenceBlock,
+    validateReferenceBlock,
   });
 
   server.bindAsync(GRPC_BIND_ADDRESS, grpc.ServerCredentials.createInsecure(), (error) => {
@@ -94,6 +97,6 @@ export function main() {
   startGrpcServer(arcGisJsProto);
 }
 
-if (process.env.VITEST !== 'true') {
+if (process.env.VITEST !== "true") {
   main();
 }

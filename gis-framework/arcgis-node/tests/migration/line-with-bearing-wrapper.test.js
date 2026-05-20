@@ -1,8 +1,11 @@
-import { describe, expect, test } from 'vitest';
-import { esriJsonToPolyline } from '../../src/util/esrijson-util';
-import { makePolylineEsriJson } from '../test-utils/esrijson-test-util';
-import { findLoxodromeThatConnectsToPointOnSetBearing, SetBearing } from '../../src/migration/types/line-with-bearing-wrapper';
-import { LineNavigationType } from '../../generated/uk/co/fivium/grpc/gis/LineNavigationType';
+import { describe, expect, it } from "vitest";
+import { LineNavigationType } from "../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
+import {
+  findLoxodromeThatConnectsToPointOnSetBearing,
+  SetBearing,
+} from "../../src/migration/types/line-with-bearing-wrapper";
+import { esriJsonToPolyline } from "../../src/util/esrijson-util";
+import { makePolylineEsriJson } from "../test-utils/esrijson-test-util";
 
 function makeLine(paths, navigationType, id) {
   return {
@@ -12,9 +15,9 @@ function makeLine(paths, navigationType, id) {
   };
 }
 
-describe('line-with-bearing-wrapper', () => {
-  describe('findLoxodromeThatConnectsToPointOnSetBearing', () => {
-    test('should return undefined when no lines are provided', () => {
+describe("line-with-bearing-wrapper", () => {
+  describe("findLoxodromeThatConnectsToPointOnSetBearing", () => {
+    it("should return undefined when no lines are provided", () => {
       const polyline = esriJsonToPolyline(
         makePolylineEsriJson([
           [
@@ -30,7 +33,7 @@ describe('line-with-bearing-wrapper', () => {
       expect(result).toBeUndefined();
     });
 
-    test('should return undefined when line is geodesic, not loxodrome', () => {
+    it("should return undefined when line is geodesic, not loxodrome", () => {
       const line = makeLine(
         [
           [
@@ -48,7 +51,7 @@ describe('line-with-bearing-wrapper', () => {
       expect(result).toBeUndefined();
     });
 
-    test('should return undefined when point does not connect to any line', () => {
+    it("should return undefined when point does not connect to any line", () => {
       const line = makeLine(
         [
           [
@@ -74,7 +77,7 @@ describe('line-with-bearing-wrapper', () => {
       expect(result).toBeUndefined();
     });
 
-    test('should return LATITUDE set bearing when loxodrome has same x for first two points and point connects to start', () => {
+    it("should return LATITUDE set bearing when loxodrome has same x for first two points and point connects to start", () => {
       const line = makeLine(
         [
           [
@@ -93,7 +96,7 @@ describe('line-with-bearing-wrapper', () => {
       expect(result).toStrictEqual(expected);
     });
 
-    test('should return LONGITUDE set bearing when loxodrome has same y for first two points and point connects to start', () => {
+    it("should return LONGITUDE set bearing when loxodrome has same y for first two points and point connects to start", () => {
       const line = makeLine(
         [
           [
@@ -112,7 +115,7 @@ describe('line-with-bearing-wrapper', () => {
       expect(result).toStrictEqual(expected);
     });
 
-    test('should return LATITUDE set bearing when point connects to end of loxodrome', () => {
+    it("should return LATITUDE set bearing when point connects to end of loxodrome", () => {
       const line = makeLine(
         [
           [
@@ -132,7 +135,7 @@ describe('line-with-bearing-wrapper', () => {
       expect(result).toStrictEqual(expected);
     });
 
-    test('should return LONGITUDE set bearing when point connects to end of loxodrome', () => {
+    it("should return LONGITUDE set bearing when point connects to end of loxodrome", () => {
       const line = makeLine(
         [
           [
@@ -152,7 +155,7 @@ describe('line-with-bearing-wrapper', () => {
       expect(result).toStrictEqual(expected);
     });
 
-    test('should return undefined when loxodrome has neither same x nor same y for adjacent points', () => {
+    it("should return undefined when loxodrome has neither same x nor same y for adjacent points", () => {
       const line = makeLine(
         [
           [

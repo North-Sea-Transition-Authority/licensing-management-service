@@ -1,16 +1,16 @@
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import * as unionOperator from '@arcgis/core/geometry/operators/unionOperator.js';
-import * as containsOperator from '@arcgis/core/geometry/operators/containsOperator.js';
-import * as multiPartToSinglePartOperator from '@arcgis/core/geometry/operators/multiPartToSinglePartOperator.js';
+import type Polyline from "@arcgis/core/geometry/Polyline.js";
+import * as containsOperator from "@arcgis/core/geometry/operators/containsOperator.js";
+import * as multiPartToSinglePartOperator from "@arcgis/core/geometry/operators/multiPartToSinglePartOperator.js";
+import * as unionOperator from "@arcgis/core/geometry/operators/unionOperator.js";
 
 export interface ParentLine {
-  id: string;
-  polyline: Polyline;
+  id: string,
+  polyline: Polyline,
 }
 
 export interface FindParentLinesResult {
-  lines: ParentLine[];
-  orphanedLines: Polyline[];
+  lines: ParentLine[],
+  orphanedLines: Polyline[],
 }
 
 /**
@@ -41,6 +41,7 @@ export function findParentLines(parentLines: ParentLine[], childrenLines: Polyli
       if (!parentIdToLines.has(foundParentId)) {
         parentIdToLines.set(foundParentId, []);
       }
+      // @ts-expect-error map will have parentId because of previous if
       parentIdToLines.get(foundParentId).push(childLine);
     } else {
       orphans.push(childLine);
@@ -60,7 +61,7 @@ export function findParentLines(parentLines: ParentLine[], childrenLines: Polyli
       singlePathPolylines.forEach((polyline) => {
         reconstructedLines.push({
           id: parentId,
-          polyline: polyline,
+          polyline,
         });
       });
     }

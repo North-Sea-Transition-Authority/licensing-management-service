@@ -1,10 +1,10 @@
-import Polyline from '@arcgis/core/geometry/Polyline';
-import Point from '@arcgis/core/geometry/Point';
-import * as proximityOperator from '@arcgis/core/geometry/operators/proximityOperator.js';
+import type Polyline from "@arcgis/core/geometry/Polyline";
+import * as proximityOperator from "@arcgis/core/geometry/operators/proximityOperator.js";
+import Point from "@arcgis/core/geometry/Point";
 
 export interface LineWithId {
-  id: string;
-  polyline: Polyline;
+  id: string,
+  polyline: Polyline,
 }
 
 /**
@@ -15,10 +15,10 @@ export interface LineWithId {
 export function findNorthwestMostLine(linesWithId: LineWithId[]): string {
   const firstLineWithId = linesWithId[0];
   if (!firstLineWithId) {
-    throw new Error('No lines provided');
+    throw new Error("No lines provided");
   }
 
-  const startPoints: { startPoint: Point; id: string }[] = [];
+  const startPoints: { startPoint: Point, id: string }[] = [];
   for (const line of linesWithId) {
     const startPoint = line.polyline.getPoint(0, 0);
     if (!startPoint) {
@@ -33,10 +33,10 @@ export function findNorthwestMostLine(linesWithId: LineWithId[]): string {
 
   const firstStartPoint = startPoints[0];
   if (!firstStartPoint) {
-    throw new Error('No start points found');
+    throw new Error("No start points found");
   }
 
-  //Find the most northern (max Y) and most western (min X) coordinates
+  // Find the most northern (max Y) and most western (min X) coordinates
   let maxY = firstStartPoint.startPoint.y;
   let minX = firstStartPoint.startPoint.x;
 
@@ -52,7 +52,7 @@ export function findNorthwestMostLine(linesWithId: LineWithId[]): string {
     spatialReference: { wkid: firstLineWithId.polyline.spatialReference.wkid },
   });
 
-  //Find the closest start point to NW reference using the proximity operator
+  // Find the closest start point to NW reference using the proximity operator
   let closestId = firstStartPoint.id;
   let minDistance = Number.POSITIVE_INFINITY;
 

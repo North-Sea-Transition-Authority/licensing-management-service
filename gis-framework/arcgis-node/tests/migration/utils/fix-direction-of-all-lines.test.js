@@ -1,14 +1,14 @@
-import { describe, expect, test } from 'vitest';
-import { getCoordinateSystemWkid } from '../../../src/util/coordinate-system-utils.ts';
-import { CoordinateSystem } from '../../../generated/uk/co/fivium/grpc/gis/CoordinateSystem.ts';
-import { LineNavigationType } from '../../../generated/uk/co/fivium/grpc/gis/LineNavigationType.ts';
-import { fixDirectionOfAllLines } from '../../../src/migration/utils/fix-direction-of-all-lines.ts';
-import { makePolyline, makeLineWithNavigationAndId } from '../../test-utils/esrijson-test-util.ts';
+import { describe, expect, it } from "vitest";
+import { CoordinateSystem } from "../../../generated/uk/co/fivium/grpc/gis/CoordinateSystem.ts";
+import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType.ts";
+import { fixDirectionOfAllLines } from "../../../src/migration/utils/fix-direction-of-all-lines.ts";
+import { getCoordinateSystemWkid } from "../../../src/util/coordinate-system-utils.ts";
+import { makeLineWithNavigationAndId, makePolyline } from "../../test-utils/esrijson-test-util.ts";
 
 const ED50_WKID = getCoordinateSystemWkid(CoordinateSystem.ED50);
 
-describe('fixDirectionOfAllLines', () => {
-  test('reverses a middle line that is going the wrong way', () => {
+describe("fixDirectionOfAllLines", () => {
+  it("reverses a middle line that is going the wrong way", () => {
     // 4 lines forming a ring: line1 -> line2 (reversed) -> line3 -> line4
     // line1: (0,0) -> (1,0)
     // line2: (2,0) -> (1,0)  <-- wrong direction, should be (1,0) -> (2,0)
@@ -58,10 +58,10 @@ describe('fixDirectionOfAllLines', () => {
     idToLineWithNavigationWrapper.set(4, makeLineWithNavigationAndId(line4, LineNavigationType.LOXODROME, 4));
 
     const linesWithType = [
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 3, connectionOrder: 3, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 4, connectionOrder: 4, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 3, connectionOrder: 3, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 4, connectionOrder: 4, ringNumber: 1 },
     ];
 
     fixDirectionOfAllLines(idToLineWithNavigationWrapper, linesWithType);
@@ -86,7 +86,7 @@ describe('fixDirectionOfAllLines', () => {
     expect(idToLineWithNavigationWrapper).toEqual(expectedMap);
   });
 
-  test('reverses the last line that is going the wrong way', () => {
+  it("reverses the last line that is going the wrong way", () => {
     // 4 lines forming a ring: line1 -> line2 -> line3 -> line4 (reversed)
     // line1: (0,0) -> (1,0)
     // line2: (1,0) -> (2,0)
@@ -136,10 +136,10 @@ describe('fixDirectionOfAllLines', () => {
     idToLineWithNavigationWrapper.set(4, makeLineWithNavigationAndId(line4, LineNavigationType.LOXODROME, 4));
 
     const linesWithType = [
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 3, connectionOrder: 3, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 4, connectionOrder: 4, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 3, connectionOrder: 3, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 4, connectionOrder: 4, ringNumber: 1 },
     ];
 
     fixDirectionOfAllLines(idToLineWithNavigationWrapper, linesWithType);
@@ -164,7 +164,7 @@ describe('fixDirectionOfAllLines', () => {
     expect(idToLineWithNavigationWrapper).toEqual(expectedMap);
   });
 
-  test('does not reverse any lines when all directions are correct', () => {
+  it("does not reverse any lines when all directions are correct", () => {
     const line1 = makePolyline(
       [
         [
@@ -199,9 +199,9 @@ describe('fixDirectionOfAllLines', () => {
     idToLineWithNavigationWrapper.set(3, makeLineWithNavigationAndId(line3, LineNavigationType.LOXODROME, 3));
 
     const linesWithType = [
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 3, connectionOrder: 3, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 3, connectionOrder: 3, ringNumber: 1 },
     ];
 
     fixDirectionOfAllLines(idToLineWithNavigationWrapper, linesWithType);
@@ -215,7 +215,7 @@ describe('fixDirectionOfAllLines', () => {
     expect(idToLineWithNavigationWrapper).toEqual(expectedMap);
   });
 
-  test('handles multiple rings independently', () => {
+  it("handles multiple rings independently", () => {
     // Ring 1: line1 -> line2 (reversed)
     const line1 = makePolyline(
       [
@@ -263,10 +263,10 @@ describe('fixDirectionOfAllLines', () => {
     idToLineWithNavigationWrapper.set(4, makeLineWithNavigationAndId(line4, LineNavigationType.LOXODROME, 4));
 
     const linesWithType = [
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 3, connectionOrder: 1, ringNumber: 2 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 4, connectionOrder: 2, ringNumber: 2 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 3, connectionOrder: 1, ringNumber: 2 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 4, connectionOrder: 2, ringNumber: 2 },
     ];
 
     fixDirectionOfAllLines(idToLineWithNavigationWrapper, linesWithType);
@@ -300,7 +300,7 @@ describe('fixDirectionOfAllLines', () => {
     expect(idToLineWithNavigationWrapper).toEqual(expectedMap);
   });
 
-  test('throws error when lines do not connect even after reversing', () => {
+  it("throws error when lines do not connect even after reversing", () => {
     // line1: (0,0) -> (1,0)
     // line2: (5,5) -> (6,6) -- completely disconnected, reversing won't help
     const line1 = makePolyline(
@@ -327,14 +327,14 @@ describe('fixDirectionOfAllLines', () => {
     idToLineWithNavigationWrapper.set(2, makeLineWithNavigationAndId(line2, LineNavigationType.LOXODROME, 2));
 
     const linesWithType = [
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
     ];
 
     expect(() => fixDirectionOfAllLines(idToLineWithNavigationWrapper, linesWithType)).toThrow();
   });
 
-  test('throws error when line id is not found in idToLineWithNavigationWrapper', () => {
+  it("throws error when line id is not found in idToLineWithNavigationWrapper", () => {
     const line1 = makePolyline(
       [
         [
@@ -350,14 +350,14 @@ describe('fixDirectionOfAllLines', () => {
     idToLineWithNavigationWrapper.set(1, makeLineWithNavigationAndId(line1, LineNavigationType.LOXODROME, 1));
 
     const linesWithType = [
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
     ];
 
     expect(() => fixDirectionOfAllLines(idToLineWithNavigationWrapper, linesWithType)).toThrow();
   });
 
-  test('reverses the first line when it is going the wrong way', () => {
+  it("reverses the first line when it is going the wrong way", () => {
     // line1: (1,0) -> (0,0)  <-- wrong direction, should be (0,0) -> (1,0)
     // line2: (1,0) -> (2,0)
     // line3: (2,0) -> (0,0)
@@ -395,9 +395,9 @@ describe('fixDirectionOfAllLines', () => {
     idToLineWithNavigationWrapper.set(3, makeLineWithNavigationAndId(line3, LineNavigationType.LOXODROME, 3));
 
     const linesWithType = [
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 3, connectionOrder: 3, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 3, connectionOrder: 3, ringNumber: 1 },
     ];
 
     fixDirectionOfAllLines(idToLineWithNavigationWrapper, linesWithType);
@@ -421,7 +421,7 @@ describe('fixDirectionOfAllLines', () => {
     expect(idToLineWithNavigationWrapper).toEqual(expectedMap);
   });
 
-  test('reverses the first line and the next line when both are wrong', () => {
+  it("reverses the first line and the next line when both are wrong", () => {
     // Reproduces the original bug: first line and next line both need reversing
     // line1: (1,0) -> (0,0)  <-- wrong
     // line2: (2,0) -> (1,0)  <-- also wrong
@@ -460,9 +460,9 @@ describe('fixDirectionOfAllLines', () => {
     idToLineWithNavigationWrapper.set(3, makeLineWithNavigationAndId(line3, LineNavigationType.LOXODROME, 3));
 
     const linesWithType = [
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 3, connectionOrder: 3, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 3, connectionOrder: 3, ringNumber: 1 },
     ];
 
     fixDirectionOfAllLines(idToLineWithNavigationWrapper, linesWithType);
@@ -495,7 +495,7 @@ describe('fixDirectionOfAllLines', () => {
     expect(idToLineWithNavigationWrapper).toEqual(expectedMap);
   });
 
-  test('throws error when three lines form a broken chain that cannot be fixed by reversing', () => {
+  it("throws error when three lines form a broken chain that cannot be fixed by reversing", () => {
     // line1: (0,0) -> (1,0)
     // line2: (1,0) -> (2,0)  -- connects to line1 correctly
     // line3: (5,5) -> (6,6)  -- completely disconnected from line2, reversing gives (6,6) -> (5,5) which also doesn't connect
@@ -533,9 +533,9 @@ describe('fixDirectionOfAllLines', () => {
     idToLineWithNavigationWrapper.set(3, makeLineWithNavigationAndId(line3, LineNavigationType.LOXODROME, 3));
 
     const linesWithType = [
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
-      { geoJsonString: '', isGeodesic: false, oracleLineSsid: 3, connectionOrder: 3, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 1, connectionOrder: 1, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 2, connectionOrder: 2, ringNumber: 1 },
+      { geoJsonString: "", isGeodesic: false, oracleLineSsid: 3, connectionOrder: 3, ringNumber: 1 },
     ];
 
     expect(() => fixDirectionOfAllLines(idToLineWithNavigationWrapper, linesWithType)).toThrow();

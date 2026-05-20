@@ -1,17 +1,17 @@
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import Point from '@arcgis/core/geometry/Point.js';
-import { LineWithNavigationTypeAndId } from './line-with-navigation-wrapper';
-import { LineNavigationType } from '../../../generated/uk/co/fivium/grpc/gis/LineNavigationType';
+import type Polyline from "@arcgis/core/geometry/Polyline.js";
+import type { LineWithNavigationTypeAndId } from "./line-with-navigation-wrapper";
+import Point from "@arcgis/core/geometry/Point.js";
+import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
 
 export enum SetBearing {
-  LATITUDE = 'LATITUDE',
-  LONGITUDE = 'LONGITUDE',
+  LATITUDE = "LATITUDE",
+  LONGITUDE = "LONGITUDE",
 }
 
 export type LineWithSetBearingAndId = {
-  line: Polyline;
-  setBearing: SetBearing;
-  id: number;
+  line: Polyline,
+  setBearing: SetBearing,
+  id: number,
 };
 
 /**
@@ -73,8 +73,8 @@ export function findLoxodromeThatConnectsToPointOnSetBearing(
   }
 
   return {
-    line: line,
-    setBearing: setBearing,
+    line,
+    setBearing,
     id: connectingLine.id,
   };
 }
@@ -90,7 +90,7 @@ export function findLoxodromeThatConnectsToPointOnSetBearing(
  * @param pointB The second point.
  * @returns The {@link SetBearing} of the line between the two points, or undefined if it is not on a set bearing.
  */
-const getSetBearingOfPoints = (pointA: Point, pointB: Point): SetBearing | undefined => {
+function getSetBearingOfPoints(pointA: Point, pointB: Point): SetBearing | undefined {
   if (pointA.x === pointB.x) {
     return SetBearing.LATITUDE;
   }
@@ -98,4 +98,4 @@ const getSetBearingOfPoints = (pointA: Point, pointB: Point): SetBearing | undef
     return SetBearing.LONGITUDE;
   }
   return undefined;
-};
+}

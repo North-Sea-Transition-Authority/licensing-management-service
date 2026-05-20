@@ -1,11 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
+import type { OrderedPolyline } from "../../src/geometric-operators/validate-polygon-reconstruction-from-polylines";
+import { describe, expect, it, vi } from "vitest";
 import {
-  type OrderedPolyline,
   validatePolygonReconstructionFromPolylines,
-} from '../../src/geometric-operators/validate-polygon-reconstruction-from-polylines';
-import { makePolygonEsriJson, makePolyline } from '../test-utils/esrijson-test-util';
+} from "../../src/geometric-operators/validate-polygon-reconstruction-from-polylines";
+import { makePolygonEsriJson, makePolyline } from "../test-utils/esrijson-test-util";
 
-vi.mock('../../src/config/logger', () => ({
+vi.mock("../../src/config/logger", () => ({
   logger: {
     error: vi.fn(),
   },
@@ -21,8 +21,8 @@ function makeOrderedPolyline(paths: number[][][], ringNumber: number, connection
   };
 }
 
-describe('validatePolygonReconstructionFromPolylines', () => {
-  it('should return true when ordered polylines reconstruct the original polygon', () => {
+describe("validatePolygonReconstructionFromPolylines", () => {
+  it("should return true when ordered polylines reconstruct the original polygon", () => {
     const originalPolygon = makePolygonEsriJson([
       [
         [0, 0],
@@ -81,7 +81,7 @@ describe('validatePolygonReconstructionFromPolylines', () => {
     expect(result).toBe(true);
   });
 
-  it('should return false when lines are in wrong order', () => {
+  it("should return false when lines are in wrong order", () => {
     const originalPolygon = makePolygonEsriJson([
       [
         [0, 0],
@@ -140,7 +140,7 @@ describe('validatePolygonReconstructionFromPolylines', () => {
     expect(result).toBe(false);
   });
 
-  it('should return true when ordered polylines reconstruct a polygon with a hole', () => {
+  it("should return true when ordered polylines reconstruct a polygon with a hole", () => {
     const originalPolygon = makePolygonEsriJson([
       [
         [0, 0],
@@ -210,7 +210,7 @@ describe('validatePolygonReconstructionFromPolylines', () => {
     expect(result).toBe(true);
   });
 
-  it('should return false when a ring has a gap between ordered polylines', () => {
+  it("should return false when a ring has a gap between ordered polylines", () => {
     const originalPolygon = makePolygonEsriJson([
       [
         [0, 0],
@@ -250,7 +250,7 @@ describe('validatePolygonReconstructionFromPolylines', () => {
     expect(result).toBe(false);
   });
 
-  it('should return false when reconstructed polygon is not spatially equal to the original polygon', () => {
+  it("should return false when reconstructed polygon is not spatially equal to the original polygon", () => {
     const originalPolygon = makePolygonEsriJson([
       [
         [0, 0],

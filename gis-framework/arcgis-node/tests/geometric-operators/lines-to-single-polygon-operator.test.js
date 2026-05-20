@@ -1,10 +1,13 @@
-import { describe, expect, test } from 'vitest';
-import { makePolygon, makePolyline, makePolylineEsriJson } from '../test-utils/esrijson-test-util';
-import { lineStringsToSinglePolygon, linesToSinglePolygon } from '../../src/geometric-operators/lines-to-single-polygon-operator';
+import { describe, expect, it } from "vitest";
+import {
+  linesToSinglePolygon,
+  lineStringsToSinglePolygon,
+} from "../../src/geometric-operators/lines-to-single-polygon-operator";
+import { makePolygon, makePolyline, makePolylineEsriJson } from "../test-utils/esrijson-test-util";
 
-describe('lines-to-single-polygon-operator', () => {
-  describe('lineStringsToSinglePolygon', () => {
-    test('should build a polygon from line strings forming a closed square', () => {
+describe("lines-to-single-polygon-operator", () => {
+  describe("lineStringsToSinglePolygon", () => {
+    it("should build a polygon from line strings forming a closed square", () => {
       const lineStrings = [
         makePolylineEsriJson([
           [
@@ -50,7 +53,7 @@ describe('lines-to-single-polygon-operator', () => {
       expect(result).toEqual(expected);
     });
 
-    test('should build a polygon from a single closed line string', () => {
+    it("should build a polygon from a single closed line string", () => {
       const lineStrings = [
         makePolylineEsriJson([
           [
@@ -81,7 +84,7 @@ describe('lines-to-single-polygon-operator', () => {
       expect(result).toEqual(expected);
     });
 
-    test('should build a donut polygon from an outer and inner closed line string', () => {
+    it("should build a donut polygon from an outer and inner closed line string", () => {
       const lineStrings = [
         makePolylineEsriJson([
           [
@@ -129,8 +132,8 @@ describe('lines-to-single-polygon-operator', () => {
     });
   });
 
-  describe('linesToSinglePolygon', () => {
-    test('should build a polygon from polylines forming a closed square', () => {
+  describe("linesToSinglePolygon", () => {
+    it("should build a polygon from polylines forming a closed square", () => {
       const polylines = [
         makePolyline(
           [
@@ -188,7 +191,7 @@ describe('lines-to-single-polygon-operator', () => {
       expect(result).toEqual(expected);
     });
 
-    test('should build a polygon from a single closed polyline', () => {
+    it("should build a polygon from a single closed polyline", () => {
       const polylines = [
         makePolyline(
           [
@@ -222,7 +225,7 @@ describe('lines-to-single-polygon-operator', () => {
       expect(result).toEqual(expected);
     });
 
-    test('should build a donut polygon from an outer and inner closed polyline', () => {
+    it("should build a donut polygon from an outer and inner closed polyline", () => {
       const polylines = [
         makePolyline(
           [

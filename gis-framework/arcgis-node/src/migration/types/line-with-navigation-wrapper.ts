@@ -1,12 +1,12 @@
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import { LineNavigationType } from '../../../generated/uk/co/fivium/grpc/gis/LineNavigationType';
-import { GeoJsonLineWrapper__Output } from '../../../generated/uk/co/fivium/grpc/gis/GeoJsonLineWrapper';
-import * as Terraformer from '@terraformer/arcgis';
+import type { GeoJsonLineWrapper__Output } from "../../../generated/uk/co/fivium/grpc/gis/GeoJsonLineWrapper";
+import Polyline from "@arcgis/core/geometry/Polyline.js";
+import * as Terraformer from "@terraformer/arcgis";
+import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
 
 export type LineWithNavigationTypeAndId = {
-  line: Polyline;
-  navigationType: LineNavigationType;
-  id: number;
+  line: Polyline,
+  navigationType: LineNavigationType,
+  id: number,
 };
 
 /**
@@ -27,7 +27,7 @@ export function geoJsonLineInputToLinesWithNavigationTypeAndId(
     const { oracleLineSsid, geoJsonString } = geoJsonLineWrapper;
 
     if (oracleLineSsid === null) {
-      throw new Error('GeoJsonLineWrapper is missing required field: oracleLineSsid');
+      throw new Error("GeoJsonLineWrapper is missing required field: oracleLineSsid");
     }
 
     if (geoJsonString === null) {
@@ -35,10 +35,10 @@ export function geoJsonLineInputToLinesWithNavigationTypeAndId(
     }
 
     const line: Polyline = Polyline.fromJSON(Terraformer.geojsonToArcGIS(JSON.parse(geoJsonString)));
-    line.spatialReference = { wkid: wkid };
+    line.spatialReference = { wkid };
 
     idToLineWithNavigationWrapper.set(oracleLineSsid, {
-      line: line,
+      line,
       navigationType: geoJsonLineWrapper.isGeodesic ? LineNavigationType.GEODESIC : LineNavigationType.LOXODROME,
       id: oracleLineSsid,
     });

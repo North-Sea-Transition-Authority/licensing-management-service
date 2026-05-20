@@ -1,8 +1,8 @@
-import Polyline from '@arcgis/core/geometry/Polyline';
-import Point from '@arcgis/core/geometry/Point';
-import { LineNavigationType } from '../../generated/uk/co/fivium/grpc/gis/LineNavigationType';
-import { LineWithNavigationTypeAndId } from '../../src/migration/types/line-with-navigation-wrapper';
-import Polygon from '@arcgis/core/geometry/Polygon.js';
+import type { LineWithNavigationTypeAndId } from "../../src/migration/types/line-with-navigation-wrapper";
+import Point from "@arcgis/core/geometry/Point";
+import Polygon from "@arcgis/core/geometry/Polygon.js";
+import Polyline from "@arcgis/core/geometry/Polyline";
+import { LineNavigationType } from "../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
 
 export function makePolygonEsriJson(rings: number[][][]): string {
   return JSON.stringify({

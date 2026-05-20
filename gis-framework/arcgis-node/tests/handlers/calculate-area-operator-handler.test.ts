@@ -1,21 +1,21 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { status } from '@grpc/grpc-js';
-import { calculateAreaHandler } from '../../src/handlers/calculate-area-operator-handler';
-import * as calculateAreaModule from '../../src/geometric-operators/calculate-area-operator';
-import { esriJsonToPolyline } from '../../src/util/esrijson-util';
-import { CoordinateSystem } from '../../generated/uk/co/fivium/grpc/gis/CoordinateSystem';
-import { LineNavigationType } from '../../generated/uk/co/fivium/grpc/gis/LineNavigationType';
-import { makePolylineEsriJson } from '../test-utils/esrijson-test-util';
+import { status } from "@grpc/grpc-js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CoordinateSystem } from "../../generated/uk/co/fivium/grpc/gis/CoordinateSystem";
+import { LineNavigationType } from "../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
+import * as calculateAreaModule from "../../src/geometric-operators/calculate-area-operator";
+import { calculateAreaHandler } from "../../src/handlers/calculate-area-operator-handler";
+import { esriJsonToPolyline } from "../../src/util/esrijson-util";
+import { makePolylineEsriJson } from "../test-utils/esrijson-test-util";
 
-vi.mock('../../src/geometric-operators/calculate-area-operator');
-vi.mock('../../src/util/esrijson-util');
-vi.mock('../../src/config/logger', () => ({
+vi.mock("../../src/geometric-operators/calculate-area-operator");
+vi.mock("../../src/util/esrijson-util");
+vi.mock("../../src/config/logger", () => ({
   logger: {
     error: vi.fn(),
   },
 }));
 
-describe('calculateAreaHandler', () => {
+describe("calculateAreaHandler", () => {
   let mockCallback: any;
   let mockCall: any;
 
@@ -30,7 +30,7 @@ describe('calculateAreaHandler', () => {
     };
   });
 
-  it('should return a successful callback with the calculated area', async () => {
+  it("should return a successful callback with the calculated area", async () => {
     const firstLineEsriJson = makePolylineEsriJson([
       [
         [0, 0],
@@ -62,7 +62,7 @@ describe('calculateAreaHandler', () => {
     expect(mockCallback).toHaveBeenCalledWith(null, { area: 123.45 });
   });
 
-  it('should call callback with error when densifyLoxodromesAndCalculateArea throws', async () => {
+  it("should call callback with error when densifyLoxodromesAndCalculateArea throws", async () => {
     const lineEsriJson = makePolylineEsriJson([
       [
         [0, 0],
@@ -72,7 +72,7 @@ describe('calculateAreaHandler', () => {
     mockCall.request.linesWithNavigationType = [
       { esriJsonPolyline: lineEsriJson, lineNavigationType: LineNavigationType.LOXODROME },
     ];
-    const testError = new Error('Failed to calculate area');
+    const testError = new Error("Failed to calculate area");
 
     vi.mocked(calculateAreaModule.densifyLoxodromesAndCalculateArea).mockRejectedValue(testError);
 
@@ -80,7 +80,7 @@ describe('calculateAreaHandler', () => {
 
     const callbackError = mockCallback.mock.calls[0][0];
     expect(callbackError).toBe(testError);
-    expect(callbackError.message).toBe('Failed to calculate area');
+    expect(callbackError.message).toBe("Failed to calculate area");
     expect(callbackError.code).toBe(status.INTERNAL);
     expect(mockCallback).toHaveBeenCalledWith(callbackError, null);
   });

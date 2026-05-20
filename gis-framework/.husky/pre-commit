@@ -1,0 +1,2 @@
+cd gis-framework
+npm run lint:fix

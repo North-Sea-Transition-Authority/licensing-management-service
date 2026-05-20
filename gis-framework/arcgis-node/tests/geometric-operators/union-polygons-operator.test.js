@@ -1,16 +1,16 @@
-import { describe, expect, test } from 'vitest';
-import Polygon from '@arcgis/core/geometry/Polygon.js';
-import SpatialReference from '@arcgis/core/geometry/SpatialReference';
-import { unionPolygonsOperator } from '../../src/geometric-operators/union-polygons-operator';
-import { CoordinateSystem } from '../../generated/uk/co/fivium/grpc/gis/CoordinateSystem.ts';
-import { getCoordinateSystemWkid } from '../../src/util/coordinate-system-utils.ts';
+import Polygon from "@arcgis/core/geometry/Polygon.js";
+import SpatialReference from "@arcgis/core/geometry/SpatialReference";
+import { describe, expect, it } from "vitest";
+import { CoordinateSystem } from "../../generated/uk/co/fivium/grpc/gis/CoordinateSystem.ts";
+import { unionPolygonsOperator } from "../../src/geometric-operators/union-polygons-operator";
+import { getCoordinateSystemWkid } from "../../src/util/coordinate-system-utils.ts";
 
 const ED50_WKID = getCoordinateSystemWkid(CoordinateSystem.ED50);
 
-describe('unionPolygonsOperator', () => {
+describe("unionPolygonsOperator", () => {
   const srs = new SpatialReference({ wkid: ED50_WKID });
 
-  test('returns the single polygon when only one is provided', () => {
+  it("returns the single polygon when only one is provided", () => {
     const polygon = new Polygon({
       rings: [
         [
@@ -42,7 +42,7 @@ describe('unionPolygonsOperator', () => {
     expect(result).toEqual(expected);
   });
 
-  test('returns the union of two overlapping polygons', () => {
+  it("returns the union of two overlapping polygons", () => {
     const polygon1 = new Polygon({
       rings: [
         [

@@ -1,15 +1,15 @@
-import { describe, expect, test } from 'vitest';
-import { esriJsonToPolyline } from '../../src/util/esrijson-util';
-import { makePolylineEsriJson } from '../test-utils/esrijson-test-util';
+import { describe, expect, it } from "vitest";
 import {
   findParentLine,
   FIVE_CM_IN_DEGREES_AT_48N_ED50,
   getLineStartAndEndPoints,
-} from '../../src/migration/utils/migration-line-utils';
+} from "../../src/migration/utils/migration-line-utils";
+import { esriJsonToPolyline } from "../../src/util/esrijson-util";
+import { makePolylineEsriJson } from "../test-utils/esrijson-test-util";
 
-describe('migration-line-utils', () => {
-  describe('getLineStartAndEndPoints', () => {
-    test('should return the first and last points of the polyline', () => {
+describe("migration-line-utils", () => {
+  describe("getLineStartAndEndPoints", () => {
+    it("should return the first and last points of the polyline", () => {
       const polyline = esriJsonToPolyline(
         makePolylineEsriJson([
           [
@@ -28,12 +28,12 @@ describe('migration-line-utils', () => {
       expect(endPoint.y).toBe(10);
     });
 
-    test('should throw when polyline has 0 paths', () => {
+    it("should throw when polyline has 0 paths", () => {
       const polyline = esriJsonToPolyline(makePolylineEsriJson([]));
 
-      expect(() => getLineStartAndEndPoints(polyline)).toThrow('Polyline must have exactly one path');
+      expect(() => getLineStartAndEndPoints(polyline)).toThrow("Polyline must have exactly one path");
     });
-    test('should throw when polyline has more than 1 path', () => {
+    it("should throw when polyline has more than 1 path", () => {
       const polyline = esriJsonToPolyline(
         makePolylineEsriJson([
           [
@@ -47,12 +47,12 @@ describe('migration-line-utils', () => {
         ]),
       );
 
-      expect(() => getLineStartAndEndPoints(polyline)).toThrow('Polyline must have exactly one path');
+      expect(() => getLineStartAndEndPoints(polyline)).toThrow("Polyline must have exactly one path");
     });
   });
 
-  describe('findParentLine', () => {
-    test('should find the closest parent line when child points are on the parent', () => {
+  describe("findParentLine", () => {
+    it("should find the closest parent line when child points are on the parent", () => {
       const parent = makePolylineEsriJson([
         [
           [0, 0],
@@ -75,7 +75,7 @@ describe('migration-line-utils', () => {
       expect(result).toStrictEqual(polyline);
     });
 
-    test('should return undefined when child points are far from all parent lines', () => {
+    it("should return undefined when child points are far from all parent lines", () => {
       const parent = makePolylineEsriJson([
         [
           [0, 0],
@@ -97,7 +97,7 @@ describe('migration-line-utils', () => {
       expect(result).toBeUndefined();
     });
 
-    test('should return the closest parent when multiple parents are provided', () => {
+    it("should return the closest parent when multiple parents are provided", () => {
       const farParent = makePolylineEsriJson([
         [
           [100, 100],
@@ -125,7 +125,7 @@ describe('migration-line-utils', () => {
       expect(result).toStrictEqual(esriJsonToPolyline(closeParent));
     });
 
-    test('should return undefined when no parent lines are provided', () => {
+    it("should return undefined when no parent lines are provided", () => {
       const polyline = esriJsonToPolyline(
         makePolylineEsriJson([
           [
@@ -142,7 +142,7 @@ describe('migration-line-utils', () => {
     });
   });
 
-  test('should return parent when parent is less than 5cm away from child line', () => {
+  it("should return parent when parent is less than 5cm away from child line", () => {
     const offset = FIVE_CM_IN_DEGREES_AT_48N_ED50 - FIVE_CM_IN_DEGREES_AT_48N_ED50 * 0.1;
     const parent = makePolylineEsriJson([
       [

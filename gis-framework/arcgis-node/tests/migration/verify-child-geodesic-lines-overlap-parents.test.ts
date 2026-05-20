@@ -1,10 +1,10 @@
-import { describe, expect, test } from 'vitest';
-import { childGeodesicLinesOverlapParents } from '../../src/migration/verify-child-geodesic-lines-overlap-parents';
-import { makePolylineEsriJson } from '../test-utils/esrijson-test-util';
+import { describe, expect, it } from "vitest";
+import { childGeodesicLinesOverlapParents } from "../../src/migration/verify-child-geodesic-lines-overlap-parents";
+import { makePolylineEsriJson } from "../test-utils/esrijson-test-util";
 
-describe('verify-child-geodesic-lines-overlap-parents', () => {
-  describe('childGeodesicLinesOverlapParents', () => {
-    test('should return true when child geodesic line overlaps parent', () => {
+describe("verify-child-geodesic-lines-overlap-parents", () => {
+  describe("childGeodesicLinesOverlapParents", () => {
+    it("should return true when child geodesic line overlaps parent", () => {
       const line = makePolylineEsriJson([
         [
           [0, 0],
@@ -20,7 +20,7 @@ describe('verify-child-geodesic-lines-overlap-parents', () => {
       expect(result).toBe(true);
     });
 
-    test('should return true when child is a subset of parent', () => {
+    it("should return true when child is a subset of parent", () => {
       const parent = makePolylineEsriJson([
         [
           [0, 0],
@@ -43,7 +43,7 @@ describe('verify-child-geodesic-lines-overlap-parents', () => {
       expect(result).toBe(true);
     });
 
-    test('should return false when child geodesic line has no matching parent', () => {
+    it("should return false when child geodesic line has no matching parent", () => {
       const parent = makePolylineEsriJson([
         [
           [0, 0],
@@ -65,7 +65,7 @@ describe('verify-child-geodesic-lines-overlap-parents', () => {
       expect(result).toBe(false);
     });
 
-    test('should ignore non-geodesic child lines', () => {
+    it("should ignore non-geodesic child lines", () => {
       const parent = makePolylineEsriJson([
         [
           [0, 0],
@@ -87,7 +87,7 @@ describe('verify-child-geodesic-lines-overlap-parents', () => {
       expect(result).toBe(true);
     });
 
-    test('should return false when no geodesic parents available for geodesic child', () => {
+    it("should return false when no geodesic parents available for geodesic child", () => {
       const parent = makePolylineEsriJson([
         [
           [0, 0],
@@ -109,7 +109,7 @@ describe('verify-child-geodesic-lines-overlap-parents', () => {
       expect(result).toBe(false);
     });
 
-    test('should return true when there are no child lines', () => {
+    it("should return true when there are no child lines", () => {
       const parent = makePolylineEsriJson([
         [
           [0, 0],
@@ -122,7 +122,7 @@ describe('verify-child-geodesic-lines-overlap-parents', () => {
       expect(result).toBe(true);
     });
 
-    test('should return true when there are no child or parent geodesic lines', () => {
+    it("should return true when there are no child or parent geodesic lines", () => {
       const line = makePolylineEsriJson([
         [
           [0, 0],

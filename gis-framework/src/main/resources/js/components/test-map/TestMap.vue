@@ -1,23 +1,29 @@
 <template>
   <ol-map ref="mapRef" class="gis-framework-map" :style="mapStyle" tabindex="0">
-    <ol-view :center="[0, 0]" :zoom="2" :maxZoom="15"/>
+    <ol-view :center="[0, 0]" :zoom="2" :max-zoom="15"/>
     <ol-tile-layer>
       <ol-source-osm/>
     </ol-tile-layer>
   </ol-map>
-  <div  class="govuk-button-group govuk-!-margin-top-4">
-    <button class="govuk-button">Split</button>
-    <button class="govuk-button govuk-button--secondary">Undo change</button>
-    <button class="govuk-button govuk-button--secondary">Redo change</button>
+  <div class="govuk-button-group govuk-!-margin-top-4">
+    <button class="govuk-button">
+      Split
+    </button>
+    <button class="govuk-button govuk-button--secondary">
+      Undo change
+    </button>
+    <button class="govuk-button govuk-button--secondary">
+      Redo change
+    </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import type {CSSProperties} from "vue";
-import {computed, ref} from "vue";
+import type { CSSProperties } from "vue";
+import { computed, ref } from "vue";
 
 interface TestMapProps {
-  height?: string;
+  height?: string,
 }
 
 const props = withDefaults(defineProps<TestMapProps>(), {

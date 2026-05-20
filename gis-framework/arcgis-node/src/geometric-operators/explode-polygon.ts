@@ -1,5 +1,5 @@
-import Polygon from '@arcgis/core/geometry/Polygon.js';
-import Polyline from '@arcgis/core/geometry/Polyline.js';
+import type Polygon from "@arcgis/core/geometry/Polygon.js";
+import Polyline from "@arcgis/core/geometry/Polyline.js";
 
 /**
  * Explode a polygon into its individual polylines.
@@ -8,7 +8,7 @@ import Polyline from '@arcgis/core/geometry/Polyline.js';
  * @return An array of polylines, each representing a single segment of the original polygon.
  */
 export function explodePolygon(polygon: Polygon): Polyline[] {
-  const polylines = [];
+  const polylines: Polyline[] = [];
 
   polygon.rings.forEach((ring) => {
     for (let i = 0; i < ring.length - 1; i++) {

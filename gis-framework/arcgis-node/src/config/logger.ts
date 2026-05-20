@@ -1,9 +1,12 @@
-import pino from 'pino';
+import { createRequire } from "node:module";
+import process from "node:process";
+import pino from "pino";
 
-const isProduction = process.env.NODE_ENV === 'production';
+const require = createRequire(import.meta.url);
+const isProduction = process.env.NODE_ENV === "production";
 const hasPinoPretty = (() => {
   try {
-    require.resolve('pino-pretty');
+    require.resolve("pino-pretty");
     return true;
   } catch {
     return false;
@@ -11,16 +14,16 @@ const hasPinoPretty = (() => {
 })();
 
 export const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
+  level: process.env.LOG_LEVEL || "info",
 
   transport:
     !isProduction && hasPinoPretty
       ? {
-          target: 'pino-pretty',
+          target: "pino-pretty",
           options: {
             colorize: true,
-            translateTime: 'SYS:standard',
-            ignore: 'pid,hostname',
+            translateTime: "SYS:standard",
+            ignore: "pid,hostname",
           },
         }
       : undefined,

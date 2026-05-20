@@ -1,5 +1,5 @@
-import Polygon from '@arcgis/core/geometry/Polygon.js';
-import Polyline from '@arcgis/core/geometry/Polyline.js';
+import Polygon from "@arcgis/core/geometry/Polygon.js";
+import Polyline from "@arcgis/core/geometry/Polyline.js";
 
 /**
  * Converts an esriJson polygon to a Polygon

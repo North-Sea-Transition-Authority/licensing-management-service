@@ -1,2 +1,0 @@
-node -e "console.log('Running and Fixing ESLint on staged files')"
-npx lint-staged

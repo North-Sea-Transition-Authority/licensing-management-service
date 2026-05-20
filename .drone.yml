@@ -36,8 +36,6 @@ steps:
       - npm install
       - npm run copy:core
       - npm run proto-gen
-      - npm run lint
-      - npm run format:check
       - npm test
 
   - name: build-gis-java-backend
@@ -308,8 +306,6 @@ steps:
       - npm install
       - npm run copy:core
       - npm run proto-gen
-      - npm run lint
-      - npm run format:check
       - npm test
 
   - name: build-gis-java-backend

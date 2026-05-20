@@ -1,4 +1,4 @@
-import {createApp} from "vue";
+import { createApp } from "vue";
 import OpenLayersMap from "vue3-openlayers";
 import TestMap from "./components/test-map/TestMap.vue";
 import "ol/ol.css";
@@ -8,6 +8,6 @@ for (const element of document.querySelectorAll<HTMLElement>("[data-gis-componen
   createApp(TestMap, {
     height: element.dataset.gisMapHeight || "500px",
   })
-      .use(OpenLayersMap)
-      .mount(element);
+    .use(OpenLayersMap)
+    .mount(element);
 }

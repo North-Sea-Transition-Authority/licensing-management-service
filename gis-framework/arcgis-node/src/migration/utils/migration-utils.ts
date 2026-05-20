@@ -1,16 +1,16 @@
-import Polyline from '@arcgis/core/geometry/Polyline';
-import Point from '@arcgis/core/geometry/Point';
-import * as proximityOperator from '@arcgis/core/geometry/operators/proximityOperator.js';
-import * as intersectionOperator from '@arcgis/core/geometry/operators/intersectionOperator.js';
-import * as intersectsOperator from '@arcgis/core/geometry/operators/intersectsOperator.js';
-import SpatialReference from '@arcgis/core/geometry/SpatialReference';
-import { LineWithNavigationTypeAndId } from '../types/line-with-navigation-wrapper';
-import { logger } from '../../config/logger';
-import * as geodeticDensifyOperator from '@arcgis/core/geometry/operators/geodeticDensifyOperator.js';
-import * as generalizeOperator from '@arcgis/core/geometry/operators/generalizeOperator.js';
-import { LineNavigationType } from '../../../generated/uk/co/fivium/grpc/gis/LineNavigationType';
-import { findLoxodromeThatConnectsToPointOnSetBearing, SetBearing } from '../types/line-with-bearing-wrapper';
-import Multipoint from '@arcgis/core/geometry/Multipoint';
+import type Multipoint from "@arcgis/core/geometry/Multipoint";
+import type Point from "@arcgis/core/geometry/Point";
+import type SpatialReference from "@arcgis/core/geometry/SpatialReference";
+import type { LineWithNavigationTypeAndId } from "../types/line-with-navigation-wrapper";
+import * as generalizeOperator from "@arcgis/core/geometry/operators/generalizeOperator.js";
+import * as geodeticDensifyOperator from "@arcgis/core/geometry/operators/geodeticDensifyOperator.js";
+import * as intersectionOperator from "@arcgis/core/geometry/operators/intersectionOperator.js";
+import * as intersectsOperator from "@arcgis/core/geometry/operators/intersectsOperator.js";
+import * as proximityOperator from "@arcgis/core/geometry/operators/proximityOperator.js";
+import Polyline from "@arcgis/core/geometry/Polyline";
+import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
+import { logger } from "../../config/logger";
+import { findLoxodromeThatConnectsToPointOnSetBearing, SetBearing } from "../types/line-with-bearing-wrapper";
 
 // 1 second in degrees (arc second) == 1° (degree) / 60'(minutes) / 60" (seconds)
 export const ONE_ARC_SECOND = 1 / 3600;
@@ -124,7 +124,7 @@ export function getIndexOfPointOnLine(point: Point, polyline: Polyline): number 
 export async function migrateBlock(
   linesWithNavigationTypeAndId: LineWithNavigationTypeAndId[],
 ): Promise<LineWithNavigationTypeAndId[]> {
-  logger.info('Migrating block');
+  logger.info("Migrating block");
   if (!geodeticDensifyOperator.isLoaded()) {
     await geodeticDensifyOperator.load();
   }
@@ -136,13 +136,13 @@ export async function migrateBlock(
 
     if (navigationType === LineNavigationType.GEODESIC) {
       line = geodeticDensifyOperator.execute(line, GEODESIC_DENSE_POINT_METERS_INTERVAL, {
-        curveType: 'geodesic',
-        unit: 'meters',
+        curveType: "geodesic",
+        unit: "meters",
       }) as Polyline;
       line = generalizeOperator.execute(line, GENERALIZE_TOLERANCE_DEGREES) as Polyline;
     }
 
-    convertedLines.push({ line: line, id: id, navigationType: navigationType });
+    convertedLines.push({ line, id, navigationType });
   }
   return convertedLines;
 }
@@ -212,7 +212,7 @@ export function shiftNodeAndUpdateConnectedLine(
   childId: number,
   idToLineWrapper: Map<number, LineWithNavigationTypeAndId>,
   parentGeodesicLine: Polyline,
-  nodeType: 'start' | 'end',
+  nodeType: "start" | "end",
 ): Point {
   const linesWithNavigationTypeAndId = Array.from(idToLineWrapper.values());
   const lineOnBearing = findLoxodromeThatConnectsToPointOnSetBearing(childPoint, linesWithNavigationTypeAndId);
@@ -275,7 +275,7 @@ export function findPointOfIntersectionBetweenChildPointOnBearingAndParentLine(
   parent: Polyline,
   pointExtension: number,
 ): Point | undefined {
-  if (typeof childPoint.longitude !== 'number' || typeof childPoint.latitude !== 'number') {
+  if (typeof childPoint.longitude !== "number" || typeof childPoint.latitude !== "number") {
     return undefined;
   }
 
@@ -326,6 +326,8 @@ export function findLineConnectingToPointNotOnBearing(
 
     if (point.equals(startPoint)) {
       return true;
-    } else return point.equals(endPoint);
+    } else {
+      return point.equals(endPoint);
+    }
   });
 }

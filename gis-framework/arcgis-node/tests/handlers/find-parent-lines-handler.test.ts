@@ -1,15 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import { status } from '@grpc/grpc-js';
-import { findParentLinesHandler } from '../../src/handlers/find-parent-lines-handler';
-import * as esriJsonUtil from '../../src/util/esrijson-util';
-import * as findParentLinesModule from '../../src/geometric-operators/find-parent-lines';
-import { makePolylineEsriJson } from '../test-utils/esrijson-test-util';
+import Polyline from "@arcgis/core/geometry/Polyline.js";
+import { status } from "@grpc/grpc-js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import * as findParentLinesModule from "../../src/geometric-operators/find-parent-lines";
+import { findParentLinesHandler } from "../../src/handlers/find-parent-lines-handler";
+import * as esriJsonUtil from "../../src/util/esrijson-util";
+import { makePolylineEsriJson } from "../test-utils/esrijson-test-util";
 
-vi.mock('../../src/util/esrijson-util');
-vi.mock('../../src/geometric-operators/find-parent-lines');
+vi.mock("../../src/util/esrijson-util");
+vi.mock("../../src/geometric-operators/find-parent-lines");
 
-describe('findParentLinesHandler', () => {
+describe("findParentLinesHandler", () => {
   let mockCallback: any;
   let mockCall: any;
   const testWkid = 4326;
@@ -25,7 +25,7 @@ describe('findParentLinesHandler', () => {
     };
   });
 
-  it('should return a successful callback with parent matches and orphaned children', () => {
+  it("should return a successful callback with parent matches and orphaned children", () => {
     const parentLineEsriJson = makePolylineEsriJson([
       [
         [0, 0],
@@ -45,7 +45,7 @@ describe('findParentLinesHandler', () => {
       ],
     ]);
 
-    mockCall.request.parentLines = [{ id: 'parent-1', esriJsonPolyline: parentLineEsriJson }];
+    mockCall.request.parentLines = [{ id: "parent-1", esriJsonPolyline: parentLineEsriJson }];
     mockCall.request.childrenEsriJsonPolylines = [childLineEsriJson, orphanedChildEsriJson];
 
     const mockParentLine = new Polyline({
@@ -81,7 +81,7 @@ describe('findParentLinesHandler', () => {
       .mockReturnValueOnce(mockChildLine)
       .mockReturnValueOnce(mockOrphanedChildLine);
     vi.mocked(findParentLinesModule.findParentLines).mockReturnValue({
-      lines: [{ id: 'parent-1', polyline: mockChildLine }],
+      lines: [{ id: "parent-1", polyline: mockChildLine }],
       orphanedLines: [mockOrphanedChildLine],
     });
 
@@ -92,13 +92,13 @@ describe('findParentLinesHandler', () => {
     expect(esriJsonUtil.esriJsonToPolyline).toHaveBeenNthCalledWith(2, childLineEsriJson);
     expect(esriJsonUtil.esriJsonToPolyline).toHaveBeenNthCalledWith(3, orphanedChildEsriJson);
     expect(findParentLinesModule.findParentLines).toHaveBeenCalledWith(
-      [{ id: 'parent-1', polyline: mockParentLine }],
+      [{ id: "parent-1", polyline: mockParentLine }],
       [mockChildLine, mockOrphanedChildLine],
     );
     expect(mockCallback).toHaveBeenCalledWith(null, {
       linesWithParentMatch: [
         {
-          parentId: 'parent-1',
+          parentId: "parent-1",
           childEsriJsonPolyline: JSON.stringify(mockChildLine.toJSON()),
         },
       ],
@@ -106,14 +106,14 @@ describe('findParentLinesHandler', () => {
     });
   });
 
-  it('should call callback with error when findParentLines throws', () => {
+  it("should call callback with error when findParentLines throws", () => {
     const parentLineEsriJson = makePolylineEsriJson([
       [
         [0, 0],
         [10, 0],
       ],
     ]);
-    mockCall.request.parentLines = [{ id: 'parent-1', esriJsonPolyline: parentLineEsriJson }];
+    mockCall.request.parentLines = [{ id: "parent-1", esriJsonPolyline: parentLineEsriJson }];
 
     const mockParentLine = new Polyline({
       paths: [
@@ -125,7 +125,7 @@ describe('findParentLinesHandler', () => {
       spatialReference: { wkid: testWkid },
     });
 
-    const testError = new Error('Failed to find parent lines');
+    const testError = new Error("Failed to find parent lines");
     vi.mocked(esriJsonUtil.esriJsonToPolyline).mockReturnValue(mockParentLine);
     vi.mocked(findParentLinesModule.findParentLines).mockImplementation(() => {
       throw testError;
@@ -135,7 +135,7 @@ describe('findParentLinesHandler', () => {
 
     const callbackError = mockCallback.mock.calls[0][0];
     expect(callbackError).toBe(testError);
-    expect(callbackError.message).toBe('Failed to find parent lines');
+    expect(callbackError.message).toBe("Failed to find parent lines");
     expect(callbackError.code).toBe(status.INTERNAL);
     expect(mockCallback).toHaveBeenCalledWith(callbackError, null);
     expect(mockCallback).toHaveBeenCalledOnce();

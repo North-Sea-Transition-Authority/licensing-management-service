@@ -103,11 +103,19 @@ tasks.register('buildFrontend', NpmTask) {
   args = ['run', 'build']
 }
 
+tasks.register('lintFrontendAndArcGisNode', NpmTask) {
+  group = frontendBuildGroup
+  description = 'Lint GIS frontend and ArcGIS Node sources using the shared ESLint config.'
+  dependsOn tasks.named('installFrontendDependencies')
+  args = ['run', 'lint']
+}
+
 tasks.named('processResources') {
   dependsOn tasks.named('buildFrontend')
 }
 
 tasks.named('test') {
+  dependsOn tasks.named('lintFrontendAndArcGisNode')
   useJUnitPlatform()
   finalizedBy tasks.named('jacocoTestReport')
 }

@@ -1,15 +1,15 @@
-import { describe, expect, test } from 'vitest';
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import * as Terraformer from '@terraformer/arcgis';
-import { LineNavigationType } from '../../generated/uk/co/fivium/grpc/gis/LineNavigationType';
-import { geoJsonLineInputToLinesWithNavigationTypeAndId } from '../../src/migration/types/line-with-navigation-wrapper';
+import Polyline from "@arcgis/core/geometry/Polyline.js";
+import * as Terraformer from "@terraformer/arcgis";
+import { describe, expect, it } from "vitest";
+import { LineNavigationType } from "../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
+import { geoJsonLineInputToLinesWithNavigationTypeAndId } from "../../src/migration/types/line-with-navigation-wrapper";
 
-describe('geoJsonLineInputToLinesWithNavigationTypeAndId', () => {
-  test('should convert GeoJsonLineWrappers to a map of id to LineWithNavigationTypeAndId', () => {
+describe("geoJsonLineInputToLinesWithNavigationTypeAndId", () => {
+  it("should convert GeoJsonLineWrappers to a map of id to LineWithNavigationTypeAndId", () => {
     const wkid = 4326;
 
     const geodesicGeoJson = JSON.stringify({
-      type: 'LineString',
+      type: "LineString",
       coordinates: [
         [0, 0],
         [10, 10],
@@ -17,7 +17,7 @@ describe('geoJsonLineInputToLinesWithNavigationTypeAndId', () => {
     });
 
     const loxodromeGeoJson = JSON.stringify({
-      type: 'LineString',
+      type: "LineString",
       coordinates: [
         [20, 20],
         [30, 30],
@@ -42,10 +42,10 @@ describe('geoJsonLineInputToLinesWithNavigationTypeAndId', () => {
     ];
 
     const geodesicLine = Polyline.fromJSON(Terraformer.geojsonToArcGIS(JSON.parse(geodesicGeoJson)));
-    geodesicLine.spatialReference = { wkid: wkid };
+    geodesicLine.spatialReference = { wkid };
 
     const loxodromeLine = Polyline.fromJSON(Terraformer.geojsonToArcGIS(JSON.parse(loxodromeGeoJson)));
-    loxodromeLine.spatialReference = { wkid: wkid };
+    loxodromeLine.spatialReference = { wkid };
 
     const expectedMap = new Map([
       [1, { line: geodesicLine, navigationType: LineNavigationType.GEODESIC, id: 1 }],
@@ -57,13 +57,13 @@ describe('geoJsonLineInputToLinesWithNavigationTypeAndId', () => {
     expect(result).toEqual(expectedMap);
   });
 
-  test('should throw when GeoJsonLineWrapper is missing oracleLineSsid', () => {
+  it("should throw when GeoJsonLineWrapper is missing oracleLineSsid", () => {
     const wkid = 4326;
 
     const geoJsonLineWrappers = [
       {
         geoJsonString: JSON.stringify({
-          type: 'LineString',
+          type: "LineString",
           coordinates: [
             [0, 0],
             [10, 10],
@@ -77,11 +77,11 @@ describe('geoJsonLineInputToLinesWithNavigationTypeAndId', () => {
     ];
 
     expect(() => geoJsonLineInputToLinesWithNavigationTypeAndId(geoJsonLineWrappers, wkid)).toThrow(
-      'GeoJsonLineWrapper is missing required field: oracleLineSsid',
+      "GeoJsonLineWrapper is missing required field: oracleLineSsid",
     );
   });
 
-  test('should throw when GeoJsonLineWrapper is missing geoJsonString', () => {
+  it("should throw when GeoJsonLineWrapper is missing geoJsonString", () => {
     const wkid = 4326;
     const oracleLineSsid = 1;
 
@@ -89,7 +89,7 @@ describe('geoJsonLineInputToLinesWithNavigationTypeAndId', () => {
       {
         geoJsonString: null,
         isGeodesic: true,
-        oracleLineSsid: oracleLineSsid,
+        oracleLineSsid,
         connectionOrder: 1,
         ringNumber: 1,
       },

@@ -1,6 +1,6 @@
-import { describe, expect, test } from 'vitest';
-import { makePolygonEsriJson } from '../test-utils/esrijson-test-util';
-import { parentContainsChild } from '../../src/geometric-operators/polygon-contains-operator';
+import { describe, expect, it } from "vitest";
+import { parentContainsChild } from "../../src/geometric-operators/polygon-contains-operator";
+import { makePolygonEsriJson } from "../test-utils/esrijson-test-util";
 
 const parent = makePolygonEsriJson([
   [
@@ -11,9 +11,9 @@ const parent = makePolygonEsriJson([
     [0, 0],
   ],
 ]);
-describe('polygon-contains-operator', () => {
-  describe('parentContainsChild', () => {
-    test('should return true when parent fully contains child', () => {
+describe("polygon-contains-operator", () => {
+  describe("parentContainsChild", () => {
+    it("should return true when parent fully contains child", () => {
       const child = makePolygonEsriJson([
         [
           [2, 2],
@@ -27,7 +27,7 @@ describe('polygon-contains-operator', () => {
       expect(parentContainsChild(parent, child)).toBe(true);
     });
 
-    test('should return false when parent partially contains child', () => {
+    it("should return false when parent partially contains child", () => {
       const child = makePolygonEsriJson([
         [
           [5, 5],
@@ -41,7 +41,7 @@ describe('polygon-contains-operator', () => {
       expect(parentContainsChild(parent, child)).toBe(false);
     });
 
-    test('should return false when child is completely outside parent', () => {
+    it("should return false when child is completely outside parent", () => {
       const child = makePolygonEsriJson([
         [
           [20, 20],

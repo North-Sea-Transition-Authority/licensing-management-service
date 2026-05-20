@@ -1,10 +1,10 @@
-import { describe, expect, test } from 'vitest';
-import { makePolygonEsriJson } from '../test-utils/esrijson-test-util';
-import { polygonsAreTopologicallyEqual } from '../../src/geometric-operators/polygon-equality-operator';
+import { describe, expect, it } from "vitest";
+import { polygonsAreTopologicallyEqual } from "../../src/geometric-operators/polygon-equality-operator";
+import { makePolygonEsriJson } from "../test-utils/esrijson-test-util";
 
-describe('polygon-equality-operator', () => {
-  describe('polygonsAreTopologicallyEqual', () => {
-    test('should return true for identical polygons', () => {
+describe("polygon-equality-operator", () => {
+  describe("polygonsAreTopologicallyEqual", () => {
+    it("should return true for identical polygons", () => {
       const polygon = makePolygonEsriJson([
         [
           [0, 0],
@@ -18,7 +18,7 @@ describe('polygon-equality-operator', () => {
       expect(polygonsAreTopologicallyEqual(polygon, polygon)).toBe(true);
     });
 
-    test('should return true for same polygon with different vertex order (rotated ring)', () => {
+    it("should return true for same polygon with different vertex order (rotated ring)", () => {
       const polygon1 = makePolygonEsriJson([
         [
           [0, 0],
@@ -41,7 +41,7 @@ describe('polygon-equality-operator', () => {
       expect(polygonsAreTopologicallyEqual(polygon1, polygon2)).toBe(true);
     });
 
-    test('should return false for different polygons', () => {
+    it("should return false for different polygons", () => {
       const polygon1 = makePolygonEsriJson([
         [
           [0, 0],
@@ -64,7 +64,7 @@ describe('polygon-equality-operator', () => {
       expect(polygonsAreTopologicallyEqual(polygon1, polygon2)).toBe(false);
     });
 
-    test('should return false for polygon contained within another polygon', () => {
+    it("should return false for polygon contained within another polygon", () => {
       const polygon1 = makePolygonEsriJson([
         [
           [0, 0],
@@ -87,7 +87,7 @@ describe('polygon-equality-operator', () => {
       expect(polygonsAreTopologicallyEqual(polygon1, polygon2)).toBe(false);
     });
 
-    test('should return false for overlapping but non-equal polygons', () => {
+    it("should return false for overlapping but non-equal polygons", () => {
       const polygon1 = makePolygonEsriJson([
         [
           [0, 0],

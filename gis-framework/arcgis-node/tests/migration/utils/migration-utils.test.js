@@ -1,33 +1,33 @@
-import { describe, expect, test } from 'vitest';
-import Polyline from '@arcgis/core/geometry/Polyline';
-import { CoordinateSystem } from '../../../generated/uk/co/fivium/grpc/gis/CoordinateSystem.ts';
-import Point from '@arcgis/core/geometry/Point';
+import * as generalizeOperator from "@arcgis/core/geometry/operators/generalizeOperator.js";
+import * as geodeticDensifyOperator from "@arcgis/core/geometry/operators/geodeticDensifyOperator.js";
+import Point from "@arcgis/core/geometry/Point";
+import Polyline from "@arcgis/core/geometry/Polyline";
+import SpatialReference from "@arcgis/core/geometry/SpatialReference";
+import { describe, expect, it } from "vitest";
+import { CoordinateSystem } from "../../../generated/uk/co/fivium/grpc/gis/CoordinateSystem.ts";
+import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType.ts";
+import { SetBearing } from "../../../src/migration/types/line-with-bearing-wrapper.ts";
 import {
+  findLineConnectingToPointNotOnBearing,
+  findPointOfIntersectionBetweenChildPointOnBearingAndParentLine,
+  GENERALIZE_TOLERANCE_DEGREES,
+  GEODESIC_DENSE_POINT_METERS_INTERVAL,
   getIndexOfPointOnLine,
   getNearestParentStartAndEndNodes,
-  GEODESIC_DENSE_POINT_METERS_INTERVAL,
-  GENERALIZE_TOLERANCE_DEGREES,
   isApproximatelyEqual,
+  mergeParentDensePointsIntoChildLine,
   migrateBlock,
+  ONE_ARC_SECOND,
   pointToEastWestLine,
   pointToNorthSouthLine,
-  mergeParentDensePointsIntoChildLine,
   shiftNodeAndUpdateConnectedLine,
-  findPointOfIntersectionBetweenChildPointOnBearingAndParentLine,
-  findLineConnectingToPointNotOnBearing,
-  ONE_ARC_SECOND,
-} from '../../../src/migration/utils/migration-utils.ts';
-import { LineNavigationType } from '../../../generated/uk/co/fivium/grpc/gis/LineNavigationType.ts';
-import SpatialReference from '@arcgis/core/geometry/SpatialReference';
-import { getCoordinateSystemWkid } from '../../../src/util/coordinate-system-utils.ts';
-import * as geodeticDensifyOperator from '@arcgis/core/geometry/operators/geodeticDensifyOperator.js';
-import * as generalizeOperator from '@arcgis/core/geometry/operators/generalizeOperator.js';
-import { SetBearing } from '../../../src/migration/types/line-with-bearing-wrapper.ts';
+} from "../../../src/migration/utils/migration-utils.ts";
+import { getCoordinateSystemWkid } from "../../../src/util/coordinate-system-utils.ts";
 
 const ED50_WKID = getCoordinateSystemWkid(CoordinateSystem.ED50);
 
-describe('migration-utils', () => {
-  describe('getNearestParentStartAndEndNodes', () => {
+describe("migration-utils", () => {
+  describe("getNearestParentStartAndEndNodes", () => {
     const parentPolyline = new Polyline({
       paths: [
         [
@@ -39,7 +39,7 @@ describe('migration-utils', () => {
       wkid: ED50_WKID,
     });
 
-    test('Returns existing points that are on the polyline.', () => {
+    it("returns existing points that are on the polyline.", () => {
       const childStartPoint = new Point({
         x: 1,
         y: 0,
@@ -74,7 +74,7 @@ describe('migration-utils', () => {
       expect(nearestEndPoint.coordinate).toEqual(expectedNearestEndPoint);
     });
 
-    test('Returns new points that are on the polyline.', () => {
+    it("returns new points that are on the polyline.", () => {
       const childStartPoint = new Point({
         x: 1,
         y: 3,
@@ -110,8 +110,8 @@ describe('migration-utils', () => {
     });
   });
 
-  describe('isApproximatelyEqual', () => {
-    test('true', () => {
+  describe("isApproximatelyEqual", () => {
+    it("true", () => {
       const point1 = new Point({
         x: 0,
         y: 0,
@@ -126,7 +126,7 @@ describe('migration-utils', () => {
       expect(isApproximatelyEqual(point1, point2)).toEqual(true);
     });
 
-    test('false', () => {
+    it("false", () => {
       const point1 = new Point({
         x: 0,
         y: 0,
@@ -142,7 +142,7 @@ describe('migration-utils', () => {
     });
   });
 
-  test('pointToEastWestLine', () => {
+  it("pointToEastWestLine", () => {
     const expectedPolyline = new Polyline({
       paths: [
         [
@@ -157,7 +157,7 @@ describe('migration-utils', () => {
     expect(pointToEastWestLine(0, 0, new SpatialReference({ wkid: ED50_WKID }), 1)).toEqual(expectedPolyline);
   });
 
-  test('pointToNorthSouthLine', () => {
+  it("pointToNorthSouthLine", () => {
     const expectedPolyline = new Polyline({
       paths: [
         [
@@ -172,7 +172,7 @@ describe('migration-utils', () => {
     expect(pointToNorthSouthLine(0, 0, new SpatialReference({ wkid: ED50_WKID }), 1)).toEqual(expectedPolyline);
   });
 
-  describe('getIndexOfPointOnLine', () => {
+  describe("getIndexOfPointOnLine", () => {
     const polyline = new Polyline({
       paths: [
         [
@@ -185,7 +185,7 @@ describe('migration-utils', () => {
       wkid: ED50_WKID,
     });
 
-    test('points that match the polyline', () => {
+    it("points that match the polyline", () => {
       const point1 = new Point({
         x: 0,
         y: 0,
@@ -213,7 +213,7 @@ describe('migration-utils', () => {
       expect(getIndexOfPointOnLine(point4, polyline)).toEqual(3);
     });
 
-    test('points between points on the polyline', () => {
+    it("points between points on the polyline", () => {
       const point1 = new Point({
         x: 0,
         y: 2,
@@ -229,7 +229,7 @@ describe('migration-utils', () => {
       expect(getIndexOfPointOnLine(point2, polyline)).toEqual(1);
     });
 
-    test('points near the polyline', () => {
+    it("points near the polyline", () => {
       const point = new Point({
         x: 1,
         y: 5,
@@ -239,8 +239,8 @@ describe('migration-utils', () => {
     });
   });
 
-  describe('migrateBlock', () => {
-    test('densifies geodesic lines but leaves loxodrome lines unchanged', async () => {
+  describe("migrateBlock", () => {
+    it("densifies geodesic lines but leaves loxodrome lines unchanged", async () => {
       const loxodromeLine = new Polyline({
         paths: [
           [
@@ -273,8 +273,8 @@ describe('migration-utils', () => {
       }
       const densifiedGeodesicLine = generalizeOperator.execute(
         geodeticDensifyOperator.execute(geodesicLine, GEODESIC_DENSE_POINT_METERS_INTERVAL, {
-          curveType: 'geodesic',
-          unit: 'meters',
+          curveType: "geodesic",
+          unit: "meters",
         }),
         GENERALIZE_TOLERANCE_DEGREES,
       );
@@ -288,7 +288,7 @@ describe('migration-utils', () => {
     });
   });
 
-  test('mergeParentDensePointsIntoChildLine', () => {
+  it("mergeParentDensePointsIntoChildLine", () => {
     const srs = new SpatialReference({ wkid: ED50_WKID });
     const parentLine = new Polyline({
       paths: [
@@ -332,7 +332,7 @@ describe('migration-utils', () => {
     expect(result).toEqual(expectedPolyline);
   });
 
-  describe('shiftNodeAndUpdateConnectedLine', () => {
+  describe("shiftNodeAndUpdateConnectedLine", () => {
     const srs = new SpatialReference({ wkid: ED50_WKID });
 
     const childPoint = new Point({
@@ -348,7 +348,7 @@ describe('migration-utils', () => {
     });
 
     const childId = 100;
-    const nodeType = 'start';
+    const nodeType = "start";
 
     const parentGeodesicLine = new Polyline({
       paths: [
@@ -360,7 +360,7 @@ describe('migration-utils', () => {
       spatialReference: srs,
     });
 
-    test('line on set bearing and intersection is found', () => {
+    it("line on set bearing and intersection is found", () => {
       const loxodromeOnBearing = new Polyline({
         paths: [
           [
@@ -415,7 +415,7 @@ describe('migration-utils', () => {
       expect(idToLineWrapper).toEqual(expectedIdToLineWrapper);
     });
 
-    test('line on set bearing and no intersection is found', () => {
+    it("line on set bearing and no intersection is found", () => {
       const loxodromeOnBearing = new Polyline({
         paths: [
           [
@@ -445,10 +445,10 @@ describe('migration-utils', () => {
 
       expect(() =>
         shiftNodeAndUpdateConnectedLine(childPoint, nearestCoordinate, childId, idToLineWrapper, farAwayParentLine, nodeType),
-      ).toThrow('No intersection point for line 200 on set bearing was found.');
+      ).toThrow("No intersection point for line 200 on set bearing was found.");
     });
 
-    test('line not on set bearing and a connection is found', () => {
+    it("line not on set bearing and a connection is found", () => {
       const geodesicLine = new Polyline({
         paths: [
           [
@@ -497,7 +497,7 @@ describe('migration-utils', () => {
       expect(idToLineWrapper).toEqual(expectedIdToLineWrapper);
     });
 
-    test('line not on set bearing and no connection is found', () => {
+    it("line not on set bearing and no connection is found", () => {
       const childLine = new Polyline({
         paths: [
           [
@@ -521,10 +521,10 @@ describe('migration-utils', () => {
     });
   });
 
-  describe('findPointOfIntersectionBetweenChildPointOnBearingAndParentLine', () => {
+  describe("findPointOfIntersectionBetweenChildPointOnBearingAndParentLine", () => {
     const srs = new SpatialReference({ wkid: ED50_WKID });
 
-    test('latitude bearing with intersection', () => {
+    it("latitude bearing with intersection", () => {
       // Point at (1, 50), latitude bearing creates a N-S line
       const childPoint = new Point({ x: 1, y: 50, spatialReference: srs });
 
@@ -550,7 +550,7 @@ describe('migration-utils', () => {
       expect(result).toEqual(expectedIntersection);
     });
 
-    test('latitude bearing with no intersection', () => {
+    it("latitude bearing with no intersection", () => {
       const childPoint = new Point({ x: 1, y: 50, spatialReference: srs });
 
       // Parent line far away from x=1
@@ -574,7 +574,7 @@ describe('migration-utils', () => {
       expect(result).toBeUndefined();
     });
 
-    test('longitude bearing with intersection', () => {
+    it("longitude bearing with intersection", () => {
       // Point at (1, 50), longitude bearing creates an E-W line
       const childPoint = new Point({ x: 1, y: 50, spatialReference: srs });
 
@@ -600,7 +600,7 @@ describe('migration-utils', () => {
       expect(result).toEqual(expectedIntersection);
     });
 
-    test('longitude bearing with no intersection', () => {
+    it("longitude bearing with no intersection", () => {
       const childPoint = new Point({ x: 1, y: 50, spatialReference: srs });
 
       // Parent line far away from y=50
@@ -625,12 +625,12 @@ describe('migration-utils', () => {
     });
   });
 
-  describe('findLineConnectingToPointNotOnBearing', () => {
+  describe("findLineConnectingToPointNotOnBearing", () => {
     const srs = new SpatialReference({ wkid: ED50_WKID });
     const point = new Point({ x: 1, y: 50, spatialReference: srs });
     const targetLineId = 100;
 
-    test('no connection found', () => {
+    it("no connection found", () => {
       const unconnectedLine = new Polyline({
         paths: [
           [
@@ -647,7 +647,7 @@ describe('migration-utils', () => {
       expect(result).toBeUndefined();
     });
 
-    test('line connecting at its start point', () => {
+    it("line connecting at its start point", () => {
       const lineConnectingAtStart = new Polyline({
         paths: [
           [
@@ -666,7 +666,7 @@ describe('migration-utils', () => {
       expect(result).toEqual(expectedLine);
     });
 
-    test('line connecting at its end point', () => {
+    it("line connecting at its end point", () => {
       const lineConnectingAtEnd = new Polyline({
         paths: [
           [

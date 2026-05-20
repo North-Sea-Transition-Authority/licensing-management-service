@@ -1,8 +1,8 @@
-import Polygon from '@arcgis/core/geometry/Polygon.js';
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import * as linesToPolygonsOperator from '@arcgis/core/geometry/operators/linesToPolygonsOperator.js';
-import * as simplifyOperator from '@arcgis/core/geometry/operators/simplifyOperator.js';
-import { logger } from '../config/logger';
+import type Polygon from "@arcgis/core/geometry/Polygon.js";
+import * as linesToPolygonsOperator from "@arcgis/core/geometry/operators/linesToPolygonsOperator.js";
+import * as simplifyOperator from "@arcgis/core/geometry/operators/simplifyOperator.js";
+import Polyline from "@arcgis/core/geometry/Polyline.js";
+import { logger } from "../config/logger";
 
 /**
  * Converts an array of {@link Polyline} geometries into a single simplified polygon.
@@ -25,7 +25,7 @@ export function linesToSinglePolygon(polylines: Polyline[], wkid: number): Polyg
   const polygons = linesToPolygonsOperator.executeMany(polylines);
 
   const polygon = polygons[0];
-  polygon.spatialReference = { wkid: wkid };
+  polygon.spatialReference = { wkid };
 
   logger.debug(`Built ${polygons.length} polygons`);
 

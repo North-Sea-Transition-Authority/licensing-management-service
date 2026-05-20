@@ -1,7 +1,7 @@
-import * as equalsOperator from '@arcgis/core/geometry/operators/equalsOperator.js';
-import Polygon from '@arcgis/core/geometry/Polygon.js';
-import * as simplifyOperator from '@arcgis/core/geometry/operators/simplifyOperator.js';
-import { esriJsonToPolygon } from '../util/esrijson-util';
+import type Polygon from "@arcgis/core/geometry/Polygon.js";
+import * as equalsOperator from "@arcgis/core/geometry/operators/equalsOperator.js";
+import * as simplifyOperator from "@arcgis/core/geometry/operators/simplifyOperator.js";
+import { esriJsonToPolygon } from "../util/esrijson-util";
 
 /**
  * Verifies that two polygons are topologically equal.

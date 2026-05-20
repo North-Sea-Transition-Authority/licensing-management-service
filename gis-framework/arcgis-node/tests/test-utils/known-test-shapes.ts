@@ -1,6 +1,6 @@
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import { makeLineWithNavigationAndId } from './esrijson-test-util';
-import { LineNavigationType } from '../../generated/uk/co/fivium/grpc/gis/LineNavigationType';
+import Polyline from "@arcgis/core/geometry/Polyline.js";
+import { LineNavigationType } from "../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
+import { makeLineWithNavigationAndId } from "./esrijson-test-util";
 
 export const ED50_MIXED_POLYLINES = [
   makeLineWithNavigationAndId(

@@ -1,9 +1,9 @@
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import Polygon from '@arcgis/core/geometry/Polygon.js';
-import * as cutOperator from '@arcgis/core/geometry/operators/cutOperator.js';
-import * as multiPartToSinglePartOperator from '@arcgis/core/geometry/operators/multiPartToSinglePartOperator.js';
-import * as containsOperator from '@arcgis/core/geometry/operators/containsOperator.js';
-import * as unionOperator from '@arcgis/core/geometry/operators/unionOperator.js';
+import type Polygon from "@arcgis/core/geometry/Polygon.js";
+import * as containsOperator from "@arcgis/core/geometry/operators/containsOperator.js";
+import * as cutOperator from "@arcgis/core/geometry/operators/cutOperator.js";
+import * as multiPartToSinglePartOperator from "@arcgis/core/geometry/operators/multiPartToSinglePartOperator.js";
+import * as unionOperator from "@arcgis/core/geometry/operators/unionOperator.js";
+import Polyline from "@arcgis/core/geometry/Polyline.js";
 
 /**
  * Split a polygon with a cutter line.
@@ -17,7 +17,7 @@ export function splitPolygon(target: Polygon, cutterLine: Polyline): Polygon[] {
   const cutResults = cutOperator.execute(target, cutterLineClean) as Polygon[];
 
   let polygons: Polygon[] = [];
-  //Only separate polygons if a cut actually took place.
+  // Only separate polygons if a cut actually took place.
   if (cutResults.length > 0) {
     // cutResults may contain disjointed polygons, (one polygon that should actually be multiple polygons)
     // this operation splits those disjointed polygons into separate polygons

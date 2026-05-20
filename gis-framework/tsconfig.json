@@ -1,28 +1,28 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig.json",
-  "include": [
-    "src/main/resources/js/**/*.ts",
-    "src/main/resources/js/**/*.vue",
-    "vite.config.ts"
-  ],
   "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "isolatedModules": true,
+    "target": "ES2023",
     "lib": [
       "DOM",
       "ES2023"
     ],
+    "useDefineForClassFields": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "noEmit": true,
     "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "target": "ES2023",
     "types": [
       "vite/client"
     ],
-    "useDefineForClassFields": true
-  }
+    "strict": true,
+    "noEmit": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/main/resources/js/**/*.ts",
+    "src/main/resources/js/**/*.vue",
+    "vite.config.ts"
+  ]
 }

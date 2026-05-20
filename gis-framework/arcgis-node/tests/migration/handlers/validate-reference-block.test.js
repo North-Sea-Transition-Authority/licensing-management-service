@@ -1,12 +1,12 @@
-import { describe, expect, test, vi } from 'vitest';
-import { status } from '@grpc/grpc-js';
-import { validateReferenceBlock } from '../../../src/migration/handlers/validate-reference-block';
-import { CoordinateSystem } from '../../../generated/uk/co/fivium/grpc/gis/CoordinateSystem.ts';
-import { LineNavigationType } from '../../../generated/uk/co/fivium/grpc/gis/LineNavigationType.ts';
-import { makeRectanglePolygonWrapper } from '../../test-utils/esrijson-test-util.ts';
+import { status } from "@grpc/grpc-js";
+import { describe, expect, it, vi } from "vitest";
+import { CoordinateSystem } from "../../../generated/uk/co/fivium/grpc/gis/CoordinateSystem.ts";
+import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType.ts";
+import { validateReferenceBlock } from "../../../src/migration/handlers/validate-reference-block";
+import { makeRectanglePolygonWrapper } from "../../test-utils/esrijson-test-util.ts";
 
-describe('validateReferenceBlock', () => {
-  test('valid', async () => {
+describe("validateReferenceBlock", () => {
+  it("valid", async () => {
     const refBlockWrapper = makeRectanglePolygonWrapper(0, 0, 20, 20);
     const licenceBlockWrapper = makeRectanglePolygonWrapper(5, 5, 15, 15);
 
@@ -25,7 +25,7 @@ describe('validateReferenceBlock', () => {
     expect(callback).toHaveBeenCalledWith(null, { isValid: true });
   });
 
-  test('not valid when licence block is not contained by reference block', async () => {
+  it("not valid when licence block is not contained by reference block", async () => {
     const refBlockWrapper = makeRectanglePolygonWrapper(0, 0, 5, 5);
     const licenceBlockWrapper = makeRectanglePolygonWrapper(0, 0, 20, 20);
 
@@ -43,11 +43,11 @@ describe('validateReferenceBlock', () => {
 
     expect(callback).toHaveBeenCalledWith(null, {
       isValid: false,
-      message: 'Reference block does not contain all of its licence blocks.',
+      message: "Reference block does not contain all of its licence blocks.",
     });
   });
 
-  test('not valid when licence block geodesic lines do not overlap with reference block geodesic lines', async () => {
+  it("not valid when licence block geodesic lines do not overlap with reference block geodesic lines", async () => {
     const refBlockWrapper = makeRectanglePolygonWrapper(0, 0, 20, 20, LineNavigationType.GEODESIC);
 
     const licenceBlockWrapper = makeRectanglePolygonWrapper(5, 5, 15, 15, LineNavigationType.GEODESIC);
@@ -66,11 +66,11 @@ describe('validateReferenceBlock', () => {
 
     expect(callback).toHaveBeenCalledWith(null, {
       isValid: false,
-      message: 'License block geodesic lines do not overlap reference block geodesic lines.',
+      message: "License block geodesic lines do not overlap reference block geodesic lines.",
     });
   });
 
-  test('returns internal error when validation throws', async () => {
+  it("returns internal error when validation throws", async () => {
     const refBlockWrapper = makeRectanglePolygonWrapper(0, 0, 20, 20);
     const licenceBlockWrapper = makeRectanglePolygonWrapper(5, 5, 15, 15);
 

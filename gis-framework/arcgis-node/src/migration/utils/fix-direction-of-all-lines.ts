@@ -1,17 +1,17 @@
-import Polyline from '@arcgis/core/geometry/Polyline';
-import { LineWithNavigationTypeAndId } from '../types/line-with-navigation-wrapper';
-import { logger } from '../../config/logger';
-import { GeoJsonLineWrapper__Output } from '../../../generated/uk/co/fivium/grpc/gis/GeoJsonLineWrapper';
-import { isApproximatelyEqual } from './migration-utils';
-import { getLineStartAndEndPoints } from './migration-line-utils';
+import type { GeoJsonLineWrapper__Output } from "../../../generated/uk/co/fivium/grpc/gis/GeoJsonLineWrapper";
+import type { LineWithNavigationTypeAndId } from "../types/line-with-navigation-wrapper";
+import Polyline from "@arcgis/core/geometry/Polyline";
+import { logger } from "../../config/logger";
+import { getLineStartAndEndPoints } from "./migration-line-utils";
+import { isApproximatelyEqual } from "./migration-utils";
 
 /**
  * Orients all lines so they form a continuous chain within each ring.
  * The first line's direction is determined by its connection to the second line,
  * then each subsequent line is oriented to match the previous line's end point.
+ * Returns nothing, as it will update the lines in idToLineWithNavigationWrapper in place.
  * @param idToLineWithNavigationWrapper A map of line IDs to their corresponding {@link LineWithNavigationTypeAndId} wrappers.
  * @param linesWithType A list of {@link GeoJsonLineWrapper__Output} which contains the line IDs, ring numbers, and connection orders.
- * @returns Nothing, as it will update the lines in idToLineWithNavigationWrapper in place.
  */
 export function fixDirectionOfAllLines(
   idToLineWithNavigationWrapper: Map<number, LineWithNavigationTypeAndId>,
@@ -31,7 +31,7 @@ export function fixDirectionOfAllLines(
 }
 
 function fixDirectionOfFirstLine(
-  lines: { connectionOrder: number; id: number }[],
+  lines: { connectionOrder: number, id: number }[],
   idToLineWithNavigationWrapper: Map<number, LineWithNavigationTypeAndId>,
 ): void {
   const first = getWrapperOrThrow(lines[0].id, idToLineWithNavigationWrapper);
@@ -40,15 +40,15 @@ function fixDirectionOfFirstLine(
   const { endPoint: firstEnd } = getLineStartAndEndPoints(first.line);
   const { startPoint: secondStart, endPoint: secondEnd } = getLineStartAndEndPoints(second.line);
 
-  const firstLineEndNodeConnectsToEitherNextNode =
-    isApproximatelyEqual(firstEnd, secondStart) || isApproximatelyEqual(firstEnd, secondEnd);
+  const firstLineEndNodeConnectsToEitherNextNode
+    = isApproximatelyEqual(firstEnd, secondStart) || isApproximatelyEqual(firstEnd, secondEnd);
   if (firstLineEndNodeConnectsToEitherNextNode) {
     return;
   }
 
   const { startPoint: firstStart } = getLineStartAndEndPoints(first.line);
-  const firstLineStartNodeConnectsToEitherNextNode =
-    isApproximatelyEqual(firstStart, secondStart) || isApproximatelyEqual(firstStart, secondEnd);
+  const firstLineStartNodeConnectsToEitherNextNode
+    = isApproximatelyEqual(firstStart, secondStart) || isApproximatelyEqual(firstStart, secondEnd);
 
   if (firstLineStartNodeConnectsToEitherNextNode) {
     reverseLine(first);
@@ -59,7 +59,7 @@ function fixDirectionOfFirstLine(
 }
 
 function fixDirectionOfSubsequentLines(
-  lines: { connectionOrder: number; id: number }[],
+  lines: { connectionOrder: number, id: number }[],
   idToLineWithNavigationWrapper: Map<number, LineWithNavigationTypeAndId>,
 ): void {
   for (let i = 0; i < lines.length - 1; i++) {
@@ -100,8 +100,8 @@ function reverseLine(wrapper: LineWithNavigationTypeAndId): void {
 
 function getRingToLineIdAndConnectionOrder(
   linesWithType: GeoJsonLineWrapper__Output[],
-): Map<number, { connectionOrder: number; id: number }[]> {
-  const ringToLines = new Map<number, { connectionOrder: number; id: number }[]>();
+): Map<number, { connectionOrder: number, id: number }[]> {
+  const ringToLines = new Map<number, { connectionOrder: number, id: number }[]>();
   for (const line of linesWithType) {
     const ringNumber = Number(line.ringNumber);
     if (!ringToLines.has(ringNumber)) {

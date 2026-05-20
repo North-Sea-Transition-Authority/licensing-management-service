@@ -1,21 +1,21 @@
-import Polyline from '@arcgis/core/geometry/Polyline';
-import { logger } from '../config/logger';
+import type Polyline from "@arcgis/core/geometry/Polyline";
+import { logger } from "../config/logger";
 
 export interface PolylineWithId {
-  id: string;
-  polyline: Polyline;
+  id: string,
+  polyline: Polyline,
 }
 
 export interface LineIdWithStartAndEndPoints {
-  lineId: string;
+  lineId: string,
   startPoint: {
-    x: number;
-    y: number;
-  };
+    x: number,
+    y: number,
+  },
   endPoint: {
-    x: number;
-    y: number;
-  };
+    x: number,
+    y: number,
+  },
 }
 
 export function getLineStartAndEndPoints(lines: PolylineWithId[]): LineIdWithStartAndEndPoints[] {

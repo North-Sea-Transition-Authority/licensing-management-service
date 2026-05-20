@@ -1,11 +1,11 @@
-import * as containsOperator from '@arcgis/core/geometry/operators/containsOperator.js';
-import { logger } from '../config/logger';
-import { esriJsonToPolyline } from '../util/esrijson-util';
-import { findParentLine, getLineStartAndEndPoints } from './utils/migration-line-utils';
+import * as containsOperator from "@arcgis/core/geometry/operators/containsOperator.js";
+import { logger } from "../config/logger";
+import { esriJsonToPolyline } from "../util/esrijson-util";
+import { findParentLine, getLineStartAndEndPoints } from "./utils/migration-line-utils";
 
 export type EsriJsonLineStringToIsGeodesic = {
-  esriJsonPolyline: string;
-  isGeodesic: boolean;
+  esriJsonPolyline: string,
+  isGeodesic: boolean,
 };
 
 /**
@@ -18,9 +18,9 @@ export function childGeodesicLinesOverlapParents(
   parentLines: EsriJsonLineStringToIsGeodesic[],
   childLines: EsriJsonLineStringToIsGeodesic[],
 ): boolean {
-  const parentGeodesicLines = parentLines.filter((line) => line.isGeodesic).map((line) => line.esriJsonPolyline);
+  const parentGeodesicLines = parentLines.filter(line => line.isGeodesic).map(line => line.esriJsonPolyline);
 
-  const childGeodesics = childLines.filter((line) => line.isGeodesic);
+  const childGeodesics = childLines.filter(line => line.isGeodesic);
 
   if (!parentGeodesicLines.length && !childGeodesics.length) {
     return true;
@@ -44,11 +44,11 @@ export function childGeodesicLinesOverlapParents(
     }
   });
 
-  orphanedChildLinesJson.forEach((line) =>
-    logger.warn({ orphanedLineJson: line }, 'Parent geodesic not found for child geodesic line'),
+  orphanedChildLinesJson.forEach(line =>
+    logger.warn({ orphanedLineJson: line }, "Parent geodesic not found for child geodesic line"),
   );
-  nonOverlappingChildLinesJson.forEach((line) =>
-    logger.warn({ nonOverlappingLineJson: line }, 'Non-overlapping child geodesic line'),
+  nonOverlappingChildLinesJson.forEach(line =>
+    logger.warn({ nonOverlappingLineJson: line }, "Non-overlapping child geodesic line"),
   );
 
   return orphanedChildLinesJson.length === 0 && nonOverlappingChildLinesJson.length === 0;

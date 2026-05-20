@@ -1,16 +1,16 @@
-import { describe, expect, test, vi } from 'vitest';
-import { status } from '@grpc/grpc-js';
+import { status } from "@grpc/grpc-js";
+import { describe, expect, it, vi } from "vitest";
+import { CoordinateSystem } from "../../../generated/uk/co/fivium/grpc/gis/CoordinateSystem.ts";
+import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType.ts";
 import {
   findIntersectionPoint,
   mergeAdjacentGeodesicLinesAndReturnAllNewLineWrappers,
   migrateReferenceBlockHandler,
   replaceSegment,
   updateGeodesicReferenceBlockLine,
-} from '../../../src/migration/handlers/migrate-reference-block';
-import { makeLineWithNavigationAndId, makePoint, makePolyline } from '../../test-utils/esrijson-test-util.ts';
-import { getCoordinateSystemWkid } from '../../../src/util/coordinate-system-utils.ts';
-import { CoordinateSystem } from '../../../generated/uk/co/fivium/grpc/gis/CoordinateSystem.ts';
-import { LineNavigationType } from '../../../generated/uk/co/fivium/grpc/gis/LineNavigationType.ts';
+} from "../../../src/migration/handlers/migrate-reference-block";
+import { getCoordinateSystemWkid } from "../../../src/util/coordinate-system-utils.ts";
+import { makeLineWithNavigationAndId, makePoint, makePolyline } from "../../test-utils/esrijson-test-util.ts";
 
 const ED50_WKID = getCoordinateSystemWkid(CoordinateSystem.ED50);
 
@@ -30,8 +30,8 @@ function makeLoxodromeLineWithSetBearing(point) {
   );
 }
 
-describe('migrate-reference-block', () => {
-  test('returns internal error when migration throws', async () => {
+describe("migrate-reference-block", () => {
+  it("returns internal error when migration throws", async () => {
     const call = {
       request: {
         geoJsonLineWrappers: [],
@@ -51,8 +51,8 @@ describe('migrate-reference-block', () => {
     expect(callback).toHaveBeenCalledOnce();
   });
 
-  describe('mergeAdjacentGeodesicLinesAndReturnAllNewLineWrappers', () => {
-    test('returns all lines when there is one geodesic line', async () => {
+  describe("mergeAdjacentGeodesicLinesAndReturnAllNewLineWrappers", () => {
+    it("returns all lines when there is one geodesic line", async () => {
       const geodesicLine = makeLineWithNavigationAndId(
         makePolyline(
           [
@@ -94,7 +94,7 @@ describe('migrate-reference-block', () => {
       expect(result).toEqual([geodesicLine, loxodromeLine]);
     });
 
-    test('merges adjacent geodesic lines', async () => {
+    it("merges adjacent geodesic lines", async () => {
       const firstGeodesicLine = makeLineWithNavigationAndId(
         makePolyline(
           [
@@ -152,7 +152,7 @@ describe('migrate-reference-block', () => {
       expect(result).toEqual(expected);
     });
 
-    test('merges the first and last geodesic lines in the connection order', async () => {
+    it("merges the first and last geodesic lines in the connection order", async () => {
       const firstGeodesicLine = makeLineWithNavigationAndId(
         makePolyline(
           [
@@ -206,10 +206,10 @@ describe('migrate-reference-block', () => {
         ]),
       );
 
-      expect(result.map((lineWrapper) => lineWrapper.id)).toEqual([firstGeodesicLine.id, middleLoxodromeLine.id]);
+      expect(result.map(lineWrapper => lineWrapper.id)).toEqual([firstGeodesicLine.id, middleLoxodromeLine.id]);
     });
 
-    test('keeps non-adjacent geodesic lines separate', async () => {
+    it("keeps non-adjacent geodesic lines separate", async () => {
       const firstGeodesicLine = makeLineWithNavigationAndId(
         makePolyline(
           [
@@ -263,15 +263,15 @@ describe('migrate-reference-block', () => {
         ]),
       );
 
-      expect(result.map((lineWrapper) => lineWrapper.id)).toEqual([
+      expect(result.map(lineWrapper => lineWrapper.id)).toEqual([
         firstGeodesicLine.id,
         secondGeodesicLine.id,
         loxodromeLine.id,
       ]);
     });
   });
-  describe('findIntersectionPoint', () => {
-    test('returns the bearing intersection from the ref block point when it intersects the license line', () => {
+  describe("findIntersectionPoint", () => {
+    it("returns the bearing intersection from the ref block point when it intersects the license line", () => {
       const refBlockPoint = makePoint(1, 50, ED50_WKID);
       const licensePoint = makePoint(5, 50, ED50_WKID);
       const licenseLine = makePolyline(
@@ -300,7 +300,7 @@ describe('migrate-reference-block', () => {
       expect(result).toEqual(makePoint(1, 50, ED50_WKID));
     });
 
-    test('returns the bearing intersection from the license point when the ref block point does not intersect the license line', () => {
+    it("returns the bearing intersection from the license point when the ref block point does not intersect the license line", () => {
       const refBlockPoint = makePoint(1, 50, ED50_WKID);
       const licensePoint = makePoint(5, 50, ED50_WKID);
       const licenseLine = makePolyline(
@@ -329,7 +329,7 @@ describe('migrate-reference-block', () => {
       expect(result).toEqual(makePoint(5, 50, ED50_WKID));
     });
 
-    test('returns the nearest point when there is no connected line on a set bearing', () => {
+    it("returns the nearest point when there is no connected line on a set bearing", () => {
       const refBlockPoint = makePoint(1, 50, ED50_WKID);
       const licensePoint = makePoint(100, 100, ED50_WKID);
       const licenseLine = makePolyline(
@@ -356,7 +356,7 @@ describe('migrate-reference-block', () => {
       expect(result).toEqual(makePoint(1, 50, ED50_WKID));
     });
 
-    test('returns undefined when there is no bearing intersection and the nearest point is too far away', () => {
+    it("returns undefined when there is no bearing intersection and the nearest point is too far away", () => {
       const refBlockPoint = makePoint(1, 50, ED50_WKID);
       const licensePoint = makePoint(100, 100, ED50_WKID);
       const licenseLine = makePolyline(
@@ -383,8 +383,8 @@ describe('migrate-reference-block', () => {
       expect(result).toBeUndefined();
     });
   });
-  describe('updateGeodesicReferenceBlockLine', () => {
-    test('replaces the reference block line segment when both intersections are found', () => {
+  describe("updateGeodesicReferenceBlockLine", () => {
+    it("replaces the reference block line segment when both intersections are found", () => {
       const refBlockLineWrapper = makeLineWithNavigationAndId(
         makePolyline(
           [
@@ -441,7 +441,7 @@ describe('migrate-reference-block', () => {
       expect(refBlockLineWrapper).toEqual(expected);
     });
 
-    test('does not replace the segment when the start intersection is not found', () => {
+    it("does not replace the segment when the start intersection is not found", () => {
       const refBlockLineWrapper = makeLineWithNavigationAndId(
         makePolyline(
           [
@@ -496,7 +496,7 @@ describe('migrate-reference-block', () => {
       expect(refBlockLineWrapper).toEqual(expected);
     });
 
-    test('does not replace the segment when the end intersection is not found', () => {
+    it("does not replace the segment when the end intersection is not found", () => {
       const refBlockLineWrapper = makeLineWithNavigationAndId(
         makePolyline(
           [
@@ -551,8 +551,8 @@ describe('migrate-reference-block', () => {
       expect(refBlockLineWrapper).toEqual(expected);
     });
   });
-  describe('replaceSegment', () => {
-    test('replaces a same-direction segment with the matching section of the license line', () => {
+  describe("replaceSegment", () => {
+    it("replaces a same-direction segment with the matching section of the license line", () => {
       const refBlockLine = makePolyline(
         [
           [
@@ -595,7 +595,7 @@ describe('migrate-reference-block', () => {
       expect(result).toEqual(expected);
     });
 
-    test('reverses the license segment when the lines go in opposite directions', () => {
+    it("reverses the license segment when the lines go in opposite directions", () => {
       const refBlockLine = makePolyline(
         [
           [
@@ -638,7 +638,7 @@ describe('migrate-reference-block', () => {
       expect(result).toEqual(expected);
     });
 
-    test('uses the lower ref block index when the start and end points are passed in reverse order', () => {
+    it("uses the lower ref block index when the start and end points are passed in reverse order", () => {
       const refBlockLine = makePolyline(
         [
           [

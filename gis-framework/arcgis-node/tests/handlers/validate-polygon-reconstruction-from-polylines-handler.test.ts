@@ -1,19 +1,22 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { status } from '@grpc/grpc-js';
-import { validatePolygonReconstructionFromPolylinesHandler } from '../../src/handlers/validate-polygon-reconstruction-from-polylines-handler';
-import * as validatePolygonReconstructionFromPolylinesModule from '../../src/geometric-operators/validate-polygon-reconstruction-from-polylines';
-import { esriJsonToPolyline } from '../../src/util/esrijson-util';
-import { makePolygonEsriJson, makePolylineEsriJson } from '../test-utils/esrijson-test-util';
+import { status } from "@grpc/grpc-js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import * as validatePolygonReconstructionFromPolylinesModule
+  from "../../src/geometric-operators/validate-polygon-reconstruction-from-polylines";
+import {
+  validatePolygonReconstructionFromPolylinesHandler,
+} from "../../src/handlers/validate-polygon-reconstruction-from-polylines-handler";
+import { esriJsonToPolyline } from "../../src/util/esrijson-util";
+import { makePolygonEsriJson, makePolylineEsriJson } from "../test-utils/esrijson-test-util";
 
-vi.mock('../../src/geometric-operators/validate-polygon-reconstruction-from-polylines');
-vi.mock('../../src/util/esrijson-util');
-vi.mock('../../src/config/logger', () => ({
+vi.mock("../../src/geometric-operators/validate-polygon-reconstruction-from-polylines");
+vi.mock("../../src/util/esrijson-util");
+vi.mock("../../src/config/logger", () => ({
   logger: {
     error: vi.fn(),
   },
 }));
 
-describe('validatePolygonReconstructionFromPolylinesHandler', () => {
+describe("validatePolygonReconstructionFromPolylinesHandler", () => {
   let mockCallback: any;
   let mockCall: any;
 
@@ -28,7 +31,7 @@ describe('validatePolygonReconstructionFromPolylinesHandler', () => {
     };
   });
 
-  it('should return a successful callback when polygon reconstruction is valid', () => {
+  it("should return a successful callback when polygon reconstruction is valid", () => {
     const firstLineEsriJson = makePolylineEsriJson([
       [
         [0, 0],
@@ -70,7 +73,7 @@ describe('validatePolygonReconstructionFromPolylinesHandler', () => {
     expect(mockCallback).toHaveBeenCalledWith(null, { isValid: true });
   });
 
-  it('should return false when polygon reconstruction is invalid', () => {
+  it("should return false when polygon reconstruction is invalid", () => {
     const lineEsriJson = makePolylineEsriJson([
       [
         [0, 0],
@@ -95,7 +98,7 @@ describe('validatePolygonReconstructionFromPolylinesHandler', () => {
     expect(mockCallback).toHaveBeenCalledWith(null, { isValid: false });
   });
 
-  it('should call callback with error when validatePolygonReconstructionFromPolylines throws', () => {
+  it("should call callback with error when validatePolygonReconstructionFromPolylines throws", () => {
     const lineEsriJson = makePolylineEsriJson([
       [
         [0, 0],
@@ -112,7 +115,7 @@ describe('validatePolygonReconstructionFromPolylinesHandler', () => {
         [0, 0],
       ],
     ]);
-    const testError = new Error('Failed to validate polygon reconstruction');
+    const testError = new Error("Failed to validate polygon reconstruction");
 
     vi.mocked(validatePolygonReconstructionFromPolylinesModule.validatePolygonReconstructionFromPolylines).mockImplementation(
       () => {
@@ -124,7 +127,7 @@ describe('validatePolygonReconstructionFromPolylinesHandler', () => {
 
     const callbackError = mockCallback.mock.calls[0][0];
     expect(callbackError).toBe(testError);
-    expect(callbackError.message).toBe('Failed to validate polygon reconstruction');
+    expect(callbackError.message).toBe("Failed to validate polygon reconstruction");
     expect(callbackError.code).toBe(status.INTERNAL);
     expect(mockCallback).toHaveBeenCalledWith(callbackError, null);
   });

@@ -1,13 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import { status } from '@grpc/grpc-js';
-import { explodePolygonHandler } from '../../src/handlers/explode-polygon-handler';
-import * as explodePolygonModule from '../../src/geometric-operators/explode-polygon';
-import { makePolygonEsriJson } from '../test-utils/esrijson-test-util';
+import Polyline from "@arcgis/core/geometry/Polyline.js";
+import { status } from "@grpc/grpc-js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import * as explodePolygonModule from "../../src/geometric-operators/explode-polygon";
+import { explodePolygonHandler } from "../../src/handlers/explode-polygon-handler";
+import { makePolygonEsriJson } from "../test-utils/esrijson-test-util";
 
-vi.mock('../../src/geometric-operators/explode-polygon');
+vi.mock("../../src/geometric-operators/explode-polygon");
 
-describe('explodePolygonHandler', () => {
+describe("explodePolygonHandler", () => {
   let mockCallback: any;
   let mockCall: any;
   const testWkid = 4326;
@@ -22,7 +22,7 @@ describe('explodePolygonHandler', () => {
     };
   });
 
-  it('should return a successful callback with exploded polylines', () => {
+  it("should return a successful callback with exploded polylines", () => {
     const polygonEsriJson = makePolygonEsriJson([
       [
         [0, 0],
@@ -64,7 +64,7 @@ describe('explodePolygonHandler', () => {
     });
   });
 
-  it('should return empty array when explodePolygon returns empty array', () => {
+  it("should return empty array when explodePolygon returns empty array", () => {
     mockCall.request.esriJsonPolygon = makePolygonEsriJson([]);
     vi.mocked(explodePolygonModule.explodePolygon).mockReturnValue([]);
 
@@ -73,7 +73,7 @@ describe('explodePolygonHandler', () => {
     expect(mockCallback).toHaveBeenCalledWith(null, { esriJsonLines: [] });
   });
 
-  it('should call callback with error when explodePolygon throws', () => {
+  it("should call callback with error when explodePolygon throws", () => {
     mockCall.request.esriJsonPolygon = makePolygonEsriJson([
       [
         [0, 0],
@@ -84,7 +84,7 @@ describe('explodePolygonHandler', () => {
       ],
     ]);
 
-    const testError = new Error('Failed to explode polygon');
+    const testError = new Error("Failed to explode polygon");
     vi.mocked(explodePolygonModule.explodePolygon).mockImplementation(() => {
       throw testError;
     });
@@ -93,7 +93,7 @@ describe('explodePolygonHandler', () => {
 
     const callbackError = mockCallback.mock.calls[0][0];
     expect(callbackError).toBe(testError);
-    expect(callbackError.message).toBe('Failed to explode polygon');
+    expect(callbackError.message).toBe("Failed to explode polygon");
     expect(callbackError.code).toBe(status.INTERNAL);
     expect(mockCallback).toHaveBeenCalledWith(callbackError, null);
     expect(mockCallback).toHaveBeenCalledOnce();

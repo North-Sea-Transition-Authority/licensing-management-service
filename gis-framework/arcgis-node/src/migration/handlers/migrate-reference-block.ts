@@ -1,10 +1,19 @@
-import { ArcGisServiceHandlers } from '../../../generated/uk/co/fivium/grpc/gis/ArcGisService';
-import {
-  geoJsonLineInputToLinesWithNavigationTypeAndId,
-  LineWithNavigationTypeAndId,
-} from '../types/line-with-navigation-wrapper';
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import { LineNavigationType } from '../../../generated/uk/co/fivium/grpc/gis/LineNavigationType';
+import type Point from "@arcgis/core/geometry/Point";
+import type { ArcGisServiceHandlers } from "../../../generated/uk/co/fivium/grpc/gis/ArcGisService";
+import type { LineWithNavigationTypeAndId } from "../types/line-with-navigation-wrapper";
+import * as generalizeOperator from "@arcgis/core/geometry/operators/generalizeOperator.js";
+import * as geodeticDensifyOperator from "@arcgis/core/geometry/operators/geodeticDensifyOperator.js";
+import * as proximityOperator from "@arcgis/core/geometry/operators/proximityOperator.js";
+import * as unionOperator from "@arcgis/core/geometry/operators/unionOperator.js";
+import Polyline from "@arcgis/core/geometry/Polyline.js";
+import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
+import { logger } from "../../config/logger";
+import { toGrpcInternalError } from "../../handlers/grpc-error";
+import { getCoordinateSystemWkid } from "../../util/coordinate-system-utils";
+import { esriJsonToPolyline } from "../../util/esrijson-util";
+import { findLoxodromeThatConnectsToPointOnSetBearing } from "../types/line-with-bearing-wrapper";
+import { geoJsonLineInputToLinesWithNavigationTypeAndId } from "../types/line-with-navigation-wrapper";
+import { getLineStartAndEndPoints, ONE_HUNDRED_METERS_ED50 } from "../utils/migration-line-utils";
 import {
   findLineConnectingToPointNotOnBearing,
   findPointOfIntersectionBetweenChildPointOnBearingAndParentLine,
@@ -13,20 +22,9 @@ import {
   getIndexOfPointOnLine,
   isApproximatelyEqual,
   ONE_ARC_SECOND,
-} from '../utils/migration-utils';
-import { getLineStartAndEndPoints, ONE_HUNDRED_METERS_ED50 } from '../utils/migration-line-utils';
-import Point from '@arcgis/core/geometry/Point';
-import { findLoxodromeThatConnectsToPointOnSetBearing } from '../types/line-with-bearing-wrapper';
-import * as geodeticDensifyOperator from '@arcgis/core/geometry/operators/geodeticDensifyOperator.js';
-import * as proximityOperator from '@arcgis/core/geometry/operators/proximityOperator.js';
-import * as unionOperator from '@arcgis/core/geometry/operators/unionOperator.js';
-import * as generalizeOperator from '@arcgis/core/geometry/operators/generalizeOperator.js';
-import { getCoordinateSystemWkid } from '../../util/coordinate-system-utils';
-import { logger } from '../../config/logger';
-import { toGrpcInternalError } from '../../handlers/grpc-error';
-import { esriJsonToPolyline } from '../../util/esrijson-util';
+} from "../utils/migration-utils";
 
-export const migrateReferenceBlockHandler: ArcGisServiceHandlers['migrateReferenceBlock'] = async (call, callback) => {
+export const migrateReferenceBlockHandler: ArcGisServiceHandlers["migrateReferenceBlock"] = async (call, callback) => {
   try {
     logger.info(`migrateReferenceBlock: starting`);
     const { geoJsonLineWrappers, coordinateSystem, licenseBlockLines } = call.request;
@@ -36,7 +34,7 @@ export const migrateReferenceBlockHandler: ArcGisServiceHandlers['migrateReferen
     const idToLineWithNavigationWrapper = geoJsonLineInputToLinesWithNavigationTypeAndId(geoJsonLineWrappers, wkid);
 
     // Combine consecutive geodesic lines into single line, loxodromes remain unchanged.
-    const idToConnectionOrder = new Map(geoJsonLineWrappers.map((wrapper) => [wrapper.oracleLineSsid, wrapper.connectionOrder]));
+    const idToConnectionOrder = new Map(geoJsonLineWrappers.map(wrapper => [wrapper.oracleLineSsid, wrapper.connectionOrder]));
     const combinedGeodesicAndLoxodromes = mergeAdjacentGeodesicLinesAndReturnAllNewLineWrappers(
       idToLineWithNavigationWrapper,
       idToConnectionOrder,
@@ -44,11 +42,11 @@ export const migrateReferenceBlockHandler: ArcGisServiceHandlers['migrateReferen
 
     // Get geodesic license lines
     const geodesicLicenseLines = licenseBlockLines
-      .filter((line) => line.navigationType === LineNavigationType.GEODESIC)
-      .map((line) => esriJsonToPolyline(line.esriJsonString));
+      .filter(line => line.navigationType === LineNavigationType.GEODESIC)
+      .map(line => esriJsonToPolyline(line.esriJsonString));
     callback(null, await migrateReferenceBlock(combinedGeodesicAndLoxodromes, geodesicLicenseLines));
   } catch (error) {
-    logger.error({ error: error }, 'Error migrating reference block');
+    logger.error({ error }, "Error migrating reference block");
     callback(toGrpcInternalError(error), null);
   }
 };
@@ -62,11 +60,11 @@ async function migrateReferenceBlock(
     await geodeticDensifyOperator.load();
   }
   for (const refBlockLineWrapper of combinedGeodesicAndLoxodromes.filter(
-    (wrapper) => wrapper.navigationType != LineNavigationType.LOXODROME,
+    wrapper => wrapper.navigationType !== LineNavigationType.LOXODROME,
   )) {
     refBlockLineWrapper.line = geodeticDensifyOperator.execute(refBlockLineWrapper.line, GEODESIC_DENSE_POINT_METERS_INTERVAL, {
-      curveType: 'geodesic',
-      unit: 'meters',
+      curveType: "geodesic",
+      unit: "meters",
     }) as Polyline;
 
     // Generalize the line after densification to remove unnecessary points that don't affect the overall shape of the line.
@@ -123,7 +121,7 @@ async function migrateReferenceBlock(
   }
 
   logger.info(`Building result from ${combinedGeodesicAndLoxodromes.length} lines`);
-  const result: { esriJsonString: string; oracleLineSsid: number }[] = [];
+  const result: { esriJsonString: string, oracleLineSsid: number }[] = [];
   combinedGeodesicAndLoxodromes.forEach((lineWrapper) => {
     logger.info(`oracleLineSsid: ${lineWrapper.id} json: ${JSON.stringify(lineWrapper.line.toJSON())} `);
     result.push({
@@ -144,7 +142,6 @@ async function migrateReferenceBlock(
  * @param refBlockGeodesicEndPoint A copy of the end point of {@link refBlockLineWrapper}
  * @param refBlockLineWrapper The geodesic reference block line we want to update
  * @param combinedGeodesicAndLoxodromes A list of {@link LineWithNavigationTypeAndId} which make up the reference block.
- * @returns nothing, instead it will update the inputted variables.
  */
 export function updateGeodesicReferenceBlockLine(
   geodesicLicenseLines: Polyline[],
@@ -188,7 +185,7 @@ export function updateGeodesicReferenceBlockLine(
     );
 
     if (startIntersection && endIntersection) {
-      logger.info('start and end intersection found, replacing segment');
+      logger.info("start and end intersection found, replacing segment");
       // Replace the ref block segment between the start and end nodes with the license block line
       refBlockLineWrapper.line = replaceSegment(
         refBlockLineWrapper.line,
@@ -219,7 +216,7 @@ export function mergeAdjacentGeodesicLinesAndReturnAllNewLineWrappers(
 ): LineWithNavigationTypeAndId[] {
   logger.info(`mergeAdjacentGeodesicLinesAndReturnAllNewLineWrappers: starting`);
   const geodesicEntries = Array.from(idToLineWrapper.values())
-    .filter((wrapper) => wrapper.navigationType === LineNavigationType.GEODESIC)
+    .filter(wrapper => wrapper.navigationType === LineNavigationType.GEODESIC)
     .sort((a, b) => (idToConnectionOrder.get(a.id) ?? 0) - (idToConnectionOrder.get(b.id) ?? 0));
   logger.info(`geodesicEntries.length=${geodesicEntries.length}`);
 
@@ -252,8 +249,8 @@ export function mergeAdjacentGeodesicLinesAndReturnAllNewLineWrappers(
       }
 
       if (
-        nextConnectionOrder === maxConnectionOrder + 1 ||
-        (firstOrder === currentConnectionOrder && nextConnectionOrder === lastOrder)
+        nextConnectionOrder === maxConnectionOrder + 1
+        || (firstOrder === currentConnectionOrder && nextConnectionOrder === lastOrder)
       ) {
         mergedLine = unionOperator.execute(mergedLine, nextWrapper.line) as Polyline;
         mergedIds.push(nextWrapper.id);
@@ -270,7 +267,7 @@ export function mergeAdjacentGeodesicLinesAndReturnAllNewLineWrappers(
 
   // Add any non-merged and loxodrome lines to our processedLine list
   Array.from(idToLineWrapper.values()).forEach((wrapper) => {
-    if (processedLines.some((processedLine) => processedLine.id === wrapper.id)) {
+    if (processedLines.some(processedLine => processedLine.id === wrapper.id)) {
       return;
     }
     if (mergedIds.includes(wrapper.id)) {
@@ -335,13 +332,13 @@ export function findIntersectionPoint(
   // Find the nearest point on the ref block line
   const nearestToRefBlockPoint = proximityOperator.getNearestCoordinate(licenseLine, refBlockPoint);
   const nearestToLicensePoint = proximityOperator.getNearestCoordinate(refBlockLine, licensePoint);
-  const nearest =
-    nearestToRefBlockPoint.distance < nearestToLicensePoint.distance ? nearestToRefBlockPoint : nearestToLicensePoint;
+  const nearest
+    = nearestToRefBlockPoint.distance < nearestToLicensePoint.distance ? nearestToRefBlockPoint : nearestToLicensePoint;
   if (nearest.distance > ONE_HUNDRED_METERS_ED50) {
     logger.info(`Nearest distance is ${nearest.distance}, which is further than the 100m limit`);
     return undefined;
   }
-  logger.info('Nearest non bearing point used');
+  logger.info("Nearest non bearing point used");
 
   return nearest.coordinate;
 }

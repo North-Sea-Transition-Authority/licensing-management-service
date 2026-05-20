@@ -1,23 +1,21 @@
-import { ArcGisServiceHandlers } from '../../../generated/uk/co/fivium/grpc/gis/ArcGisService';
-import { logger } from '../../config/logger';
-import { getCoordinateSystemWkid } from '../../util/coordinate-system-utils';
-import { findParentLine, getLineStartAndEndPoints } from '../utils/migration-line-utils';
-import grpc from '@grpc/grpc-js';
+import type { ArcGisServiceHandlers } from "../../../generated/uk/co/fivium/grpc/gis/ArcGisService";
+import type { LineWithNavigationTypeAndId } from "../types/line-with-navigation-wrapper";
+import grpc from "@grpc/grpc-js";
+import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
+import { logger } from "../../config/logger";
+import { densifyLoxodromesAndCalculateArea } from "../../geometric-operators/calculate-area-operator";
+import { getCoordinateSystemWkid } from "../../util/coordinate-system-utils";
+import { geoJsonLineInputToLinesWithNavigationTypeAndId } from "../types/line-with-navigation-wrapper";
+import { fixDirectionOfAllLines } from "../utils/fix-direction-of-all-lines";
+import { findParentLine, getLineStartAndEndPoints } from "../utils/migration-line-utils";
 import {
   getNearestParentStartAndEndNodes,
   mergeParentDensePointsIntoChildLine,
   migrateBlock,
   shiftNodeAndUpdateConnectedLine,
-} from '../utils/migration-utils';
-import { LineNavigationType } from '../../../generated/uk/co/fivium/grpc/gis/LineNavigationType';
-import {
-  geoJsonLineInputToLinesWithNavigationTypeAndId,
-  LineWithNavigationTypeAndId,
-} from '../types/line-with-navigation-wrapper';
-import { densifyLoxodromesAndCalculateArea } from '../../geometric-operators/calculate-area-operator';
-import { fixDirectionOfAllLines } from '../utils/fix-direction-of-all-lines';
+} from "../utils/migration-utils";
 
-export const migrateBlockOrSubarea: ArcGisServiceHandlers['migrateBlockOrSubarea'] = async (call, callback) => {
+export const migrateBlockOrSubarea: ArcGisServiceHandlers["migrateBlockOrSubarea"] = async (call, callback) => {
   const { geoJsonLineWrappers, coordinateSystem, parentLineEsriJsonStrings } = call.request;
   const wkid = getCoordinateSystemWkid(coordinateSystem);
   logger.info(`Migrating ${geoJsonLineWrappers.length} lines, srs: ${wkid}`);
@@ -29,7 +27,7 @@ export const migrateBlockOrSubarea: ArcGisServiceHandlers['migrateBlockOrSubarea
     const area = await densifyLoxodromesAndCalculateArea(lineWithNavigationTypeAndIds, coordinateSystem);
     const esriJsonLineAndOracleIds = esriJsonLineAndOracleIdsFrom(lineWithNavigationTypeAndIds);
 
-    callback(null, { esriJsonLineAndOracleIds: esriJsonLineAndOracleIds, area: area });
+    callback(null, { esriJsonLineAndOracleIds, area });
     return;
   }
 
@@ -43,7 +41,7 @@ export const migrateBlockOrSubarea: ArcGisServiceHandlers['migrateBlockOrSubarea
     const { startPoint: childStartPoint, endPoint: childEndPoint } = getLineStartAndEndPoints(line);
     const parent = findParentLine(parentLineEsriJsonStrings, childStartPoint, childEndPoint);
     if (parent === undefined) {
-      const errorMessage = 'Geodesic child line should have associated parent line but none were found';
+      const errorMessage = "Geodesic child line should have associated parent line but none were found";
       logger.error(errorMessage);
       callback(
         {
@@ -71,7 +69,7 @@ export const migrateBlockOrSubarea: ArcGisServiceHandlers['migrateBlockOrSubarea
       id,
       idToLineWithNavigationWrapper,
       parent,
-      'start',
+      "start",
     );
 
     const newEndPoint = shiftNodeAndUpdateConnectedLine(
@@ -80,7 +78,7 @@ export const migrateBlockOrSubarea: ArcGisServiceHandlers['migrateBlockOrSubarea
       id,
       idToLineWithNavigationWrapper,
       parent,
-      'end',
+      "end",
     );
 
     const newGeodesicLine = mergeParentDensePointsIntoChildLine(parent, newStartPoint, newEndPoint, line.spatialReference);
@@ -94,12 +92,12 @@ export const migrateBlockOrSubarea: ArcGisServiceHandlers['migrateBlockOrSubarea
   const area = await densifyLoxodromesAndCalculateArea(lineWithNavigationWrappers, coordinateSystem);
   const esriJsonLineAndOracleIds = esriJsonLineAndOracleIdsFrom(lineWithNavigationWrappers);
 
-  callback(null, { esriJsonLineAndOracleIds: esriJsonLineAndOracleIds, area: area });
+  callback(null, { esriJsonLineAndOracleIds, area });
 };
 
 function esriJsonLineAndOracleIdsFrom(lineWithNavigationWrappers: LineWithNavigationTypeAndId[]) {
-  const convertedLines: { esriJsonString: string; oracleLineSsid: number }[] = [];
-  lineWithNavigationWrappers.forEach((value) =>
+  const convertedLines: { esriJsonString: string, oracleLineSsid: number }[] = [];
+  lineWithNavigationWrappers.forEach(value =>
     convertedLines.push({ esriJsonString: JSON.stringify(value.line), oracleLineSsid: value.id }),
   );
   return convertedLines;

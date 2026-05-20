@@ -1,8 +1,8 @@
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import Point from '@arcgis/core/geometry/Point.js';
-import * as proximityOperator from '@arcgis/core/geometry/operators/proximityOperator.js';
-import { esriJsonToPolyline } from '../../util/esrijson-util';
-import { logger } from '../../config/logger';
+import type Point from "@arcgis/core/geometry/Point.js";
+import type Polyline from "@arcgis/core/geometry/Polyline.js";
+import * as proximityOperator from "@arcgis/core/geometry/operators/proximityOperator.js";
+import { logger } from "../../config/logger";
+import { esriJsonToPolyline } from "../../util/esrijson-util";
 
 export const FIVE_CM_IN_DEGREES_AT_48N_ED50 = 0.00000067;
 export const ONE_HUNDRED_METERS_ED50 = FIVE_CM_IN_DEGREES_AT_48N_ED50 * 2000;
@@ -12,16 +12,16 @@ export const ONE_HUNDRED_METERS_ED50 = FIVE_CM_IN_DEGREES_AT_48N_ED50 * 2000;
  * @param polyline The polyline must have a single path.
  * @returns An object containing the start and end points of the polyline.
  */
-export function getLineStartAndEndPoints(polyline: Polyline): { startPoint: Point; endPoint: Point } {
+export function getLineStartAndEndPoints(polyline: Polyline): { startPoint: Point, endPoint: Point } {
   if (polyline.paths.length !== 1) {
-    throw new Error('Polyline must have exactly one path');
+    throw new Error("Polyline must have exactly one path");
   }
 
   const startPoint = polyline.getPoint(0, 0);
   const endPoint = polyline.getPoint(0, polyline.paths[0].length - 1);
 
   if (!startPoint || !endPoint) {
-    throw new Error('Polyline has no start or end point');
+    throw new Error("Polyline has no start or end point");
   }
 
   return { startPoint, endPoint };
@@ -36,7 +36,7 @@ export function getLineStartAndEndPoints(polyline: Polyline): { startPoint: Poin
  * @returns A Polyline which is the closest to both points, or undefined if there is no line within 5 cm of both points.
  */
 export function findParentLine(parentLines: string[], childStartPoint: Point, childEndPoint: Point): Polyline | undefined {
-  let parent: Polyline | undefined = undefined;
+  let parent: Polyline | undefined;
   let closestCombinedDistance = Number.POSITIVE_INFINITY;
   let closestStartDistance = Number.POSITIVE_INFINITY;
   let closestEndDistance = Number.POSITIVE_INFINITY;

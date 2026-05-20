@@ -1,15 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import Polygon from '@arcgis/core/geometry/Polygon.js';
-import { buildPolygonHandler } from '../../src/handlers/build-polygon-handler';
-import * as esriJsonUtil from '../../src/util/esrijson-util';
-import * as buildPolygonModule from '../../src/geometric-operators/build-polygon';
-import { makePolylineEsriJson } from '../test-utils/esrijson-test-util';
+import Polygon from "@arcgis/core/geometry/Polygon.js";
+import Polyline from "@arcgis/core/geometry/Polyline.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import * as buildPolygonModule from "../../src/geometric-operators/build-polygon";
+import { buildPolygonHandler } from "../../src/handlers/build-polygon-handler";
+import * as esriJsonUtil from "../../src/util/esrijson-util";
+import { makePolylineEsriJson } from "../test-utils/esrijson-test-util";
 
-vi.mock('../../src/util/esrijson-util');
-vi.mock('../../src/geometric-operators/build-polygon');
+vi.mock("../../src/util/esrijson-util");
+vi.mock("../../src/geometric-operators/build-polygon");
 
-describe('buildPolygonHandler', () => {
+describe("buildPolygonHandler", () => {
   let mockCallback: any;
   let mockCall: any;
   const testWkid = 4326;
@@ -25,8 +25,8 @@ describe('buildPolygonHandler', () => {
     };
   });
 
-  describe('buildPolygonHandler', () => {
-    it('should return a successful callback when no errors', () => {
+  describe("buildPolygonHandler", () => {
+    it("should return a successful callback when no errors", () => {
       // Arrange
       const polylineEsriJson1 = makePolylineEsriJson([
         [
@@ -89,7 +89,7 @@ describe('buildPolygonHandler', () => {
     });
   });
 
-  it('should call callback with error when buildPolygon returns undefined', () => {
+  it("should call callback with error when buildPolygon returns undefined", () => {
     // Arrange
     const polylineEsriJson = makePolylineEsriJson([
       [
@@ -119,11 +119,11 @@ describe('buildPolygonHandler', () => {
     expect(mockCallback).toHaveBeenCalledOnce();
     const callArgs = mockCallback.mock.calls[0];
     expect(callArgs[0]).toBeInstanceOf(Error);
-    expect(callArgs[0].message).toBe('No polygons could be built from the provided polylines');
+    expect(callArgs[0].message).toBe("No polygons could be built from the provided polylines");
     expect(callArgs[1]).toBeNull();
   });
 
-  it('should call callback with error when buildPolygon throws', () => {
+  it("should call callback with error when buildPolygon throws", () => {
     // Arrange
     const polylineEsriJson = makePolylineEsriJson([
       [
@@ -149,7 +149,7 @@ describe('buildPolygonHandler', () => {
       spatialReference: { wkid: testWkid },
     });
 
-    const testError = new Error('Failed to build polygon');
+    const testError = new Error("Failed to build polygon");
     vi.mocked(esriJsonUtil.esriJsonToPolyline).mockReturnValue(mockPolyline);
     vi.mocked(buildPolygonModule.buildPolygon).mockImplementation(() => {
       throw testError;

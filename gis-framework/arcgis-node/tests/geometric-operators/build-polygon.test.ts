@@ -1,13 +1,13 @@
-import { describe, expect, it } from 'vitest';
-import Polygon from '@arcgis/core/geometry/Polygon.js';
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import { buildPolygon } from '../../src/geometric-operators/build-polygon';
-import * as equalsOperator from '@arcgis/core/geometry/operators/equalsOperator';
+import * as equalsOperator from "@arcgis/core/geometry/operators/equalsOperator";
+import Polygon from "@arcgis/core/geometry/Polygon.js";
+import Polyline from "@arcgis/core/geometry/Polyline.js";
+import { describe, expect, it } from "vitest";
+import { buildPolygon } from "../../src/geometric-operators/build-polygon";
 
 const spatialReference = { wkid: 27700 };
 
-describe('buildPolygon', () => {
-  it('should build a polygon from a single closed polyline', () => {
+describe("buildPolygon", () => {
+  it("should build a polygon from a single closed polyline", () => {
     const polyline = new Polyline({
       paths: [
         [
@@ -34,11 +34,11 @@ describe('buildPolygon', () => {
       spatialReference,
     });
 
-    const result = buildPolygon([polyline], spatialReference.wkid);
+    const result = buildPolygon([polyline], spatialReference.wkid) as Polygon;
     expect(equalsOperator.execute(result, expectedPolygon)).toBe(true);
   });
 
-  it('should build a polygon from multiple polylines forming a closed shape', () => {
+  it("should build a polygon from multiple polylines forming a closed shape", () => {
     const polyline1 = new Polyline({
       paths: [
         [
@@ -74,11 +74,11 @@ describe('buildPolygon', () => {
       spatialReference,
     });
 
-    const result = buildPolygon([polyline1, polyline2], spatialReference.wkid);
+    const result = buildPolygon([polyline1, polyline2], spatialReference.wkid) as Polygon;
     expect(equalsOperator.execute(result, expectedPolygon)).toBe(true);
   });
 
-  it('should build a polygon with a hole', () => {
+  it("should build a polygon with a hole", () => {
     const polyline1 = new Polyline({
       paths: [
         [
@@ -125,11 +125,11 @@ describe('buildPolygon', () => {
       spatialReference,
     });
 
-    const result = buildPolygon([polyline1, polyline2], spatialReference.wkid);
+    const result = buildPolygon([polyline1, polyline2], spatialReference.wkid) as Polygon;
     expect(equalsOperator.execute(result, expectedPolygon)).toBe(true);
   });
 
-  it('should return undefined when no polygon can be reconstructed from the lines', () => {
+  it("should return undefined when no polygon can be reconstructed from the lines", () => {
     const polyline1 = new Polyline({
       paths: [
         [

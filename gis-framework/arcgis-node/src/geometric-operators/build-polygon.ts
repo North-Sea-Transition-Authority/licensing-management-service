@@ -1,8 +1,8 @@
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import * as linesToPolygonsOperator from '@arcgis/core/geometry/operators/linesToPolygonsOperator.js';
-import * as simplifyOperator from '@arcgis/core/geometry/operators/simplifyOperator.js';
-import Polygon from '@arcgis/core/geometry/Polygon.js';
-import { logger } from '../config/logger';
+import type Polygon from "@arcgis/core/geometry/Polygon.js";
+import type Polyline from "@arcgis/core/geometry/Polyline.js";
+import * as linesToPolygonsOperator from "@arcgis/core/geometry/operators/linesToPolygonsOperator.js";
+import * as simplifyOperator from "@arcgis/core/geometry/operators/simplifyOperator.js";
+import { logger } from "../config/logger";
 
 /**
  * Builds a polygon from a list of polylines.
@@ -14,7 +14,7 @@ export function buildPolygon(polylines: Polyline[], coordinateSystemWkid: number
   const polygons = linesToPolygonsOperator.executeMany(polylines);
 
   if (polygons.length === 0) {
-    logger.error({ polylines: polylines }, 'No polygons could be built from the provided polylines');
+    logger.error({ polylines }, "No polygons could be built from the provided polylines");
     return undefined;
   }
 

@@ -1,16 +1,16 @@
-import Polygon from '@arcgis/core/geometry/Polygon.js';
-import { CoordinateSystem } from '../../generated/uk/co/fivium/grpc/gis/CoordinateSystem';
-import * as geodeticAreaOperator from '@arcgis/core/geometry/operators/geodeticAreaOperator.js';
-import * as areaOperator from '@arcgis/core/geometry/operators/areaOperator.js';
-import { LineNavigationType } from '../../generated/uk/co/fivium/grpc/gis/LineNavigationType';
-import * as densifyOperator from '@arcgis/core/geometry/operators/densifyOperator.js';
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import { linesToSinglePolygon } from './lines-to-single-polygon-operator';
-import { getCoordinateSystemWkid } from '../util/coordinate-system-utils';
+import type Polygon from "@arcgis/core/geometry/Polygon.js";
+import type Polyline from "@arcgis/core/geometry/Polyline.js";
+import * as areaOperator from "@arcgis/core/geometry/operators/areaOperator.js";
+import * as densifyOperator from "@arcgis/core/geometry/operators/densifyOperator.js";
+import * as geodeticAreaOperator from "@arcgis/core/geometry/operators/geodeticAreaOperator.js";
+import { CoordinateSystem } from "../../generated/uk/co/fivium/grpc/gis/CoordinateSystem";
+import { LineNavigationType } from "../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
+import { getCoordinateSystemWkid } from "../util/coordinate-system-utils";
+import { linesToSinglePolygon } from "./lines-to-single-polygon-operator";
 
 export interface LineWithNavigationType {
-  line: Polyline;
-  navigationType: LineNavigationType;
+  line: Polyline,
+  navigationType: LineNavigationType,
 }
 
 /**
@@ -28,14 +28,14 @@ export interface LineWithNavigationType {
 export async function calculateArea(polygon: Polygon, coordinateSystem: CoordinateSystem): Promise<number> {
   let area: number;
 
-  if (coordinateSystem == CoordinateSystem.BRITISH_NATIONAL_GRID) {
-    area = areaOperator.execute(polygon, { unit: 'square-meters' });
+  if (coordinateSystem === CoordinateSystem.BRITISH_NATIONAL_GRID) {
+    area = areaOperator.execute(polygon, { unit: "square-meters" });
   } else {
     if (!geodeticAreaOperator.isLoaded()) {
       await geodeticAreaOperator.load();
     }
 
-    area = geodeticAreaOperator.execute(polygon, { curveType: 'geodesic' });
+    area = geodeticAreaOperator.execute(polygon, { curveType: "geodesic" });
   }
 
   return Math.abs(area);
@@ -67,8 +67,8 @@ export async function densifyLoxodromesAndCalculateArea(
 
   for (const lineWrapper of lineWithNavigationType) {
     if (
-      lineWrapper.navigationType == LineNavigationType.LOXODROME &&
-      coordinateSystem != CoordinateSystem.BRITISH_NATIONAL_GRID
+      lineWrapper.navigationType === LineNavigationType.LOXODROME
+      && coordinateSystem !== CoordinateSystem.BRITISH_NATIONAL_GRID
     ) {
       // The max segment length is derived from the spatial reference unit, which for ED50 is degrees.
       // There are 3600 arc seconds in 1 degrees. So this equates to 0.0055... degrees.

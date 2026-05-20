@@ -1,19 +1,19 @@
-import { describe, expect, it } from 'vitest';
-import Polygon from '@arcgis/core/geometry/Polygon.js';
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import { explodePolygon } from '../../src/geometric-operators/explode-polygon';
+import Polygon from "@arcgis/core/geometry/Polygon.js";
+import Polyline from "@arcgis/core/geometry/Polyline.js";
+import { describe, expect, it } from "vitest";
+import { explodePolygon } from "../../src/geometric-operators/explode-polygon";
 
 const spatialReference = { wkid: 27700 };
 
 function makePolyline(start: number[], end: number[]): Polyline {
   return new Polyline({
     paths: [[start, end]],
-    spatialReference: spatialReference,
+    spatialReference,
   });
 }
 
-describe('explodePolygon', () => {
-  it('should explode a single-ring polygon into one polyline per edge', () => {
+describe("explodePolygon", () => {
+  it("should explode a single-ring polygon into one polyline per edge", () => {
     const polygon = new Polygon({
       rings: [
         [
@@ -38,7 +38,7 @@ describe('explodePolygon', () => {
     expect(result).toEqual(expectedLines);
   });
 
-  it('should explode every ring when a polygon has a hole', () => {
+  it("should explode every ring when a polygon has a hole", () => {
     const polygon = new Polygon({
       rings: [
         [
@@ -74,7 +74,7 @@ describe('explodePolygon', () => {
     expect(result).toEqual(expectedLines);
   });
 
-  it('should return empty when the polygon has no rings', () => {
+  it("should return empty when the polygon has no rings", () => {
     const polygon = new Polygon({
       rings: [],
       spatialReference,

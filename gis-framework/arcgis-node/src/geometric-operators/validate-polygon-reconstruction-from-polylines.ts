@@ -1,14 +1,14 @@
-import Polygon from '@arcgis/core/geometry/Polygon.js';
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import Point from '@arcgis/core/geometry/Point.js';
-import * as simplifyOperator from '@arcgis/core/geometry/operators/simplifyOperator.js';
-import { logger } from '../config/logger';
-import { polygonsAreTopologicallyEqual } from './polygon-equality-operator';
+import type Point from "@arcgis/core/geometry/Point.js";
+import type Polyline from "@arcgis/core/geometry/Polyline.js";
+import * as simplifyOperator from "@arcgis/core/geometry/operators/simplifyOperator.js";
+import Polygon from "@arcgis/core/geometry/Polygon.js";
+import { logger } from "../config/logger";
+import { polygonsAreTopologicallyEqual } from "./polygon-equality-operator";
 
 export interface OrderedPolyline {
-  polyline: Polyline;
-  ringNumber: number;
-  connectionOrder: number;
+  polyline: Polyline,
+  ringNumber: number,
+  connectionOrder: number,
 }
 
 /**
@@ -28,12 +28,12 @@ export function validatePolygonReconstructionFromPolylines(
   try {
     reconstructedPolygon = reconstructPolygonFromLines(orderedLines);
   } catch (e) {
-    logger.error({ error: e }, 'Error reconstructing polygon from lines:');
+    logger.error({ error: e }, "Error reconstructing polygon from lines:");
     return false;
   }
 
   if (!reconstructedPolygon) {
-    logger.error('Cannot reconstruct polygon from lines.');
+    logger.error("Cannot reconstruct polygon from lines.");
     return false;
   }
 
@@ -44,7 +44,7 @@ export function validatePolygonReconstructionFromPolylines(
         originalPolygon: originalPolygonEsriJson,
         reconstructedPolygon: JSON.stringify(reconstructedPolygon.toJSON()),
       },
-      'Polygon reconstructed from lines is not spatially equal to the original polygon',
+      "Polygon reconstructed from lines is not spatially equal to the original polygon",
     );
   }
   return areSpatiallyEqual;
@@ -53,8 +53,8 @@ export function validatePolygonReconstructionFromPolylines(
 function reconstructPolygonFromLines(orderedLines: OrderedPolyline[]): Polygon | undefined {
   const wkid = orderedLines[0].polyline.spatialReference.wkid;
   if (!wkid) {
-    logger.error('Spatial reference WKID is missing from the first polyline.');
-    throw new Error('Spatial reference WKID is missing from the first polyline.');
+    logger.error("Spatial reference WKID is missing from the first polyline.");
+    throw new Error("Spatial reference WKID is missing from the first polyline.");
   }
 
   const ringToLines = getRingNumberToOrderedLines(orderedLines);
@@ -76,7 +76,7 @@ function constructRingPath(ringNumber: number, ringLines: OrderedPolyline[]): nu
   ringLines.sort((a, b) => a.connectionOrder - b.connectionOrder);
 
   const ringPath: number[][] = [];
-  let previousEndPoint: Point | undefined = undefined;
+  let previousEndPoint: Point | undefined;
 
   for (let i = 0; i < ringLines.length; i++) {
     const currentLine = ringLines[i];
@@ -112,9 +112,9 @@ function isContinuousRingLine(
     {
       currentLine: points[0],
       previousEndPoint: JSON.stringify(previousEndPoint.toJSON()),
-      ringNumber: ringNumber,
+      ringNumber,
     },
-    'Gap in ring continuity',
+    "Gap in ring continuity",
   );
   return false;
 }
@@ -132,13 +132,13 @@ function getLineEndPoint(polyline: Polyline): Point {
 function simplifyConstructedPolygon(constructedRings: number[][][], wkid: number): Polygon | undefined {
   const polygon = new Polygon({
     rings: constructedRings,
-    spatialReference: { wkid: wkid },
+    spatialReference: { wkid },
   });
 
   const simplifiedPolygon = simplifyOperator.execute(polygon) as Polygon;
   // Check if it exists and has at least one ring with points
   if (!simplifiedPolygon?.rings?.length) {
-    logger.error({ reconstructedPolygon: JSON.stringify(polygon.toJSON()) }, 'Polygon is invalid after simplification');
+    logger.error({ reconstructedPolygon: JSON.stringify(polygon.toJSON()) }, "Polygon is invalid after simplification");
     return undefined;
   }
 

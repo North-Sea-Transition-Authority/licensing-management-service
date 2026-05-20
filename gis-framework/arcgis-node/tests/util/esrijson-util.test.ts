@@ -1,11 +1,11 @@
-import { describe, expect, test } from 'vitest';
-import { esriJsonToPolygon, esriJsonToPolyline } from '../../src/util/esrijson-util';
-import Polygon from '@arcgis/core/geometry/Polygon.js';
-import Polyline from '@arcgis/core/geometry/Polyline.js';
+import Polygon from "@arcgis/core/geometry/Polygon.js";
+import Polyline from "@arcgis/core/geometry/Polyline.js";
+import { describe, expect, it } from "vitest";
+import { esriJsonToPolygon, esriJsonToPolyline } from "../../src/util/esrijson-util";
 
-describe('esrijson-util', () => {
-  describe('esriJsonToPolygon', () => {
-    test('should parse a valid esriJson string into a Polygon', () => {
+describe("esrijson-util", () => {
+  describe("esriJsonToPolygon", () => {
+    it("should parse a valid esriJson string into a Polygon", () => {
       const esriJson = JSON.stringify({
         rings: [
           [
@@ -22,13 +22,13 @@ describe('esrijson-util', () => {
       expect(Polygon.fromJSON(esriJson)).toStrictEqual(esriJsonToPolygon(esriJson));
     });
 
-    test('should throw when given invalid esriJson', () => {
-      expect(() => esriJsonToPolygon('not valid json')).toThrow();
+    it("should throw when given invalid esriJson", () => {
+      expect(() => esriJsonToPolygon("not valid json")).toThrow();
     });
   });
 
-  describe('esriJsonToPolyline', () => {
-    test('should parse a valid esriJson string into a Polyline', () => {
+  describe("esriJsonToPolyline", () => {
+    it("should parse a valid esriJson string into a Polyline", () => {
       const esriJson = JSON.stringify({
         paths: [
           [
@@ -43,8 +43,8 @@ describe('esrijson-util', () => {
       expect(Polyline.fromJSON(esriJson)).toStrictEqual(esriJsonToPolyline(esriJson));
     });
 
-    test('should throw when given invalid esriJson', () => {
-      expect(() => esriJsonToPolyline('not valid json')).toThrow();
+    it("should throw when given invalid esriJson", () => {
+      expect(() => esriJsonToPolyline("not valid json")).toThrow();
     });
   });
 });

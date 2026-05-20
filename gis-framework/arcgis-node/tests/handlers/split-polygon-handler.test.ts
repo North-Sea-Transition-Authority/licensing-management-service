@@ -1,16 +1,16 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import Polygon from '@arcgis/core/geometry/Polygon.js';
-import Polyline from '@arcgis/core/geometry/Polyline.js';
-import { status } from '@grpc/grpc-js';
-import { splitPolygonHandler } from '../../src/handlers/split-polygon-handler';
-import * as esriJsonUtil from '../../src/util/esrijson-util';
-import * as splitPolygonModule from '../../src/geometric-operators/split-operator';
-import { makePolygonEsriJson, makePolylineEsriJson } from '../test-utils/esrijson-test-util';
+import Polygon from "@arcgis/core/geometry/Polygon.js";
+import Polyline from "@arcgis/core/geometry/Polyline.js";
+import { status } from "@grpc/grpc-js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import * as splitPolygonModule from "../../src/geometric-operators/split-operator";
+import { splitPolygonHandler } from "../../src/handlers/split-polygon-handler";
+import * as esriJsonUtil from "../../src/util/esrijson-util";
+import { makePolygonEsriJson, makePolylineEsriJson } from "../test-utils/esrijson-test-util";
 
-vi.mock('../../src/util/esrijson-util');
-vi.mock('../../src/geometric-operators/split-operator');
+vi.mock("../../src/util/esrijson-util");
+vi.mock("../../src/geometric-operators/split-operator");
 
-describe('splitPolygonHandler', () => {
+describe("splitPolygonHandler", () => {
   let mockCallback: any;
   let mockCall: any;
   const testWkid = 4326;
@@ -26,8 +26,8 @@ describe('splitPolygonHandler', () => {
     };
   });
 
-  describe('splitPolygonHandler', () => {
-    it('should return a successful callback with split polygons', () => {
+  describe("splitPolygonHandler", () => {
+    it("should return a successful callback with split polygons", () => {
       // Arrange
       const polygonEsriJson = makePolygonEsriJson([
         [
@@ -113,7 +113,7 @@ describe('splitPolygonHandler', () => {
       });
     });
 
-    it('should return empty array when splitPolygon returns empty array', () => {
+    it("should return empty array when splitPolygon returns empty array", () => {
       // Arrange
       const polygonEsriJson = makePolygonEsriJson([
         [
@@ -168,7 +168,7 @@ describe('splitPolygonHandler', () => {
       expect(mockCallback).toHaveBeenCalledWith(null, { outputPolygonEsriJsons: [] });
     });
 
-    it('should call callback with error when splitPolygon throws', () => {
+    it("should call callback with error when splitPolygon throws", () => {
       // Arrange
       const polygonEsriJson = makePolygonEsriJson([
         [
@@ -212,7 +212,7 @@ describe('splitPolygonHandler', () => {
         spatialReference: { wkid: testWkid },
       });
 
-      const testError = new Error('Failed to split polygon');
+      const testError = new Error("Failed to split polygon");
 
       vi.mocked(esriJsonUtil.esriJsonToPolygon).mockReturnValue(mockTargetPolygon);
       vi.mocked(esriJsonUtil.esriJsonToPolyline).mockReturnValue(mockCutterLine);
@@ -226,7 +226,7 @@ describe('splitPolygonHandler', () => {
       // Assert
       const callbackError = mockCallback.mock.calls[0][0];
       expect(callbackError).toBe(testError);
-      expect(callbackError.message).toBe('Failed to split polygon');
+      expect(callbackError.message).toBe("Failed to split polygon");
       expect(callbackError.code).toBe(status.INTERNAL);
       expect(mockCallback).toHaveBeenCalledWith(callbackError, null);
       expect(mockCallback).toHaveBeenCalledOnce();

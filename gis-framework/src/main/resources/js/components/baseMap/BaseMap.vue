@@ -5,35 +5,25 @@
       <ol-source-osm/>
     </ol-tile-layer>
   </ol-map>
-  <div class="govuk-button-group govuk-!-margin-top-4">
-    <button class="govuk-button">
-      Split
-    </button>
-    <button class="govuk-button govuk-button--secondary">
-      Undo change
-    </button>
-    <button class="govuk-button govuk-button--secondary">
-      Redo change
-    </button>
-  </div>
+  <nsta-quadrant-layer v-if="mapRef && includeNstaQuadrants" :ol-map="mapRef"/>
 </template>
 
 <script setup lang="ts">
 import type { CSSProperties } from "vue";
+import type OlMap from "vue3-openlayers/map/OlMap";
 import { computed, ref } from "vue";
+import NstaQuadrantLayer from "./NstaQuadrantLayer.vue";
 
-interface TestMapProps {
-  height?: string,
+interface BaseMapProps {
+  includeNstaQuadrants?: boolean,
 }
 
-const props = withDefaults(defineProps<TestMapProps>(), {
-  height: "500px",
-});
+defineProps<BaseMapProps>();
 
-const mapRef = ref<unknown>(null);
+const mapRef = ref<InstanceType<typeof OlMap> | null>(null);
 const mapStyle = computed<CSSProperties>(() => ({
   width: "100%",
-  height: props.height,
+  height: "100%",
   display: "block",
 }));
 </script>

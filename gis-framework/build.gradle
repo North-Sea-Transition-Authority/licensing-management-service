@@ -110,6 +110,19 @@ tasks.register('lintFrontendAndArcGisNode', NpmTask) {
   args = ['run', 'lint']
 }
 
+tasks.register('testFrontend', NpmTask) {
+  group = frontendBuildGroup
+  description = 'Run GIS Vue frontend unit tests.'
+  dependsOn tasks.named('installFrontendDependencies')
+  inputs.file('package.json')
+  inputs.file('package-lock.json')
+  inputs.file('tsconfig.json')
+  inputs.file('vitest.config.ts')
+  inputs.dir('src/main/resources/js')
+  inputs.dir('src/test/resources/js')
+  args = ['run', 'test']
+}
+
 tasks.named('processResources') {
   dependsOn tasks.named('buildFrontend')
 }
@@ -118,6 +131,10 @@ tasks.named('test') {
   dependsOn tasks.named('lintFrontendAndArcGisNode')
   useJUnitPlatform()
   finalizedBy tasks.named('jacocoTestReport')
+}
+
+tasks.named('check') {
+  dependsOn tasks.named('testFrontend')
 }
 
 tasks.named('jacocoTestReport') {

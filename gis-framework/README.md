@@ -59,9 +59,9 @@ This will include the GIS assets in all your app pages by default. However, this
 To reference the macros in a consuming app template:
 
 ```ftl
-<#import "../gis/components/testMap/testMap.ftl" as gis>
+<#import "../gis/components/baseMap/baseMap.ftl" as gis>
 
-<@gis.testMap />
+<@gis.baseMap />
 ```
 
 Vue source lives under `src/main/resources/js`. FreeMarker templates under `src/main/resources/templates` should only

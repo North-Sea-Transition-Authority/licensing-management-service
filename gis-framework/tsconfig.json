@@ -11,7 +11,8 @@
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "types": [
-      "vite/client"
+      "vite/client",
+      "vitest"
     ],
     "strict": true,
     "noEmit": true,
@@ -23,6 +24,8 @@
   "include": [
     "src/main/resources/js/**/*.ts",
     "src/main/resources/js/**/*.vue",
-    "vite.config.ts"
+    "src/test/resources/js/**/*.ts",
+    "vite.config.ts",
+    "vitest.config.ts"
   ]
 }

@@ -8,7 +8,9 @@
     "lint:fix": "eslint --fix",
     "prepare": "cd .. && husky gis-framework/.husky",
     "type-check": "vue-tsc --noEmit",
-    "watch": "vite build --watch"
+    "watch": "vite build --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "ol": "10.9.0",
@@ -19,11 +21,16 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "9.0.0",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/user-event": "14.6.1",
+    "@testing-library/vue": "8.1.0",
     "@vitejs/plugin-vue": "6.0.6",
     "eslint": "10.3.0",
     "husky": "9.1.7",
+    "jsdom": "29.1.1",
     "typescript": "6.0.3",
     "vite": "8.0.12",
+    "vitest": "4.1.6",
     "vue": "3.5.32",
     "vue-tsc": "3.2.8"
   }

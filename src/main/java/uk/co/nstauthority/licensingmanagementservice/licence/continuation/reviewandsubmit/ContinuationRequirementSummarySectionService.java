@@ -9,6 +9,8 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementRequest;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementService;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.OtherRequirementsVisibility;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.OtherRequirementsVisibilityResolverService;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
@@ -21,11 +23,14 @@ public class ContinuationRequirementSummarySectionService implements SummarySect
   public static final String SECTION_NAME = "Other requirement";
   public static final int SECTION_DISPLAY_ORDER = 30;
   private final LicenceContinuationOtherRequirementService licenceContinuationOtherRequirementService;
+  private final OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService;
 
   public ContinuationRequirementSummarySectionService(
-      LicenceContinuationOtherRequirementService licenceContinuationOtherRequirementService
+      LicenceContinuationOtherRequirementService licenceContinuationOtherRequirementService,
+      OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService
   ) {
     this.licenceContinuationOtherRequirementService = licenceContinuationOtherRequirementService;
+    this.otherRequirementsVisibilityResolverService = otherRequirementsVisibilityResolverService;
   }
 
   @Override
@@ -44,10 +49,12 @@ public class ContinuationRequirementSummarySectionService implements SummarySect
     var otherRequirementRequest = licenceContinuationOtherRequirementService.getLicenceContinuationApplicationDetail(
         licenceContinuationApplicationDetail
     );
+    var visibility = otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail);
     List<SummaryCard> summaryCards = new ArrayList<>();
 
     if (otherRequirementRequest.isPresent()) {
-      var otherRequirementRequestSummaryCard = buildOtherRequirementRequestSummaryCard(otherRequirementRequest.get());
+      var otherRequirementRequestSummaryCard = buildOtherRequirementRequestSummaryCard(
+          otherRequirementRequest.get(), visibility);
       summaryCards.addAll(otherRequirementRequestSummaryCard);
     }
 
@@ -58,7 +65,8 @@ public class ContinuationRequirementSummarySectionService implements SummarySect
   }
 
   private List<SummaryCard> buildOtherRequirementRequestSummaryCard(
-      LicenceContinuationOtherRequirementRequest licenceContinuationOtherRequirementRequest
+      LicenceContinuationOtherRequirementRequest licenceContinuationOtherRequirementRequest,
+      OtherRequirementsVisibility visibility
   ) {
     var financialCapacityBuilder = SummaryDataView.newBuilder()
         .addStringValue(
@@ -87,30 +95,32 @@ public class ContinuationRequirementSummarySectionService implements SummarySect
     }
     var relinquishmentSummaryDataView = relinquishmentBuilder.build();
 
-    var developmentConsentBuilder = SummaryDataView.newBuilder()
-        .addStringValue(
-            "Development Consent (PCON) been granted by the NSTA",
-            licenceContinuationOtherRequirementRequest.getDevelopmentConsentGrantStatus()
-        );
-
-    if (BooleanUtils.isFalse(licenceContinuationOtherRequirementRequest.getDevelopmentConsentGrantStatus())) {
-      developmentConsentBuilder.addStringValue(
-          "Actions are being taken to get Development Consent approved",
-          licenceContinuationOtherRequirementRequest.getActionsToApproveDevelopmentConsent()
-      );
-    }
-    var developmentConsentSummaryDataView = developmentConsentBuilder.build();
-
     var financialCapacitySummaryCard = SummaryCard.simpleSummaryCardWithHeading(
         "Financial Capacity", financialCapacitySummaryDataView
     );
     var relinquishmentSummaryCard = SummaryCard.simpleSummaryCardWithHeading(
         "Relinquishment", relinquishmentSummaryDataView
     );
-    var developmentConsentSummaryCard = SummaryCard.simpleSummaryCardWithHeading(
-        "Development Consent", developmentConsentSummaryDataView
-    );
 
-    return List.of(financialCapacitySummaryCard, relinquishmentSummaryCard, developmentConsentSummaryCard);
+    List<SummaryCard> cards = new ArrayList<>(List.of(financialCapacitySummaryCard, relinquishmentSummaryCard));
+
+    if (visibility.showDevelopmentConsent()) {
+      var developmentConsentBuilder = SummaryDataView.newBuilder()
+          .addStringValue(
+              "Development Consent (PCON) been granted by the NSTA",
+              licenceContinuationOtherRequirementRequest.getDevelopmentConsentGrantStatus()
+          );
+
+      if (BooleanUtils.isFalse(licenceContinuationOtherRequirementRequest.getDevelopmentConsentGrantStatus())) {
+        developmentConsentBuilder.addStringValue(
+            "Actions are being taken to get Development Consent approved",
+            licenceContinuationOtherRequirementRequest.getActionsToApproveDevelopmentConsent()
+        );
+      }
+
+      cards.add(SummaryCard.simpleSummaryCardWithHeading("Development Consent", developmentConsentBuilder.build()));
+    }
+
+    return cards;
   }
 }

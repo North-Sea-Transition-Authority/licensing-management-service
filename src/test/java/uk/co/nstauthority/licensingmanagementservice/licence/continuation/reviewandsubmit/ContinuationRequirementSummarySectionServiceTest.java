@@ -15,6 +15,8 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementRequest;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementService;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.OtherRequirementsVisibility;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.OtherRequirementsVisibilityResolverService;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCardType;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
 
@@ -23,6 +25,9 @@ class ContinuationRequirementSummarySectionServiceTest {
 
   @Mock
   private LicenceContinuationOtherRequirementService licenceContinuationOtherRequirementService;
+
+  @Mock
+  private OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService;
 
   @InjectMocks
   private ContinuationRequirementSummarySectionService continuationRequirementSummarySectionService;
@@ -37,11 +42,13 @@ class ContinuationRequirementSummarySectionServiceTest {
   }
 
   @Test
-  void getSummarySection_withOtherRequirements_returnsOtherRequirementSummaryCardsOnly() {
-    var otherRequest = createOtherRequirementRequest();
+  void getSummarySection_whenDevelopmentConsentShown_assertAllThreeCardsReturned() {
+    var otherRequest = createOtherRequirementRequest(true);
 
     when(licenceContinuationOtherRequirementService.getLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail))
         .thenReturn(Optional.of(otherRequest));
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
+        .thenReturn(new OtherRequirementsVisibility(true, true, true));
 
     Optional<SummarySection> result = continuationRequirementSummarySectionService.getSummarySection(
         licenceContinuationApplicationDetail,
@@ -63,9 +70,33 @@ class ContinuationRequirementSummarySectionServiceTest {
   }
 
   @Test
+  void getSummarySection_whenDevelopmentConsentNotShown_assertTwoCardsReturnedWithoutDevConsent() {
+    var otherRequest = createOtherRequirementRequest(false);
+
+    when(licenceContinuationOtherRequirementService.getLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(Optional.of(otherRequest));
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
+        .thenReturn(new OtherRequirementsVisibility(true, true, false));
+
+    Optional<SummarySection> result = continuationRequirementSummarySectionService.getSummarySection(
+        licenceContinuationApplicationDetail,
+        user
+    );
+
+    assertThat(result).isPresent();
+    var summaryItem = result.get().summaryItems().getFirst();
+
+    assertThat(summaryItem.summaryCards()).hasSize(2);
+    assertThat(summaryItem.summaryCards().get(0).displayName()).isEqualTo("Financial Capacity");
+    assertThat(summaryItem.summaryCards().get(1).displayName()).isEqualTo("Relinquishment");
+  }
+
+  @Test
   void getSummarySection_withNoRequirements_returnsEmptySummaryCardsList() {
     when(licenceContinuationOtherRequirementService.getLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail))
         .thenReturn(Optional.empty());
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
+        .thenReturn(new OtherRequirementsVisibility(true, true, true));
 
     Optional<SummarySection> result = continuationRequirementSummarySectionService.getSummarySection(
         licenceContinuationApplicationDetail,
@@ -79,11 +110,13 @@ class ContinuationRequirementSummarySectionServiceTest {
     assertThat(summaryItem.summaryCards().getFirst().summaryCardType()).isEqualTo(SummaryCardType.EMPTY_SUMMARY);
   }
 
-  private LicenceContinuationOtherRequirementRequest createOtherRequirementRequest() {
+  private LicenceContinuationOtherRequirementRequest createOtherRequirementRequest(boolean withDevConsent) {
     var request = mock(LicenceContinuationOtherRequirementRequest.class);
     when(request.getFinancialCapacityEvidenceSubmissionStatus()).thenReturn(true);
     when(request.getRelinquishmentRequirementStatus()).thenReturn(true);
-    when(request.getDevelopmentConsentGrantStatus()).thenReturn(true);
+    if (withDevConsent) {
+      when(request.getDevelopmentConsentGrantStatus()).thenReturn(true);
+    }
     return request;
   }
 }

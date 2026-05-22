@@ -15,15 +15,17 @@
     headingText="${licenceWorkProgrammeAmendment.workProgrammeAmendmentLabel()}"
     summaryListId="licenceworkprogrammeamendmentvaluesresult"
     cardActionsContent=content>
-      <#if licenceWorkProgrammeAmendment.workProgrammeCompletionDateChangeRequestedDisplay()?has_content>
-          <@fdsSummaryList.summaryListRowNoAction keyText="Completion date change requested">
-              ${licenceWorkProgrammeAmendment.workProgrammeCompletionDateChangeRequestedDisplay()}
-          </@fdsSummaryList.summaryListRowNoAction>
-      </#if>
-      <#if (licenceWorkProgrammeAmendment.workProgrammeCompletionDateChangeRequested())!false>
-          <@fdsSummaryList.summaryListRowNoAction keyText="Requested extension to completion date">
-              ${licenceWorkProgrammeAmendment.workProgrammeExtensionDuration()!""}
-          </@fdsSummaryList.summaryListRowNoAction>
+      <#if licenceWorkProgrammeAmendment.linkedToRelativeDate()>
+          <#if licenceWorkProgrammeAmendment.workProgrammeCompletionDateChangeRequestedDisplay()?has_content>
+              <@fdsSummaryList.summaryListRowNoAction keyText="Completion date change requested">
+                  ${licenceWorkProgrammeAmendment.workProgrammeCompletionDateChangeRequestedDisplay()}
+              </@fdsSummaryList.summaryListRowNoAction>
+          </#if>
+          <#if (licenceWorkProgrammeAmendment.workProgrammeCompletionDateChangeRequested())!false>
+              <@fdsSummaryList.summaryListRowNoAction keyText="Requested extension to completion date">
+                  ${licenceWorkProgrammeAmendment.workProgrammeExtensionDuration()!""}
+              </@fdsSummaryList.summaryListRowNoAction>
+          </#if>
       </#if>
       <@fdsSummaryList.summaryListRowNoAction keyText="Work programme content change requested">
           ${licenceWorkProgrammeAmendment.workProgrammeChangeRequestedDisplay()}

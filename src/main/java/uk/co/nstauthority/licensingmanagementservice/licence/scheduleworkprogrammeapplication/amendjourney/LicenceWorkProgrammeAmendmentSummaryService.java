@@ -10,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationDisplayUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -58,7 +59,8 @@ public class LicenceWorkProgrammeAmendmentSummaryService {
         buildChangeUrl(activityId, applicationDetailId),
         buildDeleteUrl(activityId, applicationDetailId),
         amendmentRequest.getWorkProgrammeCompletionDateChangeRequested(),
-        amendmentRequest.getWorkProgrammeChangeRequested()
+        amendmentRequest.getWorkProgrammeChangeRequested(),
+        WorkProgrammeActivityDateOption.RELATIVE_DATE.equals(workProgrammeActivity.getDateOption())
     );
   }
 

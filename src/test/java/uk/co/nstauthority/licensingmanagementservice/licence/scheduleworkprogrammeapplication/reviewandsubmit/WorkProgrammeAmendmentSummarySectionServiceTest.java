@@ -59,7 +59,8 @@ class WorkProgrammeAmendmentSummarySectionServiceTest {
             "",
             "",
             true,
-            true
+            true,
+            false
         ),
         new LicenceWorkProgrammeAmendmentSummaryView(
             "Amendment 2",
@@ -71,6 +72,7 @@ class WorkProgrammeAmendmentSummarySectionServiceTest {
             "",
             "",
             true,
+            false,
             false
         )
     );
@@ -115,6 +117,7 @@ class WorkProgrammeAmendmentSummarySectionServiceTest {
         "",
         "",
         true,
+        false,
         false
     );
     when(licenceWorkProgrammeAmendmentSummaryService
@@ -143,7 +146,8 @@ class WorkProgrammeAmendmentSummarySectionServiceTest {
         "",
         "",
         false,
-        true
+        true,
+        false
     );
     when(licenceWorkProgrammeAmendmentSummaryService
         .getWorkProgrammeAmendmentSummaryViews(scheduleWorkProgrammeApplicationDetail))
@@ -171,6 +175,7 @@ class WorkProgrammeAmendmentSummarySectionServiceTest {
         "",
         "",
         false,
+        false,
         false
     );
     when(licenceWorkProgrammeAmendmentSummaryService
@@ -194,6 +199,7 @@ class WorkProgrammeAmendmentSummarySectionServiceTest {
         LicenceWorkProgrammeAmendmentSummaryMode.VIEW,
         "",
         "",
+        false,
         false,
         false
     );

@@ -95,7 +95,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
             LicenceWorkProgrammeAmendmentSummaryMode.VIEW,
             "changeUrl",
             "deleteUrl",false,
-            false));
+            false, false));
 
     when(licenceWorkProgrammeAmendmentRepository.findAllByScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail)).thenReturn(List.of(amendmentRequest));
@@ -225,7 +225,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
             LicenceWorkProgrammeAmendmentSummaryMode.VIEW,
             "changeUrl",
             "deleteUrl",false,
-            false));
+            false, false));
 
     when(licenceWorkProgrammeAmendmentSummaryFormValidator.isValid(any())).thenReturn(false);
     when(licenceWorkProgrammeAmendmentSummaryService.getWorkProgrammeAmendmentSummaryViews(
@@ -267,7 +267,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
             LicenceWorkProgrammeAmendmentSummaryMode.VIEW,
             "changeUrl1",
             "deleteUrl1",false,
-            false),
+            false, false),
         new LicenceWorkProgrammeAmendmentSummaryView(
             "duration2",
             "additionalInfo2",
@@ -277,7 +277,7 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
             LicenceWorkProgrammeAmendmentSummaryMode.VIEW,
             "changeUrl2",
             "deleteUrl2",false,
-            false));
+            false, false));
 
     when(licenceWorkProgrammeAmendmentRepository.findAllByScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail)).thenReturn(List.of(amendmentRequest1, amendmentRequest2));

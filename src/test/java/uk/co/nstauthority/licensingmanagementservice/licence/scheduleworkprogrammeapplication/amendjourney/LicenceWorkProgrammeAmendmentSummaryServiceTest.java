@@ -23,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCategory;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
@@ -98,6 +99,7 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
   void createSummaryViewFromWorkProgrammeAmendments_ValidFields() {
     workProgrammeActivity.setId(UUID.randomUUID());
     workProgrammeActivity.setCategory(WorkProgrammeActivityCategory.WELL_TEST);
+    workProgrammeActivity.setDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
 
     when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(any())).thenReturn(workProgrammeActivity);
 
@@ -122,6 +124,32 @@ class LicenceWorkProgrammeAmendmentSummaryServiceTest {
     assertNull(result.workProgrammeCompletionDateChangeRequested());
     assertThat(result.workProgrammeAmendmentInformation()).isEmpty();
     assertThat(result.summaryMode()).isEqualTo(LicenceWorkProgrammeAmendmentSummaryMode.VIEW);
+  }
+
+  @Test
+  void createSummaryViewFromWorkProgrammeAmendments_whenRelativeDate_assertLinkedToRelativeDateTrue() {
+    workProgrammeActivity.setCategory(WorkProgrammeActivityCategory.WELL_TEST);
+    workProgrammeActivity.setDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
+
+    when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(any())).thenReturn(workProgrammeActivity);
+
+    var result = licenceWorkProgrammeAmendmentSummaryService.createSummaryViewFromWorkProgrammeAmendments(
+        licenceWorkProgrammeAmendmentRequest, LicenceWorkProgrammeAmendmentSummaryMode.EDIT);
+
+    assertTrue(result.linkedToRelativeDate());
+  }
+
+  @Test
+  void createSummaryViewFromWorkProgrammeAmendments_whenWithinATerm_assertLinkedToRelativeDateFalse() {
+    workProgrammeActivity.setCategory(WorkProgrammeActivityCategory.WELL_TEST);
+    workProgrammeActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
+
+    when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(any())).thenReturn(workProgrammeActivity);
+
+    var result = licenceWorkProgrammeAmendmentSummaryService.createSummaryViewFromWorkProgrammeAmendments(
+        licenceWorkProgrammeAmendmentRequest, LicenceWorkProgrammeAmendmentSummaryMode.EDIT);
+
+    assertFalse(result.linkedToRelativeDate());
   }
 
   @Test

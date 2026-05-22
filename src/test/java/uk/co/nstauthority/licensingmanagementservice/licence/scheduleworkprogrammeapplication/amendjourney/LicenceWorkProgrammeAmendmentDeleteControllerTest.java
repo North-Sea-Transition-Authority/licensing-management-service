@@ -97,7 +97,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
         Optional.of(amendmentRequest));
     when(licenceWorkProgrammeAmendmentSummaryService.createSummaryViewFromWorkProgrammeAmendments(any(), any())).thenReturn(
         new LicenceWorkProgrammeAmendmentSummaryView("duration", "additionalInfo", "label", "extensionRequired",
-            "information", LicenceWorkProgrammeAmendmentSummaryMode.VIEW, "changeUrl", "deleteUrl",false,false));
+            "information", LicenceWorkProgrammeAmendmentSummaryMode.VIEW, "changeUrl", "deleteUrl",false,false, false));
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class).renderForm(
@@ -120,7 +120,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
         Optional.empty());
     when(licenceWorkProgrammeAmendmentSummaryService.createSummaryViewFromWorkProgrammeAmendments(any(), any())).thenReturn(
         new LicenceWorkProgrammeAmendmentSummaryView("duration", "additionalInfo", "label", "extensionRequired",
-            "information", LicenceWorkProgrammeAmendmentSummaryMode.VIEW, "changeUrl", "deleteUrl",false,false));
+            "information", LicenceWorkProgrammeAmendmentSummaryMode.VIEW, "changeUrl", "deleteUrl",false,false, false));
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class).renderForm(

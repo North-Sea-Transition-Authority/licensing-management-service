@@ -72,7 +72,7 @@ public class SelectLicenceWorkAmendmentController {
     return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/selectScheduleWorkProgrammeToAmend")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("form", form)
-        .addObject("workProgrammeAmendmentViews", workProgrammeActivityService.getLicenceWorkProgramActivitiesViews(
+        .addObject("workProgrammeAmendmentViews", workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(
             scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(scheduleWorkProgrammeApplicationDetail)
         ))
         .addObject("cancelUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(

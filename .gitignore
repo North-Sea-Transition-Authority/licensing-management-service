@@ -42,6 +42,9 @@ out/
 /src/main/resources/templates/fds/
 /src/main/resources/public/assets/html5shiv/html5shiv.min.js
 
+### Claude ###
+/.claude/settings.local.json
+
 ### Node ###
 logs
 node_modules

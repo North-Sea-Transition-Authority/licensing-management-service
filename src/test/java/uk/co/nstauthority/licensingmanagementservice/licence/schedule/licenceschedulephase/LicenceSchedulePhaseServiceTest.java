@@ -15,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
@@ -70,6 +71,33 @@ class LicenceSchedulePhaseServiceTest {
     licenceSchedulePhaseService.getActivePhasesByTerm(licenceScheduleTerm);
 
     verify(licenceSchedulePhaseRepository).findAllByLicenceScheduleTerm(licenceScheduleTerm);
+  }
+
+  @Test
+  void getPhaseByScheduleDetailAndEventReferenceOrThrow() {
+    var detail = new LicenceScheduleDetail();
+    var eventReference = new EventReference();
+    var phase = new LicenceSchedulePhase();
+
+    when(licenceSchedulePhaseRepository.findByLicenceScheduleDetailAndEventReference(detail, eventReference))
+        .thenReturn(Optional.of(phase));
+
+    assertThat(licenceSchedulePhaseService.getPhaseByScheduleDetailAndEventReferenceOrThrow(detail, eventReference))
+        .isEqualTo(phase);
+  }
+
+  @Test
+  void getPhaseByScheduleDetailAndEventReferenceOrThrow_notFound() {
+    var eventReference = new EventReference();
+    eventReference.setId(UUID.randomUUID());
+
+    when(licenceSchedulePhaseRepository.findByLicenceScheduleDetailAndEventReference(any(), any()))
+        .thenReturn(Optional.empty());
+
+    var detail = new LicenceScheduleDetail();
+
+    assertThatThrownBy(() -> licenceSchedulePhaseService.getPhaseByScheduleDetailAndEventReferenceOrThrow(detail, eventReference))
+        .isInstanceOf(LmsEntityNotFoundException.class);
   }
 
   @Test

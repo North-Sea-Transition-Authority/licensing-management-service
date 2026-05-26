@@ -7,6 +7,10 @@
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(termView.updateUrl()) linkClass="govuk-link"/>
             <@fdsAction.link linkText="Remove" linkUrl=springUrl(termView.deleteUrl()) linkClass="govuk-link"/>
         </#assign>
+    <#elseif termView.addCommentUrl()?has_content>
+        <#assign timelineActions>
+            <@fdsAction.link linkText="Add comment" linkUrl=springUrl(termView.addCommentUrl()) linkClass="govuk-link"/>
+        </#assign>
     <#else>
         <#assign timelineActions></#assign>
     </#if>
@@ -87,6 +91,10 @@
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(phaseView.updateUrl()) linkClass="govuk-link"/>
             <@fdsAction.link linkText="Remove" linkUrl=springUrl(phaseView.deleteUrl()) linkClass="govuk-link"/>
         </#assign>
+    <#elseif phaseView.addCommentUrl()?has_content>
+        <#assign timelineActions>
+            <@fdsAction.link linkText="Add comment" linkUrl=springUrl(phaseView.addCommentUrl()) linkClass="govuk-link"/>
+        </#assign>
     <#else>
         <#assign timelineActions></#assign>
     </#if>
@@ -137,6 +145,7 @@
         </#assign>
     <#elseif activityView.updateStatusUrl()?has_content>
         <#assign timelineActions>
+            <@fdsAction.link linkText="Add comment" linkUrl=springUrl(activityView.addCommentUrl()) linkClass="govuk-link"/>
             <@fdsAction.link linkText="Update status" linkUrl=springUrl(activityView.updateStatusUrl()) linkClass="govuk-link"/>
         </#assign>
     <#else>
@@ -179,14 +188,13 @@
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(activityView.updateUrl()) linkClass="govuk-link"/>
             <@fdsAction.link linkText="Remove" linkUrl=springUrl(activityView.deleteUrl()) linkClass="govuk-link"/>
         </#assign>
-    <#else>
-        <#assign timelineActions></#assign>
-    </#if>
-
-    <#if activityView.updateStatusUrl()?has_content>
+    <#elseif activityView.updateStatusUrl()?has_content>
         <#assign timelineActions>
+            <@fdsAction.link linkText="Add comment" linkUrl=springUrl(activityView.addCommentUrl()) linkClass="govuk-link"/>
             <@fdsAction.link linkText="Update status" linkUrl=springUrl(activityView.updateStatusUrl()) linkClass="govuk-link"/>
         </#assign>
+    <#else>
+        <#assign timelineActions></#assign>
     </#if>
 
     <@lmsTimeStamp.lmsTimeStamp
@@ -216,7 +224,11 @@
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(rateView.updateUrl()) linkClass="govuk-link"/>
             <@fdsAction.link linkText="Remove" linkUrl=springUrl(rateView.deleteUrl()) linkClass="govuk-link"/>
         </#assign>
-        <#else>
+    <#elseif rateView.addCommentUrl()?has_content>
+        <#assign timelineActions>
+            <@fdsAction.link linkText="Add comment" linkUrl=springUrl(rateView.addCommentUrl()) linkClass="govuk-link"/>
+        </#assign>
+    <#else>
         <#assign timelineActions></#assign>
     </#if>
 
@@ -248,6 +260,10 @@
         <#assign timelineActions>
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(eventView.updateUrl()) linkClass="govuk-link"/>
             <@fdsAction.link linkText="Remove" linkUrl=springUrl(eventView.deleteUrl()) linkClass="govuk-link"/>
+        </#assign>
+    <#elseif eventView.addCommentUrl()?has_content>
+        <#assign timelineActions>
+            <@fdsAction.link linkText="Add comment" linkUrl=springUrl(eventView.addCommentUrl()) linkClass="govuk-link"/>
         </#assign>
     <#else>
         <#assign timelineActions></#assign>
@@ -281,6 +297,10 @@
         <#assign timelineActions>
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(eventView.updateUrl()) linkClass="govuk-link"/>
             <@fdsAction.link linkText="Remove" linkUrl=springUrl(eventView.deleteUrl()) linkClass="govuk-link"/>
+        </#assign>
+    <#elseif eventView.addCommentUrl()?has_content>
+        <#assign timelineActions>
+            <@fdsAction.link linkText="Add comment" linkUrl=springUrl(eventView.addCommentUrl()) linkClass="govuk-link"/>
         </#assign>
     <#else>
         <#assign timelineActions></#assign>

@@ -5,6 +5,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,6 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFi
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiry;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryService;
@@ -156,22 +158,27 @@ public class LicenceScheduleTimelineService {
       TimelineFilterForm timelineFilterForm,
       ServiceUserDetail userDetail
   ) {
-    var updateWorkProgrammeStatusRoles = Set.of(
-        Role.WORK_PROGRAMME_ADMINISTRATOR,
-        Role.WORK_PROGRAMME_STATUS_ADMINISTRATOR
-    );
+    Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap = new HashMap<>();
+    List<ScheduleEventAction> eventActions = new ArrayList<>();
 
-    List<ScheduleEventAction> eventActions = teamQueryService.userHasAtLeastOneRoleIn(
-        userDetail.wuaId(),
-        updateWorkProgrammeStatusRoles
-    )
-        ? List.of(ScheduleEventAction.EDIT_WORK_PROGRAMME_STATUS)
-        : List.of();
+    if (teamQueryService.userIsInRegulatorTeam(userDetail.wuaId())) {
+      eventRefWpStatusMap.putAll(getLatestWpStatusesForSchedule(licenceScheduleDetail));
 
-    Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap = teamQueryService.userIsInRegulatorTeam(userDetail.wuaId())
-        ? getLatestWpStatusesForSchedule(licenceScheduleDetail)
-        : Map.of();
-    
+      if (teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))) {
+        eventActions.add(ScheduleEventAction.ADD_SCHEDULE_COMMENT);
+      }
+
+      var updateWorkProgrammeStatusRoles = Set.of(
+          Role.WORK_PROGRAMME_ADMINISTRATOR,
+          Role.WORK_PROGRAMME_STATUS_ADMINISTRATOR
+      );
+
+      if (teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), updateWorkProgrammeStatusRoles)) {
+        eventActions.add(ScheduleEventAction.EDIT_WORK_PROGRAMME_STATUS);
+        eventActions.add(ScheduleEventAction.ADD_WORK_PROGRAMME_COMMENT);
+      }
+    }
+
     return getLicenceScheduleEventViews(
         licenceScheduleDetail,
         timelineFilterForm,
@@ -263,6 +270,11 @@ public class LicenceScheduleTimelineService {
         ? ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(licenceScheduleTerm.getId()))
         : "";
 
+    var addCommentUrl = allowedActions.contains(ScheduleEventAction.ADD_SCHEDULE_COMMENT)
+        ? ReverseRouter.route(on(EventCommentController.class)
+          .renderAddCommentForm(ScheduleEventType.TERM.getUrlSlug(), licenceScheduleTerm.getEventReference().getId()))
+        : "";
+
     return new TimelineTermView(
         scheduleEvents,
         endOfTermEvents,
@@ -271,6 +283,7 @@ public class LicenceScheduleTimelineService {
         DateFormatUtil.convertToDisplayText(licenceScheduleTerm.getEndDate()),
         editUrl,
         deleteUrl,
+        addCommentUrl,
         hasPhases
     );
   }
@@ -384,6 +397,11 @@ public class LicenceScheduleTimelineService {
           .renderDeletePhasePage(licenceSchedulePhase.getId()))
         : "";
 
+    var addCommentUrl = allowedActions.contains(ScheduleEventAction.ADD_SCHEDULE_COMMENT)
+        ? ReverseRouter.route(on(EventCommentController.class)
+          .renderAddCommentForm(ScheduleEventType.PHASE.getUrlSlug(), licenceSchedulePhase.getEventReference().getId()))
+        : "";
+
     return new TimelinePhaseView(
         getScheduleEventsForPhase(licenceSchedulePhase, firstPhaseType, includedEventTypes, allowedActions, eventRefWpStatusMap),
         getEndOfPhaseRequirementEvents(licenceSchedulePhase, includedEventTypes, allowedActions, eventRefWpStatusMap),
@@ -392,7 +410,8 @@ public class LicenceScheduleTimelineService {
         dateDurationString,
         DateFormatUtil.convertToDisplayText(licenceSchedulePhase.getEndDate()),
         editUrl,
-        deleteUrl
+        deleteUrl,
+        addCommentUrl
     );
   }
 

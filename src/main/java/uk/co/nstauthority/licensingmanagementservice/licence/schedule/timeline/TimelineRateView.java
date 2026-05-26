@@ -5,6 +5,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.time.LocalDate;
 import java.util.List;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateDeletionController;
@@ -17,7 +18,8 @@ public record TimelineRateView(
     String startDateString,
     String rentalRateString,
     String updateUrl,
-    String deleteUrl
+    String deleteUrl,
+    String addCommentUrl
 ) implements ScheduleEvent {
 
   @Override
@@ -44,6 +46,11 @@ public record TimelineRateView(
           .renderDeleteRatePage(licenceScheduleRate.getId()))
         : "";
 
+    var addCommentUrl = allowedActions.contains(ScheduleEventAction.ADD_SCHEDULE_COMMENT)
+        ? ReverseRouter.route(on(EventCommentController.class)
+          .renderAddCommentForm(ScheduleEventType.RATE.getUrlSlug(), licenceScheduleRate.getEventReference().getId()))
+        : "";
+
     return new TimelineRateView(
         generateTitle(licenceScheduleRate),
         licenceScheduleRate.getStartDate(),
@@ -51,11 +58,12 @@ public record TimelineRateView(
         DateFormatUtil.convertToDisplayText(licenceScheduleRate.getStartDate()),
         "£%s".formatted(licenceScheduleRate.getRentalRate().toString()),
         editUrl,
-        deleteUrl
+        deleteUrl,
+        addCommentUrl
     );
   }
 
-  private static String generateTitle(LicenceScheduleRate licenceScheduleRate) {
+  public static String generateTitle(LicenceScheduleRate licenceScheduleRate) {
     if (licenceScheduleRate.getRateDefinitionOption().equals(RateDefinitionOption.TERM)) {
       var termType = licenceScheduleRate.getLicenceScheduleTerm().getTermType().getDisplayName();
 

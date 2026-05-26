@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicateThisOnUpdate;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationSource;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
@@ -22,4 +23,9 @@ public interface LicenceSchedulePhaseRepository
   boolean existsByLicenceScheduleTermId(UUID id);
 
   Optional<LicenceSchedulePhase> findById(UUID id);
+
+  Optional<LicenceSchedulePhase> findByLicenceScheduleDetailAndEventReference(
+      LicenceScheduleDetail licenceScheduleDetail,
+      EventReference eventReference
+  );
 }

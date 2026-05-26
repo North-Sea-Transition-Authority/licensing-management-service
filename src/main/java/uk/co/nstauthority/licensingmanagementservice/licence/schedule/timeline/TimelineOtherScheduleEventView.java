@@ -5,6 +5,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.time.LocalDate;
 import java.util.List;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDeletionController;
@@ -16,7 +17,8 @@ public record TimelineOtherScheduleEventView(
     LocalDate eventDate,
     String eventDateString,
     String updateUrl,
-    String deleteUrl
+    String deleteUrl,
+    String addCommentUrl
 ) implements ScheduleEvent {
 
   @Override
@@ -47,13 +49,19 @@ public record TimelineOtherScheduleEventView(
           .renderDeleteEventPage(otherScheduleEvent.getId()))
         : "";
 
+    var addCommentUrl = allowedActions.contains(ScheduleEventAction.ADD_SCHEDULE_COMMENT)
+        ? ReverseRouter.route(on(EventCommentController.class)
+          .renderAddCommentForm(ScheduleEventType.OTHER.getUrlSlug(), otherScheduleEvent.getEventReference().getId()))
+        : "";
+
     return new TimelineOtherScheduleEventView(
         otherScheduleEvent.getCategoryString(),
         otherScheduleEvent.getDescription(),
         otherScheduleEvent.getEventDate(),
         eventDateString,
         editUrl,
-        deleteUrl
+        deleteUrl,
+        addCommentUrl
     );
   }
 

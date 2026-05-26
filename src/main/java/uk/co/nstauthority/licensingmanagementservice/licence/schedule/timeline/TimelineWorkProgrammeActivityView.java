@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDeletionController;
@@ -23,6 +24,7 @@ public record TimelineWorkProgrammeActivityView(
     String updateUrl,
     String deleteUrl,
     String updateStatusUrl,
+    String addCommentUrl,
     WorkProgrammeStatus status
 ) implements ScheduleEvent {
 
@@ -60,6 +62,14 @@ public record TimelineWorkProgrammeActivityView(
           .renderStatusUpdatePage(workProgrammeActivity.getId(), null))
         : "";
 
+    var addCommentUrl = allowedActions.contains(ScheduleEventAction.ADD_WORK_PROGRAMME_COMMENT)
+        ? ReverseRouter.route(on(EventCommentController.class)
+          .renderAddCommentForm(
+              ScheduleEventType.WORK_PROGRAMME_ACTIVITY.getUrlSlug(),
+              workProgrammeActivity.getEventReference().getId())
+    )
+        : "";
+
     var status = eventRefWorkProgrammeStatusMap.get(workProgrammeActivity.getEventReference().getId());
 
     var statusView = status != null
@@ -74,6 +84,7 @@ public record TimelineWorkProgrammeActivityView(
         editUrl,
         deleteUrl,
         editStatusUrl,
+        addCommentUrl,
         statusView
     );
   }

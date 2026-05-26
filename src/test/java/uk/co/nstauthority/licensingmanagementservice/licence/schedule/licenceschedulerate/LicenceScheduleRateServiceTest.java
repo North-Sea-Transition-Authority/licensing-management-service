@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -169,6 +170,31 @@ class LicenceScheduleRateServiceTest {
     licenceScheduleRateService.saveLicenceScheduleRates(List.of(rate));
 
     verify(licenceScheduleRateRepository).saveAll(List.of(rate));
+  }
+
+  @Test
+  void getRateByScheduleDetailAndEventReferenceOrThrow() {
+    var detail = new LicenceScheduleDetail();
+    var eventReference = new EventReference();
+
+    when(licenceScheduleRateRepository.findByLicenceScheduleDetailAndEventReference(detail, eventReference))
+        .thenReturn(Optional.of(rate));
+
+    assertThat(licenceScheduleRateService.getRateByScheduleDetailAndEventReferenceOrThrow(detail, eventReference))
+        .isEqualTo(rate);
+  }
+
+  @Test
+  void getRateByScheduleDetailAndEventReferenceOrThrow_notFound() {
+    var eventReference = new EventReference();
+    eventReference.setId(UUID.randomUUID());
+
+    when(licenceScheduleRateRepository.findByLicenceScheduleDetailAndEventReference(any(), any()))
+        .thenReturn(Optional.empty());
+
+    var detail =  new LicenceScheduleDetail();
+    assertThatThrownBy(() -> licenceScheduleRateService.getRateByScheduleDetailAndEventReferenceOrThrow(detail, eventReference))
+        .isInstanceOf(LmsEntityNotFoundException.class);
   }
 
   @Test

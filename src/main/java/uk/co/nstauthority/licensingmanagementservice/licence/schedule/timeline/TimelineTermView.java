@@ -11,6 +11,7 @@ public record TimelineTermView(
     String endDateString,
     String updateUrl,
     String deleteUrl,
+    String addCommentUrl,
     boolean hasPhases
 ) {
 }

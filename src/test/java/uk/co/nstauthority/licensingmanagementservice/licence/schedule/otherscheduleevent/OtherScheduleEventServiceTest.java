@@ -1,6 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -13,6 +15,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -120,6 +124,32 @@ class OtherScheduleEventServiceTest {
     otherScheduleEventService.getActiveEventsAfterDate(detail, date);
 
     verify(otherScheduleEventRepository).findAllByLicenceScheduleDetailAndEventDateAfter(detail, date);
+  }
+
+  @Test
+  void getOtherScheduleEventByScheduleDetailAndEventReferenceOrThrow() {
+    var detail = new LicenceScheduleDetail();
+    var eventReference = new EventReference();
+    var event = new OtherScheduleEvent();
+
+    when(otherScheduleEventRepository.findByLicenceScheduleDetailAndEventReference(detail, eventReference))
+        .thenReturn(Optional.of(event));
+
+    assertThat(otherScheduleEventService.getOtherScheduleEventByScheduleDetailAndEventReferenceOrThrow(detail, eventReference))
+        .isEqualTo(event);
+  }
+
+  @Test
+  void getOtherScheduleEventByScheduleDetailAndEventReferenceOrThrow_notFound() {
+    var eventReference = new EventReference();
+    eventReference.setId(UUID.randomUUID());
+
+    when(otherScheduleEventRepository.findByLicenceScheduleDetailAndEventReference(any(), any()))
+        .thenReturn(Optional.empty());
+
+    var detail = new LicenceScheduleDetail();
+    assertThatThrownBy(() -> otherScheduleEventService.getOtherScheduleEventByScheduleDetailAndEventReferenceOrThrow(detail, eventReference))
+        .isInstanceOf(LmsEntityNotFoundException.class);
   }
 
   @Test

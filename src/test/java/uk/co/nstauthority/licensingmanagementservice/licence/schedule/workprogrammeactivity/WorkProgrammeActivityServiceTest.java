@@ -160,6 +160,32 @@ class WorkProgrammeActivityServiceTest {
   }
 
   @Test
+  void getWorkProgrammeActivityByScheduleDetailAndEventReferenceOrThrow() {
+    var detail = new LicenceScheduleDetail();
+    var eventReference = new EventReference();
+    var activity = new WorkProgrammeActivity();
+
+    when(workProgrammeActivityRepository.findByLicenceScheduleDetailAndEventReference(detail, eventReference))
+        .thenReturn(Optional.of(activity));
+
+    assertThat(workProgrammeActivityService.getWorkProgrammeActivityByScheduleDetailAndEventReferenceOrThrow(detail, eventReference))
+        .isEqualTo(activity);
+  }
+
+  @Test
+  void getWorkProgrammeActivityByScheduleDetailAndEventReferenceOrThrow_notFound() {
+    var eventReference = new EventReference();
+    eventReference.setId(UUID.randomUUID());
+
+    when(workProgrammeActivityRepository.findByLicenceScheduleDetailAndEventReference(any(), any()))
+        .thenReturn(Optional.empty());
+
+    var detail = new LicenceScheduleDetail();
+    assertThatThrownBy(() -> workProgrammeActivityService.getWorkProgrammeActivityByScheduleDetailAndEventReferenceOrThrow(detail, eventReference))
+        .isInstanceOf(LmsEntityNotFoundException.class);
+  }
+
+  @Test
   void deleteWorkProgrammeActivity() {
     var workProgrammeActivity = new WorkProgrammeActivity();
 

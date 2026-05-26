@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -89,6 +90,14 @@ public class WorkProgrammeActivityService {
       LocalDate date
   ) {
     return workProgrammeActivityRepository.findAllByLicenceScheduleDetailAndDueDateAfter(licenceScheduleDetail, date);
+  }
+
+  public WorkProgrammeActivity getWorkProgrammeActivityByScheduleDetailAndEventReferenceOrThrow(
+      LicenceScheduleDetail scheduleDetail,
+      EventReference eventReference
+  ) {
+    return workProgrammeActivityRepository.findByLicenceScheduleDetailAndEventReference(scheduleDetail, eventReference)
+        .orElseThrow(() -> new LmsEntityNotFoundException("WorkProgrammeActivity", eventReference.getId()));
   }
 
   @Transactional

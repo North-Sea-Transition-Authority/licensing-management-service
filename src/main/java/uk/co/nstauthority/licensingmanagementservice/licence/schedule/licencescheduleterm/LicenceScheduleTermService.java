@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Service
@@ -28,6 +29,14 @@ public class LicenceScheduleTermService {
   public LicenceScheduleTerm getTermByIdOrThrow(UUID id) {
     return licenceScheduleTermRepository.findById(id)
         .orElseThrow(() -> new LmsEntityNotFoundException("LicenceScheduleTerm not found", id.toString()));
+  }
+
+  public LicenceScheduleTerm getTermByScheduleDetailAndEventReferenceOrThrow(
+      LicenceScheduleDetail scheduleDetail,
+      EventReference eventReference
+  ) {
+    return licenceScheduleTermRepository.findByLicenceScheduleDetailAndEventReference(scheduleDetail, eventReference)
+        .orElseThrow(() -> new LmsEntityNotFoundException("LicenceScheduleTerm", eventReference.getId()));
   }
 
   @Transactional

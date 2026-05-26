@@ -12,7 +12,8 @@ public record TimelinePhaseView(
     String dateDurationString,
     String endDateString,
     String updateUrl,
-    String deleteUrl
+    String deleteUrl,
+    String addCommentUrl
 ) implements ScheduleEvent {
 
   @Override

@@ -141,6 +141,22 @@ class LicenceServiceTest {
   }
 
   @Test
+  void isCarbonStorageLicence_whenCarbonStorage_returnsTrue() {
+    var licence = new Licence();
+    licence.setType(LicenceType.CARBON_STORAGE);
+
+    assertThat(licenceService.isCarbonStorageLicence(licence)).isTrue();
+  }
+
+  @Test
+  void isCarbonStorageLicence_whenNotCarbonStorage_returnsFalse() {
+    var licence = new Licence();
+    licence.setType(LicenceType.SEAWARD_PRODUCTION);
+
+    assertThat(licenceService.isCarbonStorageLicence(licence)).isFalse();
+  }
+
+  @Test
   void searchLicencesByReferenceAndTypes() {
     var searchTerm = "term";
     var licenceTypes = List.of(LicenceType.SEAWARD_PRODUCTION);

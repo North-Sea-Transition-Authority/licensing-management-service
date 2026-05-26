@@ -18,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
@@ -33,18 +34,20 @@ public class LicenceScheduleSupportingInformationController {
   private final LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService;
   private final LicenceScheduleSupportingInformationFormValidator licenceScheduleSupportingInformationFormValidator;
   private final FileControllerHelperService fileControllerHelperService;
+  private final LicenceService licenceService;
 
   public LicenceScheduleSupportingInformationController(
-
       LicenceScheduleSupportingInformationHelperService licenceScheduleSupportingInformationHelperService,
       LicenceScheduleSupportingInformationService licenceScheduleSupportingInformationService,
       LicenceScheduleSupportingInformationFormValidator licenceScheduleSupportingInformationFormValidator,
-      FileControllerHelperService fileControllerHelperService
+      FileControllerHelperService fileControllerHelperService,
+      LicenceService licenceService
   ) {
     this.licenceScheduleSupportingInformationHelperService = licenceScheduleSupportingInformationHelperService;
     this.licenceScheduleSupportingInformationService = licenceScheduleSupportingInformationService;
     this.licenceScheduleSupportingInformationFormValidator = licenceScheduleSupportingInformationFormValidator;
     this.fileControllerHelperService = fileControllerHelperService;
+    this.licenceService = licenceService;
   }
 
   @GetMapping
@@ -89,6 +92,8 @@ public class LicenceScheduleSupportingInformationController {
         controller -> controller.deleteFile(null, scheduleWorkProgrammeApplicationDetail.getId(), null, null)
     );
 
+    var licence = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getLicenceSchedule().getLicence();
+
     var modelAndView = new ModelAndView(
         "lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceSupportingInformationRequest");
     modelAndView.addObject("pageTitle", PAGE_TITLE)
@@ -96,6 +101,7 @@ public class LicenceScheduleSupportingInformationController {
                 .addObject("fileUploadAttributes", fileUploadAttributes)
                 .addObject("isExtension", licenceScheduleSupportingInformationHelperService.isExtensionOrAmendment(
                     scheduleWorkProgrammeApplicationDetail))
+                .addObject("isCarbonStorageLicence", licenceService.isCarbonStorageLicence(licence))
         .addObject("cancelUrl", ReverseRouter.route(
             on(ScheduleWorkProgrammeApplicationTaskListController.class)
                 .getTaskList(

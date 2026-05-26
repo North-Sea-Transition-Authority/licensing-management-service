@@ -69,6 +69,10 @@ public class LicenceService {
     return licenceType.getDisplayName() + " - " + findLicenceByIdOrThrow(licenceId).getLicenceReference();
   }
 
+  public boolean isCarbonStorageLicence(Licence licence) {
+    return LicenceType.CARBON_STORAGE.equals(licence.getType());
+  }
+
   public List<Licence> searchLicencesByReferenceAndTypes(
       String searchTerm,
       List<LicenceType> types

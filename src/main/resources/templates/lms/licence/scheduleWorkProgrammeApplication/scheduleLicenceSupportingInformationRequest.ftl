@@ -18,7 +18,7 @@
         <@fdsDetails.summaryDetails summaryTitle="What information do I need to provide?">
           <p class="govuk-body">You must provide details of:</p>
           <ul class="govuk-list govuk-list--bullet">
-            <li>Progress towards meeting the work programme commitments including towards a potential storage permit application</li>
+            <li>Progress towards meeting the work programme commitments<#if isCarbonStorageLicence> including towards a potential storage permit application</#if></li>
             <li>Funding for the work programme activities</li>
             <li>Status of any operational activities on the licence</li>
           </ul>

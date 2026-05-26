@@ -25,4 +25,5 @@ public class LicenceScheduleSupportingInformationHelperService {
         .existsByScheduleWorkProgrammeApplicationDetailsAndWorkProgrammeCompletionDateChangeRequestedTrue(
             scheduleWorkProgrammeApplicationDetail);
   }
+
 }

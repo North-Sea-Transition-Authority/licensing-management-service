@@ -35,6 +35,8 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileUsage;
 import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
 import uk.co.nstauthority.licensingmanagementservice.file.FileUploadTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
@@ -82,7 +84,12 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
 
-    var scheduleWorkProgrammeApplication = ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(new LicenceScheduleDetail());
+    var licence = new Licence();
+    var licenceSchedule = new LicenceSchedule();
+    licenceSchedule.setLicence(licence);
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    licenceScheduleDetail.setLicenceSchedule(licenceSchedule);
+    var scheduleWorkProgrammeApplication = ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(licenceScheduleDetail);
 
     scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
@@ -118,11 +125,48 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
         .andExpect(status().isOk())
         .andExpect(model().attribute("pageTitle", "Supporting information"))
         .andExpect(model().attribute("isExtension", false))
+        .andExpect(model().attribute("isCarbonStorageLicence", false))
         .andExpect(model().attribute("fileUploadAttributes", fileUploadComponentAttributes))
         .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
             ScheduleWorkProgrammeApplicationTaskListController.class)
             .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
 
+  }
+
+  @Test
+  void renderOverallRequestForm_whenCarbonStorageLicence_assertIsCarbonStorageLicenceTrue() throws Exception {
+    when(licenceScheduleSupportingInformationService.getLicenceScheduleRequestForm(any())).thenReturn(
+        new LicenceScheduleSupportingInformationForm());
+    when(fileControllerHelperService.fileUploadComponentAttributes(any(List.class), any(Class.class), any(Function.class), any(Function.class)))
+        .thenReturn(FileUploadTestUtil.FILE_UPLOAD_COMPONENT_ATTRIBUTES);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(licenceService.isCarbonStorageLicence(any(Licence.class))).thenReturn(true);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class)
+                .renderForm(SCHEDULE_APPLICATION_DETAIL_ID, scheduleWorkProgrammeApplicationDetail)))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("isCarbonStorageLicence", true));
+  }
+
+  @Test
+  void renderOverallRequestForm_whenNonCarbonStorageLicence_assertIsCarbonStorageLicenceFalse() throws Exception {
+    when(licenceScheduleSupportingInformationService.getLicenceScheduleRequestForm(any())).thenReturn(
+        new LicenceScheduleSupportingInformationForm());
+    when(fileControllerHelperService.fileUploadComponentAttributes(any(List.class), any(Class.class), any(Function.class), any(Function.class)))
+        .thenReturn(FileUploadTestUtil.FILE_UPLOAD_COMPONENT_ATTRIBUTES);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(licenceService.isCarbonStorageLicence(any(Licence.class))).thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class)
+                .renderForm(SCHEDULE_APPLICATION_DETAIL_ID, scheduleWorkProgrammeApplicationDetail)))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("isCarbonStorageLicence", false));
   }
 
   @Test
@@ -159,6 +203,7 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
            .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceSupportingInformationRequest"))
            .andExpect(model().attribute("pageTitle", "Supporting information"))
            .andExpect(model().attribute("isExtension", false))
+           .andExpect(model().attribute("isCarbonStorageLicence", false))
            .andExpect(model().attribute("fileUploadAttributes", fileUploadComponentAttributes))
            .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
                    ScheduleWorkProgrammeApplicationTaskListController.class)

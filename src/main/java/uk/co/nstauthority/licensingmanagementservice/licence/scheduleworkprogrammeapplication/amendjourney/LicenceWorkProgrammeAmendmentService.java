@@ -78,6 +78,7 @@ public class LicenceWorkProgrammeAmendmentService {
     licenceWorkProgrammeAmendmentRequest.setScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail
     );
+    licenceWorkProgrammeAmendmentRequest.setWorkProgrammeActivity(workProgrammeActivity);
     licenceWorkProgrammeAmendmentRequest.setWorkProgrammeCompletionDateChangeRequested(
         licenceScheduleExtensionForm.getDurationExtensionRequired()
     );

@@ -29,18 +29,15 @@ public class SelectLicenceWorkAmendmentController {
 
   public static final String PAGE_TITLE = "What work programme activity are you requesting to amend?";
   private final SelectLicenceAmendmentFormValidator selectLicenceAmendmentFormValidator;
-  private final SelectLicenceAmendmentService selectLicenceAmendmentService;
   private final WorkProgrammeActivityService workProgrammeActivityService;
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
 
   public SelectLicenceWorkAmendmentController(
       SelectLicenceAmendmentFormValidator selectLicenceAmendmentFormValidator,
-      SelectLicenceAmendmentService selectLicenceAmendmentService,
       WorkProgrammeActivityService workProgrammeActivityService,
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService
   ) {
     this.selectLicenceAmendmentFormValidator = selectLicenceAmendmentFormValidator;
-    this.selectLicenceAmendmentService = selectLicenceAmendmentService;
     this.workProgrammeActivityService = workProgrammeActivityService;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
   }
@@ -63,12 +60,6 @@ public class SelectLicenceWorkAmendmentController {
     if (!selectLicenceAmendmentFormValidator.isValid(form, bindingResult, scheduleWorkProgrammeApplicationDetail)) {
       return getModelAndView(form, scheduleWorkProgrammeApplicationDetail);
     }
-
-    selectLicenceAmendmentService.saveAmendmentForm(
-        form.getSelectedWorkProgrammeActivityAmendmentId(),
-        form,
-        scheduleWorkProgrammeApplicationDetail
-    );
 
     return ReverseRouter.redirect(on(LicenceWorkProgrammeAmendmentController.class)
         .renderForm(form.getSelectedWorkProgrammeActivityAmendmentId(), null, scheduleWorkProgrammeApplicationDetailId, null));

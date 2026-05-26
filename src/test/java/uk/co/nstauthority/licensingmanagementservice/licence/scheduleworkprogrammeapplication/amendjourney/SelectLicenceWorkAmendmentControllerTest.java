@@ -1,8 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -41,9 +39,6 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private SelectLicenceAmendmentFormValidator selectLicenceAmendmentFormValidator;
-
-  @MockitoBean
-  private SelectLicenceAmendmentService selectLicenceAmendmentService;
 
   @MockitoBean
   private LicenceWorkProgrammeAmendmentService licenceWorkProgrammeAmendmentService;
@@ -115,7 +110,6 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
 
         )
         .andExpect(status().is3xxRedirection());
-    verify(selectLicenceAmendmentService).saveAmendmentForm(any(), any(),any());
   }
 
 
@@ -143,8 +137,6 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
            .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
             ScheduleWorkProgrammeApplicationTaskListController.class)
             .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
-
-    verify(selectLicenceAmendmentService, never()).saveAmendmentForm(any(), any(), any());
 
   }
 

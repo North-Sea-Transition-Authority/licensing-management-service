@@ -117,6 +117,8 @@ class LicenceWorkProgrammeAmendmentServiceTest {
   @Test
   void saveAmendmentForm() {
     var scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
+    var workProgrammeActivity = new WorkProgrammeActivity();
+    workProgrammeActivity.setId(UUID.randomUUID());
 
     var form = new LicenceWorkProgrammeAmendmentForm();
     form.setWorkProgrammeAmendmentInformation("testAmendmentInformation");
@@ -126,7 +128,7 @@ class LicenceWorkProgrammeAmendmentServiceTest {
     form.setDurationExtensionRequired(true);
     form.setAdditionalInfoRequired(true);
 
-    licenceWorkProgrammeAmendmentService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail,new WorkProgrammeActivity());
+    licenceWorkProgrammeAmendmentService.saveAmendmentForm(form, scheduleWorkProgrammeApplicationDetail, workProgrammeActivity);
 
     verify(licenceWorkProgrammeAmendmentRepository).save(licenceWorkProgrammeAmendmentRequestArgumentCaptor.capture());
 
@@ -135,11 +137,13 @@ class LicenceWorkProgrammeAmendmentServiceTest {
     assertThat(result).extracting(
         LicenceWorkProgrammeAmendmentRequest::getWorkProgrammeExtensionDuration,
         LicenceWorkProgrammeAmendmentRequest::getWorkProgrammeAmendmentInformation,
-        LicenceWorkProgrammeAmendmentRequest::getScheduleWorkProgrammeApplicationDetails
+        LicenceWorkProgrammeAmendmentRequest::getScheduleWorkProgrammeApplicationDetails,
+        LicenceWorkProgrammeAmendmentRequest::getWorkProgrammeActivity
     ).containsExactly(
         form.getWorkProgrammeExtensionDuration().toThreeFieldDuration(),
         form.getWorkProgrammeAmendmentInformation(),
-        scheduleWorkProgrammeApplicationDetail
+        scheduleWorkProgrammeApplicationDetail,
+        workProgrammeActivity
     );
   }
 

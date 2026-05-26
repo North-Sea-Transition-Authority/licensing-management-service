@@ -1,2 +1,4 @@
-#cd gis-framework
-#npm run lint:fix
+if git diff --cached --name-only | grep -q "^gis-framework/"; then
+  cd gis-framework
+  npm run lint:fix
+fi

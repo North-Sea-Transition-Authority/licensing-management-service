@@ -1,7 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.energyportal.user;
 
 
-import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupDto;
@@ -34,10 +33,9 @@ public class AllowedDomainService {
       default -> throw new IllegalStateException("Unexpected value: " + team.getTeamType());
     };
 
-    List<String> emailDomains = group.map(OrganisationGroupDto::getEmailDomains).orElseGet(ArrayList::new);
-
-    return emailDomains.stream()
+    var lowerEmail = userEmail.toLowerCase();
+    return group.map(OrganisationGroupDto::getEmailDomains).orElse(List.of()).stream()
         .map(String::toLowerCase)
-        .anyMatch(domain -> userEmail.toLowerCase().endsWith('@' + domain));
+        .anyMatch(domain -> lowerEmail.endsWith("@" + domain));
   }
 }

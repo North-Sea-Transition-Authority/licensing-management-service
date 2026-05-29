@@ -2,6 +2,7 @@ package uk.co.fivium.gisframework.feature;
 
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
@@ -72,5 +73,10 @@ public class FeatureService {
                 .contains(licenseBlock.getFeatureName())
         )
         .toList();
+  }
+
+  public Feature getFeatureOrThrow(UUID featureId) {
+    return featureRepository.findById(featureId).orElseThrow(() ->
+        new EntityNotFoundException("Feature %s not found".formatted(featureId)));
   }
 }

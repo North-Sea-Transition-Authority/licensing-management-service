@@ -9,6 +9,7 @@ import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -156,5 +157,21 @@ class FeatureServiceTest {
     var result = featureService.findLicenseBlocksForRefBlock("16/30");
 
     assertThat(result).containsExactly(matchingBlock, matchingBrokenBlock);
+  }
+
+  @Test
+  void getFeatureOrThrow_entityFound() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    when(featureRepository.findById(feature.getId())).thenReturn(Optional.of(feature));
+    assertThat(featureService.getFeatureOrThrow(feature.getId())).isEqualTo(feature);
+  }
+
+  @Test
+  void getFeatureOrThrow_entityNotFound_throw() {
+    var featureId = UUID.randomUUID();
+    when(featureRepository.findById(featureId)).thenReturn(Optional.empty());
+    assertThatThrownBy(() -> featureService.getFeatureOrThrow(featureId))
+        .isInstanceOf(EntityNotFoundException.class)
+        .hasMessage("Feature %s not found".formatted(featureId));
   }
 }

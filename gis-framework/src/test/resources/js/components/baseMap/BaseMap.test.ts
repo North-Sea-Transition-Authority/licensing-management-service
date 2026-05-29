@@ -15,12 +15,26 @@ const NstaQuadrantLayerStub = defineComponent({
   },
   template: `<div data-testid="nsta-quadrant-layer" />`,
 });
+const FeatureLayerStub = defineComponent({
+  props: {
+    featuresUrl: {
+      type: String,
+      required: true,
+    },
+    olMap: {
+      type: Object,
+      required: false,
+    },
+  },
+  template: `<div data-testid="feature-layer" :data-features-url="featuresUrl" />`,
+});
 
 describe("baseMap", () => {
-  it("renders the base OpenStreetMap map", () => {
+  it("renders the base OpenStreetMap map and feature layer", async () => {
     render(BaseMap, {
       props: {
         includeNstaQuadrants: false,
+        featuresUrl: "dummyUrl",
       },
       global: {
         stubs: {
@@ -29,6 +43,7 @@ describe("baseMap", () => {
           "ol-tile-layer": { template: `<div data-testid="ol-tile-layer"><slot /></div>` },
           "ol-source-osm": { template: `<div data-testid="ol-source-osm" />` },
           "NstaQuadrantLayer": NstaQuadrantLayerStub,
+          "FeatureLayer": FeatureLayerStub,
         },
       },
     });
@@ -37,6 +52,7 @@ describe("baseMap", () => {
     expect(screen.getByTestId("ol-view")).toBeInTheDocument();
     expect(screen.getByTestId("ol-tile-layer")).toBeInTheDocument();
     expect(screen.getByTestId("ol-source-osm")).toBeInTheDocument();
+    expect(await screen.findByTestId("feature-layer")).toHaveAttribute("data-features-url", "dummyUrl");
     expect(screen.queryByTestId("nsta-quadrant-layer")).not.toBeInTheDocument();
   });
 
@@ -44,6 +60,7 @@ describe("baseMap", () => {
     render(BaseMap, {
       props: {
         includeNstaQuadrants: true,
+        featuresUrl: "dummyUrl",
       },
       global: {
         stubs: {
@@ -52,6 +69,7 @@ describe("baseMap", () => {
           "ol-tile-layer": { template: `<div data-testid="ol-tile-layer"><slot /></div>` },
           "ol-source-osm": { template: `<div data-testid="ol-source-osm" />` },
           "NstaQuadrantLayer": NstaQuadrantLayerStub,
+          "FeatureLayer": FeatureLayerStub,
         },
       },
     });
@@ -60,6 +78,7 @@ describe("baseMap", () => {
     expect(screen.getByTestId("ol-view")).toBeInTheDocument();
     expect(screen.getByTestId("ol-tile-layer")).toBeInTheDocument();
     expect(screen.getByTestId("ol-source-osm")).toBeInTheDocument();
+    expect(await screen.findByTestId("feature-layer")).toHaveAttribute("data-features-url", "dummyUrl");
     expect(await screen.findByTestId("nsta-quadrant-layer")).toBeInTheDocument();
   });
 });

@@ -47,6 +47,7 @@ repositories {
 
 dependencies {
   implementation 'org.springframework.boot:spring-boot-starter'
+  implementation 'org.springframework.boot:spring-boot-starter-web'
   implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
   implementation 'com.esri.geometry:esri-geometry-api:2.2.4'
   implementation 'org.flywaydb:flyway-core'
@@ -77,6 +78,10 @@ node {
   npmVersion = '10.9.0'
   download = true
   nodeProjectDir = projectDir
+}
+
+tasks.withType(JavaCompile).configureEach {
+  options.compilerArgs.add('-parameters')
 }
 
 def frontendBuildGroup = 'build frontend'

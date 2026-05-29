@@ -105,13 +105,14 @@ class GrpcClientServiceTest {
     var expectedRequest = BuildPolygonRequest.newBuilder()
         .addAllEsriJsonPolylines(esriJsonPolylines)
         .setCoordinateSystemWkid(CoordinateSystemUtils.getWkid(coordinateSystem))
+        .setProjectToWgs84(true)
         .build();
     var expectedResponse = BuildPolygonResponse.newBuilder()
         .setPolygonEsriJson(builtPolygon)
         .build();
 
     when(arcgisClient.buildPolygon(expectedRequest)).thenReturn(expectedResponse);
-    assertThat(grpcClientService.buildPolygon(esriJsonPolylines, coordinateSystem)).isEqualTo(builtPolygon);
+    assertThat(grpcClientService.buildPolygon(esriJsonPolylines, coordinateSystem, true)).isEqualTo(builtPolygon);
   }
 
   @Test

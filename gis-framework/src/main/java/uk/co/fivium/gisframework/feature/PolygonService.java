@@ -47,8 +47,12 @@ public class PolygonService {
    * @return a list of EsriJSON polygons for the given feature
    */
   public List<String> getPolygonsAsEsriJson(Feature feature) {
+    return getPolygonsAsEsriJson(feature, false);
+  }
+
+  public List<String> getPolygonsAsEsriJson(Feature feature, boolean projectToWgs84) {
     var entityBackedFeature = featureService.getEntityBackedFeature(feature);
-    return getPolygonsAsEsriJson(entityBackedFeature);
+    return getPolygonsAsEsriJson(entityBackedFeature, projectToWgs84);
   }
 
   @Transactional
@@ -56,7 +60,8 @@ public class PolygonService {
     polygonRepository.deleteAll();
   }
 
-  private List<String> getPolygonsAsEsriJson(EntityBackedFeature entityBackedFeature) {
+  private List<String> getPolygonsAsEsriJson(EntityBackedFeature entityBackedFeature,
+                                             boolean projectToWgs84) {
     List<String> polygonsAsEsriJson = new ArrayList<>();
 
     for (var polygonToLines : entityBackedFeature.polygonToLines().entrySet()) {
@@ -67,7 +72,8 @@ public class PolygonService {
           .toList();
       String polygonEsriJson = grpcClientService.buildPolygon(
           lineEsriJsons,
-          entityBackedFeature.feature().getCoordinateSystem()
+          entityBackedFeature.feature().getCoordinateSystem(),
+          projectToWgs84
       );
       polygonsAsEsriJson.add(polygonEsriJson);
     }

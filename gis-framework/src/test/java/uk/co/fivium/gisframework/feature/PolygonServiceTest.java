@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -89,10 +91,33 @@ class PolygonServiceTest {
     when(featureService.getEntityBackedFeature(feature)).thenReturn(entityBackedFeature);
     when(grpcClientService.buildPolygon(
         List.of(line1.getEsriJson(), line2.getEsriJson(), line3.getEsriJson()),
-        feature.getCoordinateSystem())
+        feature.getCoordinateSystem(), false)
     ).thenReturn(polygonEsriJson);
 
     assertThat(polygonService.getPolygonsAsEsriJson(feature)).containsExactly(polygonEsriJson);
+  }
+
+  @ValueSource(booleans = {true, false})
+  @ParameterizedTest
+  void getPolygonsAsEsriJson_projectToWgs84Override_assertLinesSorted(boolean projectToWgs84) {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var polygon = PolygonTestUtil.newBuilder().build();
+    var line1 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withRingConnectionOrder(1).build();
+    var line2 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withRingConnectionOrder(2).build();
+    var line3 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withRingConnectionOrder(3).build();
+    var entityBackedFeature = new EntityBackedFeature(
+        feature,
+        Map.of(polygon, List.of(line2, line3, line1))
+    );
+    var polygonEsriJson = "polygonEsriJson";
+
+    when(featureService.getEntityBackedFeature(feature)).thenReturn(entityBackedFeature);
+    when(grpcClientService.buildPolygon(
+        List.of(line1.getEsriJson(), line2.getEsriJson(), line3.getEsriJson()),
+        feature.getCoordinateSystem(), projectToWgs84)
+    ).thenReturn(polygonEsriJson);
+
+    assertThat(polygonService.getPolygonsAsEsriJson(feature, projectToWgs84)).containsExactly(polygonEsriJson);
   }
 
   @Test

@@ -2,12 +2,16 @@ import Polygon from "@arcgis/core/geometry/Polygon.js";
 import Polyline from "@arcgis/core/geometry/Polyline.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as buildPolygonModule from "../../src/geometric-operators/build-polygon";
+import * as projectPolygon from "../../src/geometric-operators/project-polygon";
 import { buildPolygonHandler } from "../../src/handlers/build-polygon-handler";
 import * as esriJsonUtil from "../../src/util/esrijson-util";
 import { makePolylineEsriJson } from "../test-utils/esrijson-test-util";
 
 vi.mock("../../src/util/esrijson-util");
 vi.mock("../../src/geometric-operators/build-polygon");
+vi.mock("../../src/geometric-operators/project-polygon", () => ({
+  projectToWgs84: vi.fn(),
+}));
 
 describe("buildPolygonHandler", () => {
   let mockCallback: any;
@@ -21,6 +25,7 @@ describe("buildPolygonHandler", () => {
       request: {
         esriJsonPolylines: [],
         coordinateSystemWkid: testWkid,
+        projectToWgs84: false,
       },
     };
   });
@@ -86,6 +91,7 @@ describe("buildPolygonHandler", () => {
       expect(esriJsonUtil.esriJsonToPolyline).toHaveBeenCalledTimes(2);
       expect(buildPolygonModule.buildPolygon).toHaveBeenCalledWith([mockPolyline1, mockPolyline2], testWkid);
       expect(mockCallback).toHaveBeenCalledWith(null, { polygonEsriJson: JSON.stringify(mockPolygon.toJSON()) });
+      expect(projectPolygon.projectToWgs84).toHaveBeenCalledTimes(0);
     });
   });
 
@@ -121,6 +127,7 @@ describe("buildPolygonHandler", () => {
     expect(callArgs[0]).toBeInstanceOf(Error);
     expect(callArgs[0].message).toBe("No polygons could be built from the provided polylines");
     expect(callArgs[1]).toBeNull();
+    expect(projectPolygon.projectToWgs84).toHaveBeenCalledTimes(0);
   });
 
   it("should call callback with error when buildPolygon throws", () => {
@@ -161,5 +168,51 @@ describe("buildPolygonHandler", () => {
     // Assert
     expect(mockCallback).toHaveBeenCalledWith(testError, null);
     expect(mockCallback).toHaveBeenCalledOnce();
+    expect(projectPolygon.projectToWgs84).toHaveBeenCalledTimes(0);
+  });
+
+  it("should project polygon to WGS84 when flag is true", async () => {
+    const polylineEsriJson = makePolylineEsriJson([
+      [
+        [0, 0],
+        [1, 0],
+      ],
+    ]);
+    mockCall.request.esriJsonPolylines = [polylineEsriJson];
+    mockCall.request.projectToWgs84 = true;
+
+    const mockPolygon = new Polygon({
+      rings: [
+        [
+          [0, 0],
+          [1, 0],
+          [1, 1],
+          [0, 1],
+          [0, 0],
+        ],
+      ],
+      spatialReference: { wkid: testWkid },
+    });
+
+    vi.mocked(buildPolygonModule.buildPolygon).mockReturnValue(mockPolygon);
+
+    const mockPolygonProjected = new Polygon({
+      rings: [
+        [
+          [0, 0],
+          [1, 0],
+          [1, 1],
+          [0, 1],
+          [0, 0],
+        ],
+      ],
+      spatialReference: { wkid: 4230 },
+    });
+    vi.mocked(projectPolygon.projectToWgs84).mockResolvedValue(mockPolygonProjected);
+
+    await buildPolygonHandler(mockCall, mockCallback as any);
+
+    const expectedResponse = { polygonEsriJson: JSON.stringify(mockPolygonProjected.toJSON()) };
+    expect(mockCallback).toHaveBeenCalledWith(null, expectedResponse);
   });
 });

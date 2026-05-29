@@ -8,4 +8,5 @@ option java_outer_classname = "BuildPolygonRequestProto";
 message BuildPolygonRequest {
   repeated string esriJsonPolylines = 1;
   int32 coordinateSystemWkid = 2;
+  bool projectToWgs84 = 3;
 }

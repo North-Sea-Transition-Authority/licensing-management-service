@@ -73,13 +73,16 @@ public class GrpcClientService {
    *
    * @param esriJsonPolylines An ordered list of EsriJSON polylines. Must be sorted by their ring connection order.
    * @param coordinateSystem  The coordinate system of the polylines. Must be the same for all polylines.
+   * @param projectToWgs84 True if the constructed polygon should be projected to WGS84.
    * @return EsriJSON of the built polygon as a string.
    */
   public String buildPolygon(List<String> esriJsonPolylines,
-                             CoordinateSystem coordinateSystem) {
+                             CoordinateSystem coordinateSystem,
+                             boolean projectToWgs84) {
     var request = BuildPolygonRequest.newBuilder()
         .addAllEsriJsonPolylines(esriJsonPolylines)
         .setCoordinateSystemWkid(CoordinateSystemUtils.getWkid(coordinateSystem))
+        .setProjectToWgs84(projectToWgs84)
         .build();
 
     var response = arcgisClient.buildPolygon(request);

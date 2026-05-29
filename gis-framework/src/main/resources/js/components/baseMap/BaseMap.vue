@@ -4,22 +4,28 @@
     <ol-tile-layer>
       <ol-source-osm/>
     </ol-tile-layer>
+    <nsta-quadrant-layer v-if="mapRef && includeNstaQuadrants" :ol-map="mapRef"/>
+    <feature-layer v-if="mapRef" :features-url="featuresUrl" :ol-map="mapRef"/>
   </ol-map>
-  <nsta-quadrant-layer v-if="mapRef && includeNstaQuadrants" :ol-map="mapRef"/>
 </template>
 
 <script setup lang="ts">
 import type { CSSProperties } from "vue";
 import type OlMap from "vue3-openlayers/map/OlMap";
+import { useGeographic } from "ol/proj";
 import { computed, ref } from "vue";
+import FeatureLayer from "./FeatureLayer.vue";
 import NstaQuadrantLayer from "./NstaQuadrantLayer.vue";
 
 interface BaseMapProps {
   includeNstaQuadrants?: boolean,
+  featuresUrl: string,
 }
 
 defineProps<BaseMapProps>();
 
+// Allow openLayers to receive features in WGS84
+useGeographic();
 const mapRef = ref<InstanceType<typeof OlMap> | null>(null);
 const mapStyle = computed<CSSProperties>(() => ({
   width: "100%",

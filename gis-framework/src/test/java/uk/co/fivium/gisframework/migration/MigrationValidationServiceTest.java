@@ -5,11 +5,11 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.co.fivium.gisframework.LoggerTestUtil.detachLogAppender;
+import static uk.co.fivium.gisframework.LoggerTestUtil.getLogAppender;
 
 import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +18,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.slf4j.LoggerFactory;
 import uk.co.fivium.gisframework.feature.EntityBackedFeature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
@@ -146,7 +145,7 @@ class MigrationValidationServiceTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void validateReferenceBlocks(boolean isValid) {
-    var logAppender = getLogAppender();
+    var logAppender = getLogAppender(MigrationValidationService.class);
 
     var refBlockFeature = FeatureTestUtil.newBuilder()
         .withFeatureName("16/30")
@@ -180,7 +179,7 @@ class MigrationValidationServiceTest {
     try {
       migrationValidationService.validateReferenceBlocks();
     } finally {
-      detachLogAppender(logAppender);
+      detachLogAppender(MigrationValidationService.class, logAppender);
     }
 
     verify(featureService).findAllByAttribute("SHAPE_TYPE", "REF_BLOCK");
@@ -197,21 +196,5 @@ class MigrationValidationServiceTest {
                 ? "All license blocks are contained by ref block 16/30"
                 : "Validation error: some message Reference Block: 16/30"
         ));
-  }
-
-  private static ListAppender<ILoggingEvent> getLogAppender() {
-    var logger = (Logger) LoggerFactory.getLogger(MigrationValidationService.class);
-    var logAppender = new ListAppender<ILoggingEvent>();
-
-    logAppender.start();
-    logger.addAppender(logAppender);
-
-    return logAppender;
-  }
-
-  private static void detachLogAppender(ListAppender<ILoggingEvent> logAppender) {
-    var logger = (Logger) LoggerFactory.getLogger(MigrationValidationService.class);
-
-    logger.detachAppender(logAppender);
   }
 }

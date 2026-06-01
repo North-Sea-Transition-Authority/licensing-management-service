@@ -209,7 +209,10 @@ class OperatorResultProcessingService {
     }
     newFeature.setCoordinateSystem(target.getCoordinateSystem());
     newFeature.setFeatureArea(grpcClientService.calculateArea(newFeature.getCoordinateSystem(), newLineEntities));
-    newFeature.setAttributes(new HashMap<>());
+    newFeature.setAttributes(new HashMap<>(target.getAttributes()));
+    newFeature.setParentFeature(target.getParentFeature());
+    newFeature.setStartDate(null);
+    newFeature.setEndDate(null);
     featureService.saveFeature(newFeature);
 
     var newPolygon = new Polygon();

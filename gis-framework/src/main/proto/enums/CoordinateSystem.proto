@@ -10,4 +10,5 @@ enum CoordinateSystem {
   ED50 = 1;
   BRITISH_NATIONAL_GRID = 2;
   WGS84 = 3;
+  ETRS89 = 4;
 }

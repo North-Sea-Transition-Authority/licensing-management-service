@@ -17,10 +17,11 @@ class CoordinateSystemUtilsTest {
     assertThat(CoordinateSystemUtils.getWkid(CoordinateSystem.ED50)).isEqualTo(4230);
     assertThat(CoordinateSystemUtils.getWkid(CoordinateSystem.BRITISH_NATIONAL_GRID)).isEqualTo(27700);
     assertThat(CoordinateSystemUtils.getWkid(CoordinateSystem.WGS84)).isEqualTo(4326);
+    assertThat(CoordinateSystemUtils.getWkid(CoordinateSystem.ETRS89)).isEqualTo(4258);
   }
 
   @ParameterizedTest
-  @EnumSource(value = CoordinateSystem.class, mode = EXCLUDE, names = {"ED50", "BRITISH_NATIONAL_GRID", "WGS84"})
+  @EnumSource(value = CoordinateSystem.class, mode = EXCLUDE, names = {"ED50", "BRITISH_NATIONAL_GRID", "WGS84", "ETRS89"})
   void testGetWkid_invalidValues_throwException(CoordinateSystem coordinateSystem) {
     assertThatThrownBy(() -> CoordinateSystemUtils.getWkid(coordinateSystem))
         .isInstanceOf(IllegalArgumentException.class);

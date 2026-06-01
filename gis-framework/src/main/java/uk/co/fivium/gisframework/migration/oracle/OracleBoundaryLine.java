@@ -7,20 +7,25 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Immutable;
 import org.springframework.context.annotation.Profile;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 
 @Profile("gis-migration")
 @Entity
-@Table(name = "GIS_ALPHA_BOUNDARY_LINES")
+@Immutable
+@Table(name = "MIGRATION_BOUNDARY_LINES")
 public class OracleBoundaryLine {
 
   @Id
   @Column(name = "LINE_SID_ID")
-  private Long lineSidId;
+  private Integer lineSidId;
 
   @Column(name = "BOUNDARY_SID_ID")
-  private Long boundarySidId;
+  private Integer oraclePolygonBoundaryId;
+
+  @Column(name = "SHAPE_SI_ID")
+  private Integer shapeSiId;
 
   @Column(name = "CONNECTION_ORDER")
   private Long connectionOrder;
@@ -33,27 +38,35 @@ public class OracleBoundaryLine {
   @Column(name = "LINE_GEOJSON")
   private String lineGeojson;
 
-  public Long getLineSidId() {
+  public Integer getLineSidId() {
     return lineSidId;
   }
 
-  public void setLineSidId(Long lineSidId) {
+  void setLineSidId(Integer lineSidId) {
     this.lineSidId = lineSidId;
   }
 
-  public Long getBoundarySidId() {
-    return boundarySidId;
+  public Integer getOraclePolygonBoundaryId() {
+    return oraclePolygonBoundaryId;
   }
 
-  public void setBoundarySidId(Long boundarySidId) {
-    this.boundarySidId = boundarySidId;
+  void setOraclePolygonBoundaryId(Integer oraclePolygonBoundaryId) {
+    this.oraclePolygonBoundaryId = oraclePolygonBoundaryId;
+  }
+
+  public Integer getShapeSiId() {
+    return shapeSiId;
+  }
+
+  void setShapeSiId(Integer shapeSiId) {
+    this.shapeSiId = shapeSiId;
   }
 
   public Long getConnectionOrder() {
     return connectionOrder;
   }
 
-  public void setConnectionOrder(Long connectionOrder) {
+  void setConnectionOrder(Long connectionOrder) {
     this.connectionOrder = connectionOrder;
   }
 
@@ -61,7 +74,7 @@ public class OracleBoundaryLine {
     return lineNavigationType;
   }
 
-  public void setLineNavigationType(LineNavigationType lineNavigationType) {
+  void setLineNavigationType(LineNavigationType lineNavigationType) {
     this.lineNavigationType = lineNavigationType;
   }
 
@@ -69,8 +82,7 @@ public class OracleBoundaryLine {
     return lineGeojson;
   }
 
-  public void setLineGeojson(String lineGeojson) {
+  void setLineGeojson(String lineGeojson) {
     this.lineGeojson = lineGeojson;
   }
-
 }

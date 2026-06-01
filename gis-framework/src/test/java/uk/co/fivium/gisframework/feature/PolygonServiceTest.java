@@ -47,6 +47,16 @@ class PolygonServiceTest {
     verify(polygonRepository).save(polygon);
   }
 
+
+  @Test
+  void savePolygons() {
+    var polygon = PolygonTestUtil.newBuilder().build();
+
+    polygonService.savePolygons(List.of(polygon));
+
+    verify(polygonRepository).saveAll(List.of(polygon));
+  }
+
   @Test
   void findAllByFeatureIn() {
     when(polygonRepository.findAllByFeatureIn(FEATURES)).thenReturn(POLYGONS);

@@ -13,6 +13,7 @@ public class CoordinateSystemUtils {
       case ED50 -> 4230;
       case BRITISH_NATIONAL_GRID -> 27700;
       case WGS84 -> 4326;
+      case ETRS89 -> 4258;
       case COORDINATE_SYSTEM_UNSPECIFIED, UNRECOGNIZED ->
           throw new IllegalArgumentException("Unknown coordinate system '" + coordinateSystem + "'");
     };

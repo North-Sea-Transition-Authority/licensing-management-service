@@ -9,6 +9,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -30,7 +31,7 @@ public class Feature {
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(columnDefinition = "jsonb")
-  private Map<String, String> attributes;
+  private Map<String, Object> attributes;
 
   @Enumerated(EnumType.STRING)
   private CoordinateSystem coordinateSystem;
@@ -43,7 +44,9 @@ public class Feature {
 
   private Integer legacyId;
 
-  private String testCase;
+  private Date startDate;
+
+  private Date endDate;
 
   Feature(UUID id) {
     this.id = id;
@@ -64,11 +67,11 @@ public class Feature {
     this.featureName = featureName;
   }
 
-  public Map<String, String> getAttributes() {
+  public Map<String, Object> getAttributes() {
     return attributes;
   }
 
-  public void setAttributes(Map<String, String> attributes) {
+  public void setAttributes(Map<String, Object> attributes) {
     this.attributes = attributes;
   }
 
@@ -104,11 +107,19 @@ public class Feature {
     this.legacyId = legacyId;
   }
 
-  public String getTestCase() {
-    return testCase;
+  public Date getStartDate() {
+    return startDate;
   }
 
-  public void setTestCase(String testCase) {
-    this.testCase = testCase;
+  public void setStartDate(Date startDate) {
+    this.startDate = startDate;
+  }
+
+  public Date getEndDate() {
+    return endDate;
+  }
+
+  public void setEndDate(Date endDate) {
+    this.endDate = endDate;
   }
 }

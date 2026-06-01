@@ -20,7 +20,6 @@ import uk.co.fivium.gisframework.migration.oracle.EntityBackedOracleShape;
 import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineWithRing;
 import uk.co.fivium.gisframework.migration.oracle.OraclePolygonBoundary;
 import uk.co.fivium.gisframework.migration.oracle.OracleService;
-import uk.co.fivium.gisframework.migration.oracle.OracleShapeCompositeKey;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 
 @Profile("gis-migration")
@@ -57,16 +56,9 @@ public class ReferenceBlockMigrationService {
     this.migrationService = migrationService;
   }
 
-  void migrateKnownIds() {
-    LOGGER.info("Migrating ref blocks");
-    migrate(
-        oracleService.getEntityBackedOracleShapesByIdsIn(List.of(
-            new OracleShapeCompositeKey(56222528, "GISA-144"),
-            new OracleShapeCompositeKey(56241285, "GISA-144"),
-            new OracleShapeCompositeKey(56226541, "GISA-146"),
-            new OracleShapeCompositeKey(56226560, "GISA-146")
-        ))
-    );
+  void migrate() {
+    // TODO EPGF-16: convert this into an actuator
+    migrate(oracleService.getEntityBackedOracleShapesForMigrationOrderNumber(50)); // reference blocks
     migrationValidationService.validateReferenceBlocks();
   }
 

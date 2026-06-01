@@ -8,6 +8,8 @@ export function getCoordinateSystemWkid(coordinateSystem: CoordinateSystem): num
       return 27700;
     case "WGS84":
       return 4326;
+    case "ETRS89":
+      return 4258;
     default:
       throw new Error(`Could not determine wkid for ${coordinateSystem}`);
   }

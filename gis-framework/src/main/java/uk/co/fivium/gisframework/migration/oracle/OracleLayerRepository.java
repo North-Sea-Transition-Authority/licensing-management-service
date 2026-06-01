@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Profile("gis-migration")
 @Repository
-interface OracleCutLineRepository extends ListCrudRepository<OracleCutLine, Long> {
+interface OracleLayerRepository extends ListCrudRepository<OracleLayer, Integer> {
 }

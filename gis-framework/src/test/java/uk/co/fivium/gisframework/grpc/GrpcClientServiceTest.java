@@ -223,7 +223,7 @@ class GrpcClientServiceTest {
             .withLineGeojson("some json 1")
             .withLineNavigationType(LineNavigationType.GEODESIC)
             .withConnectionOrder(1L)
-            .withLineSidId(10L)
+            .withLineSidId(10)
             .build(),
         100
     );
@@ -232,7 +232,7 @@ class GrpcClientServiceTest {
             .withLineGeojson("some json 2")
             .withLineNavigationType(LineNavigationType.LOXODROME)
             .withConnectionOrder(2L)
-            .withLineSidId(20L)
+            .withLineSidId(20)
             .build(),
         200
     );
@@ -289,7 +289,7 @@ class GrpcClientServiceTest {
             .withLineGeojson("some json 1")
             .withLineNavigationType(LineNavigationType.GEODESIC)
             .withConnectionOrder(1L)
-            .withLineSidId(10L)
+            .withLineSidId(10)
             .build(),
         100
     );
@@ -298,7 +298,7 @@ class GrpcClientServiceTest {
             .withLineGeojson("some json 2")
             .withLineNavigationType(LineNavigationType.LOXODROME)
             .withConnectionOrder(2L)
-            .withLineSidId(20L)
+            .withLineSidId(20)
             .build(),
         200
     );

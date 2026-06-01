@@ -2,13 +2,18 @@ package uk.co.fivium.gisframework.migration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.when;
+import static uk.co.fivium.gisframework.LoggerTestUtil.detachLogAppender;
+import static uk.co.fivium.gisframework.LoggerTestUtil.getLogAppender;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,11 +30,15 @@ import uk.co.fivium.gisframework.feature.LineTestUtil;
 import uk.co.fivium.gisframework.feature.Polygon;
 import uk.co.fivium.gisframework.feature.PolygonTestUtil;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
+import uk.co.fivium.gisframework.migration.oracle.AttributeLevel;
 import uk.co.fivium.gisframework.migration.oracle.EntityBackedOracleShape;
+import uk.co.fivium.gisframework.migration.oracle.Layer;
 import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineTestUtil;
+import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineWithRing;
+import uk.co.fivium.gisframework.migration.oracle.OracleLayerTestUtil;
 import uk.co.fivium.gisframework.migration.oracle.OraclePolygonBoundaryTestUtil;
+import uk.co.fivium.gisframework.migration.oracle.OracleService;
 import uk.co.fivium.gisframework.migration.oracle.OracleShapeTestUtil;
-import uk.co.fivium.gisframework.migration.oracle.ShapeType;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 
@@ -41,6 +50,9 @@ class MigrationServiceTest {
 
   @Mock
   private GrpcClientService grpcClientService;
+
+  @Mock
+  private OracleService oracleService;
 
   @InjectMocks
   private MigrationService migrationService;
@@ -73,21 +85,23 @@ class MigrationServiceTest {
     var polygon = new Polygon();
 
     var boundary1 = OraclePolygonBoundaryTestUtil.newBuilder()
-        .withBoundarySidId(10L)
+        .withBoundarySidId(10)
         .build();
 
     var boundary2 = OraclePolygonBoundaryTestUtil.newBuilder()
-        .withBoundarySidId(20L)
+        .withBoundarySidId(20)
         .build();
 
     var oracleLine1 = OracleBoundaryLineTestUtil.newBuilder()
-        .withLineSidId(100L)
+        .withLineSidId(100)
+        .withOraclePolygonBoundaryId(boundary1.getBoundarySidId())
         .withConnectionOrder(1L)
         .withLineNavigationType(LineNavigationType.GEODESIC)
         .build();
 
     var oracleLine2 = OracleBoundaryLineTestUtil.newBuilder()
-        .withLineSidId(200L)
+        .withLineSidId(200)
+        .withOraclePolygonBoundaryId(boundary2.getBoundarySidId())
         .withConnectionOrder(2L)
         .withLineNavigationType(LineNavigationType.LOXODROME)
         .build();
@@ -111,8 +125,21 @@ class MigrationServiceTest {
         500.0
     );
 
-    when(grpcClientService.migrateBlockOrSubarea(any(), eq(CoordinateSystem.ED50), any()))
+    var linesWithRing = List.of(
+        new OracleBoundaryLineWithRing(oracleLine1, 0),
+        new OracleBoundaryLineWithRing(oracleLine2, 1)
+    );
+
+    when(grpcClientService.migrateBlockOrSubarea(linesWithRing, CoordinateSystem.ED50, List.of()))
         .thenReturn(migrationResponse);
+    when(oracleService.getIdToAttributeMapForSiIdAndLevel(
+        List.of(boundary1.getBoundarySidId(), boundary2.getBoundarySidId()),
+        AttributeLevel.POLYGON_BOUNDARY
+    )).thenReturn(Map.of());
+    when(oracleService.getIdToAttributeMapForSiIdAndLevel(
+        List.of(oracleLine1.getLineSidId(), oracleLine2.getLineSidId()),
+        AttributeLevel.BOUNDARY_LINE
+    )).thenReturn(Map.of());
 
     var result = migrationService.migrateLines(feature, polygon, oracleBoundaries, entityBackedShape, List.of());
 
@@ -148,24 +175,25 @@ class MigrationServiceTest {
     var oracleShape = OracleShapeTestUtil.newBuilder()
         .withShapeSidId(1)
         .withShapeName("Test Shape")
-        .withTestCase("Test case 1")
         .withShapeSrs("ED 50")
-        .withShapeType(ShapeType.SUBAREA)
-        .withParentShapeId(null)
         .build();
 
     var entityBackedShape = new EntityBackedOracleShape(oracleShape, Map.of(), Map.of());
+    when(oracleService.getAttributeMapForSiIdAndLevel(oracleShape.getShapeSidId(), AttributeLevel.SHAPE))
+        .thenReturn(new HashMap<>());
+    when(oracleService.getLinkedParentShapeSiId(oracleShape.getShapeSiId())).thenReturn(Optional.empty());
 
     var result = migrationService.migrateFeature(entityBackedShape);
 
     var expected = FeatureTestUtil.newBuilder()
         .withLegacyId(1)
         .withFeatureName("Test Shape")
-        .withTestCase("Test case 1")
         .withCoordinateSystem(CoordinateSystem.ED50)
-        .withAttributes(Map.of("SHAPE_TYPE", "SUBAREA"))
+        .withAttributes(Map.of("LAYER", Layer.SUBAREAS))
         .withParentFeature(null)
         .withFeatureArea(BigDecimal.ZERO)
+        .withStartDate(oracleShape.getShapeStartDate())
+        .withEndDate(oracleShape.getShapeEndDate())
         .build();
 
     assertThat(result).usingRecursiveComparison().ignoringFields("id").isEqualTo(expected);
@@ -177,29 +205,31 @@ class MigrationServiceTest {
         .withFeatureName("Parent Feature")
         .build();
 
-    when(featureService.getByLegacyId(99)).thenReturn(parentFeature);
-
     var oracleShape = OracleShapeTestUtil.newBuilder()
         .withShapeSidId(2)
+        .withShapeSiId(2)
         .withShapeName("Child Shape")
-        .withTestCase("Test case 2")
         .withShapeSrs("OSGB NATIONAL GRID")
-        .withShapeType(ShapeType.BLOCK)
-        .withParentShapeId(99)
+        .withOracleLayer(OracleLayerTestUtil.newBuilder().withLayer(Layer.BLOCKS).build())
         .build();
 
     var entityBackedShape = new EntityBackedOracleShape(oracleShape, Map.of(), Map.of());
+    when(oracleService.getAttributeMapForSiIdAndLevel(oracleShape.getShapeSidId(), AttributeLevel.SHAPE))
+        .thenReturn(new HashMap<>());
+    when(oracleService.getLinkedParentShapeSiId(oracleShape.getShapeSiId())).thenReturn(Optional.of(99));
+    when(featureService.getByLegacyId(99)).thenReturn(parentFeature);
 
     var result = migrationService.migrateFeature(entityBackedShape);
 
     var expected = FeatureTestUtil.newBuilder()
         .withLegacyId(2)
         .withFeatureName("Child Shape")
-        .withTestCase("Test case 2")
         .withCoordinateSystem(CoordinateSystem.BRITISH_NATIONAL_GRID)
-        .withAttributes(Map.of("SHAPE_TYPE", "BLOCK"))
+        .withAttributes(Map.of("LAYER", Layer.BLOCKS))
         .withParentFeature(parentFeature)
         .withFeatureArea(BigDecimal.ZERO)
+        .withStartDate(oracleShape.getShapeStartDate())
+        .withEndDate(oracleShape.getShapeEndDate())
         .build();
 
     assertThat(result).usingRecursiveComparison().ignoringFields("id").isEqualTo(expected);
@@ -216,6 +246,32 @@ class MigrationServiceTest {
     assertThatThrownBy(() -> migrationService.migrateFeature(entityBackedShape))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Unknown oracle coordinate system: UNKNOWN SRS");
+  }
+
+  @Test
+  void combineAttributeMaps() {
+    var logAppender = getLogAppender(MigrationService.class);
+
+    Map<String, Object> result;
+    try {
+      result = migrationService.combineAttributeMaps(
+          Map.of("SHARED_KEY", "boundary value"),
+          Map.of("SHARED_KEY", "line value")
+      );
+    } finally {
+      detachLogAppender(MigrationService.class, logAppender);
+    }
+
+    assertThat(result).containsExactlyInAnyOrderEntriesOf(Map.of(
+        "POLYGON_BOUNDARY_SHARED_KEY", "boundary value",
+        "BOUNDARY_LINE_SHARED_KEY", "line value"
+    ));
+    assertThat(logAppender.list)
+        .extracting(ILoggingEvent::getLevel, ILoggingEvent::getFormattedMessage)
+        .containsExactly(tuple(
+            Level.WARN,
+            "Duplicate attribute keys found while combining POLYGON_BOUNDARY and BOUNDARY_LINE attribute maps: [SHARED_KEY]"
+        ));
   }
 
   private static Stream<Arguments> depthToExpectedValue() {

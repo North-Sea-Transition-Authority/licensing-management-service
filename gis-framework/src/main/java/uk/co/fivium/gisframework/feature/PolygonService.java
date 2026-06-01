@@ -28,6 +28,11 @@ public class PolygonService {
     polygonRepository.save(polygon);
   }
 
+  @Transactional
+  public void savePolygons(Collection<Polygon> polygons) {
+    polygonRepository.saveAll(polygons);
+  }
+
   public List<Polygon> findAllByFeatureIn(Collection<Feature> features) {
     return polygonRepository.findAllByFeatureIn(features);
   }

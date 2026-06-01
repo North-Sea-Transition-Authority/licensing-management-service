@@ -2,56 +2,75 @@ package uk.co.fivium.gisframework.migration.oracle;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
-import jakarta.persistence.IdClass;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.util.Date;
+import org.hibernate.annotations.Immutable;
 import org.springframework.context.annotation.Profile;
 
 @Profile("gis-migration")
 @Entity
-@IdClass(OracleShapeCompositeKey.class)
-@Table(name = "gis_alpha_shapes")
+@Immutable
+@Table(name = "MIGRATION_SHAPES")
 public class OracleShape {
 
   @Id
-  @Column(name = "shape_sid_id")
+  @Column(name = "SHAPE_SI_ID")
+  private Integer shapeSiId;
+
+  @Column(name = "SHAPE_SID_ID")
   private Integer shapeSidId;
 
-  @Column(name = "shape_name")
+  @ManyToOne
+  @JoinColumn(name = "LAYER_ID")
+  private OracleLayer oracleLayer;
+
+  @Column(name = "SHAPE_NAME")
   private String shapeName;
 
-  @Column(name = "shape_srs")
+  @Column(name = "SHAPE_SRS")
   private String shapeSrs;
 
-  @Column(name = "shape_area_m2")
+  @Column(name = "SHAPE_AREA_M2")
   private Double shareAreaM2;
 
-  @Column(name = "parent_shape_id")
-  private Integer parentShapeId;
+  @Column(name = "SHAPE_START_DATE")
+  private Date shapeStartDate;
 
-  @Id
-  @Column(name = "test_case")
-  private String testCase;
-
-  @Column(name = "shape_type")
-  @Enumerated(EnumType.STRING)
-  private ShapeType shapeType;
+  @Column(name = "SHAPE_END_DATE")
+  private Date shapeEndDate;
 
   public Integer getShapeSidId() {
     return shapeSidId;
   }
 
-  public void setShapeSidId(Integer shapeSidId) {
+  void setShapeSidId(Integer shapeSidId) {
     this.shapeSidId = shapeSidId;
+  }
+
+  public Integer getShapeSiId() {
+    return shapeSiId;
+  }
+
+  void setShapeSiId(Integer shapeSiId) {
+    this.shapeSiId = shapeSiId;
+  }
+
+  public OracleLayer getOracleLayer() {
+    return oracleLayer;
+  }
+
+  void setOracleLayer(OracleLayer oracleLayer) {
+    this.oracleLayer = oracleLayer;
   }
 
   public String getShapeName() {
     return shapeName;
   }
 
-  public void setShapeName(String shapeName) {
+  void setShapeName(String shapeName) {
     this.shapeName = shapeName;
   }
 
@@ -59,7 +78,7 @@ public class OracleShape {
     return shapeSrs;
   }
 
-  public void setShapeSrs(String shapeSrs) {
+  void setShapeSrs(String shapeSrs) {
     this.shapeSrs = shapeSrs;
   }
 
@@ -67,31 +86,23 @@ public class OracleShape {
     return shareAreaM2;
   }
 
-  public void setShareAreaM2(Double shareAreaM2) {
+  void setShareAreaM2(Double shareAreaM2) {
     this.shareAreaM2 = shareAreaM2;
   }
 
-  public Integer getParentShapeId() {
-    return parentShapeId;
+  public Date getShapeStartDate() {
+    return shapeStartDate;
   }
 
-  public void setParentShapeId(Integer parentShapeId) {
-    this.parentShapeId = parentShapeId;
+  void setShapeStartDate(Date shapeStartDate) {
+    this.shapeStartDate = shapeStartDate;
   }
 
-  public String getTestCase() {
-    return testCase;
+  public Date getShapeEndDate() {
+    return shapeEndDate;
   }
 
-  public void setTestCase(String testCase) {
-    this.testCase = testCase;
-  }
-
-  public ShapeType getShapeType() {
-    return shapeType;
-  }
-
-  public void setShapeType(ShapeType shapeType) {
-    this.shapeType = shapeType;
+  void setShapeEndDate(Date shapeEndDate) {
+    this.shapeEndDate = shapeEndDate;
   }
 }

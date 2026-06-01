@@ -7,6 +7,7 @@ describe("coordinate-system-utils", () => {
     [CoordinateSystem.ED50, 4230],
     [CoordinateSystem.BRITISH_NATIONAL_GRID, 27700],
     [CoordinateSystem.WGS84, 4326],
+    [CoordinateSystem.ETRS89, 4258],
   ])("getCoordinateSystemWkid(%s) === %s", (coordinateSystem, wkid) => {
     expect(getCoordinateSystemWkid(coordinateSystem)).toEqual(wkid);
   });

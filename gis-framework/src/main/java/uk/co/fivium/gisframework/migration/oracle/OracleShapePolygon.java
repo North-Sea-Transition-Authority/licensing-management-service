@@ -4,11 +4,13 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Immutable;
 import org.springframework.context.annotation.Profile;
 
 @Profile("gis-migration")
 @Entity
-@Table(name = "GIS_ALPHA_SHAPE_POLYGONS")
+@Immutable
+@Table(name = "MIGRATION_SHAPE_POLYGONS")
 public class OracleShapePolygon {
 
   @Id
@@ -17,6 +19,9 @@ public class OracleShapePolygon {
 
   @Column(name = "SHAPE_SID_ID")
   private Integer shapeSidId;
+
+  @Column(name = "SHAPE_SI_ID")
+  private Integer oracleShapeId;
 
   @Column(name = "FEATURE_OFFSET_LOW_M")
   private Long featureOffsetLowM;
@@ -28,7 +33,7 @@ public class OracleShapePolygon {
     return polygonSidId;
   }
 
-  public void setPolygonSidId(Integer polygonSidId) {
+  void setPolygonSidId(Integer polygonSidId) {
     this.polygonSidId = polygonSidId;
   }
 
@@ -36,15 +41,23 @@ public class OracleShapePolygon {
     return shapeSidId;
   }
 
-  public void setShapeSidId(Integer shapeSidId) {
+  void setShapeSidId(Integer shapeSidId) {
     this.shapeSidId = shapeSidId;
+  }
+
+  public Integer getOracleShapeId() {
+    return oracleShapeId;
+  }
+
+  void setOracleShapeId(Integer oracleShapeId) {
+    this.oracleShapeId = oracleShapeId;
   }
 
   public Long getFeatureOffsetLowM() {
     return featureOffsetLowM;
   }
 
-  public void setFeatureOffsetLowM(Long featureOffsetLowM) {
+  void setFeatureOffsetLowM(Long featureOffsetLowM) {
     this.featureOffsetLowM = featureOffsetLowM;
   }
 
@@ -52,7 +65,7 @@ public class OracleShapePolygon {
     return featureOffsetHighM;
   }
 
-  public void setFeatureOffsetHighM(Long featureOffsetHighM) {
+  void setFeatureOffsetHighM(Long featureOffsetHighM) {
     this.featureOffsetHighM = featureOffsetHighM;
   }
 }

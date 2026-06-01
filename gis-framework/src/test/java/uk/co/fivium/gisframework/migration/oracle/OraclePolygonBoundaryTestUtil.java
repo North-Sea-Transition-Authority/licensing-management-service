@@ -8,20 +8,18 @@ public class OraclePolygonBoundaryTestUtil {
 
   public static class Builder {
 
-    private Long boundarySidId = 1L;
-    private Long polygonSidId = 1L;
+    private Integer boundarySidId = 1;
+    private Integer oracleShapePolygonId = 1;
     private BoundaryType boundaryType = BoundaryType.E;
+    private Integer shapeSiId = 1;
 
-    private Builder() {
-    }
-
-    public Builder withBoundarySidId(Long boundarySidId) {
+    public Builder withBoundarySidId(Integer boundarySidId) {
       this.boundarySidId = boundarySidId;
       return this;
     }
 
-    public Builder withPolygonSidId(Long polygonSidId) {
-      this.polygonSidId = polygonSidId;
+    public Builder withOracleShapePolygonId(Integer oracleShapePolygonId) {
+      this.oracleShapePolygonId = oracleShapePolygonId;
       return this;
     }
 
@@ -30,11 +28,17 @@ public class OraclePolygonBoundaryTestUtil {
       return this;
     }
 
+    public Builder withShapeSiId(Integer shapeSiId) {
+      this.shapeSiId = shapeSiId;
+      return this;
+    }
+
     public OraclePolygonBoundary build() {
       var boundary = new OraclePolygonBoundary();
       boundary.setBoundarySidId(boundarySidId);
-      boundary.setPolygonSidId(polygonSidId);
+      boundary.setOracleShapePolygonId(oracleShapePolygonId);
       boundary.setBoundaryType(boundaryType);
+      boundary.setShapeSiId(shapeSiId);
       return boundary;
     }
   }

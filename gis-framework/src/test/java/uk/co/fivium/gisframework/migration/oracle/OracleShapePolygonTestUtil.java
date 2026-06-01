@@ -10,11 +10,9 @@ public class OracleShapePolygonTestUtil {
 
     private Integer polygonSidId = 1;
     private Integer shapeSidId = 1;
+    private Integer oracleShapeId = 1;
     private Long featureOffsetLowM = 0L;
     private Long featureOffsetHighM = 100L;
-
-    private Builder() {
-    }
 
     public Builder withPolygonSidId(Integer polygonSidId) {
       this.polygonSidId = polygonSidId;
@@ -23,6 +21,11 @@ public class OracleShapePolygonTestUtil {
 
     public Builder withShapeSidId(Integer shapeSidId) {
       this.shapeSidId = shapeSidId;
+      return this;
+    }
+
+    public Builder withOracleShapeId(Integer oracleShapeId) {
+      this.oracleShapeId = oracleShapeId;
       return this;
     }
 
@@ -40,6 +43,7 @@ public class OracleShapePolygonTestUtil {
       var polygon = new OracleShapePolygon();
       polygon.setPolygonSidId(polygonSidId);
       polygon.setShapeSidId(shapeSidId);
+      polygon.setOracleShapeId(oracleShapeId);
       polygon.setFeatureOffsetLowM(featureOffsetLowM);
       polygon.setFeatureOffsetHighM(featureOffsetHighM);
       return polygon;

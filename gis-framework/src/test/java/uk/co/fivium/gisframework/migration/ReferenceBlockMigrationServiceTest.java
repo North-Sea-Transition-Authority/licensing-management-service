@@ -43,24 +43,27 @@ class ReferenceBlockMigrationServiceTest {
         .build();
 
     var boundary1 = OraclePolygonBoundaryTestUtil.newBuilder()
-        .withBoundarySidId(10L)
+        .withBoundarySidId(10)
         .build();
     var boundary2 = OraclePolygonBoundaryTestUtil.newBuilder()
-        .withBoundarySidId(20L)
+        .withBoundarySidId(20)
         .build();
 
     var oracleLine1 = OracleBoundaryLineTestUtil.newBuilder()
-        .withLineSidId(100L)
+        .withLineSidId(100)
+        .withOraclePolygonBoundaryId(boundary1.getBoundarySidId())
         .withConnectionOrder(1L)
         .withLineNavigationType(LineNavigationType.GEODESIC)
         .build();
     var oracleLine2 = OracleBoundaryLineTestUtil.newBuilder()
-        .withLineSidId(200L)
+        .withLineSidId(200)
+        .withOraclePolygonBoundaryId(boundary2.getBoundarySidId())
         .withConnectionOrder(2L)
         .withLineNavigationType(LineNavigationType.LOXODROME)
         .build();
     var skippedOracleLine = OracleBoundaryLineTestUtil.newBuilder()
-        .withLineSidId(300L)
+        .withLineSidId(300)
+        .withOraclePolygonBoundaryId(boundary2.getBoundarySidId())
         .withConnectionOrder(3L)
         .withLineNavigationType(LineNavigationType.GEODESIC)
         .build();

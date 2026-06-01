@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Profile("gis-migration")
 @Repository
-interface OracleShapeRepository extends ListCrudRepository<OracleShape, OracleShapeCompositeKey> {
+interface OracleShapeRepository extends ListCrudRepository<OracleShape, Integer> {
 }

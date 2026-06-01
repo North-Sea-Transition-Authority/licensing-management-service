@@ -30,6 +30,10 @@ public class LineService {
     return lineRepository.findAllByPolygon_FeatureIn(features);
   }
 
+  public List<Line> findAllByFeatureLegacyId(Integer featureLegacyId) {
+    return lineRepository.findAllByPolygon_Feature_LegacyId(featureLegacyId);
+  }
+
   public List<Line> getLines(List<Polygon> polygons) {
     return lineRepository.findAllByPolygonIn(polygons);
   }

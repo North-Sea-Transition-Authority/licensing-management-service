@@ -10,22 +10,25 @@ public class OracleBoundaryLineTestUtil {
 
   public static class Builder {
 
-    private Long lineSidId = 1L;
-    private Long boundarySidId = 1L;
+    private Integer lineSidId = 1;
+    private Integer oraclePolygonBoundaryId = 1;
+    private Integer shapeSiId = 1;
     private Long connectionOrder = 1L;
     private LineNavigationType lineNavigationType = LineNavigationType.GEODESIC;
     private String lineGeojson = "{\"type\":\"LineString\"}";
 
-    private Builder() {
-    }
-
-    public Builder withLineSidId(Long lineSidId) {
+    public Builder withLineSidId(Integer lineSidId) {
       this.lineSidId = lineSidId;
       return this;
     }
 
-    public Builder withBoundarySidId(Long boundarySidId) {
-      this.boundarySidId = boundarySidId;
+    public Builder withOraclePolygonBoundaryId(Integer oraclePolygonBoundaryId) {
+      this.oraclePolygonBoundaryId = oraclePolygonBoundaryId;
+      return this;
+    }
+
+    public Builder withShapeSiId(Integer shapeSiId) {
+      this.shapeSiId = shapeSiId;
       return this;
     }
 
@@ -47,7 +50,8 @@ public class OracleBoundaryLineTestUtil {
     public OracleBoundaryLine build() {
       var line = new OracleBoundaryLine();
       line.setLineSidId(lineSidId);
-      line.setBoundarySidId(boundarySidId);
+      line.setOraclePolygonBoundaryId(oraclePolygonBoundaryId);
+      line.setShapeSiId(shapeSiId);
       line.setConnectionOrder(connectionOrder);
       line.setLineNavigationType(lineNavigationType);
       line.setLineGeojson(lineGeojson);

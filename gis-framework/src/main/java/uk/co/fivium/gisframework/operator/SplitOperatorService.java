@@ -15,9 +15,11 @@ public class SplitOperatorService {
   private final GrpcClientService grpcClientService;
   private final OperatorResultProcessingService operatorResultProcessingService;
 
-  public SplitOperatorService(PolygonService polygonService,
-                              GrpcClientService grpcClientService,
-                              OperatorResultProcessingService operatorResultProcessingService) {
+  public SplitOperatorService(
+      PolygonService polygonService,
+      GrpcClientService grpcClientService,
+      OperatorResultProcessingService operatorResultProcessingService
+  ) {
     this.polygonService = polygonService;
     this.grpcClientService = grpcClientService;
     this.operatorResultProcessingService = operatorResultProcessingService;

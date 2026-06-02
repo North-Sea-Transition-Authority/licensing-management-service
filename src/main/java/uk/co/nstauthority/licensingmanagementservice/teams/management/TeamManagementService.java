@@ -12,6 +12,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -31,10 +34,13 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRoleRepository;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
+import uk.co.nstauthority.licensingmanagementservice.teams.UserCancelledEvent;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamMemberView;
 
 @Service
 public class TeamManagementService {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(TeamManagementService.class);
 
   static final String PORTAL_USER_LOOKUP_PURPOSE = "Fetch user in team";
   static final String PORTAL_USERS_LOOKUP_PURPOSE = "Fetch users in team";
@@ -279,24 +285,32 @@ public class TeamManagementService {
   }
 
   @Transactional
-  public void removeUserFromTeam(Long wuaId, Team team, ServiceUserDetail instigatingUser) {
+  public void removeUserFromTeam(Long wuaId, Team team) {
     if (!willManageTeamRoleBePresentAfterMemberRemoval(team, wuaId)) {
       throw new TeamManagementException(
           "Can't remove last team manager user %s from team %s".formatted(wuaId, team.getId()));
     }
-    teamRoleRepository.deleteByWuaIdAndTeam(wuaId, team);
 
-    energyPortalServiceProviderUserRolesService.publishRemoveUserFromTeam(
-        wuaId,
-        team.getId().toString()
-    );
+    handleUserRemovalFromTeam(wuaId, team);
+  }
 
-    var isUserRemovedFromAllTeams = teamRoleRepository.findAllByWuaId(wuaId).isEmpty();
-    if (!isUserRemovedFromAllTeams) {
-      return;
+  @Transactional
+  @EventListener(UserCancelledEvent.class)
+  void onUserCancelledEvent(UserCancelledEvent event) {
+    var wuaId = event.wuaId();
+    for (var team : getTeamsUserIsMemberOf(wuaId)) {
+      handleUserRemovalFromTeam(wuaId, team);
+      LOGGER.info("Removed user {} from team {}", wuaId, team.getId());
     }
+  }
 
-    energyPortalServiceAccessService.removeUser(wuaId);
+  private void handleUserRemovalFromTeam(Long wuaId, Team team) {
+    teamRoleRepository.deleteByWuaIdAndTeam(wuaId, team);
+    energyPortalServiceProviderUserRolesService.publishRemoveUserFromTeam(wuaId, team.getId().toString());
+
+    if (teamRoleRepository.findAllByWuaId(wuaId).isEmpty()) {
+      energyPortalServiceAccessService.removeUser(wuaId);
+    }
   }
 
   public boolean willManageTeamRoleBePresentAfterMemberRoleUpdate(Team team, Long wuaId, List<Role> membersNewRoles) {

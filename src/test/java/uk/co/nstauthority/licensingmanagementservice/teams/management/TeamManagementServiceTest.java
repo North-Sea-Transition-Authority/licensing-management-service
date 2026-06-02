@@ -48,6 +48,7 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamRoleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
+import uk.co.nstauthority.licensingmanagementservice.teams.UserCancelledEvent;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamMemberView;
 import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUtil;
 
@@ -569,7 +570,7 @@ class TeamManagementServiceTest {
 
     when(teamRoleRepository.findAllByWuaId(2L)).thenReturn(List.of(new TeamRole()));
 
-    teamManagementService.removeUserFromTeam(USER_2_WUA_ID, regTeam, userDetail);
+    teamManagementService.removeUserFromTeam(USER_2_WUA_ID, regTeam);
     verify(teamRoleRepository).deleteByWuaIdAndTeam(USER_2_WUA_ID, regTeam);
 
     verify(energyPortalServiceProviderUserRolesService).publishRemoveUserFromTeam(
@@ -586,7 +587,7 @@ class TeamManagementServiceTest {
 
     when(teamRoleRepository.findAllByWuaId(2L)).thenReturn(Collections.emptyList());
 
-    teamManagementService.removeUserFromTeam(USER_2_WUA_ID, regTeam, userDetail);
+    teamManagementService.removeUserFromTeam(USER_2_WUA_ID, regTeam);
 
     verify(energyPortalServiceProviderUserRolesService).publishRemoveUserFromTeam(
         USER_2_WUA_ID,
@@ -601,12 +602,52 @@ class TeamManagementServiceTest {
         .thenReturn(List.of(regTeamUser1RoleManage));
 
     assertThatExceptionOfType(TeamManagementException.class)
-        .isThrownBy(() -> teamManagementService.removeUserFromTeam(USER_1_WUA_ID, regTeam, userDetail));
+        .isThrownBy(() -> teamManagementService.removeUserFromTeam(USER_1_WUA_ID, regTeam));
 
     verify(teamRoleRepository, never()).deleteByWuaIdAndTeam(anyLong(), any());
     verify(energyPortalServiceProviderUserRolesService, never()).publishRemoveUserFromTeam(
         anyLong(),
         any()
+    );
+  }
+
+  @Test
+  void onUserCancelledEvent() {
+    when(teamRoleRepository.findAllByWuaId(USER_2_WUA_ID))
+        .thenReturn(List.of(regTeamUser2RoleOrgAdmin), List.of());
+
+    teamManagementService.onUserCancelledEvent(new UserCancelledEvent(USER_2_WUA_ID));
+
+    verify(teamRoleRepository).deleteByWuaIdAndTeam(USER_2_WUA_ID, regTeam);
+    verify(energyPortalServiceProviderUserRolesService).publishRemoveUserFromTeam(
+        USER_2_WUA_ID,
+        regTeam.getId().toString()
+    );
+    verify(energyPortalServiceAccessService).removeUser(USER_2_WUA_ID);
+  }
+
+  @Test
+  void onUserCancelledEvent_userNotOnAnyTeams() {
+    when(teamRoleRepository.findAllByWuaId(USER_2_WUA_ID)).thenReturn(List.of());
+
+    teamManagementService.onUserCancelledEvent(new UserCancelledEvent(USER_2_WUA_ID));
+
+    verify(teamRoleRepository, never()).deleteByWuaIdAndTeam(anyLong(), any());
+    verify(energyPortalServiceProviderUserRolesService, never()).publishRemoveUserFromTeam(anyLong(), any());
+    verify(energyPortalServiceAccessService, never()).removeUser(anyLong());
+  }
+
+  @Test
+  void onUserCancelledEvent_lastTeamManager_guardBypassed() {
+    when(teamRoleRepository.findAllByWuaId(USER_1_WUA_ID))
+        .thenReturn(List.of(regTeamUser1RoleManage), List.of());
+
+    teamManagementService.onUserCancelledEvent(new UserCancelledEvent(USER_1_WUA_ID));
+
+    verify(teamRoleRepository).deleteByWuaIdAndTeam(USER_1_WUA_ID, regTeam);
+    verify(energyPortalServiceProviderUserRolesService).publishRemoveUserFromTeam(
+        USER_1_WUA_ID,
+        regTeam.getId().toString()
     );
   }
 

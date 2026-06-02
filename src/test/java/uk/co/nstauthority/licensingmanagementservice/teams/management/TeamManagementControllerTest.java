@@ -842,14 +842,14 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.of(regTeam));
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(TeamManagementController.class).handleRemoveTeamMember(regTeam.getId(), 999L, null)))
+            post(ReverseRouter.route(on(TeamManagementController.class).handleRemoveTeamMember(regTeam.getId(), 999L)))
                 .with(csrf())
                 .with(user(invokingUser)))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(
             ReverseRouter.route(on(TeamManagementController.class).renderTeamMemberList(regTeam.getId(), null))));
 
-    verify(teamManagementService).removeUserFromTeam(999L, regTeam, invokingUser);
+    verify(teamManagementService).removeUserFromTeam(999L, regTeam);
   }
 
   @Test
@@ -861,12 +861,12 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.empty());
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(TeamManagementController.class).handleRemoveTeamMember(regTeam.getId(), 999L, null)))
+            post(ReverseRouter.route(on(TeamManagementController.class).handleRemoveTeamMember(regTeam.getId(), 999L)))
                 .with(csrf())
                 .with(user(invokingUser)))
         .andExpect(status().isForbidden());
 
-    verify(teamManagementService, never()).removeUserFromTeam(any(), any(), any());
+    verify(teamManagementService, never()).removeUserFromTeam(any(), any());
   }
 
   @Test
@@ -1288,7 +1288,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
                post(ReverseRouter.route(on(TeamManagementController.class).handleRemoveScheduleExternalContributorsTeamMember(
-                   externalContributors.getId(), 999L, null)))
+                   externalContributors.getId(), 999L)))
                    .with(csrf())
                    .with(user(invokingUser)))
            .andExpect(status().is3xxRedirection())
@@ -1296,7 +1296,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
                ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(
                    externalContributors.getId(), null))));
 
-    verify(teamManagementService).removeUserFromTeam(999L, externalContributors, invokingUser);
+    verify(teamManagementService).removeUserFromTeam(999L, externalContributors);
   }
 
   @Test
@@ -1309,11 +1309,11 @@ class TeamManagementControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
                post(ReverseRouter.route(on(TeamManagementController.class).handleRemoveScheduleExternalContributorsTeamMember(
-                   externalContributors.getId(), 999L, null)))
+                   externalContributors.getId(), 999L)))
                    .with(csrf())
                    .with(user(invokingUser)))
            .andExpect(status().isForbidden());
 
-    verify(teamManagementService, never()).removeUserFromTeam(any(), any(), any());
+    verify(teamManagementService, never()).removeUserFromTeam(any(), any());
   }
 }

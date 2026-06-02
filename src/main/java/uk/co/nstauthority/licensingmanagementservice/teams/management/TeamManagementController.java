@@ -235,11 +235,9 @@ public class TeamManagementController {
 
   @PostMapping("/team/{teamId}/member/{wuaId}/remove")
   @InvokingUserCanManageTeam
-  public ModelAndView handleRemoveTeamMember(@PathVariable UUID teamId,
-                                             @PathVariable Long wuaId,
-                                             ServiceUserDetail userDetail) {
+  public ModelAndView handleRemoveTeamMember(@PathVariable UUID teamId, @PathVariable Long wuaId) {
     var team = teamManagementService.getTeam(teamId);
-    teamManagementService.removeUserFromTeam(wuaId, team, userDetail);
+    teamManagementService.removeUserFromTeam(wuaId, team);
     return ReverseRouter.redirect(on(TeamManagementController.class).renderTeamMemberList(team.getId(), null));
   }
 
@@ -320,11 +318,10 @@ public class TeamManagementController {
   @InvokingUserCanManageTeam
   public ModelAndView handleRemoveScheduleExternalContributorsTeamMember(
       @PathVariable UUID teamId,
-      @PathVariable Long wuaId,
-      ServiceUserDetail userDetail
+      @PathVariable Long wuaId
   ) {
     var team = teamManagementService.getTeam(teamId);
-    teamManagementService.removeUserFromTeam(wuaId, team, userDetail);
+    teamManagementService.removeUserFromTeam(wuaId, team);
     return ReverseRouter.redirect(on(TeamManagementController.class)
         .renderExternalContributorsTeamList(team.getId(), null));
   }

@@ -35,6 +35,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-aop'
 	implementation 'org.springframework.security:spring-security-saml2-service-provider'
 	implementation "org.springframework.session:spring-session-core"
 	implementation "org.springframework.session:spring-session-jdbc"
@@ -60,6 +61,9 @@ dependencies {
 	implementation 'net.javacrumbs.shedlock:shedlock-spring:5.6.0'
 	implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.6.0'
 	implementation 'net.logstash.logback:logstash-logback-encoder:7.2'
+	implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+	implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
+	implementation 'net.ttddyy.observation:datasource-micrometer-spring-boot:1.1.1'
 
 	runtimeOnly 'org.postgresql:postgresql'
 

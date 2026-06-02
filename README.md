@@ -35,6 +35,8 @@ The service also sends reminders to licensees to provide updates on future licen
 
 | Environment Variable                     | Description                                                                                                        |
 |------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
+| **Tracing**                              |                                                                                                                    |
+| `LMS_ENABLE_ZIPKIN`                      | Sampling probability for Zipkin tracing. Set to `1.0` to trace every request. Defaults to `0.0` (disabled).       |
 | **Energy Portal Message Queue**          |                                                                                                                    |
 | `LMS_EPMQ_SNS_SQS_AWS_ACCESS_KEY_ID`     | Refer to [EPMQ readme](https://github.com/Fivium/energy-portal-message-queue#2-add-required-environment-variables) |
 | `LMS_EPMQ_SNS_SQS_AWS_SECRET_ACCESS_KEY` | Refer to [EPMQ readme](https://github.com/Fivium/energy-portal-message-queue#2-add-required-environment-variables) |
@@ -147,6 +149,26 @@ Create a run configuration for the Spring app and start the application.
 The application will be running on `localhost:8080/lms/<endpoint>`
 
 ## Development setup
+
+### Tracing with Zipkin
+
+The `local-dev-compose.yml` includes a Zipkin container. Tracing is **disabled by default** — the app starts normally without Zipkin running.
+
+To enable tracing:
+
+1. Ensure the Zipkin container is running (start it alongside the other backing services via `local-dev-compose.yml`).
+2. Set `LMS_ENABLE_ZIPKIN=1.0` in your IntelliJ run configuration environment variables. This sets the sampling probability to 100%, meaning every request is traced.
+3. Start the app and make a request to any endpoint.
+4. Open the Zipkin UI at `http://localhost:9411`.
+
+**Using the Zipkin UI:**
+
+- Click **Run Query** on the home screen to list recent traces, or filter by service name (`licensing-management-service`).
+- Click a trace to open the waterfall view, which shows the full call chain for that request: controller → service → repository → SQL queries, each as a timed span.
+- Spans are named `ClassName.methodName`. Hovering a span shows its duration and any tags (e.g. the SQL query text for database calls).
+- Slow spans are highlighted in red, making hotspots easy to identify at a glance.
+
+To stop tracing, remove `LMS_ENABLE_ZIPKIN` from your run configuration (or set it to `0.0`) and restart the app.
 
 ### Checkstyle
 1. In Intellij install the Checkstyle-IDEA plugin (from third-party repositories)

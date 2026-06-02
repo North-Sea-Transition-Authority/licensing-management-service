@@ -30,5 +30,10 @@ services:
     command:
       -c "mkdir -p /data/lms-bucket && /usr/bin/minio server /data --console-address ':9001'"
 
+  zipkin:
+    image: openzipkin/zipkin:latest
+    ports:
+      - "9411:9411"
+
 volumes:
   lms-db-volume:

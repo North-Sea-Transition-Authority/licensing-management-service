@@ -33,10 +33,6 @@ public class PolygonService {
     polygonRepository.saveAll(polygons);
   }
 
-  public List<Polygon> findAllByFeatureIn(Collection<Feature> features) {
-    return polygonRepository.findAllByFeatureIn(features);
-  }
-
   public List<Polygon> findAllByFeature(Feature feature) {
     return polygonRepository.findAllByFeature(feature);
   }

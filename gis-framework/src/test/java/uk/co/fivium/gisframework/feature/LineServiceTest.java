@@ -93,6 +93,24 @@ class LineServiceTest {
   }
 
   @Test
+  void getPolygonToLinesIn() {
+    var polygon1 = PolygonTestUtil.newBuilder().withFeature(FEATURE_1).build();
+    var polygon2 = PolygonTestUtil.newBuilder().withFeature(FEATURE_2).build();
+    var line1 = LineTestUtil.newBuilder().withPolygon(polygon1).build();
+    var line2 = LineTestUtil.newBuilder().withPolygon(polygon2).build();
+    var line3 = LineTestUtil.newBuilder().withPolygon(polygon1).build();
+
+    when(lineRepository.findAllByPolygon_FeatureIn(FEATURES)).thenReturn(List.of(line1, line2, line3));
+
+    assertThat(lineService.getPolygonToLinesIn(FEATURES)).isEqualTo(
+        Map.of(
+            polygon1, List.of(line1, line3),
+            polygon2, List.of(line2)
+        )
+    );
+  }
+
+  @Test
   void findAllByPolygon() {
     var polygon = PolygonTestUtil.newBuilder().build();
 

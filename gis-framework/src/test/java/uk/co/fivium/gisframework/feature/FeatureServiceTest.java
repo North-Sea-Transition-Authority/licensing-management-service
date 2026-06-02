@@ -96,21 +96,35 @@ class FeatureServiceTest {
   }
 
   @Test
-  void findAllChildFeatures() {
-    var childFeature1 = FeatureTestUtil.newBuilder().withParentFeature(FEATURE).build();
-    var childFeature2 = FeatureTestUtil.newBuilder().withParentFeature(FEATURE).build();
+  void getEntityBackedFeatures() {
+    var feature1 = FeatureTestUtil.newBuilder().build();
+    var feature2 = FeatureTestUtil.newBuilder().build();
+    var features = List.of(feature1, feature2);
 
-    when(featureRepository.findAllByParentFeatureIsNotNull())
-        .thenReturn(List.of(childFeature1, childFeature2));
+    var polygon1 = PolygonTestUtil.newBuilder().withFeature(feature1).build();
+    var polygon2 = PolygonTestUtil.newBuilder().withFeature(feature1).build();
+    var polygon3 = PolygonTestUtil.newBuilder().withFeature(feature2).build();
 
-    var result = featureService.findAllChildFeatures();
+    var line1 = LineTestUtil.newBuilder().withPolygon(polygon1).build();
+    var line2 = LineTestUtil.newBuilder().withPolygon(polygon2).build();
+    var line3 = LineTestUtil.newBuilder().withPolygon(polygon3).build();
 
-    var expected = List.of(childFeature1, childFeature2);
-    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+    when(lineService.getPolygonToLinesIn(features)).thenReturn(Map.of(
+        polygon1, List.of(line1),
+        polygon2, List.of(line2),
+        polygon3, List.of(line3)
+    ));
+
+    var result = featureService.getEntityBackedFeatures(features);
+
+    assertThat(result).containsExactlyInAnyOrder(
+        new EntityBackedFeature(feature1, Map.of(polygon1, List.of(line1), polygon2, List.of(line2))),
+        new EntityBackedFeature(feature2, Map.of(polygon3, List.of(line3)))
+    );
   }
 
   @Test
-  void getByLegacyIdAndTestCase() {
+  void getByLegacyId() {
     when(featureRepository.findByLegacyId(FEATURE.getLegacyId()))
         .thenReturn(Optional.of(FEATURE));
 
@@ -120,7 +134,7 @@ class FeatureServiceTest {
   }
 
   @Test
-  void getByLegacyIdAndTestCase_whenNothing_thenThrow() {
+  void getByLegacyId_whenNothing_thenThrow() {
     var legacyId = FEATURE.getLegacyId();
     when(featureRepository.findByLegacyId(legacyId))
         .thenReturn(Optional.empty());

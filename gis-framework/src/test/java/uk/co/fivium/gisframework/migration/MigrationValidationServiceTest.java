@@ -2,8 +2,6 @@ package uk.co.fivium.gisframework.migration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.co.fivium.gisframework.LoggerTestUtil.detachLogAppender;
 import static uk.co.fivium.gisframework.LoggerTestUtil.getLogAppender;
@@ -12,6 +10,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -21,12 +20,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.feature.EntityBackedFeature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
-import uk.co.fivium.gisframework.feature.LineService;
 import uk.co.fivium.gisframework.feature.LineTestUtil;
-import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.feature.PolygonTestUtil;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
+import uk.co.fivium.gisframework.migration.oracle.Layer;
 import uk.co.fivium.grpc.gis.ValidationResponse;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,12 +38,6 @@ class MigrationValidationServiceTest {
   @Mock
   private GrpcClientService grpcClientService;
 
-  @Mock
-  private LineService lineService;
-
-  @Mock
-  private PolygonService polygonService;
-
   private MigrationValidationService migrationValidationService;
 
   @BeforeEach
@@ -53,56 +45,100 @@ class MigrationValidationServiceTest {
     migrationValidationService = new MigrationValidationService(
         featureService,
         grpcClientService,
-        lineService,
-        polygonService,
         new BrokenBlockConfigurationProperties(Map.of("16/30", List.of(BROKEN_LICENSE_BLOCK_NAME)))
     );
   }
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
-  void blockAndSubareaValidation(boolean isValid) {
-    var parentFeature = FeatureTestUtil.newBuilder().withFeatureName("Parent").build();
-    var childFeature1 = FeatureTestUtil.newBuilder().withFeatureName("Child 1").withParentFeature(parentFeature).build();
-    var childFeature2 = FeatureTestUtil.newBuilder().withFeatureName("Child 2").withParentFeature(parentFeature).build();
+  void childAndParentValidation(boolean isValid) {
+    var logAppender = getLogAppender(MigrationValidationService.class);
 
-    var childEntityBacked1 = new EntityBackedFeature(childFeature1, Map.of());
-    var childEntityBacked2 = new EntityBackedFeature(childFeature2, Map.of());
+    var parentFeature = FeatureTestUtil.newBuilder().withFeatureName("Parent").build();
+    var blockChildFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("Child 1")
+        .withParentFeature(parentFeature)
+        .withAttributes(Map.of("LAYER", Layer.BLOCKS.name()))
+        .build();
+    var subareaChildFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("Child 2")
+        .withParentFeature(parentFeature)
+        .withAttributes(Map.of("LAYER", Layer.SUBAREAS.name()))
+        .build();
+    var retentionAreaChildFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("Child 3")
+        .withParentFeature(parentFeature)
+        .withAttributes(Map.of("LAYER", Layer.RETENTION_AREAS.name()))
+        .build();
+
+    var blockChildEntityBacked = new EntityBackedFeature(blockChildFeature, Map.of());
+    var subareaChildEntityBacked = new EntityBackedFeature(subareaChildFeature, Map.of());
     var parentEntityBacked = new EntityBackedFeature(parentFeature, Map.of());
 
-    when(featureService.findAllChildFeatures()).thenReturn(List.of(childFeature1, childFeature2));
-    when(featureService.getEntityBackedFeature(childFeature1)).thenReturn(childEntityBacked1);
-    when(featureService.getEntityBackedFeature(childFeature2)).thenReturn(childEntityBacked2);
-    when(featureService.getEntityBackedFeature(parentFeature)).thenReturn(parentEntityBacked);
+    when(featureService.findAllChildFeatures())
+        .thenReturn(List.of(blockChildFeature, subareaChildFeature, retentionAreaChildFeature));
+    when(featureService.getEntityBackedFeatures(Set.of(parentFeature))).thenReturn(List.of(parentEntityBacked));
+    when(featureService.getEntityBackedFeatures(List.of(blockChildFeature, subareaChildFeature)))
+        .thenReturn(List.of(blockChildEntityBacked, subareaChildEntityBacked));
 
     var response = ValidationResponse.newBuilder()
         .setIsValid(isValid)
         .setMessage("some message")
         .build();
-    when(grpcClientService.validateBlockAndSubarea(childEntityBacked1, parentEntityBacked)).thenReturn(response);
-    when(grpcClientService.validateBlockAndSubarea(childEntityBacked2, parentEntityBacked)).thenReturn(response);
+    when(grpcClientService.validateBlockAndSubarea(blockChildEntityBacked, parentEntityBacked)).thenReturn(response);
+    when(grpcClientService.validateBlockAndSubarea(subareaChildEntityBacked, parentEntityBacked)).thenReturn(response);
 
-    migrationValidationService.blockAndSubareaValidation();
+    try {
+      migrationValidationService.childAndParentValidation();
+    } finally {
+      detachLogAppender(MigrationValidationService.class, logAppender);
+    }
 
-    verify(featureService).findAllChildFeatures();
-    verify(featureService).getEntityBackedFeature(childFeature1);
-    verify(featureService).getEntityBackedFeature(childFeature2);
-    verify(featureService, times(2)).getEntityBackedFeature(parentFeature);
-    verify(grpcClientService).validateBlockAndSubarea(childEntityBacked1, parentEntityBacked);
-    verify(grpcClientService).validateBlockAndSubarea(childEntityBacked2, parentEntityBacked);
+    assertThat(logAppender.list)
+        .extracting(ILoggingEvent::getLevel, ILoggingEvent::getFormattedMessage)
+        .containsExactly(
+            tuple(
+                isValid ? Level.INFO : Level.ERROR,
+                isValid
+                    ? "Child Child 1 passed validation checks"
+                    : "Validation error: some message Child Feature: %s Parent Feature: %s"
+                      .formatted(blockChildFeature.getId(), parentFeature.getId())
+            ),
+            tuple(
+                isValid ? Level.INFO : Level.ERROR,
+                isValid
+                    ? "Child Child 2 passed validation checks"
+                    : "Validation error: some message Child Feature: %s Parent Feature: %s"
+                      .formatted(subareaChildFeature.getId(), parentFeature.getId())
+            )
+        );
   }
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void verifySubareasTopologicallyEqualToBlock(boolean isValid) {
+    var logAppender = getLogAppender(MigrationValidationService.class);
+
     var parentFeature = FeatureTestUtil.newBuilder()
         .withFeatureName("Parent Block")
         .withLegacyId(5610939)
-        .withAttributes(Map.of("SHAPE_TYPE", "BLOCK"))
+        .withAttributes(Map.of("LAYER", Layer.BLOCKS.name()))
         .build();
 
-    var childFeature1 = FeatureTestUtil.newBuilder().withFeatureName("Child 1").withParentFeature(parentFeature).build();
-    var childFeature2 = FeatureTestUtil.newBuilder().withFeatureName("Child 2").withParentFeature(parentFeature).build();
+    var childFeature1 = FeatureTestUtil.newBuilder()
+        .withFeatureName("Child 1")
+        .withParentFeature(parentFeature)
+        .withAttributes(Map.of("LAYER", Layer.SUBAREAS.name()))
+        .build();
+    var childFeature2 = FeatureTestUtil.newBuilder()
+        .withFeatureName("Child 2")
+        .withParentFeature(parentFeature)
+        .withAttributes(Map.of("LAYER", Layer.SUBAREAS.name()))
+        .build();
+    var orphanSubareaFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("Orphan subarea")
+        .withAttributes(Map.of("LAYER", Layer.SUBAREAS.name()))
+        .build();
 
     var polygon1 = PolygonTestUtil.newBuilder().withFeature(childFeature1).build();
     var polygon2 = PolygonTestUtil.newBuilder().withFeature(childFeature2).build();
@@ -111,13 +147,15 @@ class MigrationValidationServiceTest {
     var line2 = LineTestUtil.newBuilder().withPolygon(polygon2).withEsriJson("line json 2").build();
 
     var parentEntityBacked = new EntityBackedFeature(parentFeature, Map.of());
+    var childEntityBacked1 = new EntityBackedFeature(childFeature1, Map.of(polygon1, List.of(line1)));
+    var childEntityBacked2 = new EntityBackedFeature(childFeature2, Map.of(polygon2, List.of(line2)));
 
-    when(featureService.findAllByAttribute("SHAPE_TYPE", "BLOCK")).thenReturn(List.of(parentFeature));
-    when(featureService.getEntityBackedFeature(parentFeature)).thenReturn(parentEntityBacked);
-    when(featureService.findAllByParentFeature(parentFeature)).thenReturn(List.of(childFeature1, childFeature2));
-    when(polygonService.findAllByFeatureIn(List.of(childFeature1, childFeature2))).thenReturn(List.of(polygon1, polygon2));
-    when(lineService.findAllByPolygon(polygon1)).thenReturn(List.of(line1));
-    when(lineService.findAllByPolygon(polygon2)).thenReturn(List.of(line2));
+    when(featureService.findAllByAttribute("LAYER", Layer.BLOCKS.name())).thenReturn(List.of(parentFeature));
+    when(featureService.getEntityBackedFeatures(List.of(parentFeature))).thenReturn(List.of(parentEntityBacked));
+    when(featureService.findAllByAttribute("LAYER", Layer.SUBAREAS.name()))
+        .thenReturn(List.of(childFeature1, childFeature2, orphanSubareaFeature));
+    when(featureService.getEntityBackedFeatures(List.of(childFeature1, childFeature2)))
+        .thenReturn(List.of(childEntityBacked1, childEntityBacked2));
 
     var response = ValidationResponse.newBuilder()
         .setIsValid(isValid)
@@ -128,18 +166,20 @@ class MigrationValidationServiceTest {
         parentEntityBacked
     )).thenReturn(response);
 
-    migrationValidationService.verifySubareasTopologicallyEqualToBlock();
+    try {
+      migrationValidationService.verifySubareasTopologicallyEqualToBlock();
+    } finally {
+      detachLogAppender(MigrationValidationService.class, logAppender);
+    }
 
-    verify(featureService).findAllByAttribute("SHAPE_TYPE", "BLOCK");
-    verify(featureService).getEntityBackedFeature(parentFeature);
-    verify(featureService).findAllByParentFeature(parentFeature);
-    verify(polygonService).findAllByFeatureIn(List.of(childFeature1, childFeature2));
-    verify(lineService).findAllByPolygon(polygon1);
-    verify(lineService).findAllByPolygon(polygon2);
-    verify(grpcClientService).validateTopologicallyEqual(
-        List.of(List.of("line json 1"), List.of("line json 2")),
-        parentEntityBacked
-    );
+    assertThat(logAppender.list)
+        .extracting(ILoggingEvent::getLevel, ILoggingEvent::getFormattedMessage)
+        .containsExactly(tuple(
+            isValid ? Level.INFO : Level.ERROR,
+            isValid
+                ? "Parent Parent Block is topologically equal to all of its children"
+                : "Validation error: some message Feature: %s".formatted(parentFeature.getId())
+        ));
   }
 
   @ParameterizedTest
@@ -149,25 +189,31 @@ class MigrationValidationServiceTest {
 
     var refBlockFeature = FeatureTestUtil.newBuilder()
         .withFeatureName("16/30")
-        .withAttributes(Map.of("SHAPE_TYPE", "REF_BLOCK"))
+        .withAttributes(Map.of("LAYER", Layer.OFFSHORE_REF_BLOCKS.name()))
         .build();
     var licenseBlockFeature = FeatureTestUtil.newBuilder()
         .withFeatureName("16/30a")
-        .withAttributes(Map.of("SHAPE_TYPE", "BLOCK"))
+        .withAttributes(Map.of("LAYER", Layer.BLOCKS.name()))
         .build();
     var brokenLicenseBlockFeature = FeatureTestUtil.newBuilder()
         .withFeatureName(BROKEN_LICENSE_BLOCK_NAME)
-        .withAttributes(Map.of("SHAPE_TYPE", "BLOCK"))
+        .withAttributes(Map.of("LAYER", Layer.BLOCKS.name()))
         .build();
 
     var refBlockEntityBacked = new EntityBackedFeature(refBlockFeature, Map.of());
     var licenseBlockEntityBacked = new EntityBackedFeature(licenseBlockFeature, Map.of());
 
-    when(featureService.findAllByAttribute("SHAPE_TYPE", "REF_BLOCK")).thenReturn(List.of(refBlockFeature));
-    when(featureService.findAllByAttribute("SHAPE_TYPE", "BLOCK"))
+    var refBlockLayers = List.of(
+        Layer.OFFSHORE_REF_BLOCKS.name(),
+        Layer.OFFSHORE_CROP_REF_BLOCKS.name(),
+        Layer.ONSHORE_CROP_REF_BLOCKS.name()
+    );
+    when(featureService.findAllByAttribute("LAYER", Layer.BLOCKS.name()))
         .thenReturn(List.of(licenseBlockFeature, brokenLicenseBlockFeature));
-    when(featureService.getEntityBackedFeature(refBlockFeature)).thenReturn(refBlockEntityBacked);
-    when(featureService.getEntityBackedFeature(licenseBlockFeature)).thenReturn(licenseBlockEntityBacked);
+    when(featureService.findAllByAttributeValueIn("LAYER", refBlockLayers)).thenReturn(List.of(refBlockFeature));
+    when(featureService.getEntityBackedFeatures(List.of(refBlockFeature))).thenReturn(List.of(refBlockEntityBacked));
+    when(featureService.getEntityBackedFeatures(List.of(licenseBlockFeature)))
+        .thenReturn(List.of(licenseBlockEntityBacked));
 
     var response = ValidationResponse.newBuilder()
         .setIsValid(isValid)
@@ -181,12 +227,6 @@ class MigrationValidationServiceTest {
     } finally {
       detachLogAppender(MigrationValidationService.class, logAppender);
     }
-
-    verify(featureService).findAllByAttribute("SHAPE_TYPE", "REF_BLOCK");
-    verify(featureService).findAllByAttribute("SHAPE_TYPE", "BLOCK");
-    verify(featureService).getEntityBackedFeature(refBlockFeature);
-    verify(featureService).getEntityBackedFeature(licenseBlockFeature);
-    verify(grpcClientService).validateReferenceBlock(refBlockEntityBacked, List.of(licenseBlockEntityBacked));
 
     assertThat(logAppender.list)
         .extracting(ILoggingEvent::getLevel, ILoggingEvent::getFormattedMessage)

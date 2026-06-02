@@ -58,24 +58,6 @@ class PolygonServiceTest {
   }
 
   @Test
-  void findAllByFeatureIn() {
-    when(polygonRepository.findAllByFeatureIn(FEATURES)).thenReturn(POLYGONS);
-
-    var result = polygonService.findAllByFeatureIn(FEATURES);
-
-    assertThat(result).usingRecursiveComparison().isEqualTo(POLYGONS);
-  }
-
-  @Test
-  void findAllByFeatureIn_whenNoResult_thenReturnsEmptyList() {
-    when(polygonRepository.findAllByFeatureIn(FEATURES)).thenReturn(List.of());
-
-    var result = polygonService.findAllByFeatureIn(FEATURES);
-
-    assertThat(result).isEmpty();
-  }
-
-  @Test
   void findAllByFeature() {
     when(polygonRepository.findAllByFeature(FEATURE_1)).thenReturn(List.of(POLYGON_1, POLYGON_2));
 

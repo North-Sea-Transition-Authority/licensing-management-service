@@ -69,7 +69,7 @@ public class MigrationService {
     migrateBlocksAndSubarea(oracleService.getEntityBackedOracleShapesForMigrationOrderNumber(20)); // block changes
     migrateBlocksAndSubarea(oracleService.getEntityBackedOracleShapesForMigrationOrderNumber(30)); // sub areas
 
-    migrationValidationService.blockAndSubareaValidation();
+    migrationValidationService.childAndParentValidation();
     migrationValidationService.verifySubareasTopologicallyEqualToBlock();
   }
 

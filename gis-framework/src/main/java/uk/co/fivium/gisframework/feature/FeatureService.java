@@ -1,8 +1,11 @@
 package uk.co.fivium.gisframework.feature;
 
 import jakarta.persistence.EntityNotFoundException;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
@@ -36,8 +39,27 @@ public class FeatureService {
     return featureRepository.findAllByAttribute(key, value);
   }
 
+  public List<Feature> findAllByAttributeValueIn(String key, Collection<String> values) {
+    return featureRepository.findAllByAttributeValueIn(key, values);
+  }
+
   public EntityBackedFeature getEntityBackedFeature(Feature feature) {
     return new EntityBackedFeature(feature, lineService.getPolygonToLines(feature));
+  }
+
+  public List<EntityBackedFeature> getEntityBackedFeatures(Collection<Feature> features) {
+    Map<Feature, Map<Polygon, List<Line>>> featureToPolygonToLines = lineService.getPolygonToLinesIn(features)
+        .entrySet()
+        .stream()
+        .collect(Collectors.groupingBy(
+            entry -> entry.getKey().getFeature(),
+            Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
+        );
+
+    return featureToPolygonToLines.entrySet()
+        .stream()
+        .map(entry -> new EntityBackedFeature(entry.getKey(), entry.getValue()))
+        .toList();
   }
 
   public List<Feature> findAllChildFeatures() {
@@ -61,6 +83,7 @@ public class FeatureService {
    * License blocks are linked to references blocks based on their name. A reference block would be called something like "11/24",
    * and a license block would be called "11/24a". There are additionally some license blocks which span multiple references
    * blocks. These special license blocks are defined in the configuration properties.
+   *
    * @param refBlockName The name of the reference block.
    * @return A list of features which are all the license block in the given reference block.
    */

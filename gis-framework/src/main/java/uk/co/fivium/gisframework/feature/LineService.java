@@ -44,6 +44,12 @@ public class LineService {
         .collect(Collectors.groupingBy(Line::getPolygon));
   }
 
+  public Map<Polygon, List<Line>> getPolygonToLinesIn(Collection<Feature> features) {
+    return lineRepository.findAllByPolygon_FeatureIn(features)
+        .stream()
+        .collect(Collectors.groupingBy(Line::getPolygon));
+  }
+
   public List<Line> findAllByPolygon(Polygon polygon) {
     return lineRepository.findAllByPolygon(polygon);
   }

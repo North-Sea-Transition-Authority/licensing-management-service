@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
@@ -22,9 +23,12 @@ class FeatureRepositoryIntegrationTest {
   @Autowired
   private FeatureRepository featureRepository;
 
-  @Test
-  void findAllByAttribute() {
-    var feature1 = FeatureTestUtil.newBuilder()
+  private Feature feature1;
+  private Feature feature2;
+
+  @BeforeEach
+  void setup() {
+    feature1 = FeatureTestUtil.newBuilder()
         .withId(null)
         .withFeatureName("feature1")
         .withLegacyId(1)
@@ -32,7 +36,7 @@ class FeatureRepositoryIntegrationTest {
             "some_attribute_1", "some_value_1"
         ))
         .build();
-    var feature2 = FeatureTestUtil.newBuilder()
+    feature2 = FeatureTestUtil.newBuilder()
         .withId(null)
         .withFeatureName("feature2")
         .withLegacyId(2)
@@ -52,13 +56,30 @@ class FeatureRepositoryIntegrationTest {
     featureRepository.saveAll(
         List.of(feature1, feature2, feature3)
     );
+  }
 
+  @Test
+  void findAllByAttribute() {
     var result = featureRepository.findAllByAttribute("some_attribute_1", "some_value_1");
     var expectedResult = featureRepository.findById(feature1.getId()).orElseThrow();
 
     assertThat(result)
         .usingRecursiveComparison()
         .isEqualTo(List.of(expectedResult));
+  }
+
+  @Test
+  void findAllByAttributeValueIn() {
+    var result = featureRepository.findAllByAttributeValueIn("some_attribute_1", List.of("some_value_1", "some_value_2"));
+    var expectedResult = List.of(
+        featureRepository.findById(feature1.getId()).orElseThrow(),
+        featureRepository.findById(feature2.getId()).orElseThrow()
+    );
+
+    assertThat(result)
+        .usingRecursiveComparison()
+        .ignoringCollectionOrder()
+        .isEqualTo(expectedResult);
   }
 
   @SpringBootConfiguration

@@ -1,91 +1,116 @@
 package uk.co.fivium.gisframework.migration;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+import uk.co.fivium.gisframework.feature.EntityBackedFeature;
+import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.Line;
-import uk.co.fivium.gisframework.feature.LineService;
-import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
+import uk.co.fivium.gisframework.migration.oracle.Layer;
 
 @Profile("gis-migration")
 @Service
 public class MigrationValidationService {
   private static final Logger LOGGER = LoggerFactory.getLogger(MigrationValidationService.class);
-  private static final String SHAPE_TYPE_ATTRIBUTE = "SHAPE_TYPE";
+  private static final String LAYER_ATTRIBUTE = "LAYER";
 
   private final FeatureService featureService;
   private final GrpcClientService grpcClientService;
-  private final LineService lineService;
-  private final PolygonService polygonService;
   private final BrokenBlockConfigurationProperties brokenBlockConfigurationProperties;
 
   public MigrationValidationService(
       FeatureService featureService,
       GrpcClientService grpcClientService,
-      LineService lineService, PolygonService polygonService,
       BrokenBlockConfigurationProperties brokenBlockConfigurationProperties
   ) {
     this.featureService = featureService;
     this.grpcClientService = grpcClientService;
-    this.lineService = lineService;
-    this.polygonService = polygonService;
     this.brokenBlockConfigurationProperties = brokenBlockConfigurationProperties;
   }
 
   /**
-   * This method runs all the post-migration validation for blocks and subareas.
+   * This validates that the child polygon is contained by the parent polygon,
+   * and that the geodesic lines of the child overlap with the geodesic lines of the parent, if any.
+   * The parent/child combo could be a licence block and a subarea or an older licence block, and its newer version.
    */
-  public void blockAndSubareaValidation() {
-    for (var childFeature : featureService.findAllChildFeatures()) {
-      var parentFeature = childFeature.getParentFeature();
-      var response = grpcClientService.validateBlockAndSubarea(
-          featureService.getEntityBackedFeature(childFeature),
-          featureService.getEntityBackedFeature(parentFeature)
-      );
-      var isValid = response.getIsValid();
-      if (!isValid) {
-        LOGGER.error("Validation error: {} Child Feature: {} Parent Feature: {}",
-            response.getMessage(),
-            childFeature.getId(),
-            parentFeature.getId()
-        );
-      } else {
-        LOGGER.info("Child {} passed validation checks", childFeature.getFeatureName());
+  public void childAndParentValidation() {
+    Map<Feature, List<Feature>> parentToChildFeatures = featureService.findAllChildFeatures()
+        .stream()
+        .filter(child -> {
+          var layer = child.getAttributes().get(LAYER_ATTRIBUTE);
+          return Layer.BLOCKS.name().equals(layer) || Layer.SUBAREAS.name().equals(layer);
+        })
+        .collect(Collectors.groupingBy(Feature::getParentFeature));
+
+    Map<UUID, EntityBackedFeature> entityBackedParentsById = featureService.getEntityBackedFeatures(
+            parentToChildFeatures.keySet()
+        )
+        .stream()
+        .collect(Collectors.toMap(parent -> parent.feature().getId(), Function.identity()));
+
+    for (var entry : parentToChildFeatures.entrySet()) {
+      var parentFeature = entityBackedParentsById.get(entry.getKey().getId());
+
+      for (var childFeature : featureService.getEntityBackedFeatures(entry.getValue())) {
+        var response = grpcClientService.validateBlockAndSubarea(childFeature, parentFeature);
+        if (!response.getIsValid()) {
+          LOGGER.error("Validation error: {} Child Feature: {} Parent Feature: {}",
+              response.getMessage(),
+              childFeature.feature().getId(),
+              entry.getKey().getId()
+          );
+        } else {
+          LOGGER.info("Child {} passed validation checks", childFeature.feature().getFeatureName());
+        }
       }
     }
   }
 
+  /**
+   * Validates that subareas are topologically equal to their associated license block.
+   */
   public void verifySubareasTopologicallyEqualToBlock() {
+    Map<UUID, List<Feature>> subareasByParentId = featureService.findAllByAttribute(LAYER_ATTRIBUTE, Layer.SUBAREAS.name())
+        .stream()
+        .filter(subarea -> subarea.getParentFeature() != null)
+        .collect(Collectors.groupingBy(subarea -> subarea.getParentFeature().getId()));
 
-    for (var parent : featureService.findAllByAttribute(SHAPE_TYPE_ATTRIBUTE, "BLOCK")) {
-      if (parent.getLegacyId() != 5610939) {
-        continue; //TODO EPGF-18: remove this for the actual migration.
-      }
-      var childPolygons = polygonService.findAllByFeatureIn(featureService.findAllByParentFeature(parent));
-      List<List<String>> childPolygonLines = new ArrayList<>();
-      childPolygons.forEach(childPolygon ->
-          childPolygonLines.add(lineService.findAllByPolygon(childPolygon).stream().map(Line::getEsriJson).toList()));
+    var entityBackedBlocks = featureService.getEntityBackedFeatures(
+        featureService.findAllByAttribute(LAYER_ATTRIBUTE, Layer.BLOCKS.name())
+    );
+
+    for (var entityBackedBlock : entityBackedBlocks) {
+      var subareas = featureService.getEntityBackedFeatures(
+          subareasByParentId.getOrDefault(entityBackedBlock.feature().getId(), List.of())
+      );
+
+      var childPolygonLines = subareas
+          .stream()
+          .flatMap(subarea -> subarea.polygonToLines().values().stream())
+          .map(lines -> lines.stream().map(Line::getEsriJson).toList())
+          .toList();
 
       var response = grpcClientService.validateTopologicallyEqual(
           childPolygonLines,
-          featureService.getEntityBackedFeature(parent)
+          entityBackedBlock
       );
 
-      var isValid = response.getIsValid();
-      if (!isValid) {
+      if (!response.getIsValid()) {
         LOGGER.error("Validation error: {} Feature: {}",
             response.getMessage(),
-            parent.getId()
+            entityBackedBlock.feature().getId()
         );
       } else {
-        LOGGER.info("Parent {} is topologically equal to all of its children", parent.getFeatureName());
+        LOGGER.info("Parent {} is topologically equal to all of its children", entityBackedBlock.feature().getFeatureName());
       }
     }
   }
@@ -95,32 +120,39 @@ public class MigrationValidationService {
    * and that reference block geodesic lines overlap their license block geodesic lines.
    */
   public void validateReferenceBlocks() {
-    var licenseBlocks = featureService.findAllByAttribute(SHAPE_TYPE_ATTRIBUTE, "BLOCK");
-    for (var refBlock : featureService.findAllByAttribute(SHAPE_TYPE_ATTRIBUTE, "REF_BLOCK")) {
+    var licenseBlocks = featureService.findAllByAttribute(LAYER_ATTRIBUTE, Layer.BLOCKS.name());
+    var refBlockLayers = List.of(
+        Layer.OFFSHORE_REF_BLOCKS.name(),
+        Layer.OFFSHORE_CROP_REF_BLOCKS.name(),
+        Layer.ONSHORE_CROP_REF_BLOCKS.name()
+    );
+
+    var entityBackedRefBlocks = featureService.getEntityBackedFeatures(
+        featureService.findAllByAttributeValueIn(LAYER_ATTRIBUTE, refBlockLayers)
+    );
+
+    for (var entityBackedRefBlock : entityBackedRefBlocks) {
+      var refBlockName = entityBackedRefBlock.feature().getFeatureName();
+      var brokenLicenseBlockNames = brokenBlockConfigurationProperties.getBrokenLicenseBlockNames(refBlockName);
+
       var filteredLicenseBlocks = licenseBlocks
           .stream()
-          .filter(block -> block.getFeatureName().startsWith(refBlock.getFeatureName()))
-          .filter(block -> !brokenBlockConfigurationProperties.getBrokenLicenseBlockNames(refBlock.getFeatureName())
-              .contains(block.getFeatureName()))
-          .collect(Collectors.toSet());
-
-      var licenseBlockFeatures = filteredLicenseBlocks.stream()
-          .map(featureService::getEntityBackedFeature)
+          .filter(block -> block.getFeatureName().startsWith(refBlockName))
+          .filter(block -> !brokenLicenseBlockNames.contains(block.getFeatureName()))
           .toList();
 
       var response = grpcClientService.validateReferenceBlock(
-          featureService.getEntityBackedFeature(refBlock),
-          licenseBlockFeatures
+          entityBackedRefBlock,
+          featureService.getEntityBackedFeatures(filteredLicenseBlocks)
       );
 
-      var isValid = response.getIsValid();
-      if (!isValid) {
+      if (!response.getIsValid()) {
         LOGGER.error("Validation error: {} Reference Block: {}",
             response.getMessage(),
-            refBlock.getFeatureName()
+            refBlockName
         );
       } else {
-        LOGGER.info("All license blocks are contained by ref block {}", refBlock.getFeatureName());
+        LOGGER.info("All license blocks are contained by ref block {}", refBlockName);
       }
     }
   }

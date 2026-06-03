@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -23,6 +25,7 @@ import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineWithRing;
 import uk.co.fivium.gisframework.migration.oracle.OraclePolygonBoundary;
 import uk.co.fivium.gisframework.migration.oracle.OracleService;
 import uk.co.fivium.gisframework.migration.oracle.OracleShapePolygon;
+import uk.co.fivium.gisframework.operator.OperatorResultProcessingService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 
 @Profile("gis-migration")
@@ -39,6 +42,7 @@ public class MigrationService {
   private final GrpcClientService grpcClientService;
 
   private final MigrationValidationService migrationValidationService;
+  private final OperatorResultProcessingService operatorResultProcessingService;
   private final TransactionTemplate transactionTemplate;
 
   public MigrationService(
@@ -48,6 +52,7 @@ public class MigrationService {
       OracleService oracleService,
       GrpcClientService grpcClientService,
       MigrationValidationService migrationValidationService,
+      OperatorResultProcessingService operatorResultProcessingService,
       TransactionTemplate transactionTemplate
   ) {
     this.featureService = featureService;
@@ -56,6 +61,7 @@ public class MigrationService {
     this.oracleService = oracleService;
     this.grpcClientService = grpcClientService;
     this.migrationValidationService = migrationValidationService;
+    this.operatorResultProcessingService = operatorResultProcessingService;
     this.transactionTemplate = transactionTemplate;
   }
 
@@ -121,8 +127,9 @@ public class MigrationService {
               parentLines
           );
 
-          polygonToLine.put(newPolygon, newLines);
+          newLines = renumberLinesAndCheckDifference(newLines);
 
+          polygonToLine.put(newPolygon, newLines);
         }
 
         transactionTemplate.executeWithoutResult(transactionStatus -> {
@@ -249,6 +256,32 @@ public class MigrationService {
     BigDecimal area = feature.getFeatureArea().add(BigDecimal.valueOf(migrationResponseDto.area()));
     feature.setFeatureArea(area);
     return newLines;
+  }
+
+  List<Line> renumberLinesAndCheckDifference(List<Line> lines) {
+    var idToOriginalLineNumber = lines.stream()
+        .collect(Collectors.toUnmodifiableMap(
+            Line::getLegacyId,
+            Line::getRingConnectionOrder
+        ));
+
+    operatorResultProcessingService.numberLines(lines);
+
+    var lineNumberingChanges = lines.stream()
+        .filter(line -> !Objects.equals(idToOriginalLineNumber.get(line.getLegacyId()), line.getRingConnectionOrder()))
+        .map(line -> "%s: %s -> %s".formatted(
+            line.getLegacyId(),
+            idToOriginalLineNumber.get(line.getLegacyId()),
+            line.getRingConnectionOrder()
+        ))
+        .collect(Collectors.joining(", "));
+    if (!lineNumberingChanges.isEmpty()) {
+      LOGGER.info("Line numbering for shape {} was updated: {}",
+          lines.getFirst().getPolygon().getFeature().getLegacyId(),
+          lineNumberingChanges
+      );
+    }
+    return lines;
   }
 
   Map<String, Object> combineAttributeMaps(

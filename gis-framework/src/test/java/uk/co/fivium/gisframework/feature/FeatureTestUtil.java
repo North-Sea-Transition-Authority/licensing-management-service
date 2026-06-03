@@ -2,8 +2,6 @@ package uk.co.fivium.gisframework.feature;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
-import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
@@ -23,8 +21,8 @@ public class FeatureTestUtil {
     private BigDecimal featureArea = BigDecimal.valueOf(100.0);
     private Feature parentFeature = null;
     private Map<String, Object> attributes = Map.of();
-    private Date startDate = Date.from(LocalDate.of(2020, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
-    private Date endDate = Date.from(LocalDate.of(2021, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
+    private LocalDate startDate = LocalDate.of(2020, 1, 1);
+    private LocalDate endDate = LocalDate.of(2021, 1, 1);
 
     public Builder withId(UUID id) {
       this.id = id;
@@ -61,12 +59,12 @@ public class FeatureTestUtil {
       return this;
     }
 
-    public Builder withStartDate(Date startDate) {
+    public Builder withStartDate(LocalDate startDate) {
       this.startDate = startDate;
       return this;
     }
 
-    public Builder withEndDate(Date endDate) {
+    public Builder withEndDate(LocalDate endDate) {
       this.endDate = endDate;
       return this;
     }

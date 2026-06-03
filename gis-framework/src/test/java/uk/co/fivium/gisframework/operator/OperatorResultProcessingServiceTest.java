@@ -11,9 +11,7 @@ import static org.mockito.Mockito.when;
 import com.esri.core.geometry.Point;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,7 +64,7 @@ class OperatorResultProcessingServiceTest {
   @InjectMocks
   private OperatorResultProcessingService operatorResultProcessingService;
 
-  private static final Date START_DATE = Date.from(LocalDate.of(2026, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
+  private static final LocalDate START_DATE = LocalDate.of(2026, 1, 1);
   private static final Map<String, Object> FEATURE_ATTRIBUTES = Map.of("KEY", "VALUE");
   private static final Feature FEATURE = FeatureTestUtil.newBuilder()
       .withFeatureName("Test Feature")

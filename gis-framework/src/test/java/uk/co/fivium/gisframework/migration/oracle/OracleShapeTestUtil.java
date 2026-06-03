@@ -1,6 +1,6 @@
 package uk.co.fivium.gisframework.migration.oracle;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 public class OracleShapeTestUtil {
 
@@ -16,8 +16,8 @@ public class OracleShapeTestUtil {
     private String shapeName = "Test Shape";
     private String shapeSrs = "ED 50";
     private Double shareAreaM2 = 100.0;
-    private Date shapeStartDate = new Date(0);
-    private Date shapeEndDate = new Date(1);
+    private LocalDate shapeStartDate = LocalDate.of(2026, 1, 1);
+    private LocalDate shapeEndDate = LocalDate.of(2026, 2, 2);
 
     public Builder withShapeSidId(Integer shapeSidId) {
       this.shapeSidId = shapeSidId;
@@ -49,12 +49,12 @@ public class OracleShapeTestUtil {
       return this;
     }
 
-    public Builder withShapeStartDate(Date shapeStartDate) {
+    public Builder withShapeStartDate(LocalDate shapeStartDate) {
       this.shapeStartDate = shapeStartDate;
       return this;
     }
 
-    public Builder withShapeEndDate(Date shapeEndDate) {
+    public Builder withShapeEndDate(LocalDate shapeEndDate) {
       this.shapeEndDate = shapeEndDate;
       return this;
     }

@@ -22,7 +22,7 @@ import uk.co.fivium.gisframework.grpc.GrpcClientService;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 
 @Service
-class OperatorResultProcessingService {
+public class OperatorResultProcessingService {
 
   private final PolygonService polygonService;
   private final LineService lineService;

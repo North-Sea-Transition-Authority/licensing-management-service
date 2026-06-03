@@ -4,8 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
-import java.time.ZoneOffset;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -123,12 +121,12 @@ class OracleServiceTest {
     var shape1 = OracleShapeTestUtil.newBuilder()
         .withShapeSidId(SHAPE_1_SID)
         .withShapeSiId(SHAPE_1_SI_ID)
-        .withShapeStartDate(Date.from(LocalDate.of(2021, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant()))
+        .withShapeStartDate(LocalDate.of(2021, 1, 1))
         .build();
     var shape2 = OracleShapeTestUtil.newBuilder()
         .withShapeSidId(2)
         .withShapeSiId(2)
-        .withShapeStartDate(Date.from(LocalDate.of(2020, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant()))
+        .withShapeStartDate(LocalDate.of(2020, 1, 1))
         .build();
     var polygon2 = OracleShapePolygonTestUtil.newBuilder()
         .withPolygonSidId(20)

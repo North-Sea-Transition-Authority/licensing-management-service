@@ -3,6 +3,8 @@ package uk.co.fivium.gisframework.migration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.co.fivium.gisframework.LoggerTestUtil.detachLogAppender;
 import static uk.co.fivium.gisframework.LoggerTestUtil.getLogAppender;
@@ -26,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
+import uk.co.fivium.gisframework.feature.Line;
 import uk.co.fivium.gisframework.feature.LineTestUtil;
 import uk.co.fivium.gisframework.feature.Polygon;
 import uk.co.fivium.gisframework.feature.PolygonTestUtil;
@@ -39,6 +42,7 @@ import uk.co.fivium.gisframework.migration.oracle.OracleLayerTestUtil;
 import uk.co.fivium.gisframework.migration.oracle.OraclePolygonBoundaryTestUtil;
 import uk.co.fivium.gisframework.migration.oracle.OracleService;
 import uk.co.fivium.gisframework.migration.oracle.OracleShapeTestUtil;
+import uk.co.fivium.gisframework.operator.OperatorResultProcessingService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 
@@ -53,6 +57,9 @@ class MigrationServiceTest {
 
   @Mock
   private OracleService oracleService;
+
+  @Mock
+  private OperatorResultProcessingService operatorResultProcessingService;
 
   @InjectMocks
   private MigrationService migrationService;
@@ -271,6 +278,62 @@ class MigrationServiceTest {
         .containsExactly(tuple(
             Level.WARN,
             "Duplicate attribute keys found while combining POLYGON_BOUNDARY and BOUNDARY_LINE attribute maps: [SHARED_KEY]"
+        ));
+  }
+
+  @Test
+  void renumberLinesAndCheckDifference() {
+    var feature = FeatureTestUtil.newBuilder()
+        .build();
+    var polygon = PolygonTestUtil.newBuilder()
+        .withFeature(feature)
+        .build();
+    var line1 = LineTestUtil.newBuilder()
+        .withLegacyId(100)
+        .withPolygon(polygon)
+        .withRingConnectionOrder(1)
+        .build();
+    var line2 = LineTestUtil.newBuilder()
+        .withLegacyId(200)
+        .withPolygon(polygon)
+        .withRingConnectionOrder(2)
+        .build();
+    var lines = List.of(line1, line2);
+
+    doAnswer(invocation -> {
+      List<Line> input = invocation.getArgument(0);
+      var firstLine = input.get(0);
+      var secondLine = input.get(1);
+
+      firstLine.setRingConnectionOrder(2);
+      secondLine.setRingConnectionOrder(1);
+      return null;
+    }).when(operatorResultProcessingService).numberLines(lines);
+
+    var logAppender = getLogAppender(MigrationService.class);
+
+    List<Line> result;
+    try {
+      result = migrationService.renumberLinesAndCheckDifference(lines);
+    } finally {
+      detachLogAppender(MigrationService.class, logAppender);
+    }
+
+    verify(operatorResultProcessingService).numberLines(lines);
+    assertThat(result)
+        .extracting(
+            Line::getLegacyId,
+            Line::getRingConnectionOrder
+        )
+        .containsExactly(
+            tuple(100, 2),
+            tuple(200, 1)
+        );
+    assertThat(logAppender.list)
+        .extracting(ILoggingEvent::getLevel, ILoggingEvent::getFormattedMessage)
+        .containsExactly(tuple(
+            Level.INFO,
+            "Line numbering for shape %s was updated: 100: 1 -> 2, 200: 2 -> 1".formatted(feature.getLegacyId())
         ));
   }
 

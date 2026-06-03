@@ -6,7 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.util.Date;
+import java.time.LocalDate;
 import org.hibernate.annotations.Immutable;
 import org.springframework.context.annotation.Profile;
 
@@ -37,10 +37,10 @@ public class OracleShape {
   private Double shareAreaM2;
 
   @Column(name = "SHAPE_START_DATE")
-  private Date shapeStartDate;
+  private LocalDate shapeStartDate;
 
   @Column(name = "SHAPE_END_DATE")
-  private Date shapeEndDate;
+  private LocalDate shapeEndDate;
 
   public Integer getShapeSidId() {
     return shapeSidId;
@@ -90,19 +90,19 @@ public class OracleShape {
     this.shareAreaM2 = shareAreaM2;
   }
 
-  public Date getShapeStartDate() {
+  public LocalDate getShapeStartDate() {
     return shapeStartDate;
   }
 
-  void setShapeStartDate(Date shapeStartDate) {
+  void setShapeStartDate(LocalDate shapeStartDate) {
     this.shapeStartDate = shapeStartDate;
   }
 
-  public Date getShapeEndDate() {
+  public LocalDate getShapeEndDate() {
     return shapeEndDate;
   }
 
-  void setShapeEndDate(Date shapeEndDate) {
+  void setShapeEndDate(LocalDate shapeEndDate) {
     this.shapeEndDate = shapeEndDate;
   }
 }

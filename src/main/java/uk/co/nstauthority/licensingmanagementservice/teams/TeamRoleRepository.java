@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.teams;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.repository.ListCrudRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationSource;
@@ -19,6 +20,7 @@ public interface TeamRoleRepository extends ListCrudRepository<TeamRole, UUID>, 
 
   boolean existsByTeamAndWuaId(Team team, Long wuaId);
 
+  @EntityGraph(attributePaths = {"team"})
   List<TeamRole> findAllByWuaId(long wuaId);
 
   List<TeamRole> findAllByWuaIdAndRoleIn(long wuaId, Collection<Role> roles);

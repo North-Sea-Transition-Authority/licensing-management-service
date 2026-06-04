@@ -8,6 +8,10 @@ public record SortableTableValue(String value, Integer sortValue, String link, L
     this(value, null, null, List.of());
   }
 
+  public SortableTableValue(String value, List<Tag> tags) {
+    this(value, null, null, tags);
+  }
+
   public SortableTableValue(Object value, String link, List<Tag> tags) {
     this(value == null ? "" : value.toString(), null, link, tags);
   }

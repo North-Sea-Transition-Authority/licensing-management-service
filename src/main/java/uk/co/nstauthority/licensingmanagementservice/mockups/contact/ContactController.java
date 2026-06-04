@@ -21,24 +21,30 @@ public class ContactController {
   public static final String HARBOUR_ENERGY = "Harbour Energy plc";
   public static final String TOTAL_ENERGIES_E_P_UK = "TotalEnergies E&P UK Limited";
 
+  public static final String LICENSING_UK_BP_COM = "licensing@bp.com";
+  public static final String UK_LICENSING_SHELL_COM = "uk-licensing@shell.com";
+  public static final String ASSETS_NORTHSEA_HARBOURENERGY_COM = "assets.northsea@harbourenergy.com";
+
   public static final List<ContactRow> CONTACT_LIST = List.of(
-      new ContactRow("101", "P1918", BP_EXPLORATION, BP_EXPLORATION, "licensing.uk@bp.com"),
-      new ContactRow("102", "P2000", BP_EXPLORATION, BP_EXPLORATION, "licensing.uk@bp.com"),
-      new ContactRow("103", "P2100", BP_EXPLORATION, BP_EXPLORATION, "licensing.uk@bp.com"),
-      new ContactRow("104", "P2400", BP_EXPLORATION, BRITOIL_LIMITED, "john.smith@britoil.com"),
-      new ContactRow("105", "P3000", BP_EXPLORATION, BP_EXPLORATION, ""),
-      new ContactRow("106", "P3200", BP_EXPLORATION, BRITOIL_LIMITED, ""),
-      new ContactRow("201", "P1011", SHELL_U_K_PLC, SHELL_U_K, "uk-licensing@shell.com"),
-      new ContactRow("202", "P1022", SHELL_U_K_PLC, SHELL_U_K, "uk-licensing@shell.com"),
-      new ContactRow("203", "P1033", SHELL_U_K_PLC, SHELL_U_K, "uk-licensing@shell.com"),
-      new ContactRow("204", "P2500", SHELL_U_K_PLC, SHELL_U_K_NORTH_ATLANTIC, "sarah.jones@shell.com"),
-      new ContactRow("205", "P3400", SHELL_U_K_PLC, SHELL_U_K, ""),
-      new ContactRow("206", "P3405", SHELL_U_K_PLC, SHELL_U_K, ""),
-      new ContactRow("301", "P2500", HARBOUR_ENERGY, HARBOUR_ENERGY, "assets.northsea@harbourenergy.com"),
-      new ContactRow("302", "P2501", HARBOUR_ENERGY, HARBOUR_ENERGY, "assets.northsea@harbourenergy.com"),
-      new ContactRow("303", "P2600", HARBOUR_ENERGY, HARBOUR_ENERGY, "j.bloggs@harbourenergy.com"),
-      new ContactRow("401", "P2601", TOTAL_ENERGIES_E_P_UK, TOTAL_ENERGIES_E_P_UK, "ep.uk.licensing@totalenergies.com"),
-      new ContactRow("402", "P2602", TOTAL_ENERGIES_E_P_UK, TOTAL_ENERGIES_E_P_UK, "")
+      new ContactRow("101", "P1918", BP_EXPLORATION, BP_EXPLORATION, "p1918-" + LICENSING_UK_BP_COM, "Licence Administrator"),
+      new ContactRow("102", "P2000", BP_EXPLORATION, BP_EXPLORATION, "p2000-" + LICENSING_UK_BP_COM, null),
+      new ContactRow("103", "P2100", BP_EXPLORATION, BP_EXPLORATION, "p2100-" + LICENSING_UK_BP_COM, null),
+      new ContactRow("104", "P2400", BP_EXPLORATION, BRITOIL_LIMITED, LICENSING_UK_BP_COM, null),
+      new ContactRow("105", "P3000", BP_EXPLORATION, BP_EXPLORATION, "", null),
+      new ContactRow("106", "P3200", BP_EXPLORATION, BRITOIL_LIMITED, "", null),
+      new ContactRow("107", "CS100", BP_EXPLORATION, BRITOIL_LIMITED, "", "Exploration Operator"),
+      new ContactRow("201", "P1011", SHELL_U_K_PLC, SHELL_U_K, UK_LICENSING_SHELL_COM, null),
+      new ContactRow("202", "P1022", SHELL_U_K_PLC, SHELL_U_K, UK_LICENSING_SHELL_COM, null),
+      new ContactRow("203", "P1033", SHELL_U_K_PLC, SHELL_U_K, UK_LICENSING_SHELL_COM, null),
+      new ContactRow("204", "P2500", SHELL_U_K_PLC, SHELL_U_K_NORTH_ATLANTIC, "sarah.jones@shell.com", null),
+      new ContactRow("205", "P3400", SHELL_U_K_PLC, SHELL_U_K, "", null),
+      new ContactRow("206", "P3405", SHELL_U_K_PLC, SHELL_U_K, "", null),
+      new ContactRow("301", "P2500", HARBOUR_ENERGY, HARBOUR_ENERGY, ASSETS_NORTHSEA_HARBOURENERGY_COM, null),
+      new ContactRow("302", "P2501", HARBOUR_ENERGY, HARBOUR_ENERGY, ASSETS_NORTHSEA_HARBOURENERGY_COM, null),
+      new ContactRow("303", "P2600", HARBOUR_ENERGY, HARBOUR_ENERGY, "j.bloggs@harbourenergy.com", null),
+      new ContactRow("401", "P2601", TOTAL_ENERGIES_E_P_UK, TOTAL_ENERGIES_E_P_UK, "ep.uk.licensing@totalenergies.com",
+          null),
+      new ContactRow("402", "P2602", TOTAL_ENERGIES_E_P_UK, TOTAL_ENERGIES_E_P_UK, "", null)
   );
   public static final List<ContactRow> CONTACT_INDUSTRY_LIST = CONTACT_LIST.stream()
       .filter(contactRow -> contactRow.licenseeGroup().equals(BP_EXPLORATION))
@@ -101,10 +107,16 @@ public class ContactController {
   }
 
   private SortableTableRow.Builder getRowBuilder(ContactRow row, SortableTableValue emailValue) {
-    return SortableTableRow.builder()
-        .withValue(row.licence())
-        .withValue(row.licensee())
-        .withValue(emailValue);
+    var builder = SortableTableRow.builder()
+        .withValue(row.licence());
+
+    if (row.specialRole() != null) {
+      builder.withValue(row.licensee(), new Tag(row.specialRole(), TagColour.YELLOW));
+    } else {
+      builder.withValue(row.licensee());
+    }
+
+    return builder.withValue(emailValue);
   }
 
   private SortableTableView.SortableTableViewBuilder getSortableTableView() {

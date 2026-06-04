@@ -19,6 +19,11 @@ public record SortableTableRow(List<SortableTableValue> rowValues, List<Sortable
       return this;
     }
 
+    public Builder withValue(String value, Tag tag) {
+      values.add(new SortableTableValue(value, List.of(tag)));
+      return this;
+    }
+
     public Builder withValue(SortableTableValue value) {
       values.add(value);
       return this;

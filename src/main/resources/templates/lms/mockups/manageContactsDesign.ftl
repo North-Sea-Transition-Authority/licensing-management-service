@@ -22,6 +22,18 @@ extendContainerWidth=true>
               <input class="govuk-input" id="filter-licensee" name="filter-licensee" type="text">
           </div>
         </@fdsSearch.searchFilterItem>
+        <@fdsSearch.searchFilterItem itemName="Contact" expanded=true>
+          <div class="govuk-form-group">
+            <div class="govuk-checkboxes govuk-checkboxes--small">
+              <div class="govuk-checkboxes__item">
+                <input class="govuk-checkboxes__input" id="filter-no-contact" name="filter-no-contact" type="checkbox" value="true">
+                <label class="govuk-label govuk-checkboxes__label" for="filter-no-contact">
+                  No contact provided
+                </label>
+              </div>
+            </div>
+          </div>
+        </@fdsSearch.searchFilterItem>
       </@fdsSearch.searchFilterList>
     </@fdsSearch.searchFilter>
 

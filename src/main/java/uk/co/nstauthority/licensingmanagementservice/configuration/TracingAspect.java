@@ -27,6 +27,10 @@ class TracingAspect {
 
   @Around("applicationLayer()")
   public Object traceApplicationLayer(ProceedingJoinPoint joinPoint) throws Throwable {
+    if (tracer.currentSpan() == null) {
+      return joinPoint.proceed();
+    }
+
     String className = joinPoint.getSignature().getDeclaringType().getSimpleName();
     String methodName = joinPoint.getSignature().getName();
 

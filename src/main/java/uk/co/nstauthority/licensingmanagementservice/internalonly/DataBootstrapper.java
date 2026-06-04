@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 import uk.co.fivium.energyportal.starter.accounts.EnergyPortalServiceAccessService;
-import uk.co.fivium.energyportal.starter.serviceproviders.EnergyPortalServiceProviderUserRolesService;
+import uk.co.fivium.energyportal.starter.serviceproviders.EnergyPortalAccountsMessagePublishingService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -32,19 +32,19 @@ public class DataBootstrapper {
   private final EnergyPortalUserService energyPortalUserService;
   private final EntityManager entityManager;
   private final TeamQueryService teamQueryService;
-  private final EnergyPortalServiceProviderUserRolesService energyPortalServiceProviderUserRolesService;
+  private final EnergyPortalAccountsMessagePublishingService energyPortalAccountsMessagePublishingService;
   private final EnergyPortalServiceAccessService energyPortalServiceAccessService;
 
   public DataBootstrapper(EnergyPortalUserService energyPortalUserService,
                           EntityManager entityManager,
                           TeamQueryService teamQueryService,
-                          EnergyPortalServiceProviderUserRolesService energyPortalServiceProviderUserRolesService,
+                          EnergyPortalAccountsMessagePublishingService energyPortalAccountsMessagePublishingService,
                           EnergyPortalServiceAccessService energyPortalServiceAccessService
   ) {
     this.energyPortalUserService = energyPortalUserService;
     this.entityManager = entityManager;
     this.teamQueryService = teamQueryService;
-    this.energyPortalServiceProviderUserRolesService = energyPortalServiceProviderUserRolesService;
+    this.energyPortalAccountsMessagePublishingService = energyPortalAccountsMessagePublishingService;
     this.energyPortalServiceAccessService = energyPortalServiceAccessService;
   }
 
@@ -207,7 +207,7 @@ public class DataBootstrapper {
     entityManager.persist(teamRole);
     entityManager.flush();
 
-    energyPortalServiceProviderUserRolesService.publishUsersRolesForTeam(
+    energyPortalAccountsMessagePublishingService.publishUsersRolesForTeam(
         wuaId,
         team.getId().toString(),
         team.getTeamType().name(),

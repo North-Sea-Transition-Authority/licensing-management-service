@@ -15,6 +15,14 @@ errorSummaryItems=errorSummaryItems>
             itemName="Licensees"
         />
 
+        <@fdsDetails.summaryDetails
+          summaryTitle="The licensee I want to select is not shown in the list"
+        >
+          <p class="govuk-body">
+            If the licensee you want to select is not shown in the list then you can <@requestNewCompany.requestCompanyLink/>
+          </p>
+        </@fdsDetails.summaryDetails>
+
         <@fdsAction.submitButtons
             primaryButtonText="Save and continue"
             secondaryLinkText="Cancel"

@@ -42,6 +42,13 @@ errorSummaryItems=errorSummaryItems>
                 alreadyAdded=preselectedOrgUnits
                 itemName="Licensees"
             />
+            <@fdsDetails.summaryDetails
+              summaryTitle="The licensee I want to select is not shown in the list"
+            >
+              <p class="govuk-body">
+                If the licensee you want to select is not shown in the list then you can <@requestNewCompany.requestCompanyLink/>
+              </p>
+            </@fdsDetails.summaryDetails>
         </@fdsFieldset.fieldset>
 
         <@fdsAction.submitButtons

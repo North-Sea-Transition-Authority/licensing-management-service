@@ -3,6 +3,7 @@
 <#import '_pageSizes.ftl' as PageSize>
 <#import '_header.ftl' as pageHeader>
 <#import '../macros/_multiLineText.ftl' as multiLineText>
+<#import '../macros/requestNewCompany.ftl' as requestNewCompany>
 
 <#-- @ftlvariable name="serviceBranding" type="uk.co.nstauthority.licensingmanagementservice.branding.ServiceConfigurationProperties" -->
 <#-- @ftlvariable name="customerBranding" type="uk.co.nstauthority.licensingmanagementservice.branding.CustomerConfigurationProperties" -->

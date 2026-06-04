@@ -17,6 +17,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateService;
+import uk.co.fivium.energyportal.starter.accounts.EnergyPortalAccountsControllerAdvice;
+import uk.co.fivium.energyportal.starter.configuration.EnergyPortalAccountsConfigurationProperties;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceLogoutSuccessHandler;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailArgumentResolver;
@@ -113,7 +115,8 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     ApplicationTypeArgumentResolver.class,
     HasAnyRoleInTeamTypeInterceptorRule.class,
     ContinuationApplicationHasStatusInterceptorRule.class,
-    ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.class
+    ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.class,
+    EnergyPortalAccountsControllerAdvice.class,
 })
 @EnableConfigurationProperties({
     SamlProperties.class,
@@ -122,6 +125,7 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     CustomerConfigurationProperties.class,
     ServiceConfigurationProperties.class,
     AnalyticsConfigurationProperties.class,
+    EnergyPortalAccountsConfigurationProperties.class,
 })
 @ActiveProfiles("test")
 public abstract class AbstractControllerTest {

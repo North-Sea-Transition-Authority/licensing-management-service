@@ -43,7 +43,7 @@ dependencies {
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-database-postgresql'
 	implementation 'uk.co.fivium.energyportalapi:client:v20.0.0'
-	implementation 'uk.co.fivium.energyportal.accounts:energy-portal-accounts-spring-boot-starter:v7.0.0'
+	implementation 'uk.co.fivium.energyportal.accounts:energy-portal-accounts-spring-boot-starter:v8.0.0'
 	implementation 'uk.co.fivium.energyportalmessagequeue:spring-boot-starter:v4.3.0'
 	implementation 'uk.co.fivium.feedbackmanagementservice:client:v2.3.0'
 	implementation 'uk.co.fivium.digitalformlibrary:digital-form-library:v3.0.0'

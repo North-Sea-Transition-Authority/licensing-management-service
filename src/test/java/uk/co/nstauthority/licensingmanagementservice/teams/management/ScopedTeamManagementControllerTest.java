@@ -22,7 +22,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 import uk.co.fivium.energyportal.serviceproviders.epmq.messages.ServiceProviderTeamDto;
-import uk.co.fivium.energyportal.starter.serviceproviders.EnergyPortalServiceProviderTeamService;
+import uk.co.fivium.energyportal.starter.serviceproviders.EnergyPortalAccountsMessagePublishingService;
 import uk.co.fivium.energyportalapi.client.organisation.OrganisationApi;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationGroup;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -45,7 +45,7 @@ class ScopedTeamManagementControllerTest extends AbstractControllerTest {
   private NewOrganisationTeamFormValidator newOrganisationTeamFormValidator;
 
   @MockitoBean
-  private EnergyPortalServiceProviderTeamService energyPortalServiceProviderTeamService;
+  private EnergyPortalAccountsMessagePublishingService energyPortalAccountsMessagePublishingService;
 
   private static ServiceUserDetail invokingUser;
 
@@ -113,7 +113,7 @@ class ScopedTeamManagementControllerTest extends AbstractControllerTest {
         newTeam.getTeamType().name()
     );
 
-    verify(energyPortalServiceProviderTeamService)
+    verify(energyPortalAccountsMessagePublishingService)
         .publishTeam(expectedServiceProviderTeamDto);
   }
 
@@ -132,7 +132,7 @@ class ScopedTeamManagementControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk()); // No redirect to next page
 
     verify(teamManagementService, never()).createScopedTeam(any(), any(), any());
-    verify(energyPortalServiceProviderTeamService, never()).publishTeam(any());
+    verify(energyPortalAccountsMessagePublishingService, never()).publishTeam(any());
   }
 
   @Test
@@ -147,6 +147,6 @@ class ScopedTeamManagementControllerTest extends AbstractControllerTest {
         .andExpect(status().isForbidden()); // No redirect to next page
 
     verify(teamManagementService, never()).createScopedTeam(any(), any(), any());
-    verify(energyPortalServiceProviderTeamService, never()).publishTeam(any());
+    verify(energyPortalAccountsMessagePublishingService, never()).publishTeam(any());
   }
 }

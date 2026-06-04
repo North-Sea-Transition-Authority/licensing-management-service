@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 
 @Controller
 @RequestMapping("/interceptor-rule-test")
@@ -60,5 +61,17 @@ public class InterceptorRuleTestEndpoints {
   @LicenceActionEndPointInterceptorRule.ActionEndPoint({LicenceActionItem.CREATE_LICENCE_SCHEDULE})
   public String getLicenceAction() {
     return "licence action data";
+  }
+
+  @GetMapping("/log-work-area-item")
+  @LogWorkAreaItemView(itemType = WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION, pathVariable = "itemId")
+  public ResponseEntity<String> logWorkAreaItem() {
+    return ResponseEntity.ok("log work area item test endpoint");
+  }
+
+  @GetMapping("/log-work-area-item-disabled")
+  @LogWorkAreaItemView(itemType = WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION, pathVariable = "itemId", disable = true)
+  public ResponseEntity<String> logWorkAreaItemDisabled() {
+    return ResponseEntity.ok("log work area item disabled test endpoint");
   }
 }

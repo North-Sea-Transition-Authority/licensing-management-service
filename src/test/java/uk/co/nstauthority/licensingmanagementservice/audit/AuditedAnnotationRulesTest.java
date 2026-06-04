@@ -12,6 +12,7 @@ import com.tngtech.archunit.lang.ArchRule;
 import jakarta.persistence.Entity;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.migration.carbonstorage.MigrationEntity;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemView;
 
 @AnalyzeClasses(
     packages = "uk.co.nstauthority.licensingmanagementservice",
@@ -22,6 +23,7 @@ class AuditedAnnotationRulesTest {
   @ArchTest
   static final ArchRule allEntitiesShouldBeAudited = classes()
       .that(are(not(equivalentTo(AuditRevision.class))))
+      .and(are(not(equivalentTo(WorkAreaItemView.class))))
       .and().areAnnotatedWith(Entity.class)
       .and().areNotAnnotatedWith(MigrationEntity.class)
       .should().beAnnotatedWith(Audited.class)

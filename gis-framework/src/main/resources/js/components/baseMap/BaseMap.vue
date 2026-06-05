@@ -5,6 +5,12 @@
       <ol-source-osm/>
     </ol-tile-layer>
     <nsta-quadrant-layer v-if="mapRef && includeNstaQuadrants" :ol-map="mapRef"/>
+    <snap-points-layer
+      v-if="mapRef && includeSnapPoints"
+      :ol-map="mapRef"
+      :srs-wkid="srsWkid"
+      :snap-point-spacing="snapPointSpacing"
+    />
     <feature-layer v-if="mapRef" :features-url="featuresUrl" :ol-map="mapRef"/>
   </ol-map>
 </template>
@@ -16,13 +22,20 @@ import { useGeographic } from "ol/proj";
 import { computed, ref } from "vue";
 import FeatureLayer from "./FeatureLayer.vue";
 import NstaQuadrantLayer from "./NstaQuadrantLayer.vue";
+import SnapPointsLayer from "./SnapPointsLayer.vue";
 
 interface BaseMapProps {
   includeNstaQuadrants?: boolean,
   featuresUrl: string,
+  srsWkid: number,
+  includeSnapPoints?: boolean,
+  snapPointSpacing?: number,
 }
 
-defineProps<BaseMapProps>();
+withDefaults(defineProps<BaseMapProps>(), {
+  includeNstaQuadrants: true,
+  includeSnapPoints: true,
+});
 
 // Allow openLayers to receive features in WGS84
 useGeographic();

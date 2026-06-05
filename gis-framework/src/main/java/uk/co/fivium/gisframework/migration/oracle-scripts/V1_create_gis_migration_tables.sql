@@ -189,6 +189,9 @@ ALTER TABLE lms_gis_migration.migration_attributes ADD
   USING INDEX TABLESPACE tbsidx
 /
 
+GRANT CREATE SESSION TO lms_gis_migration
+/
+
 GRANT SELECT ON pedmgr.ped_data_points TO lms_gis_migration
 /
 

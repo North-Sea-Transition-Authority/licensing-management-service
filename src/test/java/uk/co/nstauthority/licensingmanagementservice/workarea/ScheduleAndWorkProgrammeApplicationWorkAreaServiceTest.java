@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
@@ -43,6 +46,9 @@ import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemView;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemViewService;
 
 @ExtendWith(MockitoExtension.class)
 class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
@@ -58,6 +64,9 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
 
   @Mock
   private TeamQueryService teamQueryService;
+
+  @Mock
+  private WorkAreaItemViewService workAreaItemViewService;
 
   @InjectMocks
   private ScheduleAndWorkProgrammeApplicationWorkAreaService scheduleAndWorkProgrammeApplicationWorkAreaService;
@@ -90,6 +99,8 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     scheduleWorkProgrammeApplicationDetail2 = createScheduleWorkProgrammeApplicationDetail(licence2, testInstant.minus(1, ChronoUnit.HOURS), "LMS/EEA/002");
     when(scheduleWorkProgrammeApplicationService
         .getLicenceFromScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail2)).thenReturn(licence2);
+
+    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
   }
 
   @Test
@@ -267,6 +278,108 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
             ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
                 .renderOverview(scheduleWorkProgrammeApplicationDetail1.getId(), null, null))
         );
+  }
+
+  @Test
+  void getWorkAreaItems_whenItemNotYetViewed_showsNewBadge() {
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
+
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, true);
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail2, false);
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence1)))
+        .thenReturn(Map.of(licence1, List.of("Org 1")));
+
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::hasNewLabel)
+        .containsExactly(true);
+  }
+
+  @Test
+  void getWorkAreaItems_whenItemAlreadyViewed_doesNotShowNewBadge() {
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
+
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, true);
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail2, false);
+    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any()))
+        .thenReturn(List.of(new WorkAreaItemView(
+            scheduleWorkProgrammeApplicationDetail1.getId(),
+            WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION,
+            serviceUserDetail.wuaId()
+        )));
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence1)))
+        .thenReturn(Map.of(licence1, List.of("Org 1")));
+
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::hasNewLabel)
+        .containsExactly(false);
+  }
+
+  @Test
+  void getWorkAreaItems_whenDraftNotYetViewed_showsNewBadge() {
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, true);
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail2, false);
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence1)))
+        .thenReturn(Map.of(licence1, List.of("Org 1")));
+
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::hasNewLabel)
+        .containsExactly(true);
+  }
+
+  @Test
+  void getWorkAreaItems_whenDraftAlreadyViewed_doesNotShowNewBadge() {
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, true);
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail2, false);
+    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any()))
+        .thenReturn(List.of(new WorkAreaItemView(
+            scheduleWorkProgrammeApplicationDetail1.getId(),
+            WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION,
+            serviceUserDetail.wuaId()
+        )));
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence1)))
+        .thenReturn(Map.of(licence1, List.of("Org 1")));
+
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::hasNewLabel)
+        .containsExactly(false);
+  }
+
+  @Test
+  void getWorkAreaItems_fetchesViewLogsOnceForAllItems_notPerItem() {
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
+    scheduleWorkProgrammeApplicationDetail2.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail2.setSubmittedDatetime(testInstant);
+
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence1, licence2)))
+        .thenReturn(Map.of(licence1, List.of("Org 1"), licence2, List.of("Org 2")));
+
+    scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    // Single batched fetch regardless of item count (no N+1), and the per-item lookup is never used.
+    verify(workAreaItemViewService, times(1)).getWorkAreaItemLogsForUser(any(), any());
+    verify(workAreaItemViewService, never()).hasUserViewedItem(any());
   }
 
   private void mockIsDecisionIssuer() {

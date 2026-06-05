@@ -2,7 +2,11 @@
 <#import '../application/_contextHeaderSummaryDataView.ftl' as contextHeaderSummaryDataView>
 
 <#macro resultListItem dataView>
-  <#if dataView.tagText()?has_content>
+  <#if dataView.hasNewLabel()>
+    <#assign tagContent>
+      <@fdsTag.tag>New</@fdsTag.tag>
+    </#assign>
+  <#elseif dataView.tagText()?has_content>
     <#assign tagContent>
       <@fdsTag.tag tagClass=dataView.tagClass()>${dataView.tagText()}</@fdsTag.tag>
     </#assign>

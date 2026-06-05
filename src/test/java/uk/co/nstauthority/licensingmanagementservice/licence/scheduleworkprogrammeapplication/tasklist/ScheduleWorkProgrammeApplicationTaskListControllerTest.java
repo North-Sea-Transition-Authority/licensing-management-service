@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -20,6 +21,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
@@ -33,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 
 @ContextConfiguration(classes = ScheduleWorkProgrammeApplicationTaskListController.class)
 class ScheduleWorkProgrammeApplicationTaskListControllerTest extends AbstractControllerTest {
@@ -123,5 +126,14 @@ class ScheduleWorkProgrammeApplicationTaskListControllerTest extends AbstractCon
 
     mockMvc.perform(get(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
         id, null, null))).with(user(USER))).andExpect(status().isForbidden());
+  }
+
+  @Test
+  void logWorkAreaItemViewAnnotation_isPresentForScheduleWorkProgrammeApplication() {
+    var annotation = ScheduleWorkProgrammeApplicationTaskListController.class.getAnnotation(LogWorkAreaItemView.class);
+
+    assertThat(annotation).isNotNull();
+    assertThat(annotation.itemType()).isEqualTo(WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION);
+    assertThat(annotation.pathVariable()).isEqualTo("scheduleWorkProgrammeApplicationDetailId");
   }
 }

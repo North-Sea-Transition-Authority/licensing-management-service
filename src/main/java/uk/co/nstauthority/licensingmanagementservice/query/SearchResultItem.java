@@ -11,6 +11,7 @@ public record SearchResultItem(
     String linkHeadingText,
     String tagText,
     String tagClass,
+    boolean hasNewLabel,
     String captionText,
     List<SummaryDataView> dataItemRows,
     Instant transactionDatetime
@@ -26,6 +27,7 @@ public record SearchResultItem(
     private String linkHeadingText;
     private String tagText;
     private String tagClass;
+    private boolean hasNewLabel;
     private String captionText;
     private final List<SummaryDataView> dataItemRows = new ArrayList<>();
     private Instant transactionDatetime;
@@ -55,6 +57,11 @@ public record SearchResultItem(
       return this;
     }
 
+    public Builder withNewLabel() {
+      this.hasNewLabel = true;
+      return this;
+    }
+
     public Builder withCaptionText(String captionText) {
       this.captionText = captionText;
       return this;
@@ -77,6 +84,7 @@ public record SearchResultItem(
           linkHeadingText,
           tagText,
           tagClass,
+          hasNewLabel,
           captionText,
           dataItemRows,
           transactionDatetime

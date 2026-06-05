@@ -30,6 +30,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasAnyR
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasRolesInTeamTypeInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InvokingUserCanStartApplicationInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LicenceActionEndPointInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemViewInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatusInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplicationInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplicationInterceptorRule;
@@ -75,6 +76,7 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.access.TeamManagementHandlerInterceptor;
 import uk.co.nstauthority.licensingmanagementservice.topnavigation.TopNavigationService;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemViewService;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationService;
 
@@ -116,7 +118,8 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     HasAnyRoleInTeamTypeInterceptorRule.class,
     ContinuationApplicationHasStatusInterceptorRule.class,
     ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.class,
-    EnergyPortalAccountsControllerAdvice.class,
+    LogWorkAreaItemViewInterceptorRule.class,
+    EnergyPortalAccountsControllerAdvice.class
 })
 @EnableConfigurationProperties({
     SamlProperties.class,
@@ -192,6 +195,9 @@ public abstract class AbstractControllerTest {
 
   @MockitoBean
   protected LicenceScheduleService licenceScheduleService;
+
+  @MockitoBean
+  protected WorkAreaItemViewService workAreaItemViewService;
 
   @Autowired
   protected TopNavigationService topNavigationService;

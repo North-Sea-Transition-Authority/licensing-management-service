@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
@@ -25,6 +27,9 @@ import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemView;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemViewService;
 
 @Service
 public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkAreaItemProvider {
@@ -38,16 +43,20 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
   private final LicenceSearchService licenceSearchService;
   private final ApplicationAccessService applicationAccessService;
   private final TeamQueryService teamQueryService;
+  private final WorkAreaItemViewService workAreaItemViewService;
 
   public ScheduleAndWorkProgrammeApplicationWorkAreaService(
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
       LicenceSearchService licenceSearchService,
       ApplicationAccessService applicationAccessService,
-      TeamQueryService teamQueryService) {
+      TeamQueryService teamQueryService,
+      WorkAreaItemViewService workAreaItemViewService
+  ) {
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.licenceSearchService = licenceSearchService;
     this.applicationAccessService = applicationAccessService;
     this.teamQueryService = teamQueryService;
+    this.workAreaItemViewService = workAreaItemViewService;
   }
 
   @Override
@@ -67,15 +76,24 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
 
     var responsibleOrganisationNames = licenceSearchService.getLicenceToResponsibleOrganisationNameMap(licences);
 
+    var viewedItemIds = workAreaItemViewService.getWorkAreaItemLogsForUser(
+            List.of(WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION),
+            serviceUserDetail.wuaId()
+        ).stream()
+        .map(WorkAreaItemView::getItemId)
+        .collect(Collectors.toSet());
+
     return applicationDetails.stream()
-        .map(applicationDetail -> createWorkAreaItem(applicationDetail, responsibleOrganisationNames, serviceUserDetail))
+        .map(applicationDetail ->
+            createWorkAreaItem(applicationDetail, responsibleOrganisationNames, serviceUserDetail, viewedItemIds))
         .toList();
   }
 
   private SearchResultItem createWorkAreaItem(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
       Map<Licence, List<String>> responsibleOrganisationNamesByLicences,
-      ServiceUserDetail serviceUserDetail
+      ServiceUserDetail serviceUserDetail,
+      Set<UUID> viewedItemIds
   ) {
     var licence = scheduleWorkProgrammeApplicationService
         .getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail);
@@ -121,7 +139,9 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
         ? String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getCreatedDatetime()))
         : String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getSubmittedDatetime()));
 
-    return SearchResultItem.newBuilder()
+    var isNewItem = !viewedItemIds.contains(applicationDetail.getId());
+
+    var builder = SearchResultItem.newBuilder()
         .withId(applicationDetail.getId().toString())
         .withLinkHeadingText(String.format("%s - %s",
             itemReference,
@@ -130,8 +150,13 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
         .withLinkHeadingUrl(linkHeadingUrl)
         .withCaptionText(captionText)
         .withDataItemRow(dataItemRow)
-        .withTransactionDatetime(transactionDateTime)
-        .build();
+        .withTransactionDatetime(transactionDateTime);
+
+    if (isNewItem) {
+      builder.withNewLabel();
+    }
+
+    return builder.build();
   }
 
   private boolean isDecisionIssuer(ServiceUserDetail userDetail) {

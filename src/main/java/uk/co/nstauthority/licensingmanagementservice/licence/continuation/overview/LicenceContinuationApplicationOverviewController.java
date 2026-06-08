@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
@@ -26,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.review
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 
 @Controller
 @RequestMapping("licence/continuation-application/{licenceContinuationApplicationDetailId}/overview")
@@ -36,6 +38,10 @@ import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
     LicenceContinuationApplicationStatus.COMPLETE
 })
 @InvokingUserCanAccessContinuationApplication
+@LogWorkAreaItemView(
+    itemType = WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION,
+    pathVariable = "licenceContinuationApplicationDetailId"
+)
 public class LicenceContinuationApplicationOverviewController {
 
   private static final String DEFAULT_TAB = "overview";

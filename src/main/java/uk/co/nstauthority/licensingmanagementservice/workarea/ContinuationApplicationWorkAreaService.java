@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
@@ -24,6 +26,9 @@ import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemView;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemViewService;
 
 @Service
 public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvider {
@@ -39,17 +44,20 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
   private final LicenceSearchService licenceSearchService;
   private final ApplicationAccessService applicationAccessService;
   private final RegulatorRoleService regulatorRoleService;
+  private final WorkAreaItemViewService workAreaItemViewService;
 
   public ContinuationApplicationWorkAreaService(
       LicenceContinuationService licenceContinuationService,
       LicenceSearchService licenceSearchService,
       ApplicationAccessService applicationAccessService,
-      RegulatorRoleService regulatorRoleService
+      RegulatorRoleService regulatorRoleService,
+      WorkAreaItemViewService workAreaItemViewService
   ) {
     this.licenceContinuationService = licenceContinuationService;
     this.licenceSearchService = licenceSearchService;
     this.applicationAccessService = applicationAccessService;
     this.regulatorRoleService = regulatorRoleService;
+    this.workAreaItemViewService = workAreaItemViewService;
   }
 
   @Override
@@ -68,15 +76,24 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
 
     var responsibleOrganisationNames = licenceSearchService.getLicenceToResponsibleOrganisationNameMap(licences);
 
+    var viewedItemIds = workAreaItemViewService.getWorkAreaItemLogsForUser(
+            List.of(WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION),
+            serviceUserDetail.wuaId()
+        ).stream()
+        .map(WorkAreaItemView::getItemId)
+        .collect(Collectors.toSet());
+
     return applicationDetails.stream()
-        .map(applicationDetail -> createWorkAreaItem(applicationDetail, responsibleOrganisationNames, serviceUserDetail))
+        .map(applicationDetail ->
+            createWorkAreaItem(applicationDetail, responsibleOrganisationNames, serviceUserDetail, viewedItemIds))
         .toList();
   }
 
   private SearchResultItem createWorkAreaItem(
       LicenceContinuationApplicationDetail applicationDetail,
       Map<Licence, List<String>> responsibleOrganisationNamesByLicences,
-      ServiceUserDetail serviceUserDetail
+      ServiceUserDetail serviceUserDetail,
+      Set<UUID> viewedItemIds
   ) {
     var licence = licenceContinuationService.getLicenceFromContinuationApplicationDetail(applicationDetail);
     var licensees = responsibleOrganisationNamesByLicences.getOrDefault(
@@ -121,7 +138,10 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         ? String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getCreatedDateTime()))
         : String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getSubmittedDatetime()));
 
-    return SearchResultItem.newBuilder()
+    var isNewItem = applicationDetail.getStatus() == LicenceContinuationApplicationStatus.SUBMITTED
+        && !viewedItemIds.contains(applicationDetail.getId());
+
+    var builder = SearchResultItem.newBuilder()
         .withId(applicationDetail.getId().toString())
         .withLinkHeadingText(String.format("%s - %s",
             itemReference,
@@ -130,8 +150,13 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         .withLinkHeadingUrl(linkHeadingUrl)
         .withCaptionText(captionText)
         .withDataItemRow(dataItemRow)
-        .withTransactionDatetime(transactionDateTime)
-        .build();
+        .withTransactionDatetime(transactionDateTime);
+
+    if (isNewItem) {
+      builder.withNewLabel();
+    }
+
+    return builder.build();
   }
 
   private boolean matchesFilterAndHasAccess(

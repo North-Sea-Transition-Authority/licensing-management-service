@@ -3,6 +3,9 @@ package uk.co.nstauthority.licensingmanagementservice.workarea;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
@@ -37,6 +40,9 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemView;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemViewService;
 
 @ExtendWith(MockitoExtension.class)
 class ContinuationApplicationWorkAreaServiceTest {
@@ -52,6 +58,9 @@ class ContinuationApplicationWorkAreaServiceTest {
 
   @Mock
   private ApplicationAccessService applicationAccessService;
+
+  @Mock
+  private WorkAreaItemViewService workAreaItemViewService;
 
   @InjectMocks
   private ContinuationApplicationWorkAreaService continuationApplicationWorkAreaService;
@@ -97,6 +106,8 @@ class ContinuationApplicationWorkAreaServiceTest {
     licenceContinuationApplicationDetail2.setStatus(LicenceContinuationApplicationStatus.SUBMITTED);
     licenceContinuationApplicationDetail2.setSubmittedDatetime(testInstant.plus(1, ChronoUnit.HOURS));
     licenceContinuationApplicationDetail2.getLicenceContinuationApplication().setApplicationReference("LMS/CA/002");
+
+    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
   }
 
   @Test
@@ -430,6 +441,78 @@ class ContinuationApplicationWorkAreaServiceTest {
     var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems).isEmpty();
+  }
+
+  @Test
+  void getWorkAreaItems_whenItemNotYetViewed_showsNewBadge() {
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(licence1);
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
+        .thenReturn(licence2);
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+    when(regulatorRoleService.isContinuationReviewer(serviceUserDetail)).thenReturn(true);
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(any()))
+        .thenReturn(Map.of(licence2, List.of("Org 1")));
+
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::hasNewLabel)
+        .containsExactly(true);
+
+    verify(workAreaItemViewService, times(1)).getWorkAreaItemLogsForUser(any(), any());
+    verify(workAreaItemViewService, never()).hasUserViewedItem(any());
+  }
+
+  @Test
+  void getWorkAreaItems_whenItemAlreadyViewed_doesNotShowNewBadge() {
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(licence1);
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
+        .thenReturn(licence2);
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+    when(regulatorRoleService.isContinuationReviewer(serviceUserDetail)).thenReturn(true);
+    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any()))
+        .thenReturn(List.of(new WorkAreaItemView(
+            licenceContinuationApplicationDetail2.getId(),
+            WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION,
+            serviceUserDetail.wuaId()
+        )));
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(any()))
+        .thenReturn(Map.of(licence2, List.of("Org 1")));
+
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::hasNewLabel)
+        .containsExactly(false);
+  }
+
+  @Test
+  void getWorkAreaItems_whenDraftApplication_doesNotTriggerViewCheck() {
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(licence1);
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
+        .thenReturn(licence2);
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+    when(applicationAccessService.userHasAccessToApplication(
+        licenceContinuationApplicationDetail.getId().toString(),
+        ApplicationType.CONTINUATION_APPLICATION,
+        licenceContinuationApplicationDetail.getResponsibleOrganisationUnitId(),
+        serviceUserDetail.wuaId()
+    )).thenReturn(true);
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(any()))
+        .thenReturn(Map.of(licence1, List.of("Org 1")));
+
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::hasNewLabel)
+        .containsExactly(false);
+    verify(workAreaItemViewService, never()).hasUserViewedItem(any());
   }
 
   }

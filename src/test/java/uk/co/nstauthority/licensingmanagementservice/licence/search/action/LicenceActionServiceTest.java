@@ -12,11 +12,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -35,6 +38,12 @@ class LicenceActionServiceTest {
 
   @Mock
   private LicenceScheduleDetailService licenceScheduleDetailService;
+
+  @Mock
+  private LicenceCorrectionService licenceCorrectionService;
+
+  @Mock
+  private Environment environment;
 
   @InjectMocks
   private LicenceActionService licenceActionService;
@@ -252,5 +261,49 @@ class LicenceActionServiceTest {
 
     assertThat(availableActions).isNotEmpty();
     assertThat(availableActions).allMatch(action -> action.primaryAction() == false);
+  }
+
+  @Test
+  void getAvailableUserActionItems_noOpenCorrection_includesStartCorrection() {
+    when(environment.acceptsProfiles(Profiles.of("enable-lms2"))).thenReturn(true);
+
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withStatus(LicenceStatus.EXTANT)
+        .build();
+
+    var teamRole = TeamRoleTestUtil
+        .newBuilder()
+        .withRole(Role.APPLICATION_SUBMITTER) //TODO - LMS2-55: Define who can carry out corrections on a licence
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
+    when(licenceCorrectionService.hasOpenCorrection(licence)).thenReturn(false);
+
+    assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
+        .contains(LicenceActionItem.START_CORRECTION.toActionItemView(licence));
+  }
+
+  @Test
+  void getAvailableUserActionItems_withOpenCorrection_excludesStartCorrection() {
+    when(environment.acceptsProfiles(Profiles.of("enable-lms2"))).thenReturn(true);
+
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withStatus(LicenceStatus.EXTANT)
+        .build();
+
+    var teamRole = TeamRoleTestUtil
+        .newBuilder()
+        .withRole(Role.APPLICATION_SUBMITTER) //TODO - LMS2-55: Define who can carry out corrections on a licence
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
+    when(licenceCorrectionService.hasOpenCorrection(licence)).thenReturn(true);
+
+    assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
+        .doesNotContain(LicenceActionItem.START_CORRECTION.toActionItemView(licence));
   }
 }

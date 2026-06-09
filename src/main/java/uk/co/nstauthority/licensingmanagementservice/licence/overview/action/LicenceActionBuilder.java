@@ -108,7 +108,7 @@ public class LicenceActionBuilder {
     }
 
     @Override
-    public SetLicenceScheduleRequirementForAnAction requiresAnytype() {
+    public SetLicenceScheduleRequirementForAnAction requiresAnyType() {
       licenceTypeMap.put(actionItems.peek(), Arrays.stream(LicenceType.values()).collect(Collectors.toSet()));
       return this;
     }
@@ -176,7 +176,7 @@ public class LicenceActionBuilder {
 
     SetLicenceScheduleRequirementForAnAction requiresAnyTypeManagedByLms();
 
-    SetLicenceScheduleRequirementForAnAction requiresAnytype();
+    SetLicenceScheduleRequirementForAnAction requiresAnyType();
   }
 
   interface SetLicenceScheduleRequirementForAnAction {

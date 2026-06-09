@@ -6,6 +6,7 @@ import java.util.function.Function;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.start.StartLicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceResponsibleTeamController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailDuplicationController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.StartLicenceScheduleJourneyController;
@@ -36,7 +37,13 @@ public enum LicenceActionItem implements Displayable {
       4,
           licence -> ReverseRouter.route(on(LicenceResponsibleTeamController.class)
           .render(licence.getId(), null))
-  );
+  ),
+  START_CORRECTION(
+      "Start licence correction",
+      5,
+          licence -> ReverseRouter.route(on(StartLicenceCorrectionController.class).renderStartLicenceCorrection(licence))
+  )
+  ;
 
   private final String displayName;
   private final int displayOrder;

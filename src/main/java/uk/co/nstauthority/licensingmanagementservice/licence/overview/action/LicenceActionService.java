@@ -10,12 +10,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -37,13 +40,19 @@ public class LicenceActionService {
 
   private final TeamQueryService teamQueryService;
   private final LicenceScheduleDetailService licenceScheduleDetailService;
+  private final LicenceCorrectionService licenceCorrectionService;
+  private final Environment environment;
 
   public LicenceActionService(
       TeamQueryService teamQueryService,
-      LicenceScheduleDetailService licenceScheduleDetailService
+      LicenceScheduleDetailService licenceScheduleDetailService,
+      LicenceCorrectionService licenceCorrectionService,
+      Environment environment
   ) {
     this.teamQueryService = teamQueryService;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
+    this.licenceCorrectionService = licenceCorrectionService;
+    this.environment = environment;
 
     var registeredActions = LicenceActionBuilder.newBuilder()
         .registerAction(LicenceActionItem.CREATE_LICENCE_SCHEDULE)
@@ -68,6 +77,12 @@ public class LicenceActionService {
           .requiresAnyRoleFrom(Role.OFFLINE_LICENCE_ADMINISTRATOR)
           .requiresAnyStatus()
           .requiresAnyTypeFrom(LicenceType.CARBON_STORAGE)
+          .withoutLicenceScheduleRequirement()
+          .isPrimaryButton(false)
+        .registerAction(LicenceActionItem.START_CORRECTION)
+          .requiresAnyRole()//TODO - LMS2-55: Define who can carry out corrections on a licence
+          .requiresAnyStatus()
+          .requiresAnyType()
           .withoutLicenceScheduleRequirement()
           .isPrimaryButton(false)
         .build();
@@ -96,6 +111,7 @@ public class LicenceActionService {
         .filter(action -> ACTIONS_TO_LICENCE_TYPE.get(action).contains(licence.getType()))
         // remove the actions which do not meet the licence schedule requirement
         .filter(action -> satisfiesLicenceScheduleRequirement(licence, ACTIONS_TO_LICENCE_SCHEDULE_REQUIREMENT.get(action)))
+        .filter(action -> !LicenceActionItem.START_CORRECTION.equals(action) || canStartCorrection(licence))
         .map(actionItem -> actionItem.toActionItemView(licence, isPrimary(licence, actionItem)))
         .sorted(Comparator.comparing(ActionItemView::displayOrder))
         .toList();
@@ -124,6 +140,13 @@ public class LicenceActionService {
         .anyMatch(detail -> detail.getStatus().equals(LicenceScheduleDetailStatus.DRAFT));
 
     return activeScheduleExists && !openDraftExists;
+  }
+
+  private boolean canStartCorrection(Licence licence) {
+    if (!environment.acceptsProfiles(Profiles.of("enable-lms2"))) {
+      return false;
+    }
+    return !licenceCorrectionService.hasOpenCorrection(licence);
   }
 
   private static boolean isPrimary(Licence licence, LicenceActionItem actionItem) {

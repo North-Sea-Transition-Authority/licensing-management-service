@@ -6,10 +6,12 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import java.util.Objects;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEntity;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceTeam;
 
 @Audited
 @Entity(name = "licences")
+@PathVariableEntity(pathVariableName = LicenceArgumentResolver.LICENCE_ID)
 public class Licence {
 
   @Id

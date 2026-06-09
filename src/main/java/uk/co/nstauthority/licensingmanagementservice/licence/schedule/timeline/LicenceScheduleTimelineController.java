@@ -15,6 +15,7 @@ import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTeamType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryController;
@@ -24,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.reviewanda
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 
 @Controller
 @RequestMapping("/licence/schedule/{licenceScheduleDetailId}")
@@ -34,6 +36,10 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
         teamType = TeamType.LICENCE_MANAGEMENT
     )
 })
+@LogWorkAreaItemView(
+    itemType = WorkAreaDataItemType.DRAFT_LICENCE_SCHEDULE,
+    pathVariable = "licenceScheduleDetailId"
+)
 public class LicenceScheduleTimelineController {
 
   public static final String PAGE_TITLE = "%s - Licence schedule and work programme";

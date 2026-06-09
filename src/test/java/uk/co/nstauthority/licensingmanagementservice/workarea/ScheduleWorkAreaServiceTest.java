@@ -2,10 +2,16 @@ package uk.co.nstauthority.licensingmanagementservice.workarea;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +32,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearc
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemView;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemViewService;
 
 @ExtendWith(MockitoExtension.class)
 class ScheduleWorkAreaServiceTest {
@@ -36,13 +45,18 @@ class ScheduleWorkAreaServiceTest {
   @Mock
   LicenceSearchService licenceSearchService;
 
+  @Mock
+  WorkAreaItemViewService workAreaItemViewService;
+
   @InjectMocks
   ScheduleWorkAreaService scheduleWorkAreaService;
+
+  private final Clock clock = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC);
 
   @Test
   void getWorkAreaItemsUnfiltered() {
     var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
-    var testInstant = Instant.now();
+    var testInstant = Instant.now(clock);
 
     var licence1 = LicenceTestUtil.builder()
         .withId(1)
@@ -69,6 +83,7 @@ class ScheduleWorkAreaServiceTest {
     when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail)).thenReturn(
         List.of(licenceScheduleDetail1, licenceScheduleDetail2)
     );
+    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
 
     var org1 = "Org 1";
     var org2 = "Org 2";
@@ -117,7 +132,7 @@ class ScheduleWorkAreaServiceTest {
   @Test
   void getWorkAreaItems_filteredByLicenceReference() {
     var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
-    var testInstant = Instant.now();
+    var testInstant = Instant.now(clock);
 
     var licence1 = LicenceTestUtil.builder()
         .withId(1)
@@ -144,6 +159,7 @@ class ScheduleWorkAreaServiceTest {
     when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail)).thenReturn(
         List.of(licenceScheduleDetail1, licenceScheduleDetail2)
     );
+    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
 
     var org1 = "Org 1";
     var licenceResponsibleOrgMap = Map.of(licence2, List.of(org1));
@@ -176,5 +192,52 @@ class ScheduleWorkAreaServiceTest {
                 String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(licenceScheduleDetail2.getCreatedInstant()))
             )
         );
+  }
+
+  @Test
+  void getWorkAreaItems_whenItemNotYetViewed_showsNewBadge() {
+    var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
+    var testInstant = Instant.now(clock);
+    var licence = LicenceTestUtil.builder().withId(1).withLicenceType(LicenceType.CARBON_STORAGE).withLicenceReference("CS001").build();
+    var detail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(LicenceScheduleTestUtil.createLicenceSchedule(licence))
+        .withId(UUID.randomUUID()).withCreatedInstant(testInstant).build();
+
+    when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail)).thenReturn(List.of(detail));
+    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence))).thenReturn(Map.of(licence, List.of()));
+
+    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::hasNewLabel)
+        .containsExactly(true);
+
+    // View logs are fetched once per request (batched), never per item
+    verify(workAreaItemViewService, times(1)).getWorkAreaItemLogsForUser(any(), any());
+    verify(workAreaItemViewService, never()).hasUserViewedItem(any());
+  }
+
+  @Test
+  void getWorkAreaItems_whenItemAlreadyViewed_doesNotShowNewBadge() {
+    var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
+    var testInstant = Instant.now(clock);
+    var licence = LicenceTestUtil.builder().withId(1).withLicenceType(LicenceType.CARBON_STORAGE).withLicenceReference("CS001").build();
+    var detail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(LicenceScheduleTestUtil.createLicenceSchedule(licence))
+        .withId(UUID.randomUUID()).withCreatedInstant(testInstant).build();
+
+    when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail)).thenReturn(List.of(detail));
+    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any()))
+        .thenReturn(List.of(new WorkAreaItemView(
+            detail.getId(),
+            WorkAreaDataItemType.DRAFT_LICENCE_SCHEDULE,
+            serviceUserDetail.wuaId()
+        )));
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence))).thenReturn(Map.of(licence, List.of()));
+
+    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::hasNewLabel)
+        .containsExactly(false);
   }
 }

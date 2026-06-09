@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline;
 import java.time.LocalDate;
 import java.util.List;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentView;
 
 public record TimelinePhaseView(
     List<ScheduleEvent> events,
@@ -13,7 +14,8 @@ public record TimelinePhaseView(
     String endDateString,
     String updateUrl,
     String deleteUrl,
-    String addCommentUrl
+    String addCommentUrl,
+    List<EventCommentView> comments
 ) implements ScheduleEvent {
 
   @Override

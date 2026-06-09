@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentView;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDeletionController;
@@ -25,7 +26,8 @@ public record TimelineWorkProgrammeActivityView(
     String deleteUrl,
     String updateStatusUrl,
     String addCommentUrl,
-    WorkProgrammeStatus status
+    WorkProgrammeStatus status,
+    List<EventCommentView> comments
 ) implements ScheduleEvent {
 
   @Override
@@ -41,7 +43,8 @@ public record TimelineWorkProgrammeActivityView(
   public static ScheduleEvent getScheduleEventFrom(
       WorkProgrammeActivity workProgrammeActivity,
       List<ScheduleEventAction> allowedActions,
-      Map<UUID, WorkProgrammeActivityStatus> eventRefWorkProgrammeStatusMap
+      Map<UUID, WorkProgrammeActivityStatus> eventRefWorkProgrammeStatusMap,
+      Map<UUID, List<EventCommentView>> eventComments
   ) {
     var dueDateString = workProgrammeActivity.getDueDate() != null
         ? DateFormatUtil.convertToDisplayText(workProgrammeActivity.getDueDate())
@@ -76,6 +79,8 @@ public record TimelineWorkProgrammeActivityView(
         ? status.getStatus()
         : null;
 
+    var comments = eventComments.getOrDefault(workProgrammeActivity.getEventReference().getId(), List.of());
+
     return new TimelineWorkProgrammeActivityView(
         workProgrammeActivity.getCategoryString(),
         workProgrammeActivity.getDescription(),
@@ -85,7 +90,8 @@ public record TimelineWorkProgrammeActivityView(
         deleteUrl,
         editStatusUrl,
         addCommentUrl,
-        statusView
+        statusView,
+        comments
     );
   }
 

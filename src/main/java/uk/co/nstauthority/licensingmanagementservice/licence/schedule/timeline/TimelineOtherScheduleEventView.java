@@ -4,8 +4,11 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentView;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDeletionController;
@@ -18,7 +21,8 @@ public record TimelineOtherScheduleEventView(
     String eventDateString,
     String updateUrl,
     String deleteUrl,
-    String addCommentUrl
+    String addCommentUrl,
+    List<EventCommentView> comments
 ) implements ScheduleEvent {
 
   @Override
@@ -33,7 +37,8 @@ public record TimelineOtherScheduleEventView(
 
   public static ScheduleEvent getScheduleEventFrom(
       OtherScheduleEvent otherScheduleEvent,
-      List<ScheduleEventAction> allowedActions
+      List<ScheduleEventAction> allowedActions,
+      Map<UUID, List<EventCommentView>> eventComments
   ) {
     var eventDateString = otherScheduleEvent.getEventDate() != null
         ? DateFormatUtil.convertToDisplayText(otherScheduleEvent.getEventDate())
@@ -54,6 +59,8 @@ public record TimelineOtherScheduleEventView(
           .renderAddCommentForm(ScheduleEventType.OTHER.getUrlSlug(), otherScheduleEvent.getEventReference().getId()))
         : "";
 
+    var comments = eventComments.getOrDefault(otherScheduleEvent.getEventReference().getId(), List.of());
+
     return new TimelineOtherScheduleEventView(
         otherScheduleEvent.getCategoryString(),
         otherScheduleEvent.getDescription(),
@@ -61,7 +68,8 @@ public record TimelineOtherScheduleEventView(
         eventDateString,
         editUrl,
         deleteUrl,
-        addCommentUrl
+        addCommentUrl,
+        comments
     );
   }
 

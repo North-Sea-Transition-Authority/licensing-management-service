@@ -49,7 +49,11 @@
             timeStampHeading=termView.termType().displayName
             timeStampHeadingHint=termView.dateDurationString()
             timelineActionContent=timelineActions
-        />
+        >
+            <@fdsTimeline.timelineEvent>
+                <@eventComments comments=termView.comments()/>
+            </@fdsTimeline.timelineEvent>
+        </@fdsTimeline.timelineTimeStamp>
 
         <#list termView.events() as eventView>
             <#if eventView.getEventType() = "WORK_PROGRAMME_ACTIVITY">
@@ -103,7 +107,11 @@
         timeStampHeading=phaseView.phaseType().displayName
         timeStampHeadingHint=phaseView.dateDurationString()
         timelineActionContent=timelineActions
-    />
+    >
+        <@fdsTimeline.timelineEvent>
+            <@eventComments comments=phaseView.comments()/>
+        </@fdsTimeline.timelineEvent>
+    </@fdsTimeline.timelineTimeStamp>
 
     <#list phaseView.events() as eventView>
         <#if eventView.getEventType() = "WORK_PROGRAMME_ACTIVITY">
@@ -178,6 +186,7 @@
             <p class="govuk-body">
                 ${activityView.description()}
             </p>
+            <@eventComments comments=activityView.comments()/>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>
@@ -214,6 +223,7 @@
             <p class="govuk-body">
                 ${activityView.description()}
             </p>
+            <@eventComments comments=activityView.comments()/>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>
@@ -251,6 +261,7 @@
             <p class="govuk-body">
                 ${rateView.rentalRateString()} per km<sup>2</sup>
             </p>
+            <@eventComments comments=rateView.comments()/>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>
@@ -288,6 +299,7 @@
             <p class="govuk-body">
                 ${eventView.description()}
             </p>
+            <@eventComments comments=eventView.comments()/>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>
@@ -315,6 +327,7 @@
             <p class="govuk-body">
                 ${eventView.description()}
             </p>
+            <@eventComments comments=eventView.comments()/>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>
@@ -329,4 +342,22 @@
             <@otherScheduleEvent eventView=eventView smallDot=false/>
         </#if>
     </#list>
+</#macro>
+
+<#macro eventComments comments>
+    <#if comments?has_content>
+        <@fdsDetails.summaryDetails summaryTitle="Comments">
+            <#list comments as comment>
+                <@fdsCard.card>
+                    <@fdsDataItems.dataItem>
+                        <@fdsDataItems.dataValues key="Author" value=comment.author()/>
+                        <@fdsDataItems.dataValues key="Posted" value=comment.datetime()/>
+                    </@fdsDataItems.dataItem>
+                    <@fdsDataItems.dataItem>
+                        <@fdsDataItems.dataValues key="Comment" value=comment.comment()/>
+                    </@fdsDataItems.dataItem>
+                </@fdsCard.card>
+            </#list>
+        </@fdsDetails.summaryDetails>
+    </#if>
 </#macro>

@@ -29,6 +29,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentView;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiry;
@@ -101,6 +103,9 @@ class LicenceScheduleTimelineServiceTest {
 
   @Mock
   private WorkProgrammeActivityStatusService workProgrammeActivityStatusService;
+
+  @Mock
+  private EventCommentService eventCommentService;
 
   @InjectMocks
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
@@ -319,7 +324,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderDeleteActivityPage(midPhaseActivity.getId(), null)),
         "",
         "",
-        WorkProgrammeStatus.IN_PROGRESS
+        WorkProgrammeStatus.IN_PROGRESS,
+        List.of()
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
@@ -345,7 +351,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderDeleteActivityPage(endOfPhaseActivity.getId(), null)),
         "",
         "",
-        WorkProgrammeStatus.OPEN
+        WorkProgrammeStatus.OPEN,
+        List.of()
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -372,7 +379,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderDeleteActivityPage(midTerm2Activity.getId(), null)),
         "",
         "",
-        WorkProgrammeStatus.OPEN
+        WorkProgrammeStatus.OPEN,
+        List.of()
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
@@ -398,14 +406,18 @@ class LicenceScheduleTimelineServiceTest {
             .renderDeleteActivityPage(endOfTerm2Activity.getId(), null)),
         "",
         "",
-        WorkProgrammeStatus.OPEN
+        WorkProgrammeStatus.OPEN,
+        List.of()
     );
 
+    var midPhaseEventRef = new EventReference();
+    midPhaseEventRef.setId(UUID.randomUUID());
     var midPhaseEvent = new OtherScheduleEvent();
     midPhaseEvent.setId(UUID.randomUUID());
     midPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midPhaseEvent.setDescription("description");
     midPhaseEvent.setEventDate(LocalDate.of(2025, 2, 1));
+    midPhaseEvent.setEventReference(midPhaseEventRef);
 
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -416,13 +428,17 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateEventForm(midPhaseEvent.getId())),
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(midPhaseEvent.getId())),
-        ""
+        "",
+        List.of()
     );
 
+    var endOfPhaseEventRef = new EventReference();
+    endOfPhaseEventRef.setId(UUID.randomUUID());
     var endOfPhaseEvent = new OtherScheduleEvent();
     endOfPhaseEvent.setId(UUID.randomUUID());
     endOfPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfPhaseEvent.setDescription("description");
+    endOfPhaseEvent.setEventReference(endOfPhaseEventRef);
 
     var endOfPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -433,14 +449,18 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateEventForm(endOfPhaseEvent.getId())),
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(endOfPhaseEvent.getId())),
-        ""
+        "",
+        List.of()
     );
 
+    var midTerm2EventRef = new EventReference();
+    midTerm2EventRef.setId(UUID.randomUUID());
     var midTerm2Event = new OtherScheduleEvent();
     midTerm2Event.setId(UUID.randomUUID());
     midTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midTerm2Event.setDescription("description");
     midTerm2Event.setEventDate(LocalDate.of(2026, 2, 1));
+    midTerm2Event.setEventReference(midTerm2EventRef);
 
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -451,13 +471,17 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateEventForm(midTerm2Event.getId())),
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(midTerm2Event.getId())),
-        ""
+        "",
+        List.of()
     );
 
+    var endOfTerm2EventRef = new EventReference();
+    endOfTerm2EventRef.setId(UUID.randomUUID());
     var endOfTerm2Event = new OtherScheduleEvent();
     endOfTerm2Event.setId(UUID.randomUUID());
     endOfTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfTerm2Event.setDescription("description");
+    endOfTerm2Event.setEventReference(endOfTerm2EventRef);
 
     var endOfTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -468,9 +492,12 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateEventForm(endOfTerm2Event.getId())),
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(endOfTerm2Event.getId())),
-        ""
+        "",
+        List.of()
     );
 
+    var phaseRef = new EventReference();
+    phaseRef.setId(UUID.randomUUID());
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -478,13 +505,17 @@ class LicenceScheduleTimelineServiceTest {
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
+    phase.setEventReference(phaseRef);
 
+    var phaseRateRef = new EventReference();
+    phaseRateRef.setId(UUID.randomUUID());
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
     phaseRate.setRateDefinitionOption(RateDefinitionOption.PHASE);
     phaseRate.setLicenceSchedulePhase(phase);
     phaseRate.setRentalRate(new BigDecimal("1.00"));
     phaseRate.setStartDate(phase.getStartDate());
+    phaseRate.setEventReference(phaseRateRef);
 
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
@@ -495,7 +526,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateLicenceScheduleRateForm(phaseRate.getId())),
         ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
             .renderDeleteRatePage(phaseRate.getId())),
-        ""
+        "",
+        List.of()
     );
 
     var phaseView = new TimelinePhaseView(
@@ -507,9 +539,12 @@ class LicenceScheduleTimelineServiceTest {
         "31 December 2025",
         ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderUpdatePhaseForm(phase.getId())),
         ReverseRouter.route(on(LicenceSchedulePhaseDeletionController.class).renderDeletePhasePage(phase.getId())),
-        ""
+        "",
+        List.of()
     );
 
+    var termRef = new EventReference();
+    termRef.setId(UUID.randomUUID());
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
     term.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -517,6 +552,7 @@ class LicenceScheduleTimelineServiceTest {
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setEventReference(termRef);
 
     var termView = new TimelineTermView(
         List.of(phaseView),
@@ -527,9 +563,12 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleTermController.class).renderUpdateTermForm(term.getId())),
         ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term.getId())),
         "",
-        true
+        true,
+        List.of()
     );
 
+    var term2Ref = new EventReference();
+    term2Ref.setId(UUID.randomUUID());
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -537,13 +576,17 @@ class LicenceScheduleTimelineServiceTest {
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
+    term2.setEventReference(term2Ref);
 
+    var term2RateRef = new EventReference();
+    term2RateRef.setId(UUID.randomUUID());
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
     term2Rate.setRateDefinitionOption(RateDefinitionOption.TERM);
     term2Rate.setLicenceScheduleTerm(term2);
     term2Rate.setRentalRate(new BigDecimal("2.00"));
     term2Rate.setStartDate(term2.getStartDate());
+    term2Rate.setEventReference(term2RateRef);
 
     var term2RateView = new TimelineRateView(
         "Second Term rate",
@@ -554,7 +597,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateLicenceScheduleRateForm(term2Rate.getId())),
         ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
             .renderDeleteRatePage(term2Rate.getId())),
-        ""
+        "",
+        List.of()
     );
 
     var termView2 = new TimelineTermView(
@@ -566,7 +610,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleTermController.class).renderUpdateTermForm(term2.getId())),
         ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term2.getId())),
         "",
-        false
+        false,
+        List.of()
     );
 
     var form = new TimelineFilterForm();
@@ -612,6 +657,9 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
 
+    when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
+        .thenReturn(Map.of());
+
     assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, allowedActions))
         .usingRecursiveComparison()
         .isEqualTo(List.of(termView, termView2));
@@ -641,7 +689,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        WorkProgrammeStatus.IN_PROGRESS
+        WorkProgrammeStatus.IN_PROGRESS,
+        List.of()
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
@@ -665,7 +714,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        WorkProgrammeStatus.OPEN
+        WorkProgrammeStatus.OPEN,
+        List.of()
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -690,7 +740,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        WorkProgrammeStatus.OPEN
+        WorkProgrammeStatus.OPEN,
+        List.of()
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
@@ -714,14 +765,18 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        WorkProgrammeStatus.OPEN
+        WorkProgrammeStatus.OPEN,
+        List.of()
     );
 
+    var midPhaseEventRef = new EventReference();
+    midPhaseEventRef.setId(UUID.randomUUID());
     var midPhaseEvent = new OtherScheduleEvent();
     midPhaseEvent.setId(UUID.randomUUID());
     midPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midPhaseEvent.setDescription("description");
     midPhaseEvent.setEventDate(LocalDate.of(2025, 2, 1));
+    midPhaseEvent.setEventReference(midPhaseEventRef);
 
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -730,13 +785,17 @@ class LicenceScheduleTimelineServiceTest {
         "1 February 2025",
         "",
         "",
-        ""
+        "",
+        List.of()
     );
 
+    var endOfPhaseEventRef = new EventReference();
+    endOfPhaseEventRef.setId(UUID.randomUUID());
     var endOfPhaseEvent = new OtherScheduleEvent();
     endOfPhaseEvent.setId(UUID.randomUUID());
     endOfPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfPhaseEvent.setDescription("description");
+    endOfPhaseEvent.setEventReference(endOfPhaseEventRef);
 
     var endOfPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -745,14 +804,18 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        ""
+        "",
+        List.of()
     );
 
+    var midTerm2EventRef = new EventReference();
+    midTerm2EventRef.setId(UUID.randomUUID());
     var midTerm2Event = new OtherScheduleEvent();
     midTerm2Event.setId(UUID.randomUUID());
     midTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midTerm2Event.setDescription("description");
     midTerm2Event.setEventDate(LocalDate.of(2026, 2, 1));
+    midTerm2Event.setEventReference(midTerm2EventRef);
 
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -761,13 +824,17 @@ class LicenceScheduleTimelineServiceTest {
         "1 February 2026",
         "",
         "",
-        ""
+        "",
+        List.of()
     );
 
+    var endOfTerm2EventRef = new EventReference();
+    endOfTerm2EventRef.setId(UUID.randomUUID());
     var endOfTerm2Event = new OtherScheduleEvent();
     endOfTerm2Event.setId(UUID.randomUUID());
     endOfTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfTerm2Event.setDescription("description");
+    endOfTerm2Event.setEventReference(endOfTerm2EventRef);
 
     var endOfTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -776,9 +843,12 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        ""
+        "",
+        List.of()
     );
 
+    var phaseRef = new EventReference();
+    phaseRef.setId(UUID.randomUUID());
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -786,13 +856,17 @@ class LicenceScheduleTimelineServiceTest {
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
+    phase.setEventReference(phaseRef);
 
+    var phaseRateRef = new EventReference();
+    phaseRateRef.setId(UUID.randomUUID());
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
     phaseRate.setRateDefinitionOption(RateDefinitionOption.PHASE);
     phaseRate.setLicenceSchedulePhase(phase);
     phaseRate.setRentalRate(new BigDecimal("1.00"));
     phaseRate.setStartDate(phase.getStartDate());
+    phaseRate.setEventReference(phaseRateRef);
 
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
@@ -801,7 +875,8 @@ class LicenceScheduleTimelineServiceTest {
         "£1.00",
         "",
         "",
-        ""
+        "",
+        List.of()
     );
 
     var phaseView = new TimelinePhaseView(
@@ -813,9 +888,12 @@ class LicenceScheduleTimelineServiceTest {
         "31 December 2025",
         "",
         "",
-        ""
+        "",
+        List.of()
     );
 
+    var termRef = new EventReference();
+    termRef.setId(UUID.randomUUID());
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
     term.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -823,6 +901,7 @@ class LicenceScheduleTimelineServiceTest {
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setEventReference(termRef);
 
     var termView = new TimelineTermView(
         List.of(phaseView),
@@ -833,9 +912,12 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        true
+        true,
+        List.of()
     );
 
+    var term2Ref = new EventReference();
+    term2Ref.setId(UUID.randomUUID());
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -843,13 +925,17 @@ class LicenceScheduleTimelineServiceTest {
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
+    term2.setEventReference(term2Ref);
 
+    var term2RateRef = new EventReference();
+    term2RateRef.setId(UUID.randomUUID());
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
     term2Rate.setRateDefinitionOption(RateDefinitionOption.TERM);
     term2Rate.setLicenceScheduleTerm(term2);
     term2Rate.setRentalRate(new BigDecimal("2.00"));
     term2Rate.setStartDate(term2.getStartDate());
+    term2Rate.setEventReference(term2RateRef);
 
     var term2RateView = new TimelineRateView(
         "Second Term rate",
@@ -858,7 +944,8 @@ class LicenceScheduleTimelineServiceTest {
         "£2.00",
         "",
         "",
-        ""
+        "",
+        List.of()
     );
 
     var termView2 = new TimelineTermView(
@@ -870,7 +957,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        false
+        false,
+        List.of()
     );
 
     var form = new TimelineFilterForm();
@@ -914,6 +1002,9 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
 
+    when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
+        .thenReturn(Map.of());
+
     assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of()))
         .usingRecursiveComparison()
         .isEqualTo(List.of(termView, termView2));
@@ -945,7 +1036,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderDeleteActivityPage(midPhaseActivity.getId(), null)),
         "",
         "",
-        WorkProgrammeStatus.IN_PROGRESS
+        WorkProgrammeStatus.IN_PROGRESS,
+        List.of()
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
@@ -971,7 +1063,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderDeleteActivityPage(endOfPhaseActivity.getId(), null)),
         "",
         "",
-        WorkProgrammeStatus.OPEN
+        WorkProgrammeStatus.OPEN,
+        List.of()
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -998,7 +1091,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderDeleteActivityPage(midTerm2Activity.getId(), null)),
         "",
         "",
-        WorkProgrammeStatus.OPEN
+        WorkProgrammeStatus.OPEN,
+        List.of()
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
@@ -1024,15 +1118,18 @@ class LicenceScheduleTimelineServiceTest {
             .renderDeleteActivityPage(endOfTerm2Activity.getId(), null)),
         "",
         "",
-        WorkProgrammeStatus.OPEN
+        WorkProgrammeStatus.OPEN,
+        List.of()
     );
 
-
+    var midPhaseEventRef = new EventReference();
+    midPhaseEventRef.setId(UUID.randomUUID());
     var midPhaseEvent = new OtherScheduleEvent();
     midPhaseEvent.setId(UUID.randomUUID());
     midPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midPhaseEvent.setDescription("description");
     midPhaseEvent.setEventDate(LocalDate.of(2025, 2, 1));
+    midPhaseEvent.setEventReference(midPhaseEventRef);
 
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -1043,13 +1140,17 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateEventForm(midPhaseEvent.getId())),
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(midPhaseEvent.getId())),
-        ""
+        "",
+        List.of()
     );
 
+    var endOfPhaseEventRef = new EventReference();
+    endOfPhaseEventRef.setId(UUID.randomUUID());
     var endOfPhaseEvent = new OtherScheduleEvent();
     endOfPhaseEvent.setId(UUID.randomUUID());
     endOfPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfPhaseEvent.setDescription("description");
+    endOfPhaseEvent.setEventReference(endOfPhaseEventRef);
 
     var endOfPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -1060,14 +1161,18 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateEventForm(endOfPhaseEvent.getId())),
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(endOfPhaseEvent.getId())),
-        ""
+        "",
+        List.of()
     );
 
+    var midTerm2EventRef = new EventReference();
+    midTerm2EventRef.setId(UUID.randomUUID());
     var midTerm2Event = new OtherScheduleEvent();
     midTerm2Event.setId(UUID.randomUUID());
     midTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midTerm2Event.setDescription("description");
     midTerm2Event.setEventDate(LocalDate.of(2026, 2, 1));
+    midTerm2Event.setEventReference(midTerm2EventRef);
 
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -1078,13 +1183,17 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateEventForm(midTerm2Event.getId())),
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(midTerm2Event.getId())),
-        ""
+        "",
+        List.of()
     );
 
+    var endOfTerm2EventRef = new EventReference();
+    endOfTerm2EventRef.setId(UUID.randomUUID());
     var endOfTerm2Event = new OtherScheduleEvent();
     endOfTerm2Event.setId(UUID.randomUUID());
     endOfTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfTerm2Event.setDescription("description");
+    endOfTerm2Event.setEventReference(endOfTerm2EventRef);
 
     var endOfTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -1095,9 +1204,12 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateEventForm(endOfTerm2Event.getId())),
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(endOfTerm2Event.getId())),
-        ""
+        "",
+        List.of()
     );
-    
+
+    var phaseRef = new EventReference();
+    phaseRef.setId(UUID.randomUUID());
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -1105,13 +1217,17 @@ class LicenceScheduleTimelineServiceTest {
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
+    phase.setEventReference(phaseRef);
 
+    var phaseRateRef = new EventReference();
+    phaseRateRef.setId(UUID.randomUUID());
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
     phaseRate.setRateDefinitionOption(RateDefinitionOption.PHASE);
     phaseRate.setLicenceSchedulePhase(phase);
     phaseRate.setRentalRate(new BigDecimal("1.00"));
     phaseRate.setStartDate(phase.getStartDate());
+    phaseRate.setEventReference(phaseRateRef);
 
     var phaseView = new TimelinePhaseView(
         List.of(midPhaseActivityView, midPhaseEventView),
@@ -1122,9 +1238,12 @@ class LicenceScheduleTimelineServiceTest {
         "31 December 2025",
         ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderUpdatePhaseForm(phase.getId())),
         ReverseRouter.route(on(LicenceSchedulePhaseDeletionController.class).renderDeletePhasePage(phase.getId())),
-        ""
+        "",
+        List.of()
     );
 
+    var termRef = new EventReference();
+    termRef.setId(UUID.randomUUID());
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
     term.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -1132,6 +1251,7 @@ class LicenceScheduleTimelineServiceTest {
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setEventReference(termRef);
 
     var termView = new TimelineTermView(
         List.of(phaseView),
@@ -1142,9 +1262,12 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleTermController.class).renderUpdateTermForm(term.getId())),
         ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term.getId())),
         "",
-        true
+        true,
+        List.of()
     );
 
+    var term2Ref = new EventReference();
+    term2Ref.setId(UUID.randomUUID());
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -1152,13 +1275,17 @@ class LicenceScheduleTimelineServiceTest {
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
+    term2.setEventReference(term2Ref);
 
+    var term2RateRef = new EventReference();
+    term2RateRef.setId(UUID.randomUUID());
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
     term2Rate.setRateDefinitionOption(RateDefinitionOption.TERM);
     term2Rate.setLicenceScheduleTerm(term2);
     term2Rate.setRentalRate(new BigDecimal("2.00"));
     term2Rate.setStartDate(term2.getStartDate());
+    term2Rate.setEventReference(term2RateRef);
 
     var termView2 = new TimelineTermView(
         List.of(midTerm2ActivityView, midTerm2EventView),
@@ -1169,7 +1296,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleTermController.class).renderUpdateTermForm(term2.getId())),
         ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term2.getId())),
         "",
-        false
+        false,
+        List.of()
     );
 
     var form = new TimelineFilterForm();
@@ -1217,6 +1345,9 @@ class LicenceScheduleTimelineServiceTest {
 
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
+
+    when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
+        .thenReturn(Map.of());
 
     assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, allowedActions))
         .usingRecursiveComparison()
@@ -1275,11 +1406,14 @@ class LicenceScheduleTimelineServiceTest {
     endOfTerm2ActivityStatus.setEventReference(endOfTerm2Activity.getEventReference());
     endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
+    var midPhaseEventRef = new EventReference();
+    midPhaseEventRef.setId(UUID.randomUUID());
     var midPhaseEvent = new OtherScheduleEvent();
     midPhaseEvent.setId(UUID.randomUUID());
     midPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midPhaseEvent.setDescription("description");
     midPhaseEvent.setEventDate(LocalDate.of(2025, 2, 1));
+    midPhaseEvent.setEventReference(midPhaseEventRef);
 
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -1290,13 +1424,17 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateEventForm(midPhaseEvent.getId())),
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(midPhaseEvent.getId())),
-        ""
+        "",
+        List.of()
     );
 
+    var endOfPhaseEventRef = new EventReference();
+    endOfPhaseEventRef.setId(UUID.randomUUID());
     var endOfPhaseEvent = new OtherScheduleEvent();
     endOfPhaseEvent.setId(UUID.randomUUID());
     endOfPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfPhaseEvent.setDescription("description");
+    endOfPhaseEvent.setEventReference(endOfPhaseEventRef);
 
     var endOfPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -1307,14 +1445,18 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateEventForm(endOfPhaseEvent.getId())),
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(endOfPhaseEvent.getId())),
-        ""
+        "",
+        List.of()
     );
 
+    var midTerm2EventRef = new EventReference();
+    midTerm2EventRef.setId(UUID.randomUUID());
     var midTerm2Event = new OtherScheduleEvent();
     midTerm2Event.setId(UUID.randomUUID());
     midTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midTerm2Event.setDescription("description");
     midTerm2Event.setEventDate(LocalDate.of(2026, 2, 1));
+    midTerm2Event.setEventReference(midTerm2EventRef);
 
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -1325,13 +1467,17 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateEventForm(midTerm2Event.getId())),
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(midTerm2Event.getId())),
-        ""
+        "",
+        List.of()
     );
 
+    var endOfTerm2EventRef = new EventReference();
+    endOfTerm2EventRef.setId(UUID.randomUUID());
     var endOfTerm2Event = new OtherScheduleEvent();
     endOfTerm2Event.setId(UUID.randomUUID());
     endOfTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfTerm2Event.setDescription("description");
+    endOfTerm2Event.setEventReference(endOfTerm2EventRef);
 
     var endOfTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -1342,9 +1488,12 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateEventForm(endOfTerm2Event.getId())),
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(endOfTerm2Event.getId())),
-        ""
+        "",
+        List.of()
     );
-    
+
+    var phaseRef = new EventReference();
+    phaseRef.setId(UUID.randomUUID());
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -1352,13 +1501,17 @@ class LicenceScheduleTimelineServiceTest {
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
+    phase.setEventReference(phaseRef);
 
+    var phaseRateRef = new EventReference();
+    phaseRateRef.setId(UUID.randomUUID());
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
     phaseRate.setRateDefinitionOption(RateDefinitionOption.PHASE);
     phaseRate.setLicenceSchedulePhase(phase);
     phaseRate.setRentalRate(new BigDecimal("1.00"));
     phaseRate.setStartDate(phase.getStartDate());
+    phaseRate.setEventReference(phaseRateRef);
 
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
@@ -1369,7 +1522,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateLicenceScheduleRateForm(phaseRate.getId())),
         ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
             .renderDeleteRatePage(phaseRate.getId())),
-        ""
+        "",
+        List.of()
     );
 
     var phaseView = new TimelinePhaseView(
@@ -1381,9 +1535,12 @@ class LicenceScheduleTimelineServiceTest {
         "31 December 2025",
         ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderUpdatePhaseForm(phase.getId())),
         ReverseRouter.route(on(LicenceSchedulePhaseDeletionController.class).renderDeletePhasePage(phase.getId())),
-        ""
+        "",
+        List.of()
     );
 
+    var termRef = new EventReference();
+    termRef.setId(UUID.randomUUID());
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
     term.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -1391,6 +1548,7 @@ class LicenceScheduleTimelineServiceTest {
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setEventReference(termRef);
 
     var termView = new TimelineTermView(
         List.of(phaseView),
@@ -1401,9 +1559,12 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleTermController.class).renderUpdateTermForm(term.getId())),
         ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term.getId())),
         "",
-        true
+        true,
+        List.of()
     );
 
+    var term2Ref = new EventReference();
+    term2Ref.setId(UUID.randomUUID());
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -1411,13 +1572,17 @@ class LicenceScheduleTimelineServiceTest {
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
+    term2.setEventReference(term2Ref);
 
+    var term2RateRef = new EventReference();
+    term2RateRef.setId(UUID.randomUUID());
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
     term2Rate.setRateDefinitionOption(RateDefinitionOption.TERM);
     term2Rate.setLicenceScheduleTerm(term2);
     term2Rate.setRentalRate(new BigDecimal("2.00"));
     term2Rate.setStartDate(term2.getStartDate());
+    term2Rate.setEventReference(term2RateRef);
 
     var term2RateView = new TimelineRateView(
         "Second Term rate",
@@ -1428,7 +1593,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateLicenceScheduleRateForm(term2Rate.getId())),
         ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
             .renderDeleteRatePage(term2Rate.getId())),
-        ""
+        "",
+        List.of()
     );
 
     var termView2 = new TimelineTermView(
@@ -1440,7 +1606,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleTermController.class).renderUpdateTermForm(term2.getId())),
         ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term2.getId())),
         "",
-        false
+        false,
+        List.of()
     );
 
     var form = new TimelineFilterForm();
@@ -1489,6 +1656,9 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
 
+    when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
+        .thenReturn(Map.of());
+
     assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, allowedActions))
         .usingRecursiveComparison()
         .isEqualTo(List.of(termView, termView2));
@@ -1520,7 +1690,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderDeleteActivityPage(midPhaseActivity.getId(), null)),
         "",
         "",
-        WorkProgrammeStatus.IN_PROGRESS
+        WorkProgrammeStatus.IN_PROGRESS,
+        List.of()
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
@@ -1546,7 +1717,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderDeleteActivityPage(endOfPhaseActivity.getId(), null)),
         "",
         "",
-        WorkProgrammeStatus.OPEN
+        WorkProgrammeStatus.OPEN,
+        List.of()
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -1573,7 +1745,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderDeleteActivityPage(midTerm2Activity.getId(), null)),
         "",
         "",
-        WorkProgrammeStatus.OPEN
+        WorkProgrammeStatus.OPEN,
+        List.of()
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
@@ -1599,31 +1772,46 @@ class LicenceScheduleTimelineServiceTest {
             .renderDeleteActivityPage(endOfTerm2Activity.getId(), null)),
         "",
         "",
-        WorkProgrammeStatus.OPEN
+        WorkProgrammeStatus.OPEN,
+        List.of()
     );
 
+    var midPhaseEventRef = new EventReference();
+    midPhaseEventRef.setId(UUID.randomUUID());
     var midPhaseEvent = new OtherScheduleEvent();
     midPhaseEvent.setId(UUID.randomUUID());
     midPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midPhaseEvent.setDescription("description");
     midPhaseEvent.setEventDate(LocalDate.of(2025, 2, 1));
+    midPhaseEvent.setEventReference(midPhaseEventRef);
 
+    var endOfPhaseEventRef = new EventReference();
+    endOfPhaseEventRef.setId(UUID.randomUUID());
     var endOfPhaseEvent = new OtherScheduleEvent();
     endOfPhaseEvent.setId(UUID.randomUUID());
     endOfPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfPhaseEvent.setDescription("description");
+    endOfPhaseEvent.setEventReference(endOfPhaseEventRef);
 
+    var midTerm2EventRef = new EventReference();
+    midTerm2EventRef.setId(UUID.randomUUID());
     var midTerm2Event = new OtherScheduleEvent();
     midTerm2Event.setId(UUID.randomUUID());
     midTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midTerm2Event.setDescription("description");
     midTerm2Event.setEventDate(LocalDate.of(2026, 2, 1));
+    midTerm2Event.setEventReference(midTerm2EventRef);
 
+    var endOfTerm2EventRef = new EventReference();
+    endOfTerm2EventRef.setId(UUID.randomUUID());
     var endOfTerm2Event = new OtherScheduleEvent();
     endOfTerm2Event.setId(UUID.randomUUID());
     endOfTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfTerm2Event.setDescription("description");
+    endOfTerm2Event.setEventReference(endOfTerm2EventRef);
 
+    var phaseRef = new EventReference();
+    phaseRef.setId(UUID.randomUUID());
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -1631,13 +1819,17 @@ class LicenceScheduleTimelineServiceTest {
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
+    phase.setEventReference(phaseRef);
 
+    var phaseRateRef = new EventReference();
+    phaseRateRef.setId(UUID.randomUUID());
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
     phaseRate.setRateDefinitionOption(RateDefinitionOption.PHASE);
     phaseRate.setLicenceSchedulePhase(phase);
     phaseRate.setRentalRate(new BigDecimal("1.00"));
     phaseRate.setStartDate(phase.getStartDate());
+    phaseRate.setEventReference(phaseRateRef);
 
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
@@ -1648,7 +1840,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateLicenceScheduleRateForm(phaseRate.getId())),
         ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
             .renderDeleteRatePage(phaseRate.getId())),
-        ""
+        "",
+        List.of()
     );
 
     var phaseView = new TimelinePhaseView(
@@ -1660,9 +1853,12 @@ class LicenceScheduleTimelineServiceTest {
         "31 December 2025",
         ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderUpdatePhaseForm(phase.getId())),
         ReverseRouter.route(on(LicenceSchedulePhaseDeletionController.class).renderDeletePhasePage(phase.getId())),
-        ""
+        "",
+        List.of()
     );
 
+    var termRef = new EventReference();
+    termRef.setId(UUID.randomUUID());
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
     term.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -1670,6 +1866,7 @@ class LicenceScheduleTimelineServiceTest {
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setEventReference(termRef);
 
     var termView = new TimelineTermView(
         List.of(phaseView),
@@ -1680,9 +1877,12 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleTermController.class).renderUpdateTermForm(term.getId())),
         ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term.getId())),
         "",
-        true
+        true,
+        List.of()
     );
 
+    var term2Ref = new EventReference();
+    term2Ref.setId(UUID.randomUUID());
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -1690,13 +1890,17 @@ class LicenceScheduleTimelineServiceTest {
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
+    term2.setEventReference(term2Ref);
 
+    var term2RateRef = new EventReference();
+    term2RateRef.setId(UUID.randomUUID());
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
     term2Rate.setRateDefinitionOption(RateDefinitionOption.TERM);
     term2Rate.setLicenceScheduleTerm(term2);
     term2Rate.setRentalRate(new BigDecimal("2.00"));
     term2Rate.setStartDate(term2.getStartDate());
+    term2Rate.setEventReference(term2RateRef);
 
     var term2RateView = new TimelineRateView(
         "Second Term rate",
@@ -1707,7 +1911,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateLicenceScheduleRateForm(term2Rate.getId())),
         ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
             .renderDeleteRatePage(term2Rate.getId())),
-        ""
+        "",
+        List.of()
     );
 
     var termView2 = new TimelineTermView(
@@ -1719,7 +1924,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleTermController.class).renderUpdateTermForm(term2.getId())),
         ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term2.getId())),
         "",
-        false
+        false,
+        List.of()
     );
 
     var form = new TimelineFilterForm();
@@ -1768,6 +1974,9 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
 
+    when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
+        .thenReturn(Map.of());
+
     assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, allowedActions))
         .usingRecursiveComparison()
         .isEqualTo(List.of(termView, termView2));
@@ -1799,7 +2008,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderStatusUpdatePage(midPhaseActivity.getId(), null)),
         ReverseRouter.route(on(EventCommentController.class)
             .renderAddCommentForm(ScheduleEventType.WORK_PROGRAMME_ACTIVITY.getUrlSlug(), midPhaseActivity.getEventReference().getId())),
-        WorkProgrammeStatus.IN_PROGRESS
+        WorkProgrammeStatus.IN_PROGRESS,
+        List.of()
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
@@ -1825,7 +2035,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderStatusUpdatePage(endOfPhaseActivity.getId(), null)),
         ReverseRouter.route(on(EventCommentController.class)
             .renderAddCommentForm(ScheduleEventType.WORK_PROGRAMME_ACTIVITY.getUrlSlug(), endOfPhaseActivity.getEventReference().getId())),
-        WorkProgrammeStatus.OPEN
+        WorkProgrammeStatus.OPEN,
+        List.of()
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -1852,7 +2063,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderStatusUpdatePage(midTerm2Activity.getId(), null)),
         ReverseRouter.route(on(EventCommentController.class)
             .renderAddCommentForm(ScheduleEventType.WORK_PROGRAMME_ACTIVITY.getUrlSlug(), midTerm2Activity.getEventReference().getId())),
-        WorkProgrammeStatus.OPEN
+        WorkProgrammeStatus.OPEN,
+        List.of()
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
@@ -1878,9 +2090,12 @@ class LicenceScheduleTimelineServiceTest {
             .renderStatusUpdatePage(endOfTerm2Activity.getId(), null)),
         ReverseRouter.route(on(EventCommentController.class)
             .renderAddCommentForm(ScheduleEventType.WORK_PROGRAMME_ACTIVITY.getUrlSlug(), endOfTerm2Activity.getEventReference().getId())),
-        WorkProgrammeStatus.OPEN
+        WorkProgrammeStatus.OPEN,
+        List.of()
     );
 
+    var phaseRef = new EventReference();
+    phaseRef.setId(UUID.randomUUID());
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -1888,13 +2103,17 @@ class LicenceScheduleTimelineServiceTest {
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
+    phase.setEventReference(phaseRef);
 
+    var phaseRateRef = new EventReference();
+    phaseRateRef.setId(UUID.randomUUID());
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
     phaseRate.setRateDefinitionOption(RateDefinitionOption.PHASE);
     phaseRate.setLicenceSchedulePhase(phase);
     phaseRate.setRentalRate(new BigDecimal("1.00"));
     phaseRate.setStartDate(phase.getStartDate());
+    phaseRate.setEventReference(phaseRateRef);
 
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
@@ -1903,7 +2122,8 @@ class LicenceScheduleTimelineServiceTest {
         "£1.00",
         "",
         "",
-        ""
+        "",
+        List.of()
     );
 
     var phaseView = new TimelinePhaseView(
@@ -1915,9 +2135,12 @@ class LicenceScheduleTimelineServiceTest {
         "31 December 2025",
         "",
         "",
-        ""
+        "",
+        List.of()
     );
 
+    var termRef = new EventReference();
+    termRef.setId(UUID.randomUUID());
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
     term.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -1925,6 +2148,7 @@ class LicenceScheduleTimelineServiceTest {
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setEventReference(termRef);
 
     var termView = new TimelineTermView(
         List.of(phaseView),
@@ -1935,9 +2159,12 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        true
+        true,
+        List.of()
     );
 
+    var term2Ref = new EventReference();
+    term2Ref.setId(UUID.randomUUID());
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -1945,13 +2172,17 @@ class LicenceScheduleTimelineServiceTest {
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
+    term2.setEventReference(term2Ref);
 
+    var term2RateRef = new EventReference();
+    term2RateRef.setId(UUID.randomUUID());
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
     term2Rate.setRateDefinitionOption(RateDefinitionOption.TERM);
     term2Rate.setLicenceScheduleTerm(term2);
     term2Rate.setRentalRate(new BigDecimal("2.00"));
     term2Rate.setStartDate(term2.getStartDate());
+    term2Rate.setEventReference(term2RateRef);
 
     var term2RateView = new TimelineRateView(
         "Second Term rate",
@@ -1960,7 +2191,8 @@ class LicenceScheduleTimelineServiceTest {
         "£2.00",
         "",
         "",
-        ""
+        "",
+        List.of()
     );
 
     var termView2 = new TimelineTermView(
@@ -1972,7 +2204,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        false
+        false,
+        List.of()
     );
 
     var form = new TimelineFilterForm();
@@ -2014,6 +2247,9 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
 
+    when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
+        .thenReturn(Map.of());
+
     assertThat(licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(licenceScheduleDetail, form, user))
         .usingRecursiveComparison()
         .isEqualTo(List.of(termView, termView2));
@@ -2039,7 +2275,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        null
+        null,
+        List.of()
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
@@ -2059,7 +2296,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        null
+        null,
+        List.of()
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -2080,7 +2318,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        null
+        null,
+        List.of()
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
@@ -2100,9 +2339,12 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        null
+        null,
+        List.of()
     );
 
+    var phaseRef = new EventReference();
+    phaseRef.setId(UUID.randomUUID());
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -2110,13 +2352,17 @@ class LicenceScheduleTimelineServiceTest {
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
+    phase.setEventReference(phaseRef);
 
+    var phaseRateRef = new EventReference();
+    phaseRateRef.setId(UUID.randomUUID());
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
     phaseRate.setRateDefinitionOption(RateDefinitionOption.PHASE);
     phaseRate.setLicenceSchedulePhase(phase);
     phaseRate.setRentalRate(new BigDecimal("1.00"));
     phaseRate.setStartDate(phase.getStartDate());
+    phaseRate.setEventReference(phaseRateRef);
 
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
@@ -2125,7 +2371,8 @@ class LicenceScheduleTimelineServiceTest {
         "£1.00",
         "",
         "",
-        ""
+        "",
+        List.of()
     );
 
     var phaseView = new TimelinePhaseView(
@@ -2137,9 +2384,12 @@ class LicenceScheduleTimelineServiceTest {
         "31 December 2025",
         "",
         "",
-        ""
+        "",
+        List.of()
     );
 
+    var termRef = new EventReference();
+    termRef.setId(UUID.randomUUID());
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
     term.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -2147,6 +2397,7 @@ class LicenceScheduleTimelineServiceTest {
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setEventReference(termRef);
 
     var termView = new TimelineTermView(
         List.of(phaseView),
@@ -2157,9 +2408,12 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        true
+        true,
+        List.of()
     );
 
+    var term2Ref = new EventReference();
+    term2Ref.setId(UUID.randomUUID());
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
@@ -2167,13 +2421,17 @@ class LicenceScheduleTimelineServiceTest {
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
+    term2.setEventReference(term2Ref);
 
+    var term2RateRef = new EventReference();
+    term2RateRef.setId(UUID.randomUUID());
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
     term2Rate.setRateDefinitionOption(RateDefinitionOption.TERM);
     term2Rate.setLicenceScheduleTerm(term2);
     term2Rate.setRentalRate(new BigDecimal("2.00"));
     term2Rate.setStartDate(term2.getStartDate());
+    term2Rate.setEventReference(term2RateRef);
 
     var term2RateView = new TimelineRateView(
         "Second Term rate",
@@ -2182,7 +2440,8 @@ class LicenceScheduleTimelineServiceTest {
         "£2.00",
         "",
         "",
-        ""
+        "",
+        List.of()
     );
 
     var termView2 = new TimelineTermView(
@@ -2194,7 +2453,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        false
+        false,
+        List.of()
     );
 
     var form = new TimelineFilterForm();
@@ -2236,12 +2496,15 @@ class LicenceScheduleTimelineServiceTest {
     finalTerm.setTermType(TermType.SECOND);
     finalTerm.setEndDate(finalTermEndDate);
 
+    var rateRef = new EventReference();
+    rateRef.setId(UUID.randomUUID());
     var rate = new LicenceScheduleRate();
     rate.setId(UUID.randomUUID());
     rate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
     rate.setRateRelativeDateOption(RateRelativeDateOption.RELATIVE_TO_START_DATE);
     rate.setRentalRate(new BigDecimal("2.00"));
     rate.setStartDate(finalTermEndDate.plusYears(1));
+    rate.setEventReference(rateRef);
 
     var rateView = new TimelineRateView(
         "Rate",
@@ -2252,7 +2515,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateLicenceScheduleRateForm(rate.getId())),
         ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
             .renderDeleteRatePage(rate.getId())),
-        ""
+        "",
+        List.of()
     );
 
     var activity = new WorkProgrammeActivity();
@@ -2279,14 +2543,18 @@ class LicenceScheduleTimelineServiceTest {
             .renderDeleteActivityPage(activity.getId(), null)),
         "",
         "",
-        WorkProgrammeStatus.OPEN
+        WorkProgrammeStatus.OPEN,
+        List.of()
     );
 
+    var eventRef = new EventReference();
+    eventRef.setId(UUID.randomUUID());
     var event = new OtherScheduleEvent();
     event.setId(UUID.randomUUID());
     event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     event.setDescription("description");
     event.setEventDate(finalTermEndDate.plusYears(3));
+    event.setEventReference(eventRef);
 
     var eventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -2297,7 +2565,8 @@ class LicenceScheduleTimelineServiceTest {
             .renderUpdateEventForm(event.getId())),
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(event.getId())),
-        ""
+        "",
+        List.of()
     );
 
     var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
@@ -2320,7 +2589,121 @@ class LicenceScheduleTimelineServiceTest {
     when(otherScheduleEventService.getActiveEventsAfterDate(licenceScheduleDetail, finalTermEndDate))
         .thenReturn(List.of(event));
 
+    when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
+        .thenReturn(Map.of());
+
     assertThat(licenceScheduleTimelineService.getEventsBeyondFinalTerm(licenceScheduleDetail, allowedActions))
         .isEqualTo(List.of(rateView, activityView, eventView));
+  }
+
+  @Test
+  void getEditableLicenceScheduleEventViews_commentsArePopulatedOnViews() {
+    var termRef = new EventReference();
+    termRef.setId(UUID.randomUUID());
+    var term = new LicenceScheduleTerm();
+    term.setId(UUID.randomUUID());
+    term.setLicenceScheduleDetail(licenceScheduleDetail);
+    term.setTermType(TermType.INITIAL);
+    term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
+    term.setStartDate(LocalDate.of(2025, 1, 1));
+    term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setEventReference(termRef);
+
+    var wpaRef = new EventReference();
+    wpaRef.setId(UUID.randomUUID());
+    var wpa = new WorkProgrammeActivity();
+    wpa.setId(UUID.randomUUID());
+    wpa.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
+    wpa.setDescription("WPA description");
+    wpa.setDueDate(LocalDate.of(2025, 6, 1));
+    wpa.setEventReference(wpaRef);
+
+    var wpaStatus = new WorkProgrammeActivityStatus();
+    wpaStatus.setEventReference(wpaRef);
+    wpaStatus.setStatus(WorkProgrammeStatus.OPEN);
+
+    var rateRef = new EventReference();
+    rateRef.setId(UUID.randomUUID());
+    var rate = new LicenceScheduleRate();
+    rate.setId(UUID.randomUUID());
+    rate.setRateDefinitionOption(RateDefinitionOption.TERM);
+    rate.setLicenceScheduleTerm(term);
+    rate.setRentalRate(new BigDecimal("3.00"));
+    rate.setStartDate(LocalDate.of(2025, 1, 1));
+    rate.setEventReference(rateRef);
+
+    var otherEventRef = new EventReference();
+    otherEventRef.setId(UUID.randomUUID());
+    var otherEvent = new OtherScheduleEvent();
+    otherEvent.setId(UUID.randomUUID());
+    otherEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
+    otherEvent.setDescription("Event description");
+    otherEvent.setEventDate(LocalDate.of(2025, 9, 1));
+    otherEvent.setEventReference(otherEventRef);
+
+    var termComment = new EventCommentView("Term note", "Author A", "1 January 2025 12:00:00");
+    var wpaComment = new EventCommentView("WPA note", "Author B", "2 January 2025 12:00:00");
+    var rateComment = new EventCommentView("Rate note", "Author C", "3 January 2025 12:00:00");
+    var eventComment = new EventCommentView("Event note", "Author D", "4 January 2025 12:00:00");
+
+    var commentsMap = Map.of(
+        termRef.getId(), List.of(termComment),
+        wpaRef.getId(), List.of(wpaComment),
+        rateRef.getId(), List.of(rateComment),
+        otherEventRef.getId(), List.of(eventComment)
+    );
+
+    when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
+        .thenReturn(commentsMap);
+
+    var activities = List.of(wpa);
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
+    when(workProgrammeActivityStatusService.getLatestStatusesFor(activities))
+        .thenReturn(Map.of(wpaRef.getId(), wpaStatus));
+
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(term));
+    when(licenceSchedulePhaseService.getActivePhasesByTerm(term)).thenReturn(List.of());
+
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRangeFor(term))
+        .thenReturn(List.of(wpa));
+    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
+        .thenReturn(List.of());
+
+    when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term)).thenReturn(List.of(rate));
+
+    when(otherScheduleEventService.getActiveScheduleEventsByDateRangeFor(term)).thenReturn(List.of(otherEvent));
+    when(otherScheduleEventService.getActiveScheduleEventsByTermAndDateOption(term, OtherScheduleEventDateOption.WITHIN_A_TERM))
+        .thenReturn(List.of());
+
+    var form = new TimelineFilterForm();
+    form.setEventTypes(ScheduleEventType.getFilterDefaults());
+
+    var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
+
+    var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, allowedActions);
+
+    assertThat(result).hasSize(1);
+    var termView = result.getFirst();
+    assertThat(termView.comments()).isEqualTo(List.of(termComment));
+
+    var termEvents = termView.events();
+    var resultWpaView = termEvents.stream()
+        .filter(TimelineWorkProgrammeActivityView.class::isInstance)
+        .map(e -> (TimelineWorkProgrammeActivityView) e)
+        .findFirst().orElseThrow();
+    assertThat(resultWpaView.comments()).isEqualTo(List.of(wpaComment));
+
+    var resultRateView = termEvents.stream()
+        .filter(TimelineRateView.class::isInstance)
+        .map(e -> (TimelineRateView) e)
+        .findFirst().orElseThrow();
+    assertThat(resultRateView.comments()).isEqualTo(List.of(rateComment));
+
+    var resultEventView = termEvents.stream()
+        .filter(TimelineOtherScheduleEventView.class::isInstance)
+        .map(e -> (TimelineOtherScheduleEventView) e)
+        .findFirst().orElseThrow();
+    assertThat(resultEventView.comments()).isEqualTo(List.of(eventComment));
   }
 }

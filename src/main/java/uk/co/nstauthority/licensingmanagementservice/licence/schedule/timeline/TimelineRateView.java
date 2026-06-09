@@ -4,8 +4,11 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentView;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateDeletionController;
@@ -19,7 +22,8 @@ public record TimelineRateView(
     String rentalRateString,
     String updateUrl,
     String deleteUrl,
-    String addCommentUrl
+    String addCommentUrl,
+    List<EventCommentView> comments
 ) implements ScheduleEvent {
 
   @Override
@@ -34,7 +38,8 @@ public record TimelineRateView(
 
   public static ScheduleEvent getScheduleEventFrom(
       LicenceScheduleRate licenceScheduleRate,
-      List<ScheduleEventAction> allowedActions
+      List<ScheduleEventAction> allowedActions,
+      Map<UUID, List<EventCommentView>> eventComments
   ) {
     var editUrl = allowedActions.contains(ScheduleEventAction.EDIT_SCHEDULE_EVENTS)
         ? ReverseRouter.route(on(LicenceScheduleRateController.class)
@@ -51,6 +56,8 @@ public record TimelineRateView(
           .renderAddCommentForm(ScheduleEventType.RATE.getUrlSlug(), licenceScheduleRate.getEventReference().getId()))
         : "";
 
+    var comments = eventComments.getOrDefault(licenceScheduleRate.getEventReference().getId(), List.of());
+
     return new TimelineRateView(
         generateTitle(licenceScheduleRate),
         licenceScheduleRate.getStartDate(),
@@ -59,7 +66,8 @@ public record TimelineRateView(
         "£%s".formatted(licenceScheduleRate.getRentalRate().toString()),
         editUrl,
         deleteUrl,
-        addCommentUrl
+        addCommentUrl,
+        comments
     );
   }
 

@@ -13,6 +13,7 @@ import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceDto;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceSectionsSummaryView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTeamType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
@@ -26,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.letter
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 
 @Controller
 @RequestMapping("/application/{applicationType}/{applicationId}")
@@ -33,6 +35,10 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 @HasRolesInTeamType(value = {
     @RolesAndTeamType(roles = {Role.CONTINUATION_ISSUER}, teamType = TeamType.REGULATIONS_LICENSING)
 })
+@LogWorkAreaItemView(
+    itemType = WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION,
+    pathVariable = "applicationId"
+)
 public class ApplicationLetterController {
 
   static final String APPLICATION_LETTERS_PAGE_TITLE = "Application letters";

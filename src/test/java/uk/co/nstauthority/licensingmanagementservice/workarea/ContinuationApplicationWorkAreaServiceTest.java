@@ -515,4 +515,55 @@ class ContinuationApplicationWorkAreaServiceTest {
     verify(workAreaItemViewService, never()).hasUserViewedItem(any());
   }
 
+  @Test
+  void getWorkAreaItems_whenIssueDecisionItemNotYetViewed_showsNewBadge() {
+    licenceContinuationApplicationDetail2.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+    licenceContinuationApplicationDetail2.setSubmittedDatetime(testInstant.plus(1, ChronoUnit.HOURS));
+
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(licence1);
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
+        .thenReturn(licence2);
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+    when(regulatorRoleService.isContinuationIssuer(serviceUserDetail)).thenReturn(true);
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(any()))
+        .thenReturn(Map.of(licence2, List.of("Org 1")));
+
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::hasNewLabel)
+        .containsExactly(true);
+  }
+
+  @Test
+  void getWorkAreaItems_whenIssueDecisionItemAlreadyViewed_doesNotShowNewBadge() {
+    licenceContinuationApplicationDetail2.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+    licenceContinuationApplicationDetail2.setSubmittedDatetime(testInstant.plus(1, ChronoUnit.HOURS));
+
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(licence1);
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
+        .thenReturn(licence2);
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+    when(regulatorRoleService.isContinuationIssuer(serviceUserDetail)).thenReturn(true);
+    // Issuer views are logged against the application id, not the detail id
+    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any()))
+        .thenReturn(List.of(new WorkAreaItemView(
+            licenceContinuationApplicationDetail2.getLicenceContinuationApplication().getId(),
+            WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION,
+            serviceUserDetail.wuaId()
+        )));
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(any()))
+        .thenReturn(Map.of(licence2, List.of("Org 1")));
+
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::hasNewLabel)
+        .containsExactly(false);
+  }
+
   }

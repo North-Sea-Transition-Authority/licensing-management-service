@@ -138,9 +138,6 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         ? String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getCreatedDateTime()))
         : String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getSubmittedDatetime()));
 
-    var isNewItem = applicationDetail.getStatus() == LicenceContinuationApplicationStatus.SUBMITTED
-        && !viewedItemIds.contains(applicationDetail.getId());
-
     var builder = SearchResultItem.newBuilder()
         .withId(applicationDetail.getId().toString())
         .withLinkHeadingText(String.format("%s - %s",
@@ -152,11 +149,22 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         .withDataItemRow(dataItemRow)
         .withTransactionDatetime(transactionDateTime);
 
-    if (isNewItem) {
+    if (isNewItem(applicationDetail, viewedItemIds)) {
       builder.withNewLabel();
     }
 
     return builder.build();
+  }
+
+  private boolean isNewItem(
+      LicenceContinuationApplicationDetail applicationDetail,
+      Set<UUID> viewedItemIds
+  ) {
+    return switch (applicationDetail.getStatus()) {
+      case SUBMITTED -> !viewedItemIds.contains(applicationDetail.getId());
+      case ISSUE_DECISION -> !viewedItemIds.contains(applicationDetail.getLicenceContinuationApplication().getId());
+      default -> false;
+    };
   }
 
   private boolean matchesFilterAndHasAccess(

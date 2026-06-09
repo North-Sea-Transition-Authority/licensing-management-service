@@ -23,6 +23,10 @@ CVE-2026-33871
 CVE-2026-42587
 CVE-2026-47244
 
+# io.netty:netty-handler
+CVE-2026-44249
+CVE-2026-45416
+
 # org.bouncycastle:bcpkix-jdk18on
 CVE-2023-33202
 CVE-2025-8916
@@ -69,9 +73,6 @@ CVE-2026-22732
 CVE-2026-22737
 CVE-2026-22735
 
-# io.netty:netty-handler
-CVE-2026-44249
-CVE-2026-45416
 
 # gis-framework
 # net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE

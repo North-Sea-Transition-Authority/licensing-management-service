@@ -491,7 +491,37 @@ class ContinuationApplicationWorkAreaServiceTest {
   }
 
   @Test
-  void getWorkAreaItems_whenDraftApplication_doesNotTriggerViewCheck() {
+  void getWorkAreaItems_whenDraftApplicationAlreadyViewed_doesNotShowNewBadge() {
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(licence1);
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
+        .thenReturn(licence2);
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+    when(applicationAccessService.userHasAccessToApplication(
+        licenceContinuationApplicationDetail.getId().toString(),
+        ApplicationType.CONTINUATION_APPLICATION,
+        licenceContinuationApplicationDetail.getResponsibleOrganisationUnitId(),
+        serviceUserDetail.wuaId()
+    )).thenReturn(true);
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(any()))
+        .thenReturn(Map.of(licence1, List.of("Org 1")));
+    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any()))
+        .thenReturn(List.of(new WorkAreaItemView(
+            licenceContinuationApplicationDetail.getId(),
+            WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION,
+            serviceUserDetail.wuaId()
+        )));
+
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::hasNewLabel)
+        .containsExactly(false);
+  }
+
+  @Test
+  void getWorkAreaItems_whenDraftApplicationNotYetViewed_showsNewBadge() {
     when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
         .thenReturn(licence1);
     when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail2))
@@ -511,8 +541,7 @@ class ContinuationApplicationWorkAreaServiceTest {
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::hasNewLabel)
-        .containsExactly(false);
-    verify(workAreaItemViewService, never()).hasUserViewedItem(any());
+        .containsExactly(true);
   }
 
   @Test

@@ -65,9 +65,13 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       WorkAreaFilterForm workAreaFilterForm,
       ServiceUserDetail serviceUserDetail
   ) {
+    var isContinuationIssuer = regulatorRoleService.isContinuationIssuer(serviceUserDetail);
+    var isContinuationReviewer = regulatorRoleService.isContinuationReviewer(serviceUserDetail);
+
     var applicationDetails = licenceContinuationService
         .getAllContinuationApplicationDetailsByStatuses(ACTIVE_APPLICATION_STATUSES).stream()
-        .filter(applicationDetail -> matchesFilterAndHasAccess(applicationDetail, workAreaFilterForm, serviceUserDetail))
+        .filter(applicationDetail -> matchesFilterAndHasAccess(
+            applicationDetail, workAreaFilterForm, serviceUserDetail, isContinuationIssuer, isContinuationReviewer))
         .toList();
 
     var licences = applicationDetails.stream()
@@ -85,14 +89,14 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
 
     return applicationDetails.stream()
         .map(applicationDetail ->
-            createWorkAreaItem(applicationDetail, responsibleOrganisationNames, serviceUserDetail, viewedItemIds))
+            createWorkAreaItem(applicationDetail, responsibleOrganisationNames, isContinuationIssuer, viewedItemIds))
         .toList();
   }
 
   private SearchResultItem createWorkAreaItem(
       LicenceContinuationApplicationDetail applicationDetail,
       Map<Licence, List<String>> responsibleOrganisationNamesByLicences,
-      ServiceUserDetail serviceUserDetail,
+      boolean isContinuationIssuer,
       Set<UUID> viewedItemIds
   ) {
     var licence = licenceContinuationService.getLicenceFromContinuationApplicationDetail(applicationDetail);
@@ -114,7 +118,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       case DRAFT -> ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
           .getTaskList(applicationDetail.getId(), null, null));
 
-      case LicenceContinuationApplicationStatus.ISSUE_DECISION -> (regulatorRoleService.isContinuationIssuer(serviceUserDetail))
+      case LicenceContinuationApplicationStatus.ISSUE_DECISION -> isContinuationIssuer
               ? ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
                     ApplicationType.CONTINUATION_APPLICATION,
                     applicationDetail.getLicenceContinuationApplication().getId()
@@ -149,7 +153,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         .withDataItemRow(dataItemRow)
         .withTransactionDatetime(transactionDateTime);
 
-    if (isNewItem(applicationDetail, viewedItemIds)) {
+    if (isNewItem(applicationDetail, isContinuationIssuer, viewedItemIds)) {
       builder.withNewLabel();
     }
 
@@ -158,19 +162,21 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
 
   private boolean isNewItem(
       LicenceContinuationApplicationDetail applicationDetail,
+      boolean isContinuationIssuer,
       Set<UUID> viewedItemIds
   ) {
-    return switch (applicationDetail.getStatus()) {
-      case SUBMITTED -> !viewedItemIds.contains(applicationDetail.getId());
-      case ISSUE_DECISION -> !viewedItemIds.contains(applicationDetail.getLicenceContinuationApplication().getId());
-      default -> false;
-    };
+    if (applicationDetail.getStatus() == LicenceContinuationApplicationStatus.ISSUE_DECISION && isContinuationIssuer) {
+      return !viewedItemIds.contains(applicationDetail.getLicenceContinuationApplication().getId());
+    }
+    return !viewedItemIds.contains(applicationDetail.getId());
   }
 
   private boolean matchesFilterAndHasAccess(
       LicenceContinuationApplicationDetail applicationDetail,
       WorkAreaFilterForm filterForm,
-      ServiceUserDetail userDetail
+      ServiceUserDetail userDetail,
+      boolean isContinuationIssuer,
+      boolean isContinuationReviewer
   ) {
     Licence licence = licenceContinuationService.getLicenceFromContinuationApplicationDetail(applicationDetail);
 
@@ -179,8 +185,6 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
     }
 
     var status = applicationDetail.getStatus();
-    boolean isIssuer = regulatorRoleService.isContinuationIssuer(userDetail);
-    boolean isReviewer = regulatorRoleService.isContinuationReviewer(userDetail);
     boolean hasAppAccess = applicationAccessService.userHasAccessToApplication(
         applicationDetail.getId().toString(),
         ApplicationType.CONTINUATION_APPLICATION,
@@ -191,8 +195,8 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
     return hasAppAccess(
         status,
         hasAppAccess,
-        isReviewer,
-        isIssuer
+        isContinuationReviewer,
+        isContinuationIssuer
     );
   }
 

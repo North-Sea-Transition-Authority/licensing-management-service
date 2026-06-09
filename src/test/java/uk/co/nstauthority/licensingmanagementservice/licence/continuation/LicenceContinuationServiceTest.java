@@ -49,6 +49,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.teams.IndustryTeamService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamMemberView;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.ClearDownWorkAreaLogService;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceContinuationServiceTest {
@@ -82,6 +84,9 @@ class LicenceContinuationServiceTest {
 
   @Mock
   private IndustryTeamService industryTeamService;
+
+  @Mock
+  private ClearDownWorkAreaLogService clearDownWorkAreaLogService;
 
   @Mock
   private LicenceApplication licenceApplication;
@@ -373,6 +378,10 @@ class LicenceContinuationServiceTest {
 
     assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.COMPLETE);
     verify(licenceContinuationApplicationDetailRepository).save(licenceContinuationApplicationDetail);
+    verify(clearDownWorkAreaLogService).clearDownAllViewsFor(
+        licenceContinuationApplicationDetail.getId(),
+        WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION
+    );
     verify(organisationUnitQueryService).findOrganisationGroupIdByUnitId(orgUnitId);
     verify(industryTeamService).getSubmitterDetails(orgGroupId);
   }

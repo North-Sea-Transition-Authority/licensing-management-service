@@ -35,6 +35,8 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.IndustryTeamService;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamMemberView;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.ClearDownWorkAreaLogService;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 
 @Service
 public class LicenceContinuationService {
@@ -54,6 +56,7 @@ public class LicenceContinuationService {
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final EmailService emailService;
   private final IndustryTeamService industryTeamService;
+  private final ClearDownWorkAreaLogService clearDownWorkAreaLogService;
 
   public LicenceContinuationService(
       LicenceContinuationApplicationDetailRepository licenceContinuationApplicationDetailRepository,
@@ -65,7 +68,8 @@ public class LicenceContinuationService {
       ApplicationWithdrawService applicationWithdrawService,
       OrganisationUnitQueryService organisationUnitQueryService,
       EmailService emailService,
-      IndustryTeamService industryTeamService
+      IndustryTeamService industryTeamService,
+      ClearDownWorkAreaLogService clearDownWorkAreaLogService
   ) {
     this.licenceContinuationApplicationDetailRepository = licenceContinuationApplicationDetailRepository;
     this.licenceContinuationApplicationRepository = licenceContinuationApplicationRepository;
@@ -77,6 +81,7 @@ public class LicenceContinuationService {
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.emailService = emailService;
     this.industryTeamService = industryTeamService;
+    this.clearDownWorkAreaLogService = clearDownWorkAreaLogService;
   }
 
   @Transactional
@@ -294,6 +299,11 @@ public class LicenceContinuationService {
 
     continuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.COMPLETE);
     licenceContinuationApplicationDetailRepository.save(continuationApplicationDetail);
+
+    clearDownWorkAreaLogService.clearDownAllViewsFor(
+        continuationApplicationDetail.getId(),
+        WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION
+    );
 
     sendContinuationIssuanceEmails(application, continuationApplicationDetail);
   }

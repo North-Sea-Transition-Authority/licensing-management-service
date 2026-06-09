@@ -48,3 +48,5 @@ out/
 ### Node ###
 logs
 node_modules
+
+application-local.properties

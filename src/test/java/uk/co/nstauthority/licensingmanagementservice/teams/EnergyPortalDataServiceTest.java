@@ -208,6 +208,21 @@ class EnergyPortalDataServiceTest {
         );
   }
 
+  @Test
+  void belongsToAnyTeam_returnsTrue_whenUserHasTeamRoles() {
+    when(teamRoleRepository.existsByWuaId(300165L)).thenReturn(true);
+
+    assertThat(energyPortalDataService.belongsToAnyTeam(300165L)).isTrue();
+  }
+
+  @Test
+  void belongsToAnyTeam_returnsFalse_whenUserHasNoTeamRoles() {
+    when(teamRoleRepository.existsByWuaId(300165L)).thenReturn(false);
+
+    assertThat(energyPortalDataService.belongsToAnyTeam(300165L)).isFalse();
+  }
+
+
   private ServiceProviderTeamTypeRoleDto createServiceRoleDto(Role role, boolean isAssessManager) {
     return new ServiceProviderTeamTypeRoleDto(
         role.name(),

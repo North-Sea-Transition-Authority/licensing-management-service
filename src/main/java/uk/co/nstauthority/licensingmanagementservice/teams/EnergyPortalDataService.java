@@ -102,4 +102,9 @@ class EnergyPortalDataService implements EnergyPortalServiceProviderDataService 
     }
     return serviceProviderUserTeamRolesDtos;
   }
+
+  @Override
+  public boolean belongsToAnyTeam(long wuaId) {
+    return teamRoleRepository.existsByWuaId(wuaId);
+  }
 }

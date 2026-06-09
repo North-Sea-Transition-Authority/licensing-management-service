@@ -19,13 +19,13 @@ java {
 def fileUploadLibraryVersion = 'v3.0.0'
 
 repositories {
-	mavenCentral()
-	maven {
-		// Required for opensaml deps
-		url "https://build.shibboleth.net/nexus/content/repositories/releases/"
-	}
-	maven { url "https://nexus.fivium.co.uk/repository/maven-releases/" }
-	maven { url "https://nexus.fivium.co.uk/repository/maven-snapshots/" }
+  mavenCentral()
+  maven {
+    // Required for opensaml deps
+    url "https://build.shibboleth.net/nexus/content/repositories/releases/"
+  }
+  maven { url "https://nexus.fivium.co.uk/repository/maven-releases/" }
+  maven { url "https://nexus.fivium.co.uk/repository/maven-snapshots/" }
 }
 
 dependencies {

@@ -30,4 +30,7 @@ public interface TeamRoleRepository extends ListCrudRepository<TeamRole, UUID>, 
   List<TeamRole> findAllByTeamAndRole(Team team, Role role);
 
   List<TeamRole> findAllByRoleIn(Collection<Role> roles);
+
+  boolean existsByWuaId(long wuaId);
+
 }

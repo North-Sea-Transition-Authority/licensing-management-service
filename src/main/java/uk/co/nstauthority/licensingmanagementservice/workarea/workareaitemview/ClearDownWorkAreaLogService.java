@@ -17,4 +17,9 @@ public class ClearDownWorkAreaLogService {
   public void clearDownAllViewsFor(UUID itemId, WorkAreaDataItemType itemType) {
     workAreaItemViewRepository.deleteAllByItemIdAndItemType(itemId, itemType);
   }
+
+  @Transactional
+  public void clearDownViewFor(Long userId, UUID itemId, WorkAreaDataItemType itemType) {
+    workAreaItemViewRepository.deleteByUserIdAndItemIdAndItemType(userId, itemId, itemType);
+  }
 }

@@ -15,6 +15,8 @@ public interface WorkAreaItemViewRepository
 
   void deleteAllByItemIdAndItemType(UUID itemId, WorkAreaDataItemType itemType);
 
+  void deleteByUserIdAndItemIdAndItemType(Long userId, UUID itemId, WorkAreaDataItemType itemType);
+
   List<WorkAreaItemView> findAllByItemType(WorkAreaDataItemType itemType);
 
   List<WorkAreaItemView> findAllByItemTypeInAndUserId(List<WorkAreaDataItemType> itemTypes, Long userId);

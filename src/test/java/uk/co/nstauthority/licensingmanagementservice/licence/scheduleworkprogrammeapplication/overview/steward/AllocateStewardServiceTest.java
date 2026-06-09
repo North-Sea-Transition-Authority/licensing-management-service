@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,10 +21,14 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPor
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationRepository;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.ClearDownWorkAreaLogService;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 
 @ExtendWith(MockitoExtension.class)
 class AllocateStewardServiceTest {
@@ -36,6 +41,12 @@ class AllocateStewardServiceTest {
 
   @Mock
   private ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository;
+
+  @Mock
+  private ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository;
+
+  @Mock
+  private ClearDownWorkAreaLogService clearDownWorkAreaLogService;
 
   @InjectMocks
   private AllocateStewardService allocateStewardService;
@@ -117,9 +128,37 @@ class AllocateStewardServiceTest {
     application.setId(UUID.randomUUID());
     var stewardWuaId = 99L;
 
+    when(scheduleWorkProgrammeApplicationDetailRepository
+        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+        .thenReturn(Optional.empty());
+
     allocateStewardService.saveSteward(application, stewardWuaId);
 
     verify(scheduleWorkProgrammeApplicationRepository).save(applicationCaptor.capture());
     assertThat(applicationCaptor.getValue().getStewardWuaId()).isEqualTo(stewardWuaId);
+  }
+
+  @Test
+  void saveSteward_clearsWorkAreaViewRecordForNewlyAssignedStewardOnly() {
+    var detailId = UUID.randomUUID();
+    var newStewardWuaId = 42L;
+    var application = new ScheduleWorkProgrammeApplication();
+    application.setId(UUID.randomUUID());
+
+    var detail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(detailId)
+        .build();
+
+    when(scheduleWorkProgrammeApplicationDetailRepository
+        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+        .thenReturn(Optional.of(detail));
+
+    allocateStewardService.saveSteward(application, newStewardWuaId);
+
+    verify(clearDownWorkAreaLogService).clearDownViewFor(
+        newStewardWuaId,
+        detailId,
+        WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION
+    );
   }
 }

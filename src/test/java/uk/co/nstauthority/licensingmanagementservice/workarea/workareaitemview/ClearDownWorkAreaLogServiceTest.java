@@ -26,4 +26,14 @@ class ClearDownWorkAreaLogServiceTest {
 
     verify(workAreaItemViewRepository).deleteAllByItemIdAndItemType(itemId, WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION);
   }
+
+  @Test
+  void clearDownViewFor_deletesOnlyTheGivenUsersRecordForItem() {
+    var itemId = UUID.randomUUID();
+
+    clearDownWorkAreaLogService.clearDownViewFor(42L, itemId, WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION);
+
+    verify(workAreaItemViewRepository)
+        .deleteByUserIdAndItemIdAndItemType(42L, itemId, WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION);
+  }
 }

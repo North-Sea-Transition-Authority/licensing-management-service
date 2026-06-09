@@ -9,9 +9,12 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPor
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationRepository;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.ClearDownWorkAreaLogService;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 
 @Service
 class AllocateStewardService {
@@ -21,15 +24,21 @@ class AllocateStewardService {
   private final TeamQueryService teamQueryService;
   private final EnergyPortalUserService energyPortalUserService;
   private final ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository;
+  private final ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository;
+  private final ClearDownWorkAreaLogService clearDownWorkAreaLogService;
 
   AllocateStewardService(
       TeamQueryService teamQueryService,
       EnergyPortalUserService energyPortalUserService,
-      ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository
+      ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository,
+      ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository,
+      ClearDownWorkAreaLogService clearDownWorkAreaLogService
   ) {
     this.teamQueryService = teamQueryService;
     this.energyPortalUserService = energyPortalUserService;
     this.scheduleWorkProgrammeApplicationRepository = scheduleWorkProgrammeApplicationRepository;
+    this.scheduleWorkProgrammeApplicationDetailRepository = scheduleWorkProgrammeApplicationDetailRepository;
+    this.clearDownWorkAreaLogService = clearDownWorkAreaLogService;
   }
 
   Map<String, String> getStewardOptions() {
@@ -58,5 +67,12 @@ class AllocateStewardService {
   public void saveSteward(ScheduleWorkProgrammeApplication application, Long stewardWuaId) {
     application.setStewardWuaId(stewardWuaId);
     scheduleWorkProgrammeApplicationRepository.save(application);
+    scheduleWorkProgrammeApplicationDetailRepository
+        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application)
+        .ifPresent(detail -> clearDownWorkAreaLogService.clearDownViewFor(
+            stewardWuaId,
+            detail.getId(),
+            WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION
+        ));
   }
 }

@@ -74,7 +74,7 @@ dependencies {
 }
 
 node {
-  version = '22.12.0'
+  version = '24.16.0'
   npmVersion = '10.9.0'
   download = true
   nodeProjectDir = projectDir

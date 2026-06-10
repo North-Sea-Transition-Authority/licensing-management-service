@@ -30,7 +30,7 @@ steps:
         from_secret: bitbucket_ssh_key
 
   - name: build-gis-node-backend
-    image: node:22.21.1
+    image: node:24.16.0
     commands:
       - cd gis-framework/arcgis-node
       - npm install
@@ -65,7 +65,7 @@ steps:
       build_image: repo1.dev.fivium.local:5000/docker-compose-java21
 
   - name: build-frontend
-    image: node:18
+    image: node:24.16.0
     commands:
       - cd fivium-design-system-core && npm install && npx gulp buildAll && cd ..
       - npm install && npx gulp buildAll
@@ -300,7 +300,7 @@ steps:
         from_secret: bitbucket_ssh_key
 
   - name: build-gis-node-backend
-    image: node:22.21.1
+    image: node:24.16.0
     commands:
       - cd gis-framework/arcgis-node
       - npm install
@@ -336,7 +336,7 @@ steps:
 
   # This is in the PR pipeline so the code-analysis below can access the test data (to see coverage)
   - name: build-frontend
-    image: node:18
+    image: node:24.16.0
     commands:
       - cd fivium-design-system-core && npm install && npx gulp buildAll && cd ..
       - npm install && npx gulp buildAll

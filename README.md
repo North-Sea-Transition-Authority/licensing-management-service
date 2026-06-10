@@ -13,7 +13,7 @@ The service also sends reminders to licensees to provide updates on future licen
 
 ## Pre-requisites
 - Java 21
-- Node 18 + NPM
+- Node 24.16.0 + NPM
 - [Docker for Windows](https://hub.docker.com/editions/community/docker-ce-desktop-windows)
   (See [Docker setup](https://confluence.fivium.co.uk/display/JAVA/Java+development+environment+setup#Javadevelopmentenvironmentsetup-Docker)
   for further information about adding your account to the `docker-users` group)

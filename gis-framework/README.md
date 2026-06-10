@@ -9,6 +9,7 @@ The framework also provides frontend components that can be used to display and 
 ## TLDR Initialization steps
 
 - Add the GIS framework as a dependency to your project
+- Make sure you are using node 24.16.0
 - Add `<#include "../../gis/gisAssets/gisAssets.ftl">` to your `layout.ftl` to include the GIS frontend assets
 - run `cd gis-framework && npm install && npm run build-all && cd .. && npx gulp buildAll` to build the frontend components
 - run `cd gis-framework/arcgis-node && npm install && npx tsx src/grpc-server.ts` to start the arcGis node server

@@ -16,6 +16,7 @@
 <#-- @ftlvariable name="contactPageUrl" type="String" -->
 <#-- @ftlvariable name="notificationBanner" type="uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner" -->
 <#-- @ftlvariable name="analytics" type="uk.co.nstauthority.licensingmanagementservice.configuration.AnalyticsConfigurationProperties" -->
+<#-- @ftlvariable name="errorSummaryItems" type="java.util.List<uk.gov.nstauthority.licensingmanagementservice.fds.ErrorSummaryItem>" -->
 
 <#assign FEEDBACK_PAGE_URL = springUrl(feedbackPageUrl) />
 
@@ -29,7 +30,7 @@
   backLinkUrl=""
   backLinkEnabled=false
   breadcrumbs={}
-  errorSummaryItems=[]
+  errorSummaryItems=errorSummaryItems![]
   showNavigationItems=true
   caption=""
   captionClass="govuk-caption-xl"

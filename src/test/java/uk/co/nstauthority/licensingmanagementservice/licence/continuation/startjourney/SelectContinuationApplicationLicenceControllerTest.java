@@ -62,7 +62,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
         .andExpect(view().name("lms/licence/continuation/selectLicence"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("searchUrl",
-            SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndTypeForContinuationApplication(LicenceTypeUtil.getUrlSlugList(licenceTypeList), null, null))))
+            SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndType(LicenceTypeUtil.getUrlSlugList(licenceTypeList), null, null))))
         .andExpect(model().attribute("backUrl",
             ReverseRouter.route(on(StartContinuationApplicationController.class).render())));
   }
@@ -110,7 +110,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
         .andExpect(view().name("lms/licence/continuation/selectLicence"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("searchUrl",
-            SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndTypeForContinuationApplication(LicenceTypeUtil.getUrlSlugList(licenceTypeList), null, null))))
+            SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndType(LicenceTypeUtil.getUrlSlugList(licenceTypeList), null, null))))
         .andExpect(model().attribute("backUrl",
             ReverseRouter.route(on(StartContinuationApplicationController.class).render())));
   }

@@ -40,8 +40,8 @@ public class LicenceInternalApiRestController {
     );
   }
 
-  @GetMapping("/schedule-work-programme-application/{licenceTypeSlugList}")
-  public RestSearchResult searchActiveLicenceSchedulesByReferenceAndTypeForEaaApplication(
+  @GetMapping("/activeSchedules/{licenceTypeSlugList}")
+  public RestSearchResult searchActiveLicenceSchedulesByReferenceAndType(
       @PathVariable String licenceTypeSlugList,
       @RequestParam(value = "term") String term,
       ServiceUserDetail serviceUserDetail
@@ -50,26 +50,7 @@ public class LicenceInternalApiRestController {
 
     return searchSelectorService.search(
         term,
-        licenceInternalApiService.searchLicencesWithInProgressSchedulesByReferenceTypeAndStatusForEaaApplication(
-            term,
-            licenceTypes,
-            LicenceScheduleDetailStatus.ACTIVE,
-            serviceUserDetail
-        )
-    );
-  }
-
-  @GetMapping("/continuations/{licenceTypeSlugList}")
-  public RestSearchResult searchActiveLicenceSchedulesByReferenceAndTypeForContinuationApplication(
-      @PathVariable String licenceTypeSlugList,
-      @RequestParam(value = "term") String term,
-      ServiceUserDetail serviceUserDetail
-  ) {
-    var licenceTypes = LicenceType.getFromSlugListOrThrow(licenceTypeSlugList);
-
-    return searchSelectorService.search(
-        term,
-        licenceInternalApiService.searchLicencesWithInProgressSchedulesByReferenceTypeAndStatusForContinuationApplication(
+        licenceInternalApiService.searchLicencesWithInProgressSchedulesByReferenceTypeAndStatus(
             term,
             licenceTypes,
             LicenceScheduleDetailStatus.ACTIVE,

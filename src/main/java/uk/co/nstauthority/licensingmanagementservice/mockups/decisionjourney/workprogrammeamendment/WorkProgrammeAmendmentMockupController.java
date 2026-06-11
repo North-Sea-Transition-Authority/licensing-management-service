@@ -85,7 +85,7 @@ public class WorkProgrammeAmendmentMockupController {
         .addObject("transferLicences", List.of())
         .addObject("searchUrl",
             SearchSelectorService.route(on(LicenceInternalApiRestController.class)
-                .searchActiveLicenceSchedulesByReferenceAndTypeForContinuationApplication(
+                .searchActiveLicenceSchedulesByReferenceAndType(
                     licenceTypeSlugList, null, null)))
         .addObject("pageTitle", "What is the decision in relation to this activity?");
   }

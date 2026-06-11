@@ -12,16 +12,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 
 @Service
 public class LicenceInternalApiService {
@@ -29,23 +25,17 @@ public class LicenceInternalApiService {
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final LicenceScheduleDetailService licenceScheduleDetailService;
   private final ApplicationAccessService applicationAccessService;
-  private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
-  private final LicenceContinuationService licenceContinuationService;
   private final LicenceService licenceService;
 
   public LicenceInternalApiService(
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
       LicenceScheduleDetailService licenceScheduleDetailService,
       ApplicationAccessService applicationAccessService,
-      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
-      LicenceContinuationService licenceContinuationService,
       LicenceService licenceService
   ) {
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.applicationAccessService = applicationAccessService;
-    this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
-    this.licenceContinuationService = licenceContinuationService;
     this.licenceService = licenceService;
   }
 
@@ -59,58 +49,11 @@ public class LicenceInternalApiService {
         .toList();
   }
 
-  List<LicenceJson> searchLicencesWithInProgressSchedulesByReferenceTypeAndStatusForEaaApplication(
+  List<LicenceJson> searchLicencesWithInProgressSchedulesByReferenceTypeAndStatus(
       String searchTerm,
       List<LicenceType> types,
       LicenceScheduleDetailStatus status,
       ServiceUserDetail serviceUserDetail
-  ) {
-    var licencesWithActiveApplications = scheduleWorkProgrammeApplicationService
-        .getAllScheduleWorkProgrammeApplicationDetailsByStatuses(Set.of(
-            ScheduleWorkProgrammeApplicationStatus.DRAFT,
-            ScheduleWorkProgrammeApplicationStatus.SUBMITTED
-        )
-    ).stream()
-        .map(scheduleWorkProgrammeApplicationService::getLicenceFromScheduleWorkProgrammeApplicationDetail)
-        .toList();
-
-    return doSearch(
-        searchTerm,
-        types,
-        status,
-        serviceUserDetail,
-        licencesWithActiveApplications
-    );
-  }
-
-  List<LicenceJson> searchLicencesWithInProgressSchedulesByReferenceTypeAndStatusForContinuationApplication(
-      String searchTerm,
-      List<LicenceType> types,
-      LicenceScheduleDetailStatus status,
-      ServiceUserDetail serviceUserDetail
-  ) {
-    var licencesWithActiveApplications = licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(Set.of(
-        LicenceContinuationApplicationStatus.DRAFT,
-        LicenceContinuationApplicationStatus.SUBMITTED
-    )).stream()
-        .map(licenceContinuationService::getLicenceFromContinuationApplicationDetail)
-        .toList();
-
-    return doSearch(
-        searchTerm,
-        types,
-        status,
-        serviceUserDetail,
-        licencesWithActiveApplications
-    );
-  }
-
-  private List<LicenceJson> doSearch(
-      String searchTerm,
-      List<LicenceType> types,
-      LicenceScheduleDetailStatus status,
-      ServiceUserDetail serviceUserDetail,
-      List<Licence> excludedLicences
   ) {
     var usersOrganisationUnitIds = applicationAccessService.getOrganisationUnitIds(serviceUserDetail);
 
@@ -130,7 +73,6 @@ public class LicenceInternalApiService {
 
     return licences.stream()
         .filter(licence -> isUserInLicenseeOrganisation(licence, organisationByLicence, usersOrganisationUnitIds))
-        .filter(licence -> !excludedLicences.contains(licence))
         .sorted(Comparator.comparing(Licence::getPrefix).thenComparing(Licence::getLicenceNumber))
         .map(this::toLicenceJson)
         .toList();

@@ -51,7 +51,7 @@ class LicenceInternalApiRestControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void searchActiveLicenceSchedulesByReferenceAndTypeForEaaApplication() throws Exception {
+  void searchActiveLicenceSchedulesByReferenceAndType() throws Exception {
     var user = ServiceUserDetailTestUtil.newBuilder().build();
 
     var licenceType = LicenceType.CARBON_STORAGE;
@@ -59,7 +59,7 @@ class LicenceInternalApiRestControllerTest extends AbstractControllerTest {
 
     var response = List.of(new LicenceJson(1, "CS001"));
 
-    when(licenceInternalApiService.searchLicencesWithInProgressSchedulesByReferenceTypeAndStatusForEaaApplication(
+    when(licenceInternalApiService.searchLicencesWithInProgressSchedulesByReferenceTypeAndStatus(
         searchTerm,
         List.of(licenceType),
         LicenceScheduleDetailStatus.ACTIVE,
@@ -68,32 +68,7 @@ class LicenceInternalApiRestControllerTest extends AbstractControllerTest {
         .thenReturn(response);
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndTypeForEaaApplication(licenceType.getUrlSlug(), null, null)))
-                .with(user(user))
-                .param("term", searchTerm)
-        )
-        .andExpect(status().isOk());
-  }
-
-  @Test
-  void searchActiveLicenceSchedulesByReferenceAndTypeForContinuationApplication() throws Exception {
-    var user = ServiceUserDetailTestUtil.newBuilder().build();
-
-    var licenceType = LicenceType.CARBON_STORAGE;
-    var searchTerm = "searchTerm";
-
-    var response = List.of(new LicenceJson(1, "CS001"));
-
-    when(licenceInternalApiService.searchLicencesWithInProgressSchedulesByReferenceTypeAndStatusForEaaApplication(
-        searchTerm,
-        List.of(licenceType),
-        LicenceScheduleDetailStatus.ACTIVE,
-        null)
-    )
-        .thenReturn(response);
-
-    mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndTypeForContinuationApplication(licenceType.getUrlSlug(), null, null)))
+            get(ReverseRouter.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndType(licenceType.getUrlSlug(), null, null)))
                 .with(user(user))
                 .param("term", searchTerm)
         )

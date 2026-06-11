@@ -16,16 +16,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceInternalApiServiceTest {
@@ -38,12 +33,6 @@ class LicenceInternalApiServiceTest {
 
   @Mock
   private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
-
-  @Mock
-  private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
-
-  @Mock
-  private LicenceContinuationService licenceContinuationService;
 
   @Mock
   private LicenceService licenceService;
@@ -71,7 +60,7 @@ class LicenceInternalApiServiceTest {
   }
 
   @Test
-  void searchLicencesWithInProgressSchedulesByReferenceTypeAndStatusForEaaApplication() {
+  void searchLicencesWithInProgressSchedulesByReferenceTypeAndStatus() {
     serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().withWuaId(1L).build();
     int authorizedUnitId = 99;
     when(applicationAccessService.getOrganisationUnitIds(serviceUserDetail)).thenReturn(Set.of(authorizedUnitId));
@@ -91,11 +80,6 @@ class LicenceInternalApiServiceTest {
     licenceResponsibleOrganisation.setResponsibleOrganisationId(authorizedUnitId);
     licenceResponsibleOrganisation.setLicence(licence);
     when(licenceResponsibleOrganisationService.getAllByLicenceIn(List.of(licence))).thenReturn(List.of(licenceResponsibleOrganisation));
-    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(Set.of(
-        ScheduleWorkProgrammeApplicationStatus.DRAFT,
-        ScheduleWorkProgrammeApplicationStatus.SUBMITTED
-    )))
-        .thenReturn(List.of());
 
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
     var licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
@@ -108,107 +92,7 @@ class LicenceInternalApiServiceTest {
 
     var licenceJson = new LicenceJson(id, licenceReference);
 
-    assertThat(licenceInternalApiService.searchLicencesWithInProgressSchedulesByReferenceTypeAndStatusForEaaApplication(
-        searchTerm,
-        List.of(licenceType),
-        LicenceScheduleDetailStatus.ACTIVE,
-        serviceUserDetail
-    ))
-        .usingRecursiveComparison()
-        .isEqualTo(List.of(licenceJson));
-  }
-
-  @Test
-  void searchLicencesWithInProgressSchedulesByReferenceTypeAndStatusForEaaApplication_testActiveApplicationFilter() {
-    serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().withWuaId(1L).build();
-    int authorizedUnitId = 99;
-    when(applicationAccessService.getOrganisationUnitIds(serviceUserDetail)).thenReturn(Set.of(authorizedUnitId));
-
-    var searchTerm = "term";
-    var licenceType = LicenceType.CARBON_STORAGE;
-
-    var licenceReference = "CS001";
-    int id = 3;
-    var licence = LicenceTestUtil.builder()
-        .withId(id)
-        .withLicenceReference(licenceReference)
-        .withLicenceType(licenceType)
-        .build();
-
-    var licenceResponsibleOrganisation = new LicenceResponsibleOrganisation();
-    licenceResponsibleOrganisation.setResponsibleOrganisationId(authorizedUnitId);
-    licenceResponsibleOrganisation.setLicence(licence);
-
-    when(licenceResponsibleOrganisationService.getAllByLicenceIn(List.of(licence))).thenReturn(List.of(licenceResponsibleOrganisation));
-
-    var scheduleAppDetail = new ScheduleWorkProgrammeApplicationDetail();
-
-    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(Set.of(
-        ScheduleWorkProgrammeApplicationStatus.DRAFT,
-        ScheduleWorkProgrammeApplicationStatus.SUBMITTED
-    )))
-        .thenReturn(List.of(scheduleAppDetail));
-
-    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
-    var licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
-
-    when(scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(scheduleAppDetail)).thenReturn(licence);
-
-    when(licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
-        searchTerm,
-        List.of(licenceType),
-        LicenceScheduleDetailStatus.ACTIVE)
-    ).thenReturn(List.of(licenceScheduleDetail));
-
-    assertThat(licenceInternalApiService.searchLicencesWithInProgressSchedulesByReferenceTypeAndStatusForEaaApplication(
-        searchTerm,
-        List.of(licenceType),
-        LicenceScheduleDetailStatus.ACTIVE,
-        serviceUserDetail
-    ))
-        .isEqualTo(List.of());
-  }
-
-  @Test
-  void searchLicencesWithInProgressSchedulesByReferenceTypeAndStatusForContinuationApplication() {
-    serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().withWuaId(1L).build();
-    int authorizedUnitId = 99;
-    when(applicationAccessService.getOrganisationUnitIds(serviceUserDetail)).thenReturn(Set.of(authorizedUnitId));
-
-    var searchTerm = "term";
-    var licenceType = LicenceType.CARBON_STORAGE;
-
-    var licenceReference = "CS001";
-    int id = 3;
-    var licence = LicenceTestUtil.builder()
-        .withId(id)
-        .withLicenceReference(licenceReference)
-        .withLicenceType(licenceType)
-        .build();
-
-    var licenceResponsibleOrganisation = new LicenceResponsibleOrganisation();
-    licenceResponsibleOrganisation.setResponsibleOrganisationId(authorizedUnitId);
-    licenceResponsibleOrganisation.setLicence(licence);
-
-    when(licenceResponsibleOrganisationService.getAllByLicenceIn(List.of(licence))).thenReturn(List.of(licenceResponsibleOrganisation));
-    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(Set.of(
-        LicenceContinuationApplicationStatus.DRAFT,
-        LicenceContinuationApplicationStatus.SUBMITTED
-    )))
-        .thenReturn(List.of());
-
-    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
-    var licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
-
-    when(licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
-        searchTerm,
-        List.of(licenceType),
-        LicenceScheduleDetailStatus.ACTIVE)
-    ).thenReturn(List.of(licenceScheduleDetail));
-
-    var licenceJson = new LicenceJson(id, licenceReference);
-
-    assertThat(licenceInternalApiService.searchLicencesWithInProgressSchedulesByReferenceTypeAndStatusForContinuationApplication(
+    assertThat(licenceInternalApiService.searchLicencesWithInProgressSchedulesByReferenceTypeAndStatus(
         searchTerm,
         List.of(licenceType),
         LicenceScheduleDetailStatus.ACTIVE,

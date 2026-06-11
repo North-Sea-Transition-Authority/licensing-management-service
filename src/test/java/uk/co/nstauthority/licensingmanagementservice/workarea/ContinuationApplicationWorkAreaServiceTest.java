@@ -3,6 +3,9 @@ package uk.co.nstauthority.licensingmanagementservice.workarea;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -564,6 +567,23 @@ class ContinuationApplicationWorkAreaServiceTest {
     assertThat(workAreaItems)
         .extracting(SearchResultItem::hasNewLabel)
         .containsExactly(true);
+  }
+
+  @Test
+  void getWorkAreaItems_whenDraftAndUserIsRegulator_isExcluded() {
+    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(licence1);
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail));
+    when(applicationAccessService.userHasAccessToApplication(
+        anyString(), any(ApplicationType.class), nullable(Integer.class), any(Long.class)
+    )).thenReturn(true);
+    when(regulatorRoleService.isRegulator(serviceUserDetail)).thenReturn(true);
+
+    var workAreaItems = continuationApplicationWorkAreaService
+        .getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems).isEmpty();
   }
 
   @Test

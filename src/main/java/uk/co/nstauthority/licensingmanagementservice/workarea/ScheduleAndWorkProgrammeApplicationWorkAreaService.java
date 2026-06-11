@@ -1,7 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.workarea;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
-import static uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService.DECISION_ISSUER_ROLES;
 
 import java.util.List;
 import java.util.Map;
@@ -25,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearc
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
+import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
@@ -44,19 +44,22 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
   private final ApplicationAccessService applicationAccessService;
   private final TeamQueryService teamQueryService;
   private final WorkAreaItemViewService workAreaItemViewService;
+  private final RegulatorRoleService regulatorRoleService;
 
   public ScheduleAndWorkProgrammeApplicationWorkAreaService(
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
       LicenceSearchService licenceSearchService,
       ApplicationAccessService applicationAccessService,
       TeamQueryService teamQueryService,
-      WorkAreaItemViewService workAreaItemViewService
+      WorkAreaItemViewService workAreaItemViewService,
+      RegulatorRoleService regulatorRoleService
   ) {
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.licenceSearchService = licenceSearchService;
     this.applicationAccessService = applicationAccessService;
     this.teamQueryService = teamQueryService;
     this.workAreaItemViewService = workAreaItemViewService;
+    this.regulatorRoleService = regulatorRoleService;
   }
 
   @Override
@@ -64,10 +67,14 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       WorkAreaFilterForm workAreaFilterForm,
       ServiceUserDetail serviceUserDetail
   ) {
+    var decisionIssuer = regulatorRoleService.isDecisionIssuer(serviceUserDetail);
+    var isRegulator = regulatorRoleService.isRegulator(serviceUserDetail);
+
     //TODO filter correctly by form and user
     var applicationDetails = scheduleWorkProgrammeApplicationService
         .getAllScheduleWorkProgrammeApplicationDetailsByStatuses(ACTIVE_APPLICATION_STATUSES).stream()
-        .filter(applicationDetail -> matchesFilterAndHasAccess(applicationDetail, workAreaFilterForm, serviceUserDetail))
+        .filter(applicationDetail ->
+            matchesFilterAndHasAccess(applicationDetail, workAreaFilterForm, serviceUserDetail, isRegulator))
         .toList();
 
     var licences = applicationDetails.stream()
@@ -85,15 +92,15 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
 
     return applicationDetails.stream()
         .map(applicationDetail ->
-            createWorkAreaItem(applicationDetail, responsibleOrganisationNames, serviceUserDetail, viewedItemIds))
+            createWorkAreaItem(applicationDetail, responsibleOrganisationNames, viewedItemIds, decisionIssuer))
         .toList();
   }
 
   private SearchResultItem createWorkAreaItem(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
       Map<Licence, List<String>> responsibleOrganisationNamesByLicences,
-      ServiceUserDetail serviceUserDetail,
-      Set<UUID> viewedItemIds
+      Set<UUID> viewedItemIds,
+      boolean decisionIssuer
   ) {
     var licence = scheduleWorkProgrammeApplicationService
         .getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail);
@@ -115,7 +122,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       case DRAFT -> ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
           .getTaskList(applicationDetail.getId(), null, null));
 
-      case ScheduleWorkProgrammeApplicationStatus.ISSUE_DECISION -> (isDecisionIssuer(serviceUserDetail))
+      case ScheduleWorkProgrammeApplicationStatus.ISSUE_DECISION -> decisionIssuer
           ? ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
               ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
               applicationDetail.getScheduleWorkProgrammeApplication().getId()
@@ -159,11 +166,6 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
     return builder.build();
   }
 
-  private boolean isDecisionIssuer(ServiceUserDetail userDetail) {
-    return teamQueryService.getTeamRolesForUser(userDetail.wuaId()).stream()
-        .anyMatch(teamRole -> DECISION_ISSUER_ROLES.contains(teamRole.getRole()));
-  }
-
   private boolean isCaseManager(ServiceUserDetail userDetail, Licence licence) {
     var responsibleTeam = licence.getResponsibleTeam();
 
@@ -181,7 +183,8 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
   private boolean matchesFilterAndHasAccess(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
       WorkAreaFilterForm filterForm,
-      ServiceUserDetail userDetail
+      ServiceUserDetail userDetail,
+      boolean isRegulator
   ) {
     var licence = scheduleWorkProgrammeApplicationService
         .getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail);
@@ -198,7 +201,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
     );
 
     if (applicationDetail.getStatus() == ScheduleWorkProgrammeApplicationStatus.DRAFT) {
-      return hasApplicationAccess;
+      return hasApplicationAccess && !isRegulator;
     }
 
     return hasApplicationAccess || isCaseManager(userDetail, licence);

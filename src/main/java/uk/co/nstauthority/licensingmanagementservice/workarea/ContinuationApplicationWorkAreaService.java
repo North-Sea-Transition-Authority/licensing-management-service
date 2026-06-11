@@ -67,11 +67,12 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
   ) {
     var isContinuationIssuer = regulatorRoleService.isContinuationIssuer(serviceUserDetail);
     var isContinuationReviewer = regulatorRoleService.isContinuationReviewer(serviceUserDetail);
+    var isRegulator = regulatorRoleService.isRegulator(serviceUserDetail);
 
     var applicationDetails = licenceContinuationService
         .getAllContinuationApplicationDetailsByStatuses(ACTIVE_APPLICATION_STATUSES).stream()
         .filter(applicationDetail -> matchesFilterAndHasAccess(
-            applicationDetail, workAreaFilterForm, serviceUserDetail, isContinuationIssuer, isContinuationReviewer))
+            applicationDetail, workAreaFilterForm, serviceUserDetail, isContinuationIssuer, isContinuationReviewer, isRegulator))
         .toList();
 
     var licences = applicationDetails.stream()
@@ -176,7 +177,8 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       WorkAreaFilterForm filterForm,
       ServiceUserDetail userDetail,
       boolean isContinuationIssuer,
-      boolean isContinuationReviewer
+      boolean isContinuationReviewer,
+      boolean isRegulator
   ) {
     Licence licence = licenceContinuationService.getLicenceFromContinuationApplicationDetail(applicationDetail);
 
@@ -196,7 +198,8 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         status,
         hasAppAccess,
         isContinuationReviewer,
-        isContinuationIssuer
+        isContinuationIssuer,
+        isRegulator
     );
   }
 
@@ -204,11 +207,12 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       LicenceContinuationApplicationStatus status,
       boolean hasAppAccess,
       boolean isReviewer,
-      boolean isIssuer
+      boolean isIssuer,
+      boolean isRegulator
   ) {
     switch (status) {
       case DRAFT:
-        return hasAppAccess;
+        return hasAppAccess && !isRegulator;
 
       case SUBMITTED:
         return hasAppAccess || isReviewer;

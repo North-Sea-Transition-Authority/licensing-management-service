@@ -25,6 +25,20 @@ class RegulatorRoleServiceTest {
   private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder().build();
 
   @Test
+  void isRegulator_whenUserIsInRegulatorTeam_returnsTrue() {
+    when(teamQueryService.userIsInRegulatorTeam(USER.wuaId())).thenReturn(true);
+
+    assertThat(regulatorRoleService.isRegulator(USER)).isTrue();
+  }
+
+  @Test
+  void isRegulator_whenUserIsNotInRegulatorTeam_returnsFalse() {
+    when(teamQueryService.userIsInRegulatorTeam(USER.wuaId())).thenReturn(false);
+
+    assertThat(regulatorRoleService.isRegulator(USER)).isFalse();
+  }
+
+  @Test
   void isContinuationReviewer_whenUserHasRole_returnsTrue() {
     when(teamQueryService.userHasAtLeastOneStaticRole(USER.wuaId(), TeamType.OFFSHORE_PRODUCTION_LICENSING, CONTINUATION_REVIEWER_ROLES))
         .thenReturn(true);
@@ -54,5 +68,21 @@ class RegulatorRoleServiceTest {
         .thenReturn(false);
 
     assertThat(regulatorRoleService.isContinuationIssuer(USER)).isFalse();
+  }
+
+  @Test
+  void isDecisionIssuer_whenUserHasDecisionIssuerRole_returnsTrue() {
+    var teamRole = new TeamRole();
+    teamRole.setRole(Role.DECISION_ISSUER_ONSHORE);
+    when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of(teamRole));
+
+    assertThat(regulatorRoleService.isDecisionIssuer(USER)).isTrue();
+  }
+
+  @Test
+  void isDecisionIssuer_whenUserDoesNotHaveDecisionIssuerRole_returnsFalse() {
+    when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of());
+
+    assertThat(regulatorRoleService.isDecisionIssuer(USER)).isFalse();
   }
 }

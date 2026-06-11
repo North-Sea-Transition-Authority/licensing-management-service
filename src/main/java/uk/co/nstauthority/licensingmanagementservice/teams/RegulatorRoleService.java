@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.teams;
 
 import static uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService.CONTINUATION_REVIEWER_ROLES;
+import static uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService.DECISION_ISSUER_ROLES;
 
 import java.util.Set;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,10 @@ public class RegulatorRoleService {
 
   public RegulatorRoleService(TeamQueryService teamQueryService) {
     this.teamQueryService = teamQueryService;
+  }
+
+  public boolean isRegulator(ServiceUserDetail userDetail) {
+    return teamQueryService.userIsInRegulatorTeam(userDetail.wuaId());
   }
 
   public boolean isContinuationReviewer(ServiceUserDetail userDetail) {
@@ -29,5 +34,10 @@ public class RegulatorRoleService {
         TeamType.REGULATIONS_LICENSING,
         Set.of(Role.CONTINUATION_ISSUER)
     );
+  }
+
+  public boolean isDecisionIssuer(ServiceUserDetail userDetail) {
+    return teamQueryService.getTeamRolesForUser(userDetail.wuaId()).stream()
+        .anyMatch(teamRole -> DECISION_ISSUER_ROLES.contains(teamRole.getRole()));
   }
 }

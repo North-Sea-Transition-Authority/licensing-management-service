@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -14,7 +16,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,9 +44,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearc
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
-import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemView;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemViewService;
@@ -67,6 +67,9 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
 
   @Mock
   private WorkAreaItemViewService workAreaItemViewService;
+
+  @Mock
+  private RegulatorRoleService regulatorRoleService;
 
   @InjectMocks
   private ScheduleAndWorkProgrammeApplicationWorkAreaService scheduleAndWorkProgrammeApplicationWorkAreaService;
@@ -383,10 +386,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
   }
 
   private void mockIsDecisionIssuer() {
-    TeamRole teamRole = new TeamRole();
-    teamRole.setRole(Role.DECISION_ISSUER_ONSHORE);
-    when(teamQueryService.getTeamRolesForUser(serviceUserDetail.wuaId()))
-        .thenReturn(Set.of(teamRole));
+    when(regulatorRoleService.isDecisionIssuer(serviceUserDetail)).thenReturn(true);
   }
 
   @Test
@@ -565,6 +565,21 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
                     .renderOverview(scheduleWorkProgrammeApplicationDetail1.getId(), null, null))
             )
         );
+  }
+
+  @Test
+  void getWorkAreaItems_whenDraftAndIsRegulator_isExcluded() {
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+    when(applicationAccessService.userHasAccessToApplication(
+        anyString(), any(ApplicationType.class), nullable(Integer.class), any(Long.class)
+    )).thenReturn(true);
+    when(regulatorRoleService.isRegulator(serviceUserDetail)).thenReturn(true);
+
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService
+        .getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems).isEmpty();
   }
 
   private void mockUserHasAccessToApplication(ScheduleWorkProgrammeApplicationDetail applicationDetail,

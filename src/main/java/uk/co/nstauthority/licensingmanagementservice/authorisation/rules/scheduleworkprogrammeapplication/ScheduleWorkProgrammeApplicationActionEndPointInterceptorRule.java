@@ -8,8 +8,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.stream.Collectors;
-import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -59,7 +59,11 @@ public class ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule imple
 
     var userActionItems = applicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail);
 
-    if (!CollectionUtils.containsAny(userActionItems, expectedActionItems)) {
+    var userCanUseExpectedActionItem = expectedActionItems.stream()
+        .anyMatch(expectedActionItem -> userActionItems.stream()
+            .anyMatch(userActionItem -> actionItemsMatch(userActionItem, expectedActionItem)));
+
+    if (!userCanUseExpectedActionItem) {
       var errorMessage = "Attempted to use action item(s) %s on schedule work programme application detail %s".formatted(
           expectedActionItems
               .stream()
@@ -68,9 +72,9 @@ public class ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule imple
           applicationDetail.getId()
       );
       return SecurityRuleResult.checkFailedWithStatusAndMessage(HttpStatus.FORBIDDEN, errorMessage);
-    } else {
-      return SecurityRuleResult.continueAsNormal();
     }
+
+    return SecurityRuleResult.continueAsNormal();
   }
 
   private ScheduleWorkProgrammeApplicationDetail getApplicationDetailFromRequest(HttpServletRequest request) {
@@ -84,5 +88,11 @@ public class ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule imple
   @Target({ElementType.TYPE, ElementType.METHOD})
   public @interface ActionEndPoint {
     ScheduleWorkProgrammeApplicationActionItem[] value();
+  }
+
+  private boolean actionItemsMatch(ActionItemView actual, ActionItemView expected) {
+    return Objects.equals(actual.displayName(), expected.displayName())
+        && Objects.equals(actual.displayOrder(), expected.displayOrder())
+        && Objects.equals(actual.url(), expected.url());
   }
 }

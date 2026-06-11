@@ -76,6 +76,25 @@ class ScheduleWorkProgrammeApplicationActionEndPointInterceptorRuleTest extends 
   }
 
   @Test
+  void check_matchesEndpointWithDifferentPrimaryAction_thenTrue() throws NoSuchMethodException {
+    setupMocks();
+
+    when(applicationActionService.getAvailableUserActionItems(applicationDetail, user))
+        .thenReturn(List.of(ScheduleWorkProgrammeApplicationActionItem.ALLOCATE_STEWARD
+            .toActionItemView(applicationDetail, true)));
+
+    var annotation = getAnnotation(
+        TestEndpoints.class.getDeclaredMethod("getAction"),
+        ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class
+    );
+
+    var interceptorResult = rule.check(annotation, request, response);
+
+    assertThat(interceptorResult.hasRulePassed()).isTrue();
+    verifyNoInteractions(response);
+  }
+
+  @Test
   void check_doesNotMatchAction_thenFalse() throws NoSuchMethodException {
     setupMocks();
 

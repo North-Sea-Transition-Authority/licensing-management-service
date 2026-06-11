@@ -40,8 +40,6 @@ public class MigrationService {
 
   private final OracleService oracleService;
   private final GrpcClientService grpcClientService;
-
-  private final MigrationValidationService migrationValidationService;
   private final OperatorResultProcessingService operatorResultProcessingService;
   private final TransactionTemplate transactionTemplate;
 
@@ -51,7 +49,6 @@ public class MigrationService {
       LineService lineService,
       OracleService oracleService,
       GrpcClientService grpcClientService,
-      MigrationValidationService migrationValidationService,
       OperatorResultProcessingService operatorResultProcessingService,
       TransactionTemplate transactionTemplate
   ) {
@@ -60,23 +57,8 @@ public class MigrationService {
     this.lineService = lineService;
     this.oracleService = oracleService;
     this.grpcClientService = grpcClientService;
-    this.migrationValidationService = migrationValidationService;
     this.operatorResultProcessingService = operatorResultProcessingService;
     this.transactionTemplate = transactionTemplate;
-  }
-
-  void migrate() {
-    // TODO EPGF-16: convert this into an actuator
-    lineService.deleteAll();
-    polygonService.deleteAll();
-    featureService.deleteAll();
-
-    migrateBlocksAndSubarea(oracleService.getEntityBackedOracleShapesForMigrationOrderNumber(10)); // root blocks
-    migrateBlocksAndSubarea(oracleService.getEntityBackedOracleShapesForMigrationOrderNumber(20)); // block changes
-    migrateBlocksAndSubarea(oracleService.getEntityBackedOracleShapesForMigrationOrderNumber(30)); // sub areas
-
-    migrationValidationService.childAndParentValidation();
-    migrationValidationService.verifySubareasTopologicallyEqualToBlock();
   }
 
   void migrateBlocksAndSubarea(List<EntityBackedOracleShape> entityBackedOracleShapes) {

@@ -19,7 +19,6 @@ import uk.co.fivium.gisframework.grpc.GrpcClientService;
 import uk.co.fivium.gisframework.migration.oracle.EntityBackedOracleShape;
 import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineWithRing;
 import uk.co.fivium.gisframework.migration.oracle.OraclePolygonBoundary;
-import uk.co.fivium.gisframework.migration.oracle.OracleService;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 
 @Profile("gis-migration")
@@ -32,34 +31,22 @@ public class ReferenceBlockMigrationService {
   private final PolygonService polygonService;
   private final LineService lineService;
 
-  private final OracleService oracleService;
   private final GrpcClientService grpcClientService;
 
-  private final MigrationValidationService migrationValidationService;
   private final MigrationService migrationService;
 
   public ReferenceBlockMigrationService(
       FeatureService featureService,
       PolygonService polygonService,
       LineService lineService,
-      OracleService oracleService,
       GrpcClientService grpcClientService,
-      MigrationValidationService migrationValidationService,
       MigrationService migrationService
   ) {
     this.featureService = featureService;
     this.polygonService = polygonService;
     this.lineService = lineService;
-    this.oracleService = oracleService;
     this.grpcClientService = grpcClientService;
-    this.migrationValidationService = migrationValidationService;
     this.migrationService = migrationService;
-  }
-
-  void migrate() {
-    // TODO EPGF-16: convert this into an actuator
-    migrate(oracleService.getEntityBackedOracleShapesForMigrationOrderNumber(50)); // reference blocks
-    migrationValidationService.validateReferenceBlocks();
   }
 
   public void migrate(Collection<EntityBackedOracleShape> entityBackedOracleShapes) {

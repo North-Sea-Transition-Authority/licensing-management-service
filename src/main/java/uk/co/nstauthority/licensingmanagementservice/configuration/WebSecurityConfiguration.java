@@ -57,7 +57,7 @@ public class WebSecurityConfiguration {
 
     return httpSecurity
       .authorizeHttpRequests(http -> http
-        .requestMatchers("/assets/**", "/error", "/actuator/health", "/api/v1/logout/*")
+        .requestMatchers("/assets/**", "/error", "/api/v1/logout/*")
           .permitAll()
         //TODO xyz - add in GA filter once Fox team has been created
         .requestMatchers("/**")

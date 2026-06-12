@@ -1,5 +1,6 @@
 import type Point from "@arcgis/core/geometry/Point";
 import type { ArcGisServiceHandlers } from "../../../generated/uk/co/fivium/grpc/gis/ArcGisService";
+import type { MigrateReferenceBlockResponse } from "../../../generated/uk/co/fivium/grpc/gis/MigrateReferenceBlockResponse";
 import type { LineWithNavigationTypeAndId } from "../types/line-with-navigation-wrapper";
 import * as generalizeOperator from "@arcgis/core/geometry/operators/generalizeOperator.js";
 import * as geodeticDensifyOperator from "@arcgis/core/geometry/operators/geodeticDensifyOperator.js";
@@ -8,7 +9,7 @@ import * as unionOperator from "@arcgis/core/geometry/operators/unionOperator.js
 import Polyline from "@arcgis/core/geometry/Polyline.js";
 import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
 import { logger } from "../../config/logger";
-import { toGrpcInternalError } from "../../handlers/grpc-error";
+import { asyncHandler } from "../../handlers/async-handler";
 import { getCoordinateSystemWkid } from "../../util/coordinate-system-utils";
 import { esriJsonToPolyline } from "../../util/esrijson-util";
 import { findLoxodromeThatConnectsToPointOnSetBearing } from "../types/line-with-bearing-wrapper";
@@ -24,32 +25,27 @@ import {
   ONE_ARC_SECOND,
 } from "../utils/migration-utils";
 
-export const migrateReferenceBlockHandler: ArcGisServiceHandlers["migrateReferenceBlock"] = async (call, callback) => {
-  try {
-    logger.info(`migrateReferenceBlock: starting`);
-    const { geoJsonLineWrappers, coordinateSystem, licenseBlockLines } = call.request;
-    const wkid = getCoordinateSystemWkid(coordinateSystem);
+export const migrateReferenceBlockHandler: ArcGisServiceHandlers["migrateReferenceBlock"] = asyncHandler(async (call): Promise<MigrateReferenceBlockResponse> => {
+  logger.info(`migrateReferenceBlock: starting`);
+  const { geoJsonLineWrappers, coordinateSystem, licenseBlockLines } = call.request;
+  const wkid = getCoordinateSystemWkid(coordinateSystem);
 
-    // Convert all ref block lines to polylines
-    const idToLineWithNavigationWrapper = geoJsonLineInputToLinesWithNavigationTypeAndId(geoJsonLineWrappers, wkid);
+  // Convert all ref block lines to polylines
+  const idToLineWithNavigationWrapper = geoJsonLineInputToLinesWithNavigationTypeAndId(geoJsonLineWrappers, wkid);
 
-    // Combine consecutive geodesic lines into single line, loxodromes remain unchanged.
-    const idToConnectionOrder = new Map(geoJsonLineWrappers.map(wrapper => [wrapper.oracleLineSsid, wrapper.connectionOrder]));
-    const combinedGeodesicAndLoxodromes = mergeAdjacentGeodesicLinesAndReturnAllNewLineWrappers(
-      idToLineWithNavigationWrapper,
-      idToConnectionOrder,
-    );
+  // Combine consecutive geodesic lines into single line, loxodromes remain unchanged.
+  const idToConnectionOrder = new Map(geoJsonLineWrappers.map(wrapper => [wrapper.oracleLineSsid, wrapper.connectionOrder]));
+  const combinedGeodesicAndLoxodromes = mergeAdjacentGeodesicLinesAndReturnAllNewLineWrappers(
+    idToLineWithNavigationWrapper,
+    idToConnectionOrder,
+  );
 
-    // Get geodesic license lines
-    const geodesicLicenseLines = licenseBlockLines
-      .filter(line => line.navigationType === LineNavigationType.GEODESIC)
-      .map(line => esriJsonToPolyline(line.esriJsonString));
-    callback(null, await migrateReferenceBlock(combinedGeodesicAndLoxodromes, geodesicLicenseLines));
-  } catch (error) {
-    logger.error({ error }, "Error migrating reference block");
-    callback(toGrpcInternalError(error), null);
-  }
-};
+  // Get geodesic license lines
+  const geodesicLicenseLines = licenseBlockLines
+    .filter(line => line.navigationType === LineNavigationType.GEODESIC)
+    .map(line => esriJsonToPolyline(line.esriJsonString));
+  return await migrateReferenceBlock(combinedGeodesicAndLoxodromes, geodesicLicenseLines);
+});
 
 async function migrateReferenceBlock(
   combinedGeodesicAndLoxodromes: LineWithNavigationTypeAndId[],

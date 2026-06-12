@@ -50,7 +50,8 @@ describe("calculateAreaHandler", () => {
 
     vi.mocked(calculateAreaModule.densifyLoxodromesAndCalculateArea).mockResolvedValue(123.45);
 
-    await calculateAreaHandler(mockCall, mockCallback as any);
+    calculateAreaHandler(mockCall, mockCallback as any);
+    await vi.waitFor(() => expect(mockCallback).toHaveBeenCalledWith(null, { area: 123.45 }));
 
     expect(calculateAreaModule.densifyLoxodromesAndCalculateArea).toHaveBeenCalledWith(
       [
@@ -59,7 +60,6 @@ describe("calculateAreaHandler", () => {
       ],
       CoordinateSystem.ED50,
     );
-    expect(mockCallback).toHaveBeenCalledWith(null, { area: 123.45 });
   });
 
   it("should call callback with error when densifyLoxodromesAndCalculateArea throws", async () => {
@@ -76,12 +76,11 @@ describe("calculateAreaHandler", () => {
 
     vi.mocked(calculateAreaModule.densifyLoxodromesAndCalculateArea).mockRejectedValue(testError);
 
-    await calculateAreaHandler(mockCall, mockCallback as any);
+    calculateAreaHandler(mockCall, mockCallback as any);
+    await vi.waitFor(() => expect(mockCallback).toHaveBeenCalledWith(testError, null));
 
     const callbackError = mockCallback.mock.calls[0][0];
-    expect(callbackError).toBe(testError);
     expect(callbackError.message).toBe("Failed to calculate area");
     expect(callbackError.code).toBe(status.INTERNAL);
-    expect(mockCallback).toHaveBeenCalledWith(callbackError, null);
   });
 });

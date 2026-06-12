@@ -3,8 +3,10 @@ import type { ArcGisServiceHandlers } from "../../../generated/uk/co/fivium/grpc
 import type { EsriJsonPolygonLines__Output } from "../../../generated/uk/co/fivium/grpc/gis/EsriJsonPolygonLines";
 import * as equalsOperator from "@arcgis/core/geometry/operators/equalsOperator.js";
 import Polyline from "@arcgis/core/geometry/Polyline.js";
+import { logger } from "../../config/logger";
 import { linesToSinglePolygon } from "../../geometric-operators/lines-to-single-polygon-operator";
 import { unionPolygonsOperator } from "../../geometric-operators/union-polygons-operator";
+import { toGrpcInternalError } from "../../handlers/grpc-error";
 import { getCoordinateSystemWkid } from "../../util/coordinate-system-utils";
 
 /**
@@ -13,18 +15,23 @@ import { getCoordinateSystemWkid } from "../../util/coordinate-system-utils";
  * @param call {@link TopologicallyEqualValidationRequest}
  * @param callback {@link ValidationResponse}
  */
-export const validateTopologicallyEqual: ArcGisServiceHandlers["validateTopologicallyEqual"] = async (call, callback) => {
-  const { childPolygons, parentPolygons, coordinateSystem } = call.request;
-  const unionedChildPolygon = processPolygons(childPolygons, getCoordinateSystemWkid(coordinateSystem));
-  const unionedParentPolygon = processPolygons(parentPolygons, getCoordinateSystemWkid(coordinateSystem));
+export const validateTopologicallyEqual: ArcGisServiceHandlers["validateTopologicallyEqual"] = (call, callback) => {
+  try {
+    const { childPolygons, parentPolygons, coordinateSystem } = call.request;
+    const unionedChildPolygon = processPolygons(childPolygons, getCoordinateSystemWkid(coordinateSystem));
+    const unionedParentPolygon = processPolygons(parentPolygons, getCoordinateSystemWkid(coordinateSystem));
 
-  const isTopologicallyEqual = equalsOperator.execute(unionedChildPolygon, unionedParentPolygon);
+    const isTopologicallyEqual = equalsOperator.execute(unionedChildPolygon, unionedParentPolygon);
 
-  if (!isTopologicallyEqual) {
-    callback(null, { isValid: false, message: "Polygons are not topologically equal" });
-    return;
+    if (!isTopologicallyEqual) {
+      callback(null, { isValid: false, message: "Polygons are not topologically equal" });
+      return;
+    }
+    callback(null, { isValid: true });
+  } catch (error) {
+    logger.error({ error }, "Error validating topological equality");
+    callback(toGrpcInternalError(error), null);
   }
-  callback(null, { isValid: true });
 };
 
 function processPolygons(polygonsAsLines: EsriJsonPolygonLines__Output[], wkid: number): Polygon {

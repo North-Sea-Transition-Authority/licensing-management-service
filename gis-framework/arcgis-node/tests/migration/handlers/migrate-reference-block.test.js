@@ -42,13 +42,13 @@ describe("migrate-reference-block", () => {
 
     const callback = vi.fn();
 
-    await migrateReferenceBlockHandler(call, callback);
+    migrateReferenceBlockHandler(call, callback);
+    await vi.waitFor(() => expect(callback).toHaveBeenCalledOnce());
 
     const callbackError = callback.mock.calls[0][0];
     expect(callbackError.message).toBe(`Could not determine wkid for ${CoordinateSystem.COORDINATE_SYSTEM_UNSPECIFIED}`);
     expect(callbackError.code).toBe(status.INTERNAL);
     expect(callback).toHaveBeenCalledWith(callbackError, null);
-    expect(callback).toHaveBeenCalledOnce();
   });
 
   describe("mergeAdjacentGeodesicLinesAndReturnAllNewLineWrappers", () => {

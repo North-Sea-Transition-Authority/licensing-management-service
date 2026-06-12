@@ -7,8 +7,10 @@ import type { EsriJsonLineStringToIsGeodesic } from "../verify-child-geodesic-li
 import * as containsOperator from "@arcgis/core/geometry/operators/containsOperator.js";
 import Polyline from "@arcgis/core/geometry/Polyline.js";
 import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
+import { logger } from "../../config/logger";
 import { linesToSinglePolygon } from "../../geometric-operators/lines-to-single-polygon-operator";
 import { unionPolygonsOperator } from "../../geometric-operators/union-polygons-operator";
+import { toGrpcInternalError } from "../../handlers/grpc-error";
 import { getCoordinateSystemWkid } from "../../util/coordinate-system-utils";
 import { childGeodesicLinesOverlapParents } from "../verify-child-geodesic-lines-overlap-parents";
 
@@ -19,26 +21,31 @@ import { childGeodesicLinesOverlapParents } from "../verify-child-geodesic-lines
  * @param call {@link BlockAndSubareaValidationRequest}
  * @param callback {@link ValidationResponse}
  */
-export const validateBlockAndSubarea: ArcGisServiceHandlers["validateBlockAndSubarea"] = async (call, callback) => {
-  const { childPolygonLineWrappersLists, parentPolygonLineWrappersLists, coordinateSystem } = call.request;
-  const wkid = getCoordinateSystemWkid(coordinateSystem);
+export const validateBlockAndSubarea: ArcGisServiceHandlers["validateBlockAndSubarea"] = (call, callback) => {
+  try {
+    const { childPolygonLineWrappersLists, parentPolygonLineWrappersLists, coordinateSystem } = call.request;
+    const wkid = getCoordinateSystemWkid(coordinateSystem);
 
-  const { unionedPolygon: unionedChildPolygons, lines: childLines } = processPolygons(childPolygonLineWrappersLists, wkid);
-  const { unionedPolygon: unionedParentPolygons, lines: parentLines } = processPolygons(parentPolygonLineWrappersLists, wkid);
+    const { unionedPolygon: unionedChildPolygons, lines: childLines } = processPolygons(childPolygonLineWrappersLists, wkid);
+    const { unionedPolygon: unionedParentPolygons, lines: parentLines } = processPolygons(parentPolygonLineWrappersLists, wkid);
 
-  const isChildContainedByParent = containsOperator.execute(unionedParentPolygons, unionedChildPolygons);
+    const isChildContainedByParent = containsOperator.execute(unionedParentPolygons, unionedChildPolygons);
 
-  if (!isChildContainedByParent) {
-    callback(null, { isValid: false, message: "Child is not contained by parent" });
-    return;
+    if (!isChildContainedByParent) {
+      callback(null, { isValid: false, message: "Child is not contained by parent" });
+      return;
+    }
+
+    if (!childGeodesicLinesOverlapParents(parentLines, childLines)) {
+      callback(null, { isValid: false, message: "Child geodesic lines do not overlap with parent geodesic lines" });
+      return;
+    }
+
+    callback(null, { isValid: true });
+  } catch (error) {
+    logger.error({ error }, "Error validating block and subarea");
+    callback(toGrpcInternalError(error), null);
   }
-
-  if (!childGeodesicLinesOverlapParents(parentLines, childLines)) {
-    callback(null, { isValid: false, message: "Child geodesic lines do not overlap with parent geodesic lines" });
-    return;
-  }
-
-  callback(null, { isValid: true });
 };
 
 function processPolygons(

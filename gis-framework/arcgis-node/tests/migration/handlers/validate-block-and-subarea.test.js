@@ -1,3 +1,4 @@
+import { status } from "@grpc/grpc-js";
 import { describe, expect, it, vi } from "vitest";
 import { CoordinateSystem } from "../../../generated/uk/co/fivium/grpc/gis/CoordinateSystem.ts";
 import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType.ts";
@@ -67,5 +68,28 @@ describe("validateBlockAndSubarea", () => {
       isValid: false,
       message: "Child geodesic lines do not overlap with parent geodesic lines",
     });
+  });
+
+  it("returns internal error when validation throws", async () => {
+    const parentWrapper = makeRectanglePolygonWrapper(0, 0, 20, 20);
+    const childWrapper = makeRectanglePolygonWrapper(5, 5, 15, 15);
+
+    const call = {
+      request: {
+        childPolygonLineWrappersLists: [childWrapper],
+        parentPolygonLineWrappersLists: [parentWrapper],
+        coordinateSystem: CoordinateSystem.COORDINATE_SYSTEM_UNSPECIFIED,
+      },
+    };
+
+    const callback = vi.fn();
+
+    await validateBlockAndSubarea(call, callback);
+
+    const callbackError = callback.mock.calls[0][0];
+    expect(callbackError.message).toBe(`Could not determine wkid for ${CoordinateSystem.COORDINATE_SYSTEM_UNSPECIFIED}`);
+    expect(callbackError.code).toBe(status.INTERNAL);
+    expect(callback).toHaveBeenCalledWith(callbackError, null);
+    expect(callback).toHaveBeenCalledOnce();
   });
 });

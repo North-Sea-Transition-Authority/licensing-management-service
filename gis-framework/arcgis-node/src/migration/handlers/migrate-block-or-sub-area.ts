@@ -1,9 +1,14 @@
 import type { ArcGisServiceHandlers } from "../../../generated/uk/co/fivium/grpc/gis/ArcGisService";
+import type {
+  MigrateBlockOrSubAreaResponse,
+} from "../../../generated/uk/co/fivium/grpc/gis/MigrateBlockOrSubAreaResponse";
 import type { LineWithNavigationTypeAndId } from "../types/line-with-navigation-wrapper";
-import grpc from "@grpc/grpc-js";
+import { status } from "@grpc/grpc-js";
 import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
 import { logger } from "../../config/logger";
 import { densifyLoxodromesAndCalculateArea } from "../../geometric-operators/calculate-area-operator";
+import { asyncHandler } from "../../handlers/async-handler";
+import { GrpcError } from "../../handlers/grpc-error";
 import { getCoordinateSystemWkid } from "../../util/coordinate-system-utils";
 import { geoJsonLineInputToLinesWithNavigationTypeAndId } from "../types/line-with-navigation-wrapper";
 import { fixDirectionOfAllLines } from "../utils/fix-direction-of-all-lines";
@@ -15,7 +20,7 @@ import {
   shiftNodeAndUpdateConnectedLine,
 } from "../utils/migration-utils";
 
-export const migrateBlockOrSubarea: ArcGisServiceHandlers["migrateBlockOrSubarea"] = async (call, callback) => {
+export const migrateBlockOrSubarea: ArcGisServiceHandlers["migrateBlockOrSubarea"] = asyncHandler(async (call): Promise<MigrateBlockOrSubAreaResponse> => {
   const { geoJsonLineWrappers, coordinateSystem, parentLineEsriJsonStrings } = call.request;
   const wkid = getCoordinateSystemWkid(coordinateSystem);
   logger.info(`Migrating ${geoJsonLineWrappers.length} lines, srs: ${wkid}`);
@@ -27,8 +32,7 @@ export const migrateBlockOrSubarea: ArcGisServiceHandlers["migrateBlockOrSubarea
     const area = await densifyLoxodromesAndCalculateArea(lineWithNavigationTypeAndIds, coordinateSystem);
     const esriJsonLineAndOracleIds = esriJsonLineAndOracleIdsFrom(lineWithNavigationTypeAndIds);
 
-    callback(null, { esriJsonLineAndOracleIds, area });
-    return;
+    return { esriJsonLineAndOracleIds, area };
   }
 
   for (const child of idToLineWithNavigationWrapper.values()) {
@@ -43,14 +47,7 @@ export const migrateBlockOrSubarea: ArcGisServiceHandlers["migrateBlockOrSubarea
     if (parent === undefined) {
       const errorMessage = "Geodesic child line should have associated parent line but none were found";
       logger.error(errorMessage);
-      callback(
-        {
-          code: grpc.status.INVALID_ARGUMENT,
-          message: errorMessage,
-        },
-        null,
-      );
-      return;
+      throw new GrpcError(status.INVALID_ARGUMENT, errorMessage);
     }
 
     const { nearestStartPoint, nearestEndPoint } = getNearestParentStartAndEndNodes(parent, childStartPoint, childEndPoint);
@@ -92,8 +89,8 @@ export const migrateBlockOrSubarea: ArcGisServiceHandlers["migrateBlockOrSubarea
   const area = await densifyLoxodromesAndCalculateArea(lineWithNavigationWrappers, coordinateSystem);
   const esriJsonLineAndOracleIds = esriJsonLineAndOracleIdsFrom(lineWithNavigationWrappers);
 
-  callback(null, { esriJsonLineAndOracleIds, area });
-};
+  return { esriJsonLineAndOracleIds, area };
+});
 
 function esriJsonLineAndOracleIdsFrom(lineWithNavigationWrappers: LineWithNavigationTypeAndId[]) {
   const convertedLines: { esriJsonString: string, oracleLineSsid: number }[] = [];

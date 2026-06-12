@@ -22,7 +22,7 @@ import { childGeodesicLinesOverlapParents } from "../verify-child-geodesic-lines
  * @param call {@link ReferenceBlockValidationRequest}
  * @param callback {@link ValidationResponse}
  */
-export const validateReferenceBlock: ArcGisServiceHandlers["validateReferenceBlock"] = async (call, callback) => {
+export const validateReferenceBlock: ArcGisServiceHandlers["validateReferenceBlock"] = (call, callback) => {
   try {
     const { refBlockPolygonLineWrappersList, licenceBlockPolygonLineWrappersList, coordinateSystem } = call.request;
     const wkid = getCoordinateSystemWkid(coordinateSystem);

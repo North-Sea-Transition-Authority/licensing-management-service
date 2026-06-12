@@ -21,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventrefer
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceSchedulePhaseFormServiceTest {
@@ -61,7 +62,7 @@ class LicenceSchedulePhaseFormServiceTest {
 
     when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
     var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceSchedule)).thenReturn(eventReference);
+    when(eventReferenceService.createEventReference(licenceSchedule, ScheduleEventType.PHASE)).thenReturn(eventReference);
 
     licenceSchedulePhaseFormService.savePhaseFromForm(form, licenceScheduleDetail, new LicenceSchedulePhase());
 

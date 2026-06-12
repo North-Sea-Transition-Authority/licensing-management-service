@@ -1,6 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -9,6 +11,7 @@ import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 
 @Audited
 @Entity
@@ -22,6 +25,9 @@ public class EventReference {
   @ManyToOne
   @JoinColumn(name = "licence_schedule_id")
   private LicenceSchedule licenceSchedule;
+
+  @Enumerated(EnumType.STRING)
+  private ScheduleEventType eventType;
 
   public LicenceSchedule getLicenceSchedule() {
     return licenceSchedule;
@@ -37,5 +43,13 @@ public class EventReference {
 
   public UUID getId() {
     return id;
+  }
+
+  public ScheduleEventType getEventType() {
+    return eventType;
+  }
+
+  public void setEventType(ScheduleEventType eventType) {
+    this.eventType = eventType;
   }
 }

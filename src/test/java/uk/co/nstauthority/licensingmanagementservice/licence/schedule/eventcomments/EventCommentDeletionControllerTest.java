@@ -1,7 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,13 +23,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
-@ContextConfiguration(classes = EventCommentController.class)
-class EventCommentControllerTest extends AbstractControllerTest {
+@ContextConfiguration(classes = EventCommentDeletionController.class)
+class EventCommentDeletionControllerTest extends AbstractControllerTest {
 
   private static final Set<Role> PERMITTED_ROLES = Set.of(
       Role.SCHEDULE_ADMINISTRATOR,
@@ -39,22 +36,14 @@ class EventCommentControllerTest extends AbstractControllerTest {
       Role.WORK_PROGRAMME_STATUS_ADMINISTRATOR
   );
 
-  private static final String LICENCE_CAPTION = "page caption";
-
-  private static final String EVENT_CAPTION = "event caption";
-
-  private static final String PAGE_CAPTION = "%s - %s".formatted(LICENCE_CAPTION, EVENT_CAPTION);
+  private static final String LICENCE_CAPTION = "licence caption";
 
   @MockitoBean
   private EventCommentService eventCommentService;
 
-  @MockitoBean
-  private EventCommentValidator eventCommentValidator;
+  private EventComment eventComment;
 
-  @MockitoBean
-  private EventReferenceService eventReferenceService;
-
-  private EventReference eventReference;
+  private EventCommentView commentView;
 
   @BeforeEach
   void setUp() {
@@ -63,100 +52,85 @@ class EventCommentControllerTest extends AbstractControllerTest {
         .build();
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
 
-    eventReference = new EventReference();
+    var eventReference = new EventReference();
     eventReference.setId(UUID.randomUUID());
     eventReference.setLicenceSchedule(licenceSchedule);
+
+    eventComment = new EventComment();
+    eventComment.setId(UUID.randomUUID());
+    eventComment.setEventReference(eventReference);
+
+    commentView = new EventCommentView("comment text", "Author Name", "1 January 2025 10:00:00", "");
   }
 
   @Test
-  void renderAddCommentForm() throws Exception {
+  void renderDeleteCommentPage() throws Exception {
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, PERMITTED_ROLES))
         .thenReturn(true);
-    when(eventReferenceService.getEventReferenceByIdOrThrow(eventReference.getId()))
-        .thenReturn(eventReference);
-    when(licenceService.getLicencePageCaption(any())).thenReturn(LICENCE_CAPTION);
-    when(eventReferenceService.getEventReferenceEventCaption(any())).thenReturn(EVENT_CAPTION);
+    when(eventCommentService.getEventCommentByIdOrThrow(eventComment.getId()))
+        .thenReturn(eventComment);
+    when(eventCommentService.getEventCommentViewFor(eventComment))
+        .thenReturn(commentView);
+    when(licenceService.getLicencePageCaption(eventComment.getEventReference().getLicenceSchedule().getLicence()))
+        .thenReturn(LICENCE_CAPTION);
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(EventCommentController.class)
-                .renderAddCommentForm(eventReference.getId(), null)))
+            get(ReverseRouter.route(on(EventCommentDeletionController.class)
+                .renderDeleteCommentPage(eventComment.getId(), null)))
                 .with(user(regulatorUser))
         )
         .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/schedule/createEventComment"))
+        .andExpect(view().name("lms/licence/schedule/deleteEventComment"))
+        .andExpect(model().attribute("commentView", commentView))
+        .andExpect(model().attribute("pageCaption", LICENCE_CAPTION))
         .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceOverviewController.class)
-            .renderLicenceOverview(eventReference.getLicenceSchedule().getLicence().getId(), null, null, null))))
-        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
+            .renderLicenceOverview(eventComment.getEventReference().getLicenceSchedule().getLicence().getId(), null, null, null))));
   }
 
   @Test
-  void renderAddCommentForm_noRoles() throws Exception {
+  void renderDeleteCommentPage_noRoles() throws Exception {
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, PERMITTED_ROLES))
         .thenReturn(false);
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(EventCommentController.class)
-                .renderAddCommentForm(eventReference.getId(), null)))
+            get(ReverseRouter.route(on(EventCommentDeletionController.class)
+                .renderDeleteCommentPage(eventComment.getId(), null)))
                 .with(user(regulatorUser))
         )
         .andExpect(status().isForbidden());
   }
 
   @Test
-  void submitAddCommentForm() throws Exception {
+  void submitDeleteCommentPage() throws Exception {
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, PERMITTED_ROLES))
         .thenReturn(true);
-    when(eventReferenceService.getEventReferenceByIdOrThrow(eventReference.getId()))
-        .thenReturn(eventReference);
-    when(eventCommentValidator.isValid(any())).thenReturn(true);
+    when(eventCommentService.getEventCommentByIdOrThrow(eventComment.getId()))
+        .thenReturn(eventComment);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(EventCommentController.class)
-                .submitAddCommentForm(eventReference.getId(), null, null, null, null)))
+            post(ReverseRouter.route(on(EventCommentDeletionController.class)
+                .submitDeleteCommentPage(eventComment.getId(), null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(eventCommentService).addNewComment(any(), eq(eventReference), any());
+    verify(eventCommentService).deleteEventComment(eventComment);
   }
 
   @Test
-  void submitAddCommentForm_invalidForm() throws Exception {
-    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, PERMITTED_ROLES))
-        .thenReturn(true);
-    when(eventReferenceService.getEventReferenceByIdOrThrow(eventReference.getId()))
-        .thenReturn(eventReference);
-    when(licenceService.getLicencePageCaption(any())).thenReturn(LICENCE_CAPTION);
-    when(eventReferenceService.getEventReferenceEventCaption(any())).thenReturn(EVENT_CAPTION);
-    when(eventCommentValidator.isValid(any())).thenReturn(false);
-
-    mockMvc.perform(
-            post(ReverseRouter.route(on(EventCommentController.class)
-                .submitAddCommentForm(eventReference.getId(), null, null, null, null)))
-                .with(user(regulatorUser))
-                .with(csrf())
-        )
-        .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/schedule/createEventComment"))
-        .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
-
-    verify(eventCommentService, never()).addNewComment(any(), any(), any());
-  }
-
-  @Test
-  void submitAddCommentForm_noRoles() throws Exception {
+  void submitDeleteCommentPage_noRoles() throws Exception {
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, PERMITTED_ROLES))
         .thenReturn(false);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(EventCommentController.class)
-                .submitAddCommentForm(eventReference.getId(), null, null, null, null)))
+            post(ReverseRouter.route(on(EventCommentDeletionController.class)
+                .submitDeleteCommentPage(eventComment.getId(), null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().isForbidden());
 
-    verify(eventCommentService, never()).addNewComment(any(), any(), any());
+    verify(eventCommentService, never()).deleteEventComment(eventComment);
   }
 }

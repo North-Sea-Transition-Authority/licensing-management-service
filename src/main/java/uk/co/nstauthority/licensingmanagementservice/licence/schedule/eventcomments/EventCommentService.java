@@ -1,20 +1,30 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 @Service
@@ -25,15 +35,18 @@ public class EventCommentService {
   private final EventCommentRepository eventCommentRepository;
   private final EnergyPortalUserService energyPortalUserService;
   private final Clock clock;
+  private final TeamQueryService teamQueryService;
 
   public EventCommentService(
       EventCommentRepository eventCommentRepository,
       EnergyPortalUserService energyPortalUserService,
-      Clock clock
+      Clock clock,
+      TeamQueryService teamQueryService
   ) {
     this.eventCommentRepository = eventCommentRepository;
     this.energyPortalUserService = energyPortalUserService;
     this.clock = clock;
+    this.teamQueryService = teamQueryService;
   }
 
   @Transactional
@@ -79,14 +92,68 @@ public class EventCommentService {
         ));
   }
 
+  public EventComment getEventCommentByIdOrThrow(UUID id) {
+    return eventCommentRepository.findById(id)
+        .orElseThrow(() -> new LmsEntityNotFoundException("EventComment", id));
+  }
+
+  public EventCommentView getEventCommentViewFor(EventComment eventComment) {
+    var authorName = energyPortalUserService.findByWuaId(
+        WebUserAccountId.from(eventComment.getAuthorWuaId()),
+        COMMENT_AUTHOR_PURPOSE
+    ).orElseThrow(() -> new LmsEntityNotFoundException("User", Math.toIntExact(eventComment.getAuthorWuaId())))
+        .displayName();
+
+    return createViewFrom(eventComment, authorName);
+  }
+
+  @Transactional
+  public void deleteEventComment(EventComment eventComment) {
+    eventCommentRepository.delete(eventComment);
+  }
+
   private EventCommentView createViewFrom(
       EventComment eventComment,
       Map<Long, String> wuaIdNameMap
   ) {
+    return createViewFrom(eventComment, wuaIdNameMap.get(eventComment.getAuthorWuaId()));
+  }
+
+  private EventCommentView createViewFrom(
+      EventComment eventComment,
+      String authorName
+  ) {
+    var deleteUrl = ReverseRouter.route(on(EventCommentDeletionController.class)
+        .renderDeleteCommentPage(eventComment.getId(), null));
+
     return new EventCommentView(
         eventComment.getComment(),
-        wuaIdNameMap.get(eventComment.getAuthorWuaId()),
-        DateFormatUtil.convertToDisplayTextWithTime(eventComment.getTimestamp())
+        authorName,
+        DateFormatUtil.convertToDisplayTextWithTime(eventComment.getTimestamp()),
+        deleteUrl
     );
+  }
+
+  void checkCommenterHasPermissionsOrThrow(
+      ScheduleEventType scheduleEventType,
+      ServiceUserDetail serviceUserDetail
+  ) {
+    if (scheduleEventType.equals(ScheduleEventType.WORK_PROGRAMME_ACTIVITY)) {
+      if (!teamQueryService.userHasAtLeastOneRoleIn(serviceUserDetail.wuaId(),
+          Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR, Role.WORK_PROGRAMME_STATUS_ADMINISTRATOR))) {
+        throw new ResponseStatusException(
+            HttpStatus.FORBIDDEN,
+            "User does not have permission edit comments on work programme activities"
+        );
+      }
+      return;
+    }
+
+    if (!teamQueryService.userHasAtLeastOneRoleIn(serviceUserDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))) {
+      throw new ResponseStatusException(
+          HttpStatus.FORBIDDEN,
+          "User does not have permission edit comments on schedule events"
+      );
+    }
   }
 }

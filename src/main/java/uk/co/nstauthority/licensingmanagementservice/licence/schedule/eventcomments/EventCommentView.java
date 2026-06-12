@@ -3,5 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomm
 public record EventCommentView(
     String comment,
     String author,
-    String datetime
+    String datetime,
+    String removeCommentUrl
 ) {}

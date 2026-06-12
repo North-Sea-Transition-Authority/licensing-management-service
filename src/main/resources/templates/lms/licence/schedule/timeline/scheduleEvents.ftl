@@ -51,7 +51,7 @@
             timelineActionContent=timelineActions
         >
             <@fdsTimeline.timelineEvent>
-                <@eventComments comments=termView.comments()/>
+                <@eventComments comments=termView.comments() canDeleteComments=termView.addCommentUrl()?has_content/>
             </@fdsTimeline.timelineEvent>
         </@fdsTimeline.timelineTimeStamp>
 
@@ -109,7 +109,7 @@
         timelineActionContent=timelineActions
     >
         <@fdsTimeline.timelineEvent>
-            <@eventComments comments=phaseView.comments()/>
+            <@eventComments comments=phaseView.comments() canDeleteComments=phaseView.addCommentUrl()?has_content/>
         </@fdsTimeline.timelineEvent>
     </@fdsTimeline.timelineTimeStamp>
 
@@ -186,7 +186,7 @@
             <p class="govuk-body">
                 ${activityView.description()}
             </p>
-            <@eventComments comments=activityView.comments()/>
+            <@eventComments comments=activityView.comments() canDeleteComments=activityView.addCommentUrl()?has_content/>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>
@@ -223,7 +223,7 @@
             <p class="govuk-body">
                 ${activityView.description()}
             </p>
-            <@eventComments comments=activityView.comments()/>
+            <@eventComments comments=activityView.comments() canDeleteComments=activityView.addCommentUrl()?has_content/>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>
@@ -261,7 +261,7 @@
             <p class="govuk-body">
                 ${rateView.rentalRateString()} per km<sup>2</sup>
             </p>
-            <@eventComments comments=rateView.comments()/>
+            <@eventComments comments=rateView.comments() canDeleteComments=rateView.addCommentUrl()?has_content/>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>
@@ -299,7 +299,7 @@
             <p class="govuk-body">
                 ${eventView.description()}
             </p>
-            <@eventComments comments=eventView.comments()/>
+            <@eventComments comments=eventView.comments() canDeleteComments=eventView.addCommentUrl()?has_content/>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>
@@ -327,7 +327,7 @@
             <p class="govuk-body">
                 ${eventView.description()}
             </p>
-            <@eventComments comments=eventView.comments()/>
+            <@eventComments comments=eventView.comments() canDeleteComments=eventView.addCommentUrl()?has_content/>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>
@@ -344,7 +344,7 @@
     </#list>
 </#macro>
 
-<#macro eventComments comments>
+<#macro eventComments comments canDeleteComments>
     <#if comments?has_content>
         <@fdsDetails.summaryDetails summaryTitle="Comments">
             <#list comments as comment>
@@ -356,6 +356,9 @@
                     <@fdsDataItems.dataItem>
                         <@fdsDataItems.dataValues key="Comment" value=comment.comment()/>
                     </@fdsDataItems.dataItem>
+                    <#if canDeleteComments>
+                        <@fdsAction.link linkText="Remove" linkUrl=springUrl(comment.removeCommentUrl())/>
+                    </#if>
                 </@fdsCard.card>
             </#list>
         </@fdsDetails.summaryDetails>

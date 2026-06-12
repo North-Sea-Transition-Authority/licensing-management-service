@@ -51,27 +51,26 @@ public class EventReferenceService {
   }
 
   @Transactional
-  public EventReference createEventReference(LicenceSchedule licenceSchedule) {
+  public EventReference createEventReference(LicenceSchedule licenceSchedule, ScheduleEventType scheduleEventType) {
     var eventReference = new EventReference();
     eventReference.setLicenceSchedule(licenceSchedule);
+    eventReference.setEventType(scheduleEventType);
     return eventReferenceRepository.save(eventReference);
   }
 
-  public String getEventReferenceEventCaption(
-      EventReference eventReference,
-      ScheduleEventType eventType
-  ) {
+  public String getEventReferenceEventCaption(EventReference eventReference) {
     var scheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
         eventReference.getLicenceSchedule().getLicence(),
         LicenceScheduleDetailStatus.ACTIVE
     );
 
-    return switch (eventType) {
+    return switch (eventReference.getEventType()) {
       case TERM -> getEventCaptionForTerm(scheduleDetail, eventReference);
       case PHASE -> getEventCaptionForPhase(scheduleDetail, eventReference);
       case RATE -> getEventCaptionForRate(scheduleDetail, eventReference);
       case WORK_PROGRAMME_ACTIVITY -> getEventCaptionForActivity(scheduleDetail, eventReference);
       case OTHER -> getEventCaptionForEvent(scheduleDetail, eventReference);
+      case EXPIRY -> ScheduleEventType.EXPIRY.getDisplayName();
     };
   }
 

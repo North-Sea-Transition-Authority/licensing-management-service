@@ -9,6 +9,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventrefer
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 
 @Service
 public class LicenceSchedulePhaseFormService {
@@ -44,7 +45,7 @@ public class LicenceSchedulePhaseFormService {
 
     if (licenceSchedulePhase.getEventReference() == null) {
       licenceSchedulePhase.setEventReference(
-          eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule())
+          eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.PHASE)
       );
     }
 

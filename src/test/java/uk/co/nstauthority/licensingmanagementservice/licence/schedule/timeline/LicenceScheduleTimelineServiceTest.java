@@ -2007,7 +2007,7 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(WorkProgrammeActivityStatusController.class)
             .renderStatusUpdatePage(midPhaseActivity.getId(), null)),
         ReverseRouter.route(on(EventCommentController.class)
-            .renderAddCommentForm(ScheduleEventType.WORK_PROGRAMME_ACTIVITY.getUrlSlug(), midPhaseActivity.getEventReference().getId())),
+            .renderAddCommentForm(midPhaseActivity.getEventReference().getId(), null)),
         WorkProgrammeStatus.IN_PROGRESS,
         List.of()
     );
@@ -2034,7 +2034,7 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(WorkProgrammeActivityStatusController.class)
             .renderStatusUpdatePage(endOfPhaseActivity.getId(), null)),
         ReverseRouter.route(on(EventCommentController.class)
-            .renderAddCommentForm(ScheduleEventType.WORK_PROGRAMME_ACTIVITY.getUrlSlug(), endOfPhaseActivity.getEventReference().getId())),
+            .renderAddCommentForm(endOfPhaseActivity.getEventReference().getId(), null)),
         WorkProgrammeStatus.OPEN,
         List.of()
     );
@@ -2062,7 +2062,7 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(WorkProgrammeActivityStatusController.class)
             .renderStatusUpdatePage(midTerm2Activity.getId(), null)),
         ReverseRouter.route(on(EventCommentController.class)
-            .renderAddCommentForm(ScheduleEventType.WORK_PROGRAMME_ACTIVITY.getUrlSlug(), midTerm2Activity.getEventReference().getId())),
+            .renderAddCommentForm(midTerm2Activity.getEventReference().getId(), null)),
         WorkProgrammeStatus.OPEN,
         List.of()
     );
@@ -2089,7 +2089,7 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(WorkProgrammeActivityStatusController.class)
             .renderStatusUpdatePage(endOfTerm2Activity.getId(), null)),
         ReverseRouter.route(on(EventCommentController.class)
-            .renderAddCommentForm(ScheduleEventType.WORK_PROGRAMME_ACTIVITY.getUrlSlug(), endOfTerm2Activity.getEventReference().getId())),
+            .renderAddCommentForm(endOfTerm2Activity.getEventReference().getId(), null)),
         WorkProgrammeStatus.OPEN,
         List.of()
     );
@@ -2641,10 +2641,10 @@ class LicenceScheduleTimelineServiceTest {
     otherEvent.setEventDate(LocalDate.of(2025, 9, 1));
     otherEvent.setEventReference(otherEventRef);
 
-    var termComment = new EventCommentView("Term note", "Author A", "1 January 2025 12:00:00");
-    var wpaComment = new EventCommentView("WPA note", "Author B", "2 January 2025 12:00:00");
-    var rateComment = new EventCommentView("Rate note", "Author C", "3 January 2025 12:00:00");
-    var eventComment = new EventCommentView("Event note", "Author D", "4 January 2025 12:00:00");
+    var termComment = new EventCommentView("Term note", "Author A", "1 January 2025 12:00:00", "");
+    var wpaComment = new EventCommentView("WPA note", "Author B", "2 January 2025 12:00:00", "");
+    var rateComment = new EventCommentView("Rate note", "Author C", "3 January 2025 12:00:00", "");
+    var eventComment = new EventCommentView("Event note", "Author D", "4 January 2025 12:00:00", "");
 
     var commentsMap = Map.of(
         termRef.getId(), List.of(termComment),

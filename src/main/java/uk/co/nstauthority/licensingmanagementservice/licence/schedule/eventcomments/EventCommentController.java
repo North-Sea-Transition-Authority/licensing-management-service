@@ -20,13 +20,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @Controller
-@RequestMapping("/licence/schedule/{eventTypeUrlSlug}/{eventReferenceId}/add-comment")
+@RequestMapping("/licence/schedule/{eventReferenceId}/add-comment")
 @HasRolesInTeamType(value = {
     @RolesAndTeamType(
         roles = {Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR, Role.WORK_PROGRAMME_STATUS_ADMINISTRATOR},
@@ -54,16 +53,20 @@ public class EventCommentController {
 
   @GetMapping
   public ModelAndView renderAddCommentForm(
-      @PathVariable String eventTypeUrlSlug,
-      @PathVariable UUID eventReferenceId
+      @PathVariable UUID eventReferenceId,
+      ServiceUserDetail serviceUserDetail
   ) {
     var eventReference = eventReferenceService.getEventReferenceByIdOrThrow(eventReferenceId);
-    return getCommentModelAndView(new EventCommentForm(), eventReference, eventTypeUrlSlug);
+    eventCommentService.checkCommenterHasPermissionsOrThrow(
+        eventReference.getEventType(),
+        serviceUserDetail
+    );
+
+    return getCommentModelAndView(new EventCommentForm(), eventReference);
   }
 
   @PostMapping
   public ModelAndView submitAddCommentForm(
-      @PathVariable String eventTypeUrlSlug,
       @PathVariable UUID eventReferenceId,
       ServiceUserDetail serviceUserDetail,
       @ModelAttribute("form") EventCommentForm form,
@@ -71,9 +74,13 @@ public class EventCommentController {
       RedirectAttributes redirectAttributes
   ) {
     var eventReference = eventReferenceService.getEventReferenceByIdOrThrow(eventReferenceId);
+    eventCommentService.checkCommenterHasPermissionsOrThrow(
+        eventReference.getEventType(),
+        serviceUserDetail
+    );
 
     if (!eventCommentValidator.isValid(bindingResult)) {
-      return getCommentModelAndView(form, eventReference, eventTypeUrlSlug);
+      return getCommentModelAndView(form, eventReference);
     }
 
     eventCommentService.addNewComment(form, eventReference, serviceUserDetail);
@@ -86,19 +93,12 @@ public class EventCommentController {
         .renderLicenceOverview(eventReference.getLicenceSchedule().getLicence().getId(), null, null, null));
   }
 
-  private ModelAndView getCommentModelAndView(
-      EventCommentForm form,
-      EventReference eventReference,
-      String eventTypeUrlSlug
-  ) {
+  private ModelAndView getCommentModelAndView(EventCommentForm form, EventReference eventReference) {
     var licence = eventReference.getLicenceSchedule().getLicence();
 
     var caption = "%s - %s".formatted(
         licenceService.getLicencePageCaption(licence),
-        eventReferenceService.getEventReferenceEventCaption(
-            eventReference,
-            ScheduleEventType.getFromSlugOrThrow(eventTypeUrlSlug)
-        )
+        eventReferenceService.getEventReferenceEventCaption(eventReference)
     );
 
     return new ModelAndView("lms/licence/schedule/createEventComment")

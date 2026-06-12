@@ -53,7 +53,7 @@ public record TimelineRateView(
 
     var addCommentUrl = allowedActions.contains(ScheduleEventAction.ADD_SCHEDULE_COMMENT)
         ? ReverseRouter.route(on(EventCommentController.class)
-          .renderAddCommentForm(ScheduleEventType.RATE.getUrlSlug(), licenceScheduleRate.getEventReference().getId()))
+          .renderAddCommentForm(licenceScheduleRate.getEventReference().getId(), null))
         : "";
 
     var comments = eventComments.getOrDefault(licenceScheduleRate.getEventReference().getId(), List.of());

@@ -17,6 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculatio
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceScheduleTermFormServiceTest {
@@ -49,7 +50,7 @@ class LicenceScheduleTermFormServiceTest {
     form.getTermDuration().setDays("0");
 
     var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceSchedule)).thenReturn(eventReference);
+    when(eventReferenceService.createEventReference(licenceSchedule, ScheduleEventType.TERM)).thenReturn(eventReference);
 
     licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail, new LicenceScheduleTerm());
 

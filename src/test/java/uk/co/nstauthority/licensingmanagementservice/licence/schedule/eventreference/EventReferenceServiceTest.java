@@ -87,15 +87,17 @@ class EventReferenceServiceTest {
   void createEventReference() {
     var licenceSchedule = new LicenceSchedule();
 
-    eventReferenceService.createEventReference(licenceSchedule);
+    eventReferenceService.createEventReference(licenceSchedule, ScheduleEventType.RATE);
 
     verify(eventReferenceRepository).save(eventReferenceArgumentCaptor.capture());
 
     assertThat(eventReferenceArgumentCaptor.getValue().getLicenceSchedule()).isEqualTo(licenceSchedule);
+    assertThat(eventReferenceArgumentCaptor.getValue().getEventType()).isEqualTo(ScheduleEventType.RATE);
   }
 
   @Test
   void getEventReferenceEventCaption_term() {
+    eventReference.setEventType(ScheduleEventType.TERM);
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(any(), eq(LicenceScheduleDetailStatus.ACTIVE)))
         .thenReturn(scheduleDetail);
     var term = LicenceScheduleTermTestUtil.builder()
@@ -105,13 +107,14 @@ class EventReferenceServiceTest {
     when(licenceScheduleTermService.getTermByScheduleDetailAndEventReferenceOrThrow(scheduleDetail, eventReference))
         .thenReturn(term);
 
-    var result = eventReferenceService.getEventReferenceEventCaption(eventReference, ScheduleEventType.TERM);
+    var result = eventReferenceService.getEventReferenceEventCaption(eventReference);
 
     assertThat(result).isEqualTo(TermType.INITIAL.getDisplayName());
   }
 
   @Test
   void getEventReferenceEventCaption_phase() {
+    eventReference.setEventType(ScheduleEventType.PHASE);
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(any(), eq(LicenceScheduleDetailStatus.ACTIVE)))
         .thenReturn(scheduleDetail);
     var phase = LicenceSchedulePhaseTestUtil.builder()
@@ -121,13 +124,14 @@ class EventReferenceServiceTest {
     when(licenceSchedulePhaseService.getPhaseByScheduleDetailAndEventReferenceOrThrow(scheduleDetail, eventReference))
         .thenReturn(phase);
 
-    var result = eventReferenceService.getEventReferenceEventCaption(eventReference, ScheduleEventType.PHASE);
+    var result = eventReferenceService.getEventReferenceEventCaption(eventReference);
 
     assertThat(result).isEqualTo(PhaseType.PHASE_A.getDisplayName());
   }
 
   @Test
   void getEventReferenceEventCaption_rate() {
+    eventReference.setEventType(ScheduleEventType.RATE);
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(any(), eq(LicenceScheduleDetailStatus.ACTIVE)))
         .thenReturn(scheduleDetail);
     var rate = new LicenceScheduleRate();
@@ -136,13 +140,14 @@ class EventReferenceServiceTest {
     when(licenceScheduleRateService.getRateByScheduleDetailAndEventReferenceOrThrow(scheduleDetail, eventReference))
         .thenReturn(rate);
 
-    var result = eventReferenceService.getEventReferenceEventCaption(eventReference, ScheduleEventType.RATE);
+    var result = eventReferenceService.getEventReferenceEventCaption(eventReference);
 
     assertThat(result).isEqualTo("Rate");
   }
 
   @Test
   void getEventReferenceEventCaption_workProgrammeActivity() {
+    eventReference.setEventType(ScheduleEventType.WORK_PROGRAMME_ACTIVITY);
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(any(), eq(LicenceScheduleDetailStatus.ACTIVE)))
         .thenReturn(scheduleDetail);
     var activity = new WorkProgrammeActivity();
@@ -151,13 +156,14 @@ class EventReferenceServiceTest {
     when(workProgrammeActivityService.getWorkProgrammeActivityByScheduleDetailAndEventReferenceOrThrow(scheduleDetail, eventReference))
         .thenReturn(activity);
 
-    var result = eventReferenceService.getEventReferenceEventCaption(eventReference, ScheduleEventType.WORK_PROGRAMME_ACTIVITY);
+    var result = eventReferenceService.getEventReferenceEventCaption(eventReference);
 
     assertThat(result).isEqualTo(WorkProgrammeActivityCategory.DRILLING_WELL.getDisplayName());
   }
 
   @Test
   void getEventReferenceEventCaption_other() {
+    eventReference.setEventType(ScheduleEventType.OTHER);
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(any(), eq(LicenceScheduleDetailStatus.ACTIVE)))
         .thenReturn(scheduleDetail);
     var event = new OtherScheduleEvent();
@@ -166,7 +172,7 @@ class EventReferenceServiceTest {
     when(otherScheduleEventService.getOtherScheduleEventByScheduleDetailAndEventReferenceOrThrow(scheduleDetail, eventReference))
         .thenReturn(event);
 
-    var result = eventReferenceService.getEventReferenceEventCaption(eventReference, ScheduleEventType.OTHER);
+    var result = eventReferenceService.getEventReferenceEventCaption(eventReference);
 
     assertThat(result).isEqualTo(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName());
   }

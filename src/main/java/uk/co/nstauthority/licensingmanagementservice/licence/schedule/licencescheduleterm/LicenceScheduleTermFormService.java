@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 
 @Service
 public class LicenceScheduleTermFormService {
@@ -35,7 +36,7 @@ public class LicenceScheduleTermFormService {
 
     if (licenceScheduleTerm.getEventReference() == null) {
       licenceScheduleTerm.setEventReference(
-          eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule())
+          eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.TERM)
       );
     }
 

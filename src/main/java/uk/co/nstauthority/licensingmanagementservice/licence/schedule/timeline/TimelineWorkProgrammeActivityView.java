@@ -67,9 +67,7 @@ public record TimelineWorkProgrammeActivityView(
 
     var addCommentUrl = allowedActions.contains(ScheduleEventAction.ADD_WORK_PROGRAMME_COMMENT)
         ? ReverseRouter.route(on(EventCommentController.class)
-          .renderAddCommentForm(
-              ScheduleEventType.WORK_PROGRAMME_ACTIVITY.getUrlSlug(),
-              workProgrammeActivity.getEventReference().getId())
+          .renderAddCommentForm(workProgrammeActivity.getEventReference().getId(), null)
     )
         : "";
 

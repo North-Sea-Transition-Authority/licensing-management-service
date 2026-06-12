@@ -1,13 +1,18 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,13 +21,19 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 
 @ExtendWith(MockitoExtension.class)
 class EventCommentServiceTest {
@@ -35,6 +46,9 @@ class EventCommentServiceTest {
 
   @Mock
   private Clock clock;
+
+  @Mock
+  private TeamQueryService teamQueryService;
 
   @InjectMocks
   private EventCommentService eventCommentService;
@@ -88,12 +102,14 @@ class EventCommentServiceTest {
     var authorWuaId = 99L;
 
     var comment1 = new EventComment();
+    comment1.setId(UUID.randomUUID());
     comment1.setEventReference(eventRef1);
     comment1.setComment("First comment");
     comment1.setAuthorWuaId(authorWuaId);
     comment1.setTimestamp(Instant.parse("2025-01-01T10:00:00Z"));
 
     var comment2 = new EventComment();
+    comment2.setId(UUID.randomUUID());
     comment2.setEventReference(eventRef2);
     comment2.setComment("Second comment");
     comment2.setAuthorWuaId(authorWuaId);
@@ -118,7 +134,9 @@ class EventCommentServiceTest {
         .isEqualTo(List.of(new EventCommentView(
             "First comment",
             userJson.displayName(),
-            DateFormatUtil.convertToDisplayTextWithTime(comment1.getTimestamp())
+            DateFormatUtil.convertToDisplayTextWithTime(comment1.getTimestamp()),
+            ReverseRouter.route(on(EventCommentDeletionController.class)
+                .renderDeleteCommentPage(comment1.getId(), null))
         )));
 
     assertThat(result.get(eventRef2.getId()))
@@ -126,7 +144,9 @@ class EventCommentServiceTest {
         .isEqualTo(List.of(new EventCommentView(
             "Second comment",
             userJson.displayName(),
-            DateFormatUtil.convertToDisplayTextWithTime(comment2.getTimestamp())
+            DateFormatUtil.convertToDisplayTextWithTime(comment2.getTimestamp()),
+            ReverseRouter.route(on(EventCommentDeletionController.class)
+                .renderDeleteCommentPage(comment2.getId(), null))
         )));
   }
 
@@ -181,5 +201,119 @@ class EventCommentServiceTest {
     var result = eventCommentService.getEventCommentViewsForSchedule(licenceSchedule);
 
     assertThat(result).isEqualTo(Map.of());
+  }
+
+  @Test
+  void getEventCommentByIdOrThrow_whenCommentExists_returnsComment() {
+    var id = UUID.randomUUID();
+    var eventComment = new EventComment();
+    eventComment.setId(id);
+
+    when(eventCommentRepository.findById(id)).thenReturn(Optional.of(eventComment));
+
+    assertThat(eventCommentService.getEventCommentByIdOrThrow(id)).isEqualTo(eventComment);
+  }
+
+  @Test
+  void getEventCommentByIdOrThrow_whenCommentNotFound_throwsException() {
+    var id = UUID.randomUUID();
+
+    when(eventCommentRepository.findById(id)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> eventCommentService.getEventCommentByIdOrThrow(id))
+        .isInstanceOf(LmsEntityNotFoundException.class);
+  }
+
+  @Test
+  void getEventCommentViewFor_returnsViewWithResolvedAuthorName() {
+    var authorWuaId = 77L;
+
+    var eventComment = new EventComment();
+    eventComment.setId(UUID.randomUUID());
+    eventComment.setComment("A comment");
+    eventComment.setAuthorWuaId(authorWuaId);
+    eventComment.setTimestamp(Instant.parse("2025-03-15T09:30:00Z"));
+
+    var userJson = new EnergyPortalUserJson(authorWuaId, null, "Alice", "Brown", null, null, true, null, false);
+
+    when(energyPortalUserService.findByWuaId(
+        WebUserAccountId.from(authorWuaId),
+        EventCommentService.COMMENT_AUTHOR_PURPOSE
+    )).thenReturn(Optional.of(userJson));
+
+    assertThat(eventCommentService.getEventCommentViewFor(eventComment))
+        .usingRecursiveComparison()
+        .isEqualTo(new EventCommentView(
+            "A comment",
+            userJson.displayName(),
+            DateFormatUtil.convertToDisplayTextWithTime(eventComment.getTimestamp()),
+            ReverseRouter.route(on(EventCommentDeletionController.class)
+                .renderDeleteCommentPage(eventComment.getId(), null))
+        ));
+  }
+
+  @Test
+  void deleteEventComment_deletesComment() {
+    var eventComment = new EventComment();
+
+    eventCommentService.deleteEventComment(eventComment);
+
+    verify(eventCommentRepository).delete(eventComment);
+  }
+
+  @Test
+  void checkCommenterHasPermissionsOrThrow_whenWorkProgrammeActivityAndUserHasWpaRole_doesNotThrow() {
+    var user = ServiceUserDetailTestUtil.newBuilder().withWuaId(1L).build();
+
+    when(teamQueryService.userHasAtLeastOneRoleIn(
+        user.wuaId(),
+        Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR, Role.WORK_PROGRAMME_STATUS_ADMINISTRATOR)
+    )).thenReturn(true);
+
+    assertThatCode(() ->
+        eventCommentService.checkCommenterHasPermissionsOrThrow(ScheduleEventType.WORK_PROGRAMME_ACTIVITY, user)
+    ).doesNotThrowAnyException();
+  }
+
+  @Test
+  void checkCommenterHasPermissionsOrThrow_whenWorkProgrammeActivityAndUserLacksWpaRole_throwsException() {
+    var user = ServiceUserDetailTestUtil.newBuilder().withWuaId(1L).build();
+
+    when(teamQueryService.userHasAtLeastOneRoleIn(
+        user.wuaId(),
+        Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR, Role.WORK_PROGRAMME_STATUS_ADMINISTRATOR)
+    )).thenReturn(false);
+
+    assertThatThrownBy(() ->
+        eventCommentService.checkCommenterHasPermissionsOrThrow(ScheduleEventType.WORK_PROGRAMME_ACTIVITY, user)
+    ).isInstanceOf(ResponseStatusException.class);
+  }
+
+  @Test
+  void checkCommenterHasPermissionsOrThrow_whenNonWpaEventTypeAndUserHasScheduleAdminRole_doesNotThrow() {
+    var user = ServiceUserDetailTestUtil.newBuilder().withWuaId(1L).build();
+
+    when(teamQueryService.userHasAtLeastOneRoleIn(
+        user.wuaId(),
+        Set.of(Role.SCHEDULE_ADMINISTRATOR)
+    )).thenReturn(true);
+
+    assertThatCode(() ->
+        eventCommentService.checkCommenterHasPermissionsOrThrow(ScheduleEventType.RATE, user)
+    ).doesNotThrowAnyException();
+  }
+
+  @Test
+  void checkCommenterHasPermissionsOrThrow_whenNonWpaEventTypeAndUserLacksScheduleAdminRole_throwsException() {
+    var user = ServiceUserDetailTestUtil.newBuilder().withWuaId(1L).build();
+
+    when(teamQueryService.userHasAtLeastOneRoleIn(
+        user.wuaId(),
+        Set.of(Role.SCHEDULE_ADMINISTRATOR)
+    )).thenReturn(false);
+
+    assertThatThrownBy(() ->
+        eventCommentService.checkCommenterHasPermissionsOrThrow(ScheduleEventType.RATE, user)
+    ).isInstanceOf(ResponseStatusException.class);
   }
 }

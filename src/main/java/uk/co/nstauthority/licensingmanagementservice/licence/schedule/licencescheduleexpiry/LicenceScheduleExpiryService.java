@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 
 @Service
 public class LicenceScheduleExpiryService {
@@ -40,7 +41,7 @@ public class LicenceScheduleExpiryService {
 
     if (licenceScheduleExpiry.getEventReference() == null) {
       licenceScheduleExpiry.setEventReference(
-          eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule())
+          eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.EXPIRY)
       );
     }
 

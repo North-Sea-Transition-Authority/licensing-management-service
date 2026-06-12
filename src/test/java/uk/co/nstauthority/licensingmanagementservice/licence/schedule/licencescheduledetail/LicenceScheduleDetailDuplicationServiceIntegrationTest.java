@@ -32,6 +32,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesta
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityRepository;
@@ -268,6 +269,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     licenceScheduleTerm.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     var termEventRef = new EventReference();
     termEventRef.setLicenceSchedule(licenceSchedule);
+    termEventRef.setEventType(ScheduleEventType.TERM);
     em.persist(termEventRef);
     licenceScheduleTerm.setEventReference(termEventRef);
 
@@ -280,6 +282,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     licenceSchedulePhase.setPhaseDuration(new ThreeFieldDuration(0, 1, 0));
     var phaseEventRef = new EventReference();
     phaseEventRef.setLicenceSchedule(licenceSchedule);
+    phaseEventRef.setEventType(ScheduleEventType.PHASE);
     em.persist(phaseEventRef);
     licenceSchedulePhase.setEventReference(phaseEventRef);
 
@@ -292,6 +295,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     termLinkedActivity.setRelativeDuration(new ThreeFieldDuration(1, 0, 0));
     var termActivityEventRef = new EventReference();
     termActivityEventRef.setLicenceSchedule(licenceSchedule);
+    termActivityEventRef.setEventType(ScheduleEventType.WORK_PROGRAMME_ACTIVITY);
     em.persist(termActivityEventRef);
     termLinkedActivity.setEventReference(termActivityEventRef);
 
@@ -304,6 +308,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     phaseLinkedActivity.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
     var phaseActivityEventRef = new EventReference();
     phaseActivityEventRef.setLicenceSchedule(licenceSchedule);
+    phaseActivityEventRef.setEventType(ScheduleEventType.WORK_PROGRAMME_ACTIVITY);
     em.persist(phaseActivityEventRef);
     phaseLinkedActivity.setEventReference(phaseActivityEventRef);
 
@@ -315,6 +320,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     termLinkedRate.setRateDefinitionOption(RateDefinitionOption.TERM);
     var termRateEventRef = new EventReference();
     termRateEventRef.setLicenceSchedule(licenceSchedule);
+    termRateEventRef.setEventType(ScheduleEventType.RATE);
     em.persist(termRateEventRef);
     termLinkedRate.setEventReference(termRateEventRef);
 
@@ -327,6 +333,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     phaseLinkedRate.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
     var phaseRateEventRef = new EventReference();
     phaseRateEventRef.setLicenceSchedule(licenceSchedule);
+    phaseRateEventRef.setEventType(ScheduleEventType.RATE);
     em.persist(phaseRateEventRef);
     phaseLinkedRate.setEventReference(phaseRateEventRef);
 
@@ -339,6 +346,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     termLinkedEvent.setRelativeDuration(new ThreeFieldDuration(1, 0, 0));
     var termEventEventRef = new EventReference();
     termEventEventRef.setLicenceSchedule(licenceSchedule);
+    termEventEventRef.setEventType(ScheduleEventType.OTHER);
     em.persist(termEventEventRef);
     termLinkedEvent.setEventReference(termEventEventRef);
 
@@ -351,6 +359,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     phaseLinkedEvent.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
     var phaseEventEventRef = new EventReference();
     phaseEventEventRef.setLicenceSchedule(licenceSchedule);
+    phaseEventEventRef.setEventType(ScheduleEventType.OTHER);
     em.persist(phaseEventEventRef);
     phaseLinkedEvent.setEventReference(phaseEventEventRef);
 

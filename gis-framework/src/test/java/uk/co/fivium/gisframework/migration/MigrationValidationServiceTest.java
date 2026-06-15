@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -51,67 +52,98 @@ class MigrationValidationServiceTest {
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
-  void childAndParentValidation(boolean isValid) {
+  void childAndParentValidation_validatesOnlyChildrenMatchingGivenLayer(boolean isValid) {
     var logAppender = getLogAppender(MigrationValidationService.class);
 
-    var parentFeature = FeatureTestUtil.newBuilder().withFeatureName("Parent").build();
+    var parentFeature = FeatureTestUtil.newBuilder().withFeatureName("Parent").withLegacyId(1000).build();
     var blockChildFeature = FeatureTestUtil.newBuilder()
         .withFeatureName("Child 1")
+        .withLegacyId(1001)
         .withParentFeature(parentFeature)
         .withAttributes(Map.of("LAYER", Layer.BLOCKS.name()))
         .build();
     var subareaChildFeature = FeatureTestUtil.newBuilder()
         .withFeatureName("Child 2")
+        .withLegacyId(1002)
         .withParentFeature(parentFeature)
         .withAttributes(Map.of("LAYER", Layer.SUBAREAS.name()))
         .build();
-    var retentionAreaChildFeature = FeatureTestUtil.newBuilder()
-        .withFeatureName("Child 3")
-        .withParentFeature(parentFeature)
-        .withAttributes(Map.of("LAYER", Layer.RETENTION_AREAS.name()))
-        .build();
 
     var blockChildEntityBacked = new EntityBackedFeature(blockChildFeature, Map.of());
-    var subareaChildEntityBacked = new EntityBackedFeature(subareaChildFeature, Map.of());
     var parentEntityBacked = new EntityBackedFeature(parentFeature, Map.of());
 
     when(featureService.findAllChildFeatures())
-        .thenReturn(List.of(blockChildFeature, subareaChildFeature, retentionAreaChildFeature));
+        .thenReturn(List.of(blockChildFeature, subareaChildFeature));
     when(featureService.getEntityBackedFeatures(Set.of(parentFeature))).thenReturn(List.of(parentEntityBacked));
-    when(featureService.getEntityBackedFeatures(List.of(blockChildFeature, subareaChildFeature)))
-        .thenReturn(List.of(blockChildEntityBacked, subareaChildEntityBacked));
+    when(featureService.getEntityBackedFeatures(List.of(blockChildFeature)))
+        .thenReturn(List.of(blockChildEntityBacked));
 
     var response = ValidationResponse.newBuilder()
         .setIsValid(isValid)
         .setMessage("some message")
         .build();
     when(grpcClientService.validateBlockAndSubarea(blockChildEntityBacked, parentEntityBacked)).thenReturn(response);
-    when(grpcClientService.validateBlockAndSubarea(subareaChildEntityBacked, parentEntityBacked)).thenReturn(response);
 
     try {
-      migrationValidationService.childAndParentValidation();
+      migrationValidationService.childAndParentValidation(Layer.BLOCKS);
     } finally {
       detachLogAppender(MigrationValidationService.class, logAppender);
     }
 
     assertThat(logAppender.list)
         .extracting(ILoggingEvent::getLevel, ILoggingEvent::getFormattedMessage)
-        .containsExactly(
-            tuple(
-                isValid ? Level.INFO : Level.ERROR,
-                isValid
-                    ? "Child Child 1 passed validation checks"
-                    : "Validation error: some message Child Feature: %s Parent Feature: %s"
-                      .formatted(blockChildFeature.getId(), parentFeature.getId())
-            ),
-            tuple(
-                isValid ? Level.INFO : Level.ERROR,
-                isValid
-                    ? "Child Child 2 passed validation checks"
-                    : "Validation error: some message Child Feature: %s Parent Feature: %s"
-                      .formatted(subareaChildFeature.getId(), parentFeature.getId())
-            )
-        );
+        .containsExactly(tuple(
+            isValid ? Level.INFO : Level.ERROR,
+            isValid
+                ? "Child %s passed validation checks".formatted(blockChildFeature.getLegacyId())
+                : "Validation error: some message Child Feature: %s Parent Feature: %s"
+                  .formatted(blockChildFeature.getLegacyId(), parentFeature.getLegacyId())
+        ));
+  }
+
+  @Test
+  void childAndParentValidation_whenRetentionAreaLayer_thenValidatesRetentionAreaChildren() {
+    var logAppender = getLogAppender(MigrationValidationService.class);
+
+    var parentFeature = FeatureTestUtil.newBuilder().withFeatureName("Parent").withLegacyId(2000).build();
+    var retentionAreaChildFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("Child RA")
+        .withLegacyId(2001)
+        .withParentFeature(parentFeature)
+        .withAttributes(Map.of("LAYER", Layer.RETENTION_AREAS.name()))
+        .build();
+    var blockChildFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("Child Block")
+        .withLegacyId(2002)
+        .withParentFeature(parentFeature)
+        .withAttributes(Map.of("LAYER", Layer.BLOCKS.name()))
+        .build();
+
+    var retentionAreaChildEntityBacked = new EntityBackedFeature(retentionAreaChildFeature, Map.of());
+    var parentEntityBacked = new EntityBackedFeature(parentFeature, Map.of());
+
+    when(featureService.findAllChildFeatures())
+        .thenReturn(List.of(retentionAreaChildFeature, blockChildFeature));
+    when(featureService.getEntityBackedFeatures(Set.of(parentFeature))).thenReturn(List.of(parentEntityBacked));
+    when(featureService.getEntityBackedFeatures(List.of(retentionAreaChildFeature)))
+        .thenReturn(List.of(retentionAreaChildEntityBacked));
+
+    var response = ValidationResponse.newBuilder().setIsValid(true).setMessage("some message").build();
+    when(grpcClientService.validateBlockAndSubarea(retentionAreaChildEntityBacked, parentEntityBacked))
+        .thenReturn(response);
+
+    try {
+      migrationValidationService.childAndParentValidation(Layer.RETENTION_AREAS);
+    } finally {
+      detachLogAppender(MigrationValidationService.class, logAppender);
+    }
+
+    assertThat(logAppender.list)
+        .extracting(ILoggingEvent::getLevel, ILoggingEvent::getFormattedMessage)
+        .containsExactly(tuple(
+            Level.INFO,
+            "Child %s passed validation checks".formatted(retentionAreaChildFeature.getLegacyId())
+        ));
   }
 
   @ParameterizedTest
@@ -177,8 +209,38 @@ class MigrationValidationServiceTest {
         .containsExactly(tuple(
             isValid ? Level.INFO : Level.ERROR,
             isValid
-                ? "Parent Parent Block is topologically equal to all of its children"
-                : "Validation error: some message Feature: %s".formatted(parentFeature.getId())
+                ? "Parent %s is topologically equal to all of its children".formatted(parentFeature.getLegacyId())
+                : "Validation error: some message Feature: %s".formatted(parentFeature.getLegacyId())
+        ));
+  }
+
+  @Test
+  void verifySubareasTopologicallyEqualToBlock_whenBlockHasNoSubareas_thenWarnsAndSkips() {
+    var logAppender = getLogAppender(MigrationValidationService.class);
+
+    var parentFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("Parent Block")
+        .withLegacyId(7654321)
+        .withAttributes(Map.of("LAYER", Layer.BLOCKS.name()))
+        .build();
+
+    var parentEntityBacked = new EntityBackedFeature(parentFeature, Map.of());
+
+    when(featureService.findAllByAttribute("LAYER", Layer.BLOCKS.name())).thenReturn(List.of(parentFeature));
+    when(featureService.getEntityBackedFeatures(List.of(parentFeature))).thenReturn(List.of(parentEntityBacked));
+    when(featureService.findAllByAttribute("LAYER", Layer.SUBAREAS.name())).thenReturn(List.of());
+
+    try {
+      migrationValidationService.verifySubareasTopologicallyEqualToBlock();
+    } finally {
+      detachLogAppender(MigrationValidationService.class, logAppender);
+    }
+
+    assertThat(logAppender.list)
+        .extracting(ILoggingEvent::getLevel, ILoggingEvent::getFormattedMessage)
+        .containsExactly(tuple(
+            Level.WARN,
+            "Parent %s has no subareas".formatted(parentFeature.getLegacyId())
         ));
   }
 
@@ -189,6 +251,7 @@ class MigrationValidationServiceTest {
 
     var refBlockFeature = FeatureTestUtil.newBuilder()
         .withFeatureName("16/30")
+        .withLegacyId(300)
         .withAttributes(Map.of("LAYER", Layer.OFFSHORE_REF_BLOCKS.name()))
         .build();
     var licenseBlockFeature = FeatureTestUtil.newBuilder()
@@ -204,9 +267,9 @@ class MigrationValidationServiceTest {
     var licenseBlockEntityBacked = new EntityBackedFeature(licenseBlockFeature, Map.of());
 
     var refBlockLayers = List.of(
-        Layer.OFFSHORE_REF_BLOCKS.name(),
         Layer.OFFSHORE_CROP_REF_BLOCKS.name(),
-        Layer.ONSHORE_CROP_REF_BLOCKS.name()
+        Layer.ONSHORE_CROP_REF_BLOCKS.name(),
+        Layer.OFFSHORE_REF_BLOCKS.name()
     );
     when(featureService.findAllByAttribute("LAYER", Layer.BLOCKS.name()))
         .thenReturn(List.of(licenseBlockFeature, brokenLicenseBlockFeature));
@@ -233,8 +296,8 @@ class MigrationValidationServiceTest {
         .containsExactly(tuple(
             isValid ? Level.INFO : Level.ERROR,
             isValid
-                ? "All license blocks are contained by ref block 16/30"
-                : "Validation error: some message Reference Block: 16/30"
+                ? "All license blocks are contained by ref block %s".formatted(refBlockFeature.getLegacyId())
+                : "Validation error: some message Reference Block: %s".formatted(refBlockFeature.getLegacyId())
         ));
   }
 }

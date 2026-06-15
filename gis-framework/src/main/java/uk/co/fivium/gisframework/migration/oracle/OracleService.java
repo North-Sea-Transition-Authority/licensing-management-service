@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.context.annotation.Profile;
@@ -95,13 +94,18 @@ public class OracleService {
             boundariesByPolygonId,
             linesByBoundaryId
         ))
-        .sorted(Comparator.comparing(entityBackedOracleShape -> entityBackedOracleShape.shape().getShapeStartDate()))
+        .sorted(Comparator.comparing(
+            entityBackedOracleShape -> entityBackedOracleShape.shape().getShapeStartDate(),
+            Comparator.nullsLast(Comparator.naturalOrder())
+        ))
         .toList();
   }
 
-  public Optional<Integer> getLinkedParentShapeSiId(Integer childShapeSiId) {
+  public List<Integer> getLinkedParentShapeSiIds(Integer childShapeSiId) {
     return shapeLinkRepository.findByChildShapeId(childShapeSiId)
-        .map(OracleShapeLink::getParentShapeId);
+        .stream()
+        .map(OracleShapeLink::getParentShapeId)
+        .toList();
   }
 
   public Map<String, Object> getAttributeMapForSiIdAndLevel(Integer siId, AttributeLevel level) {

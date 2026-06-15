@@ -4,8 +4,8 @@ import * as proximityOperator from "@arcgis/core/geometry/operators/proximityOpe
 import { logger } from "../../config/logger";
 import { esriJsonToPolyline } from "../../util/esrijson-util";
 
-export const FIVE_CM_IN_DEGREES_AT_48N_ED50 = 0.00000067;
-export const ONE_HUNDRED_METERS_ED50 = FIVE_CM_IN_DEGREES_AT_48N_ED50 * 2000;
+export const FIVE_CM_IN_DEGREES_AT_58N_ED50 = 0.00000087;
+export const ONE_HUNDRED_METERS_ED50 = FIVE_CM_IN_DEGREES_AT_58N_ED50 * 2000;
 
 /**
  * Gets the start and end points of a polyline.
@@ -33,9 +33,15 @@ export function getLineStartAndEndPoints(polyline: Polyline): { startPoint: Poin
  * @param parentLines Possible parent lines
  * @param childStartPoint the first point, e.g., the start of a child line.
  * @param childEndPoint the second point, e.g., the end of a child line.
+ * @param shapeId the id of the child shape being migrated, used to correlate logs.
  * @returns A Polyline which is the closest to both points, or undefined if there is no line within 5 cm of both points.
  */
-export function findParentLine(parentLines: string[], childStartPoint: Point, childEndPoint: Point): Polyline | undefined {
+export function findParentLine(
+  parentLines: string[],
+  childStartPoint: Point,
+  childEndPoint: Point,
+  shapeId?: string,
+): Polyline | undefined {
   let parent: Polyline | undefined;
   let closestCombinedDistance = Number.POSITIVE_INFINITY;
   let closestStartDistance = Number.POSITIVE_INFINITY;
@@ -55,8 +61,8 @@ export function findParentLine(parentLines: string[], childStartPoint: Point, ch
     }
   });
 
-  if (closestStartDistance > FIVE_CM_IN_DEGREES_AT_48N_ED50 || closestEndDistance > FIVE_CM_IN_DEGREES_AT_48N_ED50) {
-    logger.error(`Parent line is too far away. Start difference: ${closestStartDistance} end difference: ${closestEndDistance}`);
+  if (closestStartDistance > FIVE_CM_IN_DEGREES_AT_58N_ED50 || closestEndDistance > FIVE_CM_IN_DEGREES_AT_58N_ED50) {
+    logger.error(`Parent line is too far away. Start difference: ${closestStartDistance} end difference: ${closestEndDistance}, shapeId: ${shapeId}`);
     return undefined;
   }
 

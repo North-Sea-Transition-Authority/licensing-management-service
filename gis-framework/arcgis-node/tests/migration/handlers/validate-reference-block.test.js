@@ -2,8 +2,9 @@ import { status } from "@grpc/grpc-js";
 import { describe, expect, it, vi } from "vitest";
 import { CoordinateSystem } from "../../../generated/uk/co/fivium/grpc/gis/CoordinateSystem.ts";
 import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType.ts";
-import { validateReferenceBlock } from "../../../src/migration/handlers/validate-reference-block";
-import { makeRectanglePolygonWrapper } from "../../test-utils/esrijson-test-util.ts";
+import { processPolygons, validateReferenceBlock } from "../../../src/migration/handlers/validate-reference-block";
+import { getCoordinateSystemWkid } from "../../../src/util/coordinate-system-utils.ts";
+import { makePolygon, makeRectanglePolygonWrapper } from "../../test-utils/esrijson-test-util.ts";
 
 describe("validateReferenceBlock", () => {
   it("valid", async () => {
@@ -91,5 +92,42 @@ describe("validateReferenceBlock", () => {
     expect(callbackError.code).toBe(status.INTERNAL);
     expect(callback).toHaveBeenCalledWith(callbackError, null);
     expect(callback).toHaveBeenCalledOnce();
+  });
+
+  describe("processPolygons", () => {
+    const offshoreWkid = getCoordinateSystemWkid(CoordinateSystem.ED50);
+    const bngWkid = getCoordinateSystemWkid(CoordinateSystem.BRITISH_NATIONAL_GRID);
+
+    it.each([
+      { region: "offshore (non-BNG)", wkid: offshoreWkid, navigationType: LineNavigationType.CARTESIAN, expectedGeodesic: true },
+      { region: "offshore (non-BNG)", wkid: offshoreWkid, navigationType: LineNavigationType.GEODESIC, expectedGeodesic: true },
+      { region: "offshore (non-BNG)", wkid: offshoreWkid, navigationType: LineNavigationType.LOXODROME, expectedGeodesic: false },
+      { region: "onshore (BNG)", wkid: bngWkid, navigationType: LineNavigationType.CARTESIAN, expectedGeodesic: false },
+      { region: "onshore (BNG)", wkid: bngWkid, navigationType: LineNavigationType.GEODESIC, expectedGeodesic: true },
+      { region: "onshore (BNG)", wkid: bngWkid, navigationType: LineNavigationType.LOXODROME, expectedGeodesic: false },
+    ])("$region $navigationType lines have isGeodesic=$expectedGeodesic", ({ wkid, navigationType, expectedGeodesic }) => {
+      const wrapper = makeRectanglePolygonWrapper(0, 0, 10, 10, navigationType);
+
+      const result = processPolygons([wrapper], wkid);
+
+      expect(result).toEqual({
+        unionedPolygon: makePolygon(
+          [
+            [
+              [0, 0],
+              [0, 10],
+              [10, 10],
+              [10, 0],
+              [0, 0],
+            ],
+          ],
+          wkid,
+        ),
+        lines: wrapper.lineWrappers.map(lineWrapper => ({
+          esriJsonPolyline: lineWrapper.esriJsonString,
+          isGeodesic: expectedGeodesic,
+        })),
+      });
+    });
   });
 });

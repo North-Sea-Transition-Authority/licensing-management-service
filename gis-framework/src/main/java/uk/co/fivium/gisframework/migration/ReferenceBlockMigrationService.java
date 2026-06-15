@@ -16,9 +16,12 @@ import uk.co.fivium.gisframework.feature.LineService;
 import uk.co.fivium.gisframework.feature.Polygon;
 import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
+import uk.co.fivium.gisframework.migration.oracle.AttributeLevel;
 import uk.co.fivium.gisframework.migration.oracle.EntityBackedOracleShape;
 import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineWithRing;
 import uk.co.fivium.gisframework.migration.oracle.OraclePolygonBoundary;
+import uk.co.fivium.gisframework.migration.oracle.OracleService;
+import uk.co.fivium.gisframework.migration.oracle.OracleShapePolygon;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 
 @Profile("gis-migration")
@@ -34,68 +37,91 @@ public class ReferenceBlockMigrationService {
   private final GrpcClientService grpcClientService;
 
   private final MigrationService migrationService;
+  private final OracleService oracleService;
 
   public ReferenceBlockMigrationService(
       FeatureService featureService,
       PolygonService polygonService,
       LineService lineService,
       GrpcClientService grpcClientService,
-      MigrationService migrationService
+      MigrationService migrationService,
+      OracleService oracleService
   ) {
     this.featureService = featureService;
     this.polygonService = polygonService;
     this.lineService = lineService;
     this.grpcClientService = grpcClientService;
     this.migrationService = migrationService;
+    this.oracleService = oracleService;
   }
 
   public void migrate(Collection<EntityBackedOracleShape> entityBackedOracleShapes) {
     for (var entityBackedShape : entityBackedOracleShapes) {
-      LOGGER.info("migrating {} {}", entityBackedShape.shape().getShapeSidId(), entityBackedShape.shape().getShapeName());
-      var newFeature = migrationService.migrateFeature(entityBackedShape);
+      try {
+        LOGGER.info("migrating {} {}", entityBackedShape.shape().getShapeSidId(), entityBackedShape.shape().getShapeName());
+        if (entityBackedShape.shape().getShapeSrs().equals("ETRS89_DS")) {
+          // shape in invalid state
+          LOGGER.warn("Skipping ShapeSiId {} due to ETRS89_DS", entityBackedShape.shape().getShapeSiId());
+          continue;
+        }
 
-      var licenseBlocks = new ArrayList<>(featureService.findLicenseBlocksForRefBlock(entityBackedShape.shape().getShapeName()));
+        var newFeature = migrationService.migrateFeature(entityBackedShape);
 
-      var polygonToLine = new HashMap<Polygon, List<Line>>();
+        var polygonToLine = new HashMap<Polygon, List<Line>>();
 
-      for (var polygonAndBoundary : entityBackedShape.polygonToBoundary().entrySet()) {
-        var oraclePolygon = polygonAndBoundary.getKey();
-        var oracleBoundaries = polygonAndBoundary.getValue();
+        var licenseBlockIds = oracleService.getLinkedParentShapeSiIds(newFeature.getLegacyId());
+        var licenseLines = lineService.findAllByFeatureLegacyIdIn(licenseBlockIds)
+            .stream()
+            .filter(line -> LineNavigationType.GEODESIC.equals(line.getNavigationType()))
+            .toList();
 
-        var newPolygon = migrationService.migratePolygon(
-            oraclePolygon.getPolygonSidId(),
-            newFeature,
-            oraclePolygon.getFeatureOffsetHighM(),
-            oraclePolygon.getFeatureOffsetLowM(),
-            Map.of() //TODO EPGF-120: Set attributes
-        );
-
-        var newLines = migrateRefBlockLines(
-            newFeature,
-            newPolygon,
-            oracleBoundaries,
-            entityBackedShape,
-            lineService.findAllByFeatureIn(licenseBlocks)
+        var idToPolygonAttributeMap = oracleService.getIdToAttributeMapForSiIdAndLevel(
+            entityBackedShape.polygonToBoundary()
+                .keySet()
                 .stream()
-                .filter(line -> LineNavigationType.GEODESIC.equals(line.getNavigationType()))
-                .toList()
+                .map(OracleShapePolygon::getPolygonSidId)
+                .toList(),
+            AttributeLevel.SHAPE_POLYGON
         );
 
-        polygonToLine.put(newPolygon, newLines);
+        for (var polygonAndBoundary : entityBackedShape.polygonToBoundary().entrySet()) {
+          var oraclePolygon = polygonAndBoundary.getKey();
+          var oracleBoundaries = polygonAndBoundary.getValue();
 
+          var newPolygon = migrationService.migratePolygon(
+              oraclePolygon.getPolygonSidId(),
+              newFeature,
+              oraclePolygon.getFeatureOffsetHighM(),
+              oraclePolygon.getFeatureOffsetLowM(),
+              new HashMap<>(idToPolygonAttributeMap.getOrDefault(oraclePolygon.getPolygonSidId(), Map.of()))
+          );
+
+          var newLines = migrateRefBlockLines(
+              newFeature,
+              newPolygon,
+              oracleBoundaries,
+              entityBackedShape,
+              licenseLines
+          );
+
+          polygonToLine.put(newPolygon, newLines);
+
+        }
+
+        featureService.saveFeature(newFeature);
+        for (var entry : polygonToLine.entrySet()) {
+          var polygon = entry.getKey();
+          polygonService.savePolygon(polygon);
+
+          var lines = entry.getValue();
+          lineService.saveLines(lines);
+        }
+      } catch (Exception e) {
+        LOGGER.error("Error while migrating shape si id {}", entityBackedShape.shape().getShapeSiId(), e);
       }
 
-      featureService.saveFeature(newFeature);
-      for (var entry : polygonToLine.entrySet()) {
-        var polygon = entry.getKey();
-        polygonService.savePolygon(polygon);
-
-        var lines = entry.getValue();
-        lineService.saveLines(lines);
-      }
     }
   }
-
 
   /**
    * This method will send the ref block lines to the node server so they can be processed by being converted to esriJSON,
@@ -132,7 +158,7 @@ public class ReferenceBlockMigrationService {
     var newLines = new ArrayList<Line>();
     for (var entry : linesWithRing) {
       var oracleLine = entry.oracleBoundaryLine();
-      var oracleLineSsid = oracleLine.getLineSidId().intValue();
+      var oracleLineSsid = oracleLine.getLineSidId();
 
       if (!lineSsidToEsriJson.containsKey(oracleLineSsid)) {
         continue;

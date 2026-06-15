@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   findParentLine,
-  FIVE_CM_IN_DEGREES_AT_48N_ED50,
+  FIVE_CM_IN_DEGREES_AT_58N_ED50,
   getLineStartAndEndPoints,
 } from "../../src/migration/utils/migration-line-utils";
 import { esriJsonToPolyline } from "../../src/util/esrijson-util";
@@ -143,7 +143,7 @@ describe("migration-line-utils", () => {
   });
 
   it("should return parent when parent is less than 5cm away from child line", () => {
-    const offset = FIVE_CM_IN_DEGREES_AT_48N_ED50 - FIVE_CM_IN_DEGREES_AT_48N_ED50 * 0.1;
+    const offset = FIVE_CM_IN_DEGREES_AT_58N_ED50 - FIVE_CM_IN_DEGREES_AT_58N_ED50 * 0.1;
     const parent = makePolylineEsriJson([
       [
         [0, 0],

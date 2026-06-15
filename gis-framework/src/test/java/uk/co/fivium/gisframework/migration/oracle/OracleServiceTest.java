@@ -6,7 +6,6 @@ import static org.mockito.Mockito.when;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -128,31 +127,51 @@ class OracleServiceTest {
         .withShapeSiId(2)
         .withShapeStartDate(LocalDate.of(2020, 1, 1))
         .build();
+    var shapeWithNullDate = OracleShapeTestUtil.newBuilder()
+        .withShapeSidId(3)
+        .withShapeSiId(3)
+        .withShapeStartDate(null)
+        .build();
     var polygon2 = OracleShapePolygonTestUtil.newBuilder()
         .withPolygonSidId(20)
         .withShapeSidId(2)
         .withOracleShapeId(2)
+        .build();
+    var polygon3 = OracleShapePolygonTestUtil.newBuilder()
+        .withPolygonSidId(30)
+        .withShapeSidId(3)
+        .withOracleShapeId(3)
         .build();
     var boundary2 = OraclePolygonBoundaryTestUtil.newBuilder()
         .withBoundarySidId(200)
         .withOracleShapePolygonId(20)
         .withShapeSiId(2)
         .build();
+    var boundary3 = OraclePolygonBoundaryTestUtil.newBuilder()
+        .withBoundarySidId(300)
+        .withOracleShapePolygonId(30)
+        .withShapeSiId(3)
+        .build();
     var line2 = OracleBoundaryLineTestUtil.newBuilder()
         .withLineSidId(2000)
         .withOraclePolygonBoundaryId(200)
         .withConnectionOrder(1L)
         .build();
+    var line3 = OracleBoundaryLineTestUtil.newBuilder()
+        .withLineSidId(3000)
+        .withOraclePolygonBoundaryId(300)
+        .withConnectionOrder(1L)
+        .build();
 
-    when(shapeRepository.findAllById(List.of(2, SHAPE_1_SI_ID))).thenReturn(List.of(shape1, shape2));
-    when(polygonRepository.findAllByOracleShapeIdIn(List.of(SHAPE_1_SI_ID, 2)))
-        .thenReturn(List.of(POLYGON_1, polygon2));
-    when(boundaryRepository.findAllByOracleShapePolygonIdIn(List.of(POLYGON_1_SID.intValue(), 20)))
-        .thenReturn(List.of(BOUNDARY_1, boundary2));
-    when(lineRepository.findAllByOraclePolygonBoundaryIdIn(List.of(BOUNDARY_1_SID.intValue(), 200)))
-        .thenReturn(List.of(LINE_ORDER_1, line2));
+    when(shapeRepository.findAllById(List.of(2, SHAPE_1_SI_ID, 3))).thenReturn(List.of(shape1, shape2, shapeWithNullDate));
+    when(polygonRepository.findAllByOracleShapeIdIn(List.of(SHAPE_1_SI_ID, 2, 3)))
+        .thenReturn(List.of(POLYGON_1, polygon2, polygon3));
+    when(boundaryRepository.findAllByOracleShapePolygonIdIn(List.of(POLYGON_1_SID.intValue(), 20, 30)))
+        .thenReturn(List.of(BOUNDARY_1, boundary2, boundary3));
+    when(lineRepository.findAllByOraclePolygonBoundaryIdIn(List.of(BOUNDARY_1_SID.intValue(), 200, 300)))
+        .thenReturn(List.of(LINE_ORDER_1, line2, line3));
 
-    var result = oracleService.getEntityBackedOracleShapesByIdsIn(List.of(2, SHAPE_1_SI_ID));
+    var result = oracleService.getEntityBackedOracleShapesByIdsIn(List.of(2, SHAPE_1_SI_ID, 3));
 
     var expected = List.of(
         new EntityBackedOracleShape(
@@ -164,6 +183,11 @@ class OracleServiceTest {
             shape1,
             Map.of(POLYGON_1, List.of(BOUNDARY_1)),
             Map.of(BOUNDARY_1, List.of(LINE_ORDER_1))
+        ),
+        new EntityBackedOracleShape(
+            shapeWithNullDate,
+            Map.of(polygon3, List.of(boundary3)),
+            Map.of(boundary3, List.of(line3))
         )
     );
     assertThat(result).usingRecursiveComparison().isEqualTo(expected);
@@ -228,7 +252,7 @@ class OracleServiceTest {
   }
 
   @Test
-  void getLinkedParentShapeSiId_whenShapeLinkExists_thenReturnsParentShapeId() {
+  void getLinkedParentShapeSiIds_whenShapeLinkExists_thenReturnsParentShapeId() {
     var childShapeSiId = 10;
     var parentShapeSiId = 20;
     var shapeLink = OracleShapeLinkTestUtil.newBuilder()
@@ -236,20 +260,20 @@ class OracleServiceTest {
         .withParentShapeId(parentShapeSiId)
         .build();
 
-    when(shapeLinkRepository.findByChildShapeId(childShapeSiId)).thenReturn(Optional.of(shapeLink));
+    when(shapeLinkRepository.findByChildShapeId(childShapeSiId)).thenReturn(List.of(shapeLink));
 
-    var result = oracleService.getLinkedParentShapeSiId(childShapeSiId);
+    var result = oracleService.getLinkedParentShapeSiIds(childShapeSiId);
 
     assertThat(result).contains(parentShapeSiId);
   }
 
   @Test
-  void getLinkedParentShapeSiId_whenShapeLinkDoesNotExist_thenReturnsEmptyOptional() {
+  void getLinkedParentShapeSiIds_whenShapeLinkDoesNotExist_thenReturnsEmptyList() {
     var childShapeSiId = 10;
 
-    when(shapeLinkRepository.findByChildShapeId(childShapeSiId)).thenReturn(Optional.empty());
+    when(shapeLinkRepository.findByChildShapeId(childShapeSiId)).thenReturn(List.of());
 
-    var result = oracleService.getLinkedParentShapeSiId(childShapeSiId);
+    var result = oracleService.getLinkedParentShapeSiIds(childShapeSiId);
 
     assertThat(result).isEmpty();
   }

@@ -21,9 +21,9 @@ import {
 } from "../utils/migration-utils";
 
 export const migrateBlockOrSubarea: ArcGisServiceHandlers["migrateBlockOrSubarea"] = asyncHandler(async (call): Promise<MigrateBlockOrSubAreaResponse> => {
-  const { geoJsonLineWrappers, coordinateSystem, parentLineEsriJsonStrings } = call.request;
+  const { geoJsonLineWrappers, coordinateSystem, parentLineEsriJsonStrings, shapeId } = call.request;
   const wkid = getCoordinateSystemWkid(coordinateSystem);
-  logger.info(`Migrating ${geoJsonLineWrappers.length} lines, srs: ${wkid}`);
+  logger.info(`Migrating ${geoJsonLineWrappers.length} lines, srs: ${wkid}, shapeId: ${shapeId}`);
 
   const idToLineWithNavigationWrapper = geoJsonLineInputToLinesWithNavigationTypeAndId(geoJsonLineWrappers, wkid);
 
@@ -43,9 +43,9 @@ export const migrateBlockOrSubarea: ArcGisServiceHandlers["migrateBlockOrSubarea
     }
 
     const { startPoint: childStartPoint, endPoint: childEndPoint } = getLineStartAndEndPoints(line);
-    const parent = findParentLine(parentLineEsriJsonStrings, childStartPoint, childEndPoint);
+    const parent = findParentLine(parentLineEsriJsonStrings, childStartPoint, childEndPoint, shapeId);
     if (parent === undefined) {
-      const errorMessage = "Geodesic child line should have associated parent line but none were found";
+      const errorMessage = `Geodesic child line should have associated parent line but none were found. shapeId: ${shapeId}, lineSsid: ${id}`;
       logger.error(errorMessage);
       throw new GrpcError(status.INVALID_ARGUMENT, errorMessage);
     }

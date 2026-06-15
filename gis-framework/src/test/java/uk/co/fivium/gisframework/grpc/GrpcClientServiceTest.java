@@ -241,10 +241,12 @@ class GrpcClientServiceTest {
     var linesWithRing = List.of(geodesicOracleLine, loxodromeOracleLine);
     var coordinateSystem = CoordinateSystem.ED50;
     var parentLines = List.of("parent esri json line 1", "parent esri json line 2");
+    var childShapeId = 555;
 
     var expectedRequest = MigrateBlockOrSubAreaRequest.newBuilder()
         .setCoordinateSystem(coordinateSystem)
-        .addAllParentLineEsriJsonStrings(parentLines);
+        .addAllParentLineEsriJsonStrings(parentLines)
+        .setShapeId(String.valueOf(childShapeId));
     expectedRequest.addGeoJsonLineWrappers(GeoJsonLineWrapper.newBuilder()
         .setGeoJsonString("some json 1")
         .setIsGeodesic(true)
@@ -273,7 +275,7 @@ class GrpcClientServiceTest {
         .build();
     when(arcgisClient.migrateBlockOrSubarea(expectedRequest.build())).thenReturn(response);
 
-    assertThat(grpcClientService.migrateBlockOrSubarea(linesWithRing, coordinateSystem, parentLines))
+    assertThat(grpcClientService.migrateBlockOrSubarea(linesWithRing, coordinateSystem, parentLines, childShapeId))
         .isEqualTo(new MigrationResponseDto(
             Map.of(1, "some new json 1", 2, "some new json 2"),
             1000.0

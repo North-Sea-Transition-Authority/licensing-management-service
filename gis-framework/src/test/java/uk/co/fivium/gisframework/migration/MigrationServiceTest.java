@@ -3,7 +3,9 @@ package uk.co.fivium.gisframework.migration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.co.fivium.gisframework.LoggerTestUtil.detachLogAppender;
@@ -15,12 +17,12 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -137,7 +139,7 @@ class MigrationServiceTest {
         new OracleBoundaryLineWithRing(oracleLine2, 1)
     );
 
-    when(grpcClientService.migrateBlockOrSubarea(linesWithRing, CoordinateSystem.ED50, List.of()))
+    when(grpcClientService.migrateBlockOrSubarea(linesWithRing, CoordinateSystem.ED50, List.of(), oracleLine1.getShapeSiId()))
         .thenReturn(migrationResponse);
     when(oracleService.getIdToAttributeMapForSiIdAndLevel(
         List.of(boundary1.getBoundarySidId(), boundary2.getBoundarySidId()),
@@ -188,7 +190,7 @@ class MigrationServiceTest {
     var entityBackedShape = new EntityBackedOracleShape(oracleShape, Map.of(), Map.of());
     when(oracleService.getAttributeMapForSiIdAndLevel(oracleShape.getShapeSidId(), AttributeLevel.SHAPE))
         .thenReturn(new HashMap<>());
-    when(oracleService.getLinkedParentShapeSiId(oracleShape.getShapeSiId())).thenReturn(Optional.empty());
+    when(oracleService.getLinkedParentShapeSiIds(oracleShape.getShapeSiId())).thenReturn(List.of());
 
     var result = migrationService.migrateFeature(entityBackedShape);
 
@@ -223,7 +225,7 @@ class MigrationServiceTest {
     var entityBackedShape = new EntityBackedOracleShape(oracleShape, Map.of(), Map.of());
     when(oracleService.getAttributeMapForSiIdAndLevel(oracleShape.getShapeSidId(), AttributeLevel.SHAPE))
         .thenReturn(new HashMap<>());
-    when(oracleService.getLinkedParentShapeSiId(oracleShape.getShapeSiId())).thenReturn(Optional.of(99));
+    when(oracleService.getLinkedParentShapeSiIds(oracleShape.getShapeSiId())).thenReturn(List.of(99));
     when(featureService.getByLegacyId(99)).thenReturn(parentFeature);
 
     var result = migrationService.migrateFeature(entityBackedShape);
@@ -240,6 +242,73 @@ class MigrationServiceTest {
         .build();
 
     assertThat(result).usingRecursiveComparison().ignoringFields("id").isEqualTo(expected);
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = Layer.class, mode = EnumSource.Mode.EXCLUDE, names = {"SUBAREAS", "RETENTION_AREAS", "BLOCKS"})
+  void migrateFeature_whenReferenceBlockLayer_thenParentNotLinked(Layer refBlockLayer) {
+    var oracleShape = OracleShapeTestUtil.newBuilder()
+        .withShapeSidId(7)
+        .withShapeSiId(7)
+        .withShapeName("Ref Block Shape")
+        .withShapeSrs("ED 50")
+        .withOracleLayer(OracleLayerTestUtil.newBuilder().withLayer(refBlockLayer).build())
+        .build();
+
+    var entityBackedShape = new EntityBackedOracleShape(oracleShape, Map.of(), Map.of());
+    when(oracleService.getAttributeMapForSiIdAndLevel(oracleShape.getShapeSidId(), AttributeLevel.SHAPE))
+        .thenReturn(new HashMap<>());
+
+    var result = migrationService.migrateFeature(entityBackedShape);
+
+    var expected = FeatureTestUtil.newBuilder()
+        .withId(null)
+        .withLegacyId(7)
+        .withFeatureName("Ref Block Shape")
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .withAttributes(Map.of("LAYER", refBlockLayer))
+        .withParentFeature(null)
+        .withFeatureArea(BigDecimal.ZERO)
+        .withStartDate(oracleShape.getShapeStartDate())
+        .withEndDate(oracleShape.getShapeEndDate())
+        .build();
+
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+    verify(oracleService, never()).getLinkedParentShapeSiIds(any());
+    verify(featureService, never()).getByLegacyId(any());
+  }
+
+  @Test
+  void migrateFeature_whenLinkedParentIsSelf_thenParentNotLinked() {
+    var oracleShape = OracleShapeTestUtil.newBuilder()
+        .withShapeSidId(5)
+        .withShapeSiId(5)
+        .withShapeName("Self Linked Shape")
+        .withShapeSrs("ED 50")
+        .withOracleLayer(OracleLayerTestUtil.newBuilder().withLayer(Layer.BLOCKS).build())
+        .build();
+
+    var entityBackedShape = new EntityBackedOracleShape(oracleShape, Map.of(), Map.of());
+    when(oracleService.getAttributeMapForSiIdAndLevel(oracleShape.getShapeSidId(), AttributeLevel.SHAPE))
+        .thenReturn(new HashMap<>());
+    when(oracleService.getLinkedParentShapeSiIds(oracleShape.getShapeSiId())).thenReturn(List.of(99, 5));
+
+    var result = migrationService.migrateFeature(entityBackedShape);
+
+    var expected = FeatureTestUtil.newBuilder()
+        .withId(null)
+        .withLegacyId(5)
+        .withFeatureName("Self Linked Shape")
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .withAttributes(Map.of("LAYER", Layer.BLOCKS))
+        .withParentFeature(null)
+        .withFeatureArea(BigDecimal.ZERO)
+        .withStartDate(oracleShape.getShapeStartDate())
+        .withEndDate(oracleShape.getShapeEndDate())
+        .build();
+
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+    verify(featureService, never()).getByLegacyId(any());
   }
 
   @Test

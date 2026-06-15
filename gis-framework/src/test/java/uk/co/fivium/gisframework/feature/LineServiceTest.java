@@ -55,9 +55,9 @@ class LineServiceTest {
   }
 
   @Test
-  void findAllByFeatureLegacyId() {
-    when(lineRepository.findAllByPolygon_Feature_LegacyId(1)).thenReturn(List.of(LINE_1, LINE_2));
-    assertThat(lineService.findAllByFeatureLegacyId(1)).isEqualTo(List.of(LINE_1, LINE_2));
+  void findAllByFeatureLegacyIdIn() {
+    when(lineRepository.findAllByPolygon_Feature_LegacyIdIn(List.of(1, 2))).thenReturn(List.of(LINE_1, LINE_2));
+    assertThat(lineService.findAllByFeatureLegacyIdIn(List.of(1, 2))).isEqualTo(List.of(LINE_1, LINE_2));
   }
 
   @Test

@@ -15,6 +15,7 @@ import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.LineService;
 import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.migration.oracle.EntityBackedOracleShape;
+import uk.co.fivium.gisframework.migration.oracle.Layer;
 import uk.co.fivium.gisframework.migration.oracle.OracleService;
 import uk.co.fivium.gisframework.migration.oracle.OracleShapeTestUtil;
 
@@ -66,7 +67,8 @@ class GisMigrationEndpointTest {
     inOrder.verify(migrationService).migrateBlocksAndSubarea(redefinitionPoints);
     inOrder.verify(migrationService).migrateBlocksAndSubarea(blockChanges);
     inOrder.verify(migrationService).migrateBlocksAndSubarea(subAreas);
-    inOrder.verify(migrationValidationService).childAndParentValidation();
+    inOrder.verify(migrationValidationService).childAndParentValidation(Layer.BLOCKS);
+    inOrder.verify(migrationValidationService).childAndParentValidation(Layer.SUBAREAS);
     inOrder.verify(migrationValidationService).verifySubareasTopologicallyEqualToBlock();
     inOrder.verify(referenceBlockMigrationService).migrate(referenceBlocks);
     inOrder.verify(migrationValidationService).validateReferenceBlocks();

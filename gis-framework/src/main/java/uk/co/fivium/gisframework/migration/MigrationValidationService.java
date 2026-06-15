@@ -1,5 +1,7 @@
 package uk.co.fivium.gisframework.migration;
 
+import static uk.co.fivium.gisframework.migration.oracle.Layer.REFERENCE_BLOCK_LAYERS;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -42,12 +44,12 @@ public class MigrationValidationService {
    * and that the geodesic lines of the child overlap with the geodesic lines of the parent, if any.
    * The parent/child combo could be a licence block and a subarea or an older licence block, and its newer version.
    */
-  public void childAndParentValidation() {
+  public void childAndParentValidation(Layer childFeatureLayer) {
     Map<Feature, List<Feature>> parentToChildFeatures = featureService.findAllChildFeatures()
         .stream()
         .filter(child -> {
           var layer = child.getAttributes().get(LAYER_ATTRIBUTE);
-          return Layer.BLOCKS.name().equals(layer) || Layer.SUBAREAS.name().equals(layer);
+          return childFeatureLayer.name().equals(layer);
         })
         .collect(Collectors.groupingBy(Feature::getParentFeature));
 
@@ -65,11 +67,11 @@ public class MigrationValidationService {
         if (!response.getIsValid()) {
           LOGGER.error("Validation error: {} Child Feature: {} Parent Feature: {}",
               response.getMessage(),
-              childFeature.feature().getId(),
-              entry.getKey().getId()
+              childFeature.feature().getLegacyId(),
+              entry.getKey().getLegacyId()
           );
         } else {
-          LOGGER.info("Child {} passed validation checks", childFeature.feature().getFeatureName());
+          LOGGER.info("Child {} passed validation checks", childFeature.feature().getLegacyId());
         }
       }
     }
@@ -93,12 +95,16 @@ public class MigrationValidationService {
           subareasByParentId.getOrDefault(entityBackedBlock.feature().getId(), List.of())
       );
 
+      if (subareas.isEmpty()) {
+        LOGGER.warn("Parent {} has no subareas", entityBackedBlock.feature().getLegacyId());
+        continue;
+      }
+
       var childPolygonLines = subareas
           .stream()
           .flatMap(subarea -> subarea.polygonToLines().values().stream())
           .map(lines -> lines.stream().map(Line::getEsriJson).toList())
           .toList();
-
       var response = grpcClientService.validateTopologicallyEqual(
           childPolygonLines,
           entityBackedBlock
@@ -107,10 +113,10 @@ public class MigrationValidationService {
       if (!response.getIsValid()) {
         LOGGER.error("Validation error: {} Feature: {}",
             response.getMessage(),
-            entityBackedBlock.feature().getId()
+            entityBackedBlock.feature().getLegacyId()
         );
       } else {
-        LOGGER.info("Parent {} is topologically equal to all of its children", entityBackedBlock.feature().getFeatureName());
+        LOGGER.info("Parent {} is topologically equal to all of its children", entityBackedBlock.feature().getLegacyId());
       }
     }
   }
@@ -121,12 +127,7 @@ public class MigrationValidationService {
    */
   public void validateReferenceBlocks() {
     var licenseBlocks = featureService.findAllByAttribute(LAYER_ATTRIBUTE, Layer.BLOCKS.name());
-    var refBlockLayers = List.of(
-        Layer.OFFSHORE_REF_BLOCKS.name(),
-        Layer.OFFSHORE_CROP_REF_BLOCKS.name(),
-        Layer.ONSHORE_CROP_REF_BLOCKS.name()
-    );
-
+    var refBlockLayers = REFERENCE_BLOCK_LAYERS.stream().map(Layer::name).toList();
     var entityBackedRefBlocks = featureService.getEntityBackedFeatures(
         featureService.findAllByAttributeValueIn(LAYER_ATTRIBUTE, refBlockLayers)
     );
@@ -149,10 +150,10 @@ public class MigrationValidationService {
       if (!response.getIsValid()) {
         LOGGER.error("Validation error: {} Reference Block: {}",
             response.getMessage(),
-            refBlockName
+            entityBackedRefBlock.feature().getLegacyId()
         );
       } else {
-        LOGGER.info("All license blocks are contained by ref block {}", refBlockName);
+        LOGGER.info("All license blocks are contained by ref block {}", entityBackedRefBlock.feature().getLegacyId());
       }
     }
   }

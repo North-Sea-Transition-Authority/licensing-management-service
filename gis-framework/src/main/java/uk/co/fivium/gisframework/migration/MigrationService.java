@@ -1,5 +1,7 @@
 package uk.co.fivium.gisframework.migration;
 
+import static uk.co.fivium.gisframework.migration.oracle.Layer.REFERENCE_BLOCK_LAYERS;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -77,8 +79,8 @@ public class MigrationService {
         var parentLines = new ArrayList<String>();
         if (newFeature.getParentFeature() != null) {
           // The linked ID should be the ID of the root block, which we use to copy the geodesic points from.
-          var linkedShapeSiId = oracleService.getLinkedParentShapeSiId(newFeature.getLegacyId()).orElseThrow();
-          parentLines.addAll(lineService.findAllByFeatureLegacyId(linkedShapeSiId).stream().map(Line::getEsriJson).toList());
+          var linkedShapeSiIds = oracleService.getLinkedParentShapeSiIds(newFeature.getLegacyId());
+          parentLines.addAll(lineService.findAllByFeatureLegacyIdIn(linkedShapeSiIds).stream().map(Line::getEsriJson).toList());
         }
 
         var idToPolygonAttributeMap = oracleService.getIdToAttributeMapForSiIdAndLevel(
@@ -156,8 +158,18 @@ public class MigrationService {
         entityBackedShape.shape().getOracleLayer().getLayer()
     );
 
-    oracleService.getLinkedParentShapeSiId(oracleShape.getShapeSiId())
-        .ifPresent(integer -> newFeature.setParentFeature(featureService.getByLegacyId(integer)));
+    if (!REFERENCE_BLOCK_LAYERS.contains(oracleShape.getOracleLayer().getLayer())) {
+      var linkedParentIds = oracleService.getLinkedParentShapeSiIds(oracleShape.getShapeSiId());
+      linkedParentIds.stream()
+          .filter(parentId -> newFeature.getLegacyId().intValue() != parentId.intValue())
+          .findFirst()
+          .ifPresent(parentId -> {
+            if (linkedParentIds.stream()
+                .noneMatch(id -> newFeature.getLegacyId().intValue() == id.intValue())) {
+              newFeature.setParentFeature(featureService.getByLegacyId(parentId));
+            }
+          });
+    }
 
     newFeature.setFeatureArea(BigDecimal.ZERO); // this is calculated after line migration
 
@@ -198,7 +210,8 @@ public class MigrationService {
     var migrationResponseDto = grpcClientService.migrateBlockOrSubarea(
         linesWithRing,
         feature.getCoordinateSystem(),
-        parentLines
+        parentLines,
+        entityBackedShape.shape().getShapeSiId()
     );
 
     var boundaryIdToAttributes = oracleService.getIdToAttributeMapForSiIdAndLevel(

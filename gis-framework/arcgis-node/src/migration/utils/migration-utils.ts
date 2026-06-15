@@ -275,7 +275,12 @@ export function findPointOfIntersectionBetweenChildPointOnBearingAndParentLine(
   parent: Polyline,
   pointExtension: number,
 ): Point | undefined {
+  logger.debug(
+    `findPointOfIntersection: bearing=${bearing} pointExtension=${pointExtension} childPoint=${childPoint.longitude}, ${childPoint.latitude}`,
+  );
+
   if (typeof childPoint.longitude !== "number" || typeof childPoint.latitude !== "number") {
+    logger.debug("findPointOfIntersection: childPoint longitude/latitude not numeric, returning undefined");
     return undefined;
   }
 
@@ -291,6 +296,7 @@ export function findPointOfIntersectionBetweenChildPointOnBearingAndParentLine(
   }
 
   if (!intersectsOperator.execute(parent, twoSecondLine)) {
+    logger.debug("findPointOfIntersection: intersectsOperator reported no intersection, returning undefined");
     return undefined;
   }
 
@@ -300,8 +306,39 @@ export function findPointOfIntersectionBetweenChildPointOnBearingAndParentLine(
   // see https://developers.arcgis.com/javascript/latest/api-reference/esri-geometry-geometryEngine.html#intersectLinesToPoints
   const intersectionResult = intersectionOperator.executeMany([parent], twoSecondLine);
 
-  // return the first point of intersection
-  return (intersectionResult[0] as Multipoint).getPoint(0) as Point;
+  // intersectsOperator can report an intersection (e.g. a near-tangent touch) for which executeMany yields no
+  // usable geometry, so guard before reading the first point. executeMany can also return different geometry
+  // types depending on how the lines meet: a Point (single crossing), a Multipoint (multiple crossings), or a
+  // Polyline (where the lines overlap collinearly), so handle each rather than assuming a Multipoint.
+  const firstResult = intersectionResult[0] as Point | Multipoint | Polyline | undefined;
+  logger.debug(
+    `findPointOfIntersection: executeMany returned ${intersectionResult.length} result(s), firstResult type=${firstResult?.type ?? "undefined"}`,
+  );
+  if (!firstResult) {
+    logger.debug("findPointOfIntersection: no first result geometry, returning undefined");
+    return undefined;
+  }
+
+  if (firstResult.type === "point") {
+    logger.debug(`findPointOfIntersection: point result ${firstResult.x}, ${firstResult.y}`);
+    return firstResult;
+  }
+
+  if (firstResult.type === "multipoint") {
+    logger.debug(`findPointOfIntersection: multipoint result with ${firstResult.points.length} point(s)`);
+    return firstResult.points.length === 0 ? undefined : (firstResult.getPoint(0) as Point);
+  }
+
+  // Overlapping (collinear) lines produce a polyline; use the first vertex of the overlap as the intersection point.
+  logger.debug(`findPointOfIntersection: polyline (overlap) result with ${firstResult.paths.length} path(s)`);
+  const firstPath = firstResult.paths[0];
+  if (!firstPath || firstPath.length === 0) {
+    logger.debug("findPointOfIntersection: polyline result has no usable vertices, returning undefined");
+    return undefined;
+  }
+  const overlapPoint = firstResult.getPoint(0, 0) as Point;
+  logger.debug(`findPointOfIntersection: polyline overlap first vertex ${overlapPoint.x}, ${overlapPoint.y}`);
+  return overlapPoint;
 }
 
 /**

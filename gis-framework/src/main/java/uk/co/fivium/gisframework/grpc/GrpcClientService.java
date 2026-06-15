@@ -162,11 +162,13 @@ public class GrpcClientService {
   public MigrationResponseDto migrateBlockOrSubarea(
       List<OracleBoundaryLineWithRing> linesWithRing,
       CoordinateSystem coordinateSystem,
-      List<String> parentLines
+      List<String> parentLines,
+      Integer childShapeId
   ) {
     var requestBuilder = MigrateBlockOrSubAreaRequest.newBuilder()
         .setCoordinateSystem(coordinateSystem)
-        .addAllParentLineEsriJsonStrings(parentLines);
+        .addAllParentLineEsriJsonStrings(parentLines)
+        .setShapeId(String.valueOf(childShapeId));
 
     for (var entry : linesWithRing) {
       var oracleLine = entry.oracleBoundaryLine();

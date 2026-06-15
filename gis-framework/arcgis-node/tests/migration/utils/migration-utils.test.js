@@ -1,9 +1,11 @@
 import * as generalizeOperator from "@arcgis/core/geometry/operators/generalizeOperator.js";
 import * as geodeticDensifyOperator from "@arcgis/core/geometry/operators/geodeticDensifyOperator.js";
+import * as intersectionOperator from "@arcgis/core/geometry/operators/intersectionOperator.js";
+import Multipoint from "@arcgis/core/geometry/Multipoint";
 import Point from "@arcgis/core/geometry/Point";
 import Polyline from "@arcgis/core/geometry/Polyline";
 import SpatialReference from "@arcgis/core/geometry/SpatialReference";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CoordinateSystem } from "../../../generated/uk/co/fivium/grpc/gis/CoordinateSystem.ts";
 import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType.ts";
 import { SetBearing } from "../../../src/migration/types/line-with-bearing-wrapper.ts";
@@ -23,6 +25,15 @@ import {
   shiftNodeAndUpdateConnectedLine,
 } from "../../../src/migration/utils/migration-utils.ts";
 import { getCoordinateSystemWkid } from "../../../src/util/coordinate-system-utils.ts";
+
+// Wrap intersectionOperator.executeMany so it delegates to the real implementation by default (keeping the
+// real-geometry tests below unchanged) but can be overridden per-call with mockReturnValueOnce to exercise the
+// defensive branches in findPointOfIntersectionBetweenChildPointOnBearingAndParentLine that real ArcGIS geometry
+// never produces (a bare point, an empty multipoint, a missing first result, or an empty overlap polyline).
+vi.mock("@arcgis/core/geometry/operators/intersectionOperator.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, executeMany: vi.fn(actual.executeMany) };
+});
 
 const ED50_WKID = getCoordinateSystemWkid(CoordinateSystem.ED50);
 
@@ -617,6 +628,154 @@ describe("migration-utils", () => {
       const result = findPointOfIntersectionBetweenChildPointOnBearingAndParentLine(
         childPoint,
         SetBearing.LONGITUDE,
+        parent,
+        ONE_ARC_SECOND,
+      );
+
+      expect(result).toBeUndefined();
+    });
+
+    it("returns a vertex when the extended line overlaps the parent collinearly", () => {
+      const childPoint = new Point({ x: 1, y: 50, spatialReference: srs });
+
+      const parent = new Polyline({
+        paths: [
+          [
+            [0, 50],
+            [2, 50],
+          ],
+        ],
+        spatialReference: srs,
+      });
+
+      const result = findPointOfIntersectionBetweenChildPointOnBearingAndParentLine(
+        childPoint,
+        SetBearing.LONGITUDE,
+        parent,
+        ONE_ARC_SECOND,
+      );
+
+      expect(result).toBeDefined();
+      expect(result.x).toBeCloseTo(1, 3);
+      expect(result.y).toBeCloseTo(50);
+    });
+
+    it("returns undefined when the child point has no numeric longitude/latitude", () => {
+      const projectedSrs = new SpatialReference({
+        wkid: getCoordinateSystemWkid(CoordinateSystem.BRITISH_NATIONAL_GRID),
+      });
+      const childPoint = new Point({ x: 400000, y: 400000, spatialReference: projectedSrs });
+
+      const parent = new Polyline({
+        paths: [
+          [
+            [399999, 400000],
+            [400001, 400000],
+          ],
+        ],
+        spatialReference: projectedSrs,
+      });
+
+      const result = findPointOfIntersectionBetweenChildPointOnBearingAndParentLine(
+        childPoint,
+        SetBearing.LONGITUDE,
+        parent,
+        1,
+      );
+
+      expect(result).toBeUndefined();
+    });
+
+    it("returns the point when executeMany yields a single point geometry", () => {
+      const childPoint = new Point({ x: 1, y: 50, spatialReference: srs });
+      const parent = new Polyline({
+        paths: [
+          [
+            [0, 50],
+            [2, 50],
+          ],
+        ],
+        spatialReference: srs,
+      });
+
+      const point = new Point({ x: 1, y: 50, spatialReference: srs });
+      vi.mocked(intersectionOperator.executeMany).mockReturnValueOnce([point]);
+
+      const result = findPointOfIntersectionBetweenChildPointOnBearingAndParentLine(
+        childPoint,
+        SetBearing.LATITUDE,
+        parent,
+        ONE_ARC_SECOND,
+      );
+
+      expect(result).toBe(point);
+    });
+
+    it("returns undefined when executeMany yields an empty multipoint", () => {
+      const childPoint = new Point({ x: 1, y: 50, spatialReference: srs });
+      const parent = new Polyline({
+        paths: [
+          [
+            [0, 50],
+            [2, 50],
+          ],
+        ],
+        spatialReference: srs,
+      });
+
+      vi.mocked(intersectionOperator.executeMany).mockReturnValueOnce([new Multipoint({ points: [], spatialReference: srs })]);
+
+      const result = findPointOfIntersectionBetweenChildPointOnBearingAndParentLine(
+        childPoint,
+        SetBearing.LATITUDE,
+        parent,
+        ONE_ARC_SECOND,
+      );
+
+      expect(result).toBeUndefined();
+    });
+
+    it("returns undefined when intersectsOperator reports an intersection but executeMany has no usable geometry", () => {
+      const childPoint = new Point({ x: 1, y: 50, spatialReference: srs });
+      const parent = new Polyline({
+        paths: [
+          [
+            [0, 50],
+            [2, 50],
+          ],
+        ],
+        spatialReference: srs,
+      });
+
+      vi.mocked(intersectionOperator.executeMany).mockReturnValueOnce([undefined]);
+
+      const result = findPointOfIntersectionBetweenChildPointOnBearingAndParentLine(
+        childPoint,
+        SetBearing.LATITUDE,
+        parent,
+        ONE_ARC_SECOND,
+      );
+
+      expect(result).toBeUndefined();
+    });
+
+    it("returns undefined when the overlap polyline has no usable vertices", () => {
+      const childPoint = new Point({ x: 1, y: 50, spatialReference: srs });
+      const parent = new Polyline({
+        paths: [
+          [
+            [0, 50],
+            [2, 50],
+          ],
+        ],
+        spatialReference: srs,
+      });
+
+      vi.mocked(intersectionOperator.executeMany).mockReturnValueOnce([new Polyline({ paths: [], spatialReference: srs })]);
+
+      const result = findPointOfIntersectionBetweenChildPointOnBearingAndParentLine(
+        childPoint,
+        SetBearing.LATITUDE,
         parent,
         ONE_ARC_SECOND,
       );

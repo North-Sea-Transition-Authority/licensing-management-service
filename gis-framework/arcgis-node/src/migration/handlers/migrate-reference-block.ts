@@ -69,8 +69,8 @@ async function migrateReferenceBlock(
     const { startPoint: refBlockGeodesicStartPoint, endPoint: refBlockGeodesicEndPoint } = getLineStartAndEndPoints(
       refBlockLineWrapper.line,
     );
-    logger.info(`Original start point: ${JSON.stringify([refBlockGeodesicStartPoint.x, refBlockGeodesicStartPoint.y])}`);
-    logger.info(`Original end point: ${JSON.stringify([refBlockGeodesicEndPoint.x, refBlockGeodesicEndPoint.y])}`);
+    logger.debug(`Original start point: ${JSON.stringify([refBlockGeodesicStartPoint.x, refBlockGeodesicStartPoint.y])}`);
+    logger.debug(`Original end point: ${JSON.stringify([refBlockGeodesicEndPoint.x, refBlockGeodesicEndPoint.y])}`);
 
     updateGeodesicReferenceBlockLine(
       geodesicLicenseLines,
@@ -82,12 +82,12 @@ async function migrateReferenceBlock(
 
     // After processing, get new start/end points and update connected loxodrome lines
     const { startPoint: newStartPoint, endPoint: newEndPoint } = getLineStartAndEndPoints(refBlockLineWrapper.line);
-    logger.info(`New start point: ${JSON.stringify([newStartPoint.x, newStartPoint.y])}`);
-    logger.info(`New end point: ${JSON.stringify([newEndPoint.x, newEndPoint.y])}`);
+    logger.debug(`New start point: ${JSON.stringify([newStartPoint.x, newStartPoint.y])}`);
+    logger.debug(`New end point: ${JSON.stringify([newEndPoint.x, newEndPoint.y])}`);
 
     // Update connected loxodrome lines if start point changed
     if (!isApproximatelyEqual(refBlockGeodesicStartPoint, newStartPoint)) {
-      logger.info(`Start point shifted, updating connected loxodrome line`);
+      logger.debug(`Start point shifted, updating connected loxodrome line`);
       const connectedLine = findLineConnectingToPointNotOnBearing(
         refBlockGeodesicStartPoint,
         refBlockLineWrapper.id,
@@ -96,13 +96,13 @@ async function migrateReferenceBlock(
       if (connectedLine) {
         const index = getIndexOfPointOnLine(refBlockGeodesicStartPoint, connectedLine.line);
         connectedLine.line.setPoint(0, index, newStartPoint);
-        logger.info(`Updated loxodrome line ${connectedLine.id} at index ${index}`);
+        logger.debug(`Updated loxodrome line ${connectedLine.id} at index ${index}`);
       }
     }
 
     // Update connected loxodrome lines if end point changed
     if (!isApproximatelyEqual(refBlockGeodesicEndPoint, newEndPoint)) {
-      logger.info(`End point shifted, updating connected loxodrome line`);
+      logger.debug(`End point shifted, updating connected loxodrome line`);
       const connectedLine = findLineConnectingToPointNotOnBearing(
         refBlockGeodesicEndPoint,
         refBlockLineWrapper.id,
@@ -111,22 +111,22 @@ async function migrateReferenceBlock(
       if (connectedLine) {
         const index = getIndexOfPointOnLine(refBlockGeodesicEndPoint, connectedLine.line);
         connectedLine.line.setPoint(0, index, newEndPoint);
-        logger.info(`Updated loxodrome line ${connectedLine.id} at index ${index}`);
+        logger.debug(`Updated loxodrome line ${connectedLine.id} at index ${index}`);
       }
     }
   }
 
-  logger.info(`Building result from ${combinedGeodesicAndLoxodromes.length} lines`);
+  logger.debug(`Building result from ${combinedGeodesicAndLoxodromes.length} lines`);
   const result: { esriJsonString: string, oracleLineSsid: number }[] = [];
   combinedGeodesicAndLoxodromes.forEach((lineWrapper) => {
-    logger.info(`oracleLineSsid: ${lineWrapper.id} json: ${JSON.stringify(lineWrapper.line.toJSON())} `);
+    logger.debug(`oracleLineSsid: ${lineWrapper.id} json: ${JSON.stringify(lineWrapper.line.toJSON())} `);
     result.push({
       esriJsonString: JSON.stringify(lineWrapper.line),
       oracleLineSsid: lineWrapper.id,
     });
   });
 
-  logger.info(`migrateReferenceBlock: completed, returning ${result.length} lines`);
+  logger.debug(`migrateReferenceBlock: completed, returning ${result.length} lines`);
   return { esriJsonLineWithId: result };
 }
 
@@ -150,8 +150,8 @@ export function updateGeodesicReferenceBlockLine(
   for (const licenseLine of geodesicLicenseLines) {
     // Save original start/end points before processing
     const { startPoint: licenseStartPoint, endPoint: licenseEndPoint } = getLineStartAndEndPoints(licenseLine);
-    logger.info(`license start point: ${JSON.stringify([licenseStartPoint.x, licenseStartPoint.y])}`);
-    logger.info(`license end point: ${JSON.stringify([licenseEndPoint.x, licenseEndPoint.y])}`);
+    logger.debug(`license start point: ${JSON.stringify([licenseStartPoint.x, licenseStartPoint.y])}`);
+    logger.debug(`license end point: ${JSON.stringify([licenseEndPoint.x, licenseEndPoint.y])}`);
 
     // Find where the license block start and end nodes intersect with the ref block
     // Taking bearing into account if the node connects to a loxodrome line following a bearing
@@ -163,7 +163,7 @@ export function updateGeodesicReferenceBlockLine(
     const isLinesGoingSameDirection = startToStartDistance <= startToEndDistance;
     const licensePointForRefStart = isLinesGoingSameDirection ? licenseStartPoint : licenseEndPoint;
     const licensePointForRefEnd = isLinesGoingSameDirection ? licenseEndPoint : licenseStartPoint;
-    logger.info(`Lines direction matching: ${isLinesGoingSameDirection}`);
+    logger.debug(`Lines direction matching: ${isLinesGoingSameDirection}`);
 
     const startIntersection = findIntersectionPoint(
       refBlockGeodesicStartPoint,
@@ -181,7 +181,7 @@ export function updateGeodesicReferenceBlockLine(
     );
 
     if (startIntersection && endIntersection) {
-      logger.info("start and end intersection found, replacing segment");
+      logger.debug("start and end intersection found, replacing segment");
       // Replace the ref block segment between the start and end nodes with the license block line
       refBlockLineWrapper.line = replaceSegment(
         refBlockLineWrapper.line,
@@ -191,7 +191,7 @@ export function updateGeodesicReferenceBlockLine(
         isLinesGoingSameDirection,
       );
     } else {
-      logger.info(
+      logger.debug(
         `Intersections not found, not replacing segment startIntersection for reference block line ${refBlockLineWrapper.id}`,
       );
     }
@@ -214,10 +214,10 @@ export function mergeAdjacentGeodesicLinesAndReturnAllNewLineWrappers(
   const geodesicEntries = Array.from(idToLineWrapper.values())
     .filter(wrapper => wrapper.navigationType === LineNavigationType.GEODESIC)
     .sort((a, b) => (idToConnectionOrder.get(a.id) ?? 0) - (idToConnectionOrder.get(b.id) ?? 0));
-  logger.info(`geodesicEntries.length=${geodesicEntries.length}`);
+  logger.debug(`geodesicEntries.length=${geodesicEntries.length}`);
 
   if (geodesicEntries.length <= 1) {
-    logger.info(`1 or less geodesic lines, no adjacent lines merged.`);
+    logger.debug(`1 or less geodesic lines, no adjacent lines merged.`);
     return Array.from(idToLineWrapper.values());
   }
 
@@ -295,9 +295,13 @@ export function findIntersectionPoint(
   refBlockLine: Polyline,
   allLines: LineWithNavigationTypeAndId[],
 ): Point | undefined {
-  logger.info(`refblockPoint: ${refBlockPoint.x}, ${refBlockPoint.y} licensePoint: ${licensePoint.x}, ${licensePoint.y}`);
+  logger.debug(`refblockPoint: ${refBlockPoint.x}, ${refBlockPoint.y} licensePoint: ${licensePoint.x}, ${licensePoint.y}`);
   // Check if the point connects to a loxodrome line following a bearing
   const lineOnBearing = findLoxodromeThatConnectsToPointOnSetBearing(refBlockPoint, allLines);
+  const lineOnBearingDescription = lineOnBearing
+    ? `id ${lineOnBearing.id} bearing ${lineOnBearing.setBearing}`
+    : "none";
+  logger.debug(`findIntersectionPoint: lineOnBearing=${lineOnBearingDescription}`);
 
   if (lineOnBearing) {
     // Find intersection using bearing
@@ -309,7 +313,7 @@ export function findIntersectionPoint(
     );
 
     if (intersectionWithRefPoint) {
-      logger.info(`intersectionWithRefPoint ${intersectionWithRefPoint.x}, ${intersectionWithRefPoint.y}`);
+      logger.debug(`intersectionWithRefPoint ${intersectionWithRefPoint.x}, ${intersectionWithRefPoint.y}`);
       return intersectionWithRefPoint;
     }
 
@@ -320,21 +324,24 @@ export function findIntersectionPoint(
       ONE_ARC_SECOND * 30,
     );
     if (intersectionWithLicensePoint) {
-      logger.info(`intersectionWithLicensePoint ${intersectionWithLicensePoint.x}, ${intersectionWithLicensePoint.y}`);
+      logger.debug(`intersectionWithLicensePoint ${intersectionWithLicensePoint.x}, ${intersectionWithLicensePoint.y}`);
+    } else {
+      logger.debug("findIntersectionPoint: no bearing intersection found for either ref or license point");
     }
     return intersectionWithLicensePoint;
   }
 
   // Find the nearest point on the ref block line
+  logger.debug("findIntersectionPoint: no line on bearing, falling back to nearest-point strategy");
   const nearestToRefBlockPoint = proximityOperator.getNearestCoordinate(licenseLine, refBlockPoint);
   const nearestToLicensePoint = proximityOperator.getNearestCoordinate(refBlockLine, licensePoint);
   const nearest
     = nearestToRefBlockPoint.distance < nearestToLicensePoint.distance ? nearestToRefBlockPoint : nearestToLicensePoint;
   if (nearest.distance > ONE_HUNDRED_METERS_ED50) {
-    logger.info(`Nearest distance is ${nearest.distance}, which is further than the 100m limit`);
+    logger.debug(`Nearest distance is ${nearest.distance}, which is further than the 100m limit`);
     return undefined;
   }
-  logger.info("Nearest non bearing point used");
+  logger.debug("Nearest non bearing point used");
 
   return nearest.coordinate;
 }

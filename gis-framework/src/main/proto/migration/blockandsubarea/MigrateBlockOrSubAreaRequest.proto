@@ -12,4 +12,5 @@ message MigrateBlockOrSubAreaRequest {
   repeated GeoJsonLineWrapper geoJsonLineWrappers = 1;
   CoordinateSystem coordinateSystem = 2;
   repeated string parentLineEsriJsonStrings = 3;
+  string shapeId = 4;
 }

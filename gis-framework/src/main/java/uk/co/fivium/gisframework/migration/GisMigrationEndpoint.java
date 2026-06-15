@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.LineService;
 import uk.co.fivium.gisframework.feature.PolygonService;
+import uk.co.fivium.gisframework.migration.oracle.Layer;
 import uk.co.fivium.gisframework.migration.oracle.OracleService;
 
 @Profile("gis-migration")
@@ -62,11 +63,14 @@ public class GisMigrationEndpoint {
     migrationService.migrateBlocksAndSubarea(oracleService.getEntityBackedOracleShapesForMigrationOrderNumber(30));
 
     LOGGER.info("Block and subarea validation starting");
-    migrationValidationService.childAndParentValidation();
+    migrationValidationService.childAndParentValidation(Layer.BLOCKS);
+    migrationValidationService.childAndParentValidation(Layer.SUBAREAS);
     migrationValidationService.verifySubareasTopologicallyEqualToBlock();
 
-    LOGGER.info("Reference block migration and validation starting");
+    LOGGER.info("Reference block migration starting");
     referenceBlockMigrationService.migrate(oracleService.getEntityBackedOracleShapesForMigrationOrderNumber(50));
+
+    LOGGER.info("Reference block validation starting");
     migrationValidationService.validateReferenceBlocks();
 
     LOGGER.info("GIS migration finished");

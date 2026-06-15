@@ -6,6 +6,7 @@ import type {
 } from "../../../generated/uk/co/fivium/grpc/gis/EsriJsonPolygonLineWrappers";
 import type { EsriJsonLineStringToIsGeodesic } from "../verify-child-geodesic-lines-overlap-parents";
 import * as containsOperator from "@arcgis/core/geometry/operators/containsOperator.js";
+import { CoordinateSystem } from "../../../generated/uk/co/fivium/grpc/gis/CoordinateSystem";
 import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
 import { logger } from "../../config/logger";
 import { linesToSinglePolygon } from "../../geometric-operators/lines-to-single-polygon-operator";
@@ -60,20 +61,27 @@ export const validateReferenceBlock: ArcGisServiceHandlers["validateReferenceBlo
   }
 };
 
-function processPolygons(
+export function processPolygons(
   polygonInputs: EsriJsonPolygonLineWrappers__Output[],
   wkid: number,
 ): { unionedPolygon: Polygon, lines: EsriJsonLineStringToIsGeodesic[] } {
   const polygons: Polygon[] = [];
   const lines: EsriJsonLineStringToIsGeodesic[] = [];
+  const bngWkid = getCoordinateSystemWkid(CoordinateSystem.BRITISH_NATIONAL_GRID);
+
   polygonInputs.forEach((polygon) => {
     const polylines: Polyline[] = [];
     polygon.lineWrappers.forEach((line) => {
       const polyline = esriJsonToPolyline(line.esriJsonString);
+
+      // If offshore then treat cartesian lines as geodesic, else treat them as non geodesic.
+      const isGeodesic = (bngWkid !== wkid && line.navigationType !== LineNavigationType.LOXODROME)
+        || (line.navigationType === LineNavigationType.GEODESIC);
+
       polylines.push(polyline);
       lines.push({
         esriJsonPolyline: line.esriJsonString,
-        isGeodesic: line.navigationType !== LineNavigationType.LOXODROME,
+        isGeodesic,
       });
     });
     polygons.push(linesToSinglePolygon(polylines, wkid));

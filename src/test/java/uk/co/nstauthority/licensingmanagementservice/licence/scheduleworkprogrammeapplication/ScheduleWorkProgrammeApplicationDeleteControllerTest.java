@@ -76,7 +76,7 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
            )
            .andExpect(status().isOk())
            .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeApplicationDeleteConfirmation"))
-           .andExpect(model().attribute("backToSummaryUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null))))
+           .andExpect(model().attribute("backToTaskListUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null))))
            .andExpect(model().attribute("actionUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationDeleteController.class).deleteScheduleWorkProgrammeApplication(SCHEDULE_APPLICATION_DETAIL_ID, null, null))))
            .andExpect(model().attributeExists("summarySections"))
            .andExpect(model().attribute("accordionId", SCHEDULE_APPLICATION_DETAIL_ID));

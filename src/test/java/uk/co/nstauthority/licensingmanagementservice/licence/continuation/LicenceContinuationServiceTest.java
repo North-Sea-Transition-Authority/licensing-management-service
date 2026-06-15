@@ -286,6 +286,17 @@ class LicenceContinuationServiceTest {
   }
 
   @Test
+  void deleteLicenceContinuationApplication_setsStatusToDeletedAndSaves() {
+    licenceContinuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.DRAFT);
+
+    licenceContinuationService.deleteLicenceContinuationApplication(licenceContinuationApplicationDetail);
+
+    verify(licenceContinuationApplicationDetailRepository).save(licenceContinuationApplicationDetailCaptor.capture());
+    var savedDetail = licenceContinuationApplicationDetailCaptor.getValue();
+    assertThat(savedDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.DELETED);
+  }
+
+  @Test
   void withdrawContinuationChangeStatus(){
     String reason = "User requested withdrawal";
 

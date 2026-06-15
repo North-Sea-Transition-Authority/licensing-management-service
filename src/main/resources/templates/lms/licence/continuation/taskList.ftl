@@ -9,6 +9,12 @@ caption=pageCaption
 pageSize=PageSize.TWO_THIRDS_COLUMN
 breadcrumbs=breadcrumbs>
 
+    <@fdsAction.link
+    linkText="Delete draft application"
+    linkUrl=springUrl(deleteLicenceContinuationApplicationUrl)
+    linkClass="govuk-button govuk-button--secondary"
+    role=true/>
+
     <@continuationDataItem.continuationDataItem
     currentTermPhaseDisplay=currentTermPhaseDisplay!""
     nextTermPhaseDisplay=nextTermPhaseDisplay!""

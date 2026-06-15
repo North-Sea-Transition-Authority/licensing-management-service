@@ -4,6 +4,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
 public enum LicenceContinuationApplicationStatus implements Displayable {
   DRAFT("Draft"),
+  DELETED("Deleted"),
   SUBMITTED("Submitted"),
   ISSUE_DECISION("Issue decision"),
   COMPLETE("Complete"),

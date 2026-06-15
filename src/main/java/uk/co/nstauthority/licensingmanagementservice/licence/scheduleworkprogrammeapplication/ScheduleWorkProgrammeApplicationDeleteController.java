@@ -51,7 +51,7 @@ public class ScheduleWorkProgrammeApplicationDeleteController {
       RedirectAttributes redirectAttributes
   ) {
     scheduleWorkProgrammeApplicationService.deleteScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplicationDetail);
-    addRedirectNotification(redirectAttributes);
+    addRedirectNotification(redirectAttributes, scheduleWorkProgrammeApplicationDetail);
     return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
   }
 
@@ -60,7 +60,7 @@ public class ScheduleWorkProgrammeApplicationDeleteController {
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
     return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeApplicationDeleteConfirmation")
-        .addObject("backToSummaryUrl", ReverseRouter.route(on(
+        .addObject("backToTaskListUrl", ReverseRouter.route(on(
                 ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
                 scheduleWorkProgrammeApplicationDetailId,
                 null,
@@ -76,9 +76,16 @@ public class ScheduleWorkProgrammeApplicationDeleteController {
         .addObject("accordionId", scheduleWorkProgrammeApplicationDetailId);
   }
 
-  private void addRedirectNotification(RedirectAttributes redirectAttributes) {
+  private void addRedirectNotification(
+      RedirectAttributes redirectAttributes,
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  ) {
     NotificationBanner.newSuccessBannerWithHeader(
-        String.format("%s has been deleted", ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.getDisplayName()),
+        String.format(
+            "%s %s has been deleted",
+            ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.getDisplayName(),
+            scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getApplicationReference()
+        ),
         redirectAttributes
     );
   }

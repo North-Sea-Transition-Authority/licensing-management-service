@@ -1,7 +1,7 @@
 <#include '../../layout/layout.ftl'>
 <#import 'summarylistcard/scheduleLicenceWorkProgrammeAmendmentSummaryCard.ftl' as licenceWorkProgrammeAmendmentCard>
 
-<#assign pageTitle = "Are you sure you want to delete this work programme amendment ?" />
+<#assign pageTitle = "Are you sure you want to delete this work programme amendment?" />
 
 <@defaultPage htmlTitle=pageTitle pageHeading=pageTitle pageSize=PageSize.TWO_THIRDS_COLUMN errorSummaryItems=errorSummaryItems>
 

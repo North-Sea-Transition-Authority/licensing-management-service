@@ -294,6 +294,12 @@ public class LicenceContinuationService {
   }
 
   @Transactional
+  public void deleteLicenceContinuationApplication(LicenceContinuationApplicationDetail licenceContinuationApplicationDetail) {
+    licenceContinuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.DELETED);
+    licenceContinuationApplicationDetailRepository.save(licenceContinuationApplicationDetail);
+  }
+
+  @Transactional
   public void issueContinuationLetter(LicenceApplication application) {
     var continuationApplicationDetail = getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(application.getId());
 

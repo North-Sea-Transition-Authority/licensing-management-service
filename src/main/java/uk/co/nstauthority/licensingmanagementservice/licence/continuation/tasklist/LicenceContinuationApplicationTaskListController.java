@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,10 +16,12 @@ import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDeleteController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 
 @Controller
@@ -75,7 +79,12 @@ public class LicenceContinuationApplicationTaskListController {
         .addObject("nextTermPhaseDisplay", nextTermPhaseDisplay)
         .addObject("taskListSections", sections)
         .addObject("pageCaption",
-            licenceService.getLicencePageCaption(getLicence(licenceContinuationApplicationDetail)));
+            licenceService.getLicencePageCaption(getLicence(licenceContinuationApplicationDetail)))
+        .addObject("deleteLicenceContinuationApplicationUrl", ReverseRouter.route(on(
+            LicenceContinuationApplicationDeleteController.class).renderForm(
+                licenceContinuationApplicationDetailId,
+                null,
+                null)));
 
     var breadcrumbs = Breadcrumbs.builder(PAGE_TITLE)
         .addWorkAreaBreadcrumb()

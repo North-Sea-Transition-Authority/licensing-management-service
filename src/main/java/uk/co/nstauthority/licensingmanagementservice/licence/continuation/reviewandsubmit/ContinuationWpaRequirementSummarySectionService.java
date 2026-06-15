@@ -7,8 +7,10 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementRequest;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
@@ -22,11 +24,17 @@ public class ContinuationWpaRequirementSummarySectionService
   public static final String SECTION_NAME = "Work programme activities requirement";
   public static final int SECTION_DISPLAY_ORDER = 20;
   private final LicenceContinuationWpaRequirementService licenceContinuationWpaRequirementService;
+  private final LicenceContinuationService licenceContinuationService;
+  private final WorkProgrammeActivityService workProgrammeActivityService;
 
   public ContinuationWpaRequirementSummarySectionService(
-      LicenceContinuationWpaRequirementService licenceContinuationWpaRequirementService
+      LicenceContinuationWpaRequirementService licenceContinuationWpaRequirementService,
+      LicenceContinuationService licenceContinuationService,
+      WorkProgrammeActivityService workProgrammeActivityService
   ) {
     this.licenceContinuationWpaRequirementService = licenceContinuationWpaRequirementService;
+    this.licenceContinuationService = licenceContinuationService;
+    this.workProgrammeActivityService = workProgrammeActivityService;
   }
 
   @Override
@@ -34,6 +42,14 @@ public class ContinuationWpaRequirementSummarySectionService
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
       ServiceUserDetail user
   ) {
+    var scheduleDetail = licenceContinuationService.getScheduleDetailFromApplicationDetail(
+        licenceContinuationApplicationDetail
+    );
+
+    if (!workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail)) {
+      return Optional.empty();
+    }
+
     var wpaRequirementSummaryItem = getWpaRequirementSummaryItem(licenceContinuationApplicationDetail);
     var summarySection = new SummarySection(SECTION_DISPLAY_ORDER, List.of(wpaRequirementSummaryItem));
     return Optional.of(summarySection);

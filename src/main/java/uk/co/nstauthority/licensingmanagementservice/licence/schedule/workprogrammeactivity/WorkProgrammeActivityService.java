@@ -105,6 +105,20 @@ public class WorkProgrammeActivityService {
     workProgrammeActivityRepository.delete(workProgrammeActivity);
   }
 
+  public boolean hasCurrentWorkProgrammeActivities(LicenceScheduleDetail licenceScheduleDetail) {
+    var scheduleState = licenceScheduleService.getScheduleState(licenceScheduleDetail);
+
+    if (scheduleState.currentPhase() != null) {
+      return workProgrammeActivityRepository.existsByLicenceSchedulePhase(scheduleState.currentPhase());
+    }
+
+    if (scheduleState.currentTerm() != null) {
+      return workProgrammeActivityRepository.existsByLicenceScheduleTerm(scheduleState.currentTerm());
+    }
+
+    return false;
+  }
+
   public List<WorkProgrammeActivityView> getCurrentWorkProgrammeActivitiesViews(
       LicenceScheduleDetail licenceScheduleDetail
   ) {

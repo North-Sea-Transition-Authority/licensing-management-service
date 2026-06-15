@@ -272,6 +272,45 @@ class WorkProgrammeActivityServiceTest {
   }
 
   @Test
+  void hasCurrentWorkProgrammeActivities_whenCurrentPhaseIsNotNull_delegatesToPhaseExistsQuery() {
+    var detail = new LicenceScheduleDetail();
+    var phase = new LicenceSchedulePhase();
+
+    var state = mock(ScheduleState.class);
+    when(state.currentPhase()).thenReturn(phase);
+    when(licenceScheduleService.getScheduleState(detail)).thenReturn(state);
+    when(workProgrammeActivityRepository.existsByLicenceSchedulePhase(phase)).thenReturn(true);
+
+    assertThat(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(detail)).isTrue();
+  }
+
+  @Test
+  void hasCurrentWorkProgrammeActivities_whenCurrentPhaseIsNullAndTermIsNotNull_delegatesToTermExistsQuery() {
+    var detail = new LicenceScheduleDetail();
+    var term = new LicenceScheduleTerm();
+
+    var state = mock(ScheduleState.class);
+    when(state.currentPhase()).thenReturn(null);
+    when(state.currentTerm()).thenReturn(term);
+    when(licenceScheduleService.getScheduleState(detail)).thenReturn(state);
+    when(workProgrammeActivityRepository.existsByLicenceScheduleTerm(term)).thenReturn(false);
+
+    assertThat(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(detail)).isFalse();
+  }
+
+  @Test
+  void hasCurrentWorkProgrammeActivities_whenPhaseAndTermAreNull_returnsFalse() {
+    var detail = new LicenceScheduleDetail();
+
+    var state = mock(ScheduleState.class);
+    when(state.currentPhase()).thenReturn(null);
+    when(state.currentTerm()).thenReturn(null);
+    when(licenceScheduleService.getScheduleState(detail)).thenReturn(state);
+
+    assertThat(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(detail)).isFalse();
+  }
+
+  @Test
   void getLicenceWorkProgramActivitiesViews_mapsAllFieldsCorrectly() {
     LocalDate fixedDate = LocalDate.of(2026, 5, 10);
     WorkProgrammeActivity workProgrammeActivity = mock(WorkProgrammeActivity.class);

@@ -48,6 +48,10 @@ public interface WorkProgrammeActivityRepository
   @EntityGraph(attributePaths = {"licenceSchedulePhase.licenceScheduleTerm", "licenceScheduleTerm"})
   List<WorkProgrammeActivity> findByLicenceScheduleTerm(LicenceScheduleTerm licenceScheduleTerm);
 
+  boolean existsByLicenceSchedulePhase(LicenceSchedulePhase licenceSchedulePhase);
+
+  boolean existsByLicenceScheduleTerm(LicenceScheduleTerm licenceScheduleTerm);
+
   Optional<WorkProgrammeActivity> findByLicenceScheduleDetailAndEventReference(
       LicenceScheduleDetail licenceScheduleDetail,
       EventReference eventReference

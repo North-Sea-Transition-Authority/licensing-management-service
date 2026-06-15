@@ -13,8 +13,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementRequest;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCardType;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
 
@@ -24,22 +27,35 @@ class ContinuationWpaRequirementSummarySectionServiceTest {
   @Mock
   private LicenceContinuationWpaRequirementService licenceContinuationWpaRequirementService;
 
+  @Mock
+  private LicenceContinuationService licenceContinuationService;
+
+  @Mock
+  private WorkProgrammeActivityService workProgrammeActivityService;
+
   @InjectMocks
   private ContinuationWpaRequirementSummarySectionService continuationWpaRequirementSummarySectionService;
 
   private LicenceContinuationApplicationDetail licenceContinuationApplicationDetail;
   private ServiceUserDetail user;
+  private LicenceScheduleDetail scheduleDetail;
 
   @BeforeEach
   void setUp() {
     licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
     user = mock(ServiceUserDetail.class);
+
+    scheduleDetail = new LicenceScheduleDetail();
+    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(scheduleDetail);
   }
 
   @Test
   void getSummarySection_withWpaRequirement_returnsWpaSummaryCardOnly() {
     var wpaRequest = createWpaRequirementRequest();
 
+    when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail))
+        .thenReturn(true);
     when(licenceContinuationWpaRequirementService.getWorkProgrammeActivitiesRequirementRequest(licenceContinuationApplicationDetail))
         .thenReturn(Optional.of(wpaRequest));
 
@@ -61,7 +77,22 @@ class ContinuationWpaRequirementSummarySectionServiceTest {
   }
 
   @Test
+  void getSummarySection_whenScheduleHasNoWorkProgrammeActivities_returnsEmptyOptional() {
+    when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail))
+        .thenReturn(false);
+
+    Optional<SummarySection> result = continuationWpaRequirementSummarySectionService.getSummarySection(
+        licenceContinuationApplicationDetail,
+        user
+    );
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
   void getSummarySection_withNoRequirements_returnsEmptySummaryCardsList() {
+    when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail))
+        .thenReturn(true);
     when(licenceContinuationWpaRequirementService.getWorkProgrammeActivitiesRequirementRequest(licenceContinuationApplicationDetail))
         .thenReturn(Optional.empty());
 

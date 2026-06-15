@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatus;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasWorkProgrammeActivities;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
@@ -24,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @RequestMapping("licence/continuation-application/{licenceContinuationApplicationDetailId}/requirements")
 @ContinuationApplicationHasStatus(value = LicenceContinuationApplicationStatus.DRAFT)
 @InvokingUserCanAccessContinuationApplication
+@ContinuationApplicationHasWorkProgrammeActivities
 public class LicenceContinuationWpaRequirementController {
 
   public static final String PAGE_TITLE = "Work programme";

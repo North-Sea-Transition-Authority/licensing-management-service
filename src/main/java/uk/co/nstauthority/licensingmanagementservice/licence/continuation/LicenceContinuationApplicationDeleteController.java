@@ -53,7 +53,7 @@ public class LicenceContinuationApplicationDeleteController {
       RedirectAttributes redirectAttributes
   ) {
     licenceContinuationService.deleteLicenceContinuationApplication(licenceContinuationApplicationDetail);
-    addRedirectNotification(redirectAttributes, licenceContinuationApplicationDetail);
+    addRedirectNotification(redirectAttributes);
     return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
   }
 
@@ -80,14 +80,11 @@ public class LicenceContinuationApplicationDeleteController {
   }
 
   private void addRedirectNotification(
-      RedirectAttributes redirectAttributes,
-      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
-  ) {
+      RedirectAttributes redirectAttributes) {
     NotificationBanner.newSuccessBannerWithHeader(
         String.format(
-            "%s %s has been deleted",
-            ApplicationType.CONTINUATION_APPLICATION.getDisplayName(),
-            licenceContinuationApplicationDetail.getLicenceContinuationApplication().getApplicationReference()
+            "%s has been deleted",
+            ApplicationType.CONTINUATION_APPLICATION.getDisplayName()
         ),
         redirectAttributes
     );

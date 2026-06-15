@@ -51,7 +51,7 @@ public class ScheduleWorkProgrammeApplicationDeleteController {
       RedirectAttributes redirectAttributes
   ) {
     scheduleWorkProgrammeApplicationService.deleteScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplicationDetail);
-    addRedirectNotification(redirectAttributes, scheduleWorkProgrammeApplicationDetail);
+    addRedirectNotification(redirectAttributes);
     return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
   }
 
@@ -77,14 +77,11 @@ public class ScheduleWorkProgrammeApplicationDeleteController {
   }
 
   private void addRedirectNotification(
-      RedirectAttributes redirectAttributes,
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
-  ) {
+      RedirectAttributes redirectAttributes) {
     NotificationBanner.newSuccessBannerWithHeader(
         String.format(
-            "%s %s has been deleted",
-            ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.getDisplayName(),
-            scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getApplicationReference()
+            "%s has been deleted",
+            ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.getDisplayName()
         ),
         redirectAttributes
     );

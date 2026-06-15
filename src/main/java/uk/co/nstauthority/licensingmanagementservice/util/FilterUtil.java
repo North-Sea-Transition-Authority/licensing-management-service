@@ -12,7 +12,7 @@ public class FilterUtil {
     throw new IllegalUtilClassInstantiationException(this.getClass());
   }
 
-  public static boolean filterTextInput(String textFromDataItem, String textInputOnFilter) {
+  public static boolean matchesTextInput(String textFromDataItem, String textInputOnFilter) {
     if (StringUtils.isBlank(textInputOnFilter)) {
       return true;
     }
@@ -20,7 +20,19 @@ public class FilterUtil {
     return textFromDataItem.toLowerCase().contains(textInputOnFilter.toLowerCase());
   }
 
-  public static boolean filterIdList(List<Integer> idListFromDataItem, Integer idInputOnFilter) {
+  public static boolean listMatchesIdList(List<Integer> idListFromDataItem, List<Integer> idsFromFilter) {
+    if (idsFromFilter == null) {
+      return true;
+    }
+
+    if (idsFromFilter.isEmpty() || idListFromDataItem == null || idListFromDataItem.isEmpty()) {
+      return false;
+    }
+
+    return idListFromDataItem.stream().anyMatch(idsFromFilter::contains);
+  }
+
+  public static boolean matchesIdList(List<Integer> idListFromDataItem, Integer idInputOnFilter) {
     if (idInputOnFilter ==  null) {
       return true;
     }
@@ -32,9 +44,9 @@ public class FilterUtil {
     return idListFromDataItem.contains(idInputOnFilter);
   }
 
-  public static <T extends Enum<T>> boolean filterEnum(Class<T> enumClass,
-                                                       T typeFromDataItem,
-                                                       Collection<String> typesFromFilter) {
+  public static <T extends Enum<T>> boolean matchesEnum(Class<T> enumClass,
+                                                        T typeFromDataItem,
+                                                        Collection<String> typesFromFilter) {
     if (EnumValidationUtil.containsInvalidEnumValue(enumClass, typesFromFilter)) {
       return true;
     }

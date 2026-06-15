@@ -23,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
+import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
@@ -35,6 +36,9 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private LicenceAccessService  licenceAccessService;
+
+  @MockitoBean
+  private RegulatorRoleService regulatorRoleService;
 
   private ServiceUserDetail organisationUser;
   public static final String RENDER_SEARCH_PAGE_ROUTE = ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null, null));
@@ -50,6 +54,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .build();
 
     when(licenceAccessService.userHasAccessToCreateLicence(ORGANISATION_USER_WUA_ID)).thenReturn(true);
+    when(regulatorRoleService.isRegulator(organisationUser)).thenReturn(true);
   }
 
   @Test
@@ -94,6 +99,30 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("canCreateLicence", true))
         .andExpect(model().attribute("createLicenceUrl", CREATE_LICENCE_ROUTE));
     verify(licenceSearchService).getSearchResultItems(form);
+  }
+
+  @Test
+  void renderSearchPage_whenRegulatorUser_isRegulatorUserIsTrue() throws Exception {
+    when(regulatorRoleService.isRegulator(organisationUser)).thenReturn(true);
+
+    mockMvc.perform(
+            get(RENDER_SEARCH_PAGE_ROUTE)
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("isRegulatorUser", true));
+  }
+
+  @Test
+  void renderSearchPage_whenNonRegulatorUser_isRegulatorUserIsFalse() throws Exception {
+    when(regulatorRoleService.isRegulator(organisationUser)).thenReturn(false);
+
+    mockMvc.perform(
+            get(RENDER_SEARCH_PAGE_ROUTE)
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("isRegulatorUser", false));
   }
 
   @Test

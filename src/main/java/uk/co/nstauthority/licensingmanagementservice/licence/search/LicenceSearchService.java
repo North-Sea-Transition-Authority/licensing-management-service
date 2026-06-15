@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceReferenceComparator;
@@ -28,30 +30,35 @@ public class LicenceSearchService {
   private final LicenceService licenceService;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
+  private final OrganisationGroupQueryService organisationGroupQueryService;
 
   public LicenceSearchService(LicenceService licenceService,
                               LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
-                              OrganisationUnitQueryService organisationUnitQueryService) {
+                              OrganisationUnitQueryService organisationUnitQueryService,
+                              OrganisationGroupQueryService organisationGroupQueryService) {
     this.licenceService = licenceService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.organisationUnitQueryService = organisationUnitQueryService;
+    this.organisationGroupQueryService = organisationGroupQueryService;
   }
 
   public List<SearchResultItem> getSearchResultItems(LicenceSearchFilterForm filterForm) {
     // get all licenses and apply simple filtering
     var filteredLicenses = licenceService.getAllLicences().stream()
-        .filter(licence -> FilterUtil.filterTextInput(licence.getLicenceReference(), filterForm.getLicenceReference()))
-        .filter(licence -> FilterUtil.filterEnum(LicenceType.class, licence.getType(), filterForm.getLicenceTypes()))
+        .filter(licence -> FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference()))
+        .filter(licence -> FilterUtil.matchesEnum(LicenceType.class, licence.getType(), filterForm.getLicenceTypes()))
         .toList();
 
     var licenceResponsibleOrganisations = getResponsibleOrganisationsForLicences(filteredLicenses);
 
     // apply batch filtering
     var responsibleOrganisationIds = getResponsibleOrganisationIds(licenceResponsibleOrganisations);
+    var groupOrgUnitIds = getOrgUnitIdsForGroup(filterForm.getLicenseeOrgGroupId());
     var batchFilteredLicences = filteredLicenses.stream()
         .filter(licence -> {
           var orgUnitIds = responsibleOrganisationIds.getOrDefault(licence, List.of());
-          return FilterUtil.filterIdList(orgUnitIds, filterForm.getLicenseeOrgUnitId());
+          return FilterUtil.matchesIdList(orgUnitIds, filterForm.getLicenseeOrgUnitId())
+              && FilterUtil.listMatchesIdList(orgUnitIds, groupOrgUnitIds);
         });
 
     var responsibleOrganisationNames = getResponsibleOrganisationNamesByLicences(licenceResponsibleOrganisations);
@@ -114,6 +121,27 @@ public class LicenceSearchService {
             entry -> entry.getKey().toString(),
             Map.Entry::getValue
         ));
+  }
+
+  Map<String, String> getPreselectedOrganisationGroup(Integer organisationGroupId) {
+    if (organisationGroupId == null) {
+      return Collections.emptyMap();
+    }
+
+    return organisationGroupQueryService.getOrganisationGroupById(organisationGroupId)
+        .map(g -> Map.of(g.getOrganisationGroupId().toString(), g.getOrganisationGroupName()))
+        .orElse(Collections.emptyMap());
+  }
+
+  private List<Integer> getOrgUnitIdsForGroup(Integer organisationGroupId) {
+    if (organisationGroupId == null) {
+      return null;
+    }
+
+    return organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(List.of(organisationGroupId))
+        .stream()
+        .map(OrganisationUnitJson::organisationUnitId)
+        .toList();
   }
 
   private SearchResultItem toSearchResultItem(Licence licence, List<String> licensees) {

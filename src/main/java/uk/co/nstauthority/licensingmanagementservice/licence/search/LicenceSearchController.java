@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupRestController;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceAccessService;
@@ -20,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
+import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @Controller
@@ -29,13 +31,16 @@ public class LicenceSearchController {
 
   private final LicenceSearchService licenceSearchService;
   private final LicenceAccessService licenceAccessService;
+  private final RegulatorRoleService regulatorRoleService;
 
   public LicenceSearchController(
       LicenceSearchService licenceSearchService,
-      LicenceAccessService licenceAccessService
+      LicenceAccessService licenceAccessService,
+      RegulatorRoleService regulatorRoleService
   ) {
     this.licenceSearchService = licenceSearchService;
     this.licenceAccessService = licenceAccessService;
+    this.regulatorRoleService = regulatorRoleService;
   }
 
   @GetMapping
@@ -85,11 +90,16 @@ public class LicenceSearchController {
         .addObject("form", form)
         .addObject("clearFilterUrl", ReverseRouter.route(on(LicenceSearchController.class).clearSearchFilters(null, null)))
         .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
+        .addObject("licenseeGroupOrgUnitUrl",
+            SearchSelectorService.route(on(OrganisationGroupRestController.class).getOrganisationGroupSearchResults(null)))
+        .addObject("preSelectedLicenseeGroupOrgUnit",
+            licenceSearchService.getPreselectedOrganisationGroup(form.getLicenseeOrgGroupId()))
         .addObject("licenseeOrgUnitUrl",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
         .addObject("preSelectedLicenseeOrgUnit", licenceSearchService.getPreselectedOrganisationUnit(form.getLicenseeOrgUnitId()))
         .addObject("searchItems", searchItems)
         .addObject("hasSearchBeenInvoked", hasSearchBeenInvoked)
+        .addObject("isRegulatorUser", regulatorRoleService.isRegulator(user))
         .addObject("canCreateLicence", licenceAccessService.userHasAccessToCreateLicence((user.wuaId())))
         .addObject("createLicenceUrl", ReverseRouter.route(on(LicenceController.class).renderNewLicenceForm()));
   }

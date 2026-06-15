@@ -182,7 +182,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
   ) {
     Licence licence = licenceContinuationService.getLicenceFromContinuationApplicationDetail(applicationDetail);
 
-    if (!FilterUtil.filterTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
+    if (!FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
       return false;
     }
 

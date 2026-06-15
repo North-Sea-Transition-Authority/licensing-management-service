@@ -15,62 +15,92 @@ class FilterUtilTest {
   
   @ParameterizedTest
   @NullAndEmptySource
-  void filterTextInput_whenBlank_thenTrue(String input) {
-    assertTrue(FilterUtil.filterTextInput("text", input));
+  void matchesTextInput_Filter_whenBlank_thenTrue(String input) {
+    assertTrue(FilterUtil.matchesTextInput("text", input));
   }
 
   @Test
-  void filterTextInput_whenMatch_thenTrue() {
-    assertTrue(FilterUtil.filterTextInput("Text on item", "text"));
+  void matchesTextInput_Filter_whenMatch_thenTrue() {
+    assertTrue(FilterUtil.matchesTextInput("Text on item", "text"));
   }
 
   @Test
-  void filterTextInput_whenNoMatch_thenFalse() {
-    assertFalse(FilterUtil.filterTextInput("Text on item", "no match"));
+  void matchesTextInput_Filter_whenNoMatch_thenFalse() {
+    assertFalse(FilterUtil.matchesTextInput("Text on item", "no match"));
   }
 
   @ParameterizedTest
   @EmptySource
   @ValueSource(strings = "invalid")
-  void filterEnum_whenNotValidEnum_thenTrue(String input) {
-    assertTrue(FilterUtil.filterEnum(TestType.class, TestType.TYPE_A, List.of(input)));
+  void matchesEnum_whenNotValidEnum_Filter_thenTrue(String input) {
+    assertTrue(FilterUtil.matchesEnum(TestType.class, TestType.TYPE_A, List.of(input)));
   }
 
   @Test
-  void filterEnum_whenMatch_thenTrue() {
-    assertTrue(FilterUtil.filterEnum(TestType.class, TestType.TYPE_A, List.of(TestType.TYPE_A.name(), TestType.TYPE_B.name())));
+  void matchesEnum_Filter_whenMatch_thenTrue() {
+    assertTrue(FilterUtil.matchesEnum(TestType.class, TestType.TYPE_A, List.of(TestType.TYPE_A.name(), TestType.TYPE_B.name())));
   }
 
   @Test
-  void filterEnum_whenNoMatch_thenFalse() {
-    assertFalse(FilterUtil.filterEnum(TestType.class, TestType.TYPE_A, List.of(TestType.TYPE_B.name(), TestType.TYPE_C.name())));
+  void matchesEnum_Filter_whenNoMatch_thenFalse() {
+    assertFalse(FilterUtil.matchesEnum(TestType.class, TestType.TYPE_A, List.of(TestType.TYPE_B.name(), TestType.TYPE_C.name())));
   }
 
   @Test
-  void filterIdList_whenFilterIsNull_returnsTrue() {
+  void filterIdList_whenMatchesIsNull_returnsTrueFilter() {
     List<Integer> idList = List.of(1, 2, 3);
-    assertTrue(FilterUtil.filterIdList(idList, null));
+    assertTrue(FilterUtil.matchesIdList(idList, null));
   }
 
   @Test
-  void filterIdList_whenListIsNull_returnsFalse() {
-    assertFalse(FilterUtil.filterIdList(null, 1));
+  void matchesIdList_whenListFilterIsNull_returnsFalse() {
+    assertFalse(FilterUtil.matchesIdList(null, 1));
   }
 
   @Test
-  void filterIdList_whenListIsEmpty_returnsFalse() {
-    assertFalse(FilterUtil.filterIdList(List.of(), 1));
+  void matchesIdList_whenListFilterIsEmpty_returnsFalse() {
+    assertFalse(FilterUtil.matchesIdList(List.of(), 1));
   }
 
   @Test
-  void filterIdList_whenListContainsMatchingId_returnsTrue() {
+  void matchesIdList_whenListContainsMatchingId_returnsTrueFilter() {
     List<Integer> idList = List.of(10, 20, 30);
-    assertTrue(FilterUtil.filterIdList(idList, 20));
+    assertTrue(FilterUtil.matchesIdList(idList, 20));
   }
 
   @Test
-  void filterIdList_whenListDoesNotContainMatchingId_returnsFalse() {
+  void matchesIdList_whenListDoesNotContainMatchingId_returnsFalseFilter() {
     List<Integer> idList = List.of(10, 20, 30);
-    assertFalse(FilterUtil.filterIdList(idList, 40));
+    assertFalse(FilterUtil.matchesIdList(idList, 40));
+  }
+
+  @Test
+  void listMatchesIdList_whenFilterIsNull_returnsTrue() {
+    assertTrue(FilterUtil.listMatchesIdList(List.of(1, 2, 3), null));
+  }
+
+  @Test
+  void listMatchesIdList_whenFilterIsEmpty_returnsFalse() {
+    assertFalse(FilterUtil.listMatchesIdList(List.of(1, 2, 3), List.of()));
+  }
+
+  @Test
+  void listMatchesIdList_whenDataListIsNull_returnsFalse() {
+    assertFalse(FilterUtil.listMatchesIdList(null, List.of(1, 2, 3)));
+  }
+
+  @Test
+  void listMatchesIdList_whenDataListIsEmpty_returnsFalse() {
+    assertFalse(FilterUtil.listMatchesIdList(List.of(), List.of(1, 2, 3)));
+  }
+
+  @Test
+  void listMatchesIdList_whenListsHaveOverlap_returnsTrue() {
+    assertTrue(FilterUtil.listMatchesIdList(List.of(10, 20, 30), List.of(20, 40)));
+  }
+
+  @Test
+  void listMatchesIdList_whenListsHaveNoOverlap_returnsFalse() {
+    assertFalse(FilterUtil.listMatchesIdList(List.of(10, 20, 30), List.of(40, 50)));
   }
 }

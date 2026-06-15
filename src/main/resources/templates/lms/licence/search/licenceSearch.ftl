@@ -25,6 +25,13 @@ extendContainerWidth=true
         <@dataItemFilter.referenceFilter
         form=form
         />
+        <#if isRegulatorUser>
+            <@dataItemFilter.licenseeGroupFilter
+            form=form
+            licenseeGroupOrgUnitUrl=licenseeGroupOrgUnitUrl
+            preSelectedLicenseeGroup=preSelectedLicenseeGroupOrgUnit
+            />
+        </#if>
         <@dataItemFilter.licenseeOrgUnitFilter
         form=form
         licenseeOrgUnitUrl=licenseeOrgUnitUrl

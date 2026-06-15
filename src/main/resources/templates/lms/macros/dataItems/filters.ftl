@@ -12,6 +12,19 @@
     </@fdsSearch.searchFilterItem>
 </#macro>
 
+<#macro licenseeGroupFilter form licenseeGroupOrgUnitUrl preSelectedLicenseeGroup={}>
+    <@fdsSearch.searchFilterItem itemName="Licensee group" expanded=form.licenseeOrgGroupId?has_content>
+        <@fdsSearchSelector.searchSelectorRest
+        path="form.licenseeOrgGroupId"
+        restUrl=springUrl(licenseeGroupOrgUnitUrl)
+        preselectedItems=preSelectedLicenseeGroup
+        inputClass="govuk-!-width-three-quarters govuk-!-margin-bottom-0"
+        selectorMinInputLength=3
+        labelText=""
+        />
+    </@fdsSearch.searchFilterItem>
+</#macro>
+
 <#macro licenseeOrgUnitFilter form licenseeOrgUnitUrl preSelectedLicenseeOrgUnit>
     <@fdsSearch.searchFilterItem itemName="Licensee" expanded=form.licenseeOrgUnitId?has_content>
         <@fdsSearchSelector.searchSelectorRest

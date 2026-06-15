@@ -189,7 +189,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
     var licence = scheduleWorkProgrammeApplicationService
         .getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail);
 
-    if (!FilterUtil.filterTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
+    if (!FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
       return false;
     }
 

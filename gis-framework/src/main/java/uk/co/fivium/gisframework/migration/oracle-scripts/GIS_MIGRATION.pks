@@ -1,5 +1,12 @@
 CREATE OR REPLACE PACKAGE lms_gis_migration.gis_migration
 IS
+
+  /*
+  * Rebuilds a connection geometry with reversed ordinates
+  */
+  FUNCTION reverse_connection (
+    p_connection_geom mdsys.sdo_geometry
+  ) RETURN mdsys.sdo_geometry;    
   
   /*
   * Prepares Oracle GIS data for migration

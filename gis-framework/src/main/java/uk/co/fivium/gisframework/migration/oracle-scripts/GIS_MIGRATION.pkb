@@ -10,75 +10,220 @@ IS
   K_RETENTION_AREA_MIGRATION_ORDER CONSTANT INTEGER := 40;
   K_CROP_REF_BLOCKS_MIGRATION_ORDER CONSTANT INTEGER := 50;
   
+  K_BLOCK_LAYER CONSTANT VARCHAR2(4000) := 'BLOCKS';
+  K_BLOCK_SCRIBE_MNEM CONSTANT VARCHAR2(4000) := 'PED_BLOCK';
+  K_BLOCK_SCRIBE_TYPE CONSTANT VARCHAR2(4000) := 'SHAPE_SET_BOUNDARY';
+  
+  K_SUBAREA_LAYER CONSTANT VARCHAR2(4000) := 'SUBAREAS';
+  K_SUBAREA_SCRIBE_MNEM CONSTANT VARCHAR2(4000) := 'PED_SUBAREA';
+  K_SUBAREA_SCRIBE_TYPE CONSTANT VARCHAR2(4000) := 'SHAPE_SET_BOUNDARY';
+  
+  K_RETENTION_LAYER CONSTANT VARCHAR2(4000) := 'RETENTION_AREAS';
+  K_RETENTION_SCRIBE_MNEM CONSTANT VARCHAR2(4000) := 'PED_RETENTION_AREA';
+  K_RETENTION_SCRIBE_TYPE CONSTANT VARCHAR2(4000) := 'SHAPE_SET_BOUNDARY';
+  
+  FUNCTION reverse_connection (
+    p_connection_geom mdsys.sdo_geometry
+  ) RETURN mdsys.sdo_geometry
+  IS
+  
+    l_reversed_ords mdsys.sdo_ordinate_array;
+    l_reversed_geom mdsys.sdo_geometry;
+  
+  BEGIN
+  
+    l_reversed_ords := spatialmgr.sp_util.reverse_ordinates(p_connection_geom.sdo_ordinates);
+        
+    l_reversed_geom := mdsys.sdo_geometry (
+      p_connection_geom.sdo_gtype
+    , p_connection_geom.sdo_srid
+    , NULL
+    , p_connection_geom.sdo_elem_info
+    , l_reversed_ords
+    );
+    
+    RETURN l_reversed_geom;
+  
+  END reverse_connection;
+  
   -- insert spatial migration data
   PROCEDURE insert_boundary_lines (
     p_boundary_sid_id INTEGER
+  , p_shape_layer VARCHAR2
   )
   IS
+  
+    l_sid_connection_count INTEGER;
+    l_migration_connection_count INTEGER;
+    
   BEGIN
   
-    INSERT INTO lms_gis_migration.migration_boundary_lines (
-      line_sid_id
-    , boundary_sid_id
-    , shape_si_id
-    , connection_order
-    , line_navigation_type
-    , line_geojson
-    )
-    WITH connections AS (
+    -- for blocks, subareas and retention areas we use map connection ordering as defined in the scribe text
+    -- this is clockwise from the top-left node
+    -- we crosscheck this against the new framework ordering to ensure consistency
+    IF p_shape_layer IN (K_BLOCK_LAYER, K_SUBAREA_LAYER, K_RETENTION_LAYER) THEN
+  
+      INSERT INTO lms_gis_migration.migration_boundary_lines (
+        line_sid_id
+      , boundary_sid_id
+      , shape_si_id
+      , connection_order
+      , line_navigation_type
+      , line_geojson
+      )
+      WITH nodes AS (
+        SELECT
+          sid_n.ancestor_c_sid_id line_sid_id
+        , sid_n.ancestor_b_sid_id
+        , envmgr.st.to_number_safe(sa_node_seq.value) node_seq
+        , CASE
+            WHEN sid_n.path_seq = sid_n.anticlockwise_seq
+            THEN 1
+            ELSE 0
+          END anticlockwise_line
+        FROM spatialmgr.spatial_instance_details sid_n
+        JOIN spatialmgr.spatial_attributes sa_node_seq ON sa_node_seq.sid_id = sid_n.id AND sa_node_seq.name = 'BLOCK_NODE_SEQ' AND sa_node_seq.status_control = 'C'
+        WHERE sid_n.ancestor_b_sid_id = p_boundary_sid_id
+      )
+      , connections AS (
+        SELECT
+          n.line_sid_id
+        , n.ancestor_b_sid_id
+        , MIN(n.node_seq) connection_first_node
+        , MAX(n.node_seq) connection_last_node
+        , (
+            SELECT MIN(n2.node_seq)
+            FROM nodes n2
+          ) first_boundary_node
+        , n.anticlockwise_line
+        , sid_c.navigation_type
+        , sid_c.ancestor_s_sid_id
+        FROM nodes n
+        JOIN spatialmgr.spatial_instance_details sid_c ON sid_c.id = n.line_sid_id
+        WHERE sid_c.class = 'C'
+        GROUP BY
+          n.line_sid_id
+        , n.ancestor_b_sid_id
+        , n.anticlockwise_line
+        , sid_c.navigation_type
+        , sid_c.ancestor_s_sid_id
+      )
       SELECT
-        sid.id line_sid_id
-      , (
-          SELECT MIN(sid_c.id)
-          FROM spatialmgr.spatial_instance_details sid_c
-          WHERE sid_c.ancestor_b_sid_id = sid.ancestor_b_sid_id
-          AND sid_c.class = 'C'
-        ) min_line_sid_id
-      , (
-          SELECT sid_n.original_coord_str
-          FROM spatialmgr.spatial_instance_details sid_n
-          WHERE sid_n.ancestor_c_sid_id = sid.id
-          AND sid_n.class = 'N'
-          AND sid_n.anticlockwise_seq = 1
-        ) line_start_node
-      , (
-          SELECT sid_n.original_coord_str
-          FROM spatialmgr.spatial_instance_details sid_n
-          WHERE sid_n.ancestor_c_sid_id = sid.id
-          AND sid_n.class = 'N'
-          AND sid_n.anticlockwise_seq = (
-            SELECT MAX(sid_n2.anticlockwise_seq)
-            FROM spatialmgr.spatial_instance_details sid_n2
-            WHERE sid_n2.ancestor_c_sid_id = sid.id
-            AND sid_n2.class = 'N'
-          )
-        ) line_end_node
-      , sid.navigation_type
-      , sid.ancestor_s_sid_id
-      FROM spatialmgr.spatial_instance_details sid
-      WHERE sid.ancestor_b_sid_id = p_boundary_sid_id
-      AND sid.class = 'C'
-    )
-    SELECT
-      c.line_sid_id
-    , p_boundary_sid_id
-    , sid_s.si_id
-    , level connection_order
-    , spatialmgr.sp_util.generalise_nav_type(c.navigation_type) line_navigation_type
-    , sdo_util.to_geojson(
-        spatialmgr.sp_command.get_connection_geometry(
-          p_connection_sid_id => c.line_sid_id
-        , p_transformation_target_srid => spatialmgr.sp_datum.lookup_oracle_sdo_srid(sid_s.class_srs)
-        , p_densify_loxodromes => 0
-        , p_grid_densify_tolerance => 0.05
-        )
-      ) line_geojson
-    FROM connections c
-    JOIN spatialmgr.spatial_instance_details sid_s ON sid_s.id = c.ancestor_s_sid_id
-    START WITH c.line_sid_id = c.min_line_sid_id
-    CONNECT BY NOCYCLE PRIOR c.line_end_node = c.line_start_node
-    ORDER BY level;
+        c.line_sid_id
+      , c.ancestor_b_sid_id
+      , sid_s.si_id
+      , level connection_order
+      , spatialmgr.sp_util.generalise_nav_type(c.navigation_type) line_navigation_type
+      , sdo_util.to_geojson(
+          CASE
+            -- if connection is going anticlockwise then we need to reverse it as map connection ordering is clockwise
+            WHEN c.anticlockwise_line = 1
+              THEN lms_gis_migration.gis_migration.reverse_connection(         
+                spatialmgr.sp_command.get_connection_geometry(
+                  p_connection_sid_id => c.line_sid_id
+                , p_transformation_target_srid => spatialmgr.sp_datum.lookup_oracle_sdo_srid(sid_s.class_srs)
+                , p_densify_loxodromes => 0
+                , p_grid_densify_tolerance => 0.05
+                )
+              )
+            ELSE
+              spatialmgr.sp_command.get_connection_geometry(
+                p_connection_sid_id => c.line_sid_id
+              , p_transformation_target_srid => spatialmgr.sp_datum.lookup_oracle_sdo_srid(sid_s.class_srs)
+              , p_densify_loxodromes => 0
+              , p_grid_densify_tolerance => 0.05
+              )
+          END
+        ) line_geojson
+      FROM connections c
+      JOIN spatialmgr.spatial_instance_details sid_s ON sid_s.id = c.ancestor_s_sid_id
+      START WITH c.connection_first_node = c.first_boundary_node
+      CONNECT BY NOCYCLE PRIOR c.connection_last_node = c.connection_first_node
+      ORDER BY level;
+      
+    -- other layer types, such as ref blocks, do not have scribes and so do not have a map order defined
+    -- use the standard anti-clockwise geometry order for these 
+    ELSE
     
+      INSERT INTO lms_gis_migration.migration_boundary_lines (
+        line_sid_id
+      , boundary_sid_id
+      , shape_si_id
+      , connection_order
+      , line_navigation_type
+      , line_geojson
+      )
+      WITH connections AS (
+        SELECT
+          sid.id line_sid_id
+        , (
+            SELECT MIN(sid_c.id)
+            FROM spatialmgr.spatial_instance_details sid_c
+            WHERE sid_c.ancestor_b_sid_id = sid.ancestor_b_sid_id
+            AND sid_c.class = 'C'
+          ) min_line_sid_id
+        , (
+            SELECT sid_n.original_coord_str
+            FROM spatialmgr.spatial_instance_details sid_n
+            WHERE sid_n.ancestor_c_sid_id = sid.id
+            AND sid_n.class = 'N'
+            AND sid_n.anticlockwise_seq = 1
+          ) line_start_node
+        , (
+            SELECT sid_n.original_coord_str
+            FROM spatialmgr.spatial_instance_details sid_n
+            WHERE sid_n.ancestor_c_sid_id = sid.id
+            AND sid_n.class = 'N'
+            AND sid_n.anticlockwise_seq = (
+              SELECT MAX(sid_n2.anticlockwise_seq)
+              FROM spatialmgr.spatial_instance_details sid_n2
+              WHERE sid_n2.ancestor_c_sid_id = sid.id
+              AND sid_n2.class = 'N'
+            )
+          ) line_end_node
+        , sid.navigation_type
+        , sid.ancestor_s_sid_id
+        FROM spatialmgr.spatial_instance_details sid
+        WHERE sid.ancestor_b_sid_id = p_boundary_sid_id
+        AND sid.class = 'C'
+      )
+      SELECT
+        c.line_sid_id
+      , p_boundary_sid_id
+      , sid_s.si_id
+      , level connection_order
+      , spatialmgr.sp_util.generalise_nav_type(c.navigation_type) line_navigation_type
+      , sdo_util.to_geojson(
+          spatialmgr.sp_command.get_connection_geometry(
+            p_connection_sid_id => c.line_sid_id
+          , p_transformation_target_srid => spatialmgr.sp_datum.lookup_oracle_sdo_srid(sid_s.class_srs)
+          , p_densify_loxodromes => 0
+          , p_grid_densify_tolerance => 0.05
+          )
+        ) line_geojson
+      FROM connections c
+      JOIN spatialmgr.spatial_instance_details sid_s ON sid_s.id = c.ancestor_s_sid_id
+      START WITH c.line_sid_id = c.min_line_sid_id
+      CONNECT BY NOCYCLE PRIOR c.line_end_node = c.line_start_node
+      ORDER BY level;
+    
+    END IF;
+      
+    SELECT COUNT(*)
+    INTO l_sid_connection_count
+    FROM spatialmgr.spatial_instance_details sid_c
+    WHERE sid_c.ancestor_b_sid_id = p_boundary_sid_id
+    AND sid_c.class = 'C';
+    
+    SELECT COUNT(*)
+    INTO l_migration_connection_count
+    FROM lms_gis_migration.migration_boundary_lines bl
+    WHERE bl.boundary_sid_id = p_boundary_sid_id;
+    
+    IF l_sid_connection_count != l_migration_connection_count THEN
+      RAISE_APPLICATION_ERROR(-20000, 'Shape boundary ' || p_boundary_sid_id || ' migration failed as connection count mismatch. l_sid_connection_count=' || l_sid_connection_count || ', l_migration_connection_count=' || l_migration_connection_count);
+    END IF;
+        
     -- add boundary line attributes
     INSERT INTO lms_gis_migration.migration_attributes (
       attribute_level
@@ -250,6 +395,7 @@ IS
 
   PROCEDURE migrate_shape (
     p_migration_shape_si_id INTEGER
+  , p_shape_layer VARCHAR2
   )
   IS
   BEGIN
@@ -285,6 +431,7 @@ IS
         
         insert_boundary_lines (
           p_boundary_sid_id => feature_boundary_rec.boundary_sid_id
+        , p_shape_layer => p_shape_layer
         );
       
       END LOOP;
@@ -292,6 +439,87 @@ IS
     END LOOP;
   
   END migrate_shape;
+  
+  PROCEDURE scribe_shape_data
+  IS
+  
+    l_current_count INTEGER := 0;
+    l_total_count INTEGER;
+    
+    l_scribe_clob CLOB;
+    
+  BEGIN
+  
+    SELECT COUNT(*)
+    INTO l_total_count
+    FROM lms_gis_migration.migration_layers ml 
+    JOIN lms_gis_migration.migration_tracker mt ON mt.migration_layer_id = ml.layer_id
+    WHERE ml.layer_name IN (K_BLOCK_LAYER, K_SUBAREA_LAYER, K_RETENTION_LAYER)
+    -- ignore shapes we scribed in past runs
+    AND mt.migration_shape_si_id NOT IN ( 
+      SELECT ss.shape_si_id
+      FROM lms_gis_migration.scribed_shapes ss
+    );
+  
+    -- we only scribe blocks, subareas and retention areas
+    FOR shape_rec IN (
+      SELECT
+        mt.migration_shape_si_id
+      , ml.layer_name
+      FROM lms_gis_migration.migration_layers ml 
+      JOIN lms_gis_migration.migration_tracker mt ON mt.migration_layer_id = ml.layer_id
+      WHERE ml.layer_name IN (K_BLOCK_LAYER, K_SUBAREA_LAYER, K_RETENTION_LAYER)
+      -- ignore shapes we scribed in past runs
+      AND mt.migration_shape_si_id NOT IN ( 
+        SELECT ss.shape_si_id
+        FROM lms_gis_migration.scribed_shapes ss
+      )
+    )
+    LOOP
+    
+      l_current_count := l_current_count + 1;
+    
+      dbms_application_info.set_client_info(
+        'Scribing shape ' || l_current_count || '/' || l_total_count 
+        || ' (SI_ID: ' || shape_rec.migration_shape_si_id || ')'
+      );
+    
+      CASE shape_rec.layer_name
+      
+        WHEN K_BLOCK_LAYER THEN
+          l_scribe_clob := spatialmgr.spm.scribe_instance_autonomous(
+            p_instance_id => shape_rec.migration_shape_si_id
+          , p_scribe_mnem => K_BLOCK_SCRIBE_MNEM
+          , p_scribe_type => K_BLOCK_SCRIBE_TYPE
+          );
+      
+        WHEN K_SUBAREA_LAYER THEN
+          l_scribe_clob := spatialmgr.spm.scribe_instance_autonomous(
+            p_instance_id => shape_rec.migration_shape_si_id
+          , p_scribe_mnem => K_SUBAREA_SCRIBE_MNEM
+          , p_scribe_type => K_SUBAREA_SCRIBE_TYPE
+          );
+      
+        WHEN K_RETENTION_LAYER THEN
+          l_scribe_clob := spatialmgr.spm.scribe_instance_autonomous(
+            p_instance_id => shape_rec.migration_shape_si_id
+          , p_scribe_mnem => K_RETENTION_SCRIBE_MNEM
+          , p_scribe_type => K_RETENTION_SCRIBE_TYPE
+          );
+          
+      END CASE;
+      
+      -- cache shapes that have been scribed as we don't need to re-run scribing on them in future runs
+      INSERT INTO lms_gis_migration.scribed_shapes (
+        shape_si_id
+      )
+      VALUES (
+        shape_rec.migration_shape_si_id
+      );    
+    
+    END LOOP;
+  
+  END scribe_shape_data;
   
   PROCEDURE create_migration_layers
   IS
@@ -779,13 +1007,18 @@ IS
     load_migration_shapes;
     create_migration_layers;
     
+    scribe_shape_data;
+    
     SELECT COUNT(*)
     INTO l_total_count 
     FROM lms_gis_migration.migration_tracker mt;
     
     FOR migration_shape_rec IN (
-      SELECT mt.migration_shape_si_id
+      SELECT
+        mt.migration_shape_si_id
+      , ml.layer_name
       FROM lms_gis_migration.migration_tracker mt
+      JOIN lms_gis_migration.migration_layers ml ON ml.layer_id = mt.migration_layer_id
       ORDER BY mt.migration_order
     ) LOOP
     
@@ -810,6 +1043,7 @@ IS
     
         migrate_shape (
           p_migration_shape_si_id => migration_shape_rec.migration_shape_si_id
+        , p_shape_layer => migration_shape_rec.layer_name
         );
         
         UPDATE lms_gis_migration.migration_tracker mt

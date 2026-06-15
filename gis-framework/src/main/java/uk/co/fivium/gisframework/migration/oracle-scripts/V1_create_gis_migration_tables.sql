@@ -24,6 +24,18 @@ ALTER TABLE lms_gis_migration.shape_area_cache ADD
   USING INDEX TABLESPACE tbsidx
 /
 
+-- cache of shapes that have been scribed to reduce time on re-migration
+CREATE TABLE lms_gis_migration.scribed_shapes (
+  shape_si_id INTEGER
+) TABLESPACE tbsdata
+/
+
+ALTER TABLE lms_gis_migration.scribed_shapes ADD
+  CONSTRAINT scribed_shapes_pk
+  PRIMARY KEY (shape_si_id)
+  USING INDEX TABLESPACE tbsidx
+/
+
 -- support centralised tracking of migration outcomes and reporting errors
 CREATE TABLE lms_gis_migration.migration_tracker (
   migration_shape_si_id INTEGER
@@ -247,4 +259,7 @@ GRANT EXECUTE ON spatialmgr.sp_datum TO lms_gis_migration
 /
 
 GRANT EXECUTE ON spatialmgr.sp_util TO lms_gis_migration
+/
+
+GRANT EXECUTE ON envmgr.st TO lms_gis_migration
 /

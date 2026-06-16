@@ -19,6 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -102,6 +103,8 @@ public class LicenceActionService {
             .map(TeamRole::getRole)
             .collect(toSet());
 
+    var licenceScheduleState = getLicenceScheduleState(licence);
+
     return EnumSet.allOf(LicenceActionItem.class).stream()
         // remove the actions which aren't applicable to the current licence status
         .filter(STATUS_TO_ACTIONS.get(licence.getStatus())::contains)
@@ -110,36 +113,44 @@ public class LicenceActionService {
         // remove the actions which aren't applicable to the licence type
         .filter(action -> ACTIONS_TO_LICENCE_TYPE.get(action).contains(licence.getType()))
         // remove the actions which do not meet the licence schedule requirement
-        .filter(action -> satisfiesLicenceScheduleRequirement(licence, ACTIONS_TO_LICENCE_SCHEDULE_REQUIREMENT.get(action)))
+        .filter(action -> satisfiesLicenceScheduleRequirement(
+            licenceScheduleState,
+            ACTIONS_TO_LICENCE_SCHEDULE_REQUIREMENT.get(action))
+        )
         .filter(action -> !LicenceActionItem.START_CORRECTION.equals(action) || canStartCorrection(licence))
         .map(actionItem -> actionItem.toActionItemView(licence, isPrimary(licence, actionItem)))
         .sorted(Comparator.comparing(ActionItemView::displayOrder))
         .toList();
   }
 
+  private record LicenceScheduleState(boolean anyScheduleExists, boolean activeScheduleExists, boolean openDraftExists) {}
+
+  private LicenceScheduleState getLicenceScheduleState(Licence licence) {
+    var statuses = licenceScheduleDetailService.getAllScheduleDetailsByLicence(licence).stream()
+        .map(LicenceScheduleDetail::getStatus)
+        .filter(status -> !LicenceScheduleDetailStatus.DELETED.equals(status))
+        .collect(toSet());
+
+    return new LicenceScheduleState(
+        !statuses.isEmpty(),
+        statuses.contains(LicenceScheduleDetailStatus.ACTIVE),
+        statuses.contains(LicenceScheduleDetailStatus.DRAFT)
+    );
+  }
+
   private boolean satisfiesLicenceScheduleRequirement(
-      Licence licence,
+      LicenceScheduleState licenceScheduleState,
       Set<LicenceScheduleRequirement> requirements
   ) {
     if (requirements.contains(LicenceScheduleRequirement.NO_REQUIREMENT)) {
       return true;
     }
 
-    var existingNonDeletedScheduleDetails = licenceScheduleDetailService.getAllScheduleDetailsByLicence(licence).stream()
-        .filter(detail -> !detail.getStatus().equals(LicenceScheduleDetailStatus.DELETED))
-        .toList();
-
     if (requirements.contains(LicenceScheduleRequirement.NO_SCHEDULE_EXISTS)) {
-      return existingNonDeletedScheduleDetails.isEmpty();
+      return !licenceScheduleState.anyScheduleExists;
     }
 
-    var activeScheduleExists = existingNonDeletedScheduleDetails.stream()
-        .anyMatch(detail -> detail.getStatus().equals(LicenceScheduleDetailStatus.ACTIVE));
-
-    var openDraftExists = existingNonDeletedScheduleDetails.stream()
-        .anyMatch(detail -> detail.getStatus().equals(LicenceScheduleDetailStatus.DRAFT));
-
-    return activeScheduleExists && !openDraftExists;
+    return licenceScheduleState.activeScheduleExists && !licenceScheduleState.openDraftExists;
   }
 
   private boolean canStartCorrection(Licence licence) {

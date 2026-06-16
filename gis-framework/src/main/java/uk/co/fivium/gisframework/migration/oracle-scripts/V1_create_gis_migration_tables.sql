@@ -201,6 +201,18 @@ ALTER TABLE lms_gis_migration.migration_attributes ADD
   USING INDEX TABLESPACE tbsidx
 /
 
+-- override to set blocks that shift more than a given tolerance to be densified as a root block 
+CREATE TABLE lms_gis_migration.root_block_override (
+  shape_si_id INTEGER
+) TABLESPACE tbsdata
+/
+
+ALTER TABLE lms_gis_migration.root_block_override ADD
+  CONSTRAINT root_block_override_pk
+  PRIMARY KEY (shape_si_id)
+  USING INDEX TABLESPACE tbsidx
+/
+
 GRANT CREATE SESSION TO lms_gis_migration
 /
 

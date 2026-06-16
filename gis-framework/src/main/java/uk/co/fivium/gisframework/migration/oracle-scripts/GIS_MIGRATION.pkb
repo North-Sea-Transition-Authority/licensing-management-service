@@ -336,6 +336,7 @@ IS
     FROM lms_gis_migration.migration_shape_links msl
     LEFT JOIN lms_gis_migration.migration_shapes ms ON ms.shape_si_id = msl.parent_shape_si_id
     WHERE msl.child_shape_si_id = p_migration_shape_si_id
+    AND msl.parent_shape_si_id != p_migration_shape_si_id -- ignore where it is the parent
     AND ms.shape_si_id IS NULL;
     
     IF l_missing_parent_shapes > 0 THEN
@@ -608,12 +609,8 @@ IS
         )
       )
       -- get the si_id of the block with the prior reference that ended at this position
-      SELECT
-        plb.si_id
-      , xpt.regulator_reference_full
-      INTO
-        l_prior_block_si_id
-      , l_regulator_reference
+      SELECT plb.si_id
+      INTO l_prior_block_si_id
       FROM before_block_reference bbr
       JOIN pedmgr.xview_ped_transactions xpt ON xpt.ped_tran_id = bbr.ped_tran_id
       JOIN pedmgr.ped_data_points pdp ON pdp.ped_tran_id = xpt.ped_tran_id
@@ -624,19 +621,8 @@ IS
       AND plbr.block_no = bbr.before_block_no
       AND (plbr.suffix IS NULL AND bbr.before_block_suffix IS NULL OR plbr.suffix = bbr.before_block_suffix);
       
-      -- licence boundaries were redefined via patched corrections in 2017
-      -- they were cropped to the 2014 MLW and the UKCS treaty boundaries
-      -- we don't want to override this, so treat these as the root point to cascade from
-      IF LOWER(l_regulator_reference) LIKE 'oga boundary redefinition%' THEN
-      
-        l_root_block_si_id := p_current_block_si_id;
-              
-      ELSE
-
-        -- chain back to next prior block
-        l_root_block_si_id := get_root_block_si_id(l_prior_block_si_id);      
-      
-      END IF;
+      -- chain back to next prior block
+      l_root_block_si_id := get_root_block_si_id(l_prior_block_si_id);
       
       -- once found store root in cache so can reuse
       l_root_block_si_id_cache(p_current_block_si_id) := l_root_block_si_id;
@@ -744,6 +730,19 @@ IS
     , K_BLOCK_CHANGE_MIGRATION_ORDER -- to ensure our minus works, even though we are querying out the block creates
     FROM lms_gis_migration.migration_tracker mt
     WHERE mt.migration_order = K_BLOCK_CREATE_MIGRATION_ORDER;
+    
+    -- override blocks are always root blocks
+    -- these are manually set based on blocks that shift more than a given tolerance in migration
+    -- set them in the cache so that we use them as the root block
+    FOR override_block_rec IN (
+      SELECT rbo.shape_si_id
+      FROM lms_gis_migration.root_block_override rbo
+    )
+    LOOP
+    
+      l_root_block_si_id_cache(override_block_rec.shape_si_id) := override_block_rec.shape_si_id;
+    
+    END LOOP;
       
     -- get root parent for block changes which will be densification source
     FOR change_block_rec IN (
@@ -754,21 +753,15 @@ IS
     LOOP
       
       l_final_root_block_si_id := get_root_block_si_id(change_block_rec.migration_shape_si_id);
-      
-      -- if we are processing an si_id created from a 2017 boundary redefinition then it will be the root
-      -- no need to add parent link as it has no parent (parent is itself) 
-      IF l_final_root_block_si_id != change_block_rec.migration_shape_si_id THEN
-            
-        INSERT INTO lms_gis_migration.migration_shape_links (
-          child_shape_si_id
-        , parent_shape_si_id
-        )
-        VALUES (
-          change_block_rec.migration_shape_si_id
-        , l_final_root_block_si_id
-        );
-        
-      END IF;
+       
+      INSERT INTO lms_gis_migration.migration_shape_links (
+        child_shape_si_id
+      , parent_shape_si_id
+      )
+      VALUES (
+        change_block_rec.migration_shape_si_id
+      , l_final_root_block_si_id
+      );
       
     END LOOP;
     

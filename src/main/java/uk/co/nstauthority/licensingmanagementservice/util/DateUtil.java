@@ -3,9 +3,15 @@ package uk.co.nstauthority.licensingmanagementservice.util;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.Temporal;
 
 public final class DateUtil {
+
+  private static final DateTimeFormatter LONG_DATE_FORMATTER = DateTimeFormatter.ofPattern("d MMMM yyyy");
 
   private DateUtil() {
     throw new IllegalUtilClassInstantiationException(DateUtil.class);
@@ -22,5 +28,17 @@ public final class DateUtil {
         .atTime(LocalTime.MAX)
         .atZone(clock.getZone())
         .toInstant();
+  }
+
+  public static String formatLongDate(Temporal temporal) {
+    return format(temporal, LONG_DATE_FORMATTER);
+  }
+
+  private static String format(Temporal temporal, DateTimeFormatter dateTimeFormatter) {
+    if (temporal instanceof Instant instant) {
+      temporal = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+    }
+
+    return dateTimeFormatter.format(temporal);
   }
 }

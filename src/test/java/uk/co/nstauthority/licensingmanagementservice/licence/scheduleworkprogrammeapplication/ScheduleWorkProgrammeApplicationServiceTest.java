@@ -24,12 +24,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.LicenseeInformationForm;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
+import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
 
 @ExtendWith(MockitoExtension.class)
 class ScheduleWorkProgrammeApplicationServiceTest {
@@ -50,6 +53,9 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
   @Mock
   private ApplicationAccessService applicationAccessService;
+
+  @Mock
+  private TeamManagementService teamManagementService;
 
   @InjectMocks
   private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
@@ -119,7 +125,11 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
         .thenReturn(licenceScheduleDetail);
     when(clock.instant()).thenReturn(CURRENT_INSTANT);
-
+    when(scheduleWorkProgrammeApplicationRepository.save(any())).thenAnswer(invocation -> {
+      ScheduleWorkProgrammeApplication app = invocation.getArgument(0);
+      app.setId(UUID.randomUUID());
+      return app;
+    });
 
     LicenseeInformationForm licenseeInformationForm = new LicenseeInformationForm();
     licenseeInformationForm.setAllLicenseesPermissionConfirmed(true);
@@ -140,6 +150,12 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     assertThat(savedDetail.getResponsibleOrganisationUnitId()).isEqualTo(1);
     assertThat(savedDetail.getCreatedDatetime()).isEqualTo(CURRENT_INSTANT);
     assertThat(result).isEqualTo(savedDetail);
+
+    verify(teamManagementService).createScopedTeam(
+        eq(TeamType.EXTERNAL_CONTRIBUTORS.getDisplayName()),
+        eq(TeamType.EXTERNAL_CONTRIBUTORS),
+        any()
+    );
   }
 
   @Test
@@ -147,6 +163,11 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
         .thenReturn(licenceScheduleDetail);
     when(clock.instant()).thenReturn(CURRENT_INSTANT);
+    when(scheduleWorkProgrammeApplicationRepository.save(any())).thenAnswer(invocation -> {
+      ScheduleWorkProgrammeApplication app = invocation.getArgument(0);
+      app.setId(UUID.randomUUID());
+      return app;
+    });
 
     LicenseeInformationForm licenseeInformationForm = new LicenseeInformationForm();
     licenseeInformationForm.setAllLicenseesPermissionConfirmed(false);
@@ -166,6 +187,12 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     assertThat(savedDetail.getCreatedDatetime()).isEqualTo(CURRENT_INSTANT);
 
     assertThat(result).isEqualTo(savedDetail);
+
+    verify(teamManagementService).createScopedTeam(
+        eq(TeamType.EXTERNAL_CONTRIBUTORS.getDisplayName()),
+        eq(TeamType.EXTERNAL_CONTRIBUTORS),
+        any(TeamScopeReference.class)
+    );
   }
 
   @Test

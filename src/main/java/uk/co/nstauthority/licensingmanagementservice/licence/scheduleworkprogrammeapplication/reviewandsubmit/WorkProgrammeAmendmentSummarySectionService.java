@@ -49,6 +49,10 @@ public class WorkProgrammeAmendmentSummarySectionService
       return Optional.empty();
     }
 
+    if (!swpApplicationRequestPurposeService.hasAmendableWorkProgrammeActivities(scheduleWorkProgrammeApplicationDetail)) {
+      return Optional.empty();
+    }
+
     var specificSummaryItem = getLicenceSummaryItem(scheduleWorkProgrammeApplicationDetail, LICENCE_SECTION_NAME);
     var summarySection = new SummarySection(SECTION_DISPLAY_ORDER, List.of(specificSummaryItem));
 

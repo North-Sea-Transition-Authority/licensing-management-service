@@ -13,10 +13,14 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.LicenseeInformationForm;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
+import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
 @Service
@@ -28,18 +32,21 @@ public class ScheduleWorkProgrammeApplicationService {
   private final LicenceScheduleDetailService licenceScheduleDetailService;
   private final Clock clock;
   private final ApplicationAccessService applicationAccessService;
+  private final TeamManagementService teamManagementService;
 
   public ScheduleWorkProgrammeApplicationService(
       ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository,
       ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository,
       LicenceScheduleDetailService licenceScheduleDetailService,
       Clock clock,
-      ApplicationAccessService applicationAccessService) {
+      ApplicationAccessService applicationAccessService,
+      TeamManagementService teamManagementService) {
     this.scheduleWorkProgrammeApplicationRepository = scheduleWorkProgrammeApplicationRepository;
     this.scheduleWorkProgrammeApplicationDetailRepository = scheduleWorkProgrammeApplicationDetailRepository;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.clock = clock;
     this.applicationAccessService = applicationAccessService;
+    this.teamManagementService = teamManagementService;
   }
 
   @Transactional
@@ -57,7 +64,22 @@ public class ScheduleWorkProgrammeApplicationService {
     scheduleWorkProgrammeApplicationRepository.save(scheduleWorkProgrammeApplication);
     scheduleWorkProgrammeApplicationDetailRepository.save(scheduleWorkProgrammeApplicationDetail);
 
+    createExternalContributorsTeam(scheduleWorkProgrammeApplicationDetail);
+
     return scheduleWorkProgrammeApplicationDetail;
+  }
+
+  private void createExternalContributorsTeam(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
+    var scopeRef = TeamScopeReference.from(
+        applicationDetail.getScheduleWorkProgrammeApplication().getId().toString(),
+        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name()
+    );
+
+    teamManagementService.createScopedTeam(
+        TeamType.EXTERNAL_CONTRIBUTORS.getDisplayName(),
+        TeamType.EXTERNAL_CONTRIBUTORS,
+        scopeRef
+    );
   }
 
   public LicenceScheduleDetail getScheduleDetailFromApplicationDetail(

@@ -261,6 +261,8 @@ class WorkProgrammeAmendmentSummarySectionServiceTest {
 
     when(swpApplicationRequestPurposeService.getRequestPurpose(scheduleWorkProgrammeApplicationDetail))
         .thenReturn(Optional.of(requestPurpose));
+    when(swpApplicationRequestPurposeService.hasAmendableWorkProgrammeActivities(scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(true);
     when(licenceWorkProgrammeAmendmentSummaryService
         .getWorkProgrammeAmendmentSummaryViews(scheduleWorkProgrammeApplicationDetail))
         .thenReturn(Collections.emptyList());

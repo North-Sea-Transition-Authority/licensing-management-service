@@ -15,15 +15,11 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.Invokin
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurposeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
 
 @Controller
 @RequestMapping("licence/{licenceId}/schedule-work-programme-application/{licenceTypeSlug}/licensee-information")
@@ -35,20 +31,20 @@ public class LicenseeInformationController {
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final LicenceService licenceService;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
-  private final TeamManagementService teamManagementService;
+  private final SwpApplicationRequestPurposeService swpApplicationRequestPurposeService;
 
   public LicenseeInformationController(
       LicenseeInformationFormValidator licenseeInformationFormValidator,
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
       LicenceService licenceService,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
-      TeamManagementService teamManagementService
+      SwpApplicationRequestPurposeService swpApplicationRequestPurposeService
   ) {
     this.licenseeInformationFormValidator = licenseeInformationFormValidator;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.licenceService = licenceService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
-    this.teamManagementService = teamManagementService;
+    this.swpApplicationRequestPurposeService = swpApplicationRequestPurposeService;
   }
 
   @GetMapping
@@ -76,23 +72,10 @@ public class LicenseeInformationController {
     var applicationDetail = scheduleWorkProgrammeApplicationService
         .createNewScheduleWorkProgrammeApplicationForLicence(licence, form);
 
-    createExternalContributorsTeam(applicationDetail);
+    swpApplicationRequestPurposeService.applyDefaultRequestPurposeIfNotApplicable(applicationDetail);
 
     return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationTaskListController.class)
         .getTaskList(applicationDetail.getId(), null, null));
-  }
-
-  private void createExternalContributorsTeam(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
-    var scopeRef = TeamScopeReference.from(
-        applicationDetail.getScheduleWorkProgrammeApplication().getId().toString(),
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name()
-    );
-
-    teamManagementService.createScopedTeam(
-        TeamType.EXTERNAL_CONTRIBUTORS.getDisplayName(),
-        TeamType.EXTERNAL_CONTRIBUTORS,
-        scopeRef
-    );
   }
 
   private ModelAndView getLicenseePermissionConfirmationModelAndView(

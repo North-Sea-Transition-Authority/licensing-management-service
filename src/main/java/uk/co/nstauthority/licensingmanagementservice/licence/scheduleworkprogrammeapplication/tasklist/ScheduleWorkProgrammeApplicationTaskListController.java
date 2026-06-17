@@ -41,7 +41,8 @@ public class ScheduleWorkProgrammeApplicationTaskListController {
   public ScheduleWorkProgrammeApplicationTaskListController(
       ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService,
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
-      LicenceService licenceService) {
+      LicenceService licenceService
+  ) {
     this.scheduleWorkProgrammeApplicationTaskListService = scheduleWorkProgrammeApplicationTaskListService;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.licenceService = licenceService;

@@ -1,6 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney;
 
-
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.UUID;
@@ -13,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.RequestPurposeChoiceMustBeApplicable;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEn
     "work-programme-amendment/summary")
 @ScheduleAmendmentApplicationHasStatus(value = ScheduleWorkProgrammeApplicationStatus.DRAFT)
 @InvokingUserCanAccessScheduleApplication
+@RequestPurposeChoiceMustBeApplicable
 public class LicenceWorkProgrammeAmendmentSummaryController {
   private static final String PAGE_TITLE = "Work programme amendments";
   private final LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;

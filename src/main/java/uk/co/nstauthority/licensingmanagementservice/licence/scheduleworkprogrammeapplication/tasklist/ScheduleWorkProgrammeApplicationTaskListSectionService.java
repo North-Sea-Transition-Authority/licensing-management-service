@@ -3,7 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
@@ -20,6 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurpose;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurposeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurposeRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurposeService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
@@ -37,11 +37,13 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
   private final LicenceScheduleExtensionSubmissionService licenceScheduleExtensionSubmissionService;
   private final LicenceWorkProgrammeAmendmentSubmissionService licenceWorkProgrammeAmendmentSubmissionService;
   private final SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository;
+  private final SwpApplicationRequestPurposeService swpApplicationRequestPurposeService;
   private final LicenceScheduleSupportingInformationSubmissionService licenceScheduleSupportingInformationSubmissionService;
   private final TeamManagementService teamManagementService;
 
   public ScheduleWorkProgrammeApplicationTaskListSectionService(
       SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository,
+      SwpApplicationRequestPurposeService swpApplicationRequestPurposeService,
       LicenceScheduleExtensionSubmissionService licenceScheduleExtensionSubmissionService,
       LicenceWorkProgrammeAmendmentSubmissionService licenceWorkProgrammeAmendmentSubmissionService,
       LicenceScheduleSupportingInformationSubmissionService licenceScheduleSupportingInformationSubmissionService,
@@ -49,6 +51,7 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
   ) {
     this.licenceScheduleExtensionSubmissionService = licenceScheduleExtensionSubmissionService;
     this.swpApplicationRequestPurposeRepository = swpApplicationRequestPurposeRepository;
+    this.swpApplicationRequestPurposeService = swpApplicationRequestPurposeService;
     this.licenceWorkProgrammeAmendmentSubmissionService = licenceWorkProgrammeAmendmentSubmissionService;
     this.licenceScheduleSupportingInformationSubmissionService = licenceScheduleSupportingInformationSubmissionService;
     this.teamManagementService = teamManagementService;
@@ -77,7 +80,8 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
 
     boolean amendmentSelection = existingPurpose
         .map(SwpApplicationRequestPurpose::getAmendWorkProgramme)
-        .orElse(false);
+        .orElse(false)
+        && swpApplicationRequestPurposeService.hasAmendableWorkProgrammeActivities(scheduleWorkProgrammeApplicationDetail);
 
     var scopeRef = TeamScopeReference.from(
         scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getId().toString(),
@@ -92,19 +96,22 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
         scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getId()
     )));
 
-    var items = new ArrayList<>(List.of(
-        new TaskListItem(
-            EXTERNAL_CONTRIBUTORS,
-            TaskListLabel.notStartedOrComplete(true),
-            ReverseRouter.route(on(TeamManagementController.class)
-                .renderExternalContributorsTeamList(externalContributors.getId(), null))
-        ),
-        new TaskListItem(
-            WHAT_ARE_YOU_REQUESTING_TO_DO,
-            TaskListLabel.notStartedOrComplete(extensionSelection || amendmentSelection),
-            ReverseRouter.route(on(SwpApplicationRequestPurposeController.class)
-                .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null))
-        )));
+    var items = new ArrayList<TaskListItem>();
+    items.add(new TaskListItem(
+        EXTERNAL_CONTRIBUTORS,
+        TaskListLabel.notStartedOrComplete(true),
+        ReverseRouter.route(on(TeamManagementController.class)
+            .renderExternalContributorsTeamList(externalContributors.getId(), null))
+    ));
+
+    if (swpApplicationRequestPurposeService.hasAmendableWorkProgrammeActivities(scheduleWorkProgrammeApplicationDetail)) {
+      items.add(new TaskListItem(
+          WHAT_ARE_YOU_REQUESTING_TO_DO,
+          TaskListLabel.notStartedOrComplete(extensionSelection || amendmentSelection),
+          ReverseRouter.route(on(SwpApplicationRequestPurposeController.class)
+              .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null))
+      ));
+    }
 
     if (extensionSelection) {
       items.add(new TaskListItem(

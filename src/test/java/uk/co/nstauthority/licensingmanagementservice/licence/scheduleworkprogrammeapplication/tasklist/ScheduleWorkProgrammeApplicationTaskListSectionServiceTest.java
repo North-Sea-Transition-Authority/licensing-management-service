@@ -29,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurpose;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurposeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurposeRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurposeService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
@@ -54,6 +55,9 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
 
   @Mock
   private TeamManagementService teamManagementService;
+
+  @Mock
+  private SwpApplicationRequestPurposeService swpApplicationRequestPurposeService;
 
   @InjectMocks
   private ScheduleWorkProgrammeApplicationTaskListSectionService scheduleWorkProgrammeApplicationTaskListSectionService;
@@ -81,6 +85,8 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
 
   @Test
   void getSection() {
+    when(swpApplicationRequestPurposeService.hasAmendableWorkProgrammeActivities(any())).thenReturn(true);
+
     var sectionOptional = scheduleWorkProgrammeApplicationTaskListSectionService.getSection(application, user);
     assertThat(sectionOptional).isPresent();
     var section = sectionOptional.get();
@@ -111,6 +117,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
 
   @Test
   void getSection_withExtensionComplete() {
+    when(swpApplicationRequestPurposeService.hasAmendableWorkProgrammeActivities(any())).thenReturn(true);
     var swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
     swpApplicationRequestPurpose.setExtendTerm(true);
     when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
@@ -158,6 +165,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
 
   @Test
   void getSection_withExtensionNotComplete() {
+    when(swpApplicationRequestPurposeService.hasAmendableWorkProgrammeActivities(any())).thenReturn(true);
     var swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
     swpApplicationRequestPurpose.setExtendTerm(true);
 
@@ -205,6 +213,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
 
   @Test
   void getSection_withAmendmentSubmittableAndComplete() {
+    when(swpApplicationRequestPurposeService.hasAmendableWorkProgrammeActivities(any())).thenReturn(true);
     var swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
     swpApplicationRequestPurpose.setAmendWorkProgramme(true);
     when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
@@ -252,6 +261,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
 
   @Test
   void getSection_withAmendmentNotSubmittableOrComplete() {
+    when(swpApplicationRequestPurposeService.hasAmendableWorkProgrammeActivities(any())).thenReturn(true);
     var swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
     swpApplicationRequestPurpose.setAmendWorkProgramme(true);
     when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
@@ -299,6 +309,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
 
   @Test
   void getSection_withAmendmentSubmittableButNotComplete() {
+    when(swpApplicationRequestPurposeService.hasAmendableWorkProgrammeActivities(any())).thenReturn(true);
     var swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
     swpApplicationRequestPurpose.setAmendWorkProgramme(true);
     when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
@@ -346,6 +357,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
 
   @Test
   void getSection_withSupportingInformationComplete() {
+    when(swpApplicationRequestPurposeService.hasAmendableWorkProgrammeActivities(any())).thenReturn(true);
     var swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
     swpApplicationRequestPurpose.setAmendWorkProgramme(true);
     when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
@@ -390,5 +402,43 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
             ScheduleWorkProgrammeApplicationTaskListSectionService.APPLICATION_DETAILS_SECTION_NAME,
             ScheduleWorkProgrammeApplicationTaskListSectionService.SECTION_ORDER
         );
+  }
+
+  @Test
+  void getSection_whenNoAmendableActivities_omitsWhatAreYouRequestingToDoItem() {
+    var swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
+    swpApplicationRequestPurpose.setExtendPhaseOrTerm(true);
+    when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
+        Optional.of(swpApplicationRequestPurpose));
+    when(swpApplicationRequestPurposeService.hasAmendableWorkProgrammeActivities(any())).thenReturn(false);
+
+    var sectionOptional = scheduleWorkProgrammeApplicationTaskListSectionService.getSection(application, user);
+    assertThat(sectionOptional).isPresent();
+    var section = sectionOptional.get();
+
+    assertThat(section.items())
+        .extracting(TaskListItem::displayName)
+        .containsExactly(
+            ScheduleWorkProgrammeApplicationTaskListSectionService.EXTERNAL_CONTRIBUTORS,
+            ScheduleWorkProgrammeApplicationTaskListSectionService.EXTENSION_DETAILS,
+            ScheduleWorkProgrammeApplicationTaskListSectionService.SUPPORTING_INFORMATION
+        );
+  }
+
+  @Test
+  void getSection_whenAmendmentChosenButNoAmendableActivities_omitsAmendmentItem() {
+    var swpApplicationRequestPurpose = new SwpApplicationRequestPurpose();
+    swpApplicationRequestPurpose.setAmendWorkProgramme(true);
+    when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
+        Optional.of(swpApplicationRequestPurpose));
+    when(swpApplicationRequestPurposeService.hasAmendableWorkProgrammeActivities(any())).thenReturn(false);
+
+    var sectionOptional = scheduleWorkProgrammeApplicationTaskListSectionService.getSection(application, user);
+    assertThat(sectionOptional).isPresent();
+
+    assertThat(sectionOptional.get().items())
+        .extracting(TaskListItem::displayName)
+        .doesNotContain(ScheduleWorkProgrammeApplicationTaskListSectionService.AMENDMENT_DETAILS)
+        .containsExactly(ScheduleWorkProgrammeApplicationTaskListSectionService.EXTERNAL_CONTRIBUTORS);
   }
 }

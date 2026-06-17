@@ -1,6 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,8 +18,13 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationService;
 
@@ -34,6 +42,12 @@ class SwpApplicationRequestPurposeServiceTest {
 
   @Mock
   private SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository;
+
+  @Mock
+  private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
+
+  @Mock
+  private WorkProgrammeActivityService workProgrammeActivityService;
 
   @InjectMocks
   private SwpApplicationRequestPurposeService underTest;
@@ -266,4 +280,95 @@ class SwpApplicationRequestPurposeServiceTest {
     verify(licenceScheduleSupportingInformationService).handleSupportingInformationExtensionRemoval(detail);
   }
 
+  @Test
+  void getPageOptions_whenWorkProgrammeButNoAmendableActivities_excludesAmendOption() {
+    var detail = new ScheduleWorkProgrammeApplicationDetail();
+    var licence = mock(Licence.class);
+    when(licence.getType()).thenReturn(LicenceType.SEAWARD_EXPLORATION);
+    when(scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(detail))
+        .thenReturn(licence);
+    when(licenceTypeRulesResolver.hasTerms(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
+    when(licenceTypeRulesResolver.arePhasesCaptured(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
+    when(licenceTypeRulesResolver.hasWorkProgramme(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
+    when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(detail)).thenReturn(mock(LicenceScheduleDetail.class));
+    when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(any())).thenReturn(false);
+
+    var options = underTest.getPageOptions(detail);
+
+    assertThat(options).containsExactly(SwpApplicationRequestPurposeOption.EXTEND_A_PHASE_OR_TERM);
+  }
+
+  @Test
+  void getPageOptions_whenWorkProgrammeAndAmendableActivities_includesAmendOption() {
+    var detail = new ScheduleWorkProgrammeApplicationDetail();
+    var licence = mock(Licence.class);
+    when(licence.getType()).thenReturn(LicenceType.SEAWARD_EXPLORATION);
+    when(scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(detail))
+        .thenReturn(licence);
+    when(licenceTypeRulesResolver.hasTerms(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
+    when(licenceTypeRulesResolver.arePhasesCaptured(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
+    when(licenceTypeRulesResolver.hasWorkProgramme(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
+    when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(detail)).thenReturn(mock(LicenceScheduleDetail.class));
+    when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(any())).thenReturn(true);
+
+    var options = underTest.getPageOptions(detail);
+
+    assertThat(options).contains(SwpApplicationRequestPurposeOption.AMEND_THE_WORK_PROGRAMME);
+  }
+
+  @Test
+  void hasAmendableWorkProgrammeActivities_whenCurrentActivities_returnsTrue() {
+    var detail = new ScheduleWorkProgrammeApplicationDetail();
+    var scheduleDetail = mock(LicenceScheduleDetail.class);
+    when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(detail))
+        .thenReturn(scheduleDetail);
+    when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail)).thenReturn(true);
+
+    assertThat(underTest.hasAmendableWorkProgrammeActivities(detail)).isTrue();
+  }
+
+  @Test
+  void hasAmendableWorkProgrammeActivities_whenNoCurrentActivities_returnsFalse() {
+    var detail = new ScheduleWorkProgrammeApplicationDetail();
+    var scheduleDetail = mock(LicenceScheduleDetail.class);
+    when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(detail))
+        .thenReturn(scheduleDetail);
+    when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail)).thenReturn(false);
+
+    assertThat(underTest.hasAmendableWorkProgrammeActivities(detail)).isFalse();
+  }
+
+  @Test
+  void applyDefaultRequestPurposeIfNotApplicable_whenNoAmendableActivities_persistsExtendOption() {
+    var detail = new ScheduleWorkProgrammeApplicationDetail();
+    var licence = mock(Licence.class);
+    when(licence.getType()).thenReturn(LicenceType.SEAWARD_EXPLORATION);
+    when(scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(detail))
+        .thenReturn(licence);
+    when(licenceTypeRulesResolver.hasTerms(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
+    when(licenceTypeRulesResolver.arePhasesCaptured(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
+    when(licenceTypeRulesResolver.hasWorkProgramme(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
+    when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(detail)).thenReturn(mock(LicenceScheduleDetail.class));
+    when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(any())).thenReturn(false);
+    when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(detail))
+        .thenReturn(Optional.empty());
+
+    underTest.applyDefaultRequestPurposeIfNotApplicable(detail);
+
+    verify(swpApplicationRequestPurposeRepository).save(swpApplicationRequestPurposeArgumentCaptor.capture());
+    var saved = swpApplicationRequestPurposeArgumentCaptor.getValue();
+    assertThat(saved.getExtendPhaseOrTerm()).isTrue();
+    assertThat(saved.getAmendWorkProgramme()).isFalse();
+  }
+
+  @Test
+  void applyDefaultRequestPurposeIfNotApplicable_whenAmendableActivities_doesNotPersist() {
+    var detail = new ScheduleWorkProgrammeApplicationDetail();
+    when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(detail)).thenReturn(mock(LicenceScheduleDetail.class));
+    when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(any())).thenReturn(true);
+
+    underTest.applyDefaultRequestPurposeIfNotApplicable(detail);
+
+    verify(swpApplicationRequestPurposeRepository, never()).save(any());
+  }
 }

@@ -1,7 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -33,8 +32,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurpose;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurposeService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.teams.Team;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @ContextConfiguration(classes = LicenseeInformationController.class)
 class LicenseeInformationControllerTest extends AbstractControllerTest {
@@ -98,9 +95,6 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
     var form = new LicenseeInformationForm();
     form.setAllLicenseesPermissionConfirmed(true);
 
-    var team = new Team(UUID.randomUUID());
-    when(teamManagementService.createScopedTeam(any(), any(), any())).thenReturn(team);
-
     ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
     scheduleWorkProgrammeApplication.setId(UUID.randomUUID());
 
@@ -121,8 +115,8 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(teamManagementService).createScopedTeam(eq(TeamType.EXTERNAL_CONTRIBUTORS.getDisplayName()), eq(TeamType.EXTERNAL_CONTRIBUTORS), any());
     verify(scheduleWorkProgrammeApplicationService).createNewScheduleWorkProgrammeApplicationForLicence(licence, form);
+    verify(swpApplicationRequestPurposeService).applyDefaultRequestPurposeIfNotApplicable(scheduleWorkProgrammeApplicationDetail);
   }
 
   @Test

@@ -26,6 +26,8 @@ import uk.co.fivium.gisframework.feature.PolygonTestUtil;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
 import uk.co.fivium.gisframework.migration.oracle.Layer;
+import uk.co.fivium.gisframework.migration.oracle.OracleService;
+import uk.co.fivium.gisframework.migration.oracle.OracleShapeLinkTestUtil;
 import uk.co.fivium.grpc.gis.ValidationResponse;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,6 +41,9 @@ class MigrationValidationServiceTest {
   @Mock
   private GrpcClientService grpcClientService;
 
+  @Mock
+  private OracleService oracleService;
+
   private MigrationValidationService migrationValidationService;
 
   @BeforeEach
@@ -46,7 +51,8 @@ class MigrationValidationServiceTest {
     migrationValidationService = new MigrationValidationService(
         featureService,
         grpcClientService,
-        new BrokenBlockConfigurationProperties(Map.of("16/30", List.of(BROKEN_LICENSE_BLOCK_NAME)))
+        new BrokenBlockConfigurationProperties(Map.of("16/30", List.of(BROKEN_LICENSE_BLOCK_NAME))),
+        oracleService
     );
   }
 
@@ -143,6 +149,65 @@ class MigrationValidationServiceTest {
         .containsExactly(tuple(
             Level.INFO,
             "Child %s passed validation checks".formatted(retentionAreaChildFeature.getLegacyId())
+        ));
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void validateRetentionArea_validatesChildAgainstAllItsParents(boolean isValid) {
+    var logAppender = getLogAppender(MigrationValidationService.class);
+
+    var retentionAreaFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("Retention Area")
+        .withLegacyId(3001)
+        .withAttributes(Map.of("LAYER", Layer.RETENTION_AREAS.name()))
+        .build();
+    var parentFeature1 = FeatureTestUtil.newBuilder().withFeatureName("Parent 1").withLegacyId(4001).build();
+    var parentFeature2 = FeatureTestUtil.newBuilder().withFeatureName("Parent 2").withLegacyId(4002).build();
+
+    var retentionAreaEntityBacked = new EntityBackedFeature(retentionAreaFeature, Map.of());
+    var parentEntityBacked1 = new EntityBackedFeature(parentFeature1, Map.of());
+    var parentEntityBacked2 = new EntityBackedFeature(parentFeature2, Map.of());
+
+    var shapeLink1 = OracleShapeLinkTestUtil.newBuilder()
+        .withChildShapeId(3001)
+        .withParentShapeId(4001)
+        .build();
+    var shapeLink2 = OracleShapeLinkTestUtil.newBuilder()
+        .withChildShapeId(3001)
+        .withParentShapeId(4002)
+        .build();
+
+    when(featureService.findAllByAttribute("LAYER", Layer.RETENTION_AREAS.name())).thenReturn(List.of(retentionAreaFeature));
+    when(featureService.getEntityBackedFeatures(List.of(retentionAreaFeature))).thenReturn(List.of(retentionAreaEntityBacked));
+
+    when(oracleService.getShapeLinks(List.of(3001)))
+        .thenReturn(List.of(shapeLink1, shapeLink2));
+    when(featureService.findAllByLegacyIdIn(List.of(4001, 4002)))
+        .thenReturn(List.of(parentFeature1, parentFeature2));
+    when(featureService.getEntityBackedFeatures(List.of(parentFeature1, parentFeature2)))
+        .thenReturn(List.of(parentEntityBacked1, parentEntityBacked2));
+
+    var response = ValidationResponse.newBuilder().setIsValid(isValid).setMessage("some message").build();
+    when(grpcClientService.validateBlockAndSubarea(
+        retentionAreaEntityBacked,
+        List.of(parentEntityBacked1, parentEntityBacked2)
+    )).thenReturn(response);
+
+    try {
+      migrationValidationService.validateRetentionArea();
+    } finally {
+      detachLogAppender(MigrationValidationService.class, logAppender);
+    }
+
+    assertThat(logAppender.list)
+        .extracting(ILoggingEvent::getLevel, ILoggingEvent::getFormattedMessage)
+        .containsExactly(tuple(
+            isValid ? Level.INFO : Level.ERROR,
+            isValid
+                ? "Child %s passed validation checks".formatted(retentionAreaFeature.getLegacyId())
+                : "Validation error: some message Child Feature: %s Parent Features: %s"
+                  .formatted(retentionAreaFeature.getLegacyId(), List.of(4001, 4002))
         ));
   }
 

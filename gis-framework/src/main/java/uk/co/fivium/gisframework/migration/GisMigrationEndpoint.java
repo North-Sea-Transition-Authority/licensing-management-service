@@ -67,6 +67,12 @@ public class GisMigrationEndpoint {
     migrationValidationService.childAndParentValidation(Layer.SUBAREAS);
     migrationValidationService.verifySubareasTopologicallyEqualToBlock();
 
+    LOGGER.info("Retention area migration starting");
+    migrationService.migrateBlocksAndSubarea(oracleService.getEntityBackedOracleShapesForMigrationOrderNumber(40));
+
+    LOGGER.info("Retention area validation starting");
+    migrationValidationService.validateRetentionArea();
+
     LOGGER.info("Reference block migration starting");
     referenceBlockMigrationService.migrate(oracleService.getEntityBackedOracleShapesForMigrationOrderNumber(50));
 

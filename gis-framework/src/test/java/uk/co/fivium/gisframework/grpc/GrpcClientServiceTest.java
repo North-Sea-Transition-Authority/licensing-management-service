@@ -402,6 +402,72 @@ class GrpcClientServiceTest {
   }
 
   @Test
+  void validateBlockAndSubarea_withMultipleParents_addsEveryParentToRequest() {
+    var feature = FeatureTestUtil.newBuilder()
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .build();
+
+    var childPolygon = PolygonTestUtil.newBuilder().withFeature(feature).build();
+    var childLine = LineTestUtil.newBuilder()
+        .withPolygon(childPolygon)
+        .withEsriJson("child esri json")
+        .withNavigationType(LineNavigationType.GEODESIC)
+        .withLegacyId(10)
+        .build();
+    var childFeature = new EntityBackedFeature(feature, Map.of(childPolygon, List.of(childLine)));
+
+    var parentPolygon1 = PolygonTestUtil.newBuilder().withFeature(feature).build();
+    var parentLine1 = LineTestUtil.newBuilder()
+        .withPolygon(parentPolygon1)
+        .withEsriJson("parent esri json 1")
+        .withNavigationType(LineNavigationType.LOXODROME)
+        .withLegacyId(20)
+        .build();
+    var parentFeature1 = new EntityBackedFeature(feature, Map.of(parentPolygon1, List.of(parentLine1)));
+
+    var parentPolygon2 = PolygonTestUtil.newBuilder().withFeature(feature).build();
+    var parentLine2 = LineTestUtil.newBuilder()
+        .withPolygon(parentPolygon2)
+        .withEsriJson("parent esri json 2")
+        .withNavigationType(LineNavigationType.GEODESIC)
+        .withLegacyId(30)
+        .build();
+    var parentFeature2 = new EntityBackedFeature(feature, Map.of(parentPolygon2, List.of(parentLine2)));
+
+    var expectedRequest = BlockAndSubareaValidationRequest.newBuilder()
+        .setCoordinateSystem(CoordinateSystem.ED50)
+        .addChildPolygonLineWrappersLists(EsriJsonPolygonLineWrappers.newBuilder()
+            .addLineWrappers(EsriJsonLineWithNavigationAndId.newBuilder()
+                .setEsriJsonString("child esri json")
+                .setNavigationType(LineNavigationType.GEODESIC)
+                .setOracleLineSsid(10)
+                .build()))
+        .addParentPolygonLineWrappersLists(EsriJsonPolygonLineWrappers.newBuilder()
+            .addLineWrappers(EsriJsonLineWithNavigationAndId.newBuilder()
+                .setEsriJsonString("parent esri json 1")
+                .setNavigationType(LineNavigationType.LOXODROME)
+                .setOracleLineSsid(20)
+                .build()))
+        .addParentPolygonLineWrappersLists(EsriJsonPolygonLineWrappers.newBuilder()
+            .addLineWrappers(EsriJsonLineWithNavigationAndId.newBuilder()
+                .setEsriJsonString("parent esri json 2")
+                .setNavigationType(LineNavigationType.GEODESIC)
+                .setOracleLineSsid(30)
+                .build()));
+
+    var response = ValidationResponse.newBuilder()
+        .setIsValid(true)
+        .setMessage("Valid")
+        .build();
+    when(arcgisClient.validateBlockAndSubarea(expectedRequest.build())).thenReturn(response);
+
+    assertThat(grpcClientService.validateBlockAndSubarea(childFeature, List.of(parentFeature1, parentFeature2)))
+        .isEqualTo(response);
+
+    verify(arcgisClient).validateBlockAndSubarea(expectedRequest.build());
+  }
+
+  @Test
   void validateTopologicallyEqual() {
     var feature = FeatureTestUtil.newBuilder()
         .withCoordinateSystem(CoordinateSystem.ED50)

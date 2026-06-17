@@ -146,6 +146,17 @@ class FeatureServiceTest {
   }
 
   @Test
+  void findAllByLegacyIdIn() {
+    var feature1 = FeatureTestUtil.newBuilder().withLegacyId(1).build();
+    var feature2 = FeatureTestUtil.newBuilder().withLegacyId(2).build();
+    var legacyIds = List.of(1, 2);
+
+    when(featureRepository.findAllByLegacyIdIn(legacyIds)).thenReturn(List.of(feature1, feature2));
+
+    assertThat(featureService.findAllByLegacyIdIn(legacyIds)).isEqualTo(List.of(feature1, feature2));
+  }
+
+  @Test
   void deleteAll() {
     featureService.deleteAll();
     var inOrder = Mockito.inOrder(featureRepository);

@@ -18,6 +18,8 @@ import uk.co.fivium.gisframework.feature.Line;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
 import uk.co.fivium.gisframework.migration.oracle.Layer;
+import uk.co.fivium.gisframework.migration.oracle.OracleService;
+import uk.co.fivium.gisframework.migration.oracle.OracleShapeLink;
 
 @Profile("gis-migration")
 @Service
@@ -28,15 +30,18 @@ public class MigrationValidationService {
   private final FeatureService featureService;
   private final GrpcClientService grpcClientService;
   private final BrokenBlockConfigurationProperties brokenBlockConfigurationProperties;
+  private final OracleService oracleService;
 
   public MigrationValidationService(
       FeatureService featureService,
       GrpcClientService grpcClientService,
-      BrokenBlockConfigurationProperties brokenBlockConfigurationProperties
+      BrokenBlockConfigurationProperties brokenBlockConfigurationProperties,
+      OracleService oracleService
   ) {
     this.featureService = featureService;
     this.grpcClientService = grpcClientService;
     this.brokenBlockConfigurationProperties = brokenBlockConfigurationProperties;
+    this.oracleService = oracleService;
   }
 
   /**
@@ -73,6 +78,62 @@ public class MigrationValidationService {
         } else {
           LOGGER.info("Child {} passed validation checks", childFeature.feature().getLegacyId());
         }
+      }
+    }
+  }
+
+  /**
+   * Validates that retention areas are contained by the combination of all it's linked licence blocks, and that any of the
+   * retention area's geodesic lines overlap it's linked licence block geodesic lines.
+   */
+  public void validateRetentionArea() {
+    var retentionAreas = featureService.getEntityBackedFeatures(
+        featureService.findAllByAttribute(LAYER_ATTRIBUTE, Layer.RETENTION_AREAS.name())
+    );
+
+    Map<Integer, EntityBackedFeature> retentionAreasByLegacyId = retentionAreas.stream()
+        .collect(Collectors.toMap(entityBackedFeature -> entityBackedFeature.feature().getLegacyId(), Function.identity()));
+
+    Map<EntityBackedFeature, List<Integer>> childFeatureToParentIds = oracleService
+        .getShapeLinks(retentionAreas.stream().map(retentionArea -> retentionArea.feature().getLegacyId()).toList())
+        .stream()
+        .collect(Collectors.groupingBy(
+            shapeLink -> retentionAreasByLegacyId.get(shapeLink.getChildShapeId()),
+            Collectors.mapping(
+                OracleShapeLink::getParentShapeId,
+                Collectors.toList()
+            )
+        ));
+
+    var parentLegacyIds = childFeatureToParentIds.values()
+        .stream()
+        .flatMap(List::stream)
+        .distinct()
+        .toList();
+
+    var allParentFeatures = featureService.findAllByLegacyIdIn(parentLegacyIds);
+
+    Map<Integer, EntityBackedFeature> entityBackedParentsByLegacyId = featureService.getEntityBackedFeatures(allParentFeatures)
+        .stream()
+        .collect(Collectors.toMap(parent -> parent.feature().getLegacyId(), Function.identity()));
+
+    for (var entry : childFeatureToParentIds.entrySet()) {
+      var parentFeatures = entry.getValue()
+          .stream()
+          .map(entityBackedParentsByLegacyId::get)
+          .toList();
+
+      var childFeature = entry.getKey();
+
+      var response = grpcClientService.validateBlockAndSubarea(childFeature, parentFeatures);
+      if (!response.getIsValid()) {
+        LOGGER.error("Validation error: {} Child Feature: {} Parent Features: {}",
+            response.getMessage(),
+            childFeature.feature().getLegacyId(),
+            entry.getValue()
+        );
+      } else {
+        LOGGER.info("Child {} passed validation checks", childFeature.feature().getLegacyId());
       }
     }
   }

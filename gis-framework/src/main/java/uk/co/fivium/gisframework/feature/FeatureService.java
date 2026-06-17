@@ -72,6 +72,10 @@ public class FeatureService {
             .formatted(legacyId)));
   }
 
+  public List<Feature> findAllByLegacyIdIn(Collection<Integer> legacyIds) {
+    return featureRepository.findAllByLegacyIdIn(legacyIds);
+  }
+
   @Transactional
   public void deleteAll() {
     featureRepository.deleteAllByParentFeatureIsNotNull();

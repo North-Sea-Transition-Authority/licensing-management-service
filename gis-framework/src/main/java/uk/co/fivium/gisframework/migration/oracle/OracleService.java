@@ -108,6 +108,10 @@ public class OracleService {
         .toList();
   }
 
+  public List<OracleShapeLink> getShapeLinks(Collection<Integer> shapeSiIds) {
+    return shapeLinkRepository.findAllByChildShapeIdIn(shapeSiIds);
+  }
+
   public Map<String, Object> getAttributeMapForSiIdAndLevel(Integer siId, AttributeLevel level) {
     return attributeRepository.findAllByAssociatedSiIdAndAttributeLevel(siId, level)
         .stream()

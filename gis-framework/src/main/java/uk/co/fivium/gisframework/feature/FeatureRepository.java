@@ -15,9 +15,9 @@ interface FeatureRepository extends ListCrudRepository<Feature, UUID> {
 
   Optional<Feature> findByLegacyId(Integer legacyId);
 
-  void deleteAllByParentFeatureIsNotNull();
+  List<Feature> findAllByLegacyIdIn(Collection<Integer> legacyIds);
 
-  List<Feature> findAllByParentFeatureIsNull();
+  void deleteAllByParentFeatureIsNotNull();
 
   List<Feature> findAllByParentFeatureIsNotNull();
 

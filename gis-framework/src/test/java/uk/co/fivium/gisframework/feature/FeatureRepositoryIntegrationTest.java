@@ -82,6 +82,20 @@ class FeatureRepositoryIntegrationTest {
         .isEqualTo(expectedResult);
   }
 
+  @Test
+  void findAllByLegacyIdIn() {
+    var result = featureRepository.findAllByLegacyIdIn(List.of(1, 2));
+    var expectedResult = List.of(
+        featureRepository.findById(feature1.getId()).orElseThrow(),
+        featureRepository.findById(feature2.getId()).orElseThrow()
+    );
+
+    assertThat(result)
+        .usingRecursiveComparison()
+        .ignoringCollectionOrder()
+        .isEqualTo(expectedResult);
+  }
+
   @SpringBootConfiguration
   @EnableAutoConfiguration
   @EntityScan(basePackageClasses = Feature.class)

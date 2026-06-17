@@ -245,11 +245,31 @@ public class GrpcClientService {
       EntityBackedFeature childFeature,
       EntityBackedFeature parentFeature
   ) {
+    return validateBlockAndSubarea(childFeature, List.of(parentFeature));
+  }
+
+  /**
+   * Validates that the child feature is contained by the combined geometry of all the given parent features, and that
+   * any geodesic child lines overlap the parents' geodesic lines. Every parent's polygons and lines are sent to the
+   * node side, allowing a child that straddles multiple parents (e.g. a retention area spanning several blocks) to be
+   * validated against all of them at once.
+   *
+   * @param childFeature   The child feature represented as an object that maps a feature to its polygons and lines.
+   * @param parentFeatures All the parent features represented by objects that map the feature to their polygons and lines.
+   * @return a ValidationResponse object, indicating if the validation has passed or not, and if not, then the reason for why not.
+   */
+  public ValidationResponse validateBlockAndSubarea(
+      EntityBackedFeature childFeature,
+      List<EntityBackedFeature> parentFeatures
+  ) {
     var request = BlockAndSubareaValidationRequest.newBuilder()
         .setCoordinateSystem(childFeature.feature().getCoordinateSystem());
 
     buildPolygonLineWrappers(childFeature).forEach(request::addChildPolygonLineWrappersLists);
-    buildPolygonLineWrappers(parentFeature).forEach(request::addParentPolygonLineWrappersLists);
+
+    for (var parentFeature : parentFeatures) {
+      buildPolygonLineWrappers(parentFeature).forEach(request::addParentPolygonLineWrappersLists);
+    }
 
     return arcgisClient.validateBlockAndSubarea(request.build());
   }

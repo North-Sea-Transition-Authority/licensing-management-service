@@ -52,12 +52,14 @@ class GisMigrationEndpointTest {
     var redefinitionPoints = List.of(entityBackedOracleShapeWithShapeSiId(1));
     var blockChanges = List.of(entityBackedOracleShapeWithShapeSiId(3));
     var subAreas = List.of(entityBackedOracleShapeWithShapeSiId(4));
-    var referenceBlocks = List.of(entityBackedOracleShapeWithShapeSiId(5));
+    var retentionAreas = List.of(entityBackedOracleShapeWithShapeSiId(5));
+    var referenceBlocks = List.of(entityBackedOracleShapeWithShapeSiId(6));
 
     when(oracleService.getEntityBackedOracleShapesForMigrationOrderNumber(10)).thenReturn(rootBlocks);
     when(oracleService.getEntityBackedOracleShapesForMigrationOrderNumber(15)).thenReturn(redefinitionPoints);
     when(oracleService.getEntityBackedOracleShapesForMigrationOrderNumber(20)).thenReturn(blockChanges);
     when(oracleService.getEntityBackedOracleShapesForMigrationOrderNumber(30)).thenReturn(subAreas);
+    when(oracleService.getEntityBackedOracleShapesForMigrationOrderNumber(40)).thenReturn(retentionAreas);
     when(oracleService.getEntityBackedOracleShapesForMigrationOrderNumber(50)).thenReturn(referenceBlocks);
 
     gisMigrationEndpoint.migrate();
@@ -70,6 +72,8 @@ class GisMigrationEndpointTest {
     inOrder.verify(migrationValidationService).childAndParentValidation(Layer.BLOCKS);
     inOrder.verify(migrationValidationService).childAndParentValidation(Layer.SUBAREAS);
     inOrder.verify(migrationValidationService).verifySubareasTopologicallyEqualToBlock();
+    inOrder.verify(migrationService).migrateBlocksAndSubarea(retentionAreas);
+    inOrder.verify(migrationValidationService).validateRetentionArea();
     inOrder.verify(referenceBlockMigrationService).migrate(referenceBlocks);
     inOrder.verify(migrationValidationService).validateReferenceBlocks();
     inOrder.verifyNoMoreInteractions();

@@ -252,7 +252,7 @@
 
     <@lmsTimeStamp.lmsTimeStamp
         timeStampHeading=rateView.title()
-        timeStampHeadingHint=rateView.startDateString()
+        timeStampHeadingHint=rateView.startEndDateString()
         timelineActionContent=timelineActions
         timeStampClass=timeStampClass
         nodeNumberClass=nodeClass

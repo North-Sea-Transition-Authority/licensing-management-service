@@ -28,6 +28,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.StartEndDates;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentView;
@@ -106,6 +108,9 @@ class LicenceScheduleTimelineServiceTest {
 
   @Mock
   private EventCommentService eventCommentService;
+
+  @Mock
+  private LicenceScheduleCalculationService licenceScheduleCalculationService;
 
   @InjectMocks
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
@@ -520,7 +525,7 @@ class LicenceScheduleTimelineServiceTest {
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
         phase.getStartDate(),
-        "1 January 2025",
+        "1 January 2025 to 31 December 2025",
         "£1.00",
         ReverseRouter.route(on(LicenceScheduleRateController.class)
             .renderUpdateLicenceScheduleRateForm(phaseRate.getId())),
@@ -591,7 +596,7 @@ class LicenceScheduleTimelineServiceTest {
     var term2RateView = new TimelineRateView(
         "Second Term rate",
         term2.getStartDate(),
-        "1 January 2026",
+        "1 January 2026 to 31 December 2026",
         "£2.00",
         ReverseRouter.route(on(LicenceScheduleRateController.class)
             .renderUpdateLicenceScheduleRateForm(term2Rate.getId())),
@@ -659,6 +664,12 @@ class LicenceScheduleTimelineServiceTest {
 
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
+
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(Map.of(
+            phaseRate.getId(), new StartEndDates(phase.getStartDate(), phase.getEndDate()),
+            term2Rate.getId(), new StartEndDates(term2.getStartDate(), term2.getEndDate())
+        ));
 
     assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, allowedActions))
         .usingRecursiveComparison()
@@ -871,7 +882,7 @@ class LicenceScheduleTimelineServiceTest {
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
         phase.getStartDate(),
-        "1 January 2025",
+        "1 January 2025 to 31 December 2025",
         "£1.00",
         "",
         "",
@@ -940,7 +951,7 @@ class LicenceScheduleTimelineServiceTest {
     var term2RateView = new TimelineRateView(
         "Second Term rate",
         term2.getStartDate(),
-        "1 January 2026",
+        "1 January 2026 to 31 December 2026",
         "£2.00",
         "",
         "",
@@ -1004,6 +1015,12 @@ class LicenceScheduleTimelineServiceTest {
 
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
+
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(Map.of(
+            phaseRate.getId(), new StartEndDates(phase.getStartDate(), phase.getEndDate()),
+            term2Rate.getId(), new StartEndDates(term2.getStartDate(), term2.getEndDate())
+        ));
 
     assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of()))
         .usingRecursiveComparison()
@@ -1349,6 +1366,12 @@ class LicenceScheduleTimelineServiceTest {
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
 
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(Map.of(
+            phaseRate.getId(), new StartEndDates(phase.getStartDate(), phase.getEndDate()),
+            term2Rate.getId(), new StartEndDates(term2.getStartDate(), term2.getEndDate())
+        ));
+
     assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, allowedActions))
         .usingRecursiveComparison()
         .isEqualTo(List.of(termView, termView2));
@@ -1516,7 +1539,7 @@ class LicenceScheduleTimelineServiceTest {
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
         phase.getStartDate(),
-        "1 January 2025",
+        "1 January 2025 to 31 December 2025",
         "£1.00",
         ReverseRouter.route(on(LicenceScheduleRateController.class)
             .renderUpdateLicenceScheduleRateForm(phaseRate.getId())),
@@ -1587,7 +1610,7 @@ class LicenceScheduleTimelineServiceTest {
     var term2RateView = new TimelineRateView(
         "Second Term rate",
         term2.getStartDate(),
-        "1 January 2026",
+        "1 January 2026 to 31 December 2026",
         "£2.00",
         ReverseRouter.route(on(LicenceScheduleRateController.class)
             .renderUpdateLicenceScheduleRateForm(term2Rate.getId())),
@@ -1658,6 +1681,12 @@ class LicenceScheduleTimelineServiceTest {
 
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
+
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(Map.of(
+            phaseRate.getId(), new StartEndDates(phase.getStartDate(), phase.getEndDate()),
+            term2Rate.getId(), new StartEndDates(term2.getStartDate(), term2.getEndDate())
+        ));
 
     assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, allowedActions))
         .usingRecursiveComparison()
@@ -1834,7 +1863,7 @@ class LicenceScheduleTimelineServiceTest {
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
         phase.getStartDate(),
-        "1 January 2025",
+        "1 January 2025 to 31 December 2025",
         "£1.00",
         ReverseRouter.route(on(LicenceScheduleRateController.class)
             .renderUpdateLicenceScheduleRateForm(phaseRate.getId())),
@@ -1905,7 +1934,7 @@ class LicenceScheduleTimelineServiceTest {
     var term2RateView = new TimelineRateView(
         "Second Term rate",
         term2.getStartDate(),
-        "1 January 2026",
+        "1 January 2026 to 31 December 2026",
         "£2.00",
         ReverseRouter.route(on(LicenceScheduleRateController.class)
             .renderUpdateLicenceScheduleRateForm(term2Rate.getId())),
@@ -1976,6 +2005,12 @@ class LicenceScheduleTimelineServiceTest {
 
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
+
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(Map.of(
+            phaseRate.getId(), new StartEndDates(phase.getStartDate(), phase.getEndDate()),
+            term2Rate.getId(), new StartEndDates(term2.getStartDate(), term2.getEndDate())
+        ));
 
     assertThat(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, allowedActions))
         .usingRecursiveComparison()
@@ -2118,7 +2153,7 @@ class LicenceScheduleTimelineServiceTest {
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
         phase.getStartDate(),
-        "1 January 2025",
+        "1 January 2025 to 31 December 2025",
         "£1.00",
         "",
         "",
@@ -2187,7 +2222,7 @@ class LicenceScheduleTimelineServiceTest {
     var term2RateView = new TimelineRateView(
         "Second Term rate",
         term2.getStartDate(),
-        "1 January 2026",
+        "1 January 2026 to 31 December 2026",
         "£2.00",
         "",
         "",
@@ -2249,6 +2284,12 @@ class LicenceScheduleTimelineServiceTest {
 
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
+
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(Map.of(
+            phaseRate.getId(), new StartEndDates(phase.getStartDate(), phase.getEndDate()),
+            term2Rate.getId(), new StartEndDates(term2.getStartDate(), term2.getEndDate())
+        ));
 
     assertThat(licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(licenceScheduleDetail, form, user))
         .usingRecursiveComparison()
@@ -2367,7 +2408,7 @@ class LicenceScheduleTimelineServiceTest {
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
         phase.getStartDate(),
-        "1 January 2025",
+        "1 January 2025 to 31 December 2025",
         "£1.00",
         "",
         "",
@@ -2436,7 +2477,7 @@ class LicenceScheduleTimelineServiceTest {
     var term2RateView = new TimelineRateView(
         "Second Term rate",
         term2.getStartDate(),
-        "1 January 2026",
+        "1 January 2026 to 31 December 2026",
         "£2.00",
         "",
         "",
@@ -2480,6 +2521,12 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
     when(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
 
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(Map.of(
+            phaseRate.getId(), new StartEndDates(phase.getStartDate(), phase.getEndDate()),
+            term2Rate.getId(), new StartEndDates(term2.getStartDate(), term2.getEndDate())
+        ));
+
     assertThat(licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(licenceScheduleDetail, form, user))
         .usingRecursiveComparison()
         .isEqualTo(List.of(termView, termView2));
@@ -2509,7 +2556,7 @@ class LicenceScheduleTimelineServiceTest {
     var rateView = new TimelineRateView(
         "Rate",
         rate.getStartDate(),
-        "1 January 2027",
+        "1 January 2027 to 31 December 2027",
         "£2.00",
         ReverseRouter.route(on(LicenceScheduleRateController.class)
             .renderUpdateLicenceScheduleRateForm(rate.getId())),
@@ -2591,6 +2638,11 @@ class LicenceScheduleTimelineServiceTest {
 
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
+
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(Map.of(
+            rate.getId(), new StartEndDates(rate.getStartDate(), LocalDate.of(2027, 12, 31))
+        ));
 
     assertThat(licenceScheduleTimelineService.getEventsBeyondFinalTerm(licenceScheduleDetail, allowedActions))
         .isEqualTo(List.of(rateView, activityView, eventView));
@@ -2680,6 +2732,9 @@ class LicenceScheduleTimelineServiceTest {
     form.setEventTypes(ScheduleEventType.getFilterDefaults());
 
     var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
+
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(Map.of(rate.getId(), new StartEndDates(rate.getStartDate(), term.getEndDate())));
 
     var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, allowedActions);
 

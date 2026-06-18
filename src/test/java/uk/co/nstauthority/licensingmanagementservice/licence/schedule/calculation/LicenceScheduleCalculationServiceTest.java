@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -554,6 +555,272 @@ class LicenceScheduleCalculationServiceTest {
     var duration = new ThreeFieldDuration(0, 0, 1);
 
     assertThat(licenceScheduleCalculationService.calculateRelativeStartDueDate(startDate, duration)).isEqualTo(LocalDate.of(2025, 1, 2));
+  }
+
+  @Test
+  void calculateRateEndDatesForDisplay_whenNoRates_thenEmptyMapReturned() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of());
+
+    var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  void calculateRateEndDatesForDisplay_whenSingleTermRate_thenStartDateFromTermAndEndDateFromFinalTerm() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+
+    var term = new LicenceScheduleTerm();
+    term.setTermType(TermType.INITIAL);
+    term.setStartDate(LocalDate.of(2025, 1, 1));
+    term.setEndDate(LocalDate.of(2025, 12, 31));
+
+    var rate = new LicenceScheduleRate();
+    rate.setId(UUID.randomUUID());
+    rate.setRateDefinitionOption(RateDefinitionOption.TERM);
+    rate.setLicenceScheduleTerm(term);
+
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate));
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(new ArrayList<>(List.of(term)));
+
+    var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
+
+    assertThat(result).containsOnlyKeys(rate.getId());
+    assertThat(result.get(rate.getId())).extracting(
+        StartEndDates::startDate,
+        StartEndDates::endDate
+    ).containsExactly(
+        LocalDate.of(2025, 1, 1),
+        LocalDate.of(2025, 12, 31)
+    );
+  }
+
+  @Test
+  void calculateRateEndDatesForDisplay_whenSinglePhaseRate_thenStartDateFromPhaseAndEndDateFromFinalTerm() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+
+    var term = new LicenceScheduleTerm();
+    term.setTermType(TermType.INITIAL);
+    term.setEndDate(LocalDate.of(2025, 12, 31));
+
+    var phase = new LicenceSchedulePhase();
+    phase.setStartDate(LocalDate.of(2025, 1, 1));
+    phase.setEndDate(LocalDate.of(2025, 6, 30));
+
+    var rate = new LicenceScheduleRate();
+    rate.setId(UUID.randomUUID());
+    rate.setRateDefinitionOption(RateDefinitionOption.PHASE);
+    rate.setLicenceSchedulePhase(phase);
+
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate));
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(new ArrayList<>(List.of(term)));
+
+    var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
+
+    assertThat(result).containsOnlyKeys(rate.getId());
+    assertThat(result.get(rate.getId())).extracting(
+        StartEndDates::startDate,
+        StartEndDates::endDate
+    ).containsExactly(
+        LocalDate.of(2025, 1, 1),
+        LocalDate.of(2025, 12, 31)
+    );
+  }
+
+  @Test
+  void calculateRateEndDatesForDisplay_whenSingleCustomPeriodRate_thenStartDateFromRateAndEndDateFromFinalTerm() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+
+    var term = new LicenceScheduleTerm();
+    term.setTermType(TermType.INITIAL);
+    term.setEndDate(LocalDate.of(2025, 12, 31));
+
+    var rate = new LicenceScheduleRate();
+    rate.setId(UUID.randomUUID());
+    rate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
+    rate.setStartDate(LocalDate.of(2025, 3, 1));
+
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate));
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(new ArrayList<>(List.of(term)));
+
+    var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
+
+    assertThat(result).containsOnlyKeys(rate.getId());
+    assertThat(result.get(rate.getId())).extracting(
+        StartEndDates::startDate,
+        StartEndDates::endDate
+    ).containsExactly(
+        LocalDate.of(2025, 3, 1),
+        LocalDate.of(2025, 12, 31)
+    );
+  }
+
+  @Test
+  void calculateRateEndDatesForDisplay_whenMultipleTermRates_thenNonFinalEndDateIsTermEndDate() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+
+    var term1 = new LicenceScheduleTerm();
+    term1.setTermType(TermType.INITIAL);
+    term1.setStartDate(LocalDate.of(2025, 1, 1));
+    term1.setEndDate(LocalDate.of(2025, 12, 31));
+
+    var term2 = new LicenceScheduleTerm();
+    term2.setTermType(TermType.SECOND);
+    term2.setStartDate(LocalDate.of(2026, 1, 1));
+    term2.setEndDate(LocalDate.of(2026, 12, 31));
+
+    var rate1 = new LicenceScheduleRate();
+    rate1.setId(UUID.randomUUID());
+    rate1.setRateDefinitionOption(RateDefinitionOption.TERM);
+    rate1.setLicenceScheduleTerm(term1);
+
+    var rate2 = new LicenceScheduleRate();
+    rate2.setId(UUID.randomUUID());
+    rate2.setRateDefinitionOption(RateDefinitionOption.TERM);
+    rate2.setLicenceScheduleTerm(term2);
+
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate1, rate2));
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(new ArrayList<>(List.of(term1, term2)));
+
+    var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
+
+    assertThat(result.get(rate1.getId())).extracting(
+        StartEndDates::startDate,
+        StartEndDates::endDate
+    ).containsExactly(
+        LocalDate.of(2025, 1, 1),
+        LocalDate.of(2025, 12, 31)
+    );
+    assertThat(result.get(rate2.getId())).extracting(
+        StartEndDates::startDate,
+        StartEndDates::endDate
+    ).containsExactly(
+        LocalDate.of(2026, 1, 1),
+        LocalDate.of(2026, 12, 31)
+    );
+  }
+
+  @Test
+  void calculateRateEndDatesForDisplay_whenMultiplePhaseRates_thenNonFinalEndDateIsPhaseEndDate() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+
+    var term = new LicenceScheduleTerm();
+    term.setTermType(TermType.INITIAL);
+    term.setEndDate(LocalDate.of(2025, 12, 31));
+
+    var phase1 = new LicenceSchedulePhase();
+    phase1.setStartDate(LocalDate.of(2025, 1, 1));
+    phase1.setEndDate(LocalDate.of(2025, 6, 30));
+
+    var phase2 = new LicenceSchedulePhase();
+    phase2.setStartDate(LocalDate.of(2025, 7, 1));
+    phase2.setEndDate(LocalDate.of(2025, 12, 31));
+
+    var rate1 = new LicenceScheduleRate();
+    rate1.setId(UUID.randomUUID());
+    rate1.setRateDefinitionOption(RateDefinitionOption.PHASE);
+    rate1.setLicenceSchedulePhase(phase1);
+
+    var rate2 = new LicenceScheduleRate();
+    rate2.setId(UUID.randomUUID());
+    rate2.setRateDefinitionOption(RateDefinitionOption.PHASE);
+    rate2.setLicenceSchedulePhase(phase2);
+
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate1, rate2));
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(new ArrayList<>(List.of(term)));
+
+    var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
+
+    assertThat(result.get(rate1.getId())).extracting(
+        StartEndDates::startDate,
+        StartEndDates::endDate
+    ).containsExactly(
+        LocalDate.of(2025, 1, 1),
+        LocalDate.of(2025, 6, 30)
+    );
+    assertThat(result.get(rate2.getId())).extracting(
+        StartEndDates::startDate,
+        StartEndDates::endDate
+    ).containsExactly(
+        LocalDate.of(2025, 7, 1),
+        LocalDate.of(2025, 12, 31)
+    );
+  }
+
+  @Test
+  void calculateRateEndDatesForDisplay_whenNonFinalCustomPeriodRate_thenEndDateIsDayBeforeNextRateStartDate() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+
+    var term = new LicenceScheduleTerm();
+    term.setTermType(TermType.INITIAL);
+    term.setStartDate(LocalDate.of(2025, 7, 1));
+    term.setEndDate(LocalDate.of(2025, 12, 31));
+
+    var customRate = new LicenceScheduleRate();
+    customRate.setId(UUID.randomUUID());
+    customRate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
+    customRate.setStartDate(LocalDate.of(2025, 1, 1));
+
+    var termRate = new LicenceScheduleRate();
+    termRate.setId(UUID.randomUUID());
+    termRate.setRateDefinitionOption(RateDefinitionOption.TERM);
+    termRate.setLicenceScheduleTerm(term);
+
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
+        .thenReturn(List.of(customRate, termRate));
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(new ArrayList<>(List.of(term)));
+
+    var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
+
+    assertThat(result.get(customRate.getId())).extracting(
+        StartEndDates::startDate,
+        StartEndDates::endDate
+    ).containsExactly(
+        LocalDate.of(2025, 1, 1),
+        LocalDate.of(2025, 6, 30)
+    );
+  }
+
+  @Test
+  void calculateRateEndDatesForDisplay_whenRatesReturnedOutOfOrder_thenResultSortedByStartDate() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+
+    var term1 = new LicenceScheduleTerm();
+    term1.setTermType(TermType.INITIAL);
+    term1.setStartDate(LocalDate.of(2025, 1, 1));
+    term1.setEndDate(LocalDate.of(2025, 12, 31));
+
+    var term2 = new LicenceScheduleTerm();
+    term2.setTermType(TermType.SECOND);
+    term2.setStartDate(LocalDate.of(2026, 1, 1));
+    term2.setEndDate(LocalDate.of(2026, 12, 31));
+
+    var rate1 = new LicenceScheduleRate();
+    rate1.setId(UUID.randomUUID());
+    rate1.setRateDefinitionOption(RateDefinitionOption.TERM);
+    rate1.setLicenceScheduleTerm(term1);
+
+    var rate2 = new LicenceScheduleRate();
+    rate2.setId(UUID.randomUUID());
+    rate2.setRateDefinitionOption(RateDefinitionOption.TERM);
+    rate2.setLicenceScheduleTerm(term2);
+
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
+        .thenReturn(List.of(rate2, rate1));
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(new ArrayList<>(List.of(term1, term2)));
+
+    var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
+
+    assertThat(result.keySet()).containsExactly(rate1.getId(), rate2.getId());
   }
 
 }

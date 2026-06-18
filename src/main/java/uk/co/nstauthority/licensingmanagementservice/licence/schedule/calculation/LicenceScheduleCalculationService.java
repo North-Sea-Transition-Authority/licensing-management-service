@@ -3,13 +3,17 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculati
 import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateDefinitionOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateRelativeDateOption;
@@ -260,6 +264,56 @@ public class LicenceScheduleCalculationService {
         .plusYears(duration.years())
         .plusMonths(duration.months())
         .plusDays(duration.days());
+  }
+
+  public Map<UUID, StartEndDates> calculateRateEndDatesForDisplay(
+      LicenceScheduleDetail licenceScheduleDetail
+  ) {
+    var rates = licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail);
+
+    var sortedRates = rates.stream()
+        .sorted(Comparator.comparing(this::getStartDateForRate))
+        .toList();
+
+    var rateDateMap = new LinkedHashMap<UUID, StartEndDates>();
+    for (var i = 0; i < sortedRates.size(); i++) {
+      var rate = sortedRates.get(i);
+      LocalDate endDate;
+
+      if (i < sortedRates.size() - 1) {
+        var dayBeforeNextRate = getStartDateForRate(sortedRates.get(i + 1)).minusDays(1);
+        endDate = getEndDateForRate(rate, dayBeforeNextRate);
+      } else {
+        endDate = getFinalTermEndDate(licenceScheduleDetail);
+      }
+      rateDateMap.put(rate.getId(), new StartEndDates(getStartDateForRate(rate), endDate));
+    }
+
+    return rateDateMap;
+  }
+
+  private LocalDate getStartDateForRate(LicenceScheduleRate rate) {
+    return switch (rate.getRateDefinitionOption()) {
+      case TERM -> rate.getLicenceScheduleTerm().getStartDate();
+      case PHASE -> rate.getLicenceSchedulePhase().getStartDate();
+      case CUSTOM_PERIOD -> rate.getStartDate();
+    };
+  }
+
+  private LocalDate getEndDateForRate(LicenceScheduleRate rate, LocalDate dayBeforeNextRate) {
+    return switch (rate.getRateDefinitionOption()) {
+      case TERM -> rate.getLicenceScheduleTerm().getEndDate();
+      case PHASE -> rate.getLicenceSchedulePhase().getEndDate();
+      case CUSTOM_PERIOD -> dayBeforeNextRate;
+    };
+  }
+
+  private LocalDate getFinalTermEndDate(LicenceScheduleDetail licenceScheduleDetail) {
+    var terms = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail);
+
+    terms.sort(Comparator.comparing(term -> term.getTermType().getDisplayOrder()));
+
+    return terms.getLast().getEndDate();
   }
 
 }

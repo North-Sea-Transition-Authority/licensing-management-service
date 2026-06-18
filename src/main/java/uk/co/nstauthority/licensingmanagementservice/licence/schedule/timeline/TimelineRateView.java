@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.StartEndDates;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentView;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
@@ -18,7 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 public record TimelineRateView(
     String title,
     LocalDate startDate,
-    String startDateString,
+    String startEndDateString,
     String rentalRateString,
     String updateUrl,
     String deleteUrl,
@@ -38,9 +39,11 @@ public record TimelineRateView(
 
   public static ScheduleEvent getScheduleEventFrom(
       LicenceScheduleRate licenceScheduleRate,
+      Map<UUID, StartEndDates> rateDatesMap,
       List<ScheduleEventAction> allowedActions,
       Map<UUID, List<EventCommentView>> eventComments
   ) {
+    var rateDates = rateDatesMap.get(licenceScheduleRate.getId());
     var editUrl = allowedActions.contains(ScheduleEventAction.EDIT_SCHEDULE_EVENTS)
         ? ReverseRouter.route(on(LicenceScheduleRateController.class)
           .renderUpdateLicenceScheduleRateForm(licenceScheduleRate.getId()))
@@ -60,9 +63,8 @@ public record TimelineRateView(
 
     return new TimelineRateView(
         generateTitle(licenceScheduleRate),
-        licenceScheduleRate.getStartDate(),
-        //TODO LMS1-195: change to duration once end date is calculated
-        DateFormatUtil.convertToDisplayText(licenceScheduleRate.getStartDate()),
+        rateDates.startDate(),
+        generateStartEndDateString(rateDates),
         "£%s".formatted(licenceScheduleRate.getRentalRate().toString()),
         editUrl,
         deleteUrl,
@@ -85,5 +87,12 @@ public record TimelineRateView(
     }
 
     return "Rate";
+  }
+
+  static String generateStartEndDateString(StartEndDates dates) {
+    return "%s to %s".formatted(
+        DateFormatUtil.convertToDisplayText(dates.startDate()),
+        DateFormatUtil.convertToDisplayText(dates.endDate())
+    );
   }
 }

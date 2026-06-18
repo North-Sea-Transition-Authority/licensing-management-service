@@ -1,0 +1,20 @@
+ALTER TABLE licence_continuation_application_details
+ADD COLUMN current_term_id UUID,
+ADD COLUMN current_phase_id UUID,
+ADD COLUMN next_term_id UUID,
+ADD COLUMN next_phase_id UUID,
+ADD CONSTRAINT fk_licence_continuation_application_details_current_term FOREIGN KEY (current_term_id) REFERENCES licence_schedule_terms (id),
+ADD CONSTRAINT fk_licence_continuation_application_details_current_phase FOREIGN KEY (current_phase_id) REFERENCES licence_schedule_phases (id),
+ADD CONSTRAINT fk_licence_continuation_application_details_next_term FOREIGN KEY (next_term_id) REFERENCES licence_schedule_terms (id),
+ADD CONSTRAINT fk_licence_continuation_application_details_next_phase FOREIGN KEY (next_phase_id) REFERENCES licence_schedule_phases (id);
+
+CREATE INDEX licence_continuation_application_details_current_term_idx ON licence_continuation_application_details (current_term_id);
+CREATE INDEX licence_continuation_application_details_current_phase_idx ON licence_continuation_application_details (current_phase_id);
+CREATE INDEX licence_continuation_application_details_next_term_idx ON licence_continuation_application_details (next_term_id);
+CREATE INDEX licence_continuation_application_details_next_phase_idx ON licence_continuation_application_details (next_phase_id);
+
+ALTER TABLE licence_continuation_application_details_aud
+ADD COLUMN current_term_id UUID,
+ADD COLUMN current_phase_id UUID,
+ADD COLUMN next_term_id UUID,
+ADD COLUMN next_phase_id UUID;

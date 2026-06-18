@@ -13,6 +13,8 @@ import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEntity;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
 @Audited
 @Entity(name = "licence_continuation_application_details")
@@ -45,6 +47,22 @@ public class LicenceContinuationApplicationDetail {
 
   @Column
   private Long submittedByWuaId;
+
+  @ManyToOne
+  @JoinColumn(name = "current_term_id")
+  private LicenceScheduleTerm currentTerm;
+
+  @ManyToOne
+  @JoinColumn(name = "current_phase_id")
+  private LicenceSchedulePhase currentPhase;
+
+  @ManyToOne
+  @JoinColumn(name = "next_term_id")
+  private LicenceScheduleTerm nextTerm;
+
+  @ManyToOne
+  @JoinColumn(name = "next_phase_id")
+  private LicenceSchedulePhase nextPhase;
 
   public LicenceContinuationApplicationDetail() {
   }
@@ -117,5 +135,37 @@ public class LicenceContinuationApplicationDetail {
 
   public void setSubmittedByWuaId(Long submittedByWuaId) {
     this.submittedByWuaId = submittedByWuaId;
+  }
+
+  public LicenceScheduleTerm getCurrentTerm() {
+    return currentTerm;
+  }
+
+  public void setCurrentTerm(LicenceScheduleTerm currentTerm) {
+    this.currentTerm = currentTerm;
+  }
+
+  public LicenceSchedulePhase getCurrentPhase() {
+    return currentPhase;
+  }
+
+  public void setCurrentPhase(LicenceSchedulePhase currentPhase) {
+    this.currentPhase = currentPhase;
+  }
+
+  public LicenceScheduleTerm getNextTerm() {
+    return nextTerm;
+  }
+
+  public void setNextTerm(LicenceScheduleTerm nextTerm) {
+    this.nextTerm = nextTerm;
+  }
+
+  public LicenceSchedulePhase getNextPhase() {
+    return nextPhase;
+  }
+
+  public void setNextPhase(LicenceSchedulePhase nextPhase) {
+    this.nextPhase = nextPhase;
   }
 }

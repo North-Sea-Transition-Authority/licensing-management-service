@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -42,10 +43,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.withdraw.ApplicationWithdrawService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.teams.IndustryTeamService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamMemberView;
@@ -87,6 +92,9 @@ class LicenceContinuationServiceTest {
 
   @Mock
   private ClearDownWorkAreaLogService clearDownWorkAreaLogService;
+
+  @Mock
+  private LicenceScheduleService licenceScheduleService;
 
   @Mock
   private LicenceApplication licenceApplication;
@@ -228,6 +236,13 @@ class LicenceContinuationServiceTest {
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(LICENCE, LicenceScheduleDetailStatus.ACTIVE))
         .thenReturn(LICENCE_SCHEDULE_DETAIL);
 
+    var currentTerm = mock(LicenceScheduleTerm.class);
+    var currentPhase = mock(LicenceSchedulePhase.class);
+    var nextTerm = mock(LicenceScheduleTerm.class);
+    var nextPhase = mock(LicenceSchedulePhase.class);
+    when(licenceScheduleService.getScheduleState(LICENCE_SCHEDULE_DETAIL))
+        .thenReturn(new ScheduleState(currentTerm, currentPhase, nextTerm, nextPhase));
+
     var currentYear = LocalDate.now(clock).getYear();
 
     LicenceContinuationApplication result = licenceContinuationService.submitApplication(licenceContinuationApplicationDetail, organisationUser);
@@ -245,6 +260,10 @@ class LicenceContinuationServiceTest {
     assertThat(savedDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.SUBMITTED);
     assertThat(savedDetail.getSubmittedDatetime()).isEqualTo(FIXED_INSTANT);
     assertThat(savedDetail.getSubmittedByWuaId()).isEqualTo(WUA_ID);
+    assertThat(savedDetail.getCurrentTerm()).isEqualTo(currentTerm);
+    assertThat(savedDetail.getCurrentPhase()).isEqualTo(currentPhase);
+    assertThat(savedDetail.getNextTerm()).isEqualTo(nextTerm);
+    assertThat(savedDetail.getNextPhase()).isEqualTo(nextPhase);
   }
 
   @Test

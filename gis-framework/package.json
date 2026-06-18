@@ -10,7 +10,9 @@
     "type-check": "vue-tsc --noEmit",
     "watch": "vite build --watch",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:vitest:visual": "vitest run --config vitest.browser.visual.config.ts",
+    "test:vitest:visual:update": "vitest run --config vitest.browser.visual.config.ts --update"
   },
   "dependencies": {
     "ol": "10.9.0",
@@ -25,12 +27,19 @@
     "@testing-library/user-event": "14.6.1",
     "@testing-library/vue": "8.1.0",
     "@vitejs/plugin-vue": "6.0.6",
+    "@vitest/browser": "4.1.8",
+    "@vitest/browser-playwright": "4.1.8",
+    "playwright": "1.60.0",
+    "@vitest/ui": "4.1.8",
     "eslint": "10.3.0",
     "husky": "9.1.7",
     "jsdom": "29.1.1",
+    "msw": "2.14.6",
+    "pixelmatch": "7.2.0",
     "typescript": "6.0.3",
     "vite": "8.0.12",
-    "vitest": "4.1.6",
+    "vitest": "4.1.8",
+    "vitest-browser-vue": "2.1.0",
     "vue": "3.5.32",
     "vue-tsc": "3.2.8"
   }

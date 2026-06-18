@@ -29,14 +29,38 @@ steps:
       BITBUCKET_SSH_KEY:
         from_secret: bitbucket_ssh_key
 
+  - name: detect-gis-changes
+    image: alpine/git:v2.26.2
+    commands:
+      - git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q "^gis-framework/" && touch .gis-framework-changed && echo "GIS changes detected" || echo "No GIS changes detected"
+
   - name: build-gis-node-backend
     image: node:24.16.0
     commands:
+      - test -f .gis-framework-changed || exit 0
       - cd gis-framework/arcgis-node
       - npm install
       - npm run copy:core
       - npm run proto-gen
       - npm test
+
+  - name: gis-frontend-visual-tests
+    image: node:24.16.0
+    commands:
+      - test -f .gis-framework-changed || exit 0
+      - cd gis-framework
+      - npm ci
+      - npx playwright install --with-deps chromium
+      - npm run test:vitest:visual
+
+  - name: gis-frontend-visual-tests-publish-report
+    image: alpine:3.16.0
+    when:
+      status: [ success, failure ]
+    commands:
+      - test -f .gis-framework-changed || exit 0
+      - mkdir -p build/reports/gis-visual-tests/diffs
+      - find gis-framework/.vitest-attachments -name "*.png" -exec cp {} build/reports/gis-visual-tests/diffs/ \; 2>/dev/null || true
 
   - name: build-gis-java-backend
     image: quay.io/testcontainers/dind-drone-plugin
@@ -56,6 +80,7 @@ steps:
     settings:
       storage_driver: overlay2 --insecure-registry repo1.dev.fivium.local:5000 --dns=192.168.10.1
       cmd:
+        - test -f /drone/src/.gis-framework-changed || exit 0
         - mkdir /drone/dockerconfig
         - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
         - cd gis-framework
@@ -299,14 +324,39 @@ steps:
       BITBUCKET_SSH_KEY:
         from_secret: bitbucket_ssh_key
 
+  - name: detect-gis-changes
+    image: alpine/git:v2.26.2
+    commands:
+      - git fetch origin $DRONE_TARGET_BRANCH
+      - git diff --name-only origin/$DRONE_TARGET_BRANCH...HEAD | grep -q "^gis-framework/" && touch .gis-framework-changed && echo "GIS changes detected" || echo "No GIS changes detected"
+
   - name: build-gis-node-backend
     image: node:24.16.0
     commands:
+      - test -f .gis-framework-changed || exit 0
       - cd gis-framework/arcgis-node
       - npm install
       - npm run copy:core
       - npm run proto-gen
       - npm test
+
+  - name: gis-frontend-visual-tests
+    image: node:24.16.0
+    commands:
+      - test -f .gis-framework-changed || exit 0
+      - cd gis-framework
+      - npm ci
+      - npx playwright install --with-deps chromium
+      - npm run test:vitest:visual
+
+  - name: gis-frontend-visual-tests-publish-report
+    image: alpine:3.16.0
+    when:
+      status: [ success, failure ]
+    commands:
+      - test -f .gis-framework-changed || exit 0
+      - mkdir -p build/reports/gis-visual-tests/diffs
+      - find gis-framework/.vitest-attachments -name "*.png" -exec cp {} build/reports/gis-visual-tests/diffs/ \; 2>/dev/null || true
 
   - name: build-gis-java-backend
     image: quay.io/testcontainers/dind-drone-plugin
@@ -326,6 +376,7 @@ steps:
     settings:
       storage_driver: overlay2 --insecure-registry repo1.dev.fivium.local:5000 --dns=192.168.10.1
       cmd:
+        - test -f /drone/src/.gis-framework-changed || exit 0
         - mkdir /drone/dockerconfig
         - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
         - cd gis-framework

@@ -66,3 +66,6 @@ node_modules
 
 ### GIS frontend generated classes
 /src/main/resources/public/gis/dist
+
+### Vitest visual tests
+/.vitest-attachments/

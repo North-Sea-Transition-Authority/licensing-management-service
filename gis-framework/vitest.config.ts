@@ -9,6 +9,7 @@ export default defineConfig({
     include: ["src/test/resources/js/**/*.test.ts"],
     exclude: [
       "arcgis-node/**",
+      "**/visual-regression-tests/**",
       "build/**",
       "node_modules/**",
     ],

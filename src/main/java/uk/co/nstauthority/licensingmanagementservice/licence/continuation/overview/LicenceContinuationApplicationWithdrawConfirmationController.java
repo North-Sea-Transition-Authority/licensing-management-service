@@ -58,8 +58,9 @@ public class LicenceContinuationApplicationWithdrawConfirmationController {
 
     licenceContinuationService.withdrawContinuationChangeStatus(applicationDetail, form.getReasonForWithdrawal());
     NotificationBanner.newSuccessBannerWithHeader(
-        "Continuation application %s has been withdrawn".formatted(
-            applicationDetail.getLicenceContinuationApplication().getApplicationReference()
+        "Continuation application %s for licence %s has been withdrawn".formatted(
+            applicationDetail.getLicenceContinuationApplication().getApplicationReference(),
+            applicationDetail.getLicenceContinuationApplication().getLicenceSchedule().getLicence().getLicenceReference()
         ),
         redirectAttributes
     );

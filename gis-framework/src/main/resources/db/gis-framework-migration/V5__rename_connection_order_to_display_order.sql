@@ -1,0 +1,2 @@
+ALTER TABLE gis_framework_lines RENAME COLUMN ring_connection_order TO display_order;
+ALTER TABLE gis_framework_lines_aud RENAME COLUMN ring_connection_order TO display_order;

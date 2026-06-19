@@ -36,7 +36,6 @@ import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaRequest;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockRequest;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockResponse;
-import uk.co.fivium.grpc.gis.OrderedLineSegment;
 import uk.co.fivium.grpc.gis.ParentLine;
 import uk.co.fivium.grpc.gis.ReferenceBlockValidationRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
@@ -137,21 +136,14 @@ public class GrpcClientService {
 
 
   /**
-   * Validate that a polygon can be reconstructed from a list of lines using their ring number and connection order.
+   * Validate that a polygon can be reconstructed from a list of lines.
    * @param lines the lines to validate.
    * @param originalPolygonEsriJson the EsriJSON of the original polygon.
    * @return true if the polygon can be reconstructed from the lines, false otherwise.
    */
   public boolean validatePolygonReconstructionFromPolylines(List<Line> lines, String originalPolygonEsriJson) {
-    var orderedLineSegments = lines.stream()
-        .map(line -> OrderedLineSegment.newBuilder()
-            .setEsriJsonPolyline(line.getEsriJson())
-            .setRingNumber(line.getRingNumber())
-            .setConnectionOrder(line.getRingConnectionOrder())
-            .build())
-        .toList();
     var request = ValidatePolygonReconstructionFromPolylinesRequest.newBuilder()
-        .addAllLines(orderedLineSegments)
+        .addAllEsriJsonPolylines(lines.stream().map(Line::getEsriJson).toList())
         .setOriginalPolygonEsriJson(originalPolygonEsriJson)
         .build();
 

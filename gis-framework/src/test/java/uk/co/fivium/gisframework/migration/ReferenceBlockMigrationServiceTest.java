@@ -110,7 +110,7 @@ class ReferenceBlockMigrationServiceTest {
         .withNavigationType(LineNavigationType.GEODESIC)
         .withEsriJson("esri json 1")
         .withRingNumber(0)
-        .withRingConnectionOrder(1)
+        .withDisplayOrder(1)
         .build();
 
     var expectedLine2 = LineTestUtil.newBuilder()
@@ -121,7 +121,7 @@ class ReferenceBlockMigrationServiceTest {
         .withNavigationType(LineNavigationType.LOXODROME)
         .withEsriJson("esri json 2")
         .withRingNumber(1)
-        .withRingConnectionOrder(2)
+        .withDisplayOrder(2)
         .build();
 
     assertThat(result).usingRecursiveComparison().isEqualTo(List.of(expectedLine1, expectedLine2));

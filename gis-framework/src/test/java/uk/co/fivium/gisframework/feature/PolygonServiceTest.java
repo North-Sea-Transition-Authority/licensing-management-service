@@ -71,9 +71,9 @@ class PolygonServiceTest {
   void getPolygonsAsEsriJson_assertLinesSorted() {
     var feature = FeatureTestUtil.newBuilder().build();
     var polygon = PolygonTestUtil.newBuilder().build();
-    var line1 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withRingConnectionOrder(1).build();
-    var line2 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withRingConnectionOrder(2).build();
-    var line3 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withRingConnectionOrder(3).build();
+    var line1 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withDisplayOrder(1).build();
+    var line2 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withDisplayOrder(2).build();
+    var line3 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withDisplayOrder(3).build();
     var entityBackedFeature = new EntityBackedFeature(
         feature,
         Map.of(polygon, List.of(line2, line3, line1))
@@ -94,9 +94,9 @@ class PolygonServiceTest {
   void getPolygonsAsEsriJson_projectToWgs84Override_assertLinesSorted(boolean projectToWgs84) {
     var feature = FeatureTestUtil.newBuilder().build();
     var polygon = PolygonTestUtil.newBuilder().build();
-    var line1 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withRingConnectionOrder(1).build();
-    var line2 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withRingConnectionOrder(2).build();
-    var line3 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withRingConnectionOrder(3).build();
+    var line1 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withDisplayOrder(1).build();
+    var line2 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withDisplayOrder(2).build();
+    var line3 = LineTestUtil.newBuilder().withPolygon(polygon).withRingNumber(1).withDisplayOrder(3).build();
     var entityBackedFeature = new EntityBackedFeature(
         feature,
         Map.of(polygon, List.of(line2, line3, line1))

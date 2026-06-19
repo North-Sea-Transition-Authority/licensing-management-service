@@ -174,7 +174,7 @@ public class ReferenceBlockMigrationService {
       line.setNavigationType(oracleLine.getLineNavigationType());
       line.setEsriJson(lineSsidToEsriJson.get(oracleLineSsid));
       line.setRingNumber(entry.ringNumber());
-      line.setRingConnectionOrder(oracleLine.getConnectionOrder().intValue());
+      line.setDisplayOrder(oracleLine.getConnectionOrder().intValue());
 
       newLines.add(line);
     }

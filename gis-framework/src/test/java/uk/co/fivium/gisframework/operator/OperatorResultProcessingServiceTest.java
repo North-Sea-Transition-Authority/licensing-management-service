@@ -347,10 +347,11 @@ class OperatorResultProcessingServiceTest {
   }
 
   @Test
-  void numberLines_whenLinesFormSingleRing_numbersLinesFromNorthwestMostLine() {
-    var line1 = getUnnumberedLine("line 1"); //northwest-most line
-    var line2 = getUnnumberedLine("line 2");
-    var line3 = getUnnumberedLine("line 3");
+  void numberLines_whenLinesFormSingleRing_numbersLinesFromTopMostThenWestMostLine() {
+    var polygon = PolygonTestUtil.newBuilder().build();
+    var line1 = getUnnumberedLine("line 1", polygon);
+    var line2 = getUnnumberedLine("line 2", polygon);
+    var line3 = getUnnumberedLine("line 3", polygon); //top-most start point, so numbering starts here
     var unorderedLines = List.of(line1, line2, line3);
 
     when(grpcClientService.getLineStartAndEndPoints(unorderedLines)).thenReturn(List.of(
@@ -358,77 +359,108 @@ class OperatorResultProcessingServiceTest {
         new LineWithStartEndPoints(line3, new Point(1, 1), new Point(0, 0)),
         new LineWithStartEndPoints(line1, new Point(0, 0), new Point(1, 0))
     ));
-    when(grpcClientService.findNorthwestMostLine(any())).thenAnswer(invocation ->
-        findIdForLineWithMatchingEsriJson(invocation.getArgument(0), line1.getEsriJson())
-    );
 
     operatorResultProcessingService.numberLines(unorderedLines);
 
     assertThat(unorderedLines)
-        .extracting(Line::getEsriJson, Line::getRingNumber, Line::getRingConnectionOrder)
+        .extracting(Line::getEsriJson, Line::getRingNumber, Line::getDisplayOrder)
         .containsExactlyInAnyOrder(
-            tuple(line1.getEsriJson(), 0, 1),
-            tuple(line2.getEsriJson(), 0, 2),
-            tuple(line3.getEsriJson(), 0, 3)
+            tuple(line3.getEsriJson(), 0, 1),
+            tuple(line1.getEsriJson(), 0, 2),
+            tuple(line2.getEsriJson(), 0, 3)
         );
   }
 
   @Test
-  void numberLines_whenLinesFormMultipleRings_numbersEachRingSeparately() {
-    var outerRingLine1 = getUnnumberedLine("outer ring line 1");
-    var outerRingLine2 = getUnnumberedLine("outer ring line 2");
-    var innerRingLine1 = getUnnumberedLine("inner ring line 1");
-    var innerRingLine2 = getUnnumberedLine("inner ring line 2");
+  void numberLines_whenLinesFormMultipleRings_continuesConnectionOrderAcrossRings() {
+    var polygon = PolygonTestUtil.newBuilder().build();
+    var outerRingLine1 = getUnnumberedLine("outer ring line 1", polygon);
+    var outerRingLine2 = getUnnumberedLine("outer ring line 2", polygon);
+    var innerRingLine1 = getUnnumberedLine("inner ring line 1", polygon);
+    var innerRingLine2 = getUnnumberedLine("inner ring line 2", polygon);
     var unorderedLines = List.of(outerRingLine1, outerRingLine2, innerRingLine1, innerRingLine2);
 
+    // The inner ring has the top-most start point, so it is numbered first (ring 0). The outer ring's
+    // connection order continues on from the inner ring rather than restarting at 1.
     when(grpcClientService.getLineStartAndEndPoints(unorderedLines)).thenReturn(List.of(
         new LineWithStartEndPoints(outerRingLine1, new Point(0, 0), new Point(1, 0)),
         new LineWithStartEndPoints(outerRingLine2, new Point(1, 0), new Point(0, 0)),
         new LineWithStartEndPoints(innerRingLine1, new Point(2, 2), new Point(3, 2)),
         new LineWithStartEndPoints(innerRingLine2, new Point(3, 2), new Point(2, 2))
     ));
-    when(grpcClientService.findNorthwestMostLine(any())).thenAnswer(invocation ->
-        findIdForLineWithRingConnectionOrder(invocation.getArgument(0), 1)
-    );
 
     operatorResultProcessingService.numberLines(unorderedLines);
 
     assertThat(unorderedLines)
-        .extracting(Line::getEsriJson, Line::getRingNumber, Line::getRingConnectionOrder)
+        .extracting(Line::getEsriJson, Line::getRingNumber, Line::getDisplayOrder)
         .containsExactlyInAnyOrder(
-            tuple(outerRingLine1.getEsriJson(), 0, 1),
-            tuple(outerRingLine2.getEsriJson(), 0, 2),
-            tuple(innerRingLine1.getEsriJson(), 1, 1),
-            tuple(innerRingLine2.getEsriJson(), 1, 2)
+            tuple(innerRingLine1.getEsriJson(), 0, 1),
+            tuple(innerRingLine2.getEsriJson(), 0, 2),
+            tuple(outerRingLine1.getEsriJson(), 1, 3),
+            tuple(outerRingLine2.getEsriJson(), 1, 4)
         );
   }
 
-  private Line getUnnumberedLine(String esriJson) {
+  @Test
+  void numberLines_whenLinesSpanMultiplePolygons_thenNumbersTopMostPolygonFirstWithContinuousOrder() {
+    var topPolygon = PolygonTestUtil.newBuilder().build();
+    var bottomPolygon = PolygonTestUtil.newBuilder().build();
+
+    var topOuterLine1 = getUnnumberedLine("top outer line 1", topPolygon);
+    var topOuterLine2 = getUnnumberedLine("top outer line 2", topPolygon);
+    var topOuterLine3 = getUnnumberedLine("top outer line 3", topPolygon);
+    var topInnerLine1 = getUnnumberedLine("top inner line 1", topPolygon);
+    var topInnerLine2 = getUnnumberedLine("top inner line 2", topPolygon);
+    var topInnerLine3 = getUnnumberedLine("top inner line 3", topPolygon);
+
+    var bottomLine1 = getUnnumberedLine("bottom line 1", bottomPolygon);
+    var bottomLine2 = getUnnumberedLine("bottom line 2", bottomPolygon);
+    var bottomLine3 = getUnnumberedLine("bottom line 3", bottomPolygon);
+    var unorderedLines = List.of(
+        bottomLine1, topInnerLine1, topOuterLine1, bottomLine2, topInnerLine2,
+        topOuterLine2, bottomLine3, topInnerLine3, topOuterLine3
+    );
+
+    // topPolygon's outer ring holds the top-most start point so it is numbered first, followed by its
+    // inner ring, then bottomPolygon. The inner ring's top-most point sits below bottomPolygon's, so a
+    // global (non-polygon-aware) sort would interleave them; grouping by polygon must not.
+    // ringNumber and ringConnectionOrder continue across both polygons.
+    when(grpcClientService.getLineStartAndEndPoints(unorderedLines)).thenReturn(List.of(
+        new LineWithStartEndPoints(topOuterLine1, new Point(0, 10), new Point(8, 10)),
+        new LineWithStartEndPoints(topOuterLine2, new Point(8, 10), new Point(0, 0)),
+        new LineWithStartEndPoints(topOuterLine3, new Point(0, 0), new Point(0, 10)),
+        new LineWithStartEndPoints(topInnerLine1, new Point(1, 3), new Point(2, 3)),
+        new LineWithStartEndPoints(topInnerLine2, new Point(2, 3), new Point(1, 1)),
+        new LineWithStartEndPoints(topInnerLine3, new Point(1, 1), new Point(1, 3)),
+        new LineWithStartEndPoints(bottomLine1, new Point(10, 5), new Point(14, 5)),
+        new LineWithStartEndPoints(bottomLine2, new Point(14, 5), new Point(10, 0)),
+        new LineWithStartEndPoints(bottomLine3, new Point(10, 0), new Point(10, 5))
+    ));
+
+    operatorResultProcessingService.numberLines(unorderedLines);
+
+    assertThat(unorderedLines)
+        .extracting(Line::getEsriJson, Line::getRingNumber, Line::getDisplayOrder)
+        .containsExactlyInAnyOrder(
+            tuple(topOuterLine1.getEsriJson(), 0, 1),
+            tuple(topOuterLine2.getEsriJson(), 0, 2),
+            tuple(topOuterLine3.getEsriJson(), 0, 3),
+            tuple(topInnerLine1.getEsriJson(), 1, 4),
+            tuple(topInnerLine2.getEsriJson(), 1, 5),
+            tuple(topInnerLine3.getEsriJson(), 1, 6),
+            tuple(bottomLine1.getEsriJson(), 2, 7),
+            tuple(bottomLine2.getEsriJson(), 2, 8),
+            tuple(bottomLine3.getEsriJson(), 2, 9)
+        );
+  }
+
+  private Line getUnnumberedLine(String esriJson, Polygon polygon) {
     return LineTestUtil.newBuilder()
         .withEsriJson(esriJson)
+        .withPolygon(polygon)
         .withRingNumber(null)
-        .withRingConnectionOrder(null)
+        .withDisplayOrder(null)
         .build();
-  }
-
-  private UUID findIdForLineWithMatchingEsriJson(Map<UUID, Line> idToLine,
-                                                 String targetEsriJson) {
-    return idToLine.entrySet()
-        .stream()
-        .filter(entry -> entry.getValue().getEsriJson().equals(targetEsriJson))
-        .map(Map.Entry::getKey)
-        .findFirst()
-        .orElseThrow();
-  }
-
-  private UUID findIdForLineWithRingConnectionOrder(Map<UUID, Line> idToLine,
-                                                    int ringConnectionOrder) {
-    return idToLine.entrySet()
-        .stream()
-        .filter(entry -> entry.getValue().getRingConnectionOrder() == ringConnectionOrder)
-        .map(Map.Entry::getKey)
-        .findFirst()
-        .orElseThrow();
   }
 
   @Test

@@ -68,7 +68,7 @@ public class PolygonService {
     for (var polygonToLines : entityBackedFeature.polygonToLines().entrySet()) {
       var lineEsriJsons = polygonToLines.getValue()
           .stream()
-          .sorted(Comparator.comparing(Line::getRingConnectionOrder))
+          .sorted(Comparator.comparing(Line::getDisplayOrder))
           .map(Line::getEsriJson)
           .toList();
       String polygonEsriJson = grpcClientService.buildPolygon(

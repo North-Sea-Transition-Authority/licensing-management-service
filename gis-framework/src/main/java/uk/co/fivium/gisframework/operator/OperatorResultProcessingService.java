@@ -2,10 +2,10 @@ package uk.co.fivium.gisframework.operator;
 
 import com.esri.core.geometry.Point;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
@@ -23,6 +23,10 @@ import uk.co.fivium.grpc.gis.LineNavigationType;
 
 @Service
 public class OperatorResultProcessingService {
+
+  private static final Comparator<LineWithStartEndPoints> TOP_MOST_THEN_WEST_MOST =
+      Comparator.comparingDouble((LineWithStartEndPoints lineWrapper) -> lineWrapper.start().getY()).reversed()
+          .thenComparingDouble(lineWrapper -> lineWrapper.start().getX());
 
   private final PolygonService polygonService;
   private final LineService lineService;
@@ -47,9 +51,15 @@ public class OperatorResultProcessingService {
     var inputPolygonLines = lineService.getLines(inputPolygons);
 
     var newLineEntities = buildLinesWithParentAttributes(outputEsriJsonPolygon, inputPolygonLines);
+    var newFeature = buildFeature(inputFeatures, newLineEntities, resultFeatureNameSuffix);
+    var newPolygon = buildPolygon(inputPolygons, newFeature);
+    newLineEntities.forEach(line -> line.setPolygon(newPolygon));
+
     numberLines(newLineEntities);
     validateLinesAreValid(newLineEntities, outputEsriJsonPolygon);
-    var newFeature = copyParentEntityAttributes(inputFeatures, inputPolygons, newLineEntities, resultFeatureNameSuffix);
+
+    featureService.saveFeature(newFeature);
+    polygonService.savePolygon(newPolygon);
     lineService.saveLines(newLineEntities);
     return newFeature;
   }
@@ -97,40 +107,66 @@ public class OperatorResultProcessingService {
 
   /**
    * Numbers the lines of the output polygon by finding connected lines and assigning them the same ring number
-   * and a connection order based on how they are connected.
-   * Numbering starts with the line with the northwest-most start point.
+   * and a connection order based on how they are connected. Lines are grouped by their polygon, and the polygon
+   * groups are processed in top most then west most order: within a polygon the outer ring is numbered before its
+   * inner rings, and the ring number and connection order continue on across rings and polygons.
    * @param unorderedLines the lines of the output polygon.
    */
   public void numberLines(List<Line> unorderedLines) {
     var allLineWithStartEndPoints = grpcClientService.getLineStartAndEndPoints(unorderedLines);
-    var linePool = new ArrayList<>(allLineWithStartEndPoints);
 
     int ringNumberCounter = 0;
-    while (!linePool.isEmpty()) {
-      int ringConnectionOrderCounter = 1;
-      LineWithStartEndPoints current = linePool.removeFirst();
+    int ringConnectionOrderCounter = 0;
+    for (var polygonLines : groupAndOrderLinesByPolygon(allLineWithStartEndPoints)) {
+      var linePool = new ArrayList<>(polygonLines);
+      linePool.sort(TOP_MOST_THEN_WEST_MOST);
 
-      current.line().setRingNumber(ringNumberCounter);
-      current.line().setRingConnectionOrder(ringConnectionOrderCounter);
+      while (!linePool.isEmpty()) {
+        LineWithStartEndPoints current = linePool.removeFirst();
 
-      var isRingClosed = false;
-      while (!isRingClosed && !linePool.isEmpty()) {
-        Point targetStart = current.end();
-        Optional<LineWithStartEndPoints> nextLine = findNextLine(linePool, targetStart);
+        ringConnectionOrderCounter++;
+        current.line().setRingNumber(ringNumberCounter);
+        current.line().setDisplayOrder(ringConnectionOrderCounter);
 
-        if (nextLine.isPresent()) {
-          current = nextLine.get();
-          linePool.remove(current);
-          ringConnectionOrderCounter++;
-          current.line().setRingNumber(ringNumberCounter);
-          current.line().setRingConnectionOrder(ringConnectionOrderCounter);
-        } else {
-          isRingClosed = true;
+        var isRingClosed = false;
+        while (!isRingClosed && !linePool.isEmpty()) {
+          Point targetStart = current.end();
+          Optional<LineWithStartEndPoints> nextLine = findNextLine(linePool, targetStart);
+
+          if (nextLine.isPresent()) {
+            current = nextLine.get();
+            linePool.remove(current);
+            ringConnectionOrderCounter++;
+            current.line().setRingNumber(ringNumberCounter);
+            current.line().setDisplayOrder(ringConnectionOrderCounter);
+          } else {
+            isRingClosed = true;
+          }
         }
+        ringNumberCounter++;
       }
-      rotateRingToStartAtNorthwestMostPoint(allLineWithStartEndPoints, ringNumberCounter);
-      ringNumberCounter++;
     }
+  }
+
+  /**
+   * Groups the lines by their polygon, then orders the polygon groups by their top most then west most start point
+   * so that numbering begins on the top most, west most polygon.
+   */
+  private List<List<LineWithStartEndPoints>> groupAndOrderLinesByPolygon(
+      List<LineWithStartEndPoints> lineWrappers) {
+    var linesByPolygon = new HashMap<Polygon, List<LineWithStartEndPoints>>();
+    for (var lineWrapper : lineWrappers) {
+      linesByPolygon
+          .computeIfAbsent(lineWrapper.line().getPolygon(), polygon -> new ArrayList<>())
+          .add(lineWrapper);
+    }
+
+    return linesByPolygon.values()
+        .stream()
+        .sorted(Comparator.comparing(
+            polygonLines -> polygonLines.stream().min(TOP_MOST_THEN_WEST_MOST).orElseThrow(),
+            TOP_MOST_THEN_WEST_MOST))
+        .toList();
   }
 
   private Optional<LineWithStartEndPoints> findNextLine(List<LineWithStartEndPoints> linePool,
@@ -138,49 +174,6 @@ public class OperatorResultProcessingService {
     return linePool.stream()
         .filter(lineWrapper -> lineWrapper.start().getXY().equals(targetStart.getXY()))
         .findFirst();
-  }
-
-  void rotateRingToStartAtNorthwestMostPoint(List<LineWithStartEndPoints> lineWrappers,
-                                             int ringNumber) {
-    List<LineWithStartEndPoints> ringLines = lineWrappers.stream()
-        .filter(lw -> Objects.equals(ringNumber, lw.line().getRingNumber()))
-        .toList();
-    if (ringLines.isEmpty()) {
-      return;
-    }
-
-    //lines haven't been persisted yet
-    Map<UUID, Line> tempIdToLine = new HashMap<>();
-    Map<UUID, LineWithStartEndPoints> tempIdToLineWrapper = new HashMap<>();
-    ringLines.forEach(lineWrapper -> {
-      var tempId = UUID.randomUUID();
-      tempIdToLine.put(tempId, lineWrapper.line());
-      tempIdToLineWrapper.put(tempId, lineWrapper);
-    });
-
-    LineWithStartEndPoints startLine = tempIdToLineWrapper.get(grpcClientService.findNorthwestMostLine(tempIdToLine));
-
-    int startLineIndex = startLine.line().getRingConnectionOrder();
-    if (startLineIndex == 1) {
-      // Already starts at the correct line
-      return;
-    }
-
-    // Rotate the ring connection order so the NW-most line becomes #1
-    // This is a circular rotation that "cuts" at startLineIndex and moves it to the front
-    // Example: if startLineIndex=3 and there are 4 lines total: [1,2,3,4] -> [3,4,1,2]
-    ringLines.forEach(lineWrapper -> {
-      int oldIndex = lineWrapper.line().getRingConnectionOrder();
-      int newOrder;
-
-      if (oldIndex >= startLineIndex) {
-        newOrder = oldIndex - startLineIndex + 1;
-      } else {
-        newOrder = ringLines.size() - startLineIndex + 1 + oldIndex;
-      }
-
-      lineWrapper.line().setRingConnectionOrder(newOrder);
-    });
   }
 
   public void validateLinesAreValid(List<Line> newLineEntities, String outputPolygonEsriJson) {
@@ -194,10 +187,9 @@ public class OperatorResultProcessingService {
     }
   }
 
-  private Feature copyParentEntityAttributes(List<Feature> inputFeatures,
-                                             List<Polygon> inputPolygons,
-                                             List<Line> newLineEntities,
-                                             int featureNameSuffix) {
+  private Feature buildFeature(List<Feature> inputFeatures,
+                               List<Line> newLineEntities,
+                               int featureNameSuffix) {
     var newFeature = new Feature();
     var target = inputFeatures.getFirst();
 
@@ -213,8 +205,11 @@ public class OperatorResultProcessingService {
     newFeature.setParentFeature(target.getParentFeature());
     newFeature.setStartDate(null);
     newFeature.setEndDate(null);
-    featureService.saveFeature(newFeature);
 
+    return newFeature;
+  }
+
+  private Polygon buildPolygon(List<Polygon> inputPolygons, Feature newFeature) {
     var newPolygon = new Polygon();
     newPolygon.setFeature(newFeature);
     if (inputPolygons.size() == 1) {
@@ -227,9 +222,6 @@ public class OperatorResultProcessingService {
       newPolygon.setAttributes(new HashMap<>());
     }
 
-    polygonService.savePolygon(newPolygon);
-    newLineEntities.forEach(line -> line.setPolygon(newPolygon));
-
-    return newFeature;
+    return newPolygon;
   }
 }

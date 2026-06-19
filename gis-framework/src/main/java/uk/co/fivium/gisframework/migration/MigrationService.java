@@ -111,15 +111,17 @@ public class MigrationService {
               parentLines
           );
 
-          newLines = renumberLinesAndCheckDifference(newLines);
-
           polygonToLine.put(newPolygon, newLines);
         }
+
+        // number all of the feature's polygons in one continuous pass (mutates the lines in place)
+        var featureLines = polygonToLine.values().stream().flatMap(List::stream).toList();
+        renumberLinesAndCheckDifference(featureLines);
 
         transactionTemplate.executeWithoutResult(transactionStatus -> {
           featureService.saveFeature(newFeature);
           polygonService.savePolygons(polygonToLine.keySet());
-          lineService.saveLines(polygonToLine.values().stream().flatMap(List::stream).toList());
+          lineService.saveLines(featureLines);
         });
 
         var areaDifference = newFeature.getFeatureArea().subtract(BigDecimal.valueOf(entityBackedShape.shape().getShareAreaM2()));
@@ -238,7 +240,7 @@ public class MigrationService {
       line.setNavigationType(oracleLine.getLineNavigationType());
       line.setEsriJson(migrationResponseDto.oracleSsidToEsriJsonLineString().get(oracleLineSsid));
       line.setRingNumber(entry.ringNumber());
-      line.setRingConnectionOrder(oracleLine.getConnectionOrder().intValue());
+      line.setDisplayOrder(oracleLine.getConnectionOrder().intValue());
 
       var boundaryAttributeMap = boundaryIdToAttributes.getOrDefault(oracleLine.getOraclePolygonBoundaryId(), Map.of());
       var lineAttributesMap = lineIdToAttributes.getOrDefault(oracleLineSsid, Map.of());
@@ -257,17 +259,17 @@ public class MigrationService {
     var idToOriginalLineNumber = lines.stream()
         .collect(Collectors.toUnmodifiableMap(
             Line::getLegacyId,
-            Line::getRingConnectionOrder
+            Line::getDisplayOrder
         ));
 
     operatorResultProcessingService.numberLines(lines);
 
     var lineNumberingChanges = lines.stream()
-        .filter(line -> !Objects.equals(idToOriginalLineNumber.get(line.getLegacyId()), line.getRingConnectionOrder()))
+        .filter(line -> !Objects.equals(idToOriginalLineNumber.get(line.getLegacyId()), line.getDisplayOrder()))
         .map(line -> "%s: %s -> %s".formatted(
             line.getLegacyId(),
             idToOriginalLineNumber.get(line.getLegacyId()),
-            line.getRingConnectionOrder()
+            line.getDisplayOrder()
         ))
         .collect(Collectors.joining(", "));
     if (!lineNumberingChanges.isEmpty()) {

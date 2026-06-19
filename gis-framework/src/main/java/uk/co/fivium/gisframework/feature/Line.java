@@ -34,7 +34,7 @@ public class Line {
 
   private Integer ringNumber;
 
-  private Integer ringConnectionOrder;
+  private Integer displayOrder;
 
   private String esriJson;
 
@@ -79,12 +79,12 @@ public class Line {
     this.ringNumber = ringNumber;
   }
 
-  public Integer getRingConnectionOrder() {
-    return ringConnectionOrder;
+  public Integer getDisplayOrder() {
+    return displayOrder;
   }
 
-  public void setRingConnectionOrder(Integer ringConnectionOrder) {
-    this.ringConnectionOrder = ringConnectionOrder;
+  public void setDisplayOrder(Integer displayOrder) {
+    this.displayOrder = displayOrder;
   }
 
   public String getEsriJson() {

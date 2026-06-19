@@ -160,7 +160,7 @@ class MigrationServiceTest {
         .withNavigationType(LineNavigationType.GEODESIC)
         .withEsriJson("esri json 1")
         .withRingNumber(0)
-        .withRingConnectionOrder(1)
+        .withDisplayOrder(1)
         .build();
 
     var expectedLine2 = LineTestUtil.newBuilder()
@@ -171,7 +171,7 @@ class MigrationServiceTest {
         .withNavigationType(LineNavigationType.LOXODROME)
         .withEsriJson("esri json 2")
         .withRingNumber(1)
-        .withRingConnectionOrder(2)
+        .withDisplayOrder(2)
         .build();
 
     var expected = List.of(expectedLine1, expectedLine2);
@@ -360,12 +360,12 @@ class MigrationServiceTest {
     var line1 = LineTestUtil.newBuilder()
         .withLegacyId(100)
         .withPolygon(polygon)
-        .withRingConnectionOrder(1)
+        .withDisplayOrder(1)
         .build();
     var line2 = LineTestUtil.newBuilder()
         .withLegacyId(200)
         .withPolygon(polygon)
-        .withRingConnectionOrder(2)
+        .withDisplayOrder(2)
         .build();
     var lines = List.of(line1, line2);
 
@@ -374,8 +374,8 @@ class MigrationServiceTest {
       var firstLine = input.get(0);
       var secondLine = input.get(1);
 
-      firstLine.setRingConnectionOrder(2);
-      secondLine.setRingConnectionOrder(1);
+      firstLine.setDisplayOrder(2);
+      secondLine.setDisplayOrder(1);
       return null;
     }).when(operatorResultProcessingService).numberLines(lines);
 
@@ -392,7 +392,7 @@ class MigrationServiceTest {
     assertThat(result)
         .extracting(
             Line::getLegacyId,
-            Line::getRingConnectionOrder
+            Line::getDisplayOrder
         )
         .containsExactly(
             tuple(100, 2),

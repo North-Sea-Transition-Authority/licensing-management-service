@@ -5,11 +5,9 @@ import * as validatePolygonReconstructionFromPolylinesModule
 import {
   validatePolygonReconstructionFromPolylinesHandler,
 } from "../../src/handlers/validate-polygon-reconstruction-from-polylines-handler";
-import { esriJsonToPolyline } from "../../src/util/esrijson-util";
-import { makePolygonEsriJson, makePolylineEsriJson } from "../test-utils/esrijson-test-util";
+import { makePolygonEsriJson, makePolyline, makePolylineEsriJson } from "../test-utils/esrijson-test-util";
 
 vi.mock("../../src/geometric-operators/validate-polygon-reconstruction-from-polylines");
-vi.mock("../../src/util/esrijson-util");
 vi.mock("../../src/config/logger", () => ({
   logger: {
     error: vi.fn(),
@@ -25,7 +23,7 @@ describe("validatePolygonReconstructionFromPolylinesHandler", () => {
     mockCallback = vi.fn() as any;
     mockCall = {
       request: {
-        lines: [],
+        esriJsonPolylines: [],
         originalPolygonEsriJson: null,
       },
     };
@@ -53,10 +51,13 @@ describe("validatePolygonReconstructionFromPolylinesHandler", () => {
         [0, 0],
       ],
     ]);
-    mockCall.request.lines = [
-      { polylineEsriJson: firstLineEsriJson, ringNumber: 0, connectionOrder: 1 },
-      { polylineEsriJson: secondLineEsriJson, ringNumber: 0, connectionOrder: 2 },
+
+    const expectedPolylines = [
+      makePolyline([[[0, 0], [0, 10]]], 4326),
+      makePolyline([[[0, 10], [10, 10]]], 4326),
     ];
+
+    mockCall.request.esriJsonPolylines = [firstLineEsriJson, secondLineEsriJson];
     mockCall.request.originalPolygonEsriJson = originalPolygonEsriJson;
 
     vi.mocked(validatePolygonReconstructionFromPolylinesModule.validatePolygonReconstructionFromPolylines).mockReturnValue(true);
@@ -64,10 +65,7 @@ describe("validatePolygonReconstructionFromPolylinesHandler", () => {
     validatePolygonReconstructionFromPolylinesHandler(mockCall, mockCallback as any);
 
     expect(validatePolygonReconstructionFromPolylinesModule.validatePolygonReconstructionFromPolylines).toHaveBeenCalledWith(
-      [
-        { polyline: esriJsonToPolyline(firstLineEsriJson), ringNumber: 0, connectionOrder: 1 },
-        { polyline: esriJsonToPolyline(secondLineEsriJson), ringNumber: 0, connectionOrder: 2 },
-      ],
+      expectedPolylines,
       originalPolygonEsriJson,
     );
     expect(mockCallback).toHaveBeenCalledWith(null, { isValid: true });
@@ -89,7 +87,7 @@ describe("validatePolygonReconstructionFromPolylinesHandler", () => {
         [0, 0],
       ],
     ]);
-    mockCall.request.lines = [{ polylineEsriJson: lineEsriJson, ringNumber: 0, connectionOrder: 1 }];
+    mockCall.request.esriJsonPolylines = [lineEsriJson];
     mockCall.request.originalPolygonEsriJson = originalPolygonEsriJson;
     vi.mocked(validatePolygonReconstructionFromPolylinesModule.validatePolygonReconstructionFromPolylines).mockReturnValue(false);
 
@@ -105,7 +103,7 @@ describe("validatePolygonReconstructionFromPolylinesHandler", () => {
         [0, 10],
       ],
     ]);
-    mockCall.request.lines = [{ polylineEsriJson: lineEsriJson, ringNumber: 0, connectionOrder: 1 }];
+    mockCall.request.esriJsonPolylines = [lineEsriJson];
     mockCall.request.originalPolygonEsriJson = makePolygonEsriJson([
       [
         [0, 0],

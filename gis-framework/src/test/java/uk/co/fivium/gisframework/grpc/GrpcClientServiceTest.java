@@ -56,7 +56,6 @@ import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaRequest;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockRequest;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockResponse;
-import uk.co.fivium.grpc.gis.OrderedLineSegment;
 import uk.co.fivium.grpc.gis.ParentLine;
 import uk.co.fivium.grpc.gis.ReferenceBlockValidationRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
@@ -184,27 +183,14 @@ class GrpcClientServiceTest {
   void validatePolygonReconstructionFromPolylines_verifyServiceClientCall() {
     var line1 = LineTestUtil.newBuilder()
         .withEsriJson("dummy esriJson line 1")
-        .withRingNumber(1)
-        .withRingConnectionOrder(1)
         .build();
     var line2 = LineTestUtil.newBuilder()
         .withEsriJson("dummy esriJson line 2")
-        .withRingNumber(2)
-        .withRingConnectionOrder(3)
         .build();
     var originalPolygonEsriJson = "dummy original polygon esriJson";
 
     var expectedRequest = ValidatePolygonReconstructionFromPolylinesRequest.newBuilder()
-        .addLines(OrderedLineSegment.newBuilder()
-            .setEsriJsonPolyline(line1.getEsriJson())
-            .setRingNumber(line1.getRingNumber())
-            .setConnectionOrder(line1.getRingConnectionOrder())
-            .build())
-        .addLines(OrderedLineSegment.newBuilder()
-            .setEsriJsonPolyline(line2.getEsriJson())
-            .setRingNumber(line2.getRingNumber())
-            .setConnectionOrder(line2.getRingConnectionOrder())
-            .build())
+        .addAllEsriJsonPolylines(List.of(line1.getEsriJson(), line2.getEsriJson()))
         .setOriginalPolygonEsriJson(originalPolygonEsriJson)
         .build();
     var expectedResponse = ValidatePolygonReconstructionFromPolylinesResponse.newBuilder()

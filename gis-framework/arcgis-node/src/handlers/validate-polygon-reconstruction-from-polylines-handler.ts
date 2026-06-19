@@ -14,12 +14,8 @@ import { toGrpcInternalError } from "./grpc-error";
 export const validatePolygonReconstructionFromPolylinesHandler: ArcGisServiceHandlers["validatePolygonReconstructionFromPolylines"]
   = (call, callback) => {
     try {
-      const orderedLines = call.request.lines.map(line => ({
-        polyline: esriJsonToPolyline(line.esriJsonPolyline),
-        ringNumber: line.ringNumber,
-        connectionOrder: line.connectionOrder,
-      }));
-      const isValid = validatePolygonReconstructionFromPolylines(orderedLines, call.request.originalPolygonEsriJson);
+      const polylines = call.request.esriJsonPolylines.map(esriJsonPolyline => (esriJsonToPolyline(esriJsonPolyline)));
+      const isValid = validatePolygonReconstructionFromPolylines(polylines, call.request.originalPolygonEsriJson);
       callback(null, { isValid });
     } catch (error) {
       logger.error({ error }, "Error validating polygon reconstruction from polylines");

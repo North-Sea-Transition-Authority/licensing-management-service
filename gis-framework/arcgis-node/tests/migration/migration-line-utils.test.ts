@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  findParentLine,
   FIVE_CM_IN_DEGREES_AT_58N_ED50,
   getLineStartAndEndPoints,
+  getParentLineOrThrow,
 } from "../../src/migration/utils/migration-line-utils";
 import { esriJsonToPolyline } from "../../src/util/esrijson-util";
 import { makePolylineEsriJson } from "../test-utils/esrijson-test-util";
@@ -51,7 +51,7 @@ describe("migration-line-utils", () => {
     });
   });
 
-  describe("findParentLine", () => {
+  describe("getParentLineOrThrow", () => {
     it("should find the closest parent line when child points are on the parent", () => {
       const parent = makePolylineEsriJson([
         [
@@ -69,13 +69,13 @@ describe("migration-line-utils", () => {
       );
       const { startPoint, endPoint } = getLineStartAndEndPoints(polyline);
 
-      const result = findParentLine([parent], startPoint, endPoint);
+      const result = getParentLineOrThrow([parent], startPoint, endPoint);
 
       expect(result).toBeDefined();
       expect(result).toStrictEqual(polyline);
     });
 
-    it("should return undefined when child points are far from all parent lines", () => {
+    it("should throw when child points are far from all parent lines", () => {
       const parent = makePolylineEsriJson([
         [
           [0, 0],
@@ -92,9 +92,7 @@ describe("migration-line-utils", () => {
       );
       const { startPoint, endPoint } = getLineStartAndEndPoints(polyline);
 
-      const result = findParentLine([parent], startPoint, endPoint);
-
-      expect(result).toBeUndefined();
+      expect(() => getParentLineOrThrow([parent], startPoint, endPoint)).toThrow("Parent line is too far away");
     });
 
     it("should return the closest parent when multiple parents are provided", () => {
@@ -120,12 +118,12 @@ describe("migration-line-utils", () => {
       );
       const { startPoint, endPoint } = getLineStartAndEndPoints(polyline);
 
-      const result = findParentLine([farParent, closeParent], startPoint, endPoint);
+      const result = getParentLineOrThrow([farParent, closeParent], startPoint, endPoint);
 
       expect(result).toStrictEqual(esriJsonToPolyline(closeParent));
     });
 
-    it("should return undefined when no parent lines are provided", () => {
+    it("should throw when no parent lines are provided", () => {
       const polyline = esriJsonToPolyline(
         makePolylineEsriJson([
           [
@@ -136,9 +134,7 @@ describe("migration-line-utils", () => {
       );
       const { startPoint, endPoint } = getLineStartAndEndPoints(polyline);
 
-      const result = findParentLine([], startPoint, endPoint);
-
-      expect(result).toBeUndefined();
+      expect(() => getParentLineOrThrow([], startPoint, endPoint)).toThrow("Parent line is too far away");
     });
   });
 
@@ -162,7 +158,7 @@ describe("migration-line-utils", () => {
     );
     const { startPoint, endPoint } = getLineStartAndEndPoints(polyline);
 
-    const result = findParentLine([parent], startPoint, endPoint);
+    const result = getParentLineOrThrow([parent], startPoint, endPoint);
 
     expect(result).toStrictEqual(esriJsonToPolyline(parent));
   });

@@ -18,6 +18,7 @@ import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 import uk.co.fivium.gisframework.migration.oracle.AttributeLevel;
 import uk.co.fivium.gisframework.migration.oracle.EntityBackedOracleShape;
+import uk.co.fivium.gisframework.migration.oracle.Layer;
 import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineWithRing;
 import uk.co.fivium.gisframework.migration.oracle.OraclePolygonBoundary;
 import uk.co.fivium.gisframework.migration.oracle.OracleService;
@@ -56,6 +57,8 @@ public class ReferenceBlockMigrationService {
   }
 
   public void migrate(Collection<EntityBackedOracleShape> entityBackedOracleShapes) {
+    var allLicenseBlocks = featureService.findAllByAttribute("LAYER", Layer.BLOCKS.name());
+
     for (var entityBackedShape : entityBackedOracleShapes) {
       try {
         LOGGER.info("migrating {} {}", entityBackedShape.shape().getShapeSidId(), entityBackedShape.shape().getShapeName());
@@ -69,8 +72,8 @@ public class ReferenceBlockMigrationService {
 
         var polygonToLine = new HashMap<Polygon, List<Line>>();
 
-        var licenseBlockIds = oracleService.getLinkedParentShapeSiIds(newFeature.getLegacyId());
-        var licenseLines = lineService.findAllByFeatureLegacyIdIn(licenseBlockIds)
+        var licenceBlocks = featureService.findLicenseBlocksForRefBlock(newFeature, allLicenseBlocks);
+        var licenseLines = lineService.findAllByFeatureIn(licenceBlocks)
             .stream()
             .filter(line -> LineNavigationType.GEODESIC.equals(line.getNavigationType()))
             .toList();

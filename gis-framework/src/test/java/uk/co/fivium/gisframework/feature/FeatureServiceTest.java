@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
+import uk.co.fivium.gisframework.migration.oracle.Layer;
 
 @ExtendWith(MockitoExtension.class)
 class FeatureServiceTest {
@@ -166,20 +167,48 @@ class FeatureServiceTest {
 
   @Test
   void findLicenseBlocksForRefBlock() {
+    var referenceBlock = FeatureTestUtil.newBuilder()
+        .withFeatureName("16/30")
+        .withAttributes(Map.of("LAYER", Layer.OFFSHORE_REF_BLOCKS.name(), "QUADRANT_NO", "16", "BLOCK_NO", "30"))
+        .build();
+
     var matchingBlock = FeatureTestUtil.newBuilder()
         .withFeatureName("16/30a")
+        .withAttributes(Map.of("LAYER", Layer.BLOCKS.name(), "QUADRANT_NO", "16", "BLOCK_NO", "30"))
         .build();
     var matchingBrokenBlock = FeatureTestUtil.newBuilder()
         .withFeatureName("16/29c")
+        .withAttributes(Map.of("LAYER", Layer.BLOCKS.name(), "QUADRANT_NO", "16", "BLOCK_NO", "29"))
         .build();
     var nonMatchingBlock = FeatureTestUtil.newBuilder()
         .withFeatureName("16/31a")
+        .withAttributes(Map.of("LAYER", Layer.BLOCKS.name(), "QUADRANT_NO", "16", "BLOCK_NO", "31"))
+        .build();
+    var nonBlockLayerFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("16/30")
+        .withAttributes(Map.of("LAYER", Layer.SUBAREAS.name(), "QUADRANT_NO", "16", "BLOCK_NO", "30"))
+        .build();
+    var featureMissingQuadrantNo = FeatureTestUtil.newBuilder()
+        .withFeatureName("16/30b")
+        .withAttributes(Map.of("BLOCK_NO", "30"))
         .build();
 
-    when(featureRepository.findAllByAttribute("SHAPE_TYPE", "BLOCK"))
-        .thenReturn(List.of(matchingBlock, matchingBrokenBlock, nonMatchingBlock));
+    var featureMissingBlockNo = FeatureTestUtil.newBuilder()
+        .withFeatureName("16/30b")
+        .withAttributes(Map.of("QUADRANT_NO", "16"))
+        .build();
 
-    var result = featureService.findLicenseBlocksForRefBlock("16/30");
+    var result = featureService.findLicenseBlocksForRefBlock(
+        referenceBlock,
+        List.of(
+            matchingBlock,
+            matchingBrokenBlock,
+            nonMatchingBlock,
+            nonBlockLayerFeature,
+            featureMissingQuadrantNo,
+            featureMissingBlockNo
+        )
+    );
 
     assertThat(result).containsExactly(matchingBlock, matchingBrokenBlock);
   }

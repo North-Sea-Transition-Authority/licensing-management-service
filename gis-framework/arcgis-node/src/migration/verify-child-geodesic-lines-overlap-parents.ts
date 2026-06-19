@@ -1,7 +1,7 @@
 import * as containsOperator from "@arcgis/core/geometry/operators/containsOperator.js";
 import { logger } from "../config/logger";
 import { esriJsonToPolyline } from "../util/esrijson-util";
-import { findParentLine, getLineStartAndEndPoints } from "./utils/migration-line-utils";
+import { getLineStartAndEndPoints, getParentLineOrThrow } from "./utils/migration-line-utils";
 
 export type EsriJsonLineStringToIsGeodesic = {
   esriJsonPolyline: string,
@@ -32,9 +32,11 @@ export function childGeodesicLinesOverlapParents(
   childGeodesics.forEach((childLine) => {
     const child = esriJsonToPolyline(childLine.esriJsonPolyline);
     const { startPoint, endPoint } = getLineStartAndEndPoints(child);
-    const parent = findParentLine(parentGeodesicLines, startPoint, endPoint);
 
-    if (parent === undefined) {
+    let parent;
+    try {
+      parent = getParentLineOrThrow(parentGeodesicLines, startPoint, endPoint);
+    } catch {
       orphanedChildLinesJson.push(childLine.esriJsonPolyline);
       return;
     }

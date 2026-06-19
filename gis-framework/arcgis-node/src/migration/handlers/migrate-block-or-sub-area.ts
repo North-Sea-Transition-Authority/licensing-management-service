@@ -1,3 +1,4 @@
+import type Polyline from "@arcgis/core/geometry/Polyline.js";
 import type { ArcGisServiceHandlers } from "../../../generated/uk/co/fivium/grpc/gis/ArcGisService";
 import type {
   MigrateBlockOrSubAreaResponse,
@@ -12,7 +13,7 @@ import { GrpcError } from "../../handlers/grpc-error";
 import { getCoordinateSystemWkid } from "../../util/coordinate-system-utils";
 import { geoJsonLineInputToLinesWithNavigationTypeAndId } from "../types/line-with-navigation-wrapper";
 import { fixDirectionOfAllLines } from "../utils/fix-direction-of-all-lines";
-import { findParentLine, getLineStartAndEndPoints } from "../utils/migration-line-utils";
+import { getLineStartAndEndPoints, getParentLineOrThrow } from "../utils/migration-line-utils";
 import {
   getNearestParentStartAndEndNodes,
   mergeParentDensePointsIntoChildLine,
@@ -43,9 +44,11 @@ export const migrateBlockOrSubarea: ArcGisServiceHandlers["migrateBlockOrSubarea
     }
 
     const { startPoint: childStartPoint, endPoint: childEndPoint } = getLineStartAndEndPoints(line);
-    const parent = findParentLine(parentLineEsriJsonStrings, childStartPoint, childEndPoint, shapeId);
-    if (parent === undefined) {
-      const errorMessage = `Geodesic child line should have associated parent line but none were found. shapeId: ${shapeId}, lineSsid: ${id}`;
+    let parent: Polyline;
+    try {
+      parent = getParentLineOrThrow(parentLineEsriJsonStrings, childStartPoint, childEndPoint, shapeId);
+    } catch (error) {
+      const errorMessage = `Geodesic parent line not found. ${error instanceof Error ? error.message : error}`;
       logger.error(errorMessage);
       throw new GrpcError(status.INVALID_ARGUMENT, errorMessage);
     }

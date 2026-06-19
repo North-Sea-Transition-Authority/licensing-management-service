@@ -124,7 +124,7 @@ public class MigrationService {
 
         var areaDifference = newFeature.getFeatureArea().subtract(BigDecimal.valueOf(entityBackedShape.shape().getShareAreaM2()));
         if (areaDifference.abs().compareTo(BigDecimal.valueOf(50)) > 0) {
-          LOGGER.warn("Feature {} has area difference of {}", newFeature.getFeatureName(), areaDifference);
+          LOGGER.warn("Feature {} has area difference of {}", newFeature.getLegacyId(), areaDifference);
         }
       } catch (Exception e) {
         LOGGER.error("Error while migrating shape si id {}", entityBackedShape.shape().getShapeSiId(), e);

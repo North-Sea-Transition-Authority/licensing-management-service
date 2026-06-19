@@ -5,7 +5,7 @@ import { logger } from "../../config/logger";
 import { esriJsonToPolyline } from "../../util/esrijson-util";
 
 export const FIVE_CM_IN_DEGREES_AT_58N_ED50 = 0.00000087;
-export const ONE_HUNDRED_METERS_ED50 = FIVE_CM_IN_DEGREES_AT_58N_ED50 * 2000;
+export const ONE_METER_IN_DEGREES_AT_58N_ED50 = FIVE_CM_IN_DEGREES_AT_58N_ED50 * 20;
 
 /**
  * Gets the start and end points of a polyline.
@@ -34,14 +34,15 @@ export function getLineStartAndEndPoints(polyline: Polyline): { startPoint: Poin
  * @param childStartPoint the first point, e.g., the start of a child line.
  * @param childEndPoint the second point, e.g., the end of a child line.
  * @param shapeId the id of the child shape being migrated, used to correlate logs.
- * @returns A Polyline which is the closest to both points, or undefined if there is no line within 5 cm of both points.
+ * @returns A Polyline which is the closest to both points.
+ * @throws Error if there is no line within 5 cm of both points.
  */
-export function findParentLine(
+export function getParentLineOrThrow(
   parentLines: string[],
   childStartPoint: Point,
   childEndPoint: Point,
   shapeId?: string,
-): Polyline | undefined {
+): Polyline {
   let parent: Polyline | undefined;
   let closestCombinedDistance = Number.POSITIVE_INFINITY;
   let closestStartDistance = Number.POSITIVE_INFINITY;
@@ -61,9 +62,12 @@ export function findParentLine(
     }
   });
 
-  if (closestStartDistance > FIVE_CM_IN_DEGREES_AT_58N_ED50 || closestEndDistance > FIVE_CM_IN_DEGREES_AT_58N_ED50) {
-    logger.error(`Parent line is too far away. Start difference: ${closestStartDistance} end difference: ${closestEndDistance}, shapeId: ${shapeId}`);
-    return undefined;
+  if (parent === undefined
+    || closestStartDistance > FIVE_CM_IN_DEGREES_AT_58N_ED50
+    || closestEndDistance > FIVE_CM_IN_DEGREES_AT_58N_ED50) {
+    const errorMessage = `Parent line is too far away. Start difference: ${closestStartDistance} end difference: ${closestEndDistance}, shapeId: ${shapeId}`;
+    logger.error(errorMessage);
+    throw new Error(errorMessage);
   }
 
   return parent;

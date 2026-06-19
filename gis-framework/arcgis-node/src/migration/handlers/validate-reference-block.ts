@@ -38,6 +38,9 @@ export const validateReferenceBlock: ArcGisServiceHandlers["validateReferenceBlo
         wkid,
       );
       if (!containsOperator.execute(unionedRefBlockPolygon, unionedLicenseBlockPolygon)) {
+        logger.info(`unionedRefBlockPolygon: ${JSON.stringify(unionedRefBlockPolygon.toJSON())}`);
+        logger.info(`unionedLicenseBlockPolygon: ${JSON.stringify(unionedLicenseBlockPolygon.toJSON())}`);
+
         callback(null, {
           isValid: false,
           message: `Reference block does not contain all of its licence blocks.`,

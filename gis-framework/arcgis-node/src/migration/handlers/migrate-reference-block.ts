@@ -14,7 +14,11 @@ import { getCoordinateSystemWkid } from "../../util/coordinate-system-utils";
 import { esriJsonToPolyline } from "../../util/esrijson-util";
 import { findLoxodromeThatConnectsToPointOnSetBearing } from "../types/line-with-bearing-wrapper";
 import { geoJsonLineInputToLinesWithNavigationTypeAndId } from "../types/line-with-navigation-wrapper";
-import { getLineStartAndEndPoints, ONE_HUNDRED_METERS_ED50 } from "../utils/migration-line-utils";
+import {
+  FIVE_CM_IN_DEGREES_AT_58N_ED50,
+  getLineStartAndEndPoints,
+  ONE_METER_IN_DEGREES_AT_58N_ED50,
+} from "../utils/migration-line-utils";
 import {
   findLineConnectingToPointNotOnBearing,
   findPointOfIntersectionBetweenChildPointOnBearingAndParentLine,
@@ -22,7 +26,6 @@ import {
   GEODESIC_DENSE_POINT_METERS_INTERVAL,
   getIndexOfPointOnLine,
   isApproximatelyEqual,
-  ONE_ARC_SECOND,
 } from "../utils/migration-utils";
 
 export const migrateReferenceBlockHandler: ArcGisServiceHandlers["migrateReferenceBlock"] = asyncHandler(async (call): Promise<MigrateReferenceBlockResponse> => {
@@ -119,7 +122,6 @@ async function migrateReferenceBlock(
   logger.debug(`Building result from ${combinedGeodesicAndLoxodromes.length} lines`);
   const result: { esriJsonString: string, oracleLineSsid: number }[] = [];
   combinedGeodesicAndLoxodromes.forEach((lineWrapper) => {
-    logger.debug(`oracleLineSsid: ${lineWrapper.id} json: ${JSON.stringify(lineWrapper.line.toJSON())} `);
     result.push({
       esriJsonString: JSON.stringify(lineWrapper.line),
       oracleLineSsid: lineWrapper.id,
@@ -309,7 +311,7 @@ export function findIntersectionPoint(
       refBlockPoint,
       lineOnBearing.setBearing,
       licenseLine,
-      ONE_ARC_SECOND * 30,
+      ONE_METER_IN_DEGREES_AT_58N_ED50,
     );
 
     if (intersectionWithRefPoint) {
@@ -321,7 +323,7 @@ export function findIntersectionPoint(
       licensePoint,
       lineOnBearing.setBearing,
       refBlockLine,
-      ONE_ARC_SECOND * 30,
+      ONE_METER_IN_DEGREES_AT_58N_ED50,
     );
     if (intersectionWithLicensePoint) {
       logger.debug(`intersectionWithLicensePoint ${intersectionWithLicensePoint.x}, ${intersectionWithLicensePoint.y}`);
@@ -337,8 +339,8 @@ export function findIntersectionPoint(
   const nearestToLicensePoint = proximityOperator.getNearestCoordinate(refBlockLine, licensePoint);
   const nearest
     = nearestToRefBlockPoint.distance < nearestToLicensePoint.distance ? nearestToRefBlockPoint : nearestToLicensePoint;
-  if (nearest.distance > ONE_HUNDRED_METERS_ED50) {
-    logger.debug(`Nearest distance is ${nearest.distance}, which is further than the 100m limit`);
+  if (nearest.distance > (FIVE_CM_IN_DEGREES_AT_58N_ED50 * 20)) {
+    logger.debug(`Nearest distance is ${nearest.distance}, which is further than the 1m limit`);
     return undefined;
   }
   logger.debug("Nearest non bearing point used");

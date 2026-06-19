@@ -74,7 +74,7 @@ describe("validateTopologicallyEqual", () => {
 
     expect(callback).toHaveBeenCalledWith(null, {
       isValid: false,
-      message: "Polygons are not topologically equal",
+      message: "Child polygons are not topologically equal to parent polygons",
     });
   });
 

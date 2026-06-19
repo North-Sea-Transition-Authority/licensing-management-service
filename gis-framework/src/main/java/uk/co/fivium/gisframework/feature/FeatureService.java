@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
+import uk.co.fivium.gisframework.migration.oracle.Layer;
 
 @Service
 public class FeatureService {
@@ -83,21 +84,27 @@ public class FeatureService {
   }
 
   /**
-   * This method finds all the license blocks for a given reference block.
-   * License blocks are linked to references blocks based on their name. A reference block would be called something like "11/24",
-   * and a license block would be called "11/24a". There are additionally some license blocks which span multiple references
-   * blocks. These special license blocks are defined in the configuration properties.
-   *
-   * @param refBlockName The name of the reference block.
-   * @return A list of features which are all the license block in the given reference block.
+   * This method finds all the licence blocks for a given reference block.
+   * Licence blocks are linked to reference blocks based on their QUADRANT_NO and BLOCK_NO feature attributes.
+   * Some licence blocks span multiple ref blocks, and therefore the attributes won't match. These need to be manually included
+   * in the brokenBlockConfigurationProperties
+   * @param referenceBlock The reference block Feature.
+   * @param licenceBlocks A list of all the licence block features
+   * @return A list of features which are all the licence blocks in the given reference block.
    */
-  public List<Feature> findLicenseBlocksForRefBlock(String refBlockName) {
-    return findAllByAttribute("SHAPE_TYPE", "BLOCK")
+  public List<Feature> findLicenseBlocksForRefBlock(Feature referenceBlock, Collection<Feature> licenceBlocks) {
+    var brokenLicenseBlockNames = brokenBlockConfigurationProperties.getBrokenLicenseBlockNames(referenceBlock.getFeatureName());
+
+    var quadrantNumber = String.valueOf(referenceBlock.getAttributes().get("QUADRANT_NO"));
+    var blockNumber = String.valueOf(referenceBlock.getAttributes().get("BLOCK_NO"));
+
+    return licenceBlocks
         .stream()
-        .filter(licenseBlock ->
-            licenseBlock.getFeatureName().startsWith(refBlockName)
-                || brokenBlockConfigurationProperties.getBrokenLicenseBlockNames(refBlockName)
-                .contains(licenseBlock.getFeatureName())
+        .filter(block -> Layer.BLOCKS.name().equals(String.valueOf(block.getAttributes().get("LAYER"))))
+        .filter(block -> (
+            quadrantNumber.equals(String.valueOf(block.getAttributes().get("QUADRANT_NO")))
+                && blockNumber.equals(String.valueOf(block.getAttributes().get("BLOCK_NO"))))
+            || brokenLicenseBlockNames.contains(block.getFeatureName())
         )
         .toList();
   }

@@ -24,7 +24,7 @@ export const validateTopologicallyEqual: ArcGisServiceHandlers["validateTopologi
     const isTopologicallyEqual = equalsOperator.execute(unionedChildPolygon, unionedParentPolygon);
 
     if (!isTopologicallyEqual) {
-      callback(null, { isValid: false, message: "Polygons are not topologically equal" });
+      callback(null, { isValid: false, message: "Child polygons are not topologically equal to parent polygons" });
       return;
     }
     callback(null, { isValid: true });

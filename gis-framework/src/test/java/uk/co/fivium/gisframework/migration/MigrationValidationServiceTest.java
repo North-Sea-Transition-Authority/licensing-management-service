@@ -2,12 +2,18 @@ package uk.co.fivium.gisframework.migration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.co.fivium.gisframework.LoggerTestUtil.detachLogAppender;
 import static uk.co.fivium.gisframework.LoggerTestUtil.getLogAppender;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,7 +30,6 @@ import uk.co.fivium.gisframework.feature.FeatureTestUtil;
 import uk.co.fivium.gisframework.feature.LineTestUtil;
 import uk.co.fivium.gisframework.feature.PolygonTestUtil;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
-import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
 import uk.co.fivium.gisframework.migration.oracle.Layer;
 import uk.co.fivium.gisframework.migration.oracle.OracleService;
 import uk.co.fivium.gisframework.migration.oracle.OracleShapeLinkTestUtil;
@@ -32,8 +37,6 @@ import uk.co.fivium.grpc.gis.ValidationResponse;
 
 @ExtendWith(MockitoExtension.class)
 class MigrationValidationServiceTest {
-
-  private static final String BROKEN_LICENSE_BLOCK_NAME = "16/30c";
 
   @Mock
   private FeatureService featureService;
@@ -51,7 +54,6 @@ class MigrationValidationServiceTest {
     migrationValidationService = new MigrationValidationService(
         featureService,
         grpcClientService,
-        new BrokenBlockConfigurationProperties(Map.of("16/30", List.of(BROKEN_LICENSE_BLOCK_NAME))),
         oracleService
     );
   }
@@ -275,7 +277,7 @@ class MigrationValidationServiceTest {
             isValid ? Level.INFO : Level.ERROR,
             isValid
                 ? "Parent %s is topologically equal to all of its children".formatted(parentFeature.getLegacyId())
-                : "Validation error: some message Feature: %s".formatted(parentFeature.getLegacyId())
+                : "Validation error: some message Parent Feature: %s".formatted(parentFeature.getLegacyId())
         ));
   }
 
@@ -318,14 +320,17 @@ class MigrationValidationServiceTest {
         .withFeatureName("16/30")
         .withLegacyId(300)
         .withAttributes(Map.of("LAYER", Layer.OFFSHORE_REF_BLOCKS.name()))
+        .withEndDate(null)
         .build();
     var licenseBlockFeature = FeatureTestUtil.newBuilder()
         .withFeatureName("16/30a")
         .withAttributes(Map.of("LAYER", Layer.BLOCKS.name()))
+        .withEndDate(null)
         .build();
-    var brokenLicenseBlockFeature = FeatureTestUtil.newBuilder()
-        .withFeatureName(BROKEN_LICENSE_BLOCK_NAME)
+    var endedLicenseBlockFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("16/30a")
         .withAttributes(Map.of("LAYER", Layer.BLOCKS.name()))
+        .withEndDate(LocalDate.of(2020, Month.JANUARY, 1))
         .build();
 
     var refBlockEntityBacked = new EntityBackedFeature(refBlockFeature, Map.of());
@@ -337,9 +342,11 @@ class MigrationValidationServiceTest {
         Layer.OFFSHORE_REF_BLOCKS.name()
     );
     when(featureService.findAllByAttribute("LAYER", Layer.BLOCKS.name()))
-        .thenReturn(List.of(licenseBlockFeature, brokenLicenseBlockFeature));
+        .thenReturn(List.of(licenseBlockFeature, endedLicenseBlockFeature));
     when(featureService.findAllByAttributeValueIn("LAYER", refBlockLayers)).thenReturn(List.of(refBlockFeature));
     when(featureService.getEntityBackedFeatures(List.of(refBlockFeature))).thenReturn(List.of(refBlockEntityBacked));
+    when(featureService.findLicenseBlocksForRefBlock(refBlockFeature, List.of(licenseBlockFeature, endedLicenseBlockFeature)))
+        .thenReturn(List.of(licenseBlockFeature, endedLicenseBlockFeature));
     when(featureService.getEntityBackedFeatures(List.of(licenseBlockFeature)))
         .thenReturn(List.of(licenseBlockEntityBacked));
 
@@ -364,5 +371,38 @@ class MigrationValidationServiceTest {
                 ? "All license blocks are contained by ref block %s".formatted(refBlockFeature.getLegacyId())
                 : "Validation error: some message Reference Block: %s".formatted(refBlockFeature.getLegacyId())
         ));
+  }
+
+  @Test
+  void validateReferenceBlocks_whenNoActiveLicenceBlocks() {
+
+    var refBlockFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("16/30")
+        .withLegacyId(300)
+        .withAttributes(Map.of("LAYER", Layer.OFFSHORE_REF_BLOCKS.name()))
+        .withEndDate(null)
+        .build();
+    var endedLicenseBlockFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("16/30a")
+        .withAttributes(Map.of("LAYER", Layer.BLOCKS.name()))
+        .withEndDate(LocalDate.of(2020, Month.JANUARY, 1))
+        .build();
+
+    var refBlockEntityBacked = new EntityBackedFeature(refBlockFeature, Map.of());
+
+    var refBlockLayers = List.of(
+        Layer.OFFSHORE_CROP_REF_BLOCKS.name(),
+        Layer.ONSHORE_CROP_REF_BLOCKS.name(),
+        Layer.OFFSHORE_REF_BLOCKS.name()
+    );
+    when(featureService.findAllByAttribute("LAYER", Layer.BLOCKS.name())).thenReturn(List.of(endedLicenseBlockFeature));
+    when(featureService.findAllByAttributeValueIn("LAYER", refBlockLayers)).thenReturn(List.of(refBlockFeature));
+    when(featureService.getEntityBackedFeatures(List.of(refBlockFeature))).thenReturn(List.of(refBlockEntityBacked));
+    when(featureService.findLicenseBlocksForRefBlock(refBlockFeature, List.of(endedLicenseBlockFeature)))
+        .thenReturn(List.of(endedLicenseBlockFeature));
+
+    migrationValidationService.validateReferenceBlocks();
+
+    verify(grpcClientService, never()).validateReferenceBlock(any(), anyList());
   }
 }

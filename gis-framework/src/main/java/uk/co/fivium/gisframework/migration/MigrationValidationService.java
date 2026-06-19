@@ -16,7 +16,6 @@ import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.Line;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
-import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
 import uk.co.fivium.gisframework.migration.oracle.Layer;
 import uk.co.fivium.gisframework.migration.oracle.OracleService;
 import uk.co.fivium.gisframework.migration.oracle.OracleShapeLink;
@@ -29,18 +28,15 @@ public class MigrationValidationService {
 
   private final FeatureService featureService;
   private final GrpcClientService grpcClientService;
-  private final BrokenBlockConfigurationProperties brokenBlockConfigurationProperties;
   private final OracleService oracleService;
 
   public MigrationValidationService(
       FeatureService featureService,
       GrpcClientService grpcClientService,
-      BrokenBlockConfigurationProperties brokenBlockConfigurationProperties,
       OracleService oracleService
   ) {
     this.featureService = featureService;
     this.grpcClientService = grpcClientService;
-    this.brokenBlockConfigurationProperties = brokenBlockConfigurationProperties;
     this.oracleService = oracleService;
   }
 
@@ -172,7 +168,7 @@ public class MigrationValidationService {
       );
 
       if (!response.getIsValid()) {
-        LOGGER.error("Validation error: {} Feature: {}",
+        LOGGER.error("Validation error: {} Parent Feature: {}",
             response.getMessage(),
             entityBackedBlock.feature().getLegacyId()
         );
@@ -194,14 +190,16 @@ public class MigrationValidationService {
     );
 
     for (var entityBackedRefBlock : entityBackedRefBlocks) {
-      var refBlockName = entityBackedRefBlock.feature().getFeatureName();
-      var brokenLicenseBlockNames = brokenBlockConfigurationProperties.getBrokenLicenseBlockNames(refBlockName);
+      var refblock = entityBackedRefBlock.feature();
 
-      var filteredLicenseBlocks = licenseBlocks
+      var filteredLicenseBlocks = featureService.findLicenseBlocksForRefBlock(refblock, licenseBlocks)
           .stream()
-          .filter(block -> block.getFeatureName().startsWith(refBlockName))
-          .filter(block -> !brokenLicenseBlockNames.contains(block.getFeatureName()))
+          .filter(f -> f.getEndDate() == null)
           .toList();
+
+      if (filteredLicenseBlocks.isEmpty()) {
+        continue;
+      }
 
       var response = grpcClientService.validateReferenceBlock(
           entityBackedRefBlock,

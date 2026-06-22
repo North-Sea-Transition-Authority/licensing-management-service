@@ -19,9 +19,15 @@ public class CarbonStorageLicenceMigrationController {
     this.carbonStorageLicenceMigrationService = carbonStorageLicenceMigrationService;
   }
 
-  @GetMapping
-  public ResponseEntity<String> migrate() {
-    carbonStorageLicenceMigrationService.migrate();
-    return ResponseEntity.ok("migrated");
+  @GetMapping("/licences")
+  public ResponseEntity<String> migrateLicences() {
+    carbonStorageLicenceMigrationService.migrateLicences();
+    return ResponseEntity.ok("licences migrated");
+  }
+
+  @GetMapping("/schedules")
+  public ResponseEntity<String> migrateSchedules() {
+    carbonStorageLicenceMigrationService.migrateSchedules();
+    return ResponseEntity.ok("schedules migrated");
   }
 }

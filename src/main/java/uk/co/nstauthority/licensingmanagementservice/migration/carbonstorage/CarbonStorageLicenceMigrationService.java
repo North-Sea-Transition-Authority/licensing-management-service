@@ -68,7 +68,7 @@ public class CarbonStorageLicenceMigrationService {
   }
 
   @Transactional
-  public void migrate() {
+  public void migrateLicences() {
     var carbonStorageLicenceMigrationExtracts = carbonStorageLicenceMigrationExtractRepository.findAll();
 
     var currentLicenceId = licenceService.getNextLicenceId();
@@ -103,22 +103,29 @@ public class CarbonStorageLicenceMigrationService {
       }
     }
 
-    var savedLicences = licenceService.saveLicences(licences);
+    licenceService.saveLicences(licences);
     licenceResponsibleOrganisationService.saveLicensees(licenceResponsibleOrganisations);
+  }
+
+  @Transactional
+  public void migrateSchedules() {
+    var csLicences = licenceService.getAllLicences().stream()
+        .filter(licence -> LicenceType.CARBON_STORAGE.equals(licence.getType()))
+        .toList();
 
     var licenceSchedules = new ArrayList<LicenceSchedule>();
 
-    for (var licence : savedLicences) {
+    for (var licence : csLicences) {
       var licenceSchedule = new LicenceSchedule();
       licenceSchedule.setLicence(licence);
       licenceSchedules.add(licenceSchedule);
     }
 
-    var saveLicenceSchedules = licenceScheduleService.saveLicenceSchedules(licenceSchedules);
+    var savedLicenceSchedules = licenceScheduleService.saveLicenceSchedules(licenceSchedules);
 
     var licenceScheduleDetails = new ArrayList<LicenceScheduleDetail>();
 
-    for (var licenceSchedule : saveLicenceSchedules) {
+    for (var licenceSchedule : savedLicenceSchedules) {
       var licenceScheduleDetail = new LicenceScheduleDetail();
       licenceScheduleDetail.setLicenceSchedule(licenceSchedule);
       licenceScheduleDetail.setStatus(LicenceScheduleDetailStatus.ACTIVE);

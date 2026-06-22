@@ -52,7 +52,7 @@ public class ContinuationLicenseeInformationSummarySectionService
   }
 
   private SummaryCard getLicenceSummaryCard(LicenceContinuationApplicationDetail licenceContinuationApplicationDetail) {
-    var licence = licenceContinuationApplicationDetail.getLicenceContinuationApplication().getLicenceSchedule().getLicence();
+    var licence = licenceContinuationApplicationDetail.getLicence();
     var summaryDataView = SummaryDataView.newBuilder()
         .addStringValue("Licence reference", licence.getLicenceReference());
 

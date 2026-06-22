@@ -17,7 +17,6 @@ import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDeleteController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
@@ -35,16 +34,13 @@ public class ScheduleWorkProgrammeApplicationTaskListController {
   public static final String PAGE_TITLE = "Task list";
 
   private final ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService;
-  private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final LicenceService licenceService;
 
   public ScheduleWorkProgrammeApplicationTaskListController(
       ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService,
-      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
       LicenceService licenceService
   ) {
     this.scheduleWorkProgrammeApplicationTaskListService = scheduleWorkProgrammeApplicationTaskListService;
-    this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.licenceService = licenceService;
   }
 
@@ -59,9 +55,7 @@ public class ScheduleWorkProgrammeApplicationTaskListController {
         serviceUserDetail
     );
 
-    var licence = scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(
-        scheduleWorkProgrammeApplicationDetail
-    );
+    var licence = scheduleWorkProgrammeApplicationDetail.getLicence();
 
     var modelAndView = new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/taskList")
         .addObject("taskListSections", sections)

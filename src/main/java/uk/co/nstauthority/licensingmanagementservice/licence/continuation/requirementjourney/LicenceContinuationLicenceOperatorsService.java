@@ -22,7 +22,7 @@ public class LicenceContinuationLicenceOperatorsService {
   }
 
   public List<Subarea> getSubareasForApplication(LicenceContinuationApplicationDetail detail) {
-    Integer licenceId = detail.getLicenceContinuationApplication().getLicenceSchedule().getLicence().getId();
+    var licenceId = detail.getLicence().getId();
     return subareaQueryService.searchSubareasByLicenceIds(List.of(licenceId));
   }
 

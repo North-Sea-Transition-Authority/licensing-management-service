@@ -1,6 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.application;
 
 import java.util.EnumSet;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -9,9 +11,11 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
@@ -60,59 +64,66 @@ public class ApplicationAccessService {
   }
 
   public boolean userHasAccessToApplication(
-      String applicationId,
-      ApplicationType applicationType,
-      Integer organisationUnitId,
+      LicenceApplicationDetail applicationDetail,
+      Map<Integer, Integer> orgUnitIdToGroupId,
       Long wuaId
   ) {
-    var allowedRoles = StreamUtil.unionSets(
-        Set.of(
-            Role.EXTERNAL_APPLICATION_EDITOR,
-            Role.APPLICATION_EDITOR,
-            Role.APPLICATION_SUBMITTER
-        ),
+    var applicationId = applicationDetail.getLicenceApplication().getId();
+    var applicationType = applicationDetail.getLicenceApplication().getApplicationType();
+    var appHasBeenSubmitted = applicationDetail.getSubmittedDatetime() != null;
+
+    var teamRoles = teamQueryService.getTeamRolesForUser(wuaId);
+
+    var allowedDrafterRoles = Set.of(Role.EXTERNAL_APPLICATION_EDITOR, Role.APPLICATION_EDITOR, Role.APPLICATION_SUBMITTER);
+
+    if (!appHasBeenSubmitted) {
+      var responsibleOrgGroupIds = Optional.ofNullable(applicationDetail.getResponsibleOrganisationUnitId())
+          .map(orgUnitIdToGroupId::get)
+          .map(groupId -> Set.of(String.valueOf(groupId)))
+          .orElse(Set.of());
+
+      return teamRoles.stream()
+          .filter(teamRole -> allowedDrafterRoles.contains(teamRole.getRole()))
+          .map(TeamRole::getTeam)
+          .anyMatch(team ->
+              isExternalContributor(team, applicationId.toString(), applicationType)
+              || isLicenseeOrgGroupMember(team, responsibleOrgGroupIds)
+          );
+    }
+
+    var allowedSubmittedRoles = StreamUtil.unionSets(
+        allowedDrafterRoles,
         STEWARD_ROLES,
         CASE_MANAGER_ROLES,
         CONTINUATION_REVIEWER_ROLES,
         DECISION_ISSUER_ROLES
     );
 
-    var organisationGroupIds = organisationUnitQueryService.findOrganisationGroupIdByUnitId(organisationUnitId)
+    var organisationGroupIds = orgUnitIdToGroupId.values().stream()
         .map(String::valueOf)
-        .map(Set::of)
-        .orElse(Set.of());
+        .collect(Collectors.toSet());
 
-    return teamQueryService.getTeamRolesForUser(wuaId).stream()
-                           .filter(teamRole -> allowedRoles.contains(teamRole.getRole()))
-                           .anyMatch(teamRole ->
-                               isMatchingExternalContributorOrOrganisationTeam(
-                                 teamRole.getTeam(),
-                                 applicationId,
-                                 applicationType,
-                                 organisationGroupIds
-                               )
-                               || isCaseManagerOrSteward(teamRole.getRole())
-                               || isContinuationReviewer(teamRole.getRole(), applicationType)
-                               || isDecisionIssuer(teamRole.getRole())
-                           );
+    return teamRoles.stream()
+        .filter(teamRole -> allowedSubmittedRoles.contains(teamRole.getRole()))
+        .anyMatch(teamRole ->
+            isExternalContributor(teamRole.getTeam(), applicationId.toString(), applicationType)
+            || isLicenseeOrgGroupMember(teamRole.getTeam(), organisationGroupIds)
+            || isCaseManagerOrSteward(teamRole.getRole())
+            || isContinuationReviewer(teamRole.getRole(), applicationType)
+            || isDecisionIssuer(teamRole.getRole())
+        );
   }
 
-  private boolean isMatchingExternalContributorOrOrganisationTeam(
-      Team team,
-      String applicationId,
-      ApplicationType applicationType,
-      Set<String> organisationGroupIds
-  ) {
+  private boolean isLicenseeOrgGroupMember(Team team, Set<String> organisationGroupIds) {
+    return team.getTeamType() == TeamType.ORGANISATION
+        && ScopeType.ORGANISATION_GROUP.name().equals(team.getScopeType())
+        && organisationGroupIds.contains(team.getScopeId());
+  }
 
-    var isExternalContributor = team.getTeamType() == TeamType.EXTERNAL_CONTRIBUTORS
-                                && applicationId.equals(team.getScopeId())
-                                && team.getScopeType().equals(applicationType.name());
-
-    var isOrganisationGroup = team.getTeamType() == TeamType.ORGANISATION
-                              && organisationGroupIds.contains(team.getScopeId())
-                              && team.getScopeType().equals(ScopeType.ORGANISATION_GROUP.name());
-
-    return isExternalContributor || isOrganisationGroup;
+  private boolean isExternalContributor(Team team, String applicationId, ApplicationType applicationType) {
+    return team.getTeamType() == TeamType.EXTERNAL_CONTRIBUTORS
+        && applicationId.equals(team.getScopeId())
+        && team.getScopeType().equals(applicationType.name());
   }
 
   private boolean isCaseManagerOrSteward(

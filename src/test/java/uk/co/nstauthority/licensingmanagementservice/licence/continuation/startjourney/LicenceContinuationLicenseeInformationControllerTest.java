@@ -28,7 +28,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -38,9 +37,6 @@ class LicenceContinuationLicenseeInformationControllerTest extends AbstractContr
 
   @MockitoBean
   private LicenceContinuationLicenseeInformationFormValidator licenceContinuationLicenseeInformationFormValidator;
-
-  @MockitoBean
-  private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
 
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;

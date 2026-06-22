@@ -27,7 +27,6 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
@@ -86,12 +85,7 @@ class LicenceContinuationWpaRequirementControllerTest extends AbstractController
         .thenReturn(form);
     when(workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(any()))
         .thenReturn(activities);
-    when(applicationAccessService.userHasAccessToApplication(
-        String.valueOf(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId()),
-        ApplicationType.CONTINUATION_APPLICATION,
-        null,
-        organisationUser.wuaId()))
-        .thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
     when(licenceContinuationService.getDetailByIdOrThrow(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId()))
         .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
 
@@ -115,12 +109,7 @@ class LicenceContinuationWpaRequirementControllerTest extends AbstractController
         .thenReturn(true);
     when(licenceContinuationService.getDetailByIdOrThrow(any()))
         .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
-    when(applicationAccessService.userHasAccessToApplication(
-        String.valueOf(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId()),
-        ApplicationType.CONTINUATION_APPLICATION,
-        null,
-        organisationUser.wuaId()))
-        .thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
     when(licenceContinuationService.getDetailByIdOrThrow(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId()))
         .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
 
@@ -143,7 +132,7 @@ class LicenceContinuationWpaRequirementControllerTest extends AbstractController
   void renderForm_Invalid() throws Exception {
     when(licenceContinuationService.getDetailByIdOrThrow(any()))
         .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any()))
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any()))
         .thenReturn(false);
 
     mockMvc.perform(
@@ -158,7 +147,7 @@ class LicenceContinuationWpaRequirementControllerTest extends AbstractController
   void submitForm_Invalid() throws Exception {
     when(licenceContinuationService.getDetailByIdOrThrow(any()))
         .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any()))
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any()))
         .thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(

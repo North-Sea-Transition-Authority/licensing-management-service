@@ -68,8 +68,7 @@ public class ScheduleAmendmentApplicationReviewAndSubmitController {
     return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/reviewAndSubmit")
         .addObject("cancelUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
             .getTaskList(applicationDetail.getId(), null, null)))
-        .addObject("pageCaption", licenceService.getLicencePageCaption(
-            scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail)))
+        .addObject("pageCaption", licenceService.getLicencePageCaption(applicationDetail.getLicence()))
         .addObject("summarySections", licenceScheduleSummarySectionService.getSummarySections(applicationDetail, null))
         .addObject("accordionId", applicationDetail.getId())
         .addObject("isSubmittable", isSubmittable)

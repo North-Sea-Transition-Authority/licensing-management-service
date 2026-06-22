@@ -156,14 +156,8 @@ public class LicenceContinuationService {
     if (app.getSubmittedLicenceScheduleDetail() != null) {
       return app.getSubmittedLicenceScheduleDetail();
     }
-    var licence = app.getLicenceSchedule().getLicence();
+    var licence = detail.getLicence();
     return licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE);
-  }
-
-  public Licence getLicenceFromContinuationApplicationDetail(
-      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
-  ) {
-    return getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail).getLicenceSchedule().getLicence();
   }
 
   @Transactional
@@ -173,12 +167,11 @@ public class LicenceContinuationService {
   ) {
     var appReference = generateApplicationReference();
 
-    LicenceContinuationApplication licenceContinuationApplication
-        = licenceContinuationApplicationDetail.getLicenceContinuationApplication();
+    var licenceContinuationApplication = licenceContinuationApplicationDetail.getLicenceContinuationApplication();
     licenceContinuationApplication.setApplicationReference(appReference);
 
     var activeDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
-        licenceContinuationApplication.getLicenceSchedule().getLicence(),
+        licenceContinuationApplicationDetail.getLicence(),
         LicenceScheduleDetailStatus.ACTIVE);
     licenceContinuationApplication.setSubmittedLicenceScheduleDetail(activeDetail);
 

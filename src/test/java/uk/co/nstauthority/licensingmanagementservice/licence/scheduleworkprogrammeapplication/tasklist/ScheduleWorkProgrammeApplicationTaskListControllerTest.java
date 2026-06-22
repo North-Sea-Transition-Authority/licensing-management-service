@@ -68,12 +68,8 @@ class ScheduleWorkProgrammeApplicationTaskListControllerTest extends AbstractCon
     when(scheduleWorkProgrammeApplicationTaskListService.getAllSections(SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL, USER
     )).thenReturn(sections);
 
-    when(scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(
-        SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL
-    )).thenReturn(LICENCE);
-
     when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(CAPTION);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(get(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
         id, null, null))
@@ -122,7 +118,7 @@ class ScheduleWorkProgrammeApplicationTaskListControllerTest extends AbstractCon
         .build();
 
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
 
     mockMvc.perform(get(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
         id, null, null))).with(user(USER))).andExpect(status().isForbidden());

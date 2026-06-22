@@ -25,7 +25,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
@@ -73,15 +72,9 @@ class LicenceContinuationApplicationTaskListControllerTest extends AbstractContr
     var sections = List.of(new TaskListSection("Section 1", 10, items));
 
     when(licenceContinuationApplicationTaskListService.getAllSections(LICENCE_CONTINUATION_APPLICATION_DETAIL, USER)).thenReturn(sections);
-    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(LICENCE_CONTINUATION_APPLICATION_DETAIL)).thenReturn(LICENCE);
     when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(CAPTION);
     when(licenceContinuationService.getDetailByIdOrThrow(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId())).thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
-    when(applicationAccessService.userHasAccessToApplication(
-        String.valueOf(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId()),
-        ApplicationType.CONTINUATION_APPLICATION,
-        null,
-        USER.wuaId()
-    )).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     when(licenceContinuationService.getScheduleDetailFromApplicationDetail(LICENCE_CONTINUATION_APPLICATION_DETAIL))
         .thenReturn(LICENCE_SCHEDULE_DETAIL);
@@ -140,7 +133,7 @@ class LicenceContinuationApplicationTaskListControllerTest extends AbstractContr
     LICENCE_CONTINUATION_APPLICATION_DETAIL.setId(id);
 
     when(licenceContinuationService.getDetailByIdOrThrow(id)).thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(
         id, null, null))).with(user(USER))).andExpect(status().isForbidden());

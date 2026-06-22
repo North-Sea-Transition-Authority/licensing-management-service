@@ -5,9 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -25,6 +28,8 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -52,6 +57,9 @@ class ApplicationAccessServiceTest {
   private ApplicationAccessService applicationAccessService;
 
   private static final Long USER_1_WUA_ID = 1L;
+  private static final UUID APP_ID = UUID.randomUUID();
+  private static final int ORG_UNIT_ID = 100;
+  private static final int ORG_GROUP_ID = 999;
   private ServiceUserDetail organisationUser;
 
   @BeforeEach
@@ -64,96 +72,136 @@ class ApplicationAccessServiceTest {
 
   @Test
   void userHasAccessToApplication_whenExternalContributor_Continuation_returnsTrue() {
-    String appId = "123";
-
     Team externalTeam = new Team(UUID.randomUUID());
     externalTeam.setTeamType(TeamType.EXTERNAL_CONTRIBUTORS);
-    externalTeam.setScopeId(appId);
+    externalTeam.setScopeId(APP_ID.toString());
     externalTeam.setScopeType(ApplicationType.CONTINUATION_APPLICATION.name());
 
-    TeamRole role = new TeamRole();
-    role.setTeam(externalTeam);
-    role.setRole(Role.EXTERNAL_APPLICATION_EDITOR);
+    var role = buildTeamRole(Role.EXTERNAL_APPLICATION_EDITOR, externalTeam);
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
 
-    assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.CONTINUATION_APPLICATION, null, USER_1_WUA_ID)).isTrue();
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.CONTINUATION_APPLICATION), Map.of(), USER_1_WUA_ID)).isTrue();
   }
 
   @Test
   void userHasAccessToApplication_whenExternalContributor_Continuation_returnsFalse() {
-    String appId = "123";
-
     Team externalTeam = new Team(UUID.randomUUID());
     externalTeam.setTeamType(TeamType.EXTERNAL_CONTRIBUTORS);
-    externalTeam.setScopeId(appId);
+    externalTeam.setScopeId(APP_ID.toString());
     externalTeam.setScopeType(ApplicationType.CONTINUATION_APPLICATION.name());
 
-    TeamRole role = new TeamRole();
-    role.setTeam(externalTeam);
-    role.setRole(Role.VIEW_ANY_LICENCE);
+    var role = buildTeamRole(Role.VIEW_ANY_LICENCE, externalTeam);
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
 
-    assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.CONTINUATION_APPLICATION, null, USER_1_WUA_ID)).isFalse();
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.CONTINUATION_APPLICATION), Map.of(), USER_1_WUA_ID)).isFalse();
   }
 
   @Test
   void userHasAccessToApplication_whenExternalContributor_returnsTrue() {
-    String appId = "123";
-
     Team externalTeam = new Team(UUID.randomUUID());
     externalTeam.setTeamType(TeamType.EXTERNAL_CONTRIBUTORS);
-    externalTeam.setScopeId(appId);
+    externalTeam.setScopeId(APP_ID.toString());
     externalTeam.setScopeType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name());
 
-    TeamRole role = new TeamRole();
-    role.setTeam(externalTeam);
-    role.setRole(Role.EXTERNAL_APPLICATION_EDITOR);
+    var role = buildTeamRole(Role.EXTERNAL_APPLICATION_EDITOR, externalTeam);
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
-    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(100)).thenReturn(Optional.empty());
 
-    assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, 100, USER_1_WUA_ID)).isTrue();
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION), Map.of(), USER_1_WUA_ID)).isTrue();
   }
 
   @Test
   void userHasAccessToApplication_whenOrganisationGroupMember_returnsTrue() {
-    Integer orgUnitId = 100;
-    String groupId = "999";
-
-    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(orgUnitId))
-        .thenReturn(Optional.of(999));
 
     Team orgTeam = new Team(UUID.randomUUID());
     orgTeam.setTeamType(TeamType.ORGANISATION);
-    orgTeam.setScopeId(groupId);
+    orgTeam.setScopeId(String.valueOf(ORG_GROUP_ID));
     orgTeam.setScopeType(ScopeType.ORGANISATION_GROUP.name());
 
-    TeamRole role = new TeamRole();
-    role.setTeam(orgTeam);
-    role.setRole(Role.APPLICATION_SUBMITTER);
+    var role = buildTeamRole(Role.APPLICATION_SUBMITTER, orgTeam);
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
 
-    assertThat(
-        applicationAccessService.userHasAccessToApplication("123", ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, orgUnitId, USER_1_WUA_ID)).isTrue();
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, ORG_UNIT_ID, null),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID),
+        USER_1_WUA_ID
+    )).isTrue();
+  }
+
+  @Test
+  void userHasAccessToApplication_whenSubmitted_andUserIsInLicenseeOrgGroup_returnsTrue() {
+
+    Team orgTeam = new Team(UUID.randomUUID());
+    orgTeam.setTeamType(TeamType.ORGANISATION);
+    orgTeam.setScopeId(String.valueOf(ORG_GROUP_ID));
+    orgTeam.setScopeType(ScopeType.ORGANISATION_GROUP.name());
+
+    var role = buildTeamRole(Role.APPLICATION_SUBMITTER, orgTeam);
+
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now()),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID),
+        USER_1_WUA_ID
+    )).isTrue();
+  }
+
+  @Test
+  void userHasAccessToApplication_whenSubmitted_andUserIsNotInLicenseeOrgGroup_returnsFalse() {
+
+    var otherTeam = new Team(UUID.randomUUID());
+    otherTeam.setTeamType(TeamType.ORGANISATION);
+    otherTeam.setScopeId("888");
+    otherTeam.setScopeType(ScopeType.ORGANISATION_GROUP.name());
+
+    var role = buildTeamRole(Role.APPLICATION_SUBMITTER, otherTeam);
+
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now()),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID),
+        USER_1_WUA_ID
+    )).isFalse();
+  }
+
+  @Test
+  void userHasAccessToApplication_whenDraft_andUserIsInNonResponsibleOrgGroup_returnsFalse() {
+
+    Team nonResponsibleTeam = new Team(UUID.randomUUID());
+    nonResponsibleTeam.setTeamType(TeamType.ORGANISATION);
+    nonResponsibleTeam.setScopeId("888");
+    nonResponsibleTeam.setScopeType(ScopeType.ORGANISATION_GROUP.name());
+
+    var role = buildTeamRole(Role.APPLICATION_SUBMITTER, nonResponsibleTeam);
+
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, ORG_UNIT_ID, null),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID),
+        USER_1_WUA_ID
+    )).isFalse();
   }
 
   @Test
   void userHasAccessToApplication_whenNoRelevantRole_returnsFalse() {
-    Team team = new Team(UUID.randomUUID());
-    team.setTeamType(TeamType.EXTERNAL_CONTRIBUTORS);
-    team.setScopeId("123");
+    Team team = buildTeam(TeamType.EXTERNAL_CONTRIBUTORS);
+    team.setScopeId(APP_ID.toString());
 
-    TeamRole role = new TeamRole();
-    role.setTeam(team);
-    role.setRole(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM);
+    var role = buildTeamRole(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM, team);
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
-    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(100)).thenReturn(Optional.empty());
 
-    assertThat(applicationAccessService.userHasAccessToApplication("123", ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, 100, USER_1_WUA_ID)).isFalse();
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION), Map.of(), USER_1_WUA_ID)).isFalse();
   }
 
   @Test
@@ -215,11 +263,8 @@ class ApplicationAccessServiceTest {
 
   @Test
   void userIsSubmitterForOrganisationUnit_whenUserIsSubmitterInOrgGroup_returnsTrue() {
-    var organisationUnitId = 100;
-    var organisationGroupId = 999;
-
-    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(organisationUnitId))
-        .thenReturn(Optional.of(organisationGroupId));
+    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(ORG_UNIT_ID))
+        .thenReturn(Optional.of(ORG_GROUP_ID));
 
     when(teamQueryService.userHasScopedRole(
         eq(USER_1_WUA_ID),
@@ -228,16 +273,13 @@ class ApplicationAccessServiceTest {
         eq(Role.APPLICATION_SUBMITTER)
     )).thenReturn(true);
 
-    assertThat(applicationAccessService.userIsSubmitterForOrganisationUnit(organisationUnitId, USER_1_WUA_ID)).isTrue();
+    assertThat(applicationAccessService.userIsSubmitterForOrganisationUnit(ORG_UNIT_ID, USER_1_WUA_ID)).isTrue();
   }
 
   @Test
   void userIsSubmitterForOrganisationUnit_whenUserIsNotSubmitter_returnsFalse() {
-    var organisationUnitId = 100;
-    var organisationGroupId = 999;
-
-    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(organisationUnitId))
-        .thenReturn(Optional.of(organisationGroupId));
+    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(ORG_UNIT_ID))
+        .thenReturn(Optional.of(ORG_GROUP_ID));
 
     when(teamQueryService.userHasScopedRole(
         eq(USER_1_WUA_ID),
@@ -246,7 +288,7 @@ class ApplicationAccessServiceTest {
         eq(Role.APPLICATION_SUBMITTER)
     )).thenReturn(false);
 
-    assertThat(applicationAccessService.userIsSubmitterForOrganisationUnit(organisationUnitId, USER_1_WUA_ID)).isFalse();
+    assertThat(applicationAccessService.userIsSubmitterForOrganisationUnit(ORG_UNIT_ID, USER_1_WUA_ID)).isFalse();
   }
 
   @Test
@@ -266,20 +308,14 @@ class ApplicationAccessServiceTest {
       "STEWARD_CS_CTS"
   })
   void userHasAccessToApplication_whenUserIsSteward_returnsTrue(Role stewardRole) {
-    String appId = "456";
-    Integer orgUnitId = 100;
-
-    Team irrelevantTeam = new Team(UUID.randomUUID());
-    irrelevantTeam.setTeamType(TeamType.LICENCE_MANAGEMENT);
-
-    TeamRole role = new TeamRole();
-    role.setTeam(irrelevantTeam);
-    role.setRole(stewardRole);
+    var irrelevantTeam = buildTeam(TeamType.LICENCE_MANAGEMENT);
+    var role = buildTeamRole(stewardRole, irrelevantTeam);
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
-    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(orgUnitId)).thenReturn(Optional.empty());
 
-    assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, orgUnitId, USER_1_WUA_ID)).isTrue();
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now()),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID), USER_1_WUA_ID)).isTrue();
   }
 
   @ParameterizedTest
@@ -291,21 +327,16 @@ class ApplicationAccessServiceTest {
       "CASE_MANAGER_ONSHORE"
   })
   void userHasAccessToApplication_whenUserIsCaseManager_returnsTrue(Role caseManagerRole) {
-    String appId = "789";
-    Integer orgUnitId = 100;
+    var irrelevantTeam = buildTeam(TeamType.ORGANISATION);
+    irrelevantTeam.setScopeId(String.valueOf(ORG_GROUP_ID));
 
-    Team irrelevantTeam = new Team(UUID.randomUUID());
-    irrelevantTeam.setTeamType(TeamType.ORGANISATION);
-    irrelevantTeam.setScopeId("999");
-
-    TeamRole role = new TeamRole();
-    role.setTeam(irrelevantTeam);
-    role.setRole(caseManagerRole);
+    var role = buildTeamRole(caseManagerRole, irrelevantTeam);
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
-    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(orgUnitId)).thenReturn(Optional.of(111));
 
-    assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.CONTINUATION_APPLICATION, orgUnitId, USER_1_WUA_ID)).isTrue();
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.CONTINUATION_APPLICATION, null, Instant.now()),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID), USER_1_WUA_ID)).isTrue();
   }
 
   @ParameterizedTest
@@ -314,20 +345,14 @@ class ApplicationAccessServiceTest {
       "CONTINUATION_REVIEWER_NEW_VENTURES"
   })
   void userHasAccessToApplication_whenUserIsContinuationReviewer_returnsTrue(Role continuationReviewerRole) {
-    String appId = "101112";
-    Integer orgUnitId = 100;
-
-    Team irrelevantTeam = new Team(UUID.randomUUID());
-    irrelevantTeam.setTeamType(TeamType.LICENCE_MANAGEMENT);
-
-    TeamRole role = new TeamRole();
-    role.setTeam(irrelevantTeam);
-    role.setRole(continuationReviewerRole);
+    var irrelevantTeam = buildTeam(TeamType.LICENCE_MANAGEMENT);
+    var role = buildTeamRole(continuationReviewerRole, irrelevantTeam);
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
-    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(orgUnitId)).thenReturn(Optional.of(111));
 
-    assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.CONTINUATION_APPLICATION, orgUnitId, USER_1_WUA_ID)).isTrue();
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.CONTINUATION_APPLICATION, null, Instant.now()),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID), USER_1_WUA_ID)).isTrue();
   }
 
   @ParameterizedTest
@@ -339,37 +364,74 @@ class ApplicationAccessServiceTest {
       "DECISION_ISSUER_ONSHORE"
   })
   void userHasAccessToApplication_whenUserIsDecisionIssuer_returnsTrue(Role decisionIssuerRole) {
-    String appId = "131415";
-    Integer orgUnitId = 100;
-
-    Team irrelevantTeam = new Team(UUID.randomUUID());
-    irrelevantTeam.setTeamType(TeamType.OFFSHORE_PRODUCTION_LICENSING);
-
-    TeamRole role = new TeamRole();
-    role.setTeam(irrelevantTeam);
-    role.setRole(decisionIssuerRole);
+    var irrelevantTeam = buildTeam(TeamType.OFFSHORE_PRODUCTION_LICENSING);
+    var role = buildTeamRole(decisionIssuerRole, irrelevantTeam);
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
-    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(orgUnitId)).thenReturn(Optional.empty());
 
-    assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, orgUnitId, USER_1_WUA_ID)).isTrue();
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now()),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID), USER_1_WUA_ID)).isTrue();
+  }
+
+  @Test
+  void userHasAccessToApplication_whenDraft_andUserIsSteward_returnsFalse() {
+    var stewardTeam = buildTeam(TeamType.LICENCE_MANAGEMENT);
+    var role = buildTeamRole(Role.STEWARD_NEW_VENTURES, stewardTeam);
+
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION),
+        Map.of(), USER_1_WUA_ID)).isFalse();
   }
 
   @Test
   void userHasAccessToApplication_whenUserIsContinuationReviewer_andAppIsNotContinuation_returnsFalse() {
-    String appId = "101112";
-    Integer orgUnitId = 100;
-
-    Team team = new Team(UUID.randomUUID());
-    team.setTeamType(TeamType.LICENCE_MANAGEMENT);
-
-    TeamRole role = new TeamRole();
-    role.setTeam(team);
-    role.setRole(Role.CONTINUATION_REVIEWER_OPERATIONS);
+    var team = buildTeam(TeamType.LICENCE_MANAGEMENT);
+    var role = buildTeamRole(Role.CONTINUATION_REVIEWER_OPERATIONS, team);
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
-    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(orgUnitId)).thenReturn(Optional.of(111));
 
-    assertThat(applicationAccessService.userHasAccessToApplication(appId, ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, orgUnitId, USER_1_WUA_ID)).isFalse();
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION), Map.of(), USER_1_WUA_ID)).isFalse();
+  }
+
+  private LicenceApplicationDetail mockApplicationDetail(ApplicationType applicationType) {
+    return mockApplicationDetail(applicationType, null, null);
+  }
+
+  private LicenceApplicationDetail mockApplicationDetail(
+      ApplicationType applicationType,
+      Integer responsibleOrganisationUnitId,
+      Instant submittedDatetime
+  ) {
+    var licenceApplication = mock(LicenceApplication.class);
+    when(licenceApplication.getId()).thenReturn(APP_ID);
+    when(licenceApplication.getApplicationType()).thenReturn(applicationType);
+
+    var detail = mock(LicenceApplicationDetail.class);
+    when(detail.getLicenceApplication()).thenReturn(licenceApplication);
+
+    if (responsibleOrganisationUnitId != null) {
+      when(detail.getResponsibleOrganisationUnitId()).thenReturn(responsibleOrganisationUnitId);
+    }
+
+    when(detail.getSubmittedDatetime()).thenReturn(submittedDatetime);
+
+    return detail;
+  }
+
+  private Team buildTeam(TeamType teamType) {
+    var team = new Team(UUID.randomUUID());
+    team.setTeamType(teamType);
+    return team;
+  }
+
+  private TeamRole buildTeamRole(Role role, Team team) {
+    var teamRole = new TeamRole();
+    teamRole.setTeam(team);
+    teamRole.setRole(role);
+    return teamRole;
   }
 }

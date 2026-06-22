@@ -85,10 +85,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
   @Test
   void getLicenceFromScheduleWorkProgrammeApplicationDetail_withValidDetail_returnsLicence() {
-    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
-        .thenReturn(licenceScheduleDetail);
-
-    Licence result = scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail);
+    Licence result = scheduleWorkProgrammeApplicationDetail.getLicence();
     assertThat(result).isEqualTo(licence);
   }
 

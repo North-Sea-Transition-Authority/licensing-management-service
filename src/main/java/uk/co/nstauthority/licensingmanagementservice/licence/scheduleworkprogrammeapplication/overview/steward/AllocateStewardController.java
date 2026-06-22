@@ -16,7 +16,6 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.schedul
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action.ScheduleWorkProgrammeApplicationActionItem;
@@ -35,16 +34,13 @@ public class AllocateStewardController {
 
   private final AllocateStewardService allocateStewardService;
   private final AllocateStewardValidator allocateStewardValidator;
-  private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
 
   public AllocateStewardController(
       AllocateStewardService allocateStewardService,
-      AllocateStewardValidator allocateStewardValidator,
-      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService
+      AllocateStewardValidator allocateStewardValidator
   ) {
     this.allocateStewardService = allocateStewardService;
     this.allocateStewardValidator = allocateStewardValidator;
-    this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
   }
 
   @GetMapping
@@ -84,8 +80,7 @@ public class AllocateStewardController {
       AllocateStewardForm form,
       Map<String, String> stewardOptions
   ) {
-    var licence = scheduleWorkProgrammeApplicationService
-        .getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail);
+    var licence = applicationDetail.getLicence();
 
     return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/allocateSteward")
         .addObject("form", form)

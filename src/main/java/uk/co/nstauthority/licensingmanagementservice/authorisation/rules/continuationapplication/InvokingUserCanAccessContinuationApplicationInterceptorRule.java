@@ -11,9 +11,9 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailSe
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AccessInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 
 @Component
 @Order(8)
@@ -22,16 +22,19 @@ public class InvokingUserCanAccessContinuationApplicationInterceptorRule impleme
   private final LicenceContinuationService licenceContinuationService;
   private final ApplicationAccessService applicationAccessService;
   private final UserDetailService userDetailService;
+  private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
 
   @Autowired
   public InvokingUserCanAccessContinuationApplicationInterceptorRule(
       LicenceContinuationService licenceContinuationService,
       ApplicationAccessService applicationAccessService,
-      UserDetailService userDetailService
+      UserDetailService userDetailService,
+      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService
   ) {
     this.licenceContinuationService = licenceContinuationService;
     this.applicationAccessService = applicationAccessService;
     this.userDetailService = userDetailService;
+    this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
   }
 
   @Override
@@ -47,12 +50,11 @@ public class InvokingUserCanAccessContinuationApplicationInterceptorRule impleme
     var wuaId = userDetailService.getUserDetail().wuaId();
 
     var applicationDetail = getApplicationDetailFromRequest(request);
-    var applicationId = applicationDetail.getId();
+    var orgUnitToGroupMap = licenceResponsibleOrganisationService.getOrgUnitToGroupIdMap(applicationDetail.getLicence());
 
-    boolean hasAccess = applicationAccessService.userHasAccessToApplication(
-        applicationId.toString(),
-        ApplicationType.CONTINUATION_APPLICATION,
-        applicationDetail.getResponsibleOrganisationUnitId(),
+    var hasAccess = applicationAccessService.userHasAccessToApplication(
+        applicationDetail,
+        orgUnitToGroupMap,
         wuaId
     );
 
@@ -62,7 +64,8 @@ public class InvokingUserCanAccessContinuationApplicationInterceptorRule impleme
 
     return SecurityRuleResult.checkFailedWithStatusAndMessage(
         HttpStatus.FORBIDDEN,
-        "wuaId %s does not have permission to access application %s".formatted(wuaId, applicationId)
+        "wuaId %s does not have permission to access application %s"
+            .formatted(wuaId, applicationDetail.getLicenceApplication().getId())
     );
   }
 

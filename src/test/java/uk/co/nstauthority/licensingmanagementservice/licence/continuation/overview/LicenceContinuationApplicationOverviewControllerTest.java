@@ -31,6 +31,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.caseprocessing.OverviewTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.decision.ContinuationDecisionSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.decision.ContinuationLetterFileUsages;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.action.LicenceContinuationActionService;
@@ -76,11 +77,14 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
     var applicationDetailId = UUID.randomUUID();
     var submittedDatetime = Instant.parse("2024-03-15T10:30:00Z");
 
+    var licenceContinuationApp = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplication(
+        LicenceScheduleTestUtil.createLicenceScheduleDetail(LicenceScheduleTestUtil.createLicenceSchedule(licence)));
     var applicationDetail = LicenceContinuationApplicationTestUtil.builder()
         .withId(applicationDetailId)
         .withStatus(LicenceContinuationApplicationStatus.SUBMITTED)
         .withSubmittedDatetime(submittedDatetime)
         .withApplicationReference("LMS/CA/2024/1")
+        .withLicenceContinuationApplication(licenceContinuationApp)
         .build();
 
     var applicationContext = new LicenceContinuationApplicationContext(
@@ -94,10 +98,8 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
 
     when(licenceContinuationService.getDetailByIdOrThrow(applicationDetailId))
         .thenReturn(applicationDetail);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any()))
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any()))
         .thenReturn(true);
-    when(licenceContinuationService.getLicenceFromContinuationApplicationDetail(applicationDetail))
-        .thenReturn(licence);
     when(overviewService.getApplicationContext(applicationDetail, licence))
         .thenReturn(applicationContext);
     when(continuationSummarySectionService.getSummarySections(applicationDetail, USER))
@@ -137,7 +139,7 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
 
     when(licenceContinuationService.getDetailByIdOrThrow(applicationDetailId))
         .thenReturn(applicationDetail);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any()))
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any()))
         .thenReturn(true);
 
     when(fileControllerHelperService.download(any(UUID.class), any(Supplier.class), any(ServiceUserDetail.class)))

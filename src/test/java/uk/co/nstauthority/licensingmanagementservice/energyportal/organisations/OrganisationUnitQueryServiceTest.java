@@ -150,4 +150,33 @@ class OrganisationUnitQueryServiceTest {
     assertThat(organisationUnitQueryService.findOrganisationGroupIdByUnitId(99))
         .isEmpty();
   }
+
+  @Test
+  void findOrganisationGroupIdsByUnitIds_returnsGroupIdsForAllUnits() {
+    var group1 = new OrganisationGroup();
+    group1.setOrganisationGroupId(101);
+    var group2 = new OrganisationGroup();
+    group2.setOrganisationGroupId(202);
+
+    var unit1 = new OrganisationUnit();
+    unit1.setOrganisationGroups(List.of(group1));
+    var unit2 = new OrganisationUnit();
+    unit2.setOrganisationGroups(List.of(group2));
+
+    when(organisationApi.getOrganisationUnitsByIds(eq(List.of(1, 2)), eq(OrganisationUnitQueryService.ORGANISATION_UNITS_GROUPS_PROJECTION_ROOT), any(), any()))
+        .thenReturn(List.of(unit1, unit2));
+
+    assertThat(organisationUnitQueryService.findOrganisationGroupIdsByUnitIds(List.of(1, 2)))
+        .containsExactlyInAnyOrder(101, 202);
+  }
+
+  @Test
+  void findOrganisationGroupIdsByUnitIds_skipsUnitsWithNullOrganisationGroups() {
+    var unitNoGroup = new OrganisationUnit();
+
+    when(organisationApi.getOrganisationUnitsByIds(eq(List.of(1)), eq(OrganisationUnitQueryService.ORGANISATION_UNITS_GROUPS_PROJECTION_ROOT), any(), any()))
+        .thenReturn(List.of(unitNoGroup));
+
+    assertThat(organisationUnitQueryService.findOrganisationGroupIdsByUnitIds(List.of(1))).isEmpty();
+  }
 }

@@ -27,6 +27,8 @@ import org.springframework.test.web.servlet.ResultActions;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
@@ -62,6 +64,9 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
   void setUp() {
     var scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
     scheduleWorkProgrammeApplication.setId(UUID.randomUUID());
+    var licenceSchedule = new LicenceSchedule();
+    licenceSchedule.setLicence(new Licence());
+    scheduleWorkProgrammeApplication.setLicenceSchedule(licenceSchedule);
     scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
         .builder()
         .withId(SWP_APPLICATION_DETAIL_ID)
@@ -78,7 +83,7 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
         .thenReturn(new SwpApplicationRequestPurposeForm());
     when(swpApplicationRequestPurposeService.getPageOptions(scheduleWorkProgrammeApplicationDetail))
         .thenReturn(PURPOSE_OPTIONS);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     var resultActions = mockMvc.perform(
             get(ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).renderForm(SWP_APPLICATION_DETAIL_ID, null)))
@@ -92,7 +97,7 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
   @Test
   void submitForm_validForm() throws Exception {
     when(swpApplicationRequestPurposeValidator.isValid(any(), any())).thenReturn(true);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).submitForm(SWP_APPLICATION_DETAIL_ID, null, null, null)))
@@ -112,7 +117,7 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
         .thenReturn(PURPOSE_OPTIONS);
 
     when(swpApplicationRequestPurposeValidator.isValid(any(), any())).thenReturn(false);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     var resultActions = mockMvc.perform(
         post(ReverseRouter.route(
@@ -162,7 +167,7 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
 
   @Test
   void renderPage_assertForbiddenUserNoAccess() throws Exception {
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
 
     mockMvc.perform(get(ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).renderForm(
             SWP_APPLICATION_DETAIL_ID, null)))
@@ -172,7 +177,7 @@ class SwpApplicationRequestPurposeControllerTest extends AbstractControllerTest 
 
   @Test
   void submitPage_assertForbiddenUserNoAccess() throws Exception {
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(SwpApplicationRequestPurposeController.class).submitForm(
             SWP_APPLICATION_DETAIL_ID, null,null, null)))

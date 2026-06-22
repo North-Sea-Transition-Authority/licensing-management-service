@@ -92,7 +92,7 @@ public class LicenceScheduleSupportingInformationController {
         controller -> controller.deleteFile(null, scheduleWorkProgrammeApplicationDetail.getId(), null, null)
     );
 
-    var licence = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getLicenceSchedule().getLicence();
+    var licence = scheduleWorkProgrammeApplicationDetail.getLicence();
 
     var modelAndView = new ModelAndView(
         "lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceSupportingInformationRequest");

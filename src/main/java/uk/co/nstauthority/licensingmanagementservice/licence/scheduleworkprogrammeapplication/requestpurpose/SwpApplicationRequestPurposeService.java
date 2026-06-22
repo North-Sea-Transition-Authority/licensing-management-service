@@ -46,7 +46,7 @@ public class SwpApplicationRequestPurposeService {
   public Set<SwpApplicationRequestPurposeOption> getPageOptions(
       ScheduleWorkProgrammeApplicationDetail applicationDetail) {
 
-    var licence = scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail);
+    var licence = applicationDetail.getLicence();
     var licenceType = licence.getType();
 
     var hasTerms = licenceTypeRulesResolver.hasTerms(licenceType);

@@ -7,20 +7,22 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterController;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
-import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
@@ -40,26 +42,26 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       ScheduleWorkProgrammeApplicationStatus.ISSUE_DECISION
   );
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
-  private final LicenceSearchService licenceSearchService;
   private final ApplicationAccessService applicationAccessService;
   private final TeamQueryService teamQueryService;
   private final WorkAreaItemViewService workAreaItemViewService;
   private final RegulatorRoleService regulatorRoleService;
+  private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
 
   public ScheduleAndWorkProgrammeApplicationWorkAreaService(
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
-      LicenceSearchService licenceSearchService,
       ApplicationAccessService applicationAccessService,
       TeamQueryService teamQueryService,
       WorkAreaItemViewService workAreaItemViewService,
-      RegulatorRoleService regulatorRoleService
+      RegulatorRoleService regulatorRoleService,
+      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService
   ) {
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
-    this.licenceSearchService = licenceSearchService;
     this.applicationAccessService = applicationAccessService;
     this.teamQueryService = teamQueryService;
     this.workAreaItemViewService = workAreaItemViewService;
     this.regulatorRoleService = regulatorRoleService;
+    this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
   }
 
   @Override
@@ -72,16 +74,15 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
 
     //TODO filter correctly by form and user
     var applicationDetails = scheduleWorkProgrammeApplicationService
-        .getAllScheduleWorkProgrammeApplicationDetailsByStatuses(ACTIVE_APPLICATION_STATUSES).stream()
-        .filter(applicationDetail ->
-            matchesFilterAndHasAccess(applicationDetail, workAreaFilterForm, serviceUserDetail, isRegulator))
-        .toList();
+        .getAllScheduleWorkProgrammeApplicationDetailsByStatuses(ACTIVE_APPLICATION_STATUSES);
 
     var licences = applicationDetails.stream()
-        .map(scheduleWorkProgrammeApplicationService::getLicenceFromScheduleWorkProgrammeApplicationDetail)
+        .map(ScheduleWorkProgrammeApplicationDetail::getLicence)
         .toList();
 
-    var responsibleOrganisationNames = licenceSearchService.getLicenceToResponsibleOrganisationNameMap(licences);
+    var responsibleOrganisations = licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(licences);
+    var orgUnitToGroupMap = licenceResponsibleOrganisationService
+        .getOrgUnitToGroupIdMap(responsibleOrganisations, applicationDetails);
 
     var viewedItemIds = workAreaItemViewService.getWorkAreaItemLogsForUser(
             List.of(WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION),
@@ -91,24 +92,33 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
         .collect(Collectors.toSet());
 
     return applicationDetails.stream()
+        .filter(applicationDetail -> matchesFilterAndHasAccess(
+            applicationDetail,
+            workAreaFilterForm,
+            serviceUserDetail,
+            responsibleOrganisations,
+            orgUnitToGroupMap,
+            isRegulator)
+        )
         .map(applicationDetail ->
-            createWorkAreaItem(applicationDetail, responsibleOrganisationNames, viewedItemIds, decisionIssuer))
+            createWorkAreaItem(applicationDetail, responsibleOrganisations, viewedItemIds, decisionIssuer))
         .toList();
   }
 
   private SearchResultItem createWorkAreaItem(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
-      Map<Licence, List<String>> responsibleOrganisationNamesByLicences,
+      Map<Licence, List<OrganisationUnit>> responsibleOrganisationsByLicences,
       Set<UUID> viewedItemIds,
       boolean decisionIssuer
   ) {
-    var licence = scheduleWorkProgrammeApplicationService
-        .getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail);
-    var licensees = responsibleOrganisationNamesByLicences.getOrDefault(
+    var licence = applicationDetail.getLicence();
+    var licensees = responsibleOrganisationsByLicences.getOrDefault(
             licence,
             List.of()
         )
         .stream()
+        .filter(Objects::nonNull)
+        .map(OrganisationUnit::organisationUnitName)
         .filter(Objects::nonNull)
         .toList();
 
@@ -184,19 +194,26 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
       WorkAreaFilterForm filterForm,
       ServiceUserDetail userDetail,
+      Map<Licence, List<OrganisationUnit>> responsibleOrganisations,
+      Map<Integer, Integer> orgUnitToGroupMap,
       boolean isRegulator
   ) {
-    var licence = scheduleWorkProgrammeApplicationService
-        .getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail);
+    var licence = applicationDetail.getLicence();
 
     if (!FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
       return false;
     }
 
+    var licenceUnitIds = licenceResponsibleOrganisationService
+        .getOrganisationUnitIdsFromLicenceOrgUnitMap(responsibleOrganisations, licence);
+
+    var licenceOrgUnitGroupMap = licenceUnitIds.stream()
+        .filter(orgUnitToGroupMap::containsKey)
+        .collect(Collectors.toMap(Function.identity(), orgUnitToGroupMap::get));
+
     var hasApplicationAccess = applicationAccessService.userHasAccessToApplication(
-        applicationDetail.getScheduleWorkProgrammeApplication().getId().toString(),
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
-        applicationDetail.getResponsibleOrganisationUnitId(),
+        applicationDetail,
+        licenceOrgUnitGroupMap,
         userDetail.wuaId()
     );
 

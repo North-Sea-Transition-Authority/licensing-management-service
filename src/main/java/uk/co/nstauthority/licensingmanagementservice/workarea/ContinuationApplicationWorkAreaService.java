@@ -7,11 +7,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterController;
@@ -20,7 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
-import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchService;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
@@ -41,23 +43,23 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
   );
 
   private final LicenceContinuationService licenceContinuationService;
-  private final LicenceSearchService licenceSearchService;
   private final ApplicationAccessService applicationAccessService;
   private final RegulatorRoleService regulatorRoleService;
   private final WorkAreaItemViewService workAreaItemViewService;
+  private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
 
   public ContinuationApplicationWorkAreaService(
       LicenceContinuationService licenceContinuationService,
-      LicenceSearchService licenceSearchService,
       ApplicationAccessService applicationAccessService,
       RegulatorRoleService regulatorRoleService,
-      WorkAreaItemViewService workAreaItemViewService
+      WorkAreaItemViewService workAreaItemViewService,
+      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService
   ) {
     this.licenceContinuationService = licenceContinuationService;
-    this.licenceSearchService = licenceSearchService;
     this.applicationAccessService = applicationAccessService;
     this.regulatorRoleService = regulatorRoleService;
     this.workAreaItemViewService = workAreaItemViewService;
+    this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
   }
 
   @Override
@@ -70,16 +72,15 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
     var isRegulator = regulatorRoleService.isRegulator(serviceUserDetail);
 
     var applicationDetails = licenceContinuationService
-        .getAllContinuationApplicationDetailsByStatuses(ACTIVE_APPLICATION_STATUSES).stream()
-        .filter(applicationDetail -> matchesFilterAndHasAccess(
-            applicationDetail, workAreaFilterForm, serviceUserDetail, isContinuationIssuer, isContinuationReviewer, isRegulator))
-        .toList();
+        .getAllContinuationApplicationDetailsByStatuses(ACTIVE_APPLICATION_STATUSES);
 
     var licences = applicationDetails.stream()
-        .map(licenceContinuationService::getLicenceFromContinuationApplicationDetail)
+        .map(LicenceContinuationApplicationDetail::getLicence)
         .toList();
 
-    var responsibleOrganisationNames = licenceSearchService.getLicenceToResponsibleOrganisationNameMap(licences);
+    var responsibleOrganisations = licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(licences);
+    var orgUnitToGroupMap = licenceResponsibleOrganisationService
+        .getOrgUnitToGroupIdMap(responsibleOrganisations, applicationDetails);
 
     var viewedItemIds = workAreaItemViewService.getWorkAreaItemLogsForUser(
             List.of(WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION),
@@ -89,23 +90,35 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         .collect(Collectors.toSet());
 
     return applicationDetails.stream()
+        .filter(applicationDetail -> matchesFilterAndHasAccess(
+            applicationDetail,
+            workAreaFilterForm,
+            serviceUserDetail,
+            responsibleOrganisations,
+            orgUnitToGroupMap,
+            isContinuationIssuer,
+            isContinuationReviewer,
+            isRegulator)
+        )
         .map(applicationDetail ->
-            createWorkAreaItem(applicationDetail, responsibleOrganisationNames, isContinuationIssuer, viewedItemIds))
+            createWorkAreaItem(applicationDetail, responsibleOrganisations, isContinuationIssuer, viewedItemIds))
         .toList();
   }
 
   private SearchResultItem createWorkAreaItem(
       LicenceContinuationApplicationDetail applicationDetail,
-      Map<Licence, List<String>> responsibleOrganisationNamesByLicences,
+      Map<Licence, List<OrganisationUnit>> responsibleOrganisationsByLicences,
       boolean isContinuationIssuer,
       Set<UUID> viewedItemIds
   ) {
-    var licence = licenceContinuationService.getLicenceFromContinuationApplicationDetail(applicationDetail);
-    var licensees = responsibleOrganisationNamesByLicences.getOrDefault(
+    var licence = applicationDetail.getLicence();
+    var licensees = responsibleOrganisationsByLicences.getOrDefault(
             licence,
             List.of()
         )
         .stream()
+        .filter(Objects::nonNull)
+        .map(OrganisationUnit::organisationUnitName)
         .filter(Objects::nonNull)
         .toList();
 
@@ -176,26 +189,33 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       LicenceContinuationApplicationDetail applicationDetail,
       WorkAreaFilterForm filterForm,
       ServiceUserDetail userDetail,
+      Map<Licence, List<OrganisationUnit>> responsibleOrganisations,
+      Map<Integer, Integer> orgUnitToGroupMap,
       boolean isContinuationIssuer,
       boolean isContinuationReviewer,
       boolean isRegulator
   ) {
-    Licence licence = licenceContinuationService.getLicenceFromContinuationApplicationDetail(applicationDetail);
+    var licence = applicationDetail.getLicence();
 
     if (!FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
       return false;
     }
 
-    var status = applicationDetail.getStatus();
-    boolean hasAppAccess = applicationAccessService.userHasAccessToApplication(
-        applicationDetail.getId().toString(),
-        ApplicationType.CONTINUATION_APPLICATION,
-        applicationDetail.getResponsibleOrganisationUnitId(),
+    var licenceUnitIds = licenceResponsibleOrganisationService
+        .getOrganisationUnitIdsFromLicenceOrgUnitMap(responsibleOrganisations, licence);
+
+    var licenceOrgUnitGroupMap = licenceUnitIds.stream()
+        .filter(orgUnitToGroupMap::containsKey)
+        .collect(Collectors.toMap(Function.identity(), orgUnitToGroupMap::get));
+
+    var hasAppAccess = applicationAccessService.userHasAccessToApplication(
+        applicationDetail,
+        licenceOrgUnitGroupMap,
         userDetail.wuaId()
     );
 
     return hasAppAccess(
-        status,
+        applicationDetail.getStatus(),
         hasAppAccess,
         isContinuationReviewer,
         isContinuationIssuer,

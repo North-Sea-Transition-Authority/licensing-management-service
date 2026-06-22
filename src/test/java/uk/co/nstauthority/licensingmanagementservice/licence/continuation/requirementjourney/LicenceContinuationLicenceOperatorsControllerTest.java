@@ -27,9 +27,10 @@ import uk.co.fivium.energyportalapi.generated.types.LicenceBlock;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
 import uk.co.fivium.energyportalapi.generated.types.Subarea;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -52,6 +53,11 @@ class LicenceContinuationLicenceOperatorsControllerTest extends AbstractControll
     applicationDetail = new LicenceContinuationApplicationDetail();
     applicationDetail.setId(applicationId);
     applicationDetail.setStatus(LicenceContinuationApplicationStatus.DRAFT);
+    var licenceSchedule = new LicenceSchedule();
+    licenceSchedule.setLicence(new uk.co.nstauthority.licensingmanagementservice.licence.Licence());
+    var licenceContinuationApplication = new LicenceContinuationApplication();
+    licenceContinuationApplication.setLicenceSchedule(licenceSchedule);
+    applicationDetail.setLicenceContinuationApplication(licenceContinuationApplication);
 
     subarea = new Subarea();
     subarea.setId("test");
@@ -80,7 +86,7 @@ class LicenceContinuationLicenceOperatorsControllerTest extends AbstractControll
     when(licenceContinuationLicenceOperatorsService.hasMissingOperators(any())).thenReturn(true);
     when(licenceContinuationLicenceOperatorsService.getLicenceContinuationLicenceOperatorsForm(any())).thenReturn(form);
     when(licenceContinuationService.getDetailByIdOrThrow(applicationDetail.getId())).thenReturn(applicationDetail);
-    when(applicationAccessService.userHasAccessToApplication(String.valueOf(applicationDetail.getId()), ApplicationType.CONTINUATION_APPLICATION, null, regulatorUser.wuaId())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceContinuationLicenceOperatorsController.class).renderForm(applicationId, applicationDetail)))
@@ -102,7 +108,7 @@ class LicenceContinuationLicenceOperatorsControllerTest extends AbstractControll
     when(licenceContinuationLicenceOperatorsService.hasMissingOperators(any())).thenReturn(true);
     when(validator.isValid(any(), anyBoolean())).thenReturn(false);
     when(licenceContinuationService.getDetailByIdOrThrow(applicationDetail.getId())).thenReturn(applicationDetail);
-    when(applicationAccessService.userHasAccessToApplication(String.valueOf(applicationDetail.getId()), ApplicationType.CONTINUATION_APPLICATION, null, regulatorUser.wuaId())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceContinuationLicenceOperatorsController.class).submitForm(applicationId, applicationDetail, null, null)))
@@ -122,7 +128,7 @@ class LicenceContinuationLicenceOperatorsControllerTest extends AbstractControll
     when(licenceContinuationLicenceOperatorsService.hasMissingOperators(any())).thenReturn(false);
     when(validator.isValid(any(), anyBoolean())).thenReturn(true);
     when(licenceContinuationService.getDetailByIdOrThrow(applicationDetail.getId())).thenReturn(applicationDetail);
-    when(applicationAccessService.userHasAccessToApplication(String.valueOf(applicationDetail.getId()), ApplicationType.CONTINUATION_APPLICATION, null, regulatorUser.wuaId())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceContinuationLicenceOperatorsController.class).submitForm(applicationId, null, null, null)))

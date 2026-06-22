@@ -53,6 +53,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceArgumentReso
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationTypeArgumentResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
@@ -165,6 +166,9 @@ public abstract class AbstractControllerTest {
 
   @MockitoBean
   protected ApplicationAccessService applicationAccessService;
+
+  @MockitoBean
+  protected LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
 
   @MockitoBean
   protected LicenceActionService licenceActionService;

@@ -73,7 +73,7 @@ class LicenceContinuationApplicationDeleteControllerTest extends AbstractControl
 
   @Test
   void renderForm() throws Exception {
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any()))
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any()))
         .thenReturn(true);
 
     mockMvc.perform(
@@ -97,7 +97,7 @@ class LicenceContinuationApplicationDeleteControllerTest extends AbstractControl
 
   @Test
   void deleteLicenceContinuationApplication() throws Exception {
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any()))
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any()))
         .thenReturn(true);
 
     String expectedRedirectUrl = ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null));
@@ -159,7 +159,7 @@ class LicenceContinuationApplicationDeleteControllerTest extends AbstractControl
   void renderForm_assertForbiddenUserNoAccess() throws Exception {
     var id = UUID.randomUUID();
 
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
     when(licenceContinuationService.getDetailByIdOrThrow(id)).thenReturn(licenceContinuationApplicationDetail);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceContinuationApplicationDeleteController.class)
@@ -172,7 +172,7 @@ class LicenceContinuationApplicationDeleteControllerTest extends AbstractControl
   void deleteLicenceContinuationApplication_assertForbiddenUserNoAccess() throws Exception {
     var id = UUID.randomUUID();
 
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
     when(licenceContinuationService.getDetailByIdOrThrow(id)).thenReturn(licenceContinuationApplicationDetail);
 
     mockMvc.perform(post(ReverseRouter.route(

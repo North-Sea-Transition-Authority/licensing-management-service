@@ -13,13 +13,16 @@ import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEntity;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
 @Audited
 @Entity(name = "licence_continuation_application_details")
 @PathVariableEntity(pathVariableName = LicenceContinuationApplicationDetail.LICENCE_CONTINUATION_APPLICATION_DETAIL_ID)
-public class LicenceContinuationApplicationDetail {
+public class LicenceContinuationApplicationDetail implements LicenceApplicationDetail {
 
   public static final String LICENCE_CONTINUATION_APPLICATION_DETAIL_ID = "licenceContinuationApplicationDetailId";
 
@@ -87,6 +90,11 @@ public class LicenceContinuationApplicationDetail {
   public void setLicenceContinuationApplication(
       LicenceContinuationApplication licenceContinuationApplication) {
     this.licenceContinuationApplication = licenceContinuationApplication;
+  }
+
+  @Override
+  public LicenceApplication getLicenceApplication() {
+    return getLicenceContinuationApplication();
   }
 
   public Integer getVersionNumber() {
@@ -167,5 +175,9 @@ public class LicenceContinuationApplicationDetail {
 
   public void setNextPhase(LicenceSchedulePhase nextPhase) {
     this.nextPhase = nextPhase;
+  }
+
+  public Licence getLicence() {
+    return getLicenceContinuationApplication().getLicenceSchedule().getLicence();
   }
 }

@@ -24,6 +24,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCategory;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
@@ -77,6 +79,9 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
 
     var scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
     scheduleWorkProgrammeApplication.setId(UUID.randomUUID());
+    var licenceSchedule = new LicenceSchedule();
+    licenceSchedule.setLicence(new Licence());
+    scheduleWorkProgrammeApplication.setLicenceSchedule(licenceSchedule);
     scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setVersionNumber(1);
     scheduleWorkProgrammeApplicationDetail.setId(SCHEDULE_APPLICATION_DETAIL_ID);
@@ -98,7 +103,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
     when(licenceWorkProgrammeAmendmentSummaryService.createSummaryViewFromWorkProgrammeAmendments(any(), any())).thenReturn(
         new LicenceWorkProgrammeAmendmentSummaryView("duration", "additionalInfo", "label", "extensionRequired",
             "information", LicenceWorkProgrammeAmendmentSummaryMode.VIEW, "changeUrl", "deleteUrl",false,false, false));
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class).renderForm(
         WORK_PROGRAMME_ACTIVITY_ID, null, SCHEDULE_APPLICATION_DETAIL_ID, null)))
@@ -121,7 +126,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
     when(licenceWorkProgrammeAmendmentSummaryService.createSummaryViewFromWorkProgrammeAmendments(any(), any())).thenReturn(
         new LicenceWorkProgrammeAmendmentSummaryView("duration", "additionalInfo", "label", "extensionRequired",
             "information", LicenceWorkProgrammeAmendmentSummaryMode.VIEW, "changeUrl", "deleteUrl",false,false, false));
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class).renderForm(
         WORK_PROGRAMME_ACTIVITY_ID, null, SCHEDULE_APPLICATION_DETAIL_ID, null)))
@@ -140,7 +145,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
     when(licenceWorkProgrammeAmendmentService.getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(
         scheduleWorkProgrammeApplicationDetail))
         .thenReturn(List.of(remainingAmendment));
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class)
                 .deleteLicenceWorkProgrammeAmendment(
@@ -169,7 +174,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
     when(licenceWorkProgrammeAmendmentService.getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(
         scheduleWorkProgrammeApplicationDetail))
         .thenReturn(List.of());
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class)
             .deleteLicenceWorkProgrammeAmendment(
@@ -196,7 +201,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
     when(licenceWorkProgrammeAmendmentService.getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(
         scheduleWorkProgrammeApplicationDetail))
         .thenReturn(null);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class)
             .deleteLicenceWorkProgrammeAmendment(
@@ -252,7 +257,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
 
   @Test
   void renderPage_assertForbiddenUserNoAccess() throws Exception {
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class).renderForm(
         UUID.randomUUID(), null,SCHEDULE_APPLICATION_DETAIL_ID , null)))
@@ -261,7 +266,7 @@ class LicenceWorkProgrammeAmendmentDeleteControllerTest extends AbstractControll
 
   @Test
   void submitPage_assertForbiddenUserNoAccess() throws Exception {
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicenceWorkProgrammeAmendmentDeleteController.class).deleteLicenceWorkProgrammeAmendment(
                UUID.randomUUID(), null, SCHEDULE_APPLICATION_DETAIL_ID, null, null)))

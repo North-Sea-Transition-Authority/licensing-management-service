@@ -62,7 +62,7 @@ public class ContinuationApplicationDocumentActionsControllerTest extends Abstra
 
   @BeforeEach
   void setUp() {
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
     when(teamQueryService.userHasRoleInTeamType(any(), any(), any())).thenReturn(true);
     when(licenceContinuationService.getDetailByIdOrThrow(any())).thenReturn(continuationApplicationDetail);
     when(licenceContinuationService.getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(any())).thenReturn(continuationApplicationDetail);

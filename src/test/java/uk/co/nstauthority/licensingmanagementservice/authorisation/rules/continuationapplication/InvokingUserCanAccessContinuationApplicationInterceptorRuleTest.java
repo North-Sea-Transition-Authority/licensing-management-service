@@ -17,13 +17,16 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AbstractInterceptorRuleTest;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 
 class InvokingUserCanAccessContinuationApplicationInterceptorRuleTest extends AbstractInterceptorRuleTest {
 
@@ -33,6 +36,8 @@ class InvokingUserCanAccessContinuationApplicationInterceptorRuleTest extends Ab
   private ApplicationAccessService applicationAccessService;
   @Mock
   private UserDetailService userDetailService;
+  @Mock
+  private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
 
   @InjectMocks
   private InvokingUserCanAccessContinuationApplicationInterceptorRule invokingUserCanAccessContinuationApplicationInterceptorRule;
@@ -50,11 +55,7 @@ class InvokingUserCanAccessContinuationApplicationInterceptorRuleTest extends Ab
 
     mockUserAndApplication(detailId, wuaId);
     when(applicationAccessService.userHasAccessToApplication(
-        detailId.toString(),
-        ApplicationType.CONTINUATION_APPLICATION,
-        null,
-        wuaId
-    ))
+        any(LicenceApplicationDetail.class), any(), eq(wuaId)))
         .thenReturn(true);
 
     var annotation = getAnnotation(
@@ -75,11 +76,8 @@ class InvokingUserCanAccessContinuationApplicationInterceptorRuleTest extends Ab
 
     mockUserAndApplication(detailId, wuaId);
     when(applicationAccessService.userHasAccessToApplication(
-        detailId.toString(),
-        ApplicationType.CONTINUATION_APPLICATION,
-        null,
-        wuaId
-    )).thenReturn(false);
+        any(LicenceApplicationDetail.class), any(), eq(wuaId)))
+        .thenReturn(false);
 
     var annotation = getAnnotation(
         InvokingUserCanAccessContinuationApplicationInterceptorRuleTest.class.getDeclaredMethod("accessControlledEndpoint"),
@@ -122,6 +120,7 @@ class InvokingUserCanAccessContinuationApplicationInterceptorRuleTest extends Ab
 
     when(licenceContinuationService.getDetailByIdOrThrow(detailId))
         .thenReturn(licenceContinuationApplicationDetail);
+
   }
 
   @GetMapping("access-controlled-endpoint")

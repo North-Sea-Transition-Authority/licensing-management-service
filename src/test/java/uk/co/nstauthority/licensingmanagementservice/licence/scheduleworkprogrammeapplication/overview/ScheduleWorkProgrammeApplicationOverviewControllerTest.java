@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview;
 
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -19,7 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.reviewandsubmit.LicenceScheduleSummarySectionService;
@@ -46,11 +48,15 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
     var licence = createLicence();
     var applicationDetailId = UUID.randomUUID();
     var submittedDatetime = Instant.parse("2024-03-15T10:30:00Z");
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+    var licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
+    var swpApp = ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(licenceScheduleDetail);
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(applicationDetailId)
         .withStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
         .withSubmittedDatetime(submittedDatetime)
         .withApplicationReference("LMS/EAA/2024/1")
+        .withScheduleWorkProgrammeApplication(swpApp)
         .build();
 
     var applicationContext = new ScheduleWorkProgrammeApplicationContext(
@@ -64,19 +70,13 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
             .build())
     );
 
-    var applicationId = applicationDetail.getScheduleWorkProgrammeApplication().getId();
-
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationDetailId))
         .thenReturn(applicationDetail);
     when(applicationAccessService.userHasAccessToApplication(
-        applicationId.toString(),
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
-        applicationDetail.getResponsibleOrganisationUnitId(),
-        ORGANISATION_USER_WUA_ID))
+        eq(applicationDetail),
+        anyMap(),
+        eq(ORGANISATION_USER_WUA_ID)))
         .thenReturn(true);
-    when(scheduleWorkProgrammeApplicationService
-        .getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail))
-        .thenReturn(licence);
     when(overviewService.getApplicationContext(applicationDetail, licence))
         .thenReturn(applicationContext);
     when(licenceScheduleSummarySectionService.getSummarySections(applicationDetail, USER))

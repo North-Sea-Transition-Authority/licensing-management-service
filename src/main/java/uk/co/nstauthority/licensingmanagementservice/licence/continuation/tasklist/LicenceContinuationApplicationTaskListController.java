@@ -14,7 +14,6 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continu
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDeleteController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
@@ -79,7 +78,7 @@ public class LicenceContinuationApplicationTaskListController {
         .addObject("nextTermPhaseDisplay", nextTermPhaseDisplay)
         .addObject("taskListSections", sections)
         .addObject("pageCaption",
-            licenceService.getLicencePageCaption(getLicence(licenceContinuationApplicationDetail)))
+            licenceService.getLicencePageCaption(licenceContinuationApplicationDetail.getLicence()))
         .addObject("deleteLicenceContinuationApplicationUrl", ReverseRouter.route(on(
             LicenceContinuationApplicationDeleteController.class).renderForm(
                 licenceContinuationApplicationDetailId,
@@ -93,9 +92,5 @@ public class LicenceContinuationApplicationTaskListController {
     BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
 
     return modelAndView;
-  }
-
-  private Licence getLicence(LicenceContinuationApplicationDetail licenceContinuationApplicationDetail) {
-    return licenceContinuationService.getLicenceFromContinuationApplicationDetail(licenceContinuationApplicationDetail);
   }
 }

@@ -71,7 +71,7 @@ class LicenceContinuationApplicationWithdrawConfirmationControllerTest extends A
             LicenceContinuationActionItem.WITHDRAW_CONTINUATION.toActionItemView(LICENCE_CONTINUATION_APPLICATION_DETAIL)
         ));
 
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
   }
 
   @Test

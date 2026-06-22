@@ -148,7 +148,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
   private void mockScheduleWorkProgrammeApplicationDetailScenario(UUID applicationDetailId) {
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationDetailId)).thenReturn(scheduleWorkProgrammeApplicationDetail);
     when(licenceScheduleSummarySectionService.getSummarySections(any(), any())).thenReturn(List.of(new SummarySection(1, List.of())));
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
   }
 
   @Test
@@ -183,7 +183,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
         .build();
 
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
         id, null, null))).with(user(USER))).andExpect(status().isForbidden());
@@ -210,7 +210,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
 
   @Test
   void renderPage_assertForbiddenUserNoAccess() throws Exception {
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
     mockMvc.perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
             SCHEDULE_APPLICATION_DETAIL_ID, null, null)))
                .with(user(USER)))
@@ -219,7 +219,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
 
   @Test
   void submitPage_assertForbiddenUserNoAccess() throws Exception {
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
     mockMvc.perform(post(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).submitApplication(
             SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
                .with(user(USER))

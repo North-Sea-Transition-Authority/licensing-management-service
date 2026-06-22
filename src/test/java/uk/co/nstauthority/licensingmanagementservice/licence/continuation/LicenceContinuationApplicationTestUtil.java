@@ -2,6 +2,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.continuation;
 
 import java.time.Instant;
 import java.util.UUID;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 public class LicenceContinuationApplicationTestUtil {
@@ -70,6 +72,10 @@ public class LicenceContinuationApplicationTestUtil {
         var app = new LicenceContinuationApplication();
         app.setId(UUID.randomUUID());
         app.setApplicationReference(applicationReference);
+        var defaultLicence = new Licence();
+        var defaultSchedule = new LicenceSchedule();
+        defaultSchedule.setLicence(defaultLicence);
+        app.setLicenceSchedule(defaultSchedule);
         licenceContinuationApplicationDetail.setLicenceContinuationApplication(app);
       } else {
         licenceContinuationApplication.setApplicationReference(applicationReference);

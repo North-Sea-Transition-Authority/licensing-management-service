@@ -51,7 +51,7 @@ public class LicenseeInformationSummarySectionService implements SummarySectionS
   }
 
   private SummaryCard getLicenceSummaryCard(ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
-    var licence = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getLicenceSchedule().getLicence();
+    var licence = scheduleWorkProgrammeApplicationDetail.getLicence();
     var summaryDataView = SummaryDataView.newBuilder()
         .addStringValue("Licence reference", licence.getLicenceReference());
 

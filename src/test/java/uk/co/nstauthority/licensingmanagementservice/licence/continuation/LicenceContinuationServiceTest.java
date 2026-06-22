@@ -165,17 +165,6 @@ class LicenceContinuationServiceTest {
   }
 
   @Test
-  void getLicenceFromScheduleWorkProgrammeApplicationDetail_withValidDetail_returnsLicence() {
-    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(LICENCE, LicenceScheduleDetailStatus.ACTIVE))
-        .thenReturn(LICENCE_SCHEDULE_DETAIL);
-
-    var detail = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(
-        LICENCE_SCHEDULE_DETAIL);
-    Licence result = licenceContinuationService.getLicenceFromContinuationApplicationDetail(detail);
-    assertThat(result).isEqualTo(LICENCE);
-  }
-
-  @Test
   void getScheduleDetailFromApplicationDetail_whenDraft_returnsActiveDetail() {
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(LICENCE, LicenceScheduleDetailStatus.ACTIVE))
         .thenReturn(LICENCE_SCHEDULE_DETAIL);

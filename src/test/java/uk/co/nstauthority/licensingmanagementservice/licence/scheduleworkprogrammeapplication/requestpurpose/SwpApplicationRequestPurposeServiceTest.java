@@ -21,8 +21,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionRepository;
@@ -284,9 +286,12 @@ class SwpApplicationRequestPurposeServiceTest {
   void getPageOptions_whenWorkProgrammeButNoAmendableActivities_excludesAmendOption() {
     var detail = new ScheduleWorkProgrammeApplicationDetail();
     var licence = mock(Licence.class);
+    var scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
+    var licenceSchedule = new LicenceSchedule();
+    licenceSchedule.setLicence(licence);
+    scheduleWorkProgrammeApplication.setLicenceSchedule(licenceSchedule);
+    detail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
     when(licence.getType()).thenReturn(LicenceType.SEAWARD_EXPLORATION);
-    when(scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(detail))
-        .thenReturn(licence);
     when(licenceTypeRulesResolver.hasTerms(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
     when(licenceTypeRulesResolver.arePhasesCaptured(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
     when(licenceTypeRulesResolver.hasWorkProgramme(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
@@ -302,9 +307,12 @@ class SwpApplicationRequestPurposeServiceTest {
   void getPageOptions_whenWorkProgrammeAndAmendableActivities_includesAmendOption() {
     var detail = new ScheduleWorkProgrammeApplicationDetail();
     var licence = mock(Licence.class);
+    var scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
+    var licenceSchedule = new LicenceSchedule();
+    licenceSchedule.setLicence(licence);
+    scheduleWorkProgrammeApplication.setLicenceSchedule(licenceSchedule);
+    detail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
     when(licence.getType()).thenReturn(LicenceType.SEAWARD_EXPLORATION);
-    when(scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(detail))
-        .thenReturn(licence);
     when(licenceTypeRulesResolver.hasTerms(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
     when(licenceTypeRulesResolver.arePhasesCaptured(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
     when(licenceTypeRulesResolver.hasWorkProgramme(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
@@ -342,9 +350,12 @@ class SwpApplicationRequestPurposeServiceTest {
   void applyDefaultRequestPurposeIfNotApplicable_whenNoAmendableActivities_persistsExtendOption() {
     var detail = new ScheduleWorkProgrammeApplicationDetail();
     var licence = mock(Licence.class);
+    var scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
+    var licenceSchedule = new LicenceSchedule();
+    licenceSchedule.setLicence(licence);
+    scheduleWorkProgrammeApplication.setLicenceSchedule(licenceSchedule);
+    detail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
     when(licence.getType()).thenReturn(LicenceType.SEAWARD_EXPLORATION);
-    when(scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(detail))
-        .thenReturn(licence);
     when(licenceTypeRulesResolver.hasTerms(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
     when(licenceTypeRulesResolver.arePhasesCaptured(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
     when(licenceTypeRulesResolver.hasWorkProgramme(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);

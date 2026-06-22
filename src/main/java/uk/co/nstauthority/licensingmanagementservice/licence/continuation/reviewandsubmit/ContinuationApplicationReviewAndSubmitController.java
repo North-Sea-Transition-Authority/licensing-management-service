@@ -110,9 +110,7 @@ public class ContinuationApplicationReviewAndSubmitController {
             )))
         .addObject(
             "pageCaption",
-            licenceService.getLicencePageCaption(licenceContinuationService.getLicenceFromContinuationApplicationDetail(
-                licenceContinuationApplicationDetail
-            ))
+            licenceService.getLicencePageCaption(licenceContinuationApplicationDetail.getLicence())
         )
         .addObject(
             "summarySections",

@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -16,7 +17,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,6 +40,9 @@ class LicenceResponsibleOrganisationServiceTest {
 
   @Mock
   private LicenceOrganisationService licenceOrganisationService;
+
+  @Mock
+  private OrganisationUnitQueryService organisationUnitQueryService;
 
   @InjectMocks
   private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
@@ -185,5 +192,117 @@ class LicenceResponsibleOrganisationServiceTest {
     var result = licenceResponsibleOrganisationService.getResponsibleOrgUnitOptionsWithValidRoles(licence, organisationUser);
 
     assertThat(result).isEmpty();
+  }
+
+  @Test
+  void getResponsibleOrganisationsByLicences_returnsMappedOrganisationUnitsPerLicence() {
+    var licence = new Licence();
+    licence.setId(1);
+
+    var lro = new LicenceResponsibleOrganisation();
+    lro.setLicence(licence);
+    lro.setResponsibleOrganisationId(100);
+
+    when(licenceResponsibleOrganisationRepository.findAllByLicenceIn(List.of(licence))).thenReturn(List.of(lro));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(100))).thenReturn(Map.of(100, "Org Name"));
+
+    var result = licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(List.of(licence));
+
+    assertThat(result.get(licence))
+        .usingRecursiveComparison()
+        .isEqualTo(List.of(new OrganisationUnit(100, "Org Name")));
+  }
+
+  @Test
+  void getOrganisationUnitIdsFromLicenceOrgUnitMap_returnsIdsForMatchingLicence() {
+    var licence = new Licence();
+    licence.setId(1);
+    var otherLicence = new Licence();
+    otherLicence.setId(2);
+    var map = Map.of(
+        licence, List.of(new OrganisationUnit(100, "Org A")),
+        otherLicence, List.of(new OrganisationUnit(200, "Org B"))
+    );
+
+    assertThat(licenceResponsibleOrganisationService.getOrganisationUnitIdsFromLicenceOrgUnitMap(map, licence))
+        .containsExactly(100);
+  }
+
+  @Test
+  void getOrgUnitToGroupIdMap_whenNullLicence_returnsEmptyMap() {
+    var result = licenceResponsibleOrganisationService.getOrgUnitToGroupIdMap((Licence) null);
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  void getOrgUnitToGroupIdMap_whenLicenceHasResponsibleOrganisations_returnsGroupIdMap() {
+    var licence = new Licence();
+    licence.setId(1);
+
+    var lro = new LicenceResponsibleOrganisation();
+    lro.setLicence(licence);
+    lro.setResponsibleOrganisationId(100);
+
+    when(licenceResponsibleOrganisationRepository.findAllByLicenceIn(List.of(licence))).thenReturn(List.of(lro));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(100))).thenReturn(Map.of(100, "Org Name"));
+    when(organisationUnitQueryService.findOrganisationGroupIdMapByUnitIds(List.of(100))).thenReturn(Map.of(100, 200));
+
+    var result = licenceResponsibleOrganisationService.getOrgUnitToGroupIdMap(licence);
+
+    assertThat(result).containsEntry(100, 200);
+  }
+
+  @Test
+  void getOrgUnitToGroupIdMap_whenMapAndApplicationDetailsProvided_combinesOrgUnitIds() {
+    var licence = new Licence();
+    licence.setId(1);
+
+    var responsibleOrganisations = Map.of(licence, List.of(new OrganisationUnit(100, "Org A")));
+
+    var appDetail = mock(LicenceApplicationDetail.class);
+    when(appDetail.getResponsibleOrganisationUnitId()).thenReturn(200);
+
+    when(organisationUnitQueryService.findOrganisationGroupIdMapByUnitIds(List.of(100, 200)))
+        .thenReturn(Map.of(100, 10, 200, 20));
+
+    var result = licenceResponsibleOrganisationService.getOrgUnitToGroupIdMap(responsibleOrganisations, List.of(appDetail));
+
+    assertThat(result).containsEntry(100, 10).containsEntry(200, 20);
+  }
+
+  @Test
+  void getOrgUnitToGroupIdMap_whenApplicationDetailHasNullOrgUnitId_excludesFromIds() {
+    var licence = new Licence();
+    licence.setId(1);
+
+    var responsibleOrganisations = Map.of(licence, List.of(new OrganisationUnit(100, "Org A")));
+
+    var appDetail = mock(LicenceApplicationDetail.class);
+    when(appDetail.getResponsibleOrganisationUnitId()).thenReturn(null);
+
+    when(organisationUnitQueryService.findOrganisationGroupIdMapByUnitIds(List.of(100)))
+        .thenReturn(Map.of(100, 10));
+
+    var result = licenceResponsibleOrganisationService.getOrgUnitToGroupIdMap(responsibleOrganisations, List.of(appDetail));
+
+    assertThat(result).containsOnlyKeys(100);
+  }
+
+  @Test
+  void getOrgUnitToGroupIdMap_whenSameOrgUnitIdInBothSources_deduplicates() {
+    var licence = new Licence();
+    licence.setId(1);
+
+    var responsibleOrganisations = Map.of(licence, List.of(new OrganisationUnit(100, "Org A")));
+
+    var appDetail = mock(LicenceApplicationDetail.class);
+    when(appDetail.getResponsibleOrganisationUnitId()).thenReturn(100);
+
+    when(organisationUnitQueryService.findOrganisationGroupIdMapByUnitIds(List.of(100)))
+        .thenReturn(Map.of(100, 10));
+
+    var result = licenceResponsibleOrganisationService.getOrgUnitToGroupIdMap(responsibleOrganisations, List.of(appDetail));
+
+    assertThat(result).containsOnlyKeys(100);
   }
 }

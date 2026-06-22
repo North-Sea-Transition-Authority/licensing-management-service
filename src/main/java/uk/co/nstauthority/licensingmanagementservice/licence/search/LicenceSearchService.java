@@ -49,7 +49,7 @@ public class LicenceSearchService {
         .filter(licence -> FilterUtil.matchesEnum(LicenceType.class, licence.getType(), filterForm.getLicenceTypes()))
         .toList();
 
-    var licenceResponsibleOrganisations = getResponsibleOrganisationsForLicences(filteredLicenses);
+    var licenceResponsibleOrganisations = licenceResponsibleOrganisationService.getAllByLicenceIn(filteredLicenses);
 
     // apply batch filtering
     var responsibleOrganisationIds = getResponsibleOrganisationIds(licenceResponsibleOrganisations);
@@ -68,12 +68,8 @@ public class LicenceSearchService {
         .toList();
   }
 
-  public List<LicenceResponsibleOrganisation> getResponsibleOrganisationsForLicences(List<Licence> licences) {
-    return licenceResponsibleOrganisationService.getAllByLicenceIn(licences);
-  }
-
   public Map<Licence, List<String>> getLicenceToResponsibleOrganisationNameMap(List<Licence> licences) {
-    var responsibleOrganisations = getResponsibleOrganisationsForLicences(licences);
+    var responsibleOrganisations = licenceResponsibleOrganisationService.getAllByLicenceIn(licences);
 
     return getResponsibleOrganisationNamesByLicences(responsibleOrganisations);
   }
@@ -90,7 +86,7 @@ public class LicenceSearchService {
         ));
   }
 
-  public Map<Licence, List<String>> getResponsibleOrganisationNamesByLicences(
+  Map<Licence, List<String>> getResponsibleOrganisationNamesByLicences(
       List<LicenceResponsibleOrganisation> licenceResponsibleOrganisations) {
 
     var responsibleOrganisationIds = licenceResponsibleOrganisations.stream()

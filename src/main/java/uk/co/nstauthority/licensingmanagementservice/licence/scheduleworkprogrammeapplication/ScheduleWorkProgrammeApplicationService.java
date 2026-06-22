@@ -90,14 +90,7 @@ public class ScheduleWorkProgrammeApplicationService {
       return app.getSubmittedLicenceScheduleDetail();
     }
     return licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
-        app.getLicenceSchedule().getLicence(), LicenceScheduleDetailStatus.ACTIVE);
-  }
-
-  public Licence getLicenceFromScheduleWorkProgrammeApplicationDetail(
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
-  ) {
-    return getScheduleDetailFromApplicationDetail(scheduleWorkProgrammeApplicationDetail)
-        .getLicenceSchedule().getLicence();
+        detail.getLicence(), LicenceScheduleDetailStatus.ACTIVE);
   }
 
   private ScheduleWorkProgrammeApplication createScheduleWorkProgrammeApplication(Licence licence) {
@@ -114,7 +107,8 @@ public class ScheduleWorkProgrammeApplicationService {
   private ScheduleWorkProgrammeApplicationDetail createScheduleWorkProgrammeApplicationDetail(
       ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication,
       Boolean allLicenseesPermissionConfirmed,
-      Integer responsibleOrganisationUnitId) {
+      Integer responsibleOrganisationUnitId
+  ) {
     var scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
     scheduleWorkProgrammeApplicationDetail.setVersionNumber(1);
@@ -185,12 +179,11 @@ public class ScheduleWorkProgrammeApplicationService {
       ServiceUserDetail user) {
     var appReference = generateApplicationReference();
 
-    ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication
-        = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication();
+    var scheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication();
     scheduleWorkProgrammeApplication.setApplicationReference(appReference);
 
     var activeDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
-        scheduleWorkProgrammeApplication.getLicenceSchedule().getLicence(),
+        scheduleWorkProgrammeApplicationDetail.getLicence(),
         LicenceScheduleDetailStatus.ACTIVE);
     scheduleWorkProgrammeApplication.setSubmittedLicenceScheduleDetail(activeDetail);
 

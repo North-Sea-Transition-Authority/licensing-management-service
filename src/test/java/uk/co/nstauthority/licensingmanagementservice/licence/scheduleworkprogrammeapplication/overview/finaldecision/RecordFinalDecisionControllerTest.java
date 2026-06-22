@@ -3,6 +3,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -33,8 +35,8 @@ import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperSe
 import uk.co.nstauthority.licensingmanagementservice.file.FileUploadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action.ScheduleWorkProgrammeApplicationActionItem;
@@ -84,10 +86,9 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationDetailId))
         .thenReturn(applicationDetail);
     when(applicationAccessService.userHasAccessToApplication(
-        applicationDetail.getScheduleWorkProgrammeApplication().getId().toString(),
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
-        applicationDetail.getResponsibleOrganisationUnitId(),
-        REGULATOR_WUA_ID))
+        eq(applicationDetail),
+        anyMap(),
+        eq(REGULATOR_WUA_ID)))
         .thenReturn(false);
 
     mockMvc.perform(
@@ -105,10 +106,9 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationDetailId))
         .thenReturn(applicationDetail);
     when(applicationAccessService.userHasAccessToApplication(
-        applicationDetail.getScheduleWorkProgrammeApplication().getId().toString(),
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
-        applicationDetail.getResponsibleOrganisationUnitId(),
-        REGULATOR_WUA_ID))
+        eq(applicationDetail),
+        anyMap(),
+        eq(REGULATOR_WUA_ID)))
         .thenReturn(true);
     when(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, USER))
         .thenReturn(List.of());
@@ -128,8 +128,6 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
     setupPassingInterceptors(applicationDetail);
     when(recordFinalDecisionService.getFormForApplication(applicationDetail))
         .thenReturn(new RecordFinalDecisionForm());
-    when(scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail))
-        .thenReturn(createLicence());
     mockFileUploadComponentAttributes();
 
     mockMvc.perform(
@@ -172,8 +170,6 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
     setupPassingInterceptors(applicationDetail);
     when(recordFinalDecisionFormValidator.isValid(any(RecordFinalDecisionForm.class), any(Errors.class)))
         .thenReturn(false);
-    when(scheduleWorkProgrammeApplicationService.getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail))
-        .thenReturn(createLicence());
     mockFileUploadComponentAttributes();
 
     mockMvc.perform(
@@ -192,9 +188,14 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
   }
 
   private ScheduleWorkProgrammeApplicationDetail buildApplicationDetail(UUID applicationDetailId) {
+    var licence = createLicence();
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+    var licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
+    var swpApp = ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(licenceScheduleDetail);
     return ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(applicationDetailId)
         .withStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+        .withScheduleWorkProgrammeApplication(swpApp)
         .build();
   }
 
@@ -202,10 +203,9 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationDetail.getId()))
         .thenReturn(applicationDetail);
     when(applicationAccessService.userHasAccessToApplication(
-        applicationDetail.getScheduleWorkProgrammeApplication().getId().toString(),
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
-        applicationDetail.getResponsibleOrganisationUnitId(),
-        REGULATOR_WUA_ID))
+        eq(applicationDetail),
+        anyMap(),
+        eq(REGULATOR_WUA_ID)))
         .thenReturn(true);
     when(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, USER))
         .thenReturn(List.of(

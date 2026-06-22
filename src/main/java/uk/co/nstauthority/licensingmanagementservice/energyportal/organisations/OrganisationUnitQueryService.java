@@ -26,6 +26,9 @@ public class OrganisationUnitQueryService {
   public static final OrganisationUnitProjectionRoot ORGANISATION_UNIT_GROUPS_PROJECTION_ROOT
       = new OrganisationUnitProjectionRoot().isDuplicate().organisationUnitId().organisationGroups().organisationGroupId().root();
 
+  public static final OrganisationUnitsProjectionRoot ORGANISATION_UNITS_GROUPS_PROJECTION_ROOT
+      = new OrganisationUnitsProjectionRoot().organisationUnitId().name().organisationGroups().organisationGroupId().root();
+
   private final OrganisationApi organisationApi;
 
   public OrganisationUnitQueryService(OrganisationApi organisationApi) {
@@ -76,6 +79,32 @@ public class OrganisationUnitQueryService {
                               new RequestPurpose("Find organisation unit by ID"),
                               CorrelationIdUtil.getLogCorrelationId())
                           .flatMap(this::organisationGroupIdFromOrganisationUnit);
+  }
+
+  public List<Integer> findOrganisationGroupIdsByUnitIds(List<Integer> organisationUnitIds) {
+    return organisationApi.getOrganisationUnitsByIds(
+            organisationUnitIds,
+            ORGANISATION_UNITS_GROUPS_PROJECTION_ROOT,
+            new RequestPurpose("Get organisation units and org groups by org unit ids"),
+            CorrelationIdUtil.getLogCorrelationId()
+        ).stream()
+        .map(this::organisationGroupIdFromOrganisationUnit)
+        .flatMap(Optional::stream)
+        .toList();
+  }
+
+  public Map<Integer, Integer> findOrganisationGroupIdMapByUnitIds(List<Integer> organisationUnitIds) {
+    return organisationApi.getOrganisationUnitsByIds(
+            organisationUnitIds,
+            ORGANISATION_UNITS_GROUPS_PROJECTION_ROOT,
+            new RequestPurpose("Get organisation units and org groups by org unit ids"),
+            CorrelationIdUtil.getLogCorrelationId()
+        ).stream()
+        .filter(unit -> organisationGroupIdFromOrganisationUnit(unit).isPresent())
+        .collect(Collectors.toMap(
+            OrganisationUnit::getOrganisationUnitId,
+            unit -> organisationGroupIdFromOrganisationUnit(unit).get()
+        ));
   }
 
   private Optional<Integer> organisationGroupIdFromOrganisationUnit(OrganisationUnit organisationUnit) {

@@ -82,8 +82,7 @@ public class LicenceContinuationApplicationOverviewController {
       ServiceUserDetail serviceUserDetail,
       @RequestParam(name = "tab", defaultValue = DEFAULT_TAB) OverviewTab tab
   ) {
-    var licence = licenceContinuationService.getLicenceFromContinuationApplicationDetail(applicationDetail);
-    var applicationContext = overviewService.getApplicationContext(applicationDetail, licence);
+    var applicationContext = overviewService.getApplicationContext(applicationDetail, applicationDetail.getLicence());
     var summarySections = continuationSummarySectionService.getSummarySections(applicationDetail, serviceUserDetail);
     var applicationActions = licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail);
 

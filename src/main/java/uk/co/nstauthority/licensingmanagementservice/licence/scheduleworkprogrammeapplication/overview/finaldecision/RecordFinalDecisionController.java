@@ -22,7 +22,6 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.schedul
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action.ScheduleWorkProgrammeApplicationActionItem;
@@ -40,18 +39,15 @@ public class RecordFinalDecisionController {
 
   static final String PAGE_TITLE = "Record final decision";
 
-  private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final RecordFinalDecisionService recordFinalDecisionService;
   private final RecordFinalDecisionFormValidator recordFinalDecisionFormValidator;
   private final FileControllerHelperService fileControllerHelperService;
 
   public RecordFinalDecisionController(
-      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
       RecordFinalDecisionService recordFinalDecisionService,
       RecordFinalDecisionFormValidator recordFinalDecisionFormValidator,
       FileControllerHelperService fileControllerHelperService
   ) {
-    this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.recordFinalDecisionService = recordFinalDecisionService;
     this.recordFinalDecisionFormValidator = recordFinalDecisionFormValidator;
     this.fileControllerHelperService = fileControllerHelperService;
@@ -121,8 +117,7 @@ public class RecordFinalDecisionController {
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
       RecordFinalDecisionForm form
   ) {
-    var licence = scheduleWorkProgrammeApplicationService
-        .getLicenceFromScheduleWorkProgrammeApplicationDetail(applicationDetail);
+    var licence = applicationDetail.getLicence();
 
     var fileUploadAttributes = fileControllerHelperService.fileUploadComponentAttributes(
         form.getFinalDecisionSupportPapers(),

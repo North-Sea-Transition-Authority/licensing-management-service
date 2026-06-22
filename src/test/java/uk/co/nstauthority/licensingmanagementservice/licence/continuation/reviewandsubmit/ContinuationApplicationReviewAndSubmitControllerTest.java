@@ -67,7 +67,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
   void getReviewAndSubmit() throws Exception {
     var applicationDetailId = licenceContinuationApplicationDetail.getId();
     when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     var resultActions = mockMvc.perform(
         get(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).getReviewAndSubmit(applicationDetailId, null, null)))
@@ -82,7 +82,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
   void getReviewAndSubmit_UserCantSubmit() throws Exception {
     var applicationDetailId = licenceContinuationApplicationDetail.getId();
     when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
     when(licenceContinuationService.userCanSubmitApplication(licenceContinuationApplicationDetail, USER)).thenReturn(false);
 
     var resultActions = mockMvc.perform(
@@ -98,7 +98,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
   void submitApplication_notSubmittable() throws Exception {
     var applicationDetailId = licenceContinuationApplicationDetail.getId();
     when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
     when(licenceContinuationApplicationTaskListService.isSubmittable(any(), any())).thenReturn(false);
 
     var resultActions = mockMvc.perform(
@@ -115,7 +115,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
   @Test
   void submitApplication_submittable() throws Exception {
     var applicationDetailId = licenceContinuationApplicationDetail.getId();
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
     when(licenceContinuationApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
 
     when(licenceContinuationApplication.getApplicationReference()).thenReturn("APP-REF-123");
@@ -143,7 +143,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
         .build();
 
     when(licenceContinuationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
         get(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).getReviewAndSubmit(id, null, null))).with(user(USER))
@@ -153,7 +153,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
 
   @Test
   void renderPage_assertForbiddenUserNoAccess() throws Exception {
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
     mockMvc.perform(
         get(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).getReviewAndSubmit(LICENCE_CONTINUATION_APPLICATION_DETAIL_ID, null, null))).with(user(USER))
         )
@@ -181,7 +181,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
 
   @Test
   void submitPage_assertForbiddenUserNoAccess() throws Exception {
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
     mockMvc.perform(
         post(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).submitApplication(LICENCE_CONTINUATION_APPLICATION_DETAIL_ID, null, null, null)))
                      .with(user(USER))

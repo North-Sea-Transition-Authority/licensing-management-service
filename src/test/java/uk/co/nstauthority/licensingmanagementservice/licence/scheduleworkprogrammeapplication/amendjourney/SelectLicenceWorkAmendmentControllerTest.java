@@ -22,6 +22,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCommitment;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeStatus;
@@ -54,8 +56,12 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
 
+    var licenceSchedule = new LicenceSchedule();
+    licenceSchedule.setLicence(new Licence());
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    licenceScheduleDetail.setLicenceSchedule(licenceSchedule);
     ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication =
-        ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(new LicenceScheduleDetail());
+        ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(licenceScheduleDetail);
 
     var scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setId(UUID.randomUUID());
@@ -77,7 +83,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
     var mockWorkProgrammeActivityAmendmentViews = getMockWorkProgrammeActivityAmendmentViews();
 
     when(workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(any())).thenReturn(mockWorkProgrammeActivityAmendmentViews);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             get(ReverseRouter.route(
@@ -99,7 +105,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
   void submitValidForm() throws Exception {
 
     when(selectLicenceAmendmentFormValidator.isValid(any(), any(), any())).thenReturn(true);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(
@@ -121,7 +127,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
     var mockWorkProgrammeActivityAmendmentViews = getMockWorkProgrammeActivityAmendmentViews();
 
     when(workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(any())).thenReturn(mockWorkProgrammeActivityAmendmentViews);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(
@@ -177,7 +183,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
 
   @Test
   void renderPage_assertForbiddenUserNoAccess() throws Exception {
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
 
     mockMvc.perform(get(ReverseRouter.route(on(SelectLicenceWorkAmendmentController.class).renderForm(
                SCHEDULE_APPLICATION_DETAIL_ID, null)))
@@ -187,7 +193,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
 
   @Test
   void submitPage_assertForbiddenUserNoAccess() throws Exception {
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(SelectLicenceWorkAmendmentController.class).submitForm(
                SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))

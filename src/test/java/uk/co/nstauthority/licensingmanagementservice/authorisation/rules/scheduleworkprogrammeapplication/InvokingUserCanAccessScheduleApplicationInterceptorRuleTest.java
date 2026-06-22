@@ -17,12 +17,17 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AbstractInterceptorRuleTest;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 
 class InvokingUserCanAccessScheduleApplicationInterceptorRuleTest extends AbstractInterceptorRuleTest {
 
@@ -32,6 +37,8 @@ class InvokingUserCanAccessScheduleApplicationInterceptorRuleTest extends Abstra
   private ApplicationAccessService applicationAccessService;
   @Mock
   private UserDetailService userDetailService;
+  @Mock
+  private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
 
   @InjectMocks
   private InvokingUserCanAccessScheduleApplicationInterceptorRule invokingUserCanAccessScheduleApplicationInterceptorRule;
@@ -46,12 +53,11 @@ class InvokingUserCanAccessScheduleApplicationInterceptorRuleTest extends Abstra
   void check_userHasAccess_rulePass() throws NoSuchMethodException {
     var detailId = UUID.randomUUID();
     var applicationId = UUID.randomUUID();
-    var orgUnitId = 100;
     var wuaId = 123L;
 
-    mockUserAndApplication(detailId, applicationId, orgUnitId, wuaId);
-    when(applicationAccessService.userHasAccessToApplication(applicationId.toString(),
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, orgUnitId, wuaId))
+    mockUserAndApplication(detailId, applicationId, wuaId);
+    when(applicationAccessService.userHasAccessToApplication(
+        any(LicenceApplicationDetail.class), any(), eq(wuaId)))
         .thenReturn(true);
 
     var annotation = getAnnotation(
@@ -69,11 +75,11 @@ class InvokingUserCanAccessScheduleApplicationInterceptorRuleTest extends Abstra
   void check_userDoesNotHaveAccess_ruleFail() throws NoSuchMethodException {
     var detailId = UUID.randomUUID();
     var applicationId = UUID.randomUUID();
-    var orgUnitId = 100;
     var wuaId = 123L;
 
-    mockUserAndApplication(detailId, applicationId, orgUnitId, wuaId);
-    when(applicationAccessService.userHasAccessToApplication(applicationId.toString(), ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, orgUnitId, wuaId))
+    mockUserAndApplication(detailId, applicationId, wuaId);
+    when(applicationAccessService.userHasAccessToApplication(
+        any(LicenceApplicationDetail.class), any(), eq(wuaId)))
         .thenReturn(false);
 
     var annotation = getAnnotation(
@@ -92,22 +98,24 @@ class InvokingUserCanAccessScheduleApplicationInterceptorRuleTest extends Abstra
     );
   }
 
-  private void mockUserAndApplication(UUID detailId, UUID applicationId, Integer orgUnitId, Long wuaId) {
+  private void mockUserAndApplication(UUID detailId, UUID applicationId, Long wuaId) {
     var userDetail = ServiceUserDetailTestUtil.newBuilder()
                                               .withWuaId(wuaId)
                                               .build();
     when(userDetailService.getUserDetail()).thenReturn(userDetail);
 
+    var licence = LicenceTestUtil.builder().withId(1).build();
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+
     var application = new ScheduleWorkProgrammeApplication();
     application.setId(applicationId);
+    application.setLicenceSchedule(licenceSchedule);
 
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
         .builder()
-                                                                    .withId(detailId)
-                                                                    .withScheduleWorkProgrammeApplication(application)
-                                                                    .build();
-
-    applicationDetail.setResponsibleOrganisationUnitId(orgUnitId);
+        .withId(detailId)
+        .withScheduleWorkProgrammeApplication(application)
+        .build();
 
     when(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE)).thenReturn(
         Map.of(ScheduleWorkProgrammeApplicationDetail.SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL_ID, detailId.toString())
@@ -115,6 +123,7 @@ class InvokingUserCanAccessScheduleApplicationInterceptorRuleTest extends Abstra
 
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(detailId))
         .thenReturn(applicationDetail);
+
   }
 
   @GetMapping("access-controlled-endpoint")

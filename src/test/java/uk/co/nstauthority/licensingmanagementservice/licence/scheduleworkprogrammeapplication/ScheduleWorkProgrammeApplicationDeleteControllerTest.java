@@ -22,6 +22,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.reviewandsubmit.LicenceScheduleSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -53,6 +55,9 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
 
     ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
     scheduleWorkProgrammeApplication.setId(UUID.randomUUID());
+    var licenceSchedule = new LicenceSchedule();
+    licenceSchedule.setLicence(new Licence());
+    scheduleWorkProgrammeApplication.setLicenceSchedule(licenceSchedule);
 
     scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
         .builder()
@@ -67,7 +72,7 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
 
   @Test
   void renderForm() throws Exception {
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any()))
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any()))
         .thenReturn(true);
 
     mockMvc.perform(
@@ -86,7 +91,7 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
 
   @Test
   void deleteScheduleWorkProgrammeApplication() throws Exception {
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any()))
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any()))
         .thenReturn(true);
 
     String expectedRedirectUrl = ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null));
@@ -144,7 +149,7 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
   void renderPage_assertForbiddenUserNoAccess() throws Exception {
     var id = UUID.randomUUID();
 
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(scheduleWorkProgrammeApplicationDetail);
 
     mockMvc.perform(get(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationDeleteController.class).renderForm(id, null)))
@@ -156,7 +161,7 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
   void deleteScheduleWorkProgrammeApplication_assertForbiddenUserNoAccess() throws Exception {
     var id = UUID.randomUUID();
 
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any(), any())).thenReturn(false);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(scheduleWorkProgrammeApplicationDetail);
 
     mockMvc.perform(post(ReverseRouter.route(

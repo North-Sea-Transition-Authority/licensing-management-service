@@ -15,11 +15,14 @@ import java.time.LocalDate;
 import java.util.UUID;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEntity;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 
 @Audited
 @Entity(name = "schedule_work_programme_application_details")
 @PathVariableEntity(pathVariableName = ScheduleWorkProgrammeApplicationDetail.SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL_ID)
-public class ScheduleWorkProgrammeApplicationDetail {
+public class ScheduleWorkProgrammeApplicationDetail implements LicenceApplicationDetail {
 
   public static final String SCHEDULE_WORK_PROGRAMME_APPLICATION_DETAIL_ID = "scheduleWorkProgrammeApplicationDetailId";
 
@@ -78,6 +81,11 @@ public class ScheduleWorkProgrammeApplicationDetail {
 
   public void setScheduleWorkProgrammeApplication(ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication) {
     this.scheduleWorkProgrammeApplication = scheduleWorkProgrammeApplication;
+  }
+
+  @Override
+  public LicenceApplication getLicenceApplication() {
+    return getScheduleWorkProgrammeApplication();
   }
 
   public Boolean getAllLicenseesPermissionConfirmed() {
@@ -143,5 +151,9 @@ public class ScheduleWorkProgrammeApplicationDetail {
 
   public void setDecisionDate(LocalDate decisionDate) {
     this.decisionDate = decisionDate;
+  }
+
+  public Licence getLicence() {
+    return getScheduleWorkProgrammeApplication().getLicenceSchedule().getLicence();
   }
 }

@@ -9,7 +9,6 @@
       v-if="mapRef && includeSnapPoints"
       :ol-map="mapRef"
       :srs-wkid="srsWkid"
-      :snap-point-spacing="snapPointSpacing"
     />
     <feature-layer v-if="mapRef" :features-url="featuresUrl" :ol-map="mapRef"/>
   </ol-map>
@@ -18,6 +17,7 @@
 <script setup lang="ts">
 import type { CSSProperties } from "vue";
 import type OlMap from "vue3-openlayers/map/OlMap";
+import type { SupportedWkid } from "../../coordinate-system-utils";
 import { useGeographic } from "ol/proj";
 import { computed, ref } from "vue";
 import FeatureLayer from "./FeatureLayer.vue";
@@ -27,9 +27,8 @@ import SnapPointsLayer from "./SnapPointsLayer.vue";
 interface BaseMapProps {
   includeNstaQuadrants?: boolean,
   featuresUrl: string,
-  srsWkid: number,
+  srsWkid: SupportedWkid,
   includeSnapPoints?: boolean,
-  snapPointSpacing?: number,
 }
 
 withDefaults(defineProps<BaseMapProps>(), {

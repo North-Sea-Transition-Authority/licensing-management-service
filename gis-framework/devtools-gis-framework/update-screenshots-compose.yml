@@ -1,0 +1,28 @@
+services:
+  update-gis-screenshots:
+    image: node:24.16.0
+    working_dir: /gis-framework
+    environment:
+      CI: "true"
+    volumes:
+      - ..:/gis-framework
+      - node_modules:/gis-framework/node_modules
+      - playwright_cache:/root/.cache/ms-playwright
+    command: >
+      sh -c "npm ci &&
+             npx playwright install --with-deps chromium &&
+             rm -rf src/test/resources/js/visual-regression-tests/__screenshots__ &&
+             npm run test:vitest:visual:update;
+             COUNT=$$(find src/test/resources/js/visual-regression-tests/__screenshots__ -name '*-linux.png' 2>/dev/null | wc -l | tr -d ' ');
+             if [ \"$$COUNT\" -gt 0 ]; then
+               echo '';
+               echo \"Done: $$COUNT baseline image(s) written to src/test/resources/js/visual-regression-tests/__screenshots__/\";
+             else
+               echo '';
+               echo 'No screenshots were generated - check the output above for errors';
+               exit 1;
+             fi"
+
+volumes:
+  node_modules:
+  playwright_cache:

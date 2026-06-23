@@ -5,26 +5,65 @@ import {
   wgs84ToBng,
   wgs84ToEd50,
 } from "./coordinate-system-utils";
+import OsGridRef from "geodesy/osgridref.js";
+import Dms from "geodesy/dms.js";
 
-const GRID_CONFIGS = {
+interface SrsGridConfig {
+  /** Multiplier to convert from coord system units to spacing units (degrees to arc-seconds in ED50, metres to metres in BNG). */
+  readonly coordUnitFactor: number;
+  /** Minimum map zoom before snap points are generated. */
+  readonly minSnapZoom: number;
+  /** Zoom tiers as [minZoom, spacing] pairs, ordered highest zoom first. */
+  readonly zoomTiers: number[][];
+  /**
+   * Snap coordinates to this resolution (in SRS units) when building IDs.
+   * Must divide every spacing tier evenly so IDs are stable across tier changes.
+   */
+  readonly idResolution: number;
+  /** Optional hard bounds in SRS units; coordinates outside this range are not generated. */
+  readonly validBounds?: { minX: number; maxX: number; minY: number; maxY: number };
+}
+
+const GRID_CONFIGS: Record<SupportedWkid, SrsGridConfig> = {
   [SupportedWkid.ED50_WKID]: {
-    // 1 degree = 3600 arc seconds
-    spacingArcSeconds: 30, //must be divisor of arcSecondsPerDegree to match NSTA's quad/bocks
-    arcSecondsPerDegree: 3600,
-    originLon: 0,  // Grid aligned to whole degrees
-    originLat: 0,
+    coordUnitFactor: 3600, // 1 degree = 3600 arc-second
+    minSnapZoom: 11,
+    zoomTiers: [[15, 5], [14, 10], [13, 15], [12, 30], [11, 60]],
+    idResolution: 1, // 1 arc-second, finest possible resolution
   },
   [SupportedWkid.BNG_WKID]: {
-    spacingMeters: 500,
-    originLon: 0,
-    originLat: 0,
+    coordUnitFactor: 1, // 1 m = 1m
+    minSnapZoom: 12,
+    zoomTiers: [[15, 100], [14, 250], [13, 500], [12, 1000]],
+    idResolution: 50,  // 50m, finest possible resolution
+    validBounds: { minX: 0, maxX: 700000, minY: 0, maxY: 1300000 },
   },
-} as const;
+};
 
 export interface SnapPoint {
   id: string,
   coordinates: [number, number],
   originalSrsCoordinates: [number, number],
+  displayName: string,
+}
+
+/**
+ * Return the snap-point grid spacing for a given zoom level.
+ * ED50 result is in arc-seconds; BNG result is in metres.
+ */
+export function getSpacingForZoom(zoom: number, srsWkid: SupportedWkid): number {
+  const tiers = GRID_CONFIGS[srsWkid].zoomTiers;
+  for (const [minZoom, spacing] of tiers) {
+    if (zoom >= minZoom) return spacing;
+  }
+  return tiers[tiers.length - 1][1];
+}
+
+/**
+ * Return the minimum map zoom level at which snap points should be generated for the given CRS.
+ */
+export function getMinSnapZoom(srsWkid: SupportedWkid): number {
+  return GRID_CONFIGS[srsWkid].minSnapZoom;
 }
 
 /**
@@ -34,7 +73,7 @@ export interface SnapPoint {
  * @param {number} wgs84MaxLon - East bound of the map extent.
  * @param {number} wgs84MaxLat - North bound of the map extent.
  * @param {SupportedWkid} srsWkid - Spatial reference WKID.
- * @param {number} snapPointSpacing - Optional grid spacing override.
+ * @param {number} snapPointSpacing - Spacing between snap points.
  * @returns {SnapPoint[]} Array of snap points with WGS84 coordinates.
  */
 export function generateSnapPoints(
@@ -43,124 +82,112 @@ export function generateSnapPoints(
     wgs84MaxLon: number,
     wgs84MaxLat: number,
     srsWkid: SupportedWkid,
-    snapPointSpacing?: number,
+    snapPointSpacing: number,
 ): SnapPoint[] {
+  if (snapPointSpacing <= 0) {
+    throw new Error(`Grid spacing must be greater than zero: ${snapPointSpacing}`);
+  }
   let srsMin: [number, number];
   let srsMax: [number, number];
-  if (srsWkid === SupportedWkid.ED50_WKID) {
-    srsMin = wgs84ToEd50(wgs84MinLon, wgs84MinLat);
-    srsMax = wgs84ToEd50(wgs84MaxLon, wgs84MaxLat);
-  } else {
-    srsMin = wgs84ToBng(wgs84MinLon, wgs84MinLat);
-    srsMax = wgs84ToBng(wgs84MaxLon, wgs84MaxLat);
+  switch (srsWkid) {
+    case SupportedWkid.ED50_WKID:
+      srsMin = wgs84ToEd50(wgs84MinLon, wgs84MinLat);
+      srsMax = wgs84ToEd50(wgs84MaxLon, wgs84MaxLat);
+      break;
+    case SupportedWkid.BNG_WKID:
+      srsMin = wgs84ToBng(wgs84MinLon, wgs84MinLat);
+      srsMax = wgs84ToBng(wgs84MaxLon, wgs84MaxLat);
+      break;
+    default:
+      throw new Error(`Unsupported SRS WKID: ${srsWkid}`);
   }
 
-  const minIndexX = coordToGridIndex(srsMin[0], srsWkid, false, snapPointSpacing);
-  const maxIndexX = coordToGridIndex(srsMax[0], srsWkid, false, snapPointSpacing);
-  const minIndexY = coordToGridIndex(srsMin[1], srsWkid, true, snapPointSpacing);
-  const maxIndexY = coordToGridIndex(srsMax[1], srsWkid, true, snapPointSpacing);
+
+  const { validBounds } = GRID_CONFIGS[srsWkid];
+  if (validBounds) {
+    //Don't try to generate points outside valid bounds for coordinate system
+    if (srsMin[0] > validBounds.maxX || srsMax[0] < validBounds.minX ||
+        srsMin[1] > validBounds.maxY || srsMax[1] < validBounds.minY) {
+      return [];
+    }
+    srsMin[0] = Math.max(srsMin[0], validBounds.minX);
+    srsMin[1] = Math.max(srsMin[1], validBounds.minY);
+    srsMax[0] = Math.min(srsMax[0], validBounds.maxX);
+    srsMax[1] = Math.min(srsMax[1], validBounds.maxY);
+  }
+
+  const minIndexX = coordToGridIndex(srsMin[0], srsWkid, snapPointSpacing);
+  const maxIndexX = coordToGridIndex(srsMax[0], srsWkid, snapPointSpacing);
+  const minIndexY = coordToGridIndex(srsMin[1], srsWkid, snapPointSpacing);
+  const maxIndexY = coordToGridIndex(srsMax[1], srsWkid, snapPointSpacing);
 
   const points: SnapPoint[] = [];
   for (let indexX = minIndexX; indexX <= maxIndexX; indexX++) {
     for (let indexY = minIndexY; indexY <= maxIndexY; indexY++) {
-      const srsLon = gridIndexToCoord(indexX, srsWkid, false, snapPointSpacing);
-      const srsLat = gridIndexToCoord(indexY, srsWkid, true, snapPointSpacing);
+      const srsLon = gridIndexToCoord(indexX, srsWkid, snapPointSpacing);
+      const srsLat = gridIndexToCoord(indexY, srsWkid, snapPointSpacing);
 
       const wgs84Coordinates = srsWkid === SupportedWkid.ED50_WKID
           ? ed50ToWgs84(srsLon, srsLat)
           : bngToWgs84(srsLon, srsLat);
 
       points.push({
-        id: createGridPointId(indexX, indexY),
+        id: createGridPointId(srsLon, srsLat, srsWkid),
         coordinates: wgs84Coordinates,
         originalSrsCoordinates: [srsLon, srsLat],
+        displayName: getCoordinateDisplayName(srsLon, srsLat, srsWkid)
       });
     }
   }
   return points;
 }
 
-function getGridSpacing(srsWkid: SupportedWkid, gridSpacing?: number): number {
-  if (gridSpacing !== undefined) {
-    if (gridSpacing <= 0) {
-      throw new Error(`Grid spacing must be greater than zero: ${gridSpacing}`);
-    }
-    return gridSpacing;
-  }
-
-  if (srsWkid === SupportedWkid.ED50_WKID) {
-    return GRID_CONFIGS[SupportedWkid.ED50_WKID].spacingArcSeconds;
-  }
-
-  return GRID_CONFIGS[SupportedWkid.BNG_WKID].spacingMeters;
+function coordToGridIndex(coord: number, srsWkid: SupportedWkid, gridSpacing: number): number {
+  return Math.round((coord * GRID_CONFIGS[srsWkid].coordUnitFactor) / gridSpacing);
 }
 
-function assertSupportedGridSrsWkid(srsWkid: SupportedWkid): asserts srsWkid is SupportedWkid {
-  const supportedValues = Object.values(SupportedWkid);
-  if (!supportedValues.includes(srsWkid)) {
-    throw new Error(`Unsupported SRS WKID: ${srsWkid}`);
+function gridIndexToCoord(index: number, srsWkid: SupportedWkid, gridSpacing: number): number {
+  return (index * gridSpacing) / GRID_CONFIGS[srsWkid].coordUnitFactor;
+}
+
+/**
+ * Create a stable grid point ID from SRS coordinates.
+ * Coordinates are expressed in idResolution units so IDs remain stable across spacing-tier changes.
+ */
+function createGridPointId(srsX: number, srsY: number, srsWkid: SupportedWkid): string {
+  const { coordUnitFactor, idResolution } = GRID_CONFIGS[srsWkid];
+  const idX = Math.round((srsX * coordUnitFactor) / idResolution);
+  const idY = Math.round((srsY * coordUnitFactor) / idResolution);
+  return `${idX},${idY}`;
+}
+
+function getCoordinateDisplayName(lon: number, lat: number, srsWkid: SupportedWkid): string {
+  if (srsWkid === SupportedWkid.BNG_WKID) {
+    // BNG snap points use lon=easting, lat=northing (metres)
+    return convertBngToGridReference(lon, lat);
+  } else {
+    return convertLatLonToDms(lat, lon);
   }
 }
 
 /**
- * Convert coordinate to grid index
- * @param {number} coord - Coordinate in original SRS
- * @param {number} srsWkid - Spatial reference WKID
- * @param {boolean} isLat - true for latitude/northing, false for longitude/easting
- * @param {number} gridSpacing - Optional grid spacing. ED50 uses arc seconds; BNG uses metres. Will use default spacing
- * if not provided.
- * @returns {number} Integer grid index
+ * Converts BNG metre coordinates (easting, northing) directly to an OS grid reference string.
+ * lon == easting, lat == northing
  */
-function coordToGridIndex(coord: number, srsWkid: SupportedWkid, isLat: boolean, gridSpacing?: number): number {
-  assertSupportedGridSrsWkid(srsWkid);
-  const spacing = getGridSpacing(srsWkid, gridSpacing);
-
-  if (srsWkid === SupportedWkid.ED50_WKID) {
-    const config = GRID_CONFIGS[SupportedWkid.ED50_WKID];
-    // Convert degrees to arc seconds for exact integer arithmetic
-    const arcSeconds = Math.round(coord * config.arcSecondsPerDegree);
-    const origin = isLat ? config.originLat : config.originLon;
-    const originArcSeconds = origin * config.arcSecondsPerDegree;
-    return Math.round((arcSeconds - originArcSeconds) / spacing);
-  }
-
-  const config = GRID_CONFIGS[SupportedWkid.BNG_WKID];
-  const origin = isLat ? config.originLat : config.originLon;
-  return Math.round((coord - origin) / spacing);
+function convertBngToGridReference(easting: number, northing: number): string {
+  const gridRef = new OsGridRef(easting, northing);
+  return gridRef.toString(8);
 }
 
 /**
- * Convert grid index to coordinate
- * @param index {number} - Integer grid index
- * @param srsWkid {SupportedWkid} - Spatial reference WKID
- * @param isLat {boolean} - true for latitude/northing, false for longitude/easting
- * @param gridSpacing {number} - Optional grid spacing. ED50 uses arc seconds; BNG uses metres. Will use default spacing
- * if not provided.
- * @returns number Coordinate in original SRS
+ * Converts latitude and longitude to degrees, minutes, seconds format.
  */
-function gridIndexToCoord(index: number, srsWkid: SupportedWkid, isLat: boolean, gridSpacing?: number): number {
-  assertSupportedGridSrsWkid(srsWkid);
-  const spacing = getGridSpacing(srsWkid, gridSpacing);
-
-  if (srsWkid === SupportedWkid.ED50_WKID) {
-    const config = GRID_CONFIGS[SupportedWkid.ED50_WKID];
-    const origin = isLat ? config.originLat : config.originLon;
-    const originArcSeconds = origin * config.arcSecondsPerDegree;
-    const arcSeconds = originArcSeconds + (index * spacing);
-    return arcSeconds / config.arcSecondsPerDegree;
-  }
-
-  const config = GRID_CONFIGS[SupportedWkid.BNG_WKID];
-  const origin = isLat ? config.originLat : config.originLon;
-  return origin + (index * spacing);
+function convertLatLonToDms(lat: number, lon: number): string {
+  const latDms = removeLeadingZeros(Dms.toLat(lat, 'dms', 0));
+  const lonDms = removeLeadingZeros(Dms.toLon(lon, 'dms', 0));
+  return `${latDms}\n${lonDms}`;
 }
 
-/**
- * Create grid point ID from indices
- * @param {number} indexX - Longitude/easting index
- * @param {number} indexY - Latitude/northing index
- * @returns {string} Canonical point ID
- */
-function createGridPointId(indexX: number, indexY: number): string {
-  return `${indexX},${indexY}`;
+function removeLeadingZeros(str: string): string {
+  return str.replace(/^0+(?=\d)/, '');
 }

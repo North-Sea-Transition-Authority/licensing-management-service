@@ -39,12 +39,8 @@ const SnapPointsLayerStub = defineComponent({
       type: Number,
       required: true,
     },
-    snapPointSpacing: {
-      type: Number,
-      required: false,
-    },
   },
-  template: `<div data-testid="snap-points-layer" :data-srs-wkid="srsWkid" :data-snap-point-spacing="snapPointSpacing" />`,
+  template: `<div data-testid="snap-points-layer" :data-srs-wkid="srsWkid" />`,
 });
 
 describe("baseMap", () => {
@@ -111,7 +107,6 @@ describe("baseMap", () => {
       props: {
         featuresUrl: "dummyUrl",
         srsWkid: SupportedWkid.ED50_WKID,
-        snapPointSpacing: 60,
       },
       global: {
         stubs: {
@@ -128,6 +123,5 @@ describe("baseMap", () => {
 
     const snapPointsLayer = await screen.findByTestId("snap-points-layer");
     expect(snapPointsLayer).toHaveAttribute("data-srs-wkid", SupportedWkid.ED50_WKID.toString());
-    expect(snapPointsLayer).toHaveAttribute("data-snap-point-spacing", "60");
   });
 });

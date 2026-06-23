@@ -77,6 +77,8 @@ spring app:
 For more information on the frontend implementation, see the 
 [frontend-components.md](documentation/frontend-components.md) documentation.
 
+For information on frontend visual regression tests, see the [broswer-component-testing.md](documentation/browser-component-testing.md) documentation.
+
 ## Starting the node server
 
 Go to `gis-framework/arcgis-node` and run `npx tsx src/grpc-server.ts`.

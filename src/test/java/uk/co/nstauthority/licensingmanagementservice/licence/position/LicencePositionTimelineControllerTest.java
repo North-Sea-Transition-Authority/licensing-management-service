@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
@@ -11,6 +12,7 @@ import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLog
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
@@ -27,8 +29,8 @@ class LicencePositionTimelineControllerTest extends AbstractControllerTest {
 
   private static final Integer LICENCE_ID = 1;
   private static final Licence LICENCE = LicenceTestUtil.builder().withId(LICENCE_ID).build();
-  private static final String PAGE_TITLE = "Licence positions";
   private static final String PAGE_CAPTION = "licence - 1";
+  private static final UUID POSITION_ID = UUID.randomUUID();
 
   @MockitoBean
   private LicencePositionService licencePositionService;
@@ -45,23 +47,46 @@ class LicencePositionTimelineControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderLicencePositionTimeline() throws Exception {
-    var licencePositionTimelineView = List.of(
-        new LicencePositionTimelineView("REF-2", LocalDate.of(2026,6,5)),
-        new LicencePositionTimelineView("REF-1",  LocalDate.of(2026,2,3))
-    );
+  void renderLicencePositionTimeline_redirectsToLatestPosition() throws Exception {
+    var older  = LicencePositionTestUtil.newBuilder().withPositionDate(LocalDate.of(2026, 1, 1)).build();
+    var latest = LicencePositionTestUtil.newBuilder().withPositionDate(LocalDate.of(2026, 6, 1)).build();
 
-    when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(PAGE_CAPTION);
-    when(licencePositionService.getTimelineView(LICENCE)).thenReturn(licencePositionTimelineView);
+    when(licencePositionService.getChronologicalLicencePositions(LICENCE))
+        .thenReturn(List.of(older, latest));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionTimelineController.class).renderLicencePositionTimeline(LICENCE)))
             .with(user(regulatorUser)))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionTimelineController.class)
+            .renderLicencePosition(LICENCE, latest.getId()))));
+  }
+
+  @Test
+  void renderLicencePosition_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionTimelineController.class)
+            .renderLicencePosition(LICENCE, POSITION_ID))))
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void renderLicencePosition() throws Exception {
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var timelineView = List.of(
+        new LicencePositionTimelineView(POSITION_ID, "url1", "REF-2", "5 June 2026"));
+
+    when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(PAGE_CAPTION);
+    when(licencePositionService.getTimelineView(LICENCE)).thenReturn(timelineView);
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionTimelineController.class)
+            .renderLicencePosition(LICENCE, POSITION_ID)))
+            .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
-            view().name("lms/licence/position/licencePositionTimeline"),
-            model().attribute("pageTitle", PAGE_TITLE),
+            view().name("lms/licence/position/licencePositions"),
             model().attribute("pageCaption", PAGE_CAPTION),
-            model().attribute("licencePositionTimelineView", licencePositionTimelineView)
+            model().attribute("licencePositionTimelineView", timelineView),
+            model().attribute("licencePosition", position)
         );
   }
 }

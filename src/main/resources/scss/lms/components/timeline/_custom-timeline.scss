@@ -11,4 +11,10 @@
       opacity: 0;
     }
   }
+
+  &__time-stamp--selected {
+    .fds-timeline__node-number {
+      background: govuk-colour("mid-grey");
+    }
+  }
 }

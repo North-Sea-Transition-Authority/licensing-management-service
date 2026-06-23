@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -20,4 +21,6 @@ public interface LicencePositionRepository extends JpaRepository<LicencePosition
       WHERE lp.licence = :licence AND lp.positionDate = :positionDate
       """)
   Integer findMaxPositionDateOrder(Licence licence, LocalDate positionDate);
+
+  Optional<LicencePosition> findByIdAndLicence(UUID id, Licence licence);
 }

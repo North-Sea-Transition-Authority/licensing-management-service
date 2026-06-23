@@ -42,6 +42,10 @@ out/
 /src/main/resources/templates/fds/
 /src/main/resources/public/assets/html5shiv/html5shiv.min.js
 
+### Document assets ###
+/src/main/resources/document-assets/all.css
+/src/main/resources/document-assets/all.css.map
+
 ### Claude ###
 /.claude/settings.local.json
 

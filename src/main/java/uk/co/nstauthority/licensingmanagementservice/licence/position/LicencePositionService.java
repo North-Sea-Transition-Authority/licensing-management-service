@@ -1,12 +1,17 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransaction;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Service
 public class LicencePositionService {
@@ -20,8 +25,13 @@ public class LicencePositionService {
   public List<LicencePositionTimelineView> getTimelineView(Licence licence) {
     return getChronologicalLicencePositions(licence).reversed().stream()
         .map(licencePosition -> new LicencePositionTimelineView(
+            licencePosition.getId(),
+            ReverseRouter.route(on(LicencePositionTimelineController.class).renderLicencePosition(
+                licence,
+                licencePosition.getId()
+            )),
             licencePosition.getLicenceTransaction().getRegulatorReference(),
-            licencePosition.getPositionDate()
+            licencePosition.getFormattedPositionDate()
         ))
         .toList();
   }
@@ -43,6 +53,12 @@ public class LicencePositionService {
     licencePosition.setPositionDateOrder(positionDateOrder);
 
     return licencePositionRepository.save(licencePosition);
+  }
+
+  public LicencePosition getPositionForLicence(Licence licence, UUID licencePositionId) {
+    return licencePositionRepository.findByIdAndLicence(licencePositionId, licence)
+        .orElseThrow(() -> new LmsEntityNotFoundException(
+            "licencePosition", licencePositionId));
   }
 
   public List<LicencePosition> getChronologicalLicencePositions(Licence licence) {

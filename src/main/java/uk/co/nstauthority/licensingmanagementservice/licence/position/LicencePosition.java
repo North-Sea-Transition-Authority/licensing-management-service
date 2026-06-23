@@ -12,6 +12,7 @@ import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransaction;
+import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
 @Audited
 @Entity(name = "licence_positions")
@@ -82,4 +83,9 @@ public class LicencePosition {
   public void setPositionDateOrder(int positionDateOrder) {
     this.positionDateOrder = positionDateOrder;
   }
+
+  public String getFormattedPositionDate() {
+    return DateUtil.formatLongDate(this.positionDate);
+  }
+
 }

@@ -1,14 +1,11 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
-import java.time.LocalDate;
-import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
+import java.util.UUID;
 
 public record LicencePositionTimelineView(
+    UUID positionId,
+    String url,
     String regulatorReference,
-    LocalDate positionDate
+    String formattedPositionDate
 ) {
-
-  public String getFormattedDate() {
-    return DateUtil.formatLongDate(positionDate);
-  }
 }

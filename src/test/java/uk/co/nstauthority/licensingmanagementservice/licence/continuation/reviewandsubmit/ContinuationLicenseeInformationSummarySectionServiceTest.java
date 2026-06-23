@@ -14,7 +14,9 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.externalcontributors.ExternalContributorForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.externalcontributorjourney.LicenceContinuationExternalContributorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -59,6 +61,9 @@ class ContinuationLicenseeInformationSummarySectionServiceTest {
   @Mock
   private FoxRedirectService foxRedirectService;
 
+  @Mock
+  private LicenceContinuationExternalContributorService licenceContinuationExternalContributorService;
+
   @InjectMocks
   private ContinuationLicenseeInformationSummarySectionService continuationLicenseeInformationSummarySectionService;
 
@@ -68,8 +73,13 @@ class ContinuationLicenseeInformationSummarySectionServiceTest {
         LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(LICENCE_SCHEDULE_DETAIL);
     licenceContinuationApplicationDetail.setResponsibleOrganisationUnitId(1);
 
+    var externalContributorForm = new ExternalContributorForm();
+    externalContributorForm.setAddExternalContributors(true);
+
     when(foxRedirectService.getViewPearsLicenceUrl(LICENCE)).thenReturn(VIEW_PEARS_LICENCE_URL);
     when(organisationUnitQueryService.getOrganisationUnitNameById(1)).thenReturn(Optional.of("Test Organisation"));
+    when(licenceContinuationExternalContributorService.getExternalContributorForm(licenceContinuationApplicationDetail))
+        .thenReturn(externalContributorForm);
 
     var result = continuationLicenseeInformationSummarySectionService
         .getSummarySection(licenceContinuationApplicationDetail, null).get();
@@ -78,7 +88,7 @@ class ContinuationLicenseeInformationSummarySectionServiceTest {
 
     var summaryItem = result.summaryItems().getFirst();
     assertThat(summaryItem.displayName()).isEqualTo("General details");
-    assertThat(summaryItem.summaryCards()).hasSize(2);
+    assertThat(summaryItem.summaryCards()).hasSize(3);
 
     var licenceSummaryCard = summaryItem.summaryCards().getFirst();
     assertThat(licenceSummaryCard.displayName()).isEqualTo("Licence information");
@@ -96,6 +106,14 @@ class ContinuationLicenseeInformationSummarySectionServiceTest {
             .addStringValue("Who is the licensee for this application?", "Test Organisation")
             .build()
     );
+
+    var externalContributorSummaryCard = summaryItem.summaryCards().get(2);
+    assertThat(externalContributorSummaryCard.displayName()).isEqualTo("External contributors");
+    assertThat(externalContributorSummaryCard.summaryData()).isEqualTo(
+        SummaryDataView.newBuilder()
+            .addStringValue("External contributors required", true)
+            .build()
+    );
   }
 
   @Test
@@ -105,6 +123,8 @@ class ContinuationLicenseeInformationSummarySectionServiceTest {
     licenceContinuationApplicationDetail.setResponsibleOrganisationUnitId(1);
 
     when(organisationUnitQueryService.getOrganisationUnitNameById(1)).thenReturn(Optional.of("Test Organisation"));
+    when(licenceContinuationExternalContributorService.getExternalContributorForm(licenceContinuationApplicationDetail))
+        .thenReturn(new ExternalContributorForm());
 
     var result = continuationLicenseeInformationSummarySectionService
         .getSummarySection(licenceContinuationApplicationDetail, null).get();
@@ -124,6 +144,8 @@ class ContinuationLicenseeInformationSummarySectionServiceTest {
     licenceContinuationApplicationDetail.setResponsibleOrganisationUnitId(1);
 
     when(organisationUnitQueryService.getOrganisationUnitNameById(1)).thenReturn(Optional.empty());
+    when(licenceContinuationExternalContributorService.getExternalContributorForm(licenceContinuationApplicationDetail))
+        .thenReturn(new ExternalContributorForm());
 
     var result = continuationLicenseeInformationSummarySectionService
         .getSummarySection(licenceContinuationApplicationDetail, null).get();

@@ -356,6 +356,10 @@ public class TeamManagementService {
     return teamRoleRepository.existsByTeamAndWuaId(team, wuaId);
   }
 
+  public boolean teamHasMembers(Team team) {
+    return teamRoleRepository.existsByTeam(team);
+  }
+
   public boolean userCanManageAnyOrganisationTeam(long wuaId) {
     return teamQueryService.userHasStaticRole(wuaId, TeamType.LICENCE_MANAGEMENT, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM);
   }

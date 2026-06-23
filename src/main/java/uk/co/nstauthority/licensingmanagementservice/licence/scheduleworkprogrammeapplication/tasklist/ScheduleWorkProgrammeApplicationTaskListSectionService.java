@@ -6,14 +6,14 @@ import java.util.ArrayList;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSummaryController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.SelectLicenceWorkAmendmentController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionSubmissionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.externalcontributorjourney.ScheduleWorkProgrammeExternalContributorController;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.externalcontributorjourney.ScheduleWorkProgrammeExternalContributorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurpose;
@@ -25,10 +25,6 @@ import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSectionService;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementController;
-import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
 
 @Service
 public class ScheduleWorkProgrammeApplicationTaskListSectionService
@@ -39,7 +35,7 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
   private final SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository;
   private final SwpApplicationRequestPurposeService swpApplicationRequestPurposeService;
   private final LicenceScheduleSupportingInformationSubmissionService licenceScheduleSupportingInformationSubmissionService;
-  private final TeamManagementService teamManagementService;
+  private final ScheduleWorkProgrammeExternalContributorService scheduleWorkProgrammeExternalContributorService;
 
   public ScheduleWorkProgrammeApplicationTaskListSectionService(
       SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository,
@@ -47,14 +43,14 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
       LicenceScheduleExtensionSubmissionService licenceScheduleExtensionSubmissionService,
       LicenceWorkProgrammeAmendmentSubmissionService licenceWorkProgrammeAmendmentSubmissionService,
       LicenceScheduleSupportingInformationSubmissionService licenceScheduleSupportingInformationSubmissionService,
-      TeamManagementService teamManagementService
+      ScheduleWorkProgrammeExternalContributorService scheduleWorkProgrammeExternalContributorService
   ) {
     this.licenceScheduleExtensionSubmissionService = licenceScheduleExtensionSubmissionService;
     this.swpApplicationRequestPurposeRepository = swpApplicationRequestPurposeRepository;
     this.swpApplicationRequestPurposeService = swpApplicationRequestPurposeService;
     this.licenceWorkProgrammeAmendmentSubmissionService = licenceWorkProgrammeAmendmentSubmissionService;
     this.licenceScheduleSupportingInformationSubmissionService = licenceScheduleSupportingInformationSubmissionService;
-    this.teamManagementService = teamManagementService;
+    this.scheduleWorkProgrammeExternalContributorService = scheduleWorkProgrammeExternalContributorService;
   }
 
   static final String APPLICATION_DETAILS_SECTION_NAME = "Schedule and work programme application details";
@@ -83,25 +79,14 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
         .orElse(false)
         && swpApplicationRequestPurposeService.hasAmendableWorkProgrammeActivities(scheduleWorkProgrammeApplicationDetail);
 
-    var scopeRef = TeamScopeReference.from(
-        scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getId().toString(),
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name()
-    );
-
-    var externalContributors = teamManagementService.getScopedTeam(
-        TeamType.EXTERNAL_CONTRIBUTORS,
-        scopeRef
-    ).orElseThrow(() -> new LmsEntityNotFoundException(
-        String.format("No external contacts team found for application with id : %s ",
-        scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().getId()
-    )));
-
     var items = new ArrayList<TaskListItem>();
     items.add(new TaskListItem(
         EXTERNAL_CONTRIBUTORS,
-        TaskListLabel.notStartedOrComplete(true),
-        ReverseRouter.route(on(TeamManagementController.class)
-            .renderExternalContributorsTeamList(externalContributors.getId(), null))
+        TaskListLabel.notStartedOrComplete(
+            scheduleWorkProgrammeExternalContributorService.isExternalContributorSectionComplete(
+                scheduleWorkProgrammeApplicationDetail)),
+        ReverseRouter.route(on(ScheduleWorkProgrammeExternalContributorController.class)
+            .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null))
     ));
 
     if (swpApplicationRequestPurposeService.hasAmendableWorkProgrammeActivities(scheduleWorkProgrammeApplicationDetail)) {

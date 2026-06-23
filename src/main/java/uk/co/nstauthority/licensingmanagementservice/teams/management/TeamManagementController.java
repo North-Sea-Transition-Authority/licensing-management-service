@@ -26,8 +26,9 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPor
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.externalcontributorjourney.LicenceContinuationExternalContributorController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.externalcontributorjourney.ScheduleWorkProgrammeExternalContributorController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -426,15 +427,15 @@ public class TeamManagementController {
       var scheduleWorkProgrammeApplicationDetail = scheduleWorkProgrammeApplicationService
           .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication);
 
-      return ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
-          scheduleWorkProgrammeApplicationDetail.getId(), null, null));
+      return ReverseRouter.route(on(ScheduleWorkProgrammeExternalContributorController.class).renderForm(
+          scheduleWorkProgrammeApplicationDetail.getId(), null));
 
     } else {
       var detailByIdOrThrow = licenceContinuationService
           .getDetailByIdOrThrow(UUID.fromString(scopeId));
 
-      return ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(
-          detailByIdOrThrow.getId(), null, null));
+      return ReverseRouter.route(on(LicenceContinuationExternalContributorController.class).renderForm(
+          detailByIdOrThrow.getId(), null));
     }
   }
 

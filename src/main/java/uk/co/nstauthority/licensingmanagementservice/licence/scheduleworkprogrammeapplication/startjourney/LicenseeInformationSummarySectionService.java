@@ -7,6 +7,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.energyportal.fox.FoxRedirectService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.externalcontributorjourney.ScheduleWorkProgrammeExternalContributorService;
 import uk.co.nstauthority.licensingmanagementservice.summary.ExternalUrlView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
@@ -21,12 +22,16 @@ public class LicenseeInformationSummarySectionService implements SummarySectionS
   public static final int SECTION_DISPLAY_ORDER = 10;
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final FoxRedirectService foxRedirectService;
+  private final ScheduleWorkProgrammeExternalContributorService scheduleWorkProgrammeExternalContributorService;
 
   public LicenseeInformationSummarySectionService(OrganisationUnitQueryService organisationUnitQueryService,
-                                                  FoxRedirectService foxRedirectService
+                                                  FoxRedirectService foxRedirectService,
+                                                  ScheduleWorkProgrammeExternalContributorService
+                                                      scheduleWorkProgrammeExternalContributorService
   ) {
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.foxRedirectService = foxRedirectService;
+    this.scheduleWorkProgrammeExternalContributorService = scheduleWorkProgrammeExternalContributorService;
   }
 
   @Override
@@ -46,8 +51,26 @@ public class LicenseeInformationSummarySectionService implements SummarySectionS
   ) {
     var licenceSummaryCard = getLicenceSummaryCard(scheduleWorkProgrammeApplicationDetail);
     var licenseeInformationSummaryCard = getLicenseeInformationSummaryCard(scheduleWorkProgrammeApplicationDetail);
+    var externalContributorSummaryCard = getExternalContributorSummaryCard(scheduleWorkProgrammeApplicationDetail);
 
-    return SummaryItem.withCards(SECTION_NAME, List.of(licenceSummaryCard, licenseeInformationSummaryCard));
+    return SummaryItem.withCards(
+        SECTION_NAME,
+        List.of(licenceSummaryCard, licenseeInformationSummaryCard, externalContributorSummaryCard)
+    );
+  }
+
+  private SummaryCard getExternalContributorSummaryCard(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  ) {
+    var form = scheduleWorkProgrammeExternalContributorService.getExternalContributorForm(
+        scheduleWorkProgrammeApplicationDetail
+    );
+
+    var summaryDataView = SummaryDataView.newBuilder()
+        .addStringValue("External contributors required", form.getAddExternalContributors())
+        .build();
+
+    return SummaryCard.simpleSummaryCardWithHeading("External contributors", summaryDataView);
   }
 
   private SummaryCard getLicenceSummaryCard(ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {

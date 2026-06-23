@@ -45,12 +45,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.Applica
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.externalcontributorjourney.LicenceContinuationExternalContributorController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.externalcontributorjourney.ScheduleWorkProgrammeExternalContributorController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -906,8 +907,8 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("teamMemberViews", List.of(applicationScopedTeamMemberView)))
         .andExpect(model().attribute("canManageTeam", false))
         .andExpect(model().attribute("backUrl",
-            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
-                scheduleWorkProgrammeApplicationDetail.getId(), null, null))
+            ReverseRouter.route(on(ScheduleWorkProgrammeExternalContributorController.class).renderForm(
+                scheduleWorkProgrammeApplicationDetail.getId(), null))
         ))
         .andExpect(model().attribute("currentEndPoint",
             ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(null, null, null))
@@ -953,8 +954,8 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("teamMemberViews", List.of(applicationScopedTeamMemberView)))
         .andExpect(model().attribute("canManageTeam", false))
         .andExpect(model().attribute("backUrl",
-                                     ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(
-                                         licenceContinuationApplicationDetail.getId(), null, null))
+                                     ReverseRouter.route(on(LicenceContinuationExternalContributorController.class).renderForm(
+                                         licenceContinuationApplicationDetail.getId(), null))
         ))
         .andExpect(model().attribute("currentEndPoint",
                                      ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(null, null, null))

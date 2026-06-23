@@ -24,6 +24,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.SelectLicenceWorkAmendmentController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionSubmissionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.externalcontributorjourney.ScheduleWorkProgrammeExternalContributorController;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.externalcontributorjourney.ScheduleWorkProgrammeExternalContributorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest.LicenceScheduleSupportingInformationSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.requestpurpose.SwpApplicationRequestPurpose;
@@ -34,9 +36,6 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
-import uk.co.nstauthority.licensingmanagementservice.teams.Team;
-import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementController;
-import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
 
 @ExtendWith(MockitoExtension.class)
 class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
@@ -54,7 +53,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
   private LicenceScheduleSupportingInformationSubmissionService licenceScheduleSupportingInformationSubmissionService;
 
   @Mock
-  private TeamManagementService teamManagementService;
+  private ScheduleWorkProgrammeExternalContributorService scheduleWorkProgrammeExternalContributorService;
 
   @Mock
   private SwpApplicationRequestPurposeService swpApplicationRequestPurposeService;
@@ -64,12 +63,10 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
 
   private ScheduleWorkProgrammeApplicationDetail application;
   private ServiceUserDetail user;
-  private Team team;
 
   @BeforeEach
   void setUp() {
     user = ServiceUserDetailTestUtil.newBuilder().build();
-    team = new Team(UUID.randomUUID());
 
     var scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
     scheduleWorkProgrammeApplication.setId(UUID.randomUUID());
@@ -80,7 +77,8 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
         .withScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication)
         .build();
 
-    when(teamManagementService.getScopedTeam(any(), any())).thenReturn(Optional.of(team));
+    when(scheduleWorkProgrammeExternalContributorService.isExternalContributorSectionComplete(application))
+        .thenReturn(true);
   }
 
   @Test
@@ -102,7 +100,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.EXTERNAL_CONTRIBUTORS,
                     TaskListLabel.COMPLETE,
-                    ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(team.getId(), user))
+                    ReverseRouter.route(on(ScheduleWorkProgrammeExternalContributorController.class).renderForm(application.getId(), null))
                 ),
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
@@ -140,7 +138,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.EXTERNAL_CONTRIBUTORS,
                     TaskListLabel.COMPLETE,
-                    ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(team.getId(), user))
+                    ReverseRouter.route(on(ScheduleWorkProgrammeExternalContributorController.class).renderForm(application.getId(), null))
                 ),
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
@@ -188,7 +186,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.EXTERNAL_CONTRIBUTORS,
                     TaskListLabel.COMPLETE,
-                    ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(team.getId(), user))
+                    ReverseRouter.route(on(ScheduleWorkProgrammeExternalContributorController.class).renderForm(application.getId(), null))
                 ),
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
@@ -236,7 +234,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.EXTERNAL_CONTRIBUTORS,
                     TaskListLabel.COMPLETE,
-                    ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(team.getId(), user))
+                    ReverseRouter.route(on(ScheduleWorkProgrammeExternalContributorController.class).renderForm(application.getId(), null))
                 ),
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
@@ -284,7 +282,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.EXTERNAL_CONTRIBUTORS,
                     TaskListLabel.COMPLETE,
-                    ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(team.getId(), user))
+                    ReverseRouter.route(on(ScheduleWorkProgrammeExternalContributorController.class).renderForm(application.getId(), null))
                 ),
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
@@ -332,7 +330,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.EXTERNAL_CONTRIBUTORS,
                     TaskListLabel.COMPLETE,
-                    ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(team.getId(), user))
+                    ReverseRouter.route(on(ScheduleWorkProgrammeExternalContributorController.class).renderForm(application.getId(), null))
                 ),
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,
@@ -381,7 +379,7 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.EXTERNAL_CONTRIBUTORS,
                     TaskListLabel.COMPLETE,
-                    ReverseRouter.route(on(TeamManagementController.class).renderExternalContributorsTeamList(team.getId(), user))
+                    ReverseRouter.route(on(ScheduleWorkProgrammeExternalContributorController.class).renderForm(application.getId(), null))
                 ),
                 new TaskListItem(
                     ScheduleWorkProgrammeApplicationTaskListSectionService.WHAT_ARE_YOU_REQUESTING_TO_DO,

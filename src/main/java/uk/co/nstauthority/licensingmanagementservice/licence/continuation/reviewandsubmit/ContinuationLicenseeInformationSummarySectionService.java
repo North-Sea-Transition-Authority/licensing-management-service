@@ -7,6 +7,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.energyportal.fox.FoxRedirectService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.externalcontributorjourney.LicenceContinuationExternalContributorService;
 import uk.co.nstauthority.licensingmanagementservice.summary.ExternalUrlView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
@@ -22,12 +23,16 @@ public class ContinuationLicenseeInformationSummarySectionService
   public static final int SECTION_DISPLAY_ORDER = 10;
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final FoxRedirectService foxRedirectService;
+  private final LicenceContinuationExternalContributorService licenceContinuationExternalContributorService;
 
   public ContinuationLicenseeInformationSummarySectionService(OrganisationUnitQueryService organisationUnitQueryService,
-                                                              FoxRedirectService foxRedirectService
+                                                              FoxRedirectService foxRedirectService,
+                                                              LicenceContinuationExternalContributorService
+                                                                  licenceContinuationExternalContributorService
   ) {
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.foxRedirectService = foxRedirectService;
+    this.licenceContinuationExternalContributorService = licenceContinuationExternalContributorService;
   }
 
   @Override
@@ -47,8 +52,29 @@ public class ContinuationLicenseeInformationSummarySectionService
   ) {
     var licenceSummaryCard = getLicenceSummaryCard(licenceContinuationApplicationDetail);
     var licenseeInformationSummaryCard = getLicenseeInformationSummaryCard(licenceContinuationApplicationDetail);
+    var externalContributorSummaryCard = getExternalContributorSummaryCard(licenceContinuationApplicationDetail);
 
-    return SummaryItem.withCards(SECTION_NAME, List.of(licenceSummaryCard, licenseeInformationSummaryCard));
+    return SummaryItem.withCards(
+        SECTION_NAME,
+        List.of(licenceSummaryCard, licenseeInformationSummaryCard, externalContributorSummaryCard)
+    );
+  }
+
+  private SummaryCard getExternalContributorSummaryCard(
+      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
+  ) {
+    var form = licenceContinuationExternalContributorService.getExternalContributorForm(
+        licenceContinuationApplicationDetail
+    );
+
+    var summaryDataView = SummaryDataView.newBuilder()
+        .addStringValue(
+            "External contributors required",
+            form.getAddExternalContributors()
+        )
+        .build();
+
+    return SummaryCard.simpleSummaryCardWithHeading("External contributors", summaryDataView);
   }
 
   private SummaryCard getLicenceSummaryCard(LicenceContinuationApplicationDetail licenceContinuationApplicationDetail) {

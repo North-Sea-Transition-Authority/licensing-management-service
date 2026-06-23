@@ -14,10 +14,12 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.externalcontributors.ExternalContributorForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.externalcontributorjourney.ScheduleWorkProgrammeExternalContributorService;
 import uk.co.nstauthority.licensingmanagementservice.summary.ExternalUrlView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 
@@ -59,6 +61,9 @@ class LicenseeInformationSummarySectionServiceTest {
   @Mock
   private FoxRedirectService foxRedirectService;
 
+  @Mock
+  private ScheduleWorkProgrammeExternalContributorService scheduleWorkProgrammeExternalContributorService;
+
   @InjectMocks
   private LicenseeInformationSummarySectionService licenseeInformationSummarySectionService;
 
@@ -69,9 +74,14 @@ class LicenseeInformationSummarySectionServiceTest {
     scheduleDetail.setResponsibleOrganisationUnitId(1);
     scheduleDetail.setAllLicenseesPermissionConfirmed(true);
 
+    var externalContributorForm = new ExternalContributorForm();
+    externalContributorForm.setAddExternalContributors(true);
+
     when(foxRedirectService.getViewPearsLicenceUrl(LICENCE)).thenReturn(VIEW_PEARS_LICENCE_URL);
     when(organisationUnitQueryService.getOrganisationUnitNameById(1))
         .thenReturn(Optional.of("Test Organisation"));
+    when(scheduleWorkProgrammeExternalContributorService.getExternalContributorForm(scheduleDetail))
+        .thenReturn(externalContributorForm);
 
     var result = licenseeInformationSummarySectionService.getSummarySection(scheduleDetail, null).get();
 
@@ -79,7 +89,7 @@ class LicenseeInformationSummarySectionServiceTest {
 
     var summaryItem = result.summaryItems().getFirst();
     assertThat(summaryItem.displayName()).isEqualTo("General details");
-    assertThat(summaryItem.summaryCards()).hasSize(2);
+    assertThat(summaryItem.summaryCards()).hasSize(3);
 
     var licenceSummaryCard = summaryItem.summaryCards().getFirst();
     assertThat(licenceSummaryCard.displayName()).isEqualTo("Licence information");
@@ -98,6 +108,14 @@ class LicenseeInformationSummarySectionServiceTest {
             .addStringValue("Have you confirmed this request is made on behalf of all licensees?", true)
             .build()
     );
+
+    var externalContributorSummaryCard = summaryItem.summaryCards().get(2);
+    assertThat(externalContributorSummaryCard.displayName()).isEqualTo("External contributors");
+    assertThat(externalContributorSummaryCard.summaryData()).isEqualTo(
+        SummaryDataView.newBuilder()
+            .addStringValue("External contributors required", true)
+            .build()
+    );
   }
 
   @Test
@@ -109,6 +127,8 @@ class LicenseeInformationSummarySectionServiceTest {
 
     when(organisationUnitQueryService.getOrganisationUnitNameById(1))
         .thenReturn(Optional.of("Test Organisation"));
+    when(scheduleWorkProgrammeExternalContributorService.getExternalContributorForm(scheduleDetail))
+        .thenReturn(new ExternalContributorForm());
 
     var result = licenseeInformationSummarySectionService.getSummarySection(scheduleDetail, null).get();
 
@@ -128,6 +148,8 @@ class LicenseeInformationSummarySectionServiceTest {
     scheduleDetail.setAllLicenseesPermissionConfirmed(true);
 
     when(organisationUnitQueryService.getOrganisationUnitNameById(1)).thenReturn(Optional.empty());
+    when(scheduleWorkProgrammeExternalContributorService.getExternalContributorForm(scheduleDetail))
+        .thenReturn(new ExternalContributorForm());
 
     var result = licenseeInformationSummarySectionService.getSummarySection(scheduleDetail, null).get();
 
@@ -149,6 +171,8 @@ class LicenseeInformationSummarySectionServiceTest {
 
     when(organisationUnitQueryService.getOrganisationUnitNameById(1))
         .thenReturn(Optional.of("Test Organisation"));
+    when(scheduleWorkProgrammeExternalContributorService.getExternalContributorForm(scheduleDetail))
+        .thenReturn(new ExternalContributorForm());
 
     var result = licenseeInformationSummarySectionService.getSummarySection(scheduleDetail, null).get();
 

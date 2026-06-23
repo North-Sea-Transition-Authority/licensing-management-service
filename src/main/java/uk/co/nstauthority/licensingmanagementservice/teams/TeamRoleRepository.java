@@ -20,6 +20,8 @@ public interface TeamRoleRepository extends ListCrudRepository<TeamRole, UUID>, 
 
   boolean existsByTeamAndWuaId(Team team, Long wuaId);
 
+  boolean existsByTeam(Team team);
+
   @EntityGraph(attributePaths = {"team"})
   List<TeamRole> findAllByWuaId(long wuaId);
 

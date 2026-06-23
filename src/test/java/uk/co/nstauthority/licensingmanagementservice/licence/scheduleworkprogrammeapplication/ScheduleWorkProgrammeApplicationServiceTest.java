@@ -119,14 +119,14 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
   @Test
   void createNewScheduleWorkProgrammeApplicationForLicence_withValidLicenceAndPermissionTrue() {
+    var savedApplication = new ScheduleWorkProgrammeApplication();
+    savedApplication.setId(UUID.randomUUID());
+
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
         .thenReturn(licenceScheduleDetail);
     when(clock.instant()).thenReturn(CURRENT_INSTANT);
-    when(scheduleWorkProgrammeApplicationRepository.save(any())).thenAnswer(invocation -> {
-      ScheduleWorkProgrammeApplication app = invocation.getArgument(0);
-      app.setId(UUID.randomUUID());
-      return app;
-    });
+    when(scheduleWorkProgrammeApplicationRepository.save(any(ScheduleWorkProgrammeApplication.class)))
+        .thenReturn(savedApplication);
 
     LicenseeInformationForm licenseeInformationForm = new LicenseeInformationForm();
     licenseeInformationForm.setAllLicenseesPermissionConfirmed(true);
@@ -136,12 +136,11 @@ class ScheduleWorkProgrammeApplicationServiceTest {
         licenseeInformationForm);
 
     verify(scheduleWorkProgrammeApplicationRepository).save(scheduleWorkProgrammeApplicationCaptor.capture());
-    ScheduleWorkProgrammeApplication savedScheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationCaptor.getValue();
-    assertThat(savedScheduleWorkProgrammeApplication.getLicenceSchedule()).isEqualTo(licenceScheduleDetail.getLicenceSchedule());
+    assertThat(scheduleWorkProgrammeApplicationCaptor.getValue().getLicenceSchedule()).isEqualTo(licenceScheduleDetail.getLicenceSchedule());
 
     verify(scheduleWorkProgrammeApplicationDetailRepository).save(scheduleWorkProgrammeApplicationDetailCaptor.capture());
     ScheduleWorkProgrammeApplicationDetail savedDetail = scheduleWorkProgrammeApplicationDetailCaptor.getValue();
-    assertThat(savedDetail.getScheduleWorkProgrammeApplication()).isEqualTo(savedScheduleWorkProgrammeApplication);
+    assertThat(savedDetail.getScheduleWorkProgrammeApplication()).isEqualTo(savedApplication);
     assertThat(savedDetail.getVersionNumber()).isEqualTo(1);
     assertThat(savedDetail.getAllLicenseesPermissionConfirmed()).isTrue();
     assertThat(savedDetail.getResponsibleOrganisationUnitId()).isEqualTo(1);
@@ -157,14 +156,14 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
   @Test
   void createNewScheduleWorkProgrammeApplicationForLicence_withValidLicenceAndPermissionFalse() {
+    var savedApplication = new ScheduleWorkProgrammeApplication();
+    savedApplication.setId(UUID.randomUUID());
+
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
         .thenReturn(licenceScheduleDetail);
     when(clock.instant()).thenReturn(CURRENT_INSTANT);
-    when(scheduleWorkProgrammeApplicationRepository.save(any())).thenAnswer(invocation -> {
-      ScheduleWorkProgrammeApplication app = invocation.getArgument(0);
-      app.setId(UUID.randomUUID());
-      return app;
-    });
+    when(scheduleWorkProgrammeApplicationRepository.save(any(ScheduleWorkProgrammeApplication.class)))
+        .thenReturn(savedApplication);
 
     LicenseeInformationForm licenseeInformationForm = new LicenseeInformationForm();
     licenseeInformationForm.setAllLicenseesPermissionConfirmed(false);
@@ -172,12 +171,11 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     ScheduleWorkProgrammeApplicationDetail result = scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence, licenseeInformationForm);
 
     verify(scheduleWorkProgrammeApplicationRepository).save(scheduleWorkProgrammeApplicationCaptor.capture());
-    var savedScheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationCaptor.getValue();
-    assertThat(savedScheduleWorkProgrammeApplication.getLicenceSchedule()).isEqualTo(licenceScheduleDetail.getLicenceSchedule());
+    assertThat(scheduleWorkProgrammeApplicationCaptor.getValue().getLicenceSchedule()).isEqualTo(licenceScheduleDetail.getLicenceSchedule());
 
     verify(scheduleWorkProgrammeApplicationDetailRepository).save(scheduleWorkProgrammeApplicationDetailCaptor.capture());
     var savedDetail = scheduleWorkProgrammeApplicationDetailCaptor.getValue();
-    assertThat(savedDetail.getScheduleWorkProgrammeApplication()).isEqualTo(savedScheduleWorkProgrammeApplication);
+    assertThat(savedDetail.getScheduleWorkProgrammeApplication()).isEqualTo(savedApplication);
     assertThat(savedDetail.getVersionNumber()).isEqualTo(1);
     assertThat(savedDetail.getAllLicenseesPermissionConfirmed()).isFalse();
     assertThat(savedDetail.getResponsibleOrganisationUnitId()).isEqualTo(1);

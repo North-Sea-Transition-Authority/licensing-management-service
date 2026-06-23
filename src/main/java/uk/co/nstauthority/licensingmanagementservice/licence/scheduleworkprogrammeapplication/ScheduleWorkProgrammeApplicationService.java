@@ -55,13 +55,13 @@ public class ScheduleWorkProgrammeApplicationService {
       LicenseeInformationForm licenseeInformationForm) {
     var scheduleWorkProgrammeApplication = createScheduleWorkProgrammeApplication(licence);
     var responsibleOrganisationUnitId = licenseeInformationForm.getResponsibleOrganisationUnitId();
+    var savedScheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationRepository.save(scheduleWorkProgrammeApplication);
     var scheduleWorkProgrammeApplicationDetail = createScheduleWorkProgrammeApplicationDetail(
-        scheduleWorkProgrammeApplication,
+        savedScheduleWorkProgrammeApplication,
         licenseeInformationForm.getAllLicenseesPermissionConfirmed(),
         responsibleOrganisationUnitId
     );
 
-    scheduleWorkProgrammeApplicationRepository.save(scheduleWorkProgrammeApplication);
     scheduleWorkProgrammeApplicationDetailRepository.save(scheduleWorkProgrammeApplicationDetail);
 
     createExternalContributorsTeam(scheduleWorkProgrammeApplicationDetail);

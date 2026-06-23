@@ -18,6 +18,27 @@ public class LicenceWorkProgrammeAmendmentSubmissionService {
     this.licenceWorkProgrammeAmendmentSummaryService = licenceWorkProgrammeAmendmentSummaryService;
   }
 
+  public AmendmentSectionStatus getAmendmentSectionStatus(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
+
+    var amendments = licenceWorkProgrammeAmendmentService
+        .getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(scheduleWorkProgrammeApplicationDetail);
+
+    boolean submittable = !amendments.isEmpty();
+
+    var summaryOption = licenceWorkProgrammeAmendmentSummaryService
+        .getLicenceWorkProgrammeAmendmentSummary(scheduleWorkProgrammeApplicationDetail);
+
+    boolean complete = summaryOption
+        .map(so ->
+            so.getLicenceWorkProgrammeAmendmentSummaryOptions().equals(LicenceWorkProgrammeAmendmentSummaryOptions.NO)
+            && licenceWorkProgrammeAmendmentService.validateAllWorkProgrammeAmendments(amendments)
+        )
+        .orElse(false);
+
+    return new AmendmentSectionStatus(submittable, complete);
+  }
+
   public boolean isAmendmentSectionSubmittable(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
 

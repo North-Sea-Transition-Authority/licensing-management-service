@@ -19,6 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.AmendmentSectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSummaryController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.SelectLicenceWorkAmendmentController;
@@ -216,8 +217,8 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
     swpApplicationRequestPurpose.setAmendWorkProgramme(true);
     when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
         Optional.of(swpApplicationRequestPurpose));
-    when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionSubmittable(any())).thenReturn(true);
-    when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionComplete(any())).thenReturn(true);
+    when(licenceWorkProgrammeAmendmentSubmissionService.getAmendmentSectionStatus(any()))
+        .thenReturn(new AmendmentSectionStatus(true, true));
 
     var sectionOptional = scheduleWorkProgrammeApplicationTaskListSectionService.getSection(application, user);
     assertThat(sectionOptional).isPresent();
@@ -264,8 +265,8 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
     swpApplicationRequestPurpose.setAmendWorkProgramme(true);
     when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
         Optional.of(swpApplicationRequestPurpose));
-    when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionSubmittable(any())).thenReturn(false);
-    when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionComplete(any())).thenReturn(false);
+    when(licenceWorkProgrammeAmendmentSubmissionService.getAmendmentSectionStatus(any()))
+        .thenReturn(new AmendmentSectionStatus(false, false));
 
     var sectionOptional = scheduleWorkProgrammeApplicationTaskListSectionService.getSection(application, user);
     assertThat(sectionOptional).isPresent();
@@ -312,8 +313,8 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
     swpApplicationRequestPurpose.setAmendWorkProgramme(true);
     when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
         Optional.of(swpApplicationRequestPurpose));
-    when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionSubmittable(any())).thenReturn(true);
-    when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionComplete(any())).thenReturn(false);
+    when(licenceWorkProgrammeAmendmentSubmissionService.getAmendmentSectionStatus(any()))
+        .thenReturn(new AmendmentSectionStatus(true, false));
 
     var sectionOptional = scheduleWorkProgrammeApplicationTaskListSectionService.getSection(application, user);
     assertThat(sectionOptional).isPresent();
@@ -360,8 +361,8 @@ class ScheduleWorkProgrammeApplicationTaskListSectionServiceTest {
     swpApplicationRequestPurpose.setAmendWorkProgramme(true);
     when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(any())).thenReturn(
         Optional.of(swpApplicationRequestPurpose));
-    when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionSubmittable(any())).thenReturn(true);
-    when(licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionComplete(any())).thenReturn(true);
+    when(licenceWorkProgrammeAmendmentSubmissionService.getAmendmentSectionStatus(any()))
+        .thenReturn(new AmendmentSectionStatus(true, true));
     when(licenceScheduleSupportingInformationSubmissionService.isSectionSubmittable(any())).thenReturn(true);
 
     var sectionOptional = scheduleWorkProgrammeApplicationTaskListSectionService.getSection(application, user);

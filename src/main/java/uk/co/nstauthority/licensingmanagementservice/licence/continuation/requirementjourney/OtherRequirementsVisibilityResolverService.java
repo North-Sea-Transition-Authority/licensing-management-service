@@ -7,6 +7,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Service
 public class OtherRequirementsVisibilityResolverService {
@@ -29,6 +30,10 @@ public class OtherRequirementsVisibilityResolverService {
 
   public OtherRequirementsVisibility resolveVisibility(LicenceContinuationApplicationDetail applicationDetail) {
     var scheduleDetail = licenceContinuationService.getScheduleDetailFromApplicationDetail(applicationDetail);
+    return resolveVisibility(scheduleDetail);
+  }
+
+  public OtherRequirementsVisibility resolveVisibility(LicenceScheduleDetail scheduleDetail) {
     var scheduleState = licenceScheduleService.getScheduleState(scheduleDetail);
 
     var phaseType = scheduleState.nextPhase() != null ? scheduleState.nextPhase().getPhaseType() : null;

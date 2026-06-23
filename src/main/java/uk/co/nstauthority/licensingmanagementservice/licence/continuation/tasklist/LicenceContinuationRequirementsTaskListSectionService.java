@@ -65,13 +65,12 @@ public class LicenceContinuationRequirementsTaskListSectionService
   ) {
 
     var items = new ArrayList<TaskListItem>();
-    var otherRequirementsVisibility = otherRequirementsVisibilityResolverService.resolveVisibility(
-        licenceContinuationApplicationDetail
-    );
 
     var scheduleDetail = licenceContinuationService.getScheduleDetailFromApplicationDetail(
         licenceContinuationApplicationDetail
     );
+
+    var otherRequirementsVisibility = otherRequirementsVisibilityResolverService.resolveVisibility(scheduleDetail);
 
     if (workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail)) {
       items.add(new TaskListItem(
@@ -88,7 +87,7 @@ public class LicenceContinuationRequirementsTaskListSectionService
       items.add(new TaskListItem(
           OTHER_REQUIREMENTS,
           TaskListLabel.notStartedOrComplete(licenceContinuationOtherRequirementSubmissionService.isSectionSubmittable(
-              licenceContinuationApplicationDetail
+              licenceContinuationApplicationDetail, otherRequirementsVisibility
           )),
           ReverseRouter.route(on(LicenceContinuationOtherRequirementController.class)
                                   .renderForm(licenceContinuationApplicationDetail.getId(), null))

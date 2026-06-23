@@ -76,7 +76,7 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
 
   @Test
   void getSection_WhenNotSubmittable_ReturnsNotStartedLabel() {
-    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(scheduleDetail))
         .thenReturn(visibilityWithRequirements);
     when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail))
         .thenReturn(true);
@@ -85,7 +85,7 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
         .thenReturn(false);
     when(licenceContinuationWpaSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
         .thenReturn(false);
-    when(licenceContinuationOtherRequirementSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
+    when(licenceContinuationOtherRequirementSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail, visibilityWithRequirements))
         .thenReturn(false);
 
     var sectionOptional = licenceContinuationRequirementsTaskListSectionService.getSection(
@@ -132,7 +132,7 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
 
   @Test
   void getSection_WhenSubmittable_ReturnsCompleteLabels() {
-    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(scheduleDetail))
         .thenReturn(visibilityWithRequirements);
     when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail))
         .thenReturn(true);
@@ -141,7 +141,7 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
         .thenReturn(true);
     when(licenceContinuationWpaSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
         .thenReturn(true);
-    when(licenceContinuationOtherRequirementSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
+    when(licenceContinuationOtherRequirementSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail, visibilityWithRequirements))
         .thenReturn(true);
 
     var sectionOptional = licenceContinuationRequirementsTaskListSectionService.getSection(
@@ -178,7 +178,7 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
 
   @Test
   void getSection_MixedStatus_ReturnsCorrectLabels() {
-    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(scheduleDetail))
         .thenReturn(visibilityWithRequirements);
     when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail))
         .thenReturn(true);
@@ -187,7 +187,7 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
         .thenReturn(false);
     when(licenceContinuationWpaSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
         .thenReturn(true);
-    when(licenceContinuationOtherRequirementSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
+    when(licenceContinuationOtherRequirementSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail, visibilityWithRequirements))
         .thenReturn(false);
 
     var sectionOptional = licenceContinuationRequirementsTaskListSectionService.getSection(
@@ -224,14 +224,14 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
 
   @Test
   void getSection_whenNoWorkProgrammeActivities_omitsWorkProgrammesTask() {
-    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(scheduleDetail))
         .thenReturn(visibilityWithRequirements);
     when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail))
         .thenReturn(false);
 
     when(licenceContinuationLicenceOperatorsSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
         .thenReturn(false);
-    when(licenceContinuationOtherRequirementSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail))
+    when(licenceContinuationOtherRequirementSubmissionService.isSectionSubmittable(licenceContinuationApplicationDetail, visibilityWithRequirements))
         .thenReturn(false);
 
     var sectionOptional = licenceContinuationRequirementsTaskListSectionService.getSection(
@@ -266,7 +266,7 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
 
   @Test
   void getSection_WhenNoOtherRequirements_OmitsOtherRequirementsTask() {
-    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(scheduleDetail))
         .thenReturn(visibilityNoRequirements);
     when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail))
         .thenReturn(true);

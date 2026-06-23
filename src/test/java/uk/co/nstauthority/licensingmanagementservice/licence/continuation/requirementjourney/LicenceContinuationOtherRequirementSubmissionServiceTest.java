@@ -39,7 +39,7 @@ class LicenceContinuationOtherRequirementSubmissionServiceTest {
     when(requirementService.getLicenceContinuationOtherRequirementForm(licenceContinuationApplicationDetail))
         .thenReturn(licenceContinuationOtherRequirementForm);
 
-    when(visibilityResolverService.resolveVisibility(any())).thenReturn(otherRequirementsVisibility);
+    when(visibilityResolverService.resolveVisibility(any(LicenceContinuationApplicationDetail.class))).thenReturn(otherRequirementsVisibility);
 
     when(validator.isValid(eq(licenceContinuationOtherRequirementForm), any(BindingResult.class), eq(otherRequirementsVisibility)))
         .thenReturn(true);
@@ -57,7 +57,7 @@ class LicenceContinuationOtherRequirementSubmissionServiceTest {
     when(requirementService.getLicenceContinuationOtherRequirementForm(licenceContinuationApplicationDetail))
         .thenReturn(licenceContinuationOtherRequirementForm);
 
-    when(visibilityResolverService.resolveVisibility(any())).thenReturn(otherRequirementsVisibility);
+    when(visibilityResolverService.resolveVisibility(any(LicenceContinuationApplicationDetail.class))).thenReturn(otherRequirementsVisibility);
 
     when(validator.isValid(eq(licenceContinuationOtherRequirementForm), any(BindingResult.class), eq(otherRequirementsVisibility)))
         .thenReturn(false);

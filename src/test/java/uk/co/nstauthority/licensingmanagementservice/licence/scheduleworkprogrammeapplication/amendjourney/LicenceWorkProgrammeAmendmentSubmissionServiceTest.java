@@ -97,4 +97,92 @@ class LicenceWorkProgrammeAmendmentSubmissionServiceTest {
     assertFalse(result);
   }
 
+  @Test
+  void getAmendmentSectionStatus_whenAmendmentsNonEmptyAndSummaryIsNoAndValidationPasses_returnsSubmittableAndComplete() {
+
+    ScheduleWorkProgrammeApplicationDetail detail = new ScheduleWorkProgrammeApplicationDetail(UUID.randomUUID());
+    LicenceWorkProgrammeAmendmentSummary summary = new LicenceWorkProgrammeAmendmentSummary();
+    summary.setLicenceWorkProgrammeAmendmentSummaryOptions(LicenceWorkProgrammeAmendmentSummaryOptions.NO);
+
+    when(licenceWorkProgrammeAmendmentService.getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(detail))
+        .thenReturn(List.of(new LicenceWorkProgrammeAmendmentRequest()));
+    when(licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummary(detail))
+        .thenReturn(Optional.of(summary));
+    when(licenceWorkProgrammeAmendmentService.validateAllWorkProgrammeAmendments(any())).thenReturn(true);
+
+    AmendmentSectionStatus result = licenceWorkProgrammeAmendmentSubmissionService.getAmendmentSectionStatus(detail);
+
+    assertTrue(result.submittable());
+    assertTrue(result.complete());
+  }
+
+  @Test
+  void getAmendmentSectionStatus_whenAmendmentsEmpty_returnsNotSubmittableAndNotComplete() {
+
+    ScheduleWorkProgrammeApplicationDetail detail = new ScheduleWorkProgrammeApplicationDetail(UUID.randomUUID());
+
+    when(licenceWorkProgrammeAmendmentService.getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(detail))
+        .thenReturn(List.of());
+    when(licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummary(detail))
+        .thenReturn(Optional.empty());
+
+    AmendmentSectionStatus result = licenceWorkProgrammeAmendmentSubmissionService.getAmendmentSectionStatus(detail);
+
+    assertFalse(result.submittable());
+    assertFalse(result.complete());
+  }
+
+  @Test
+  void getAmendmentSectionStatus_whenAmendmentsNonEmptyAndSummaryIsYesNow_returnsSubmittableAndNotComplete() {
+
+    ScheduleWorkProgrammeApplicationDetail detail = new ScheduleWorkProgrammeApplicationDetail(UUID.randomUUID());
+    LicenceWorkProgrammeAmendmentSummary summary = new LicenceWorkProgrammeAmendmentSummary();
+    summary.setLicenceWorkProgrammeAmendmentSummaryOptions(LicenceWorkProgrammeAmendmentSummaryOptions.YES_NOW);
+
+    when(licenceWorkProgrammeAmendmentService.getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(detail))
+        .thenReturn(List.of(new LicenceWorkProgrammeAmendmentRequest()));
+    when(licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummary(detail))
+        .thenReturn(Optional.of(summary));
+
+    AmendmentSectionStatus result = licenceWorkProgrammeAmendmentSubmissionService.getAmendmentSectionStatus(detail);
+
+    assertTrue(result.submittable());
+    assertFalse(result.complete());
+  }
+
+  @Test
+  void getAmendmentSectionStatus_whenSummaryNotPresent_returnsSubmittableAndNotComplete() {
+
+    ScheduleWorkProgrammeApplicationDetail detail = new ScheduleWorkProgrammeApplicationDetail(UUID.randomUUID());
+
+    when(licenceWorkProgrammeAmendmentService.getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(detail))
+        .thenReturn(List.of(new LicenceWorkProgrammeAmendmentRequest()));
+    when(licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummary(detail))
+        .thenReturn(Optional.empty());
+
+    AmendmentSectionStatus result = licenceWorkProgrammeAmendmentSubmissionService.getAmendmentSectionStatus(detail);
+
+    assertTrue(result.submittable());
+    assertFalse(result.complete());
+  }
+
+  @Test
+  void getAmendmentSectionStatus_whenValidationFails_returnsSubmittableAndNotComplete() {
+
+    ScheduleWorkProgrammeApplicationDetail detail = new ScheduleWorkProgrammeApplicationDetail(UUID.randomUUID());
+    LicenceWorkProgrammeAmendmentSummary summary = new LicenceWorkProgrammeAmendmentSummary();
+    summary.setLicenceWorkProgrammeAmendmentSummaryOptions(LicenceWorkProgrammeAmendmentSummaryOptions.NO);
+
+    when(licenceWorkProgrammeAmendmentService.getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(detail))
+        .thenReturn(List.of(new LicenceWorkProgrammeAmendmentRequest()));
+    when(licenceWorkProgrammeAmendmentSummaryService.getLicenceWorkProgrammeAmendmentSummary(detail))
+        .thenReturn(Optional.of(summary));
+    when(licenceWorkProgrammeAmendmentService.validateAllWorkProgrammeAmendments(any())).thenReturn(false);
+
+    AmendmentSectionStatus result = licenceWorkProgrammeAmendmentSubmissionService.getAmendmentSectionStatus(detail);
+
+    assertTrue(result.submittable());
+    assertFalse(result.complete());
+  }
+
 }

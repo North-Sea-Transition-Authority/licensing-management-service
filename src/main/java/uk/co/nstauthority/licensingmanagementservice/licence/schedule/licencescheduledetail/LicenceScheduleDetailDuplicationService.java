@@ -84,7 +84,7 @@ public class LicenceScheduleDetailDuplicationService {
     var oldNewTermMap = getOldNewTermMap(oldDetail, newDetail);
     var oldNewPhaseMap = getOldNewPhaseMap(oldDetail, newDetail);
 
-    var phases = licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(newDetail);
+    var phases = List.copyOf(oldNewPhaseMap.values());
     for (LicenceSchedulePhase phase : phases) {
       phase.setLicenceScheduleTerm(oldNewTermMap.get(phase.getLicenceScheduleTerm()));
     }

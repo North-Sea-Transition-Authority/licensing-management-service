@@ -2,8 +2,12 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogr
 
 import jakarta.transaction.Transactional;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
@@ -36,6 +40,11 @@ public class WorkProgrammeActivityService {
   public WorkProgrammeActivity getWorkProgrammeActivityByIdOrThrow(UUID id) {
     return workProgrammeActivityRepository.findById(id)
           .orElseThrow(() -> new LmsEntityNotFoundException("WorkProgrammeActivity not found", id.toString()));
+  }
+
+  public Map<UUID, WorkProgrammeActivity> getWorkProgrammeActivitiesByIds(Collection<UUID> ids) {
+    return workProgrammeActivityRepository.findAllById(ids).stream()
+        .collect(Collectors.toMap(WorkProgrammeActivity::getId, Function.identity()));
   }
 
   public List<WorkProgrammeActivity> getActiveWorkProgrammeActivities(LicenceScheduleDetail licenceScheduleDetail) {

@@ -45,9 +45,17 @@ public class LicenceWorkProgrammeAmendmentSummaryService {
       LicenceWorkProgrammeAmendmentSummaryMode summaryMode
   ) {
     var activityId = amendmentRequest.getWorkProgrammeActivity().getId();
-    var applicationDetailId = amendmentRequest.getScheduleWorkProgrammeApplicationDetails().getId();
-
     var workProgrammeActivity = workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(activityId);
+    return createSummaryViewFromWorkProgrammeAmendments(amendmentRequest, summaryMode, workProgrammeActivity);
+  }
+
+  private LicenceWorkProgrammeAmendmentSummaryView createSummaryViewFromWorkProgrammeAmendments(
+      LicenceWorkProgrammeAmendmentRequest amendmentRequest,
+      LicenceWorkProgrammeAmendmentSummaryMode summaryMode,
+      WorkProgrammeActivity workProgrammeActivity
+  ) {
+    var activityId = amendmentRequest.getWorkProgrammeActivity().getId();
+    var applicationDetailId = amendmentRequest.getScheduleWorkProgrammeApplicationDetails().getId();
 
     return new LicenceWorkProgrammeAmendmentSummaryView(
         resolveCategoryDisplay(workProgrammeActivity),
@@ -95,9 +103,17 @@ public class LicenceWorkProgrammeAmendmentSummaryService {
     var workProgrammeAmendments = licenceWorkProgrammeAmendmentService
         .getAmendmentRequestsByScheduleWorkProgrammeApplicationDetail(applicationDetail);
 
+    var activityIds = workProgrammeAmendments.stream()
+        .map(a -> a.getWorkProgrammeActivity().getId())
+        .toList();
+
+    var activitiesById = workProgrammeActivityService.getWorkProgrammeActivitiesByIds(activityIds);
+
     return workProgrammeAmendments.stream()
-        .map(wpa ->
-            createSummaryViewFromWorkProgrammeAmendments(wpa, LicenceWorkProgrammeAmendmentSummaryMode.EDIT))
+        .map(wpa -> createSummaryViewFromWorkProgrammeAmendments(
+            wpa,
+            LicenceWorkProgrammeAmendmentSummaryMode.EDIT,
+            activitiesById.get(wpa.getWorkProgrammeActivity().getId())))
         .toList();
   }
 

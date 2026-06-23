@@ -74,10 +74,13 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
         .map(requestPurpose -> requestPurpose.getExtendTerm() || requestPurpose.getExtendPhaseOrTerm())
         .orElse(false);
 
+    var hasAmendableActivities = swpApplicationRequestPurposeService
+        .hasAmendableWorkProgrammeActivities(scheduleWorkProgrammeApplicationDetail);
+
     boolean amendmentSelection = existingPurpose
         .map(SwpApplicationRequestPurpose::getAmendWorkProgramme)
         .orElse(false)
-        && swpApplicationRequestPurposeService.hasAmendableWorkProgrammeActivities(scheduleWorkProgrammeApplicationDetail);
+        && hasAmendableActivities;
 
     var items = new ArrayList<TaskListItem>();
     items.add(new TaskListItem(
@@ -89,7 +92,7 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
             .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null))
     ));
 
-    if (swpApplicationRequestPurposeService.hasAmendableWorkProgrammeActivities(scheduleWorkProgrammeApplicationDetail)) {
+    if (hasAmendableActivities) {
       items.add(new TaskListItem(
           WHAT_ARE_YOU_REQUESTING_TO_DO,
           TaskListLabel.notStartedOrComplete(extensionSelection || amendmentSelection),
@@ -109,15 +112,13 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
       ));
     }
     if (amendmentSelection) {
-      var isSubmittable = licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionSubmittable(
-          scheduleWorkProgrammeApplicationDetail);
-      var isComplete = licenceWorkProgrammeAmendmentSubmissionService.isAmendmentSectionComplete(
+      var amendmentStatus = licenceWorkProgrammeAmendmentSubmissionService.getAmendmentSectionStatus(
           scheduleWorkProgrammeApplicationDetail);
 
       items.add(new TaskListItem(
           AMENDMENT_DETAILS,
-          TaskListLabel.notStartedOrComplete(isComplete),
-          isSubmittable
+          TaskListLabel.notStartedOrComplete(amendmentStatus.complete()),
+          amendmentStatus.submittable()
           ? ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class).renderForm(
           scheduleWorkProgrammeApplicationDetail.getId(), scheduleWorkProgrammeApplicationDetail))
           : ReverseRouter.route(on(SelectLicenceWorkAmendmentController.class).renderForm(

@@ -72,17 +72,22 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
     var decisionIssuer = regulatorRoleService.isDecisionIssuer(serviceUserDetail);
     var isRegulator = regulatorRoleService.isRegulator(serviceUserDetail);
 
-    //TODO filter correctly by form and user
-    var applicationDetails = scheduleWorkProgrammeApplicationService
+    var allApplicationDetails = scheduleWorkProgrammeApplicationService
         .getAllScheduleWorkProgrammeApplicationDetailsByStatuses(ACTIVE_APPLICATION_STATUSES);
 
-    var licences = applicationDetails.stream()
-        .map(ScheduleWorkProgrammeApplicationDetail::getLicence)
+    var licenceByApplicationDetail = allApplicationDetails.stream()
+        .collect(Collectors.toMap(Function.identity(),
+            ScheduleWorkProgrammeApplicationDetail::getLicence));
+
+    var licences = allApplicationDetails.stream()
+        .map(licenceByApplicationDetail::get)
         .toList();
 
     var responsibleOrganisations = licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(licences);
-    var orgUnitToGroupMap = licenceResponsibleOrganisationService
-        .getOrgUnitToGroupIdMap(responsibleOrganisations, applicationDetails);
+    var orgUnitToGroupMap = licenceResponsibleOrganisationService.getOrgUnitToGroupIdMap(
+        responsibleOrganisations,
+        allApplicationDetails
+    );
 
     var viewedItemIds = workAreaItemViewService.getWorkAreaItemLogsForUser(
             List.of(WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION),
@@ -91,27 +96,34 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
         .map(WorkAreaItemView::getItemId)
         .collect(Collectors.toSet());
 
-    return applicationDetails.stream()
+    return allApplicationDetails.stream()
         .filter(applicationDetail -> matchesFilterAndHasAccess(
             applicationDetail,
+            licenceByApplicationDetail.get(applicationDetail),
             workAreaFilterForm,
             serviceUserDetail,
             responsibleOrganisations,
             orgUnitToGroupMap,
-            isRegulator)
+            isRegulator
+            )
         )
-        .map(applicationDetail ->
-            createWorkAreaItem(applicationDetail, responsibleOrganisations, viewedItemIds, decisionIssuer))
+        .map(applicationDetail -> createWorkAreaItem(
+            applicationDetail,
+            licenceByApplicationDetail.get(applicationDetail),
+            responsibleOrganisations,
+            viewedItemIds,
+            decisionIssuer
+        ))
         .toList();
   }
 
   private SearchResultItem createWorkAreaItem(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
+      Licence licence,
       Map<Licence, List<OrganisationUnit>> responsibleOrganisationsByLicences,
       Set<UUID> viewedItemIds,
       boolean decisionIssuer
   ) {
-    var licence = applicationDetail.getLicence();
     var licensees = responsibleOrganisationsByLicences.getOrDefault(
             licence,
             List.of()
@@ -192,14 +204,13 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
 
   private boolean matchesFilterAndHasAccess(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
+      Licence licence,
       WorkAreaFilterForm filterForm,
       ServiceUserDetail userDetail,
       Map<Licence, List<OrganisationUnit>> responsibleOrganisations,
       Map<Integer, Integer> orgUnitToGroupMap,
       boolean isRegulator
   ) {
-    var licence = applicationDetail.getLicence();
-
     if (!FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
       return false;
     }

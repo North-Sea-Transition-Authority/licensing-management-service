@@ -22,10 +22,17 @@ public class LicenceContinuationOtherRequirementSubmissionService {
   }
 
   public boolean isSectionSubmittable(LicenceContinuationApplicationDetail licenceContinuationApplicationDetail) {
-    var form = licenceContinuationOtherRequirementService.getLicenceContinuationOtherRequirementForm(
+    var otherRequirementsVisibility = otherRequirementsVisibilityResolverService.resolveVisibility(
         licenceContinuationApplicationDetail
     );
-    var otherRequirementsVisibility = otherRequirementsVisibilityResolverService.resolveVisibility(
+    return isSectionSubmittable(licenceContinuationApplicationDetail, otherRequirementsVisibility);
+  }
+
+  public boolean isSectionSubmittable(
+      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
+      OtherRequirementsVisibility otherRequirementsVisibility
+  ) {
+    var form = licenceContinuationOtherRequirementService.getLicenceContinuationOtherRequirementForm(
         licenceContinuationApplicationDetail
     );
 

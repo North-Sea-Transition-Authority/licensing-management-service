@@ -26,10 +26,13 @@ public class LicenceScheduleExtensionFormValidator {
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
 
-    initializeCheckboxes(form, scheduleWorkProgrammeApplicationDetail);
+    var extensionRequestViews = licenceScheduleExtensionService
+        .getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail);
+
+    initializeCheckboxes(form, extensionRequestViews);
 
     if (form.getExtensionDuration().size() > 1) {
-      validateTermOrPhaseSelected(form, bindingResult, scheduleWorkProgrammeApplicationDetail);
+      validateTermOrPhaseSelected(form, bindingResult, extensionRequestViews);
     }
 
     form.getExtensionDuration().entrySet().stream()
@@ -51,13 +54,10 @@ public class LicenceScheduleExtensionFormValidator {
 
   private void initializeCheckboxes(
       LicenceScheduleExtensionForm form,
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+      List<LicenceScheduleExtensionRequestView> views
   ) {
 
     Map<String, ThreeFieldDurationInput> submittedDurationMap = form.getExtensionDuration();
-
-    List<LicenceScheduleExtensionRequestView> views = licenceScheduleExtensionService
-        .getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail);
 
     if (form.getSelectedPhase() == null) {
       form.setSelectedPhase(new HashMap<>());
@@ -79,11 +79,8 @@ public class LicenceScheduleExtensionFormValidator {
 
   private void validateTermOrPhaseSelected(
       LicenceScheduleExtensionForm form, Errors errors,
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+      List<LicenceScheduleExtensionRequestView> extensionRequestViews
   ) {
-
-    var extensionRequestViews = licenceScheduleExtensionService
-        .getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail);
 
     var hasSelectedPhase = form.getSelectedPhase() != null
         && form.getSelectedPhase().values().stream().anyMatch(Boolean.TRUE::equals);

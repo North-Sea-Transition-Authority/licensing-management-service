@@ -71,16 +71,20 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
     var isContinuationReviewer = regulatorRoleService.isContinuationReviewer(serviceUserDetail);
     var isRegulator = regulatorRoleService.isRegulator(serviceUserDetail);
 
-    var applicationDetails = licenceContinuationService
+    var allApplicationDetails = licenceContinuationService
         .getAllContinuationApplicationDetailsByStatuses(ACTIVE_APPLICATION_STATUSES);
 
-    var licences = applicationDetails.stream()
-        .map(LicenceContinuationApplicationDetail::getLicence)
+    var licenceByApplicationDetail = allApplicationDetails.stream()
+        .collect(Collectors.toMap(Function.identity(),
+            LicenceContinuationApplicationDetail::getLicence));
+
+    var licences = allApplicationDetails.stream()
+        .map(licenceByApplicationDetail::get)
         .toList();
 
     var responsibleOrganisations = licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(licences);
     var orgUnitToGroupMap = licenceResponsibleOrganisationService
-        .getOrgUnitToGroupIdMap(responsibleOrganisations, applicationDetails);
+        .getOrgUnitToGroupIdMap(responsibleOrganisations, allApplicationDetails);
 
     var viewedItemIds = workAreaItemViewService.getWorkAreaItemLogsForUser(
             List.of(WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION),
@@ -89,29 +93,37 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         .map(WorkAreaItemView::getItemId)
         .collect(Collectors.toSet());
 
-    return applicationDetails.stream()
+    return allApplicationDetails.stream()
         .filter(applicationDetail -> matchesFilterAndHasAccess(
             applicationDetail,
+            licenceByApplicationDetail.get(applicationDetail),
             workAreaFilterForm,
             serviceUserDetail,
             responsibleOrganisations,
             orgUnitToGroupMap,
             isContinuationIssuer,
             isContinuationReviewer,
-            isRegulator)
-        )
+            isRegulator
+        ))
         .map(applicationDetail ->
-            createWorkAreaItem(applicationDetail, responsibleOrganisations, isContinuationIssuer, viewedItemIds))
+            createWorkAreaItem(
+                applicationDetail,
+                licenceByApplicationDetail.get(applicationDetail),
+                responsibleOrganisations,
+                isContinuationIssuer,
+                viewedItemIds
+            )
+        )
         .toList();
   }
 
   private SearchResultItem createWorkAreaItem(
       LicenceContinuationApplicationDetail applicationDetail,
+      Licence licence,
       Map<Licence, List<OrganisationUnit>> responsibleOrganisationsByLicences,
       boolean isContinuationIssuer,
       Set<UUID> viewedItemIds
   ) {
-    var licence = applicationDetail.getLicence();
     var licensees = responsibleOrganisationsByLicences.getOrDefault(
             licence,
             List.of()
@@ -187,6 +199,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
 
   private boolean matchesFilterAndHasAccess(
       LicenceContinuationApplicationDetail applicationDetail,
+      Licence licence,
       WorkAreaFilterForm filterForm,
       ServiceUserDetail userDetail,
       Map<Licence, List<OrganisationUnit>> responsibleOrganisations,
@@ -195,8 +208,6 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       boolean isContinuationReviewer,
       boolean isRegulator
   ) {
-    var licence = applicationDetail.getLicence();
-
     if (!FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
       return false;
     }

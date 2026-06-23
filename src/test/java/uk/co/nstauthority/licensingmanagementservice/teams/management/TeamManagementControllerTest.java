@@ -61,7 +61,6 @@ import uk.co.nstauthority.licensingmanagementservice.teams.management.form.Membe
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamMemberView;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamTypeView;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamView;
-import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
 @ContextConfiguration(classes = TeamManagementController.class)
@@ -452,7 +451,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("teamName", regTeam.getName()))
         .andExpect(model().attribute("teamMemberViews", List.of(regTeamMemberView)))
         .andExpect(model().attribute("canManageTeam", true))
-           .andExpect(model().attribute("backUrl", ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))))
+           .andExpect(model().attribute("backUrl", ReverseRouter.route(on(TeamManagementController.class).renderTeamTypeList(null))))
            .andExpect(model().attribute(
             "addMemberUrl",
             ReverseRouter.route(on(TeamManagementController.class).renderAddMemberToTeam(regTeam.getId(), null))
@@ -483,7 +482,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("teamName", regTeam.getName()))
         .andExpect(model().attribute("teamMemberViews", List.of(regTeamMemberView)))
         .andExpect(model().attribute("canManageTeam", false))
-        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))))
+        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(TeamManagementController.class).renderTeamTypeList(null))))
         .andExpect(model().attribute(
             "addMemberUrl",
             ReverseRouter.route(on(TeamManagementController.class).renderAddMemberToTeam(regTeam.getId(), null))

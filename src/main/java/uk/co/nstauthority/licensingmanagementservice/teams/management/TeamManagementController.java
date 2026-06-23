@@ -44,7 +44,6 @@ import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamM
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamTypeView;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamView;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
-import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @RestController
 @RequestMapping("/team-management")
@@ -417,7 +416,7 @@ public class TeamManagementController {
 
   private String getBackUrl(String scopeId, Team team) {
     if (!team.getTeamType().isApplicationScoped()) {
-      return ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null));
+      return ReverseRouter.route(on(TeamManagementController.class).renderTeamTypeList(null));
     }
 
     if (team.getScopeType().equals(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name())) {

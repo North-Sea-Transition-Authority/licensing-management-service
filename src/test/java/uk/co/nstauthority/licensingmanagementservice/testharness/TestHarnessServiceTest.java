@@ -1,7 +1,11 @@
 package uk.co.nstauthority.licensingmanagementservice.testharness;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -9,6 +13,8 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.List;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,18 +24,27 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionAdministratorChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionChangeOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransaction;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 class TestHarnessServiceTest {
 
+  private static final int BP_EXPLORATION_ALPHA_LTD_ID = 304;
+  private static final int SHELL_PLC_ID = 9205;
+
   private static final LocalDate TODAY = LocalDate.of(2026, 6, 10);
   private static final Clock CLOCK = Clock.fixed(TODAY.atStartOfDay(ZoneOffset.UTC).toInstant(), ZoneOffset.UTC);
-  private static final Licence LICENCE = LicenceTestUtil.builder().withId(1).build();
-  private static final Licence SECONDARY_LICENCE = LicenceTestUtil.builder().withId(2).build();
+
   private static final LicenceTransaction TRANSACTION_1 = LicenceTransactionTestUtil.newBuilder().build();
   private static final LicenceTransaction TRANSACTION_2 = LicenceTransactionTestUtil.newBuilder().build();
   private static final LicenceTransaction SAME_TRANSACTION = LicenceTransactionTestUtil.newBuilder().build();
@@ -40,6 +55,12 @@ class TestHarnessServiceTest {
 
   @Mock
   private LicencePositionService licencePositionService;
+
+  @Mock
+  private LicencePositionTestHarnessService licencePositionTestHarnessService;
+
+  @Mock
+  private LicencePositionChangeService licencePositionChangeService;
 
   private TestHarnessService testHarnessService;
 
@@ -52,35 +73,112 @@ class TestHarnessServiceTest {
   @Captor
   private ArgumentCaptor<LocalDate> dateCaptor;
 
+  @Captor
+  private ArgumentCaptor<LicencePosition> positionCaptor;
+
+  @Captor
+  private ArgumentCaptor<List<LicencePositionChangeOperation>> operationsCaptor;
+
   @BeforeEach
   void setUp() {
-    testHarnessService = new TestHarnessService(licenceTransactionService, licencePositionService, CLOCK);
+    testHarnessService = new TestHarnessService(
+        licenceTransactionService, licencePositionService, licencePositionTestHarnessService,
+        licencePositionChangeService, CLOCK);
   }
 
   @Test
-  void generateLicencePositions_assertSixPositionsCoveringAllAcceptanceCriteria() {
+  void generateLicencePositions_clearsBothLicencesAndCreatesSixPositions() {
+    var licence = production(1);
+    var secondaryLicence = carbonStorage(2);
+
     when(licenceTransactionService.createLicenceTransaction(anyString()))
         .thenReturn(TRANSACTION_1, TRANSACTION_2, SAME_TRANSACTION, CROSS_TRANSACTION);
+    when(licencePositionService.getChronologicalLicencePositions(licence)).thenReturn(buildPositions(5));
 
-    testHarnessService.generateLicencePositions(LICENCE, SECONDARY_LICENCE);
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    verify(licencePositionTestHarnessService).clearPositionsForLicence(licence);
+    verify(licencePositionTestHarnessService).clearPositionsForLicence(secondaryLicence);
 
     verify(licenceTransactionService, times(4)).createLicenceTransaction(anyString());
     verify(licencePositionService, times(6))
         .createLicencePosition(licenceCaptor.capture(), transactionCaptor.capture(), dateCaptor.capture());
 
     assertThat(licenceCaptor.getAllValues()).containsExactly(
-        LICENCE, LICENCE,            // 1. Same date pair on primary licence
-        LICENCE, LICENCE,            // 2. Same transaction pair on primary licence
-        LICENCE, SECONDARY_LICENCE); // 3. Cross licence reuse
+        licence, licence,            // 1. Same date pair on primary licence
+        licence, licence,            // 2. Same transaction pair on primary licence
+        licence, secondaryLicence);  // 3. Cross licence reuse
 
     assertThat(transactionCaptor.getAllValues()).containsExactly(
-        TRANSACTION_1, TRANSACTION_2,                 // 1. Same date, different transactions
-        SAME_TRANSACTION, SAME_TRANSACTION,           // 2. Same transaction, different dates
-        CROSS_TRANSACTION, CROSS_TRANSACTION);        // 3. Same transaction reused across licences
+        TRANSACTION_1, TRANSACTION_2,
+        SAME_TRANSACTION, SAME_TRANSACTION,
+        CROSS_TRANSACTION, CROSS_TRANSACTION);
 
     assertThat(dateCaptor.getAllValues()).containsExactly(
-        TODAY.minusWeeks(7), TODAY.minusWeeks(7),   // 1. Two positions same date
-        TODAY.minusWeeks(5), TODAY.minusWeeks(3),   // 2. Same transaction, different dates
+        TODAY.minusWeeks(7), TODAY.minusWeeks(7),
+        TODAY.minusWeeks(5), TODAY.minusWeeks(3),
         TODAY.minusWeeks(2), TODAY.minusWeeks(1));
+  }
+
+  @Test
+  void generateLicencePositions_whenPrimaryIsProduction_addsAdministratorChangeOnFirstAndNonFinalPosition() {
+    var licence = production(1);
+    var secondaryLicence = carbonStorage(2);
+    var positions = buildPositions(5);
+    when(licencePositionService.getChronologicalLicencePositions(licence)).thenReturn(positions);
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    verify(licencePositionChangeService, times(2)).createLicencePositionChange(
+        positionCaptor.capture(), operationsCaptor.capture(), eq(1L), eq(LicencePositionChangeStatus.CONSENTED));
+
+    // first = index 0 (Shell); non-final = index size - 3 = 2 (BP)
+    assertThat(positionCaptor.getAllValues()).containsExactly(positions.get(0), positions.get(2));
+    assertThat(operationsCaptor.getAllValues())
+        .extracting(operations -> ((LicencePositionAdministratorChange) operations.getFirst()).operatorId())
+        .containsExactly(SHELL_PLC_ID, BP_EXPLORATION_ALPHA_LTD_ID);
+  }
+
+  @Test
+  void generateLicencePositions_whenSecondaryIsProduction_addsInitialAdministratorOnFirstPosition() {
+    var licence = carbonStorage(1);
+    var secondaryLicence = production(2);
+    var secondaryPositions = buildPositions(1);
+    when(licencePositionService.getChronologicalLicencePositions(secondaryLicence)).thenReturn(secondaryPositions);
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    verify(licencePositionChangeService).createLicencePositionChange(
+        positionCaptor.capture(), operationsCaptor.capture(), eq(1L), eq(LicencePositionChangeStatus.CONSENTED));
+
+    assertThat(positionCaptor.getValue()).isEqualTo(secondaryPositions.getFirst());
+    assertThat(((LicencePositionAdministratorChange) operationsCaptor.getValue().getFirst()).operatorId())
+        .isEqualTo(SHELL_PLC_ID);
+  }
+
+  @Test
+  void generateLicencePositions_whenBothCarbonStorage_addsNoAdministratorChanges() {
+    var licence = carbonStorage(1);
+    var secondaryLicence = carbonStorage(2);
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    verify(licencePositionService, never()).getChronologicalLicencePositions(any());
+    verify(licencePositionChangeService, never())
+        .createLicencePositionChange(any(), any(), anyLong(), any());
+  }
+
+  private static Licence production(int id) {
+    return LicenceTestUtil.builder().withId(id).withLicenceType(LicenceType.SEAWARD_PRODUCTION).build();
+  }
+
+  private static Licence carbonStorage(int id) {
+    return LicenceTestUtil.builder().withId(id).withLicenceType(LicenceType.CARBON_STORAGE).build();
+  }
+
+  private static List<LicencePosition> buildPositions(int count) {
+    return IntStream.range(0, count)
+        .mapToObj(i -> LicencePositionTestUtil.newBuilder().build())
+        .toList();
   }
 }

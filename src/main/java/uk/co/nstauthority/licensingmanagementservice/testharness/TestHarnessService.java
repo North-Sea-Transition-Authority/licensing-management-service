@@ -2,36 +2,93 @@ package uk.co.nstauthority.licensingmanagementservice.testharness;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionService;
 
 @Service
 public class TestHarnessService {
 
+  private static final int BP_EXPLORATION_ALPHA_LTD_ID = 304;
+  private static final int SHELL_PLC_ID = 9205;
+
   private final LicenceTransactionService licenceTransactionService;
   private final LicencePositionService licencePositionService;
+  private final LicencePositionTestHarnessService licencePositionTestHarnessService;
+  private final LicencePositionChangeService licencePositionChangeService;
   private final Clock clock;
 
   public TestHarnessService(
       LicenceTransactionService licenceTransactionService,
       LicencePositionService licencePositionService,
+      LicencePositionTestHarnessService licencePositionTestHarnessService,
+      LicencePositionChangeService licencePositionChangeService,
       Clock clock
   ) {
     this.licenceTransactionService = licenceTransactionService;
     this.licencePositionService = licencePositionService;
+    this.licencePositionTestHarnessService = licencePositionTestHarnessService;
+    this.licencePositionChangeService = licencePositionChangeService;
     this.clock = clock;
   }
 
   @Transactional
   public void generateLicencePositions(Licence licence, Licence secondaryLicence) {
+    // clear any existing positions and changes
+    licencePositionTestHarnessService.clearPositionsForLicence(licence);
+    licencePositionTestHarnessService.clearPositionsForLicence(secondaryLicence);
+
     var now = LocalDate.now(clock);
     generateSameDateLicencePositions(licence, now);
     generateSameTransactionLicencePositions(licence, now);
     generateSameTransactionDifferentLicencePositions(licence, secondaryLicence, now);
+
+    if (Boolean.TRUE.equals(licence.getType().isProduction())) {
+      generateAdministratorPositionChange(licence);
+    }
+
+    if (Boolean.TRUE.equals(secondaryLicence.getType().isProduction())) {
+      generateInitialAdministrator(secondaryLicence);
+    }
+  }
+
+  private void generateAdministratorPositionChange(Licence licence) {
+    var chronologicalLicencePositions = licencePositionService.getChronologicalLicencePositions(licence);
+
+    var firstPosition = chronologicalLicencePositions.getFirst();
+    var nonFinalPosition = chronologicalLicencePositions.get(chronologicalLicencePositions.size() - 3);
+
+    createAdministratorChange(firstPosition, SHELL_PLC_ID);
+    createAdministratorChange(nonFinalPosition, BP_EXPLORATION_ALPHA_LTD_ID);
+  }
+
+  private void generateInitialAdministrator(Licence licence) {
+    var chronologicalLicencePositions = licencePositionService.getChronologicalLicencePositions(licence);
+
+    var firstPosition = chronologicalLicencePositions.getFirst();
+
+    createAdministratorChange(firstPosition, SHELL_PLC_ID);
+  }
+
+  private void createAdministratorChange(LicencePosition licencePosition, int operatorId) {
+    var administratorChange = LicencePositionChangeOperation.newAdministratorChange()
+        .withOperator(operatorId)
+        .build();
+
+    licencePositionChangeService.createLicencePositionChange(
+        licencePosition,
+        List.of(administratorChange),
+        1L,
+        LicencePositionChangeStatus.CONSENTED
+    );
   }
 
   private void generateSameDateLicencePositions(Licence licence, LocalDate now) {

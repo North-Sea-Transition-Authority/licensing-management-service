@@ -36,6 +36,37 @@ class LicencePositionServiceTest {
   @Captor
   private ArgumentCaptor<LicencePosition> licencePositionArgumentCaptor;
 
+  @ParameterizedTest
+  @MethodSource("provideMaxPositionOrderCombinations")
+  void createLicencePosition_noExistingPositionOnDate(Integer maxPositionOrder, int positionOrder) {
+    var transaction = LicenceTransactionTestUtil.newBuilder().build();
+    var date  = LocalDate.of(2026, 1, 1);
+
+    when(licencePositionRepository.findMaxPositionDateOrder(LICENCE, date)).thenReturn(maxPositionOrder);
+
+    var expectedLicencePosition = LicencePositionTestUtil.newBuilder()
+        .withId(null)
+        .withLicence(LICENCE)
+        .withLicenceTransaction(transaction)
+        .withPositionDate(date)
+        .withPositionOrder(positionOrder)
+        .build();
+
+    licencePositionService.createLicencePosition(LICENCE, transaction, date);
+
+    verify(licencePositionRepository).save(licencePositionArgumentCaptor.capture());
+
+    assertThat(licencePositionArgumentCaptor.getValue()).usingRecursiveComparison().isEqualTo(expectedLicencePosition);
+  }
+
+  private static Stream<Arguments> provideMaxPositionOrderCombinations() {
+    return Stream.of(
+        Arguments.of(null, 1),
+        Arguments.of(1, 2),
+        Arguments.of(2, 3)
+    );
+  }
+
   @Test
   void getTimelineView() {
     var olderPosition1 = LicencePositionTestUtil.newBuilder()
@@ -70,34 +101,19 @@ class LicencePositionServiceTest {
     );
   }
 
-  @ParameterizedTest
-  @MethodSource("provideMaxPositionOrderCombinations")
-  void createLicencePosition_noExistingPositionOnDate(Integer maxPositionOrder, int positionOrder) {
-    var transaction = LicenceTransactionTestUtil.newBuilder().build();
-    var date  = LocalDate.of(2026, 1, 1);
+  @Test
+  void getChronologicalLicencePositions() {
+    var oldestFirst = LicencePositionTestUtil.newBuilder()
+        .withPositionDate(LocalDate.of(2026, 1, 1)).withPositionOrder(1).build();
+    var oldestSecond = LicencePositionTestUtil.newBuilder()
+        .withPositionDate(LocalDate.of(2026, 1, 1)).withPositionOrder(2).build();
+    var newest = LicencePositionTestUtil.newBuilder()
+        .withPositionDate(LocalDate.of(2026, 6, 1)).withPositionOrder(1).build();
 
-    when(licencePositionRepository.findMaxPositionDateOrder(LICENCE, date)).thenReturn(maxPositionOrder);
+    when(licencePositionRepository.findByLicence(LICENCE))
+        .thenReturn(List.of(newest, oldestSecond, oldestFirst));
 
-    var expectedLicencePosition = LicencePositionTestUtil.newBuilder()
-        .withId(null)
-        .withLicence(LICENCE)
-        .withLicenceTransaction(transaction)
-        .withPositionDate(date)
-        .withPositionOrder(positionOrder)
-        .build();
-
-    licencePositionService.createLicencePosition(LICENCE, transaction, date);
-
-    verify(licencePositionRepository).save(licencePositionArgumentCaptor.capture());
-
-    assertThat(licencePositionArgumentCaptor.getValue()).usingRecursiveComparison().isEqualTo(expectedLicencePosition);
-  }
-
-  private static Stream<Arguments> provideMaxPositionOrderCombinations() {
-    return Stream.of(
-        Arguments.of(null, 1),
-        Arguments.of(1, 2),
-        Arguments.of(2, 3)
-    );
+    assertThat(licencePositionService.getChronologicalLicencePositions(LICENCE))
+        .containsExactly(oldestFirst, oldestSecond, newest);
   }
 }

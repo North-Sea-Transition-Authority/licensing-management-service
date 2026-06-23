@@ -18,11 +18,7 @@ public class LicencePositionService {
   }
 
   public List<LicencePositionTimelineView> getTimelineView(Licence licence) {
-    return licencePositionRepository.findByLicence(licence)
-        .stream()
-        .sorted(Comparator.comparing(LicencePosition::getPositionDate)
-            .thenComparing(LicencePosition::getPositionDateOrder)
-            .reversed())
+    return getChronologicalLicencePositions(licence).reversed().stream()
         .map(licencePosition -> new LicencePositionTimelineView(
             licencePosition.getLicenceTransaction().getRegulatorReference(),
             licencePosition.getPositionDate()
@@ -47,5 +43,12 @@ public class LicencePositionService {
     licencePosition.setPositionDateOrder(positionDateOrder);
 
     return licencePositionRepository.save(licencePosition);
+  }
+
+  public List<LicencePosition> getChronologicalLicencePositions(Licence licence) {
+    return licencePositionRepository.findByLicence(licence)
+        .stream()
+        .sorted(Comparator.comparing(LicencePosition::getPositionDate).thenComparing(LicencePosition::getPositionDateOrder))
+        .toList();
   }
 }

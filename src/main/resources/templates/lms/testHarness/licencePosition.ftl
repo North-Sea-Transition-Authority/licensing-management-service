@@ -9,12 +9,22 @@ pageSize=PageSize.TWO_THIRDS_COLUMN
 >
 
   <@fdsInsetText.insetText>
-    <p>This form will create transaction and position information on a production licence or a carbon storage licence. Each licence will have:</p>
+    <p>This form will create transaction and position information on two licences (production or carbon storage). The primary licence will have:</p>
     <ul class="govuk-list govuk-list--bullet">
       <li>Six licence positions, all starting before the current date</li>
       <li>Two will start on the same date, and therefore have a different position order and associated transaction</li>
       <li>Two positions will be associated with the same transaction but on different dates</li>
       <li>One will be created for the secondary licence, but for a transaction also used on the original licence</li>
+    </ul>
+    <p>If a production licence is selected:</p>
+    <ul class="govuk-list govuk-list--bullet">
+      <li>
+        An administrator position change will be generated for:
+        <ul class="govuk-list govuk-list--bullet">
+          <li>The first position</li>
+          <li>Another licence position other than the final position</li>
+        </ul>
+      </li>
     </ul>
   </@fdsInsetText.insetText>
 

@@ -1,0 +1,65 @@
+package uk.co.nstauthority.licensingmanagementservice.licence.position.change;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionChangeOperation;
+
+@ExtendWith(MockitoExtension.class)
+class LicencePositionChangeServiceTest {
+
+  @Mock
+  private LicencePositionChangeRepository licencePositionChangeRepository;
+
+  @InjectMocks
+  private LicencePositionChangeService licencePositionChangeService;
+
+  @Captor
+  private ArgumentCaptor<LicencePositionChange> changeCaptor;
+
+  @Test
+  void createLicencePositionChange() {
+    var position = LicencePositionTestUtil.newBuilder().build();
+    var administratorChange = LicencePositionChangeOperation.newAdministratorChange().withOperator(1).build();
+
+    licencePositionChangeService.createLicencePositionChange(
+        position, List.of(administratorChange), 1L, LicencePositionChangeStatus.CONSENTED);
+
+    verify(licencePositionChangeRepository).save(changeCaptor.capture());
+
+    var saved = changeCaptor.getValue();
+    assertThat(saved.getLicencePosition()).isEqualTo(position);
+    assertThat(saved.getOperations()).isEqualTo(List.of(administratorChange));
+    assertThat(saved.getChangeOrder()).isEqualTo(1L);
+    assertThat(saved.getStatus()).isEqualTo(LicencePositionChangeStatus.CONSENTED);
+  }
+
+  @Test
+  void deleteForPositions_whenEmpty() {
+    licencePositionChangeService.deleteForPositions(List.of());
+
+    verifyNoInteractions(licencePositionChangeRepository);
+  }
+
+  @Test
+  void deleteForPositions() {
+    var positions = List.of(LicencePositionTestUtil.newBuilder().build());
+    var changes = List.of(new LicencePositionChange(), new LicencePositionChange());
+    when(licencePositionChangeRepository.findByLicencePositionIn(positions)).thenReturn(changes);
+
+    licencePositionChangeService.deleteForPositions(positions);
+
+    verify(licencePositionChangeRepository).deleteAll(changes);
+  }
+}

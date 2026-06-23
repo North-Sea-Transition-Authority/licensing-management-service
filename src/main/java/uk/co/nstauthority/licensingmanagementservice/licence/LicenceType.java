@@ -61,6 +61,10 @@ public enum LicenceType implements Displayable {
     return managedByLms;
   }
 
+  public Boolean isProduction() {
+    return this == LANDWARD_PRODUCTION || this == SEAWARD_PRODUCTION;
+  }
+
   public static List<LicenceType> getFromSlugListOrThrow(@NotNull String slugList) {
     return Arrays.stream(slugList.split(","))
         .map(String::trim)

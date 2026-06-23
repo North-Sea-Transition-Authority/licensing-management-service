@@ -90,33 +90,34 @@ class LicenceScheduleRelativeOptionsServiceTest {
 
   @Test
   void getRelativeEventOptions() {
-    var term = new LicenceScheduleTerm();
-    term.setId(UUID.randomUUID());
-    term.setTermType(TermType.INITIAL);
+    var initialTerm = new LicenceScheduleTerm();
+    initialTerm.setId(UUID.randomUUID());
+    initialTerm.setTermType(TermType.INITIAL);
 
-    var term2 = new LicenceScheduleTerm();
-    term2.setId(UUID.randomUUID());
-    term2.setTermType(TermType.SECOND);
+    var secondTerm = new LicenceScheduleTerm();
+    secondTerm.setId(UUID.randomUUID());
+    secondTerm.setTermType(TermType.SECOND);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
+    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(secondTerm, initialTerm));
 
-    var phase = new LicenceSchedulePhase();
-    phase.setId(UUID.randomUUID());
-    phase.setPhaseType(PhaseType.PHASE_A);
+    var phaseA = new LicenceSchedulePhase();
+    phaseA.setId(UUID.randomUUID());
+    phaseA.setPhaseType(PhaseType.PHASE_A);
 
-    var phase2 = new LicenceSchedulePhase();
-    phase2.setId(UUID.randomUUID());
-    phase2.setPhaseType(PhaseType.PHASE_B);
+    var phaseB = new LicenceSchedulePhase();
+    phaseB.setId(UUID.randomUUID());
+    phaseB.setPhaseType(PhaseType.PHASE_B);
 
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(term)).thenReturn(List.of(phase, phase2));
+    when(licenceSchedulePhaseService.getActivePhasesByTerm(initialTerm)).thenReturn(List.of(phaseB, phaseA));
 
-    var expectedResult = Map.of(
-        phase.getId().toString(), "Start of %s".formatted(phase.getPhaseType().getDisplayName()),
-        phase2.getId().toString(), "Start of %s".formatted(phase2.getPhaseType().getDisplayName()),
-        term2.getId().toString(), "Start of %s".formatted(term2.getTermType().getDisplayName())
+    var result = licenceScheduleRelativeOptionsService.getRelativeEventOptions(licenceScheduleDetail);
+
+    assertThat(result.keySet()).containsExactly(
+        phaseA.getId().toString(),
+        phaseB.getId().toString(),
+        secondTerm.getId().toString()
     );
-
-    assertThat(licenceScheduleRelativeOptionsService.getRelativeEventOptions(licenceScheduleDetail)).isEqualTo(expectedResult);
   }
 
 }

@@ -1,7 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.common;
 
 import java.util.Comparator;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
@@ -48,7 +48,7 @@ public class LicenceScheduleRelativeOptionsService {
         .sorted(Comparator.comparingInt(term -> term.getTermType().getDisplayOrder()))
         .collect(StreamUtil.toLinkedHashMap(Function.identity(), this::getPhaseMap));
 
-    HashMap<String, String> combinedOptions = new HashMap<>();
+    LinkedHashMap<String, String> combinedOptions = new LinkedHashMap<>();
 
     for (var termPhase : termPhaseMap.entrySet()) {
       var phases = termPhase.getValue();

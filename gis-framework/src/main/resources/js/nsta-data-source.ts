@@ -5,6 +5,7 @@ import VectorSource from "ol/source/Vector";
 
 const esriJson = new EsriJSON();
 
+//Accessing this URL in a browser will give you an index of all available features
 const nstaArcGisServerBaseUrl = "https://services-eu1.arcgis.com/OZMfUznmLTnWccBc/arcgis/rest/services/";
 
 /**

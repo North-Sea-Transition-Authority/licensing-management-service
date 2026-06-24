@@ -5,6 +5,7 @@
       <ol-source-osm/>
     </ol-tile-layer>
     <nsta-quadrant-layer v-if="mapRef && includeNstaQuadrants" :ol-map="mapRef"/>
+    <nsta-block-layer v-if="mapRef && includeNstaBlocks" :ol-map="mapRef"/>
     <snap-points-layer
       v-if="mapRef && includeSnapPoints"
       :ol-map="mapRef"
@@ -21,11 +22,13 @@ import type { SupportedWkid } from "../../coordinate-system-utils";
 import { useGeographic } from "ol/proj";
 import { computed, ref } from "vue";
 import FeatureLayer from "./FeatureLayer.vue";
+import NstaBlockLayer from "./NstaBlockLayer.vue";
 import NstaQuadrantLayer from "./NstaQuadrantLayer.vue";
 import SnapPointsLayer from "./SnapPointsLayer.vue";
 
 interface BaseMapProps {
   includeNstaQuadrants?: boolean,
+  includeNstaBlocks?: boolean,
   featuresUrl: string,
   srsWkid: SupportedWkid,
   includeSnapPoints?: boolean,
@@ -33,6 +36,7 @@ interface BaseMapProps {
 
 withDefaults(defineProps<BaseMapProps>(), {
   includeNstaQuadrants: true,
+  includeNstaBlocks: true,
   includeSnapPoints: true,
 });
 

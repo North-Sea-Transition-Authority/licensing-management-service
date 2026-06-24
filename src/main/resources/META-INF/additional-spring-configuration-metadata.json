@@ -29,6 +29,11 @@
       "name": "schema.password",
       "type": "java.lang.String",
       "description": "The password for the database schema the service will connect to."
+    },
+    {
+      "name": "lms.development.clock-override-date",
+      "type": "java.lang.String",
+      "description": "Development profile only. Set via env var LMS_DEVELOPMENT_CLOCK_OVERRIDE_DATE in your IDE run configuration. ISO-8601 date (yyyy-MM-dd) to fix the application clock to midnight on that date. Leave unset to use the real system clock."
     }
   ]
 }

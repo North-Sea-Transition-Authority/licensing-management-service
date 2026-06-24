@@ -69,3 +69,4 @@ node_modules
 
 ### Vitest visual tests
 /.vitest-attachments/
+/html/

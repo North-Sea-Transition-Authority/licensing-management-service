@@ -20,8 +20,9 @@ export async function waitForZoomToSettle() {
 }
 
 export async function pressKeyOnMap(key: string) {
-  const viewport = document.querySelector(".ol-viewport")!;
+  const viewport = document.querySelector<HTMLElement>(".ol-viewport")!;
   await userEvent.click(viewport);
+  viewport.dispatchEvent(new MouseEvent("mouseleave", { bubbles: false, cancelable: true }));
   await userEvent.keyboard(key);
   await waitForZoomToSettle();
 }

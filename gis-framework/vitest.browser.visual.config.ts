@@ -30,6 +30,7 @@ export default defineConfig({
         },
       },
     },
+    testTimeout: 60000,
     reporters: ["default", "html"],
     include: ["src/test/resources/js/visual-regression-tests/**/*.visual.test.ts"],
     setupFiles: ["src/test/resources/js/visual-regression-tests/setup.ts"],

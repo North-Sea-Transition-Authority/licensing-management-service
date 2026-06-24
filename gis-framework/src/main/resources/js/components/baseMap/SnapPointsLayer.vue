@@ -38,6 +38,7 @@ interface SnapPointProps {
 }
 
 const props = defineProps<SnapPointProps>();
+const emit = defineEmits<{ hoveredPointChange: [point: SnapPoint | undefined] }>();
 
 const snapLayerRef = ref();
 const snapPoints = ref<SnapPoint[]>([]);
@@ -48,7 +49,7 @@ const computedSpacing = computed(() => {
   return getSpacingForZoom(currentZoom.value, props.srsWkid);
 });
 
-const HOVER_THRESHOLD_PX = 4;
+const HOVER_THRESHOLD_PX = 8;
 
 watch(() => props.olMap?.map, (map, _oldMap, onCleanup) => {
   if (!map) {
@@ -61,6 +62,14 @@ watch(() => props.olMap?.map, (map, _oldMap, onCleanup) => {
   view.on("change:resolution", debouncedRegenerate);
   view.on("change:center", debouncedRegenerate);
 
+  const clearHovered = () => {
+    if (hoveredPoint.value === undefined) {
+      return;
+    }
+    hoveredPoint.value = undefined;
+    emit("hoveredPointChange", undefined);
+  };
+
   const pointerMoveHandler = (event: MapBrowserEvent) => {
     const pixel = event.pixel;
     const olLayer = snapLayerRef.value?.vectorLayer;
@@ -71,7 +80,7 @@ watch(() => props.olMap?.map, (map, _oldMap, onCleanup) => {
     });
 
     if (candidates.length === 0) {
-      hoveredPoint.value = undefined;
+      clearHovered();
       return;
     }
 
@@ -98,11 +107,12 @@ watch(() => props.olMap?.map, (map, _oldMap, onCleanup) => {
       }
     }
 
+    if (hoveredPoint.value === nearest) {
+      // point hasn't changed, so don't emmit an event
+      return;
+    }
     hoveredPoint.value = nearest;
-  };
-
-  const clearHovered = () => {
-    hoveredPoint.value = undefined;
+    emit("hoveredPointChange", nearest);
   };
 
   map.on("pointermove", pointerMoveHandler);
@@ -123,6 +133,7 @@ function regenerateSnapPoints(): void {
     return;
   }
   hoveredPoint.value = undefined;
+  emit("hoveredPointChange", undefined);
 
   // Only generate points above this zoom level, to avoid running out of memory.
   const zoom = map.getView().getZoom();

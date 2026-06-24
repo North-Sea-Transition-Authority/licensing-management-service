@@ -40,10 +40,13 @@ const GRID_CONFIGS: Record<SupportedWkid, SrsGridConfig> = {
   },
 };
 
-export interface SnapPoint {
-  id: string,
+export interface LinePoint {
   coordinates: [number, number],
   originalSrsCoordinates: [number, number],
+}
+
+export interface SnapPoint extends LinePoint {
+  id: string,
   displayName: string,
 }
 

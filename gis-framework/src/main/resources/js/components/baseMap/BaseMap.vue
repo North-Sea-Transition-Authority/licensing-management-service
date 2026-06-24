@@ -10,6 +10,13 @@
       v-if="mapRef && includeSnapPoints"
       :ol-map="mapRef"
       :srs-wkid="srsWkid"
+      @hovered-point-change="hoveredSnapPoint = $event"
+    />
+    <draw-line-layer
+      v-if="mapRef && includeDrawLine"
+      :ol-map="mapRef"
+      :hovered-snap-point="hoveredSnapPoint"
+      :require-orthogonal="true"
     />
     <feature-layer v-if="mapRef" :features-url="featuresUrl" :ol-map="mapRef"/>
   </ol-map>
@@ -19,8 +26,10 @@
 import type { CSSProperties } from "vue";
 import type OlMap from "vue3-openlayers/map/OlMap";
 import type { SupportedWkid } from "../../coordinate-system-utils";
+import type { SnapPoint } from "../../grid-utils";
 import { useGeographic } from "ol/proj";
 import { computed, ref } from "vue";
+import DrawLineLayer from "./DrawLineLayer.vue";
 import FeatureLayer from "./FeatureLayer.vue";
 import NstaBlockLayer from "./NstaBlockLayer.vue";
 import NstaQuadrantLayer from "./NstaQuadrantLayer.vue";
@@ -32,17 +41,20 @@ interface BaseMapProps {
   featuresUrl: string,
   srsWkid: SupportedWkid,
   includeSnapPoints?: boolean,
+  includeDrawLine?: boolean,
 }
 
 withDefaults(defineProps<BaseMapProps>(), {
   includeNstaQuadrants: true,
   includeNstaBlocks: true,
   includeSnapPoints: true,
+  includeDrawLine: true,
 });
 
 // Allow openLayers to receive features in WGS84
 useGeographic();
 const mapRef = ref<InstanceType<typeof OlMap> | null>(null);
+const hoveredSnapPoint = ref<SnapPoint | undefined>(undefined);
 const mapStyle = computed<CSSProperties>(() => ({
   width: "100%",
   height: "100%",

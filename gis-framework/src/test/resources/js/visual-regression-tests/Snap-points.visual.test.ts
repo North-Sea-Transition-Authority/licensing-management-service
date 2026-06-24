@@ -40,17 +40,11 @@ async function hoverOverNearestSnapPoint(): Promise<void> {
 }
 
 /**
- * Moves the pointer to the top-left corner of the viewport away from any
- * snap point and waits for the tooltip to disappear.
+ * Simulates the pointer leaving the viewport, which triggers clearHovered in
+ * SnapPointsLayer and hides the tooltip regardless of snap-point layout.
  */
 async function movePointerOffSnapPoint(viewport: HTMLElement): Promise<void> {
-  const rect = viewport.getBoundingClientRect();
-  viewport.dispatchEvent(new PointerEvent("pointermove", {
-    bubbles: true,
-    cancelable: true,
-    clientX: rect.left + 10,
-    clientY: rect.top + 10,
-  }));
+  viewport.dispatchEvent(new MouseEvent("mouseleave", { bubbles: false, cancelable: true }));
   await expect.poll(
     () => document.querySelector(".snap-tooltip"),
     { timeout: 2000, interval: 50 },

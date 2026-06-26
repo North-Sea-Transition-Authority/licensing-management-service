@@ -16,6 +16,17 @@
     </#if>
 
     <#if termView.events()?has_content && termView.hasPhases()>
+        <@fdsTimeline.timelineTimeStamp
+        timeStampHeading=termView.termType().displayName
+        timeStampHeadingHint=termView.dateDurationString()
+        timelineActionContent=timelineActions
+        timeStampClass="fds-timeline__time-stamp--no-border"
+        >
+            <@fdsTimeline.timelineEvent>
+                <@eventComments comments=termView.comments() canDeleteComments=termView.addCommentUrl()?has_content/>
+            </@fdsTimeline.timelineEvent>
+        </@fdsTimeline.timelineTimeStamp>
+
         <#list termView.events() as eventView>
             <#if eventView.getEventType() = "RATE">
                 <@rate rateView=eventView smallDot=false/>

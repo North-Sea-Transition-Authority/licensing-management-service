@@ -32,6 +32,10 @@ public class FeatureService {
     featureRepository.save(feature);
   }
 
+  public List<Feature> getFeaturesByIds(List<UUID> ids) {
+    return featureRepository.findAllById(ids);
+  }
+
   public List<Feature> findAllByParentFeature(Feature parentFeature) {
     return featureRepository.findAllByParentFeatureId(parentFeature.getId());
   }

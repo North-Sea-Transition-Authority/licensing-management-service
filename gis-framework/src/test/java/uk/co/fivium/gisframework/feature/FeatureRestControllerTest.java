@@ -26,6 +26,9 @@ class FeatureRestControllerTest extends AbstractControllerTest {
   @MockitoBean
   private PolygonService polygonService;
 
+  @MockitoBean
+  private LineService lineService;
+
   //TODO EPGF-153 add auth to rest endpoints and add tests
 
   @Test
@@ -81,5 +84,34 @@ class FeatureRestControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(get("/api/gis-framework/feature/{featureId}", feature.getId()))
         .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void getOutlineNodes() throws Exception {
+    var feature1 = FeatureTestUtil.newBuilder().build();
+    var feature2 = FeatureTestUtil.newBuilder().build();
+
+    var feature1Nodes = List.of(
+        new JsonOutlineNode("polygon-1", "line-1", 0, 1, 2, 3),
+        new JsonOutlineNode("polygon-1", "line-1", 0, 2, 4, 5)
+    );
+    var feature2Nodes = List.of(
+        new JsonOutlineNode("polygon-2", "line-2", 1, 1, 6, 7)
+    );
+
+    var featureOutlineNodes = List.of(
+        new JsonFeatureOutlineNodes(feature1.getId().toString(), feature1Nodes),
+        new JsonFeatureOutlineNodes(feature2.getId().toString(), feature2Nodes)
+    );
+    var expected = new JsonFeatureOutlineNodesResponse(featureOutlineNodes);
+
+    when(featureService.getFeaturesByIds(List.of(feature1.getId(), feature2.getId())))
+        .thenReturn(List.of(feature1, feature2));
+    when(lineService.getOutlineNodes(List.of(feature1, feature2))).thenReturn(featureOutlineNodes);
+
+    mockMvc.perform(get("/api/gis-framework/outline-nodes")
+            .param("featureId", feature1.getId().toString(), feature2.getId().toString()))
+        .andExpect(status().isOk())
+        .andExpect(content().json(objectMapper.writeValueAsString(expected), JsonCompareMode.STRICT));
   }
 }

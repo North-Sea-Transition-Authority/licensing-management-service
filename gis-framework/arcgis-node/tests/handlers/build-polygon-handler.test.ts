@@ -10,7 +10,7 @@ import { makePolylineEsriJson } from "../test-utils/esrijson-test-util";
 vi.mock("../../src/util/esrijson-util");
 vi.mock("../../src/geometric-operators/build-polygon");
 vi.mock("../../src/geometric-operators/project-polygon", () => ({
-  projectToWgs84: vi.fn(),
+  projectPolygonToWgs84: vi.fn(),
 }));
 
 describe("buildPolygonHandler", () => {
@@ -89,7 +89,7 @@ describe("buildPolygonHandler", () => {
     );
     expect(esriJsonUtil.esriJsonToPolyline).toHaveBeenCalledTimes(2);
     expect(buildPolygonModule.buildPolygon).toHaveBeenCalledWith([mockPolyline1, mockPolyline2], testWkid);
-    expect(projectPolygon.projectToWgs84).toHaveBeenCalledTimes(0);
+    expect(projectPolygon.projectPolygonToWgs84).toHaveBeenCalledTimes(0);
   });
 
   it("should call callback with error when buildPolygon returns undefined", async () => {
@@ -121,7 +121,7 @@ describe("buildPolygonHandler", () => {
     expect(callArgs[0]).toBeInstanceOf(Error);
     expect(callArgs[0].message).toBe("No polygons could be built from the provided polylines");
     expect(callArgs[1]).toBeNull();
-    expect(projectPolygon.projectToWgs84).toHaveBeenCalledTimes(0);
+    expect(projectPolygon.projectPolygonToWgs84).toHaveBeenCalledTimes(0);
   });
 
   it("should call callback with error when buildPolygon throws", async () => {
@@ -159,7 +159,7 @@ describe("buildPolygonHandler", () => {
 
     await vi.waitFor(() => expect(mockCallback).toHaveBeenCalledWith(testError, null));
     expect(mockCallback).toHaveBeenCalledOnce();
-    expect(projectPolygon.projectToWgs84).toHaveBeenCalledTimes(0);
+    expect(projectPolygon.projectPolygonToWgs84).toHaveBeenCalledTimes(0);
   });
 
   it("should project polygon to WGS84 when flag is true", async () => {
@@ -199,7 +199,7 @@ describe("buildPolygonHandler", () => {
       ],
       spatialReference: { wkid: 4230 },
     });
-    vi.mocked(projectPolygon.projectToWgs84).mockResolvedValue(mockPolygonProjected);
+    vi.mocked(projectPolygon.projectPolygonToWgs84).mockResolvedValue(mockPolygonProjected);
 
     buildPolygonHandler(mockCall, mockCallback as any);
 

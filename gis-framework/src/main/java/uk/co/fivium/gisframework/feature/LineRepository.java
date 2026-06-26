@@ -15,7 +15,5 @@ interface LineRepository extends ListCrudRepository<Line, UUID> {
 
   List<Line> findAllByPolygon_Feature(Feature feature);
 
-  List<Line> findAllByPolygon(Polygon polygon);
-
   List<Line> findAllByPolygonIn(Collection<Polygon> polygons);
 }

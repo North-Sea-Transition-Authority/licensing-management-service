@@ -32,7 +32,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const esriJson = new EsriJSON();
-const featureLabelFont = "16px \"GDS Transport\"";
+const featureLabelFont = "18px \"GDS Transport\"";
 const vectorSourceRef = ref<InstanceType<typeof OlSourceVector> | null>(null);
 
 function featureStyle(feature: Feature<Geometry>) {

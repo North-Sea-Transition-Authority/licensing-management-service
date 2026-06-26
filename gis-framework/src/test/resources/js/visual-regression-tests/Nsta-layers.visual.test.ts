@@ -13,11 +13,13 @@ describe("nsta layers", () => {
   it("renders quadrants", async () => {
     worker.use(
       http.get("/api/features", () => HttpResponse.json(singleBlockEd50)),
+      http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
     );
 
     const screen = render(BaseMap, {
       props: {
         featuresUrl: "/api/features",
+        outlineNodesUrl: "/api/outline-nodes?featureId=1",
         srsWkid: ED50_WKID,
         includeSnapPoints: false,
         includeNstaQuadrants: true,
@@ -34,11 +36,13 @@ describe("nsta layers", () => {
   it("renders blocks", async () => {
     worker.use(
       http.get("/api/features", () => HttpResponse.json(singleBlockEd50)),
+      http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
     );
 
     const screen = render(BaseMap, {
       props: {
         featuresUrl: "/api/features",
+        outlineNodesUrl: "/api/outline-nodes?featureId=1",
         srsWkid: ED50_WKID,
         includeSnapPoints: false,
         includeNstaQuadrants: false,

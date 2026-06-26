@@ -1,5 +1,6 @@
 import type Polyline from "@arcgis/core/geometry/Polyline";
 import { logger } from "../config/logger";
+import { projectPointToWgs84 } from "./project-polygon";
 
 export interface PolylineWithId {
   id: string,
@@ -18,7 +19,10 @@ export interface LineIdWithStartAndEndPoints {
   },
 }
 
-export function getLineStartAndEndPoints(lines: PolylineWithId[]): LineIdWithStartAndEndPoints[] {
+export async function getLineStartAndEndPoints(
+  lines: PolylineWithId[],
+  shouldProjectToWgs84: boolean,
+): Promise<LineIdWithStartAndEndPoints[]> {
   const lineIdWithStartAndEndPoints = [];
   for (const line of lines) {
     const path = line.polyline.paths[0];
@@ -28,12 +32,17 @@ export function getLineStartAndEndPoints(lines: PolylineWithId[]): LineIdWithSta
       throw new Error(`Line ${line.id} has no path`);
     }
 
-    const startPoint = line.polyline.getPoint(0, 0);
-    const endPoint = line.polyline.getPoint(0, path.length - 1);
+    let startPoint = line.polyline.getPoint(0, 0);
+    let endPoint = line.polyline.getPoint(0, path.length - 1);
 
     if (!startPoint || !endPoint) {
       logger.error(`Could not get start and end points for line ${line.id}`);
       throw new Error(`Could not get start and end points for line ${line.id}`);
+    }
+
+    if (shouldProjectToWgs84) {
+      startPoint = await projectPointToWgs84(startPoint);
+      endPoint = await projectPointToWgs84(endPoint);
     }
 
     const pointResponse = {

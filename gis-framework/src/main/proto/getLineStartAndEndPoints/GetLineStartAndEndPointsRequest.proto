@@ -8,4 +8,5 @@ option java_outer_classname = "GetLineStartAndEndPointsRequestProto";
 
 message GetLineStartAndEndPointsRequest {
   repeated LineWithId lines = 1;
+  bool shouldProjectToWgs84 = 2;
 }

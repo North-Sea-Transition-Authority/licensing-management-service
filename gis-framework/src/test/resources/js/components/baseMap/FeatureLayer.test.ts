@@ -123,7 +123,7 @@ describe("featureLayer", () => {
     expect(style?.getStroke()?.getColor()).toEqual([40, 50, 60, 0.75]);
     expect(style?.getFill()?.getColor()).toEqual([10, 20, 30, 0.5]);
     expect(style?.getText()?.getText()).toBe("Test feature");
-    expect(style?.getText()?.getFont()).toBe("16px \"GDS Transport\"");
+    expect(style?.getText()?.getFont()).toBe("18px \"GDS Transport\"");
 
     await waitFor(() => {
       expect(fit).toHaveBeenCalledWith(sourceExtent, {

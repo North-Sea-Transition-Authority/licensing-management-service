@@ -340,9 +340,14 @@ public class GrpcClientService {
   /**
    * Get the start and end points of a list of lines.
    * @param lines the lines to get the start and end points of.
+   * @param shouldProjectToWgs84 if true, then the start and end points will be projected to WGS84
+   *                            otherwise it will retain it's original spatial reference
    * @return a list of lines with their start and end points.
    */
-  public List<LineWithStartEndPoints> getLineStartAndEndPoints(List<Line> lines) {
+  public List<LineWithStartEndPoints> getLineStartAndEndPoints(
+      List<Line> lines,
+      boolean shouldProjectToWgs84
+  ) {
     //lines might not have an id yet
     Map<UUID, Line> tempIdToLine = new HashMap<>();
     lines.forEach(line -> tempIdToLine.put(UUID.randomUUID(), line));
@@ -355,6 +360,7 @@ public class GrpcClientService {
         .toList();
     var request = GetLineStartAndEndPointsRequest.newBuilder()
         .addAllLines(linesWithId)
+        .setShouldProjectToWgs84(shouldProjectToWgs84)
         .build();
 
     var response = arcgisClient.getLineStartAndEndPoints(request);

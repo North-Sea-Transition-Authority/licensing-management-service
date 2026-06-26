@@ -49,6 +49,13 @@ class FeatureServiceTest {
   }
 
   @Test
+  void getFeaturesByIds() {
+    var ids = List.of(UUID.randomUUID());
+    when(featureRepository.findAllById(ids)).thenReturn(List.of(FEATURE));
+    assertThat(featureService.getFeaturesByIds(ids)).isEqualTo(List.of(FEATURE));
+  }
+
+  @Test
   void findAllByParentFeature() {
     var childFeature1 = FeatureTestUtil.newBuilder().build();
     var childFeature2 = FeatureTestUtil.newBuilder().build();

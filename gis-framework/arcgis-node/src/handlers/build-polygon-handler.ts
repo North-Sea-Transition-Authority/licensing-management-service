@@ -2,7 +2,7 @@ import type Polyline from "@arcgis/core/geometry/Polyline.js";
 import type { ArcGisServiceHandlers } from "../../generated/uk/co/fivium/grpc/gis/ArcGisService";
 import type { BuildPolygonResponse } from "../../generated/uk/co/fivium/grpc/gis/BuildPolygonResponse";
 import { buildPolygon } from "../geometric-operators/build-polygon";
-import { projectToWgs84 } from "../geometric-operators/project-polygon";
+import { projectPolygonToWgs84 } from "../geometric-operators/project-polygon";
 import { esriJsonToPolyline } from "../util/esrijson-util";
 import { asyncHandler } from "./async-handler";
 
@@ -20,7 +20,7 @@ export const buildPolygonHandler: ArcGisServiceHandlers["buildPolygon"] = asyncH
   }
 
   if (call.request.projectToWgs84) {
-    polygon = await projectToWgs84(polygon);
+    polygon = await projectPolygonToWgs84(polygon);
   }
 
   return { polygonEsriJson: JSON.stringify(polygon.toJSON()) };

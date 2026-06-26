@@ -20,11 +20,12 @@ describe("getLineStartAndEndPointsHandler", () => {
     mockCall = {
       request: {
         lines: [],
+        shouldProjectToWgs84: false,
       },
     };
   });
 
-  it("should return a successful callback with line start and end points", () => {
+  it("should return a successful callback with line start and end points", async () => {
     const firstLineEsriJson = makePolylineEsriJson([
       [
         [0, 0],
@@ -42,6 +43,7 @@ describe("getLineStartAndEndPointsHandler", () => {
       { id: "line-1", polyLineEsriJson: firstLineEsriJson },
       { id: "line-2", polyLineEsriJson: secondLineEsriJson },
     ];
+    mockCall.request.shouldProjectToWgs84 = true;
 
     const mockFirstLine = new Polyline({
       paths: [
@@ -75,21 +77,24 @@ describe("getLineStartAndEndPointsHandler", () => {
     ];
 
     vi.mocked(esriJsonUtil.esriJsonToPolyline).mockReturnValueOnce(mockFirstLine).mockReturnValueOnce(mockSecondLine);
-    vi.mocked(getLineStartAndEndPointsModule.getLineStartAndEndPoints).mockReturnValue(expectedPoints);
+    vi.mocked(getLineStartAndEndPointsModule.getLineStartAndEndPoints).mockResolvedValue(expectedPoints);
 
     getLineStartAndEndPointsHandler(mockCall, mockCallback as any);
 
+    await vi.waitFor(() => expect(mockCallback).toHaveBeenCalledWith(null, { lines: expectedPoints }));
     expect(esriJsonUtil.esriJsonToPolyline).toHaveBeenCalledTimes(2);
     expect(esriJsonUtil.esriJsonToPolyline).toHaveBeenNthCalledWith(1, firstLineEsriJson);
     expect(esriJsonUtil.esriJsonToPolyline).toHaveBeenNthCalledWith(2, secondLineEsriJson);
-    expect(getLineStartAndEndPointsModule.getLineStartAndEndPoints).toHaveBeenCalledWith([
-      { id: "line-1", polyline: mockFirstLine },
-      { id: "line-2", polyline: mockSecondLine },
-    ]);
-    expect(mockCallback).toHaveBeenCalledWith(null, { lines: expectedPoints });
+    expect(getLineStartAndEndPointsModule.getLineStartAndEndPoints).toHaveBeenCalledWith(
+      [
+        { id: "line-1", polyline: mockFirstLine },
+        { id: "line-2", polyline: mockSecondLine },
+      ],
+      true,
+    );
   });
 
-  it("should call callback with error when getLineStartAndEndPoints throws", () => {
+  it("should call callback with error when getLineStartAndEndPoints rejects", async () => {
     const lineEsriJson = makePolylineEsriJson([
       [
         [0, 0],
@@ -110,17 +115,15 @@ describe("getLineStartAndEndPointsHandler", () => {
 
     const testError = new Error("Failed to get line start and end points");
     vi.mocked(esriJsonUtil.esriJsonToPolyline).mockReturnValue(mockLine);
-    vi.mocked(getLineStartAndEndPointsModule.getLineStartAndEndPoints).mockImplementation(() => {
-      throw testError;
-    });
+    vi.mocked(getLineStartAndEndPointsModule.getLineStartAndEndPoints).mockRejectedValue(testError);
 
     getLineStartAndEndPointsHandler(mockCall, mockCallback as any);
 
+    await vi.waitFor(() => expect(mockCallback).toHaveBeenCalledOnce());
     const callbackError = mockCallback.mock.calls[0][0];
     expect(callbackError).toBe(testError);
     expect(callbackError.message).toBe("Failed to get line start and end points");
     expect(callbackError.code).toBe(status.INTERNAL);
     expect(mockCallback).toHaveBeenCalledWith(callbackError, null);
-    expect(mockCallback).toHaveBeenCalledOnce();
   });
 });

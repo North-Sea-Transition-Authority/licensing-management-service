@@ -113,7 +113,7 @@ public class OperatorResultProcessingService {
    * @param unorderedLines the lines of the output polygon.
    */
   public void numberLines(List<Line> unorderedLines) {
-    var allLineWithStartEndPoints = grpcClientService.getLineStartAndEndPoints(unorderedLines);
+    var allLineWithStartEndPoints = grpcClientService.getLineStartAndEndPoints(unorderedLines, false);
 
     int ringNumberCounter = 0;
     int ringConnectionOrderCounter = 0;

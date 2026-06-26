@@ -19,18 +19,19 @@
       :require-orthogonal="true"
     />
     <feature-layer v-if="mapRef" :features-url="featuresUrl" :ol-map="mapRef"/>
+    <node-numbering-layer :outline-nodes-url="outlineNodesUrl"/>
   </ol-map>
 </template>
 
 <script setup lang="ts">
-import type { CSSProperties } from "vue";
 import type OlMap from "vue3-openlayers/map/OlMap";
 import type { SupportedWkid } from "../../coordinate-system-utils";
 import type { SnapPoint } from "../../grid-utils";
 import { useGeographic } from "ol/proj";
-import { computed, ref } from "vue";
+import { computed, CSSProperties, ref } from "vue";
 import DrawLineLayer from "./DrawLineLayer.vue";
 import FeatureLayer from "./FeatureLayer.vue";
+import NodeNumberingLayer from "./NodeNumberingLayer.vue";
 import NstaBlockLayer from "./NstaBlockLayer.vue";
 import NstaQuadrantLayer from "./NstaQuadrantLayer.vue";
 import SnapPointsLayer from "./SnapPointsLayer.vue";
@@ -39,6 +40,7 @@ interface BaseMapProps {
   includeNstaQuadrants?: boolean,
   includeNstaBlocks?: boolean,
   featuresUrl: string,
+  outlineNodesUrl: string,
   srsWkid: SupportedWkid,
   includeSnapPoints?: boolean,
   includeDrawLine?: boolean,

@@ -354,7 +354,7 @@ class OperatorResultProcessingServiceTest {
     var line3 = getUnnumberedLine("line 3", polygon); //top-most start point, so numbering starts here
     var unorderedLines = List.of(line1, line2, line3);
 
-    when(grpcClientService.getLineStartAndEndPoints(unorderedLines)).thenReturn(List.of(
+    when(grpcClientService.getLineStartAndEndPoints(unorderedLines, false)).thenReturn(List.of(
         new LineWithStartEndPoints(line2, new Point(1, 0), new Point(1, 1)),
         new LineWithStartEndPoints(line3, new Point(1, 1), new Point(0, 0)),
         new LineWithStartEndPoints(line1, new Point(0, 0), new Point(1, 0))
@@ -382,7 +382,7 @@ class OperatorResultProcessingServiceTest {
 
     // The inner ring has the top-most start point, so it is numbered first (ring 0). The outer ring's
     // connection order continues on from the inner ring rather than restarting at 1.
-    when(grpcClientService.getLineStartAndEndPoints(unorderedLines)).thenReturn(List.of(
+    when(grpcClientService.getLineStartAndEndPoints(unorderedLines, false)).thenReturn(List.of(
         new LineWithStartEndPoints(outerRingLine1, new Point(0, 0), new Point(1, 0)),
         new LineWithStartEndPoints(outerRingLine2, new Point(1, 0), new Point(0, 0)),
         new LineWithStartEndPoints(innerRingLine1, new Point(2, 2), new Point(3, 2)),
@@ -425,7 +425,7 @@ class OperatorResultProcessingServiceTest {
     // inner ring, then bottomPolygon. The inner ring's top-most point sits below bottomPolygon's, so a
     // global (non-polygon-aware) sort would interleave them; grouping by polygon must not.
     // ringNumber and ringConnectionOrder continue across both polygons.
-    when(grpcClientService.getLineStartAndEndPoints(unorderedLines)).thenReturn(List.of(
+    when(grpcClientService.getLineStartAndEndPoints(unorderedLines, false)).thenReturn(List.of(
         new LineWithStartEndPoints(topOuterLine1, new Point(0, 10), new Point(8, 10)),
         new LineWithStartEndPoints(topOuterLine2, new Point(8, 10), new Point(0, 0)),
         new LineWithStartEndPoints(topOuterLine3, new Point(0, 0), new Point(0, 10)),

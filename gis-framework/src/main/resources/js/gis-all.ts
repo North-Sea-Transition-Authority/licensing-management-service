@@ -10,6 +10,7 @@ for (const element of document.querySelectorAll<HTMLElement>("[data-gis-componen
     includeNstaBlocks: element.dataset.gisIncludeNstaBlocks === "true",
     includeSnapPoints: element.dataset.gisIncludeSnapPoints === "true",
     featuresUrl: element.dataset.gisFeaturesUrl,
+    outlineNodesUrl: element.dataset.gisOutlineNodesUrl,
     srsWkid: Number(element.dataset.gisSrsWkid),
   })
     .use(OpenLayersMap)

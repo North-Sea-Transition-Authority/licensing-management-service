@@ -13,11 +13,13 @@ describe("feature layer", () => {
   it("renders the singleBlock ED50 feature", async () => {
     worker.use(
       http.get("/api/features", () => HttpResponse.json(singleBlockEd50)),
+      http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
     );
 
     const screen = render(BaseMap, {
       props: {
         featuresUrl: "/api/features",
+        outlineNodesUrl: "/api/outline-nodes?featureId=1",
         srsWkid: SupportedWkid.ED50_WKID,
         includeSnapPoints: false,
         includeNstaQuadrants: false,
@@ -34,11 +36,13 @@ describe("feature layer", () => {
   it("renders the singleBlock BNG feature", async () => {
     worker.use(
       http.get("/api/features", () => HttpResponse.json(singleBlockBng)),
+      http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
     );
 
     const screen = render(BaseMap, {
       props: {
         featuresUrl: "/api/features",
+        outlineNodesUrl: "/api/outline-nodes?featureId=1",
         srsWkid: SupportedWkid.BNG_WKID,
         includeSnapPoints: false,
         includeNstaQuadrants: false,

@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.esri.core.geometry.Point;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -11,6 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.grpc.GrpcClientService;
+import uk.co.fivium.gisframework.operator.LineWithStartEndPoints;
 
 @ExtendWith(MockitoExtension.class)
 class LineServiceTest {
@@ -24,6 +28,9 @@ class LineServiceTest {
 
   @Mock
   private LineRepository lineRepository;
+
+  @Mock
+  private GrpcClientService grpcClientService;
 
   @InjectMocks
   private LineService lineService;
@@ -111,15 +118,115 @@ class LineServiceTest {
   }
 
   @Test
-  void findAllByPolygon() {
-    var polygon = PolygonTestUtil.newBuilder().build();
+  void getOutlineNodes_whenMultipleRingsAcrossPolygons_thenContinuousNumbering() {
+    var polygon1 = PolygonTestUtil.newBuilder().withFeature(FEATURE_1).build();
+    var polygon2 = PolygonTestUtil.newBuilder().withFeature(FEATURE_1).build();
 
-    when(lineRepository.findAllByPolygon(polygon)).thenReturn(List.of(LINE_1, LINE_2));
+    var ring1Lines = ringLines(polygon1, 1, 1, 4);
+    var ring2Lines = ringLines(polygon1, 2, 5, 8);
+    var ring3Lines = ringLines(polygon2, 3, 9, 12);
 
-    var result = lineService.findAllByPolygon(polygon);
+    var allLines = new ArrayList<Line>();
+    allLines.addAll(ring1Lines);
+    allLines.addAll(ring2Lines);
+    allLines.addAll(ring3Lines);
 
-    var expected = List.of(LINE_1, LINE_2);
-    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+    when(lineRepository.findAllByPolygon_FeatureIn(List.of(FEATURE_1))).thenReturn(allLines);
+    when(grpcClientService.getLineStartAndEndPoints(allLines, true)).thenReturn(getTestStartAndEndPoints(allLines));
+
+    var result = lineService.getOutlineNodes(List.of(FEATURE_1));
+
+    assertThat(result).containsExactly(
+        new JsonFeatureOutlineNodes(FEATURE_1.getId().toString(),
+            List.of(
+                new JsonOutlineNode(ring1Lines.get(0), 1, 1, 0),
+                new JsonOutlineNode(ring1Lines.get(1), 2, 2, 0),
+                new JsonOutlineNode(ring1Lines.get(2), 3, 3, 0),
+                new JsonOutlineNode(ring1Lines.get(3), 4, 4, 0),
+                new JsonOutlineNode(ring1Lines.get(3), 5, 4, 100),
+                new JsonOutlineNode(ring2Lines.get(0), 6, 5, 0),
+                new JsonOutlineNode(ring2Lines.get(1), 7, 6, 0),
+                new JsonOutlineNode(ring2Lines.get(2), 8, 7, 0),
+                new JsonOutlineNode(ring2Lines.get(3), 9, 8, 0),
+                new JsonOutlineNode(ring2Lines.get(3), 10, 8, 100),
+                new JsonOutlineNode(ring3Lines.get(0), 11, 9, 0),
+                new JsonOutlineNode(ring3Lines.get(1), 12, 10, 0),
+                new JsonOutlineNode(ring3Lines.get(2), 13, 11, 0),
+                new JsonOutlineNode(ring3Lines.get(3), 14, 12, 0),
+                new JsonOutlineNode(ring3Lines.get(3), 15, 12, 100)
+            )
+        ));
+  }
+
+  @Test
+  void getOutlineNodes_whenMultipleFeatures_thenResetNumbering() {
+    var polygon1 = PolygonTestUtil.newBuilder().withFeature(FEATURE_1).build();
+    var polygon2 = PolygonTestUtil.newBuilder().withFeature(FEATURE_2).build();
+
+    var ring1Lines = ringLines(polygon1, 1, 1, 4);
+    var ring2Lines = ringLines(polygon1, 2, 5, 8);
+    var ring3Lines = ringLines(polygon2, 1, 1, 4);
+
+    var feature1Lines = new ArrayList<Line>();
+    feature1Lines.addAll(ring1Lines);
+    feature1Lines.addAll(ring2Lines);
+
+    var allLines = new ArrayList<Line>();
+    allLines.addAll(feature1Lines);
+    allLines.addAll(ring3Lines);
+
+    when(lineRepository.findAllByPolygon_FeatureIn(FEATURES)).thenReturn(allLines);
+    when(grpcClientService.getLineStartAndEndPoints(allLines, true)).thenReturn(getTestStartAndEndPoints(allLines));
+
+    var result = lineService.getOutlineNodes(FEATURES);
+
+    var feature1Nodes = List.of(
+        new JsonOutlineNode(ring1Lines.get(0), 1, 1, 0),
+        new JsonOutlineNode(ring1Lines.get(1), 2, 2, 0),
+        new JsonOutlineNode(ring1Lines.get(2), 3, 3, 0),
+        new JsonOutlineNode(ring1Lines.get(3), 4, 4, 0),
+        new JsonOutlineNode(ring1Lines.get(3), 5, 4, 100),
+        new JsonOutlineNode(ring2Lines.get(0), 6, 5, 0),
+        new JsonOutlineNode(ring2Lines.get(1), 7, 6, 0),
+        new JsonOutlineNode(ring2Lines.get(2), 8, 7, 0),
+        new JsonOutlineNode(ring2Lines.get(3), 9, 8, 0),
+        new JsonOutlineNode(ring2Lines.get(3), 10, 8, 100)
+    );
+    var feature2Nodes = List.of(
+        new JsonOutlineNode(ring3Lines.get(0), 1, 1, 0),
+        new JsonOutlineNode(ring3Lines.get(1), 2, 2, 0),
+        new JsonOutlineNode(ring3Lines.get(2), 3, 3, 0),
+        new JsonOutlineNode(ring3Lines.get(3), 4, 4, 0),
+        new JsonOutlineNode(ring3Lines.get(3), 5, 4, 100)
+    );
+
+    assertThat(result).containsExactlyInAnyOrder(
+        new JsonFeatureOutlineNodes(FEATURE_1.getId().toString(), feature1Nodes),
+        new JsonFeatureOutlineNodes(FEATURE_2.getId().toString(), feature2Nodes)
+    );
+  }
+
+  private static List<Line> ringLines(Polygon polygon, int ringNumber, int fromDisplayOrder, int toDisplayOrder) {
+    var lines = new ArrayList<Line>();
+    for (int displayOrder = fromDisplayOrder; displayOrder <= toDisplayOrder; displayOrder++) {
+      lines.add(LineTestUtil.newBuilder()
+          .withPolygon(polygon)
+          .withRingNumber(ringNumber)
+          .withDisplayOrder(displayOrder)
+          .build());
+    }
+    return lines;
+  }
+
+  private static List<LineWithStartEndPoints> getTestStartAndEndPoints(List<Line> allLines) {
+    return allLines
+        .stream()
+        .map(line -> new LineWithStartEndPoints(
+            line,
+            new Point(line.getDisplayOrder(), 0),
+            new Point(line.getDisplayOrder(), 100)
+        ))
+        .toList();
   }
 
   @Test

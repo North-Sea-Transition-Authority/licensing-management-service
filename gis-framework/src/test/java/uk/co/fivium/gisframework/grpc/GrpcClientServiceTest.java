@@ -13,6 +13,9 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -496,8 +499,9 @@ class GrpcClientServiceTest {
     verify(arcgisClient).validateTopologicallyEqual(expectedRequest.build());
   }
 
-  @Test
-  void getLineStartAndEndPoints_verifyServiceClientCall() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void getLineStartAndEndPoints_verifyServiceClientCall(boolean shouldProjectToWgs84) {
     var line1 = LineTestUtil.newBuilder().withEsriJson("dummy esriJson line 1").build();
     var line2 = LineTestUtil.newBuilder().withEsriJson("dummy esriJson line 2").build();
 
@@ -526,7 +530,11 @@ class GrpcClientServiceTest {
           return responseBuilder.build();
         });
 
-    var result = grpcClientService.getLineStartAndEndPoints(List.of(line1, line2));
+    var result = grpcClientService.getLineStartAndEndPoints(List.of(line1, line2), shouldProjectToWgs84);
+
+    var requestCaptor = ArgumentCaptor.forClass(GetLineStartAndEndPointsRequest.class);
+    verify(arcgisClient).getLineStartAndEndPoints(requestCaptor.capture());
+    assertThat(requestCaptor.getValue().getShouldProjectToWgs84()).isEqualTo(shouldProjectToWgs84);
 
     assertThat(result)
         .extracting(LineWithStartEndPoints::line)

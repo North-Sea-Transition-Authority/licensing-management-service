@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransaction;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -17,23 +19,17 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 public class LicencePositionService {
 
   private final LicencePositionRepository licencePositionRepository;
+  private final LicencePositionChangeService licencePositionChangeService;
+  private final LicencePositionChangeViewService licencePositionChangeViewService;
 
-  public LicencePositionService(LicencePositionRepository licencePositionRepository) {
+  public LicencePositionService(
+      LicencePositionRepository licencePositionRepository,
+      LicencePositionChangeService licencePositionChangeService,
+      LicencePositionChangeViewService licencePositionChangeViewService
+  ) {
     this.licencePositionRepository = licencePositionRepository;
-  }
-
-  public List<LicencePositionTimelineView> getTimelineView(Licence licence) {
-    return getChronologicalLicencePositions(licence).reversed().stream()
-        .map(licencePosition -> new LicencePositionTimelineView(
-            licencePosition.getId(),
-            ReverseRouter.route(on(LicencePositionTimelineController.class).renderLicencePosition(
-                licence,
-                licencePosition.getId()
-            )),
-            licencePosition.getLicenceTransaction().getRegulatorReference(),
-            licencePosition.getFormattedPositionDate()
-        ))
-        .toList();
+    this.licencePositionChangeService = licencePositionChangeService;
+    this.licencePositionChangeViewService = licencePositionChangeViewService;
   }
 
   @Transactional
@@ -65,6 +61,36 @@ public class LicencePositionService {
     return licencePositionRepository.findByLicence(licence)
         .stream()
         .sorted(Comparator.comparing(LicencePosition::getPositionDate).thenComparing(LicencePosition::getPositionDateOrder))
+        .toList();
+  }
+
+  public LicencePositionPageView getPositionPageView(LicencePosition licencePosition) {
+    var licence = licencePosition.getLicence();
+
+    var chronologicalLicencePositions = getChronologicalLicencePositions(licence);
+    var licencePositionChanges = licencePositionChangeService.findByLicencePositionIn(chronologicalLicencePositions);
+
+    return new LicencePositionPageView(
+        getTimelineView(licence, chronologicalLicencePositions),
+        licencePosition,
+        licencePositionChangeViewService.getChangeViews(licencePosition, chronologicalLicencePositions, licencePositionChanges)
+    );
+  }
+
+  private List<LicencePositionTimelineView> getTimelineView(
+      Licence licence,
+      List<LicencePosition> chronologicalLicencePositions
+  ) {
+    return chronologicalLicencePositions.reversed().stream()
+        .map(licencePosition -> new LicencePositionTimelineView(
+            licencePosition.getId(),
+            ReverseRouter.route(on(LicencePositionController.class).renderLicencePosition(
+                licence,
+                licencePosition.getId()
+            )),
+            licencePosition.getLicenceTransaction().getRegulatorReference(),
+            licencePosition.getFormattedPositionDate()
+        ))
         .toList();
   }
 }

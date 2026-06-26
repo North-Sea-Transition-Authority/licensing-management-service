@@ -16,14 +16,17 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @Controller
 @RequestMapping("licences/{licenceId}/timeline")
 @Profile("enable-lms2")
-public class LicencePositionTimelineController {
+public class LicencePositionController {
 
   //TODO LMS2-52: Access to timeline, licence position and schedule information for a licence
 
   private final LicencePositionService licencePositionService;
   private final LicenceService licenceService;
 
-  public LicencePositionTimelineController(LicencePositionService licencePositionService, LicenceService licenceService) {
+  public LicencePositionController(
+      LicencePositionService licencePositionService,
+      LicenceService licenceService
+  ) {
     this.licencePositionService = licencePositionService;
     this.licenceService = licenceService;
   }
@@ -32,9 +35,16 @@ public class LicencePositionTimelineController {
   public ModelAndView renderLicencePositionTimeline(
       Licence licence
   ) {
-    var latestPosition = licencePositionService.getChronologicalLicencePositions(licence).getLast();
+    //TODO: we may need a method to directly fetch first (last chronologically) licence position
+    var chronologicalLicencePositions = licencePositionService.getChronologicalLicencePositions(licence);
 
-    return ReverseRouter.redirect(on(this.getClass()).renderLicencePosition(licence, latestPosition.getId()));
+    if (chronologicalLicencePositions.isEmpty()) {
+      return licencePositionsModelAndView(licence, LicencePositionPageView.empty());
+    }
+
+    return ReverseRouter.redirect(on(this.getClass()).renderLicencePosition(
+        licence, chronologicalLicencePositions.getLast().getId())
+    );
   }
 
   @GetMapping("/{licencePositionId}")
@@ -43,10 +53,14 @@ public class LicencePositionTimelineController {
       @PathVariable UUID licencePositionId
   ) {
     var licencePosition = licencePositionService.getPositionForLicence(licence, licencePositionId);
+    var licencePositionPageView = licencePositionService.getPositionPageView(licencePosition);
 
+    return licencePositionsModelAndView(licence, licencePositionPageView);
+  }
+
+  private ModelAndView licencePositionsModelAndView(Licence licence, LicencePositionPageView licencePositionPageView) {
     return new ModelAndView("lms/licence/position/licencePositions")
         .addObject("pageCaption", licenceService.getLicencePageCaption(licence))
-        .addObject("licencePositionTimelineView", licencePositionService.getTimelineView(licence))
-        .addObject("licencePosition", licencePosition);
+        .addObject("licencePositionPageView", licencePositionPageView);
   }
 }

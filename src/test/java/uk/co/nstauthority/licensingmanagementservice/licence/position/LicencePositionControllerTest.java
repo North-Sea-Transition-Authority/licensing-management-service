@@ -12,6 +12,7 @@ import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLog
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,9 +24,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
-@ContextConfiguration(classes = LicencePositionTimelineController.class)
+@ContextConfiguration(classes = LicencePositionController.class)
 @ActiveProfiles({"test", "enable-lms2"})
-class LicencePositionTimelineControllerTest extends AbstractControllerTest {
+class LicencePositionControllerTest extends AbstractControllerTest {
 
   private static final Integer LICENCE_ID = 1;
   private static final Licence LICENCE = LicenceTestUtil.builder().withId(LICENCE_ID).build();
@@ -42,7 +43,7 @@ class LicencePositionTimelineControllerTest extends AbstractControllerTest {
 
   @Test
   void renderLicencePositionTimeline_whenNotLoggedIn() throws Exception {
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionTimelineController.class).renderLicencePositionTimeline(LICENCE))))
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class).renderLicencePositionTimeline(LICENCE))))
         .andExpect(redirectionToLoginUrl());
   }
 
@@ -54,16 +55,31 @@ class LicencePositionTimelineControllerTest extends AbstractControllerTest {
     when(licencePositionService.getChronologicalLicencePositions(LICENCE))
         .thenReturn(List.of(older, latest));
 
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionTimelineController.class).renderLicencePositionTimeline(LICENCE)))
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class).renderLicencePositionTimeline(LICENCE)))
             .with(user(regulatorUser)))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionTimelineController.class)
+        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionController.class)
             .renderLicencePosition(LICENCE, latest.getId()))));
   }
 
   @Test
+  void renderLicencePositionTimeline_whenNoPositions() throws Exception {
+    when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(PAGE_CAPTION);
+    when(licencePositionService.getChronologicalLicencePositions(LICENCE)).thenReturn(List.of());
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class)
+            .renderLicencePositionTimeline(LICENCE)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name("lms/licence/position/licencePositions"),
+            model().attributeExists("licencePositionPageView")
+        );
+  }
+
+  @Test
   void renderLicencePosition_whenNotLoggedIn() throws Exception {
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionTimelineController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class)
             .renderLicencePosition(LICENCE, POSITION_ID))))
         .andExpect(redirectionToLoginUrl());
   }
@@ -71,22 +87,24 @@ class LicencePositionTimelineControllerTest extends AbstractControllerTest {
   @Test
   void renderLicencePosition() throws Exception {
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
-    var timelineView = List.of(
-        new LicencePositionTimelineView(POSITION_ID, "url1", "REF-2", "5 June 2026"));
+    var pageView = new LicencePositionPageView(
+        List.of(new LicencePositionTimelineView(POSITION_ID, "url1", "REF-2", "5 June 2026")),
+        position,
+        Map.of()
+    );
 
     when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(PAGE_CAPTION);
-    when(licencePositionService.getTimelineView(LICENCE)).thenReturn(timelineView);
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+    when(licencePositionService.getPositionPageView(position)).thenReturn(pageView);
 
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionTimelineController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class)
             .renderLicencePosition(LICENCE, POSITION_ID)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
             view().name("lms/licence/position/licencePositions"),
             model().attribute("pageCaption", PAGE_CAPTION),
-            model().attribute("licencePositionTimelineView", timelineView),
-            model().attribute("licencePosition", position)
+            model().attribute("licencePositionPageView", pageView)
         );
   }
 }

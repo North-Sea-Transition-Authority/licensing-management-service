@@ -29,6 +29,16 @@ class LicencePositionChangeServiceTest {
   private ArgumentCaptor<LicencePositionChange> changeCaptor;
 
   @Test
+  void findByLicencePositionIn() {
+    var position = LicencePositionTestUtil.newBuilder().build();
+    var changes = List.of(LicencePositionChangeTestUtil.newBuilder().withLicencePosition(position).build());
+
+    when(licencePositionChangeRepository.findByLicencePositionIn(List.of(position))).thenReturn(changes);
+
+    assertThat(licencePositionChangeService.findByLicencePositionIn(List.of(position))).isEqualTo(changes);
+  }
+
+  @Test
   void createLicencePositionChange() {
     var position = LicencePositionTestUtil.newBuilder().build();
     var administratorChange = LicencePositionChangeOperation.newAdministratorChange().withOperator(1).build();

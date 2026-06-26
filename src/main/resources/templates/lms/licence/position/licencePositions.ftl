@@ -3,7 +3,11 @@
 <#import '_licencePositionDetails.ftl' as licencePositionDetails>
 
 <#assign pageTitle>
-    ${licencePosition.getFormattedPositionDate()} (${licencePosition.getLicenceTransaction().getRegulatorReference()})
+  <#if licencePositionPageView.hasPositions()>
+    ${licencePositionPageView.licencePosition().getFormattedPositionDate()} (${licencePositionPageView.licencePosition().getLicenceTransaction().getRegulatorReference()})
+  <#else>
+      Licence positions
+  </#if>
 </#assign>
 
 <@defaultPage
@@ -13,13 +17,13 @@
   pageSize=PageSize.FULL_COLUMN
 >
 
-    <#if licencePositionTimelineView?has_content>
+    <#if licencePositionPageView.hasPositions()>
       <@grid.gridRow>
         <@grid.threeQuarterColumn>
-          <@licencePositionDetails.details licencePosition=licencePosition canEdit=true/>
+          <@licencePositionDetails.details licencePosition=licencePositionPageView.licencePosition() licencePositionChanges=licencePositionPageView.changeViewByType()/>
         </@grid.threeQuarterColumn>
         <@grid.oneQuarterColumn>
-          <@licencePositionTimeLine.timeline licencePositionTimelineView=licencePositionTimelineView licencePosition=licencePosition/>
+          <@licencePositionTimeLine.timeline licencePositionTimelineView=licencePositionPageView.timelineViews() licencePosition=licencePositionPageView.licencePosition()/>
         </@grid.oneQuarterColumn>
       </@grid.gridRow>
     <#else>

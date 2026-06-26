@@ -16,6 +16,10 @@ public class LicencePositionChangeService {
     this.licencePositionChangeRepository = licencePositionChangeRepository;
   }
 
+  public List<LicencePositionChange> findByLicencePositionIn(Collection<LicencePosition> licencePositions) {
+    return licencePositionChangeRepository.findByLicencePositionIn(licencePositions);
+  }
+
   @Transactional
   public LicencePositionChange createLicencePositionChange(
       LicencePosition licencePosition,

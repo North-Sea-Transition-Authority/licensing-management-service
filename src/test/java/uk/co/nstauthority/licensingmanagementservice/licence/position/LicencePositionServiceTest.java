@@ -2,13 +2,12 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -25,8 +24,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ExtendWith(MockitoExtension.class)
 class LicencePositionServiceTest {
@@ -36,6 +38,12 @@ class LicencePositionServiceTest {
 
   @Mock
   private LicencePositionRepository licencePositionRepository;
+
+  @Mock
+  private LicencePositionChangeService licencePositionChangeService;
+
+  @Mock
+  private LicencePositionChangeViewService licencePositionChangeViewService;
 
   @InjectMocks
   private LicencePositionService licencePositionService;
@@ -75,45 +83,6 @@ class LicencePositionServiceTest {
   }
 
   @Test
-  void getTimelineView() {
-    var olderPosition1 = LicencePositionTestUtil.newBuilder()
-        .withLicence(LICENCE)
-        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-A").build())
-        .withPositionDate(LocalDate.of(2026, 1, 1))
-        .withPositionOrder(1)
-        .build();
-    var olderPosition2 = LicencePositionTestUtil.newBuilder()
-        .withLicence(LICENCE)
-        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-B").build())
-        .withPositionDate(LocalDate.of(2026, 1, 1))
-        .withPositionOrder(2)
-        .build();
-    var newestPosition = LicencePositionTestUtil.newBuilder()
-        .withLicence(LICENCE)
-        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-C").build())
-        .withPositionDate(LocalDate.of(2026, 6, 1))
-        .withPositionOrder(1)
-        .build();
-
-    when(licencePositionRepository.findByLicence(LICENCE))
-        .thenReturn(List.of(olderPosition2, newestPosition, olderPosition1));
-
-    var result = licencePositionService.getTimelineView(LICENCE);
-
-    assertThat(result)
-        .extracting(
-            LicencePositionTimelineView::positionId,
-            LicencePositionTimelineView::url,
-            LicencePositionTimelineView::regulatorReference,
-            LicencePositionTimelineView::formattedPositionDate)
-        .containsExactly(
-            tuple(newestPosition.getId(),  urlFor(newestPosition),  "REF-C", "1 June 2026"),
-            tuple(olderPosition2.getId(), urlFor(olderPosition2), "REF-B", "1 January 2026"),
-            tuple(olderPosition1.getId(), urlFor(olderPosition1), "REF-A", "1 January 2026")
-    );
-  }
-
-  @Test
   void getPositionForLicence() {
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).build();
     when(licencePositionRepository.findByIdAndLicence(POSITION_ID, LICENCE))
@@ -148,8 +117,34 @@ class LicencePositionServiceTest {
         .containsExactly(olderPosition1, olderPosition2, newestPosition);
   }
 
-  private static String urlFor(LicencePosition position) {
-    return ReverseRouter.route(on(LicencePositionTimelineController.class)
-        .renderLicencePosition(position.getLicence(), position.getId()));
+  @Test
+  void getPositionPageView() {
+    var older = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
+        .withPositionDate(LocalDate.of(2026, 1, 1)).withPositionOrder(1).build();
+    var newer = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-2").build())
+        .withPositionDate(LocalDate.of(2026, 6, 1)).withPositionOrder(1).build();
+    var chronological = List.of(older, newer);
+
+    var changes = List.of(
+        LicencePositionChangeTestUtil.newBuilder().withLicencePosition(newer).build()
+    );
+
+    var changeViews = Map.<String, LicencePositionChangeView>of();
+
+    when(licencePositionService.getChronologicalLicencePositions(LICENCE)).thenReturn(chronological);
+    when(licencePositionChangeService.findByLicencePositionIn(chronological)).thenReturn(changes);
+    when(licencePositionChangeViewService.getChangeViews(newer, chronological, changes)).thenReturn(changeViews);
+
+    var result = licencePositionService.getPositionPageView(newer);
+
+    assertThat(result.timelineViews())
+        .extracting(LicencePositionTimelineView::regulatorReference)
+        .containsExactly("REF-2", "REF-1");
+    assertThat(result.licencePosition()).isEqualTo(newer);
+    assertThat(result.changeViewByType()).isEqualTo(changeViews);
   }
 }

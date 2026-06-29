@@ -68,41 +68,42 @@ public class ContinuationRequirementSummarySectionService implements SummarySect
       LicenceContinuationOtherRequirementRequest licenceContinuationOtherRequirementRequest,
       OtherRequirementsVisibility visibility
   ) {
-    var financialCapacityBuilder = SummaryDataView.newBuilder()
-        .addStringValue(
-            "Evidence of financial capacity submitted",
-            licenceContinuationOtherRequirementRequest.getFinancialCapacityEvidenceSubmissionStatus()
+    List<SummaryCard> cards = new ArrayList<>();
+
+    if (visibility.showFinancialCapacity()) {
+      var financialCapacityBuilder = SummaryDataView.newBuilder()
+          .addStringValue(
+              "Evidence of financial capacity submitted",
+              licenceContinuationOtherRequirementRequest.getFinancialCapacityEvidenceSubmissionStatus()
+          );
+
+      if (BooleanUtils.isFalse(licenceContinuationOtherRequirementRequest.getFinancialCapacityEvidenceSubmissionStatus())) {
+        financialCapacityBuilder.addStringValue(
+            "Actions are being taken to provide evidence",
+            licenceContinuationOtherRequirementRequest.getActionsToProvideFinancialEvidence()
         );
+      }
 
-    if (BooleanUtils.isFalse(licenceContinuationOtherRequirementRequest.getFinancialCapacityEvidenceSubmissionStatus())) {
-      financialCapacityBuilder.addStringValue(
-          "Actions are being taken to provide evidence",
-          licenceContinuationOtherRequirementRequest.getActionsToProvideFinancialEvidence()
-      );
+      cards.add(SummaryCard.simpleSummaryCardWithHeading(
+          "Financial Capacity", financialCapacityBuilder.build()
+      ));
     }
-    var financialCapacitySummaryDataView = financialCapacityBuilder.build();
 
-    var relinquishmentBuilder = SummaryDataView.newBuilder()
-        .addStringValue("Required amount of the licensed area relinquished",
-            licenceContinuationOtherRequirementRequest.getRelinquishmentRequirementStatus()
+    if (visibility.showRelinquishment()) {
+      var relinquishmentBuilder = SummaryDataView.newBuilder()
+          .addStringValue("Required amount of the licensed area relinquished",
+              licenceContinuationOtherRequirementRequest.getRelinquishmentRequirementStatus()
+          );
+
+      if (BooleanUtils.isFalse(licenceContinuationOtherRequirementRequest.getRelinquishmentRequirementStatus())) {
+        relinquishmentBuilder.addStringValue(
+            "Actions are being taken to relinquish the required amount of the licence area",
+            licenceContinuationOtherRequirementRequest.getActionsToRelinquishRequiredLicenceArea()
         );
+      }
 
-    if (BooleanUtils.isFalse(licenceContinuationOtherRequirementRequest.getRelinquishmentRequirementStatus())) {
-      relinquishmentBuilder.addStringValue(
-          "Actions are being taken to relinquish the required amount of the licence area",
-          licenceContinuationOtherRequirementRequest.getActionsToRelinquishRequiredLicenceArea()
-      );
+      cards.add(SummaryCard.simpleSummaryCardWithHeading("Relinquishment", relinquishmentBuilder.build()));
     }
-    var relinquishmentSummaryDataView = relinquishmentBuilder.build();
-
-    var financialCapacitySummaryCard = SummaryCard.simpleSummaryCardWithHeading(
-        "Financial Capacity", financialCapacitySummaryDataView
-    );
-    var relinquishmentSummaryCard = SummaryCard.simpleSummaryCardWithHeading(
-        "Relinquishment", relinquishmentSummaryDataView
-    );
-
-    List<SummaryCard> cards = new ArrayList<>(List.of(financialCapacitySummaryCard, relinquishmentSummaryCard));
 
     if (visibility.showDevelopmentConsent()) {
       var developmentConsentBuilder = SummaryDataView.newBuilder()

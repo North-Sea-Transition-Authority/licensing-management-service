@@ -76,7 +76,7 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
 
   @Test
   void getSection_WhenNotSubmittable_ReturnsNotStartedLabel() {
-    when(otherRequirementsVisibilityResolverService.resolveVisibility(scheduleDetail))
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
         .thenReturn(visibilityWithRequirements);
     when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail))
         .thenReturn(true);
@@ -132,7 +132,7 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
 
   @Test
   void getSection_WhenSubmittable_ReturnsCompleteLabels() {
-    when(otherRequirementsVisibilityResolverService.resolveVisibility(scheduleDetail))
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
         .thenReturn(visibilityWithRequirements);
     when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail))
         .thenReturn(true);
@@ -178,7 +178,7 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
 
   @Test
   void getSection_MixedStatus_ReturnsCorrectLabels() {
-    when(otherRequirementsVisibilityResolverService.resolveVisibility(scheduleDetail))
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
         .thenReturn(visibilityWithRequirements);
     when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail))
         .thenReturn(true);
@@ -224,7 +224,7 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
 
   @Test
   void getSection_whenNoWorkProgrammeActivities_omitsWorkProgrammesTask() {
-    when(otherRequirementsVisibilityResolverService.resolveVisibility(scheduleDetail))
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
         .thenReturn(visibilityWithRequirements);
     when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail))
         .thenReturn(false);
@@ -266,7 +266,7 @@ class LicenceContinuationRequirementsTaskListSectionServiceTest {
 
   @Test
   void getSection_WhenNoOtherRequirements_OmitsOtherRequirementsTask() {
-    when(otherRequirementsVisibilityResolverService.resolveVisibility(scheduleDetail))
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
         .thenReturn(visibilityNoRequirements);
     when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail))
         .thenReturn(true);

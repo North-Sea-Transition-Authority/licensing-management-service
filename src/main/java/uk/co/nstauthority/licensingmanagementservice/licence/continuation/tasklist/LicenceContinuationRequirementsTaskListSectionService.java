@@ -70,7 +70,8 @@ public class LicenceContinuationRequirementsTaskListSectionService
         licenceContinuationApplicationDetail
     );
 
-    var otherRequirementsVisibility = otherRequirementsVisibilityResolverService.resolveVisibility(scheduleDetail);
+    var otherRequirementsVisibility = otherRequirementsVisibilityResolverService.resolveVisibility(
+        licenceContinuationApplicationDetail);
 
     if (workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail)) {
       items.add(new TaskListItem(

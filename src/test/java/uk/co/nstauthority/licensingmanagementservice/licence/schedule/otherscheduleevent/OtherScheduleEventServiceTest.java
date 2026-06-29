@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDateOption.WITHIN_A_PHASE;
+import static uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDateOption.WITHIN_A_TERM;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -16,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
@@ -159,5 +162,79 @@ class OtherScheduleEventServiceTest {
     otherScheduleEventService.deleteOtherScheduleEvent(otherScheduleEvent);
 
     verify(otherScheduleEventRepository).delete(otherScheduleEvent);
+  }
+
+  @Test
+  void hasEventWithinScheduleWindow_whenWithinTermEventInCurrentOrNextTerm_returnsTrue() {
+    var currentTerm = new LicenceScheduleTerm();
+    var nextTerm = new LicenceScheduleTerm();
+    var state = new ScheduleState(currentTerm, null, nextTerm, null);
+
+    var event = new OtherScheduleEvent();
+    event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
+
+    when(otherScheduleEventRepository.findAllByLicenceScheduleTermAndDateOption(currentTerm, WITHIN_A_TERM)).thenReturn(List.of(event));
+
+    var detail = new LicenceScheduleDetail();
+    assertThat(otherScheduleEventService.hasEventWithinScheduleWindow(detail, OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, state)).isTrue();
+  }
+
+  @Test
+  void hasEventWithinScheduleWindow_whenWithinPhaseEventInCurrentOrNextPhase_returnsTrue() {
+    var currentPhase = new LicenceSchedulePhase();
+    var nextPhase = new LicenceSchedulePhase();
+    var state = new ScheduleState(null, currentPhase, null, nextPhase);
+
+    var event = new OtherScheduleEvent();
+    event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
+
+    when(otherScheduleEventRepository.findAllByLicenceSchedulePhaseAndDateOption(currentPhase, WITHIN_A_PHASE)).thenReturn(List.of(event));
+
+    var detail = new LicenceScheduleDetail();
+    assertThat(otherScheduleEventService.hasEventWithinScheduleWindow(detail, OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, state)).isTrue();
+  }
+
+  @Test
+  void hasEventWithinScheduleWindow_whenEventDatedWithinCurrentToNextTermWindow_returnsTrue() {
+    var currentTerm = new LicenceScheduleTerm();
+    currentTerm.setStartDate(LocalDate.of(2026, 1, 1));
+    currentTerm.setEndDate(LocalDate.of(2028, 1, 1));
+
+    var nextTerm = new LicenceScheduleTerm();
+    nextTerm.setStartDate(LocalDate.of(2028, 1, 1));
+    nextTerm.setEndDate(LocalDate.of(2030, 1, 1));
+
+    var state = new ScheduleState(currentTerm, null, nextTerm, null);
+
+    var event = new OtherScheduleEvent();
+    event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
+
+    var detail = new LicenceScheduleDetail();
+    when(otherScheduleEventRepository.findAllByLicenceScheduleDetailAndEventDateBetween(detail, LocalDate.of(2026, 1, 1), LocalDate.of(2030, 1, 1))).thenReturn(List.of(event));
+
+    assertThat(otherScheduleEventService.hasEventWithinScheduleWindow(
+        detail, OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, state))
+        .isTrue();
+  }
+
+  @Test
+  void hasEventWithinScheduleWindow_whenOnlyOtherCategoryEventsInWindow_returnsFalse() {
+    var currentTerm = new LicenceScheduleTerm();
+    currentTerm.setStartDate(LocalDate.of(2026, 1, 1));
+
+    var nextTerm = new LicenceScheduleTerm();
+    nextTerm.setEndDate(LocalDate.of(2030, 1, 1));
+
+    var state = new ScheduleState(currentTerm, null, nextTerm, null);
+
+    var otherCategoryEvent = new OtherScheduleEvent();
+    otherCategoryEvent.setCategory(OtherScheduleEventCategory.OTHER_ACTIVITY);
+
+    var detail = new LicenceScheduleDetail();
+    when(otherScheduleEventRepository.findAllByLicenceScheduleDetailAndEventDateBetween(detail, LocalDate.of(2026, 1, 1), LocalDate.of(2030, 1, 1))).thenReturn(List.of(otherCategoryEvent));
+
+    assertThat(otherScheduleEventService.hasEventWithinScheduleWindow(
+        detail, OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, state))
+        .isFalse();
   }
 }

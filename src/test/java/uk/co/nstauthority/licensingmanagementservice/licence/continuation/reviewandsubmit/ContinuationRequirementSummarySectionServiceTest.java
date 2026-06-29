@@ -92,6 +92,52 @@ class ContinuationRequirementSummarySectionServiceTest {
   }
 
   @Test
+  void getSummarySection_whenRelinquishmentNotShown_assertRelinquishmentCardOmitted() {
+    var otherRequest = mock(LicenceContinuationOtherRequirementRequest.class);
+    when(otherRequest.getFinancialCapacityEvidenceSubmissionStatus()).thenReturn(true);
+
+    when(licenceContinuationOtherRequirementService.getLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(Optional.of(otherRequest));
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
+        .thenReturn(new OtherRequirementsVisibility(true, false, false));
+
+    Optional<SummarySection> result = continuationRequirementSummarySectionService.getSummarySection(
+        licenceContinuationApplicationDetail,
+        user
+    );
+
+    assertThat(result).isPresent();
+    var summaryItem = result.get().summaryItems().getFirst();
+
+    assertThat(summaryItem.summaryCards()).hasSize(1);
+    assertThat(summaryItem.summaryCards().getFirst().displayName()).isEqualTo("Financial Capacity");
+  }
+
+  @Test
+  void getSummarySection_whenFinancialCapacityNotShown_assertFinancialCapacityCardOmitted() {
+    var otherRequest = mock(LicenceContinuationOtherRequirementRequest.class);
+    when(otherRequest.getRelinquishmentRequirementStatus()).thenReturn(true);
+    when(otherRequest.getDevelopmentConsentGrantStatus()).thenReturn(true);
+
+    when(licenceContinuationOtherRequirementService.getLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail))
+        .thenReturn(Optional.of(otherRequest));
+    when(otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail))
+        .thenReturn(new OtherRequirementsVisibility(false, true, true));
+
+    Optional<SummarySection> result = continuationRequirementSummarySectionService.getSummarySection(
+        licenceContinuationApplicationDetail,
+        user
+    );
+
+    assertThat(result).isPresent();
+    var summaryItem = result.get().summaryItems().getFirst();
+
+    assertThat(summaryItem.summaryCards()).hasSize(2);
+    assertThat(summaryItem.summaryCards().get(0).displayName()).isEqualTo("Relinquishment");
+    assertThat(summaryItem.summaryCards().get(1).displayName()).isEqualTo("Development Consent");
+  }
+
+  @Test
   void getSummarySection_withNoRequirements_returnsEmptySummaryCardsList() {
     when(licenceContinuationOtherRequirementService.getLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail))
         .thenReturn(Optional.empty());

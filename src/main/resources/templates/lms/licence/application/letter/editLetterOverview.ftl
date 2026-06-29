@@ -10,7 +10,7 @@
   pageHeadingClass="govuk-heading-xl govuk-!-margin-bottom-2"
 >
     <@fdsForm.htmlForm actionUrl=springUrl(signUrl)>
-      <@fdsAction.button buttonText="Approve and issue letters" buttonClass="govuk-button govuk-button--primary"/>
+      <@fdsAction.button buttonText="Approve and issue letter" buttonClass="govuk-button govuk-button--primary"/>
     </@fdsForm.htmlForm>
 
     <@fdsAction.link

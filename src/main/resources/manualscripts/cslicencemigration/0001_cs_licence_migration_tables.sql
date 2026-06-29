@@ -24,5 +24,19 @@ CREATE TABLE lms.cs_term_migration_extract (
     term TEXT,
     years INTEGER,
     months INTEGER,
-    days INTEGER
+    days INTEGER,
+    case_id TEXT,
+    case_date TEXT
+);
+
+CREATE TABLE lms.cs_work_programme_migration_extract (
+    licence_ref TEXT,
+    category TEXT,
+    description TEXT,
+    commitment TEXT,
+    status TEXT,
+    term TEXT,
+    comments TEXT,
+    case_id TEXT,
+    case_date TEXT
 );

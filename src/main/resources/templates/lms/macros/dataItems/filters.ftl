@@ -19,7 +19,7 @@
         restUrl=springUrl(licenseeGroupOrgUnitUrl)
         preselectedItems=preSelectedLicenseeGroup
         inputClass="govuk-!-width-three-quarters govuk-!-margin-bottom-0"
-        selectorMinInputLength=3
+        selectorMinInputLength=2
         labelText=""
         />
     </@fdsSearch.searchFilterItem>
@@ -32,7 +32,7 @@
         restUrl=springUrl(licenseeOrgUnitUrl)
         preselectedItems=preSelectedLicenseeOrgUnit
         inputClass="govuk-!-width-three-quarters govuk-!-margin-bottom-0"
-        selectorMinInputLength=3
+        selectorMinInputLength=2
         labelText=""
         />
     </@fdsSearch.searchFilterItem>

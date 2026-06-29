@@ -29,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.AccessHandler
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasAnyRoleInTeamTypeInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasRolesInTeamTypeInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InvokingUserCanStartApplicationInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InvokingUserCanViewCorrectionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LicenceActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemViewInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatusInterceptorRule;
@@ -53,9 +54,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceArgumentReso
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationTypeArgumentResolver;
-import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailArgumentResolver;
@@ -120,7 +122,8 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     ContinuationApplicationHasStatusInterceptorRule.class,
     ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.class,
     LogWorkAreaItemViewInterceptorRule.class,
-    EnergyPortalAccountsControllerAdvice.class
+    EnergyPortalAccountsControllerAdvice.class,
+    InvokingUserCanViewCorrectionInterceptorRule.class
 })
 @EnableConfigurationProperties({
     SamlProperties.class,
@@ -202,6 +205,9 @@ public abstract class AbstractControllerTest {
 
   @MockitoBean
   protected WorkAreaItemViewService workAreaItemViewService;
+
+  @MockitoBean
+  protected LicenceCorrectionService licenceCorrectionService;
 
   @Autowired
   protected TopNavigationService topNavigationService;

@@ -18,6 +18,7 @@ import static uk.co.nstauthority.licensingmanagementservice.util.NotificationBan
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
@@ -28,7 +29,8 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.workarea.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -39,9 +41,6 @@ class StartLicenceCorrectionControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private StartLicenceCorrectionFormValidator startLicenceCorrectionFormValidator;
-
-  @MockitoBean
-  private LicenceCorrectionService licenceCorrectionService;
 
   private static final Integer LICENCE_ID = 1;
   private static final Licence LICENCE = LicenceTestUtil.builder().withId(LICENCE_ID).build();
@@ -98,10 +97,20 @@ class StartLicenceCorrectionControllerTest extends AbstractControllerTest {
   @Test
   void startLicenceCorrection() throws Exception {
     givenCanStartCorrection();
-
+    var expectedCorrectionId = UUID.randomUUID();
     var startCorrectionForm = new StartLicenceCorrectionForm();
     startCorrectionForm.getCorrectionReference().setInputValue("TEST-REF");
     startCorrectionForm.getReason().setInputValue("Test reason");
+
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(expectedCorrectionId)
+        .build();
+    when(licenceCorrectionService.startCorrection(
+        LICENCE,
+        startCorrectionForm.getCorrectionReference().getInputValue(),
+        startCorrectionForm.getReason().getInputValue(),
+        regulatorUser
+    )).thenReturn(correction);
 
     mockMvc.perform(post(
         ReverseRouter.route(on(StartLicenceCorrectionController.class)
@@ -111,8 +120,8 @@ class StartLicenceCorrectionControllerTest extends AbstractControllerTest {
             .flashAttr("form", startCorrectionForm))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(ReverseRouter.route(on(LicenceOverviewController.class)
-                .renderLicenceOverview(LICENCE_ID, null, null, null))),
+            redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
+                .renderCorrection(expectedCorrectionId, null))),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence correction started")
                 .build())

@@ -77,6 +77,10 @@ public class LicencePositionService {
     );
   }
 
+  public List<LicencePositionTimelineView> getTimelineView(Licence licence) {
+    return getTimelineView(licence, getChronologicalLicencePositions(licence));
+  }
+
   private List<LicencePositionTimelineView> getTimelineView(
       Licence licence,
       List<LicencePosition> chronologicalLicencePositions

@@ -10,6 +10,8 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -102,5 +104,30 @@ class LicenceCorrectionServiceTest {
         .thenReturn(true);
 
     assertThat(licenceCorrectionService.hasOpenCorrection(LICENCE)).isTrue();
+  }
+
+  @Test
+  void findByIdAndAllocatedToWuaId_whenFound() {
+    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(correctionId)
+        .build();
+    when(licenceCorrectionRepository.findByIdAndAllocatedToWuaId(correctionId, USER.wuaId()))
+        .thenReturn(Optional.of(correction));
+
+    var result = licenceCorrectionService.findByIdAndAllocatedToWuaId(correctionId, USER);
+
+    assertThat(result).contains(correction);
+  }
+
+  @Test
+  void findByIdAndAllocatedToWuaId_whenNotFound() {
+    var correctionId = UUID.randomUUID();
+    when(licenceCorrectionRepository.findByIdAndAllocatedToWuaId(correctionId, USER.wuaId()))
+        .thenReturn(Optional.empty());
+
+    var result = licenceCorrectionService.findByIdAndAllocatedToWuaId(correctionId, USER);
+
+    assertThat(result).isEmpty();
   }
 }

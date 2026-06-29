@@ -17,6 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.workarea.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -62,7 +63,7 @@ public class StartLicenceCorrectionController {
       return startLicenceCorrectionModelAndView(licence, form);
     }
 
-    licenceCorrectionService.startCorrection(
+    var correction = licenceCorrectionService.startCorrection(
         licence,
         form.getCorrectionReference().getInputValue(),
         form.getReason().getInputValue(),
@@ -73,9 +74,8 @@ public class StartLicenceCorrectionController {
         .withHeadingContent("Licence correction started")
         .applyTo(redirectAttributes);
 
-    // TODO: redirect to the correct page once it exists
-    return ReverseRouter.redirect(on(LicenceOverviewController.class)
-        .renderLicenceOverview(licence.getId(), null, null, null));
+    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
+        .renderCorrection(correction.getId(), null));
   }
 
   private ModelAndView startLicenceCorrectionModelAndView(Licence licence, StartLicenceCorrectionForm form) {

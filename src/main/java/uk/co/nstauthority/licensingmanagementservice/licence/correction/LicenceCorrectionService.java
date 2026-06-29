@@ -3,6 +3,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction;
 import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
@@ -51,5 +54,14 @@ public class LicenceCorrectionService {
 
   public boolean hasOpenCorrection(Licence licence) {
     return licenceCorrectionRepository.existsByLicenceAndStatus(licence, LicenceCorrectionStatus.IN_PROGRESS);
+  }
+
+  public Optional<LicenceCorrection> findByIdAndAllocatedToWuaId(UUID correctionId, ServiceUserDetail user) {
+    return licenceCorrectionRepository.findByIdAndAllocatedToWuaId(correctionId, user.wuaId());
+  }
+
+  public Collection<LicenceCorrection> getAllInProgressCorrectionsForUser(ServiceUserDetail user) {
+    return licenceCorrectionRepository
+        .findAllByStatusAndAllocatedToWuaId(LicenceCorrectionStatus.IN_PROGRESS, user.wuaId());
   }
 }

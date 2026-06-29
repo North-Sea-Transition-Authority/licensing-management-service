@@ -2,7 +2,7 @@
 <#import '../../summary/_summaryMissingInformationNotificationBanner.ftl' as banner>
 <#import 'scheduleApplicationSummary.ftl' as scheduleApplicationSummary>
 
-<#assign pageTitle = "Review your submission before submitting"/>
+<#assign pageTitle = "Review your application before submitting"/>
 
 <@defaultPage
 htmlTitle=pageTitle

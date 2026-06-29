@@ -17,7 +17,7 @@ pageSize=PageSize.TWO_THIRDS_COLUMN>
   <h2 class="govuk-heading-m">What happens next</h2>
 
   <p class="govuk-body">
-    We've sent your submission to the ${customerBranding.name()} (${customerBranding.mnemonic()}).
+    We've sent your application to the ${customerBranding.name()} (${customerBranding.mnemonic()}).
   </p>
   <p class="govuk-body">
     They will contact you either to confirm if accepted, or to ask for more information.

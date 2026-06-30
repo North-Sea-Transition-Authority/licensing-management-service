@@ -60,7 +60,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
         .build();
 
     when(licenceContinuationService.getDetailByIdOrThrow(LICENCE_CONTINUATION_APPLICATION_DETAIL_ID)).thenReturn(licenceContinuationApplicationDetail);
-    when(workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(any())).thenReturn(List.of());
+    when(licenceScheduleService.getCurrentWorkProgrammeActivitiesViews(any())).thenReturn(List.of());
   }
 
   @Test

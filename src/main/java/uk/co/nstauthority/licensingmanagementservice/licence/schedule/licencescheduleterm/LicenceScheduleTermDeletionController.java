@@ -64,7 +64,8 @@ public class LicenceScheduleTermDeletionController {
         .addObject("pendingComment", pendingComment)
         .addObject("cancelUrl", term.getLicenceScheduleDetail().getScheduleTimelineRouteUrl())
         .addObject("pageCaption",
-            licenceService.getLicencePageCaption(term.getLicenceScheduleDetail().getLicenceSchedule().getLicence()));
+            licenceService.getLicencePageCaption(term.getLicenceScheduleDetail().getLicenceSchedule().getLicence()))
+        .addObject("canDelete", licenceScheduleTermService.canDeleteTerm(term));
   }
 
   @PostMapping

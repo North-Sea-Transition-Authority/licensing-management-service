@@ -83,7 +83,7 @@ class LicenceContinuationWpaRequirementControllerTest extends AbstractController
 
     when(licenceContinuationWpaRequirementService.getLicenceContinuationWorkProgrammeActivitiesRequirementForm(any()))
         .thenReturn(form);
-    when(workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(any()))
+    when(licenceScheduleService.getCurrentWorkProgrammeActivitiesViews(any()))
         .thenReturn(activities);
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
     when(licenceContinuationService.getDetailByIdOrThrow(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId()))

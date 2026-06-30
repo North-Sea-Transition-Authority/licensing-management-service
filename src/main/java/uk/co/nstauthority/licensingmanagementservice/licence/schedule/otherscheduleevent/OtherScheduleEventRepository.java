@@ -45,4 +45,6 @@ public interface OtherScheduleEventRepository
       LicenceScheduleDetail licenceScheduleDetail,
       EventReference eventReference
   );
+
+  List<OtherScheduleEvent> findAllByLicenceScheduleTerm(LicenceScheduleTerm licenceScheduleTerm);
 }

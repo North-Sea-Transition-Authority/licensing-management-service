@@ -142,7 +142,7 @@ class OtherScheduleEventFormServiceTest {
     var term = new LicenceScheduleTerm();
     term.setId(termId);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
 
     var eventReference = new EventReference();
     when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.OTHER)).thenReturn(eventReference);
@@ -199,7 +199,7 @@ class OtherScheduleEventFormServiceTest {
     var term = new LicenceScheduleTerm();
     term.setId(termId);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
 
     var testDuration = new ThreeFieldDuration(1,0,0);
 
@@ -256,7 +256,7 @@ class OtherScheduleEventFormServiceTest {
     var phase = new LicenceSchedulePhase();
 
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
 
     var eventReference = new EventReference();
     when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.OTHER)).thenReturn(eventReference);

@@ -19,8 +19,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
@@ -35,9 +33,6 @@ class WorkProgrammeActivityServiceTest {
 
   @Mock
   private WorkProgrammeActivityRepository workProgrammeActivityRepository;
-
-  @Mock
-  private LicenceScheduleService licenceScheduleService;
 
   @Mock
   private WorkProgrammeActivityStatusService workProgrammeActivityStatusService;
@@ -74,28 +69,28 @@ class WorkProgrammeActivityServiceTest {
   }
 
   @Test
-  void getActiveWorkProgrammeActivities() {
+  void getWorkProgrammeActivities() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
 
-    workProgrammeActivityService.getActiveWorkProgrammeActivities(licenceScheduleDetail);
+    workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail);
 
     verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetail(licenceScheduleDetail);
   }
 
   @Test
-  void getActiveWorkProgrammeActivitiesByTermAndDateOption() {
+  void getWorkProgrammeActivitiesByTermAndDateOption() {
     var term = new LicenceScheduleTerm();
 
-    workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.RELATIVE_DATE);
+    workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.RELATIVE_DATE);
 
     verify(workProgrammeActivityRepository).findAllByLicenceScheduleTermAndDateOption(term, WorkProgrammeActivityDateOption.RELATIVE_DATE);
   }
 
   @Test
-  void getActiveWorkProgrammeActivitiesByPhaseAndDateOption() {
+  void getWorkProgrammeActivitiesByPhaseAndDateOption() {
     var phase = new LicenceSchedulePhase();
 
-    workProgrammeActivityService.getActiveWorkProgrammeActivitiesByPhaseAndDateOption(phase, WorkProgrammeActivityDateOption.RELATIVE_DATE);
+    workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(phase, WorkProgrammeActivityDateOption.RELATIVE_DATE);
 
     verify(workProgrammeActivityRepository).findAllByLicenceSchedulePhaseAndDateOption(phase, WorkProgrammeActivityDateOption.RELATIVE_DATE);
   }
@@ -110,7 +105,7 @@ class WorkProgrammeActivityServiceTest {
   }
 
   @Test
-  void getActiveWorkProgrammeActivitiesByDateRangeFor_term() {
+  void getWorkProgrammeActivitiesByDateRangeFor_term() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
     var startDate = LocalDate.now();
     var endDate = LocalDate.now();
@@ -120,7 +115,7 @@ class WorkProgrammeActivityServiceTest {
     term.setStartDate(startDate);
     term.setEndDate(endDate);
 
-    workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRangeFor(term);
+    workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(term);
 
     verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndDueDateBetween(
         licenceScheduleDetail,
@@ -130,7 +125,7 @@ class WorkProgrammeActivityServiceTest {
   }
 
   @Test
-  void getActiveWorkProgrammeActivitiesByDateRangeFor_phase() {
+  void getWorkProgrammeActivitiesByDateRangeFor_phase() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
     var startDate = LocalDate.now();
     var endDate = LocalDate.now();
@@ -140,7 +135,7 @@ class WorkProgrammeActivityServiceTest {
     phase.setStartDate(startDate);
     phase.setEndDate(endDate);
 
-    workProgrammeActivityService.getActiveWorkProgrammeActivitiesByDateRangeFor(phase);
+    workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(phase);
 
     verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndDueDateBetween(
         licenceScheduleDetail,
@@ -150,11 +145,11 @@ class WorkProgrammeActivityServiceTest {
   }
 
   @Test
-  void getActiveWorkProgrammeActivitiesAfterDate() {
+  void getWorkProgrammeActivitiesAfterDate() {
     var detail = new LicenceScheduleDetail();
     var date = LocalDate.of(2026, 1, 1);
 
-    workProgrammeActivityService.getActiveWorkProgrammeActivitiesAfterDate(detail, date);
+    workProgrammeActivityService.getWorkProgrammeActivitiesAfterDate(detail, date);
 
     verify(workProgrammeActivityRepository).findAllByLicenceScheduleDetailAndDueDateAfter(detail, date);
   }
@@ -195,119 +190,28 @@ class WorkProgrammeActivityServiceTest {
   }
 
   @Test
-  void getCurrentWorkProgrammeActivitiesViews_whenCurrentPhaseIsNotNull_returnsViewsForPhase() {
-    var eventRef = new EventReference();
-    eventRef.setId(UUID.randomUUID());
-    var detail = new LicenceScheduleDetail();
-    var phase = new LicenceSchedulePhase();
-    phase.setStartDate(LocalDate.now());
-    phase.setEndDate(LocalDate.now());
-
-    var state = mock(ScheduleState.class);
-    when(state.currentPhase()).thenReturn(phase);
-    when(licenceScheduleService.getScheduleState(detail)).thenReturn(state);
-
-    var activity = mock(WorkProgrammeActivity.class);
-    when(activity.getId()).thenReturn(ACTIVITY_ID);
-    when(activity.getEventReference()).thenReturn(eventRef);
-    when(activity.getDateOption()).thenReturn(WorkProgrammeActivityDateOption.RELATIVE_DATE);
-    when(activity.getDueDate()).thenReturn(LocalDate.of(2026, 5, 10));
-    when(activity.getCategory()).thenReturn(WorkProgrammeActivityCategory.WELL_TEST);
-    when(activity.getCommitment()).thenReturn(WorkProgrammeActivityCommitment.FIRM);
-    when(workProgrammeActivityStatusService.getLatestStatusesFor(List.of(activity)))
-        .thenReturn(Map.of(eventRef.getId(), workProgrammeActivityStatus));
-
-    when(workProgrammeActivityRepository.findByLicenceSchedulePhase(phase)).thenReturn(List.of(activity));
-
-    var result = workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(detail);
-
-    assertThat(result).hasSize(1);
-    assertThat(result.getFirst().id()).isEqualTo(ACTIVITY_ID.toString());
-  }
-
-  @Test
-  void getCurrentWorkProgrammeActivitiesViews_whenCurrentPhaseIsNullAndTermIsNotNull_returnsViewsForTerm() {
-    var eventRef = new EventReference();
-    eventRef.setId(UUID.randomUUID());
-    var detail = new LicenceScheduleDetail();
+  void getAllActivitiesLinkedTo() {
     var term = new LicenceScheduleTerm();
-    term.setStartDate(LocalDate.now());
-    term.setEndDate(LocalDate.now());
 
-    var state = mock(ScheduleState.class);
-    when(state.currentPhase()).thenReturn(null);
-    when(state.currentTerm()).thenReturn(term);
-    when(licenceScheduleService.getScheduleState(detail)).thenReturn(state);
+    workProgrammeActivityService.getAllActivitiesLinkedTo(term);
 
-    var activity = mock(WorkProgrammeActivity.class);
-    when(activity.getId()).thenReturn(ACTIVITY_ID);
-    when(activity.getEventReference()).thenReturn(eventRef);
-    when(activity.getDateOption()).thenReturn(WorkProgrammeActivityDateOption.RELATIVE_DATE);
-    when(activity.getDueDate()).thenReturn(LocalDate.of(2026, 5, 10));
-    when(activity.getCategory()).thenReturn(WorkProgrammeActivityCategory.WELL_TEST);
-    when(activity.getCommitment()).thenReturn(WorkProgrammeActivityCommitment.FIRM);
-    when(workProgrammeActivityStatusService.getLatestStatusesFor(List.of(activity)))
-        .thenReturn(Map.of(eventRef.getId(), workProgrammeActivityStatus));
-
-    when(workProgrammeActivityRepository.findByLicenceScheduleTerm(term)).thenReturn(List.of(activity));
-
-    var result = workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(detail);
-
-    assertThat(result).hasSize(1);
-    assertThat(result.getFirst().id()).isEqualTo(ACTIVITY_ID.toString());
+    verify(workProgrammeActivityRepository).findByLicenceScheduleTerm(term);
   }
 
   @Test
-  void getCurrentWorkProgrammeActivitiesViews_whenPhaseAndTermAreNull_returnsEmptyList() {
-    var detail = new LicenceScheduleDetail();
-
-    var state = mock(ScheduleState.class);
-    when(state.currentPhase()).thenReturn(null);
-    when(state.currentTerm()).thenReturn(null);
-    when(licenceScheduleService.getScheduleState(detail)).thenReturn(state);
-
-    var result = workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(detail);
-
-    assertThat(result).isEmpty();
-  }
-
-  @Test
-  void hasCurrentWorkProgrammeActivities_whenCurrentPhaseIsNotNull_delegatesToPhaseExistsQuery() {
-    var detail = new LicenceScheduleDetail();
+  void hasActivitiesForPhase() {
     var phase = new LicenceSchedulePhase();
-
-    var state = mock(ScheduleState.class);
-    when(state.currentPhase()).thenReturn(phase);
-    when(licenceScheduleService.getScheduleState(detail)).thenReturn(state);
     when(workProgrammeActivityRepository.existsByLicenceSchedulePhase(phase)).thenReturn(true);
 
-    assertThat(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(detail)).isTrue();
+    assertThat(workProgrammeActivityService.hasActivitiesForPhase(phase)).isTrue();
   }
 
   @Test
-  void hasCurrentWorkProgrammeActivities_whenCurrentPhaseIsNullAndTermIsNotNull_delegatesToTermExistsQuery() {
-    var detail = new LicenceScheduleDetail();
+  void hasActivitiesForTerm() {
     var term = new LicenceScheduleTerm();
-
-    var state = mock(ScheduleState.class);
-    when(state.currentPhase()).thenReturn(null);
-    when(state.currentTerm()).thenReturn(term);
-    when(licenceScheduleService.getScheduleState(detail)).thenReturn(state);
     when(workProgrammeActivityRepository.existsByLicenceScheduleTerm(term)).thenReturn(false);
 
-    assertThat(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(detail)).isFalse();
-  }
-
-  @Test
-  void hasCurrentWorkProgrammeActivities_whenPhaseAndTermAreNull_returnsFalse() {
-    var detail = new LicenceScheduleDetail();
-
-    var state = mock(ScheduleState.class);
-    when(state.currentPhase()).thenReturn(null);
-    when(state.currentTerm()).thenReturn(null);
-    when(licenceScheduleService.getScheduleState(detail)).thenReturn(state);
-
-    assertThat(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(detail)).isFalse();
+    assertThat(workProgrammeActivityService.hasActivitiesForTerm(term)).isFalse();
   }
 
   @Test

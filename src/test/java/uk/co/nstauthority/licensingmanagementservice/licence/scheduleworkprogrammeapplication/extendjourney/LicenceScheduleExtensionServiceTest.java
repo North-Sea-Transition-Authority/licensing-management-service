@@ -31,8 +31,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduleTerm
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseRepository;
@@ -40,6 +40,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
@@ -74,6 +75,9 @@ class LicenceScheduleExtensionServiceTest {
   @Mock
   private LicenceTypeRulesResolver licenceTypeRulesResolver;
 
+  @Mock
+  private WorkProgrammeActivityService workProgrammeActivityService;
+
   @InjectMocks
   private LicenceScheduleExtensionService licenceScheduleExtensionService;
 
@@ -95,6 +99,7 @@ class LicenceScheduleExtensionServiceTest {
         licenceScheduleTermService,
         licenceSchedulePhaseService,
         licenceTypeRulesResolver,
+        workProgrammeActivityService,
         clock
     );
   }
@@ -240,10 +245,10 @@ class LicenceScheduleExtensionServiceTest {
                                                         .build();
 
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(any())).thenReturn(List.of(licenceScheduleTerm, parentTermForPhase));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(any())).thenReturn(List.of(licenceScheduleTerm, parentTermForPhase));
     when(licenceSchedulePhaseRepository.existsByLicenceScheduleTermId(termId)).thenReturn(false);
     when(licenceSchedulePhaseRepository.existsByLicenceScheduleTermId(parentTermForPhase.getId())).thenReturn(true);
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(parentTermForPhase)).thenReturn(List.of(licenceSchedulePhase));
+    when(licenceSchedulePhaseService.getPhasesByTerm(parentTermForPhase)).thenReturn(List.of(licenceSchedulePhase));
 
     var termRequest = new LicenceScheduleExtensionRequest();
     termRequest.setLicenceScheduleTerm(licenceScheduleTerm);
@@ -271,7 +276,7 @@ class LicenceScheduleExtensionServiceTest {
                                                 .withEndDate(TODAY.plusYears(1))
                                                 .build();
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(activeTerm));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(activeTerm));
 
     var result = licenceScheduleService.getCurrentTerm(licenceScheduleDetail);
     assertThat(result).isSameAs(activeTerm);
@@ -291,7 +296,7 @@ class LicenceScheduleExtensionServiceTest {
                                                   .withEndDate(TODAY.plusYears(1))
                                                   .build();
 
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(term)).thenReturn(List.of(activePhase));
+    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of(activePhase));
 
     var result = licenceScheduleService.getCurrentPhase(term);
     assertThat(result).isSameAs(activePhase);
@@ -339,11 +344,11 @@ class LicenceScheduleExtensionServiceTest {
                                                                  .build();
 
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(term));
 
     when(licenceSchedulePhaseRepository.existsByLicenceScheduleTermId(termId)).thenReturn(true);
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(term)).thenReturn(List.of(phase, pastPhase));
+    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of(phase, pastPhase));
 
     List<LicenceScheduleTermAndPhases> result = licenceScheduleExtensionService.getExtendableTermAndPhases(licenceScheduleDetail);
 

@@ -159,14 +159,14 @@ class LicenceScheduleDetailDuplicationServiceTest {
     termLinkedEvent.setLicenceScheduleDetail(newDetail);
     termLinkedEvent.setLicenceScheduleTerm(oldTerm);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(oldDetail)).thenReturn(List.of(oldTerm));
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(newDetail)).thenReturn(List.of(newTerm));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(oldDetail)).thenReturn(List.of(oldTerm));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(newDetail)).thenReturn(List.of(newTerm));
 
     when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(oldDetail)).thenReturn(List.of(oldPhase));
     when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(newDetail)).thenReturn(List.of(newPhase));
 
     when(licenceScheduleRateService.getLicenceScheduleRates(newDetail)).thenReturn(List.of(termLinkedRate));
-    when(workProgrammeActivityService.getActiveWorkProgrammeActivities(newDetail)).thenReturn(List.of(phaseLinkedActivity));
+    when(workProgrammeActivityService.getWorkProgrammeActivities(newDetail)).thenReturn(List.of(phaseLinkedActivity));
     when(otherScheduleEventService.getOtherScheduleEvents(newDetail)).thenReturn(List.of(termLinkedEvent));
 
     licenceScheduleDetailDuplicationService.relinkTermsAndPhases(oldDetail, newDetail);

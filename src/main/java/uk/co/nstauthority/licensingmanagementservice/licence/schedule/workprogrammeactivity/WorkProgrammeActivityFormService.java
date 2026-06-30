@@ -178,7 +178,7 @@ public class WorkProgrammeActivityFormService {
   ) {
     var eventId = UUID.fromString(form.getRelativeEventId());
 
-    var termMap = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
+    var termMap = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
         .collect(StreamUtil.toLinkedHashMap(LicenceScheduleTerm::getId, Function.identity()));
 
     if (termMap.containsKey(eventId)) {

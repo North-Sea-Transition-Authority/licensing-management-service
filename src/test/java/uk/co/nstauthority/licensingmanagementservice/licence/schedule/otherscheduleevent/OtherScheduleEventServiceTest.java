@@ -62,25 +62,25 @@ class OtherScheduleEventServiceTest {
   }
 
   @Test
-  void getActiveScheduleEventsByTermAndDateOption() {
+  void getScheduleEventsByTermAndDateOption() {
     var term = new LicenceScheduleTerm();
 
-    otherScheduleEventService.getActiveScheduleEventsByTermAndDateOption(term, OtherScheduleEventDateOption.RELATIVE_DATE);
+    otherScheduleEventService.getScheduleEventsByTermAndDateOption(term, OtherScheduleEventDateOption.RELATIVE_DATE);
 
     verify(otherScheduleEventRepository).findAllByLicenceScheduleTermAndDateOption(term, OtherScheduleEventDateOption.RELATIVE_DATE);
   }
 
   @Test
-  void getActiveScheduleEventsByPhaseAndDateOption() {
+  void getScheduleEventsByPhaseAndDateOption() {
     var phase = new LicenceSchedulePhase();
 
-    otherScheduleEventService.getActiveScheduleEventsByPhaseAndDateOption(phase, OtherScheduleEventDateOption.RELATIVE_DATE);
+    otherScheduleEventService.getScheduleEventsByPhaseAndDateOption(phase, OtherScheduleEventDateOption.RELATIVE_DATE);
 
     verify(otherScheduleEventRepository).findAllByLicenceSchedulePhaseAndDateOption(phase, OtherScheduleEventDateOption.RELATIVE_DATE);
   }
 
   @Test
-  void getActiveScheduleEventsByDateRangeFor_term() {
+  void getScheduleEventsByDateRangeFor_term() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
     var startDate = LocalDate.now();
     var endDate = LocalDate.now();
@@ -90,7 +90,7 @@ class OtherScheduleEventServiceTest {
     term.setStartDate(startDate);
     term.setEndDate(endDate);
 
-    otherScheduleEventService.getActiveScheduleEventsByDateRangeFor(term);
+    otherScheduleEventService.getScheduleEventsByDateRangeFor(term);
 
     verify(otherScheduleEventRepository).findAllByLicenceScheduleDetailAndEventDateBetween(
         licenceScheduleDetail,
@@ -100,7 +100,7 @@ class OtherScheduleEventServiceTest {
   }
 
   @Test
-  void getActiveScheduleEventsByDateRangeFor_phase() {
+  void getScheduleEventsByDateRangeFor_phase() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
     var startDate = LocalDate.now();
     var endDate = LocalDate.now();
@@ -110,7 +110,7 @@ class OtherScheduleEventServiceTest {
     phase.setStartDate(startDate);
     phase.setEndDate(endDate);
 
-    otherScheduleEventService.getActiveScheduleEventsByDateRangeFor(phase);
+    otherScheduleEventService.getScheduleEventsByDateRangeFor(phase);
 
     verify(otherScheduleEventRepository).findAllByLicenceScheduleDetailAndEventDateBetween(
         licenceScheduleDetail,
@@ -120,11 +120,11 @@ class OtherScheduleEventServiceTest {
   }
 
   @Test
-  void getActiveEventsAfterDate() {
+  void getEventsAfterDate() {
     var detail = new LicenceScheduleDetail();
     var date = LocalDate.of(2026, 1, 1);
 
-    otherScheduleEventService.getActiveEventsAfterDate(detail, date);
+    otherScheduleEventService.getEventsAfterDate(detail, date);
 
     verify(otherScheduleEventRepository).findAllByLicenceScheduleDetailAndEventDateAfter(detail, date);
   }
@@ -162,6 +162,15 @@ class OtherScheduleEventServiceTest {
     otherScheduleEventService.deleteOtherScheduleEvent(otherScheduleEvent);
 
     verify(otherScheduleEventRepository).delete(otherScheduleEvent);
+  }
+
+  @Test
+  void getAllEventsLinkedTo() {
+    var term = new LicenceScheduleTerm();
+
+    otherScheduleEventService.getAllEventsLinkedTo(term);
+
+    verify(otherScheduleEventRepository).findAllByLicenceScheduleTerm(term);
   }
 
   @Test

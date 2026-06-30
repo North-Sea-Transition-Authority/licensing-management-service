@@ -14,6 +14,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.WorkProgrammeActivityView;
 
 @Service
 public class LicenceScheduleService {
@@ -22,6 +24,7 @@ public class LicenceScheduleService {
   private final LicenceScheduleTermService licenceScheduleTermService;
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
   private final LicenceTypeRulesResolver licenceTypeRulesResolver;
+  private final WorkProgrammeActivityService workProgrammeActivityService;
   private final Clock clock;
 
   public LicenceScheduleService(
@@ -29,12 +32,14 @@ public class LicenceScheduleService {
       LicenceScheduleTermService licenceScheduleTermService,
       LicenceSchedulePhaseService licenceSchedulePhaseService,
       LicenceTypeRulesResolver licenceTypeRulesResolver,
+      WorkProgrammeActivityService workProgrammeActivityService,
       Clock clock
   ) {
     this.licenceScheduleRepository = licenceScheduleRepository;
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
+    this.workProgrammeActivityService = workProgrammeActivityService;
     this.clock = clock;
   }
 
@@ -57,7 +62,7 @@ public class LicenceScheduleService {
   }
 
   public LicenceScheduleTerm getCurrentTerm(LicenceScheduleDetail licenceScheduleDetail) {
-    var licenceScheduleTerms = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(
+    var licenceScheduleTerms = licenceScheduleTermService.getTermsByLicenceScheduleDetail(
         licenceScheduleDetail);
     return getCurrentTerm(licenceScheduleTerms);
   }
@@ -71,7 +76,7 @@ public class LicenceScheduleService {
   }
 
   public LicenceSchedulePhase getCurrentPhase(LicenceScheduleTerm licenceScheduleTerm) {
-    var licenceSchedulePhases = licenceSchedulePhaseService.getActivePhasesByTerm(licenceScheduleTerm);
+    var licenceSchedulePhases = licenceSchedulePhaseService.getPhasesByTerm(licenceScheduleTerm);
     return getCurrentPhase(licenceSchedulePhases);
   }
 
@@ -119,7 +124,7 @@ public class LicenceScheduleService {
       }
     }
 
-    var terms = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail);
+    var terms = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail);
     return getNextTerm(terms, currentTerm)
         .map(nextTerm -> resolveStartDateForTerm(nextTerm, licenceTypeHasPhases));
   }
@@ -132,13 +137,13 @@ public class LicenceScheduleService {
     }
 
     var currentPhase = possibleCurrentPhase.get();
-    var phases = licenceSchedulePhaseService.getActivePhasesByTerm(term);
+    var phases = licenceSchedulePhaseService.getPhasesByTerm(term);
     return getNextPhase(phases, currentPhase).map(LicenceSchedulePhase::getStartDate);
   }
 
   private LocalDate resolveStartDateForTerm(LicenceScheduleTerm term, boolean licenceTypeHasPhases) {
     if (licenceTypeHasPhases) {
-      var firstPhaseStartDate = licenceSchedulePhaseService.getActivePhasesByTerm(term)
+      var firstPhaseStartDate = licenceSchedulePhaseService.getPhasesByTerm(term)
           .stream()
           .min(Comparator.comparing(LicenceSchedulePhase::getStartDate))
           .map(LicenceSchedulePhase::getStartDate)
@@ -166,7 +171,7 @@ public class LicenceScheduleService {
   }
 
   public ScheduleState getScheduleState(LicenceScheduleDetail licenceScheduleDetail) {
-    var terms = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail);
+    var terms = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail);
     var currentTerm = getCurrentTerm(terms);
 
     LicenceSchedulePhase currentPhase = null;
@@ -174,7 +179,7 @@ public class LicenceScheduleService {
     LicenceSchedulePhase nextPhase = null;
 
     if (currentTerm != null) {
-      var currentTermPhases = licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm);
+      var currentTermPhases = licenceSchedulePhaseService.getPhasesByTerm(currentTerm);
       currentPhase = getCurrentPhase(currentTermPhases);
 
       nextPhase = getNextPhaseInSameTerm(currentTermPhases, currentPhase);
@@ -204,11 +209,41 @@ public class LicenceScheduleService {
     if (term == null) {
       return Optional.empty();
     }
-    return licenceSchedulePhaseService.getActivePhasesByTerm(term).stream()
+    return licenceSchedulePhaseService.getPhasesByTerm(term).stream()
         .sorted(Comparator.comparing(LicenceSchedulePhase::getStartDate))
         .toList()
         .stream()
         .findFirst();
+  }
+
+  public boolean hasCurrentWorkProgrammeActivities(LicenceScheduleDetail licenceScheduleDetail) {
+    var scheduleState = getScheduleState(licenceScheduleDetail);
+
+    if (scheduleState.currentPhase() != null) {
+      return workProgrammeActivityService.hasActivitiesForPhase(scheduleState.currentPhase());
+    }
+
+    if (scheduleState.currentTerm() != null) {
+      return workProgrammeActivityService.hasActivitiesForTerm(scheduleState.currentTerm());
+    }
+
+    return false;
+  }
+
+  public List<WorkProgrammeActivityView> getCurrentWorkProgrammeActivitiesViews(
+      LicenceScheduleDetail licenceScheduleDetail
+  ) {
+    var scheduleState = getScheduleState(licenceScheduleDetail);
+
+    if (scheduleState.currentPhase() != null) {
+      return workProgrammeActivityService.getLicenceWorkProgramActivitiesViewsForGivenPhase(scheduleState.currentPhase());
+    }
+
+    if (scheduleState.currentTerm() != null) {
+      return workProgrammeActivityService.getLicenceWorkProgramActivitiesViewsForGivenTerm(scheduleState.currentTerm());
+    }
+
+    return List.of();
   }
 
   public String formatTermPhaseDisplay(LicenceScheduleTerm term, LicenceSchedulePhase phase) {

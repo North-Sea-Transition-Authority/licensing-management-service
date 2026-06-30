@@ -108,7 +108,7 @@ class LicenceScheduleCalculationServiceTest {
     licenceScheduleTerms.add(licenceScheduleTerm2);
     licenceScheduleTerms.add(licenceScheduleTerm3);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(licenceScheduleTerms);
 
     when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail))
@@ -230,7 +230,7 @@ class LicenceScheduleCalculationServiceTest {
     var activity2 = new WorkProgrammeActivity();
     activity2.setRelativeDuration(new ThreeFieldDuration(1, 0, 1));
 
-    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(
         licenceScheduleTerm,
         WorkProgrammeActivityDateOption.RELATIVE_DATE
     ))
@@ -250,7 +250,7 @@ class LicenceScheduleCalculationServiceTest {
   void calculateAndSaveWorkProgrammeActivityDatesForTerm_noActivitiesToCalculate() {
     var licenceScheduleTerm = new LicenceScheduleTerm();
 
-    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(
         licenceScheduleTerm,
         WorkProgrammeActivityDateOption.RELATIVE_DATE
     ))
@@ -272,7 +272,7 @@ class LicenceScheduleCalculationServiceTest {
     var activity2 = new WorkProgrammeActivity();
     activity2.setRelativeDuration(new ThreeFieldDuration(0, 0, 1));
 
-    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByPhaseAndDateOption(
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(
         licenceSchedulePhase,
         WorkProgrammeActivityDateOption.RELATIVE_DATE
     ))
@@ -292,7 +292,7 @@ class LicenceScheduleCalculationServiceTest {
   void calculateAndSaveWorkProgrammeActivityDatesForPhase_noActivitiesToCalculate() {
     var licenceSchedulePhase = new LicenceSchedulePhase();
 
-    when(workProgrammeActivityService.getActiveWorkProgrammeActivitiesByPhaseAndDateOption(
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(
         licenceSchedulePhase,
         WorkProgrammeActivityDateOption.RELATIVE_DATE
     ))
@@ -310,10 +310,10 @@ class LicenceScheduleCalculationServiceTest {
 
     var rate = new LicenceScheduleRate();
 
-    when(licenceScheduleRateService.getActiveLicenceScheduleRatesForTermAndDefinitionOption(licenceScheduleTerm, RateDefinitionOption.TERM))
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermAndDefinitionOption(licenceScheduleTerm, RateDefinitionOption.TERM))
         .thenReturn(List.of(rate));
 
-    when(licenceScheduleRateService.getActiveLicenceScheduleRatesForTermAndDefinitionOption(licenceScheduleTerm, RateDefinitionOption.CUSTOM_PERIOD))
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermAndDefinitionOption(licenceScheduleTerm, RateDefinitionOption.CUSTOM_PERIOD))
         .thenReturn(List.of());
 
     licenceScheduleCalculationService.calculateAndSaveRateStartDatesForTerm(licenceScheduleTerm);
@@ -341,10 +341,10 @@ class LicenceScheduleCalculationServiceTest {
     relativeDateRate.setRateRelativeDateOption(RateRelativeDateOption.RELATIVE_TO_START_DATE);
     relativeDateRate.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
 
-    when(licenceScheduleRateService.getActiveLicenceScheduleRatesForTermAndDefinitionOption(licenceScheduleTerm, RateDefinitionOption.TERM))
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermAndDefinitionOption(licenceScheduleTerm, RateDefinitionOption.TERM))
         .thenReturn(List.of());
 
-    when(licenceScheduleRateService.getActiveLicenceScheduleRatesForTermAndDefinitionOption(licenceScheduleTerm, RateDefinitionOption.CUSTOM_PERIOD))
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermAndDefinitionOption(licenceScheduleTerm, RateDefinitionOption.CUSTOM_PERIOD))
         .thenReturn(List.of(startDateRate, relativeDateRate));
 
     licenceScheduleCalculationService.calculateAndSaveRateStartDatesForTerm(licenceScheduleTerm);
@@ -368,10 +368,10 @@ class LicenceScheduleCalculationServiceTest {
 
     var rate = new LicenceScheduleRate();
 
-    when(licenceScheduleRateService.getActiveLicenceScheduleRatesForPhaseAndDefinitionOption(licenceSchedulePhase, RateDefinitionOption.PHASE))
+    when(licenceScheduleRateService.getLicenceScheduleRatesForPhaseAndDefinitionOption(licenceSchedulePhase, RateDefinitionOption.PHASE))
         .thenReturn(List.of(rate));
 
-    when(licenceScheduleRateService.getActiveLicenceScheduleRatesForPhaseAndDefinitionOption(licenceSchedulePhase, RateDefinitionOption.CUSTOM_PERIOD))
+    when(licenceScheduleRateService.getLicenceScheduleRatesForPhaseAndDefinitionOption(licenceSchedulePhase, RateDefinitionOption.CUSTOM_PERIOD))
         .thenReturn(List.of());
 
     licenceScheduleCalculationService.calculateAndSaveRateStartDatesForPhase(licenceSchedulePhase);
@@ -399,10 +399,10 @@ class LicenceScheduleCalculationServiceTest {
     relativeDateRate.setRateRelativeDateOption(RateRelativeDateOption.RELATIVE_TO_START_DATE);
     relativeDateRate.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
 
-    when(licenceScheduleRateService.getActiveLicenceScheduleRatesForPhaseAndDefinitionOption(licenceSchedulePhase, RateDefinitionOption.PHASE))
+    when(licenceScheduleRateService.getLicenceScheduleRatesForPhaseAndDefinitionOption(licenceSchedulePhase, RateDefinitionOption.PHASE))
         .thenReturn(List.of());
 
-    when(licenceScheduleRateService.getActiveLicenceScheduleRatesForPhaseAndDefinitionOption(licenceSchedulePhase, RateDefinitionOption.CUSTOM_PERIOD))
+    when(licenceScheduleRateService.getLicenceScheduleRatesForPhaseAndDefinitionOption(licenceSchedulePhase, RateDefinitionOption.CUSTOM_PERIOD))
         .thenReturn(List.of(startDateRate, relativeDateRate));
 
     licenceScheduleCalculationService.calculateAndSaveRateStartDatesForPhase(licenceSchedulePhase);
@@ -430,7 +430,7 @@ class LicenceScheduleCalculationServiceTest {
     var event2 = new OtherScheduleEvent();
     event2.setRelativeDuration(new ThreeFieldDuration(1, 0, 1));
 
-    when(otherScheduleEventService.getActiveScheduleEventsByTermAndDateOption(
+    when(otherScheduleEventService.getScheduleEventsByTermAndDateOption(
         licenceScheduleTerm,
         OtherScheduleEventDateOption.RELATIVE_DATE
     ))
@@ -450,7 +450,7 @@ class LicenceScheduleCalculationServiceTest {
   void calculateAndSaveOtherScheduleEventDatesForTerm_noActivitiesToCalculate() {
     var licenceScheduleTerm = new LicenceScheduleTerm();
 
-    when(otherScheduleEventService.getActiveScheduleEventsByTermAndDateOption(
+    when(otherScheduleEventService.getScheduleEventsByTermAndDateOption(
         licenceScheduleTerm,
         OtherScheduleEventDateOption.RELATIVE_DATE
     ))
@@ -472,7 +472,7 @@ class LicenceScheduleCalculationServiceTest {
     var event2 = new OtherScheduleEvent();
     event2.setRelativeDuration(new ThreeFieldDuration(0, 0, 1));
 
-    when(otherScheduleEventService.getActiveScheduleEventsByPhaseAndDateOption(
+    when(otherScheduleEventService.getScheduleEventsByPhaseAndDateOption(
         licenceSchedulePhase,
         OtherScheduleEventDateOption.RELATIVE_DATE
     ))
@@ -492,7 +492,7 @@ class LicenceScheduleCalculationServiceTest {
   void calculateAndSaveOtherScheduleEventDatesForPhase_noActivitiesToCalculate() {
     var licenceSchedulePhase = new LicenceSchedulePhase();
 
-    when(otherScheduleEventService.getActiveScheduleEventsByPhaseAndDateOption(
+    when(otherScheduleEventService.getScheduleEventsByPhaseAndDateOption(
         licenceSchedulePhase,
         OtherScheduleEventDateOption.RELATIVE_DATE
     ))
@@ -583,7 +583,7 @@ class LicenceScheduleCalculationServiceTest {
     rate.setLicenceScheduleTerm(term);
 
     when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate));
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(new ArrayList<>(List.of(term)));
 
     var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
@@ -616,7 +616,7 @@ class LicenceScheduleCalculationServiceTest {
     rate.setLicenceSchedulePhase(phase);
 
     when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate));
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(new ArrayList<>(List.of(term)));
 
     var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
@@ -645,7 +645,7 @@ class LicenceScheduleCalculationServiceTest {
     rate.setStartDate(LocalDate.of(2025, 3, 1));
 
     when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate));
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(new ArrayList<>(List.of(term)));
 
     var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
@@ -685,7 +685,7 @@ class LicenceScheduleCalculationServiceTest {
     rate2.setLicenceScheduleTerm(term2);
 
     when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate1, rate2));
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(new ArrayList<>(List.of(term1, term2)));
 
     var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
@@ -733,7 +733,7 @@ class LicenceScheduleCalculationServiceTest {
     rate2.setLicenceSchedulePhase(phase2);
 
     when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate1, rate2));
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(new ArrayList<>(List.of(term)));
 
     var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
@@ -775,7 +775,7 @@ class LicenceScheduleCalculationServiceTest {
 
     when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
         .thenReturn(List.of(customRate, termRate));
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(new ArrayList<>(List.of(term)));
 
     var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
@@ -815,7 +815,7 @@ class LicenceScheduleCalculationServiceTest {
 
     when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
         .thenReturn(List.of(rate2, rate1));
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(new ArrayList<>(List.of(term1, term2)));
 
     var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);

@@ -69,7 +69,7 @@ public class LicenceSchedulePhaseFormValidator {
     ValidationUtils.rejectIfEmpty(errors, "phaseType", "phaseType.required", "Select a phase");
 
     if (form.getPhaseType() != null) {
-      var existingTermTypes = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
+      var existingTermTypes = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
           .map(LicenceScheduleTerm::getTermType)
           .toList();
 

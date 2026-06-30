@@ -65,10 +65,10 @@ class LicenceSchedulePhaseServiceTest {
   }
 
   @Test
-  void getActivePhasesByTerm() {
+  void getPhasesByTerm() {
     var licenceScheduleTerm = new LicenceScheduleTerm();
 
-    licenceSchedulePhaseService.getActivePhasesByTerm(licenceScheduleTerm);
+    licenceSchedulePhaseService.getPhasesByTerm(licenceScheduleTerm);
 
     verify(licenceSchedulePhaseRepository).findAllByLicenceScheduleTerm(licenceScheduleTerm);
   }

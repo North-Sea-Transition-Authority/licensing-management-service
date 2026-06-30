@@ -39,37 +39,37 @@ public class OtherScheduleEventService {
     otherScheduleEventRepository.saveAll(otherScheduleEvents);
   }
 
-  public List<OtherScheduleEvent> getActiveScheduleEventsByTermAndDateOption(
+  public List<OtherScheduleEvent> getScheduleEventsByTermAndDateOption(
       LicenceScheduleTerm licenceScheduleTerm,
       OtherScheduleEventDateOption dateOption
   ) {
     return otherScheduleEventRepository.findAllByLicenceScheduleTermAndDateOption(licenceScheduleTerm, dateOption);
   }
 
-  public List<OtherScheduleEvent> getActiveScheduleEventsByPhaseAndDateOption(
+  public List<OtherScheduleEvent> getScheduleEventsByPhaseAndDateOption(
       LicenceSchedulePhase licenceSchedulePhase,
       OtherScheduleEventDateOption dateOption
   ) {
     return otherScheduleEventRepository.findAllByLicenceSchedulePhaseAndDateOption(licenceSchedulePhase, dateOption);
   }
 
-  public List<OtherScheduleEvent> getActiveScheduleEventsByDateRangeFor(LicenceScheduleTerm licenceScheduleTerm) {
-    return getActiveScheduleEventsByDateRange(
+  public List<OtherScheduleEvent> getScheduleEventsByDateRangeFor(LicenceScheduleTerm licenceScheduleTerm) {
+    return getScheduleEventsByDateRange(
         licenceScheduleTerm.getLicenceScheduleDetail(),
         licenceScheduleTerm.getStartDate(),
         licenceScheduleTerm.getEndDate()
     );
   }
 
-  public List<OtherScheduleEvent> getActiveScheduleEventsByDateRangeFor(LicenceSchedulePhase licenceSchedulePhase) {
-    return getActiveScheduleEventsByDateRange(
+  public List<OtherScheduleEvent> getScheduleEventsByDateRangeFor(LicenceSchedulePhase licenceSchedulePhase) {
+    return getScheduleEventsByDateRange(
         licenceSchedulePhase.getLicenceScheduleDetail(),
         licenceSchedulePhase.getStartDate(),
         licenceSchedulePhase.getEndDate()
     );
   }
 
-  private List<OtherScheduleEvent> getActiveScheduleEventsByDateRange(
+  private List<OtherScheduleEvent> getScheduleEventsByDateRange(
       LicenceScheduleDetail licenceScheduleDetail,
       LocalDate from,
       LocalDate to
@@ -77,7 +77,7 @@ public class OtherScheduleEventService {
     return otherScheduleEventRepository.findAllByLicenceScheduleDetailAndEventDateBetween(licenceScheduleDetail, from, to);
   }
 
-  public List<OtherScheduleEvent> getActiveEventsAfterDate(
+  public List<OtherScheduleEvent> getEventsAfterDate(
       LicenceScheduleDetail licenceScheduleDetail,
       LocalDate date
   ) {
@@ -90,6 +90,10 @@ public class OtherScheduleEventService {
   ) {
     return otherScheduleEventRepository.findByLicenceScheduleDetailAndEventReference(scheduleDetail, eventReference)
         .orElseThrow(() -> new LmsEntityNotFoundException("OtherScheduleEvent", eventReference.getId()));
+  }
+
+  public List<OtherScheduleEvent> getAllEventsLinkedTo(LicenceScheduleTerm licenceScheduleTerm) {
+    return otherScheduleEventRepository.findAllByLicenceScheduleTerm(licenceScheduleTerm);
   }
 
   @Transactional

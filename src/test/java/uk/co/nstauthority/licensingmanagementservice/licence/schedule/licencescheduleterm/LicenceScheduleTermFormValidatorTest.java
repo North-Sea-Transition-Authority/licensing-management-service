@@ -56,7 +56,7 @@ class LicenceScheduleTermFormValidatorTest {
     var licenceScheduleTerm = new LicenceScheduleTerm();
     licenceScheduleTerm.setTermType(TermType.INITIAL);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceScheduleTerm));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceScheduleTerm));
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
@@ -81,7 +81,7 @@ class LicenceScheduleTermFormValidatorTest {
     licenceScheduleTerm.setId(UUID.randomUUID());
     licenceScheduleTerm.setTermType(TermType.INITIAL);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceScheduleTerm));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceScheduleTerm));
 
     var form = new LicenceScheduleTermForm();
     form.setTermType(TermType.INITIAL);
@@ -103,7 +103,7 @@ class LicenceScheduleTermFormValidatorTest {
     licenceScheduleTerm2.setId(UUID.randomUUID());
     licenceScheduleTerm2.setTermType(TermType.SECOND);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceScheduleTerm, licenceScheduleTerm2));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceScheduleTerm, licenceScheduleTerm2));
 
     var form = new LicenceScheduleTermForm();
     form.setTermType(TermType.SECOND);

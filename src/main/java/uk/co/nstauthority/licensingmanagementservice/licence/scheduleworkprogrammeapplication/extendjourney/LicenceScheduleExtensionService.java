@@ -68,7 +68,7 @@ public class LicenceScheduleExtensionService {
   public List<LicenceScheduleTermAndPhases> getExtendableTermAndPhases(LicenceScheduleDetail licenceScheduleDetail) {
     var today = LocalDate.now(clock);
     List<LicenceScheduleTerm> currentOrFutureTerms = licenceScheduleTermService
-        .getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail);
+        .getTermsByLicenceScheduleDetail(licenceScheduleDetail);
 
     return currentOrFutureTerms
         .stream()
@@ -138,7 +138,7 @@ public class LicenceScheduleExtensionService {
       return Collections.emptyList();
     }
 
-    return licenceSchedulePhaseService.getActivePhasesByTerm(term)
+    return licenceSchedulePhaseService.getPhasesByTerm(term)
                                       .stream()
                                       .filter(phase -> hasNotEnded(phase.getEndDate(), today))
                                       .map(phase -> new LicenceScheduleTermAndPhases.PhaseDetails(

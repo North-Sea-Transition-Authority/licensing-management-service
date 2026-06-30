@@ -30,17 +30,17 @@ public class LicenceScheduleRateService {
     return licenceScheduleRateRepository.findAllByLicenceScheduleDetail(licenceScheduleDetail);
   }
 
-  public List<LicenceScheduleRate> getActiveLicenceScheduleRatesAttachedToTerm(LicenceScheduleTerm licenceScheduleTerm) {
+  public List<LicenceScheduleRate> getLicenceScheduleRatesAttachedToTerm(LicenceScheduleTerm licenceScheduleTerm) {
     return licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOption(
         licenceScheduleTerm,
         RateDefinitionOption.TERM
     );
   }
 
-  public List<LicenceScheduleRate> getActiveLicenceScheduleRatesByTerm(
+  public List<LicenceScheduleRate> getLicenceScheduleRatesByTerm(
       LicenceScheduleTerm licenceScheduleTerm
   ) {
-    var ratesByTerm = getActiveLicenceScheduleRatesAttachedToTerm(licenceScheduleTerm);
+    var ratesByTerm = getLicenceScheduleRatesAttachedToTerm(licenceScheduleTerm);
 
     if (!ratesByTerm.isEmpty()) {
       return ratesByTerm;
@@ -53,7 +53,7 @@ public class LicenceScheduleRateService {
     );
   }
 
-  public List<LicenceScheduleRate> getActiveLicenceScheduleRatesByPhase(
+  public List<LicenceScheduleRate> getLicenceScheduleRatesByPhase(
       LicenceSchedulePhase licenceSchedulePhase,
       PhaseType firstPhaseType
   ) {
@@ -84,7 +84,7 @@ public class LicenceScheduleRateService {
     );
   }
 
-  public List<LicenceScheduleRate> getActiveLicenceScheduleRatesForTermAndDefinitionOption(
+  public List<LicenceScheduleRate> getLicenceScheduleRatesForTermAndDefinitionOption(
       LicenceScheduleTerm licenceScheduleTerm,
       RateDefinitionOption rateDefinitionOption
   ) {
@@ -94,7 +94,7 @@ public class LicenceScheduleRateService {
     );
   }
 
-  public List<LicenceScheduleRate> getActiveLicenceScheduleRatesForPhaseAndDefinitionOption(
+  public List<LicenceScheduleRate> getLicenceScheduleRatesForPhaseAndDefinitionOption(
       LicenceSchedulePhase licenceSchedulePhase,
       RateDefinitionOption rateDefinitionOption
   ) {
@@ -104,7 +104,7 @@ public class LicenceScheduleRateService {
     );
   }
 
-  public List<LicenceScheduleRate> getActiveRatesAfterDate(
+  public List<LicenceScheduleRate> getRatesAfterDate(
       LicenceScheduleDetail licenceScheduleDetail,
       LocalDate date
   ) {
@@ -127,5 +127,9 @@ public class LicenceScheduleRateService {
   @Transactional
   public void deleteLicenceScheduleRate(LicenceScheduleRate licenceScheduleRate) {
     licenceScheduleRateRepository.delete(licenceScheduleRate);
+  }
+
+  public List<LicenceScheduleRate> getAllRatesLinkedTo(LicenceScheduleTerm licenceScheduleTerm) {
+    return licenceScheduleRateRepository.findAllByLicenceScheduleTerm(licenceScheduleTerm);
   }
 }

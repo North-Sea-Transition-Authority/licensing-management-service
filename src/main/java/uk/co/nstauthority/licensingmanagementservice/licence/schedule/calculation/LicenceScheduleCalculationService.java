@@ -55,7 +55,7 @@ public class LicenceScheduleCalculationService {
   public void calculateAndSaveLicenceScheduleDates(LicenceScheduleDetail licenceScheduleDetail) {
     var licenceStartDate = licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail).getStartDate();
 
-    var terms = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail);
+    var terms = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail);
     var phases = licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail);
 
     terms.sort(Comparator.comparing(term -> term.getTermType().getDisplayOrder()));
@@ -113,7 +113,7 @@ public class LicenceScheduleCalculationService {
   }
 
   void calculateAndSaveWorkProgrammeActivityDatesForTerm(LicenceScheduleTerm licenceScheduleTerm) {
-    var activities = workProgrammeActivityService.getActiveWorkProgrammeActivitiesByTermAndDateOption(
+    var activities = workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(
         licenceScheduleTerm,
         WorkProgrammeActivityDateOption.RELATIVE_DATE
     );
@@ -132,7 +132,7 @@ public class LicenceScheduleCalculationService {
   }
 
   void calculateAndSaveWorkProgrammeActivityDatesForPhase(LicenceSchedulePhase licenceSchedulePhase) {
-    var activities = workProgrammeActivityService.getActiveWorkProgrammeActivitiesByPhaseAndDateOption(
+    var activities = workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(
         licenceSchedulePhase,
         WorkProgrammeActivityDateOption.RELATIVE_DATE
     );
@@ -153,7 +153,7 @@ public class LicenceScheduleCalculationService {
   void calculateAndSaveRateStartDatesForTerm(LicenceScheduleTerm licenceScheduleTerm) {
     var termStartDate = licenceScheduleTerm.getStartDate();
 
-    var linkedRates = licenceScheduleRateService.getActiveLicenceScheduleRatesForTermAndDefinitionOption(
+    var linkedRates = licenceScheduleRateService.getLicenceScheduleRatesForTermAndDefinitionOption(
         licenceScheduleTerm,
         RateDefinitionOption.TERM
     );
@@ -162,7 +162,7 @@ public class LicenceScheduleCalculationService {
       linkedRate.setStartDate(termStartDate);
     }
 
-    var relativeRates = licenceScheduleRateService.getActiveLicenceScheduleRatesForTermAndDefinitionOption(
+    var relativeRates = licenceScheduleRateService.getLicenceScheduleRatesForTermAndDefinitionOption(
         licenceScheduleTerm,
         RateDefinitionOption.CUSTOM_PERIOD
     );
@@ -182,7 +182,7 @@ public class LicenceScheduleCalculationService {
   void calculateAndSaveRateStartDatesForPhase(LicenceSchedulePhase licenceSchedulePhase) {
     var phaseStartDate = licenceSchedulePhase.getStartDate();
 
-    var linkedRates = licenceScheduleRateService.getActiveLicenceScheduleRatesForPhaseAndDefinitionOption(
+    var linkedRates = licenceScheduleRateService.getLicenceScheduleRatesForPhaseAndDefinitionOption(
         licenceSchedulePhase,
         RateDefinitionOption.PHASE
     );
@@ -191,7 +191,7 @@ public class LicenceScheduleCalculationService {
       linkedRate.setStartDate(phaseStartDate);
     }
 
-    var relativeRates = licenceScheduleRateService.getActiveLicenceScheduleRatesForPhaseAndDefinitionOption(
+    var relativeRates = licenceScheduleRateService.getLicenceScheduleRatesForPhaseAndDefinitionOption(
         licenceSchedulePhase,
         RateDefinitionOption.CUSTOM_PERIOD
     );
@@ -209,7 +209,7 @@ public class LicenceScheduleCalculationService {
   }
 
   void calculateAndSaveOtherScheduleEventDatesForTerm(LicenceScheduleTerm licenceScheduleTerm) {
-    var events = otherScheduleEventService.getActiveScheduleEventsByTermAndDateOption(
+    var events = otherScheduleEventService.getScheduleEventsByTermAndDateOption(
         licenceScheduleTerm,
         OtherScheduleEventDateOption.RELATIVE_DATE
     );
@@ -228,7 +228,7 @@ public class LicenceScheduleCalculationService {
   }
 
   void calculateAndSaveOtherScheduleEventDatesForPhase(LicenceSchedulePhase licenceSchedulePhase) {
-    var events = otherScheduleEventService.getActiveScheduleEventsByPhaseAndDateOption(
+    var events = otherScheduleEventService.getScheduleEventsByPhaseAndDateOption(
         licenceSchedulePhase,
         OtherScheduleEventDateOption.RELATIVE_DATE
     );
@@ -309,7 +309,7 @@ public class LicenceScheduleCalculationService {
   }
 
   private LocalDate getFinalTermEndDate(LicenceScheduleDetail licenceScheduleDetail) {
-    var terms = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail);
+    var terms = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail);
 
     terms.sort(Comparator.comparing(term -> term.getTermType().getDisplayOrder()));
 

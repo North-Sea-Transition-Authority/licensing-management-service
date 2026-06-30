@@ -22,7 +22,7 @@ public class LicenceScheduleTermFormValidator {
       Errors errors,
       LicenceScheduleDetail licenceScheduleDetail
   ) {
-    var existingTermTypes = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
+    var existingTermTypes = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
         .map(LicenceScheduleTerm::getTermType)
         .toList();
 
@@ -35,7 +35,7 @@ public class LicenceScheduleTermFormValidator {
       LicenceScheduleDetail licenceScheduleDetail,
       LicenceScheduleTerm licenceScheduleTerm
   ) {
-    var existingTermTypes = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
+    var existingTermTypes = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
         .filter(term -> !licenceScheduleTerm.getId().equals(term.getId()))
         .map(LicenceScheduleTerm::getTermType)
         .toList();

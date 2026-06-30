@@ -26,7 +26,7 @@ public class LicenceScheduleRelativeOptionsService {
   }
 
   public Map<String, String> getScheduleTermOptions(LicenceScheduleDetail licenceScheduleDetail) {
-    return licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
+    return licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
         .sorted(Comparator.comparingInt(term -> term.getTermType().getDisplayOrder()))
         .collect(StreamUtil.toLinkedHashMap(
             term -> term.getId().toString(),
@@ -44,7 +44,7 @@ public class LicenceScheduleRelativeOptionsService {
   }
 
   public Map<String, String> getRelativeEventOptions(LicenceScheduleDetail licenceScheduleDetail) {
-    var termPhaseMap = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
+    var termPhaseMap = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
         .sorted(Comparator.comparingInt(term -> term.getTermType().getDisplayOrder()))
         .collect(StreamUtil.toLinkedHashMap(Function.identity(), this::getPhaseMap));
 
@@ -67,7 +67,7 @@ public class LicenceScheduleRelativeOptionsService {
   }
 
   private Map<String, String> getPhaseMap(LicenceScheduleTerm term) {
-    return licenceSchedulePhaseService.getActivePhasesByTerm(term).stream()
+    return licenceSchedulePhaseService.getPhasesByTerm(term).stream()
         .sorted(Comparator.comparingInt(phase -> phase.getPhaseType().getDisplayOrder()))
         .collect(StreamUtil.toLinkedHashMap(
             phase -> phase.getId().toString(),

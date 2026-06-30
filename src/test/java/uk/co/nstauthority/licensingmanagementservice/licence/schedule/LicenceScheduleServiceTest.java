@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,6 +32,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.WorkProgrammeActivityView;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceScheduleServiceTest {
@@ -46,6 +49,9 @@ class LicenceScheduleServiceTest {
 
   @Mock
   private LicenceTypeRulesResolver licenceTypeRulesResolver;
+
+  @Mock
+  private WorkProgrammeActivityService workProgrammeActivityService;
 
   @Mock
   private Clock clock;
@@ -89,9 +95,9 @@ class LicenceScheduleServiceTest {
     when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(scheduleDetail)).thenReturn(List.of(currentTerm));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(scheduleDetail)).thenReturn(List.of(currentTerm));
     when(licenceTypeRulesResolver.hasPhases(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(List.of(currentPhase, nextPhase));
+    when(licenceSchedulePhaseService.getPhasesByTerm(currentTerm)).thenReturn(List.of(currentPhase, nextPhase));
 
     var result = licenceScheduleService.getNextTermPhaseStartDate(scheduleDetail);
 
@@ -120,10 +126,10 @@ class LicenceScheduleServiceTest {
     when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(scheduleDetail)).thenReturn(List.of(currentTerm, nextTerm));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(scheduleDetail)).thenReturn(List.of(currentTerm, nextTerm));
     when(licenceTypeRulesResolver.hasPhases(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(List.of(currentPhase));
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(nextTerm)).thenReturn(List.of());
+    when(licenceSchedulePhaseService.getPhasesByTerm(currentTerm)).thenReturn(List.of(currentPhase));
+    when(licenceSchedulePhaseService.getPhasesByTerm(nextTerm)).thenReturn(List.of());
 
     var result = licenceScheduleService.getNextTermPhaseStartDate(scheduleDetail);
 
@@ -136,7 +142,7 @@ class LicenceScheduleServiceTest {
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
     var scheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(scheduleDetail)).thenReturn(List.of());
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(scheduleDetail)).thenReturn(List.of());
 
     var result = licenceScheduleService.getNextTermPhaseStartDate(scheduleDetail);
 
@@ -147,7 +153,7 @@ class LicenceScheduleServiceTest {
   void getScheduleState_WhenNoCurrentTerm_ReturnsAllNulls() {
     var detail = new LicenceScheduleDetail();
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(detail))
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail))
         .thenReturn(Collections.emptyList());
 
     var state = licenceScheduleService.getScheduleState(detail);
@@ -180,8 +186,8 @@ class LicenceScheduleServiceTest {
     var terms = List.of(currentTerm);
     var phases = List.of(currentPhase, nextPhaseInSameTerm);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(phases);
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
+    when(licenceSchedulePhaseService.getPhasesByTerm(currentTerm)).thenReturn(phases);
 
     var state = licenceScheduleService.getScheduleState(detail);
 
@@ -214,10 +220,10 @@ class LicenceScheduleServiceTest {
     firstPhaseOfNextTerm.setStartDate(LocalDate.of(2030, 1, 1));
     firstPhaseOfNextTerm.setEndDate(LocalDate.of(2032, 1, 1));
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(currentTerm, nextTerm));
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(List.of(currentPhase));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(currentTerm, nextTerm));
+    when(licenceSchedulePhaseService.getPhasesByTerm(currentTerm)).thenReturn(List.of(currentPhase));
 
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(nextTerm)).thenReturn(List.of(firstPhaseOfNextTerm));
+    when(licenceSchedulePhaseService.getPhasesByTerm(nextTerm)).thenReturn(List.of(firstPhaseOfNextTerm));
 
     var state = licenceScheduleService.getScheduleState(detail);
 
@@ -249,10 +255,10 @@ class LicenceScheduleServiceTest {
     var terms = List.of(currentTerm, nextTerm);
     var phases = List.of(currentPhase);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(phases);
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
+    when(licenceSchedulePhaseService.getPhasesByTerm(currentTerm)).thenReturn(phases);
 
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(nextTerm)).thenReturn(Collections.emptyList());
+    when(licenceSchedulePhaseService.getPhasesByTerm(nextTerm)).thenReturn(Collections.emptyList());
 
     var state = licenceScheduleService.getScheduleState(detail);
 
@@ -279,10 +285,10 @@ class LicenceScheduleServiceTest {
 
     var terms = List.of(currentTerm, nextTerm);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(currentTerm)).thenReturn(Collections.emptyList());
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
+    when(licenceSchedulePhaseService.getPhasesByTerm(currentTerm)).thenReturn(Collections.emptyList());
 
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(nextTerm)).thenReturn(Collections.emptyList());
+    when(licenceSchedulePhaseService.getPhasesByTerm(nextTerm)).thenReturn(Collections.emptyList());
 
     var state = licenceScheduleService.getScheduleState(detail);
 
@@ -317,5 +323,103 @@ class LicenceScheduleServiceTest {
   void formatTermPhaseDisplay_WhenBothNull_ReturnsNull() {
     String result = licenceScheduleService.formatTermPhaseDisplay(null, null);
     assertNull(result);
+  }
+
+  @Test
+  void hasCurrentWorkProgrammeActivities_whenCurrentPhaseIsNotNull_delegatesToPhaseExistsQuery() {
+    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
+    var detail = new LicenceScheduleDetail();
+    var term = new LicenceScheduleTerm();
+    term.setStartDate(LocalDate.of(2025, 1, 1));
+    term.setEndDate(LocalDate.of(2030, 1, 1));
+
+    var phase = new LicenceSchedulePhase();
+    phase.setStartDate(LocalDate.of(2025, 1, 1));
+    phase.setEndDate(LocalDate.of(2026, 1, 1));
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(term));
+    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of(phase));
+    when(workProgrammeActivityService.hasActivitiesForPhase(phase)).thenReturn(true);
+
+    assertThat(licenceScheduleService.hasCurrentWorkProgrammeActivities(detail)).isTrue();
+  }
+
+  @Test
+  void hasCurrentWorkProgrammeActivities_whenCurrentPhaseIsNullAndTermIsNotNull_delegatesToTermExistsQuery() {
+    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
+    var detail = new LicenceScheduleDetail();
+    var term = new LicenceScheduleTerm();
+    term.setStartDate(LocalDate.of(2025, 1, 1));
+    term.setEndDate(LocalDate.of(2030, 1, 1));
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(term));
+    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(Collections.emptyList());
+    when(workProgrammeActivityService.hasActivitiesForTerm(term)).thenReturn(false);
+
+    assertThat(licenceScheduleService.hasCurrentWorkProgrammeActivities(detail)).isFalse();
+  }
+
+  @Test
+  void hasCurrentWorkProgrammeActivities_whenPhaseAndTermAreNull_returnsFalse() {
+    var detail = new LicenceScheduleDetail();
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(Collections.emptyList());
+
+    assertThat(licenceScheduleService.hasCurrentWorkProgrammeActivities(detail)).isFalse();
+  }
+
+  @Test
+  void getCurrentWorkProgrammeActivitiesViews_whenCurrentPhaseIsNotNull_returnsViewsForPhase() {
+    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
+    var detail = new LicenceScheduleDetail();
+    var term = new LicenceScheduleTerm();
+    term.setStartDate(LocalDate.of(2025, 1, 1));
+    term.setEndDate(LocalDate.of(2030, 1, 1));
+
+    var phase = new LicenceSchedulePhase();
+    phase.setStartDate(LocalDate.of(2025, 1, 1));
+    phase.setEndDate(LocalDate.of(2026, 1, 1));
+
+    var view = mock(WorkProgrammeActivityView.class);
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(term));
+    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of(phase));
+    when(workProgrammeActivityService.getLicenceWorkProgramActivitiesViewsForGivenPhase(phase)).thenReturn(List.of(view));
+
+    assertThat(licenceScheduleService.getCurrentWorkProgrammeActivitiesViews(detail)).containsExactly(view);
+  }
+
+  @Test
+  void getCurrentWorkProgrammeActivitiesViews_whenCurrentPhaseIsNullAndTermIsNotNull_returnsViewsForTerm() {
+    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
+    var detail = new LicenceScheduleDetail();
+    var term = new LicenceScheduleTerm();
+    term.setStartDate(LocalDate.of(2025, 1, 1));
+    term.setEndDate(LocalDate.of(2030, 1, 1));
+
+    var view = mock(WorkProgrammeActivityView.class);
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(term));
+    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(Collections.emptyList());
+    when(workProgrammeActivityService.getLicenceWorkProgramActivitiesViewsForGivenTerm(term)).thenReturn(List.of(view));
+
+    assertThat(licenceScheduleService.getCurrentWorkProgrammeActivitiesViews(detail)).containsExactly(view);
+  }
+
+  @Test
+  void getCurrentWorkProgrammeActivitiesViews_whenPhaseAndTermAreNull_returnsEmptyList() {
+    var detail = new LicenceScheduleDetail();
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(Collections.emptyList());
+
+    assertThat(licenceScheduleService.getCurrentWorkProgrammeActivitiesViews(detail)).isEmpty();
   }
 }

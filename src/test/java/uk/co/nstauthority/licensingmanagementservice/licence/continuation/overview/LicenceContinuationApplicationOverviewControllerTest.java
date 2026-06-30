@@ -31,11 +31,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.caseprocessing.OverviewTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.decision.ContinuationDecisionSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.decision.ContinuationLetterFileUsages;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.action.LicenceContinuationActionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.reviewandsubmit.ContinuationSummarySectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
@@ -104,7 +104,7 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
         .thenReturn(applicationContext);
     when(continuationSummarySectionService.getSummarySections(applicationDetail, USER))
         .thenReturn(List.of());
-    when(workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(any()))
+    when(licenceScheduleService.getCurrentWorkProgrammeActivitiesViews(any()))
         .thenReturn(List.of());
     when(licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, USER))
         .thenReturn(List.of());

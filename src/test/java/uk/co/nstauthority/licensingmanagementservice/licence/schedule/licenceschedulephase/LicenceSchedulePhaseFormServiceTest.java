@@ -71,7 +71,7 @@ class LicenceSchedulePhaseFormServiceTest {
     var term = new LicenceScheduleTerm();
     term.setTermType(TermType.INITIAL);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
     var eventReference = new EventReference();
     when(eventReferenceService.createEventReference(licenceSchedule, ScheduleEventType.PHASE)).thenReturn(eventReference);
 
@@ -113,7 +113,7 @@ class LicenceSchedulePhaseFormServiceTest {
     var term = new LicenceScheduleTerm();
     term.setTermType(TermType.INITIAL);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
 
     var phase = new LicenceSchedulePhase();
     var existingEventReference = new EventReference();

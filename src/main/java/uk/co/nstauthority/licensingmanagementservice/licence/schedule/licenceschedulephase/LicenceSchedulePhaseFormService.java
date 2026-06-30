@@ -82,7 +82,7 @@ public class LicenceSchedulePhaseFormService {
       LicenceScheduleDetail licenceScheduleDetail,
       PhaseType phaseType
   ) {
-    return licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
+    return licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
         .filter(term -> term.getTermType().equals(phaseType.getTermType()))
         .findFirst()
         .orElseThrow(

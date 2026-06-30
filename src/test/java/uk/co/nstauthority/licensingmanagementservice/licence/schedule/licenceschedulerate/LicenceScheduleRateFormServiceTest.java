@@ -284,7 +284,7 @@ class LicenceScheduleRateFormServiceTest {
     var term = new LicenceScheduleTerm();
     term.setId(termId);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
 
     var eventReference = new EventReference();
     when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.RATE)).thenReturn(eventReference);
@@ -333,7 +333,7 @@ class LicenceScheduleRateFormServiceTest {
     var phase = new LicenceSchedulePhase();
 
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
 
     var eventReference = new EventReference();
     when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.RATE)).thenReturn(eventReference);
@@ -381,7 +381,7 @@ class LicenceScheduleRateFormServiceTest {
     var term = new LicenceScheduleTerm();
     term.setId(termId);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
 
     var eventReference = new EventReference();
     when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.RATE)).thenReturn(eventReference);
@@ -433,7 +433,7 @@ class LicenceScheduleRateFormServiceTest {
     var phase = new LicenceSchedulePhase();
 
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
 
     var eventReference = new EventReference();
     when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.RATE)).thenReturn(eventReference);

@@ -58,7 +58,7 @@ class LicenceScheduleRelativeOptionsServiceTest {
     term2.setId(UUID.randomUUID());
     term2.setTermType(TermType.SECOND);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
 
     var expectedResult = Map.of(
         term.getId().toString(), term.getTermType().getDisplayName(),
@@ -98,7 +98,7 @@ class LicenceScheduleRelativeOptionsServiceTest {
     secondTerm.setId(UUID.randomUUID());
     secondTerm.setTermType(TermType.SECOND);
 
-    when(licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(licenceScheduleDetail))
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(secondTerm, initialTerm));
 
     var phaseA = new LicenceSchedulePhase();
@@ -109,7 +109,7 @@ class LicenceScheduleRelativeOptionsServiceTest {
     phaseB.setId(UUID.randomUUID());
     phaseB.setPhaseType(PhaseType.PHASE_B);
 
-    when(licenceSchedulePhaseService.getActivePhasesByTerm(initialTerm)).thenReturn(List.of(phaseB, phaseA));
+    when(licenceSchedulePhaseService.getPhasesByTerm(initialTerm)).thenReturn(List.of(phaseB, phaseA));
 
     var result = licenceScheduleRelativeOptionsService.getRelativeEventOptions(licenceScheduleDetail);
 

@@ -82,7 +82,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
 
     var mockWorkProgrammeActivityAmendmentViews = getMockWorkProgrammeActivityAmendmentViews();
 
-    when(workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(any())).thenReturn(mockWorkProgrammeActivityAmendmentViews);
+    when(licenceScheduleService.getCurrentWorkProgrammeActivitiesViews(any())).thenReturn(mockWorkProgrammeActivityAmendmentViews);
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
@@ -126,7 +126,7 @@ class SelectLicenceWorkAmendmentControllerTest extends AbstractControllerTest {
 
     var mockWorkProgrammeActivityAmendmentViews = getMockWorkProgrammeActivityAmendmentViews();
 
-    when(workProgrammeActivityService.getCurrentWorkProgrammeActivitiesViews(any())).thenReturn(mockWorkProgrammeActivityAmendmentViews);
+    when(licenceScheduleService.getCurrentWorkProgrammeActivitiesViews(any())).thenReturn(mockWorkProgrammeActivityAmendmentViews);
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(

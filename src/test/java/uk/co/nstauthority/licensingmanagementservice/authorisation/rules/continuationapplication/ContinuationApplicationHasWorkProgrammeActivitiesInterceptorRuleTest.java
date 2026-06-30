@@ -19,9 +19,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 
 class ContinuationApplicationHasWorkProgrammeActivitiesInterceptorRuleTest extends AbstractInterceptorRuleTest {
 
@@ -29,7 +29,7 @@ class ContinuationApplicationHasWorkProgrammeActivitiesInterceptorRuleTest exten
   private LicenceContinuationService licenceContinuationService;
 
   @Mock
-  private WorkProgrammeActivityService workProgrammeActivityService;
+  private LicenceScheduleService licenceScheduleService;
 
   @InjectMocks
   private ContinuationApplicationHasWorkProgrammeActivitiesInterceptorRule rule;
@@ -43,7 +43,7 @@ class ContinuationApplicationHasWorkProgrammeActivitiesInterceptorRuleTest exten
   @Test
   void check_whenScheduleHasWorkProgrammeActivities_rulePass() throws NoSuchMethodException {
     var scheduleDetail = mockApplicationAsPathVariableEntity();
-    when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail))
+    when(licenceScheduleService.hasCurrentWorkProgrammeActivities(scheduleDetail))
         .thenReturn(true);
 
     var annotation = getAnnotation(
@@ -61,7 +61,7 @@ class ContinuationApplicationHasWorkProgrammeActivitiesInterceptorRuleTest exten
   @Test
   void check_whenScheduleHasNoWorkProgrammeActivities_ruleFailsForbidden() throws NoSuchMethodException {
     var scheduleDetail = mockApplicationAsPathVariableEntity();
-    when(workProgrammeActivityService.hasCurrentWorkProgrammeActivities(scheduleDetail))
+    when(licenceScheduleService.hasCurrentWorkProgrammeActivities(scheduleDetail))
         .thenReturn(false);
 
     var annotation = getAnnotation(

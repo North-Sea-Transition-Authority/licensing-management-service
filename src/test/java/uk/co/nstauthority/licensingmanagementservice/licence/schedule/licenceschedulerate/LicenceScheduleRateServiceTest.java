@@ -62,23 +62,23 @@ class LicenceScheduleRateServiceTest {
   }
 
   @Test
-  void getActiveLicenceScheduleRatesAttachedToTerm() {
+  void getLicenceScheduleRatesAttachedToTerm() {
     when(licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOption(term, RateDefinitionOption.TERM))
         .thenReturn(List.of(rate));
 
-    assertThat(licenceScheduleRateService.getActiveLicenceScheduleRatesAttachedToTerm(term)).isEqualTo(List.of(rate));
+    assertThat(licenceScheduleRateService.getLicenceScheduleRatesAttachedToTerm(term)).isEqualTo(List.of(rate));
   }
 
   @Test
-  void getActiveLicenceScheduleRatesByTerm_forTerm() {
+  void getLicenceScheduleRatesByTerm_forTerm() {
     when(licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOption(term, RateDefinitionOption.TERM))
         .thenReturn(List.of(rate));
 
-    assertThat(licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term)).isEqualTo(List.of(rate));
+    assertThat(licenceScheduleRateService.getLicenceScheduleRatesByTerm(term)).isEqualTo(List.of(rate));
   }
 
   @Test
-  void getActiveLicenceScheduleRatesByTerm_termDateRange() {
+  void getLicenceScheduleRatesByTerm_termDateRange() {
     term.setLicenceScheduleDetail(new LicenceScheduleDetail());
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
@@ -86,7 +86,7 @@ class LicenceScheduleRateServiceTest {
     when(licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOption(term, RateDefinitionOption.TERM))
         .thenReturn(List.of());
 
-    licenceScheduleRateService.getActiveLicenceScheduleRatesByTerm(term);
+    licenceScheduleRateService.getLicenceScheduleRatesByTerm(term);
 
     verify(licenceScheduleRateRepository).findAllByLicenceScheduleDetailAndStartDateBetween(
         term.getLicenceScheduleDetail(),
@@ -96,28 +96,28 @@ class LicenceScheduleRateServiceTest {
   }
 
   @Test
-  void getActiveLicenceScheduleRatesByPhase_forTerm() {
+  void getLicenceScheduleRatesByPhase_forTerm() {
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setLicenceScheduleTerm(term);
 
     when(licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOption(term, RateDefinitionOption.TERM))
         .thenReturn(List.of(rate));
 
-    assertThat(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).isEqualTo(List.of());
+    assertThat(licenceScheduleRateService.getLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).isEqualTo(List.of());
   }
 
   @Test
-  void getActiveLicenceScheduleRatesByPhase_forPhase() {
+  void getLicenceScheduleRatesByPhase_forPhase() {
     phase.setPhaseType(PhaseType.PHASE_B);
 
     when(licenceScheduleRateRepository.findAllByLicenceSchedulePhaseAndRateDefinitionOption(phase, RateDefinitionOption.PHASE))
         .thenReturn(List.of(rate));
 
-    assertThat(licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).isEqualTo(List.of(rate));
+    assertThat(licenceScheduleRateService.getLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).isEqualTo(List.of(rate));
   }
 
   @Test
-  void getActiveLicenceScheduleRatesByPhase_phaseDateRange() {
+  void getLicenceScheduleRatesByPhase_phaseDateRange() {
     phase.setLicenceScheduleDetail(new LicenceScheduleDetail());
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
@@ -126,7 +126,7 @@ class LicenceScheduleRateServiceTest {
     when(licenceScheduleRateRepository.findAllByLicenceSchedulePhaseAndRateDefinitionOption(phase, RateDefinitionOption.PHASE))
         .thenReturn(List.of());
 
-    licenceScheduleRateService.getActiveLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A);
+    licenceScheduleRateService.getLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A);
 
     verify(licenceScheduleRateRepository).findAllByLicenceScheduleDetailAndStartDateBetween(
         phase.getLicenceScheduleDetail(),
@@ -136,8 +136,8 @@ class LicenceScheduleRateServiceTest {
   }
 
   @Test
-  void getActiveLicenceScheduleRatesForTermAndDefinitionOption() {
-    licenceScheduleRateService.getActiveLicenceScheduleRatesForTermAndDefinitionOption(term, RateDefinitionOption.CUSTOM_PERIOD);
+  void getLicenceScheduleRatesForTermAndDefinitionOption() {
+    licenceScheduleRateService.getLicenceScheduleRatesForTermAndDefinitionOption(term, RateDefinitionOption.CUSTOM_PERIOD);
 
     verify(licenceScheduleRateRepository).findAllByLicenceScheduleTermAndRateDefinitionOption(
         term,
@@ -146,8 +146,8 @@ class LicenceScheduleRateServiceTest {
   }
 
   @Test
-  void getActiveLicenceScheduleRatesForPhaseAndDefinitionOption() {
-    licenceScheduleRateService.getActiveLicenceScheduleRatesForPhaseAndDefinitionOption(phase, RateDefinitionOption.CUSTOM_PERIOD);
+  void getLicenceScheduleRatesForPhaseAndDefinitionOption() {
+    licenceScheduleRateService.getLicenceScheduleRatesForPhaseAndDefinitionOption(phase, RateDefinitionOption.CUSTOM_PERIOD);
 
     verify(licenceScheduleRateRepository).findAllByLicenceSchedulePhaseAndRateDefinitionOption(
         phase,
@@ -156,11 +156,11 @@ class LicenceScheduleRateServiceTest {
   }
 
   @Test
-  void getActiveRatesAfterDate() {
+  void getRatesAfterDate() {
     var detail = new LicenceScheduleDetail();
     var date = LocalDate.of(2026, 1, 1);
 
-    licenceScheduleRateService.getActiveRatesAfterDate(detail, date);
+    licenceScheduleRateService.getRatesAfterDate(detail, date);
 
     verify(licenceScheduleRateRepository).findAllByLicenceScheduleDetailAndStartDateAfter(detail, date);
   }

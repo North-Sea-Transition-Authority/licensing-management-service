@@ -32,7 +32,7 @@ public class LicenceSchedulePhaseService {
     licenceSchedulePhaseRepository.saveAll(licenceSchedulePhase);
   }
 
-  public List<LicenceSchedulePhase> getActivePhasesByTerm(LicenceScheduleTerm licenceScheduleTerm) {
+  public List<LicenceSchedulePhase> getPhasesByTerm(LicenceScheduleTerm licenceScheduleTerm) {
     return licenceSchedulePhaseRepository.findAllByLicenceScheduleTerm(licenceScheduleTerm);
   }
 

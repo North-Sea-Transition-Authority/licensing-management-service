@@ -98,7 +98,7 @@ public class LicenceScheduleDetailDuplicationService {
       }
     }
 
-    var activities = workProgrammeActivityService.getActiveWorkProgrammeActivities(newDetail);
+    var activities = workProgrammeActivityService.getWorkProgrammeActivities(newDetail);
     for (WorkProgrammeActivity activity : activities) {
       if (activity.getLicenceScheduleTerm() != null) {
         activity.setLicenceScheduleTerm(oldNewTermMap.get(activity.getLicenceScheduleTerm()));
@@ -126,8 +126,8 @@ public class LicenceScheduleDetailDuplicationService {
       LicenceScheduleDetail oldDetail,
       LicenceScheduleDetail newDetail
   ) {
-    var oldDetailTerms = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(oldDetail);
-    var newDetailTermsRefMap = licenceScheduleTermService.getActiveTermsByLicenceScheduleDetail(newDetail).stream()
+    var oldDetailTerms = licenceScheduleTermService.getTermsByLicenceScheduleDetail(oldDetail);
+    var newDetailTermsRefMap = licenceScheduleTermService.getTermsByLicenceScheduleDetail(newDetail).stream()
         .collect(StreamUtil.toLinkedHashMap(
             term -> term.getEventReference().getId(),
             Function.identity()

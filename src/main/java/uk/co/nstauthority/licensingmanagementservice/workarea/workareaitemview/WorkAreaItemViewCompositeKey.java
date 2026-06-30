@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.Objects;
 import java.util.UUID;
 
 public class WorkAreaItemViewCompositeKey implements Serializable {
@@ -39,5 +40,23 @@ public class WorkAreaItemViewCompositeKey implements Serializable {
 
   public void setUserId(Long userId) {
     this.userId = userId;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    WorkAreaItemViewCompositeKey that = (WorkAreaItemViewCompositeKey) o;
+    return Objects.equals(itemId, that.itemId) && itemType == that.itemType && Objects.equals(userId, that.userId);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(itemId, itemType, userId);
   }
 }

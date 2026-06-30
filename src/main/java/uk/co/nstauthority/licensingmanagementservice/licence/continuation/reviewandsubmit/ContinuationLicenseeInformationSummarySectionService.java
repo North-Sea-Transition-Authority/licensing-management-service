@@ -7,7 +7,9 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.energyportal.fox.FoxRedirectService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.externalcontributorjourney.LicenceContinuationExternalContributorService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.summary.ExternalUrlView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
@@ -24,15 +26,21 @@ public class ContinuationLicenseeInformationSummarySectionService
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final FoxRedirectService foxRedirectService;
   private final LicenceContinuationExternalContributorService licenceContinuationExternalContributorService;
+  private final LicenceContinuationService licenceContinuationService;
+  private final LicenceScheduleService licenceScheduleService;
 
-  public ContinuationLicenseeInformationSummarySectionService(OrganisationUnitQueryService organisationUnitQueryService,
-                                                              FoxRedirectService foxRedirectService,
-                                                              LicenceContinuationExternalContributorService
-                                                                  licenceContinuationExternalContributorService
+  public ContinuationLicenseeInformationSummarySectionService(
+      OrganisationUnitQueryService organisationUnitQueryService,
+      FoxRedirectService foxRedirectService,
+      LicenceContinuationExternalContributorService licenceContinuationExternalContributorService,
+      LicenceContinuationService licenceContinuationService,
+      LicenceScheduleService licenceScheduleService
   ) {
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.foxRedirectService = foxRedirectService;
     this.licenceContinuationExternalContributorService = licenceContinuationExternalContributorService;
+    this.licenceContinuationService = licenceContinuationService;
+    this.licenceScheduleService = licenceScheduleService;
   }
 
   @Override
@@ -79,6 +87,13 @@ public class ContinuationLicenseeInformationSummarySectionService
 
   private SummaryCard getLicenceSummaryCard(LicenceContinuationApplicationDetail licenceContinuationApplicationDetail) {
     var licence = licenceContinuationApplicationDetail.getLicence();
+    var scheduleState = licenceContinuationService.resolveScheduleState(licenceContinuationApplicationDetail);
+
+    var currentTermPhaseDisplay = licenceScheduleService.formatTermPhaseDisplay(
+        scheduleState.currentTerm(), scheduleState.currentPhase());
+    var nextTermPhaseDisplay = licenceScheduleService.formatTermPhaseDisplay(
+        scheduleState.nextTerm(), scheduleState.nextPhase());
+
     var summaryDataView = SummaryDataView.newBuilder()
         .addStringValue("Licence reference", licence.getLicenceReference());
 
@@ -87,6 +102,13 @@ public class ContinuationLicenseeInformationSummarySectionService
           "View licence",
           new ExternalUrlView("View licence in PEARS", foxRedirectService.getViewPearsLicenceUrl(licence))
       );
+    }
+
+    if (currentTermPhaseDisplay != null) {
+      summaryDataView.addStringValue("Current term/phase", currentTermPhaseDisplay);
+    }
+    if (nextTermPhaseDisplay != null) {
+      summaryDataView.addStringValue("Next term/phase", nextTermPhaseDisplay);
     }
 
     return SummaryCard.simpleSummaryCardWithHeading("Licence information", summaryDataView.build());

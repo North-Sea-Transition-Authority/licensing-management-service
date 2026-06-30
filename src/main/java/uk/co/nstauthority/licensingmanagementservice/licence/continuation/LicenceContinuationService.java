@@ -29,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.
 import uk.co.nstauthority.licensingmanagementservice.licence.application.withdraw.ApplicationWithdrawService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
@@ -158,6 +159,19 @@ public class LicenceContinuationService {
     }
     var licence = detail.getLicence();
     return licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE);
+  }
+
+  public ScheduleState resolveScheduleState(LicenceContinuationApplicationDetail detail) {
+    if (detail.getCurrentTerm() != null) {
+      return new ScheduleState(
+          detail.getCurrentTerm(),
+          detail.getCurrentPhase(),
+          detail.getNextTerm(),
+          detail.getNextPhase()
+      );
+    }
+
+    return licenceScheduleService.getScheduleState(getScheduleDetailFromApplicationDetail(detail));
   }
 
   @Transactional

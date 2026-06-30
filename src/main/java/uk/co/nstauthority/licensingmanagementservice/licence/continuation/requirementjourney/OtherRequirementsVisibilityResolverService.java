@@ -6,7 +6,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventCategory;
@@ -19,42 +18,22 @@ public class OtherRequirementsVisibilityResolverService {
   private static final Set<TermType> FINANCIAL_CAPACITY_TARGET_TERMS = Set.of(TermType.SECOND, TermType.THIRD);
   private static final Set<TermType> DEVELOPMENT_CONSENT_TARGET_TERMS = Set.of(TermType.THIRD);
 
-  private final LicenceScheduleService licenceScheduleService;
   private final LicenceContinuationService licenceContinuationService;
   private final OtherScheduleEventService otherScheduleEventService;
 
   public OtherRequirementsVisibilityResolverService(
-      LicenceScheduleService licenceScheduleService,
       LicenceContinuationService licenceContinuationService,
       OtherScheduleEventService otherScheduleEventService
   ) {
-    this.licenceScheduleService = licenceScheduleService;
     this.licenceContinuationService = licenceContinuationService;
     this.otherScheduleEventService = otherScheduleEventService;
   }
 
   public OtherRequirementsVisibility resolveVisibility(LicenceContinuationApplicationDetail applicationDetail) {
     var scheduleDetail = licenceContinuationService.getScheduleDetailFromApplicationDetail(applicationDetail);
-    var scheduleState = getScheduleState(applicationDetail, scheduleDetail);
+    var scheduleState = licenceContinuationService.resolveScheduleState(applicationDetail);
 
     return resolveVisibility(scheduleDetail, scheduleState);
-  }
-
-  private ScheduleState getScheduleState(
-      LicenceContinuationApplicationDetail applicationDetail,
-      LicenceScheduleDetail scheduleDetail
-  ) {
-
-    if (applicationDetail.getCurrentTerm() != null) {
-      return new ScheduleState(
-          applicationDetail.getCurrentTerm(),
-          applicationDetail.getCurrentPhase(),
-          applicationDetail.getNextTerm(),
-          applicationDetail.getNextPhase()
-      );
-    }
-
-    return licenceScheduleService.getScheduleState(scheduleDetail);
   }
 
   private OtherRequirementsVisibility resolveVisibility(LicenceScheduleDetail scheduleDetail, ScheduleState scheduleState) {

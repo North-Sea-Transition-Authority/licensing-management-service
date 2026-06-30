@@ -1,8 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +13,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
@@ -25,9 +22,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.othersched
 
 @ExtendWith(MockitoExtension.class)
 class OtherRequirementsVisibilityResolverServiceTest {
-
-  @Mock
-  private LicenceScheduleService licenceScheduleService;
 
   @Mock
   private LicenceContinuationService licenceContinuationService;
@@ -61,7 +55,7 @@ class OtherRequirementsVisibilityResolverServiceTest {
     when(licenceSchedulePhase.getPhaseType()).thenReturn(PhaseType.PHASE_C);
 
     var state = new ScheduleState(licenceScheduleTerm, null, null, licenceSchedulePhase);
-    when(licenceScheduleService.getScheduleState(licenceScheduleDetail)).thenReturn(state);
+    when(licenceContinuationService.resolveScheduleState(applicationDetail)).thenReturn(state);
     when(otherScheduleEventService.hasEventWithinScheduleWindow(licenceScheduleDetail, OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, state)).thenReturn(false);
 
     var result = resolverService.resolveVisibility(applicationDetail);
@@ -77,7 +71,7 @@ class OtherRequirementsVisibilityResolverServiceTest {
     when(licenceSchedulePhase.getPhaseType()).thenReturn(PhaseType.PHASE_B);
 
     var state = new ScheduleState(licenceScheduleTerm, null, null, licenceSchedulePhase);
-    when(licenceScheduleService.getScheduleState(licenceScheduleDetail)).thenReturn(state);
+    when(licenceContinuationService.resolveScheduleState(applicationDetail)).thenReturn(state);
     when(otherScheduleEventService.hasEventWithinScheduleWindow(licenceScheduleDetail, OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, state)).thenReturn(false);
 
     var result = resolverService.resolveVisibility(applicationDetail);
@@ -93,7 +87,7 @@ class OtherRequirementsVisibilityResolverServiceTest {
     when(licenceScheduleTerm.getTermType()).thenReturn(TermType.SECOND);
 
     var state = new ScheduleState(null, null, licenceScheduleTerm, null);
-    when(licenceScheduleService.getScheduleState(licenceScheduleDetail)).thenReturn(state);
+    when(licenceContinuationService.resolveScheduleState(applicationDetail)).thenReturn(state);
     when(otherScheduleEventService.hasEventWithinScheduleWindow(licenceScheduleDetail, OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, state)).thenReturn(true);
 
     var result = resolverService.resolveVisibility(applicationDetail);
@@ -109,7 +103,7 @@ class OtherRequirementsVisibilityResolverServiceTest {
     when(licenceScheduleTerm.getTermType()).thenReturn(TermType.SECOND);
 
     var state = new ScheduleState(null, null, licenceScheduleTerm, null);
-    when(licenceScheduleService.getScheduleState(licenceScheduleDetail)).thenReturn(state);
+    when(licenceContinuationService.resolveScheduleState(applicationDetail)).thenReturn(state);
     when(otherScheduleEventService.hasEventWithinScheduleWindow(licenceScheduleDetail, OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, state)).thenReturn(false);
 
     var result = resolverService.resolveVisibility(applicationDetail);
@@ -125,7 +119,7 @@ class OtherRequirementsVisibilityResolverServiceTest {
     when(licenceScheduleTerm.getTermType()).thenReturn(TermType.THIRD);
 
     var state = new ScheduleState(null, null, licenceScheduleTerm, null);
-    when(licenceScheduleService.getScheduleState(licenceScheduleDetail)).thenReturn(state);
+    when(licenceContinuationService.resolveScheduleState(applicationDetail)).thenReturn(state);
     when(otherScheduleEventService.hasEventWithinScheduleWindow(licenceScheduleDetail, OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, state)).thenReturn(false);
 
     var result = resolverService.resolveVisibility(applicationDetail);
@@ -139,7 +133,7 @@ class OtherRequirementsVisibilityResolverServiceTest {
   @Test
   void resolveVisibility_WhenNoNextPhaseOrTerm_ShowsNoRequirements() {
     var state = new ScheduleState(null, null, null, null);
-    when(licenceScheduleService.getScheduleState(licenceScheduleDetail)).thenReturn(state);
+    when(licenceContinuationService.resolveScheduleState(applicationDetail)).thenReturn(state);
     when(otherScheduleEventService.hasEventWithinScheduleWindow(licenceScheduleDetail, OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, state)).thenReturn(false);
 
     var result = resolverService.resolveVisibility(applicationDetail);
@@ -148,26 +142,6 @@ class OtherRequirementsVisibilityResolverServiceTest {
     assertThat(result.showRelinquishment()).isFalse();
     assertThat(result.showDevelopmentConsent()).isFalse();
     assertThat(result.hasAnyRequirements()).isFalse();
-  }
-
-  @Test
-  void resolveVisibility_WhenStateMaterialised_UsesStoredTerms() {
-    var currentTerm = mock(LicenceScheduleTerm.class);
-    applicationDetail.setCurrentTerm(currentTerm);
-    applicationDetail.setNextTerm(licenceScheduleTerm);
-    when(licenceScheduleTerm.getTermType()).thenReturn(TermType.THIRD);
-
-    var materialisedState = new ScheduleState(currentTerm, null, licenceScheduleTerm, null);
-    when(otherScheduleEventService.hasEventWithinScheduleWindow(
-        licenceScheduleDetail, OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, materialisedState)).thenReturn(true);
-
-    var result = resolverService.resolveVisibility(applicationDetail);
-
-    assertThat(result.showFinancialCapacity()).isTrue();
-    assertThat(result.showRelinquishment()).isTrue();
-    assertThat(result.showDevelopmentConsent()).isTrue();
-
-    verifyNoInteractions(licenceScheduleService);
   }
 
 }

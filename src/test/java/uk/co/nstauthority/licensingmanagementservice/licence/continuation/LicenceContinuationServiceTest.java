@@ -191,6 +191,54 @@ class LicenceContinuationServiceTest {
   }
 
   @Test
+  void resolveScheduleState_whenCurrentTermMaterialised_returnsStateFromDetailWithoutDeriving() {
+    var currentTerm = mock(LicenceScheduleTerm.class);
+    var currentPhase = mock(LicenceSchedulePhase.class);
+    var nextTerm = mock(LicenceScheduleTerm.class);
+    var nextPhase = mock(LicenceSchedulePhase.class);
+
+    var detail = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(LICENCE_SCHEDULE_DETAIL);
+    detail.setCurrentTerm(currentTerm);
+    detail.setCurrentPhase(currentPhase);
+    detail.setNextTerm(nextTerm);
+    detail.setNextPhase(nextPhase);
+
+    var result = licenceContinuationService.resolveScheduleState(detail);
+
+    assertThat(result).isEqualTo(new ScheduleState(currentTerm, currentPhase, nextTerm, nextPhase));
+    verifyNoInteractions(licenceScheduleService, licenceScheduleDetailService);
+  }
+
+  @Test
+  void resolveScheduleState_whenCurrentTermMaterialisedButNoNextTerm_stillReturnsMaterialisedState() {
+    var currentTerm = mock(LicenceScheduleTerm.class);
+    var currentPhase = mock(LicenceSchedulePhase.class);
+
+    var detail = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(LICENCE_SCHEDULE_DETAIL);
+    detail.setCurrentTerm(currentTerm);
+    detail.setCurrentPhase(currentPhase);
+
+    var result = licenceContinuationService.resolveScheduleState(detail);
+
+    assertThat(result).isEqualTo(new ScheduleState(currentTerm, currentPhase, null, null));
+    verifyNoInteractions(licenceScheduleService, licenceScheduleDetailService);
+  }
+
+  @Test
+  void resolveScheduleState_whenNoCurrentTerm_derivesStateFromActiveSchedule() {
+    var detail = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(LICENCE_SCHEDULE_DETAIL);
+
+    var derivedState = new ScheduleState(mock(LicenceScheduleTerm.class), null, null, null);
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(LICENCE, LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(LICENCE_SCHEDULE_DETAIL);
+    when(licenceScheduleService.getScheduleState(LICENCE_SCHEDULE_DETAIL)).thenReturn(derivedState);
+
+    var result = licenceContinuationService.resolveScheduleState(detail);
+
+    assertThat(result).isEqualTo(derivedState);
+  }
+
+  @Test
   void getAllContinuationApplicationDetailsByStatus() {
     licenceContinuationService.getAllContinuationApplicationDetailsByStatus(
         LicenceContinuationApplicationStatus.DRAFT);

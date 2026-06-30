@@ -11,7 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeViewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransaction;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -21,15 +22,18 @@ public class LicencePositionService {
   private final LicencePositionRepository licencePositionRepository;
   private final LicencePositionChangeService licencePositionChangeService;
   private final LicencePositionChangeViewService licencePositionChangeViewService;
+  private final LicencePositionStateViewService licencePositionStateViewService;
 
   public LicencePositionService(
       LicencePositionRepository licencePositionRepository,
       LicencePositionChangeService licencePositionChangeService,
-      LicencePositionChangeViewService licencePositionChangeViewService
+      LicencePositionChangeViewService licencePositionChangeViewService,
+      LicencePositionStateViewService licencePositionStateViewService
   ) {
     this.licencePositionRepository = licencePositionRepository;
     this.licencePositionChangeService = licencePositionChangeService;
     this.licencePositionChangeViewService = licencePositionChangeViewService;
+    this.licencePositionStateViewService = licencePositionStateViewService;
   }
 
   @Transactional
@@ -73,7 +77,8 @@ public class LicencePositionService {
     return new LicencePositionPageView(
         getTimelineView(licence, chronologicalLicencePositions),
         licencePosition,
-        licencePositionChangeViewService.getChangeViews(licencePosition, chronologicalLicencePositions, licencePositionChanges)
+        licencePositionChangeViewService.getChangeViews(licencePosition, chronologicalLicencePositions, licencePositionChanges),
+        licencePositionStateViewService.getStateView(licencePosition, chronologicalLicencePositions, licencePositionChanges)
     );
   }
 

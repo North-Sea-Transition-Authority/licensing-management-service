@@ -26,8 +26,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeViewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,6 +46,9 @@ class LicencePositionServiceTest {
 
   @Mock
   private LicencePositionChangeViewService licencePositionChangeViewService;
+
+  @Mock
+  private LicencePositionStateViewService licencePositionStateViewService;
 
   @InjectMocks
   private LicencePositionService licencePositionService;
@@ -135,9 +140,12 @@ class LicencePositionServiceTest {
 
     var changeViews = Map.<String, LicencePositionChangeView>of();
 
+    var stateView = new LicencePositionStateView(null);
+
     when(licencePositionService.getChronologicalLicencePositions(LICENCE)).thenReturn(chronological);
     when(licencePositionChangeService.findByLicencePositionIn(chronological)).thenReturn(changes);
     when(licencePositionChangeViewService.getChangeViews(newer, chronological, changes)).thenReturn(changeViews);
+    when(licencePositionStateViewService.getStateView(newer, chronological, changes)).thenReturn(stateView);
 
     var result = licencePositionService.getPositionPageView(newer);
 
@@ -146,5 +154,6 @@ class LicencePositionServiceTest {
         .containsExactly("REF-2", "REF-1");
     assertThat(result.licencePosition()).isEqualTo(newer);
     assertThat(result.changeViewByType()).isEqualTo(changeViews);
+    assertThat(result.stateView()).isEqualTo(stateView);
   }
 }

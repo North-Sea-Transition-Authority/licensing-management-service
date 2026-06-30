@@ -22,6 +22,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = LicencePositionController.class)
@@ -90,7 +92,10 @@ class LicencePositionControllerTest extends AbstractControllerTest {
     var pageView = new LicencePositionPageView(
         List.of(new LicencePositionTimelineView(POSITION_ID, "url1", "REF-2", "5 June 2026")),
         position,
-        Map.of()
+        Map.of(),
+        new LicencePositionStateView(
+            new AdministratorStateView("admin organisation")
+        )
     );
 
     when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(PAGE_CAPTION);

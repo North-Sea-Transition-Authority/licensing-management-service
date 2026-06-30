@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.position.change;
+package uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -13,8 +13,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionChangeOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.AdministratorChangeView;
 
 @ExtendWith(MockitoExtension.class)
 class LicencePositionChangeViewServiceTest {

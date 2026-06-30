@@ -1,7 +1,7 @@
 <#include '../../layout/layout.ftl'>
 <#import '_positionChanges.ftl' as positionChanges>
 
-<#macro details licencePosition licencePositionChanges canEdit=false>
+<#macro details licencePosition licencePositionState licencePositionChanges canEdit=false>
     <#assign headingText>
       ${licencePosition.getFormattedPositionDate()} (${licencePosition.getLicenceTransaction().getRegulatorReference()})
     </#assign>
@@ -19,7 +19,9 @@
           />
       </@fdsAction.buttonGroup>
     </#if>
-    <p class="govuk-body">[TODO: Licence state]</p>
+    <@fdsDataItems.dataItem>
+        <@fdsDataItems.dataValues key="Licence administrator" value=licencePositionState.administratorStateView().organisationName()/>
+    </@fdsDataItems.dataItem>
     <#if licencePositionChanges["licence-administrator"]??>
         <@positionChanges.administratorChange change=licencePositionChanges["licence-administrator"]/>
     </#if>

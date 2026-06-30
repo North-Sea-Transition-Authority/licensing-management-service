@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.position.change;
+package uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change;
 
 import java.util.List;
 import java.util.Map;
@@ -6,10 +6,10 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionAdministratorChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionChangeOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.AdministratorChangeView;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionChangeView;
 
 @Service
 public class LicencePositionChangeViewService {
@@ -68,22 +68,14 @@ public class LicencePositionChangeViewService {
   ) {
     var joiningId = operation.operatorId();
 
-    var operatorIdByPositionId = licencePositionChanges.stream()
-        .flatMap(licencePositionChange -> licencePositionChange.getOperations().stream()
-            .filter(LicencePositionAdministratorChange.class::isInstance)
-            .map(adminChange -> Map.entry(
-                licencePositionChange.getLicencePosition().getId(),
-                ((LicencePositionAdministratorChange) adminChange).operatorId()
-            ))
-        )
-        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    var administratorIdChangeByPositionId = LicencePositionChangeUtil.administratorIdChangeByPositionId(licencePositionChanges);
 
     Integer withdrawingId = null;
     for (var licencePosition : chronologicalLicencePositions) {
       if (licencePosition.getId().equals(currentLicencePosition.getId())) {
         break;
       }
-      var operatorId = operatorIdByPositionId.get(licencePosition.getId());
+      var operatorId = administratorIdChangeByPositionId.get(licencePosition.getId());
       if (operatorId != null) {
         withdrawingId = operatorId;
       }

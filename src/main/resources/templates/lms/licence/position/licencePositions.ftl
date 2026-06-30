@@ -20,7 +20,11 @@
     <#if licencePositionPageView.hasPositions()>
       <@grid.gridRow>
         <@grid.threeQuarterColumn>
-          <@licencePositionDetails.details licencePosition=licencePositionPageView.licencePosition() licencePositionChanges=licencePositionPageView.changeViewByType()/>
+          <@licencePositionDetails.details
+            licencePosition=licencePositionPageView.licencePosition()
+            licencePositionState=licencePositionPageView.stateView()
+            licencePositionChanges=licencePositionPageView.changeViewByType()
+          />
         </@grid.threeQuarterColumn>
         <@grid.oneQuarterColumn>
           <@licencePositionTimeLine.timeline licencePositionTimelineView=licencePositionPageView.timelineViews() licencePosition=licencePositionPageView.licencePosition()/>

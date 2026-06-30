@@ -20,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.TimelineSummaryCardView;
@@ -32,6 +33,9 @@ class DeleteDraftScheduleControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
+
+  @MockitoBean
+  private EventCommentService eventCommentService;
 
   private static final String PAGE_CAPTION = "page caption";
 
@@ -86,6 +90,7 @@ class DeleteDraftScheduleControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().is3xxRedirection());
 
+    verify(eventCommentService).deletePendingCommentsForSchedule(licenceScheduleDetail.getLicenceSchedule());
     verify(licenceScheduleDetailService).deleteDraftScheduleDetail(licenceScheduleDetail);
   }
 

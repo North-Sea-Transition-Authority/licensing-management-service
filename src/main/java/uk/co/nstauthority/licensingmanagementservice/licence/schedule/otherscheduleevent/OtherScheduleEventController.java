@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTeamType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.licencescheduledetail.LicenceScheduleDetailHasStatus;
@@ -60,7 +61,8 @@ public class OtherScheduleEventController {
       @PathVariable UUID licenceScheduleDetailId,
       LicenceScheduleDetail licenceScheduleDetail,
       @ModelAttribute("form") OtherScheduleEventForm form,
-      BindingResult bindingResult
+      BindingResult bindingResult,
+      ServiceUserDetail serviceUserDetail
   ) {
     if (!otherScheduleEventFormValidator.isValid(form, bindingResult)) {
       return getActivityModelAndView(form, licenceScheduleDetail);
@@ -69,7 +71,8 @@ public class OtherScheduleEventController {
     otherScheduleEventFormService.saveEventFromForm(
         form,
         licenceScheduleDetail,
-        new OtherScheduleEvent()
+        new OtherScheduleEvent(),
+        serviceUserDetail
     );
 
     return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
@@ -91,7 +94,8 @@ public class OtherScheduleEventController {
   ModelAndView submitUpdateEventForm(
       @PathVariable UUID otherScheduleEventId,
       @ModelAttribute("form") OtherScheduleEventForm form,
-      BindingResult bindingResult
+      BindingResult bindingResult,
+      ServiceUserDetail serviceUserDetail
   ) {
     var event = otherScheduleEventService.getOtherScheduleEventByIdOrThrow(otherScheduleEventId);
     var licenceScheduleDetail = event.getLicenceScheduleDetail();
@@ -103,7 +107,8 @@ public class OtherScheduleEventController {
     otherScheduleEventFormService.saveEventFromForm(
         form,
         licenceScheduleDetail,
-        event
+        event,
+        serviceUserDetail
     );
 
     return licenceScheduleDetail.getScheduleTimelineRedirectUrl();

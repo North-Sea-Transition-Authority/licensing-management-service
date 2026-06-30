@@ -13,6 +13,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamT
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.licencescheduledetail.LicenceScheduleDetailHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventComment;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -28,13 +30,16 @@ public class OtherScheduleEventDeletionController {
   private static final String PAGE_TITLE = "Do you want to delete the %s event?";
 
   private final OtherScheduleEventService otherScheduleEventService;
+  private final EventCommentService eventCommentService;
   private final LicenceService licenceService;
 
   public OtherScheduleEventDeletionController(
       OtherScheduleEventService otherScheduleEventService,
+      EventCommentService eventCommentService,
       LicenceService licenceService
   ) {
     this.otherScheduleEventService = otherScheduleEventService;
+    this.eventCommentService = eventCommentService;
     this.licenceService = licenceService;
   }
 
@@ -43,10 +48,16 @@ public class OtherScheduleEventDeletionController {
       @PathVariable UUID otherScheduleEventId
   ) {
     var event = otherScheduleEventService.getOtherScheduleEventByIdOrThrow(otherScheduleEventId);
+    var pendingComment = event.getEventReference() != null
+        ? eventCommentService.findPendingCommentForEventReference(event.getEventReference())
+            .map(EventComment::getComment)
+            .orElse("")
+        : "";
 
     return new ModelAndView("lms/licence/schedule/deleteOtherScheduleEvent")
         .addObject("pageTitle", PAGE_TITLE.formatted(event.getCategoryString()))
         .addObject("summaryView", OtherScheduleEventSummaryView.fromOtherScheduleEvent(event))
+        .addObject("pendingComment", pendingComment)
         .addObject("cancelUrl", event.getLicenceScheduleDetail().getScheduleTimelineRouteUrl())
         .addObject("pageCaption",
             licenceService.getLicencePageCaption(event.getLicenceScheduleDetail().getLicenceSchedule().getLicence()));

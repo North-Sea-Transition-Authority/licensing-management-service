@@ -17,9 +17,11 @@ errorSummaryItems=errorSummaryItems>
       <@fdsSummaryList.summaryListRowNoAction keyText="End date">
         ${licenceSchedulePhaseSummaryView.endDate()}
       </@fdsSummaryList.summaryListRowNoAction>
-      <@fdsSummaryList.summaryListRowNoAction keyText="Comments">
-        ${licenceSchedulePhaseSummaryView.comments()!""}
-      </@fdsSummaryList.summaryListRowNoAction>
+      <#if pendingComment?has_content>
+        <@fdsSummaryList.summaryListRowNoAction keyText="Comment">
+          ${pendingComment}
+        </@fdsSummaryList.summaryListRowNoAction>
+      </#if>
     </@fdsSummaryList.summaryList>
 
     <@fdsAction.submitButtons

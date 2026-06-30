@@ -16,9 +16,11 @@ errorSummaryItems=errorSummaryItems>
           ${summaryView.eventDate()}
         </@fdsSummaryList.summaryListRowNoAction>
       </#if>
-      <@fdsSummaryList.summaryListRowNoAction keyText="Comments">
-        ${summaryView.comments()!""}
-      </@fdsSummaryList.summaryListRowNoAction>
+      <#if pendingComment?has_content>
+        <@fdsSummaryList.summaryListRowNoAction keyText="Comment">
+          ${pendingComment}
+        </@fdsSummaryList.summaryListRowNoAction>
+      </#if>
     </@fdsSummaryList.summaryList>
 
     <@fdsAction.submitButtons

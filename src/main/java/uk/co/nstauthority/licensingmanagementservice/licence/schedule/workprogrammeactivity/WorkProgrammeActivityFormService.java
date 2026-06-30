@@ -7,9 +7,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
@@ -31,6 +33,7 @@ public class WorkProgrammeActivityFormService {
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
   private final WorkProgrammeActivityStatusService workProgrammeActivityStatusService;
   private final EventReferenceService eventReferenceService;
+  private final EventCommentService eventCommentService;
 
   public WorkProgrammeActivityFormService(
       WorkProgrammeActivityRepository workProgrammeActivityRepository,
@@ -40,7 +43,8 @@ public class WorkProgrammeActivityFormService {
       LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService,
       LicenceScheduleCalculationService licenceScheduleCalculationService,
       WorkProgrammeActivityStatusService workProgrammeActivityStatusService,
-      EventReferenceService eventReferenceService
+      EventReferenceService eventReferenceService,
+      EventCommentService eventCommentService
   ) {
     this.workProgrammeActivityRepository = workProgrammeActivityRepository;
     this.licenceScheduleTermService = licenceScheduleTermService;
@@ -50,6 +54,7 @@ public class WorkProgrammeActivityFormService {
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
     this.workProgrammeActivityStatusService = workProgrammeActivityStatusService;
     this.eventReferenceService = eventReferenceService;
+    this.eventCommentService = eventCommentService;
   }
 
   public Map<String, String> getDateOptions(LicenceScheduleDetail licenceScheduleDetail) {
@@ -69,7 +74,8 @@ public class WorkProgrammeActivityFormService {
   public void saveActivityFromForm(
       WorkProgrammeActivityForm form,
       LicenceScheduleDetail licenceScheduleDetail,
-      WorkProgrammeActivity activity
+      WorkProgrammeActivity activity,
+      ServiceUserDetail serviceUserDetail
   ) {
     activity.setLicenceScheduleDetail(licenceScheduleDetail);
     activity.setCategory(form.getWorkProgrammeActivityCategory());
@@ -106,8 +112,6 @@ public class WorkProgrammeActivityFormService {
       activity.setRelativeDuration(null);
     }
 
-    activity.setComments(form.getComments());
-
     if (activity.getEventReference() == null) {
       activity.setEventReference(
           eventReferenceService.createEventReference(
@@ -118,6 +122,7 @@ public class WorkProgrammeActivityFormService {
     }
 
     workProgrammeActivityRepository.save(activity);
+    eventCommentService.addOrUpdatePendingComment(form.getComments(), activity.getEventReference(), serviceUserDetail);
     workProgrammeActivityStatusService.createInitialStatusFor(activity);
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
@@ -128,7 +133,10 @@ public class WorkProgrammeActivityFormService {
     form.setOtherCategoryName(workProgrammeActivity.getOtherCategoryName());
     form.setDescription(workProgrammeActivity.getDescription());
     form.setWorkProgrammeActivityCommitment(workProgrammeActivity.getCommitment());
-    form.setComments(workProgrammeActivity.getComments());
+    if (workProgrammeActivity.getEventReference() != null) {
+      eventCommentService.findPendingCommentForEventReference(workProgrammeActivity.getEventReference())
+          .ifPresent(comment -> form.setComments(comment.getComment()));
+    }
 
     var dateOption = workProgrammeActivity.getDateOption();
 

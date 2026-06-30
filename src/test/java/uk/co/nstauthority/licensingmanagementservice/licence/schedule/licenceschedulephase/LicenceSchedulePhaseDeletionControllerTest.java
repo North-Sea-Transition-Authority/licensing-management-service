@@ -13,6 +13,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +27,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventComment;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -39,6 +43,9 @@ class LicenceSchedulePhaseDeletionControllerTest extends AbstractControllerTest 
 
   @MockitoBean
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
+
+  @MockitoBean
+  private EventCommentService eventCommentService;
 
   private Licence licence;
   private LicenceScheduleDetail licenceScheduleDetail;
@@ -61,7 +68,6 @@ class LicenceSchedulePhaseDeletionControllerTest extends AbstractControllerTest 
     licenceSchedulePhase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
     licenceSchedulePhase.setStartDate(LocalDate.of(2025, 1, 1));
     licenceSchedulePhase.setEndDate(LocalDate.of(2025, 12, 31));
-    licenceSchedulePhase.setComments("comments");
   }
 
   @Test
@@ -80,7 +86,8 @@ class LicenceSchedulePhaseDeletionControllerTest extends AbstractControllerTest 
         .andExpect(model().attribute("pageTitle", "Do you want to delete the %s?".formatted(licenceSchedulePhase.getPhaseType().getDisplayName())))
         .andExpect(model().attribute("licenceSchedulePhaseSummaryView", LicenceSchedulePhaseSummaryView.fromPhase(licenceSchedulePhase)))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
-        .andExpect(model().attribute("pageCaption", "caption"));
+        .andExpect(model().attribute("pageCaption", "caption"))
+        .andExpect(model().attribute("pendingComment", ""));
   }
 
   @Test
@@ -126,5 +133,46 @@ class LicenceSchedulePhaseDeletionControllerTest extends AbstractControllerTest 
 
     verify(licenceSchedulePhaseService, never()).deletePhase(licenceSchedulePhase);
     verify(licenceScheduleCalculationService, never()).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  @Test
+  void renderDeletePhasePage_whenPhaseHasEventReferenceAndPendingCommentExists_showsPendingComment() throws Exception {
+    var eventReference = new EventReference();
+    licenceSchedulePhase.setEventReference(eventReference);
+
+    var eventComment = new EventComment();
+    eventComment.setComment("a pending comment");
+
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
+    when(licenceSchedulePhaseService.getPhaseByIdOrThrow(LICENCE_SCHEDULE_PHASE_ID)).thenReturn(licenceSchedulePhase);
+    when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");
+    when(eventCommentService.findPendingCommentForEventReference(eventReference)).thenReturn(Optional.of(eventComment));
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceSchedulePhaseDeletionController.class).renderDeletePhasePage(LICENCE_SCHEDULE_PHASE_ID)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("pendingComment", "a pending comment"));
+  }
+
+  @Test
+  void renderDeletePhasePage_whenPhaseHasEventReferenceAndNoPendingComment_showsEmptyPendingComment() throws Exception {
+    var eventReference = new EventReference();
+    licenceSchedulePhase.setEventReference(eventReference);
+
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
+    when(licenceSchedulePhaseService.getPhaseByIdOrThrow(LICENCE_SCHEDULE_PHASE_ID)).thenReturn(licenceSchedulePhase);
+    when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");
+    when(eventCommentService.findPendingCommentForEventReference(eventReference)).thenReturn(Optional.empty());
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceSchedulePhaseDeletionController.class).renderDeletePhasePage(LICENCE_SCHEDULE_PHASE_ID)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("pendingComment", ""));
   }
 }

@@ -7,9 +7,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
@@ -29,6 +31,7 @@ public class OtherScheduleEventFormService {
   private final LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
   private final EventReferenceService eventReferenceService;
+  private final EventCommentService eventCommentService;
 
   public OtherScheduleEventFormService(
       OtherScheduleEventRepository otherScheduleEventRepository,
@@ -37,7 +40,8 @@ public class OtherScheduleEventFormService {
       LicenceTypeRulesResolver licenceTypeRulesResolver,
       LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService,
       LicenceScheduleCalculationService licenceScheduleCalculationService,
-      EventReferenceService eventReferenceService
+      EventReferenceService eventReferenceService,
+      EventCommentService eventCommentService
   ) {
     this.otherScheduleEventRepository = otherScheduleEventRepository;
     this.licenceScheduleTermService = licenceScheduleTermService;
@@ -46,6 +50,7 @@ public class OtherScheduleEventFormService {
     this.licenceScheduleRelativeOptionsService = licenceScheduleRelativeOptionsService;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
     this.eventReferenceService = eventReferenceService;
+    this.eventCommentService = eventCommentService;
   }
 
   public Map<String, String> getDateOptions(LicenceScheduleDetail licenceScheduleDetail) {
@@ -65,7 +70,8 @@ public class OtherScheduleEventFormService {
   public void saveEventFromForm(
       OtherScheduleEventForm form,
       LicenceScheduleDetail licenceScheduleDetail,
-      OtherScheduleEvent event
+      OtherScheduleEvent event,
+      ServiceUserDetail serviceUserDetail
   ) {
     event.setLicenceScheduleDetail(licenceScheduleDetail);
     event.setCategory(form.getOtherScheduleEventCategory());
@@ -101,15 +107,14 @@ public class OtherScheduleEventFormService {
       event.setRelativeDuration(null);
     }
 
-    event.setComments(form.getComments());
-
     if (event.getEventReference() == null) {
       event.setEventReference(
           eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.OTHER)
       );
     }
-    
+
     otherScheduleEventRepository.save(event);
+    eventCommentService.addOrUpdatePendingComment(form.getComments(), event.getEventReference(), serviceUserDetail);
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -118,7 +123,10 @@ public class OtherScheduleEventFormService {
     form.setOtherScheduleEventCategory(otherScheduleEvent.getCategory());
     form.setOtherCategoryName(otherScheduleEvent.getOtherCategoryName());
     form.setDescription(otherScheduleEvent.getDescription());
-    form.setComments(otherScheduleEvent.getComments());
+    if (otherScheduleEvent.getEventReference() != null) {
+      eventCommentService.findPendingCommentForEventReference(otherScheduleEvent.getEventReference())
+          .ifPresent(comment -> form.setComments(comment.getComment()));
+    }
 
     var dateOption = otherScheduleEvent.getDateOption();
 

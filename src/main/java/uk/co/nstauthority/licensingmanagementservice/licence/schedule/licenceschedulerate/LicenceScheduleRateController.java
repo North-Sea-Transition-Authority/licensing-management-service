@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTeamType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.licencescheduledetail.LicenceScheduleDetailHasStatus;
@@ -60,7 +61,8 @@ public class LicenceScheduleRateController {
       @PathVariable UUID licenceScheduleDetailId,
       LicenceScheduleDetail licenceScheduleDetail,
       @ModelAttribute("form") LicenceScheduleRateForm form,
-      BindingResult bindingResult
+      BindingResult bindingResult,
+      ServiceUserDetail serviceUserDetail
   ) {
     if (!licenceScheduleRateFormValidator.isValid(form, bindingResult)) {
       return getScheduleRateModelAndView(form, licenceScheduleDetail);
@@ -69,7 +71,8 @@ public class LicenceScheduleRateController {
     licenceScheduleRateFormService.saveRateFromForm(
         form,
         licenceScheduleDetail,
-        new LicenceScheduleRate()
+        new LicenceScheduleRate(),
+        serviceUserDetail
     );
 
     return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
@@ -91,7 +94,8 @@ public class LicenceScheduleRateController {
   ModelAndView submitUpdateLicenceScheduleRateForm(
       @PathVariable UUID licenceScheduleRateId,
       @ModelAttribute("form") LicenceScheduleRateForm form,
-      BindingResult bindingResult
+      BindingResult bindingResult,
+      ServiceUserDetail serviceUserDetail
   ) {
     var rate = licenceScheduleRateService.getRateByIdOrThrow(licenceScheduleRateId);
     var detail = rate.getLicenceScheduleDetail();
@@ -103,7 +107,8 @@ public class LicenceScheduleRateController {
     licenceScheduleRateFormService.saveRateFromForm(
         form,
         detail,
-        rate
+        rate,
+        serviceUserDetail
     );
 
     return detail.getScheduleTimelineRedirectUrl();

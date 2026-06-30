@@ -24,7 +24,6 @@ public class LicenceSchedulePhaseTestUtil {
     private ThreeFieldDuration phaseDuration;
     private LocalDate startDate;
     private LocalDate endDate;
-    private String comments;
 
     private Builder() {}
 
@@ -63,11 +62,6 @@ public class LicenceSchedulePhaseTestUtil {
       return this;
     }
 
-    public Builder withComments(String comments) {
-      this.comments = comments;
-      return this;
-    }
-
     public LicenceSchedulePhase build() {
       var licenceSchedulePhase = new LicenceSchedulePhase();
 
@@ -78,7 +72,6 @@ public class LicenceSchedulePhaseTestUtil {
       licenceSchedulePhase.setPhaseDuration(phaseDuration);
       licenceSchedulePhase.setStartDate(startDate);
       licenceSchedulePhase.setEndDate(endDate);
-      licenceSchedulePhase.setComments(comments);
 
       return licenceSchedulePhase;
     }

@@ -17,6 +17,8 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -26,6 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRu
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -37,6 +40,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.S
 
 @ExtendWith(MockitoExtension.class)
 class LicenceScheduleRateFormServiceTest {
+
+  private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder().build();
 
   @Mock
   private LicenceScheduleRateRepository licenceScheduleRateRepository;
@@ -58,6 +63,9 @@ class LicenceScheduleRateFormServiceTest {
 
   @Mock
   private EventReferenceService eventReferenceService;
+
+  @Mock
+  private EventCommentService eventCommentService;
 
   @InjectMocks
   private LicenceScheduleRateFormService licenceScheduleRateFormService;
@@ -97,7 +105,7 @@ class LicenceScheduleRateFormServiceTest {
     var eventReference = new EventReference();
     when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.RATE)).thenReturn(eventReference);
 
-    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate());
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate(), USER);
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
@@ -123,6 +131,7 @@ class LicenceScheduleRateFormServiceTest {
         eventReference
     );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -143,7 +152,7 @@ class LicenceScheduleRateFormServiceTest {
     var rate = new LicenceScheduleRate();
     rate.setEventReference(new EventReference());
 
-    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, rate);
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, rate, USER);
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
@@ -169,6 +178,7 @@ class LicenceScheduleRateFormServiceTest {
         rate.getEventReference()
     );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), rate.getEventReference(), USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -186,7 +196,7 @@ class LicenceScheduleRateFormServiceTest {
     var rate = new LicenceScheduleRate();
     rate.setStartDate(LocalDate.of(2025, 1, 1));
 
-    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, rate);
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, rate, USER);
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
@@ -210,7 +220,7 @@ class LicenceScheduleRateFormServiceTest {
     var eventReference = new EventReference();
     when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.RATE)).thenReturn(eventReference);
 
-    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate());
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate(), USER);
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
@@ -236,6 +246,7 @@ class LicenceScheduleRateFormServiceTest {
         eventReference
     );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -253,7 +264,7 @@ class LicenceScheduleRateFormServiceTest {
     var rate = new LicenceScheduleRate();
     rate.setStartDate(LocalDate.of(2025, 1, 1));
 
-    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, rate);
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, rate, USER);
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
@@ -278,7 +289,7 @@ class LicenceScheduleRateFormServiceTest {
     var eventReference = new EventReference();
     when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.RATE)).thenReturn(eventReference);
 
-    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate());
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate(), USER);
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
@@ -304,6 +315,7 @@ class LicenceScheduleRateFormServiceTest {
         eventReference
     );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -326,7 +338,7 @@ class LicenceScheduleRateFormServiceTest {
     var eventReference = new EventReference();
     when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.RATE)).thenReturn(eventReference);
 
-    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate());
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate(), USER);
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
@@ -352,6 +364,7 @@ class LicenceScheduleRateFormServiceTest {
         eventReference
     );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -376,7 +389,7 @@ class LicenceScheduleRateFormServiceTest {
     var duration = new ThreeFieldDuration(1, 0, 0);
     form.getRelativeDuration().setFromThreeFieldDuration(duration);
 
-    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate());
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate(), USER);
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
@@ -402,6 +415,7 @@ class LicenceScheduleRateFormServiceTest {
         eventReference
     );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -427,7 +441,7 @@ class LicenceScheduleRateFormServiceTest {
     var duration = new ThreeFieldDuration(1, 0, 0);
     form.getRelativeDuration().setFromThreeFieldDuration(duration);
 
-    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate());
+    licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate(), USER);
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
@@ -453,6 +467,7 @@ class LicenceScheduleRateFormServiceTest {
         eventReference
     );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -464,7 +479,6 @@ class LicenceScheduleRateFormServiceTest {
     var rate = new LicenceScheduleRate();
     rate.setRateDefinitionOption(RateDefinitionOption.TERM);
     rate.setRentalRate(BigDecimal.ONE);
-    rate.setComments("Comments");
     rate.setLicenceScheduleTerm(term);
 
     var result = licenceScheduleRateFormService.getFormFromRate(rate);
@@ -480,7 +494,7 @@ class LicenceScheduleRateFormServiceTest {
     ).containsExactly(
         rate.getRateDefinitionOption(),
         rate.getRentalRate(),
-        rate.getComments(),
+        null,
         rate.getLicenceScheduleTerm().getId().toString(),
         null,
         null,
@@ -496,7 +510,6 @@ class LicenceScheduleRateFormServiceTest {
     var rate = new LicenceScheduleRate();
     rate.setRateDefinitionOption(RateDefinitionOption.PHASE);
     rate.setRentalRate(BigDecimal.ONE);
-    rate.setComments("Comments");
     rate.setLicenceSchedulePhase(phase);
 
     var result = licenceScheduleRateFormService.getFormFromRate(rate);
@@ -512,7 +525,7 @@ class LicenceScheduleRateFormServiceTest {
     ).containsExactly(
         rate.getRateDefinitionOption(),
         rate.getRentalRate(),
-        rate.getComments(),
+        null,
         null,
         rate.getLicenceSchedulePhase().getId().toString(),
         null,
@@ -528,7 +541,6 @@ class LicenceScheduleRateFormServiceTest {
     var rate = new LicenceScheduleRate();
     rate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
     rate.setRentalRate(BigDecimal.ONE);
-    rate.setComments("Comments");
     rate.setLicenceSchedulePhase(phase);
     rate.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
 
@@ -545,7 +557,7 @@ class LicenceScheduleRateFormServiceTest {
     ).containsExactly(
         rate.getRateDefinitionOption(),
         rate.getRentalRate(),
-        rate.getComments(),
+        null,
         null,
         null,
         rate.getLicenceSchedulePhase().getId().toString(),
@@ -561,7 +573,6 @@ class LicenceScheduleRateFormServiceTest {
     var rate = new LicenceScheduleRate();
     rate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
     rate.setRentalRate(BigDecimal.ONE);
-    rate.setComments("Comments");
     rate.setLicenceSchedulePhase(phase);
     rate.setRateRelativeDateOption(RateRelativeDateOption.RELATIVE_TO_START_DATE);
     rate.setRelativeDuration(new ThreeFieldDuration(1, 2, 3));
@@ -579,7 +590,7 @@ class LicenceScheduleRateFormServiceTest {
     ).containsExactly(
         rate.getRateDefinitionOption(),
         rate.getRentalRate(),
-        rate.getComments(),
+        null,
         null,
         null,
         rate.getLicenceSchedulePhase().getId().toString(),

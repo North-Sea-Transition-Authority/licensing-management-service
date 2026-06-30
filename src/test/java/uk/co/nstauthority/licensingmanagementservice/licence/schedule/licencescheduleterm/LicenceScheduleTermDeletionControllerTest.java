@@ -13,6 +13,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +27,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventComment;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -39,6 +43,9 @@ class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
+
+  @MockitoBean
+  private EventCommentService eventCommentService;
 
   private Licence licence;
   private LicenceScheduleDetail licenceScheduleDetail;
@@ -79,7 +86,8 @@ class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("pageTitle", "Do you want to delete the %s?".formatted(licenceScheduleTerm.getTermType().getDisplayName())))
         .andExpect(model().attribute("licenceScheduleTermSummaryView", LicenceScheduleTermSummaryView.fromTerm(licenceScheduleTerm)))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
-        .andExpect(model().attribute("pageCaption", "caption"));
+        .andExpect(model().attribute("pageCaption", "caption"))
+        .andExpect(model().attribute("pendingComment", ""));
   }
 
   @Test
@@ -125,5 +133,46 @@ class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
 
     verify(licenceScheduleTermService, never()).deleteTerm(licenceScheduleTerm);
     verify(licenceScheduleCalculationService, never()).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  @Test
+  void renderDeleteTermPage_whenTermHasEventReferenceAndPendingCommentExists_showsPendingComment() throws Exception {
+    var eventReference = new EventReference();
+    licenceScheduleTerm.setEventReference(eventReference);
+
+    var eventComment = new EventComment();
+    eventComment.setComment("a pending comment");
+
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
+    when(licenceScheduleTermService.getTermByIdOrThrow(LICENCE_SCHEDULE_TERM_ID)).thenReturn(licenceScheduleTerm);
+    when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");
+    when(eventCommentService.findPendingCommentForEventReference(eventReference)).thenReturn(Optional.of(eventComment));
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(LICENCE_SCHEDULE_TERM_ID)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("pendingComment", "a pending comment"));
+  }
+
+  @Test
+  void renderDeleteTermPage_whenTermHasEventReferenceAndNoPendingComment_showsEmptyPendingComment() throws Exception {
+    var eventReference = new EventReference();
+    licenceScheduleTerm.setEventReference(eventReference);
+
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
+    when(licenceScheduleTermService.getTermByIdOrThrow(LICENCE_SCHEDULE_TERM_ID)).thenReturn(licenceScheduleTerm);
+    when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");
+    when(eventCommentService.findPendingCommentForEventReference(eventReference)).thenReturn(Optional.empty());
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(LICENCE_SCHEDULE_TERM_ID)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("pendingComment", ""));
   }
 }

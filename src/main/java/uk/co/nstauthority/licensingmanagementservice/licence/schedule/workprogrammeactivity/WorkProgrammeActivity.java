@@ -62,8 +62,6 @@ public class WorkProgrammeActivity implements LinkedToDuplicationParent<LicenceS
 
   private LocalDate dueDate;
 
-  private String comments;
-
   @ManyToOne
   @JoinColumn(name = "event_reference_id")
   private EventReference eventReference;
@@ -159,14 +157,6 @@ public class WorkProgrammeActivity implements LinkedToDuplicationParent<LicenceS
 
   public void setDueDate(LocalDate dueDate) {
     this.dueDate = dueDate;
-  }
-
-  public String getComments() {
-    return comments;
-  }
-
-  public void setComments(String comments) {
-    this.comments = comments;
   }
 
   public String getCategoryString() {

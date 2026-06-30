@@ -117,13 +117,13 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(OtherScheduleEventController.class)
-                .submitAddNewEventForm(licenceScheduleDetail.getId(), null, null, null)))
+                .submitAddNewEventForm(licenceScheduleDetail.getId(), null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(otherScheduleEventFormService).saveEventFromForm(any(), eq(licenceScheduleDetail), any());
+    verify(otherScheduleEventFormService).saveEventFromForm(any(), eq(licenceScheduleDetail), any(), any());
   }
 
   @Test
@@ -140,7 +140,7 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(OtherScheduleEventController.class)
-                .submitAddNewEventForm(licenceScheduleDetail.getId(), null, null, null)))
+                .submitAddNewEventForm(licenceScheduleDetail.getId(), null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
@@ -154,7 +154,7 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
 
-    verify(otherScheduleEventFormService, never()).saveEventFromForm(any(), any(), any());
+    verify(otherScheduleEventFormService, never()).saveEventFromForm(any(), any(), any(), any());
   }
 
   @Test
@@ -164,13 +164,13 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(OtherScheduleEventController.class)
-                .submitAddNewEventForm(licenceScheduleDetail.getId(), null, null, null)))
+                .submitAddNewEventForm(licenceScheduleDetail.getId(), null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().isForbidden());
 
-    verify(otherScheduleEventFormService, never()).saveEventFromForm(any(), any(), any());
+    verify(otherScheduleEventFormService, never()).saveEventFromForm(any(), any(), any(), any());
   }
 
   @Test
@@ -223,13 +223,13 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(OtherScheduleEventController.class)
-                .submitUpdateEventForm(otherScheduleEvent.getId(), null, null)))
+                .submitUpdateEventForm(otherScheduleEvent.getId(), null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(otherScheduleEventFormService).saveEventFromForm(any(), eq(licenceScheduleDetail), eq(otherScheduleEvent));
+    verify(otherScheduleEventFormService).saveEventFromForm(any(), eq(licenceScheduleDetail), eq(otherScheduleEvent), any());
   }
 
   @Test
@@ -247,7 +247,7 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(OtherScheduleEventController.class)
-                .submitUpdateEventForm(otherScheduleEvent.getId(), null, null)))
+                .submitUpdateEventForm(otherScheduleEvent.getId(), null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
@@ -261,7 +261,7 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
 
-    verify(otherScheduleEventFormService, never()).saveEventFromForm(any(), any(), any());
+    verify(otherScheduleEventFormService, never()).saveEventFromForm(any(), any(), any(), any());
   }
 
   @Test
@@ -271,12 +271,12 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(OtherScheduleEventController.class)
-                .submitUpdateEventForm(otherScheduleEvent.getId(), null, null)))
+                .submitUpdateEventForm(otherScheduleEvent.getId(), null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().isForbidden());
 
-    verify(otherScheduleEventFormService, never()).saveEventFromForm(any(), any(), any());
+    verify(otherScheduleEventFormService, never()).saveEventFromForm(any(), any(), any(), any());
   }
 }

@@ -13,6 +13,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamT
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.licencescheduledetail.LicenceScheduleDetailHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventComment;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -28,13 +30,16 @@ public class WorkProgrammeActivityDeletionController {
   private static final String PAGE_TITLE = "Do you want to delete the %s activity?";
 
   private final WorkProgrammeActivityService workProgrammeActivityService;
+  private final EventCommentService eventCommentService;
   private final LicenceService licenceService;
 
   public WorkProgrammeActivityDeletionController(
       WorkProgrammeActivityService workProgrammeActivityService,
+      EventCommentService eventCommentService,
       LicenceService licenceService
   ) {
     this.workProgrammeActivityService = workProgrammeActivityService;
+    this.eventCommentService = eventCommentService;
     this.licenceService = licenceService;
   }
 
@@ -43,9 +48,16 @@ public class WorkProgrammeActivityDeletionController {
       @PathVariable UUID workProgrammeActivityId,
       WorkProgrammeActivity activity
   ) {
+    var pendingComment = activity.getEventReference() != null
+        ? eventCommentService.findPendingCommentForEventReference(activity.getEventReference())
+            .map(EventComment::getComment)
+            .orElse("")
+        : "";
+
     return new ModelAndView("lms/licence/schedule/deleteWorkProgrammeActivity")
         .addObject("pageTitle", PAGE_TITLE.formatted(activity.getCategoryString()))
         .addObject("summaryView", WorkProgrammeActivitySummaryView.fromWorkProgrammeActivity(activity))
+        .addObject("pendingComment", pendingComment)
         .addObject("cancelUrl", activity.getLicenceScheduleDetail().getScheduleTimelineRouteUrl())
         .addObject("pageCaption",
             licenceService.getLicencePageCaption(activity.getLicenceScheduleDetail().getLicenceSchedule().getLicence()));

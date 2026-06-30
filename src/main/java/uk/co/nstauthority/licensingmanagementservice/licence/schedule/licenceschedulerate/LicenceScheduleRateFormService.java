@@ -7,9 +7,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
@@ -29,6 +31,7 @@ public class LicenceScheduleRateFormService {
   private final LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
   private final EventReferenceService eventReferenceService;
+  private final EventCommentService eventCommentService;
 
   public LicenceScheduleRateFormService(
       LicenceScheduleRateRepository licenceScheduleRateRepository,
@@ -37,7 +40,8 @@ public class LicenceScheduleRateFormService {
       LicenceTypeRulesResolver licenceTypeRulesResolver,
       LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService,
       LicenceScheduleCalculationService licenceScheduleCalculationService,
-      EventReferenceService eventReferenceService
+      EventReferenceService eventReferenceService,
+      EventCommentService eventCommentService
   ) {
     this.licenceScheduleRateRepository = licenceScheduleRateRepository;
     this.licenceScheduleTermService = licenceScheduleTermService;
@@ -46,13 +50,15 @@ public class LicenceScheduleRateFormService {
     this.licenceScheduleRelativeOptionsService = licenceScheduleRelativeOptionsService;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
     this.eventReferenceService = eventReferenceService;
+    this.eventCommentService = eventCommentService;
   }
 
   @Transactional
   void saveRateFromForm(
       LicenceScheduleRateForm form,
       LicenceScheduleDetail licenceScheduleDetail,
-      LicenceScheduleRate licenceScheduleRate
+      LicenceScheduleRate licenceScheduleRate,
+      ServiceUserDetail serviceUserDetail
   ) {
     licenceScheduleRate.setLicenceScheduleDetail(licenceScheduleDetail);
     licenceScheduleRate.setRateDefinitionOption(form.getRateDefinitionOption());
@@ -87,7 +93,6 @@ public class LicenceScheduleRateFormService {
     }
 
     licenceScheduleRate.setRentalRate(form.getRentalRate().getAsBigDecimal().orElse(null));
-    licenceScheduleRate.setComments(form.getComments());
 
     if (licenceScheduleRate.getEventReference() == null) {
       licenceScheduleRate.setEventReference(
@@ -96,13 +101,17 @@ public class LicenceScheduleRateFormService {
     }
 
     licenceScheduleRateRepository.save(licenceScheduleRate);
+    eventCommentService.addOrUpdatePendingComment(form.getComments(), licenceScheduleRate.getEventReference(), serviceUserDetail);
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
   public LicenceScheduleRateForm getFormFromRate(LicenceScheduleRate licenceScheduleRate) {
     LicenceScheduleRateForm form = new LicenceScheduleRateForm();
     form.getRentalRate().setInputValue(licenceScheduleRate.getRentalRate().toString());
-    form.setComments(licenceScheduleRate.getComments());
+    if (licenceScheduleRate.getEventReference() != null) {
+      eventCommentService.findPendingCommentForEventReference(licenceScheduleRate.getEventReference())
+          .ifPresent(comment -> form.setComments(comment.getComment()));
+    }
 
     var definitionOption = licenceScheduleRate.getRateDefinitionOption();
     form.setRateDefinitionOption(definitionOption);

@@ -27,6 +27,12 @@ errorSummaryItems=errorSummaryItems>
             formId="licence-term-duration"
         />
 
+        <@fdsTextarea.textarea
+            path="form.comments"
+            labelText="Comments"
+            optionalLabel=true
+        />
+
         <@fdsAction.submitButtons primaryButtonText="Save" secondaryLinkText="Cancel" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>
 
     </@fdsForm.htmlForm>

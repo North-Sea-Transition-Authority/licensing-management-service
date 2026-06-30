@@ -14,6 +14,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.licence
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventComment;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -30,15 +32,18 @@ public class LicenceSchedulePhaseDeletionController {
 
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
+  private final EventCommentService eventCommentService;
   private final LicenceService licenceService;
 
   public LicenceSchedulePhaseDeletionController(
       LicenceSchedulePhaseService licenceSchedulePhaseService,
       LicenceScheduleCalculationService licenceScheduleCalculationService,
+      EventCommentService eventCommentService,
       LicenceService licenceService
   ) {
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
+    this.eventCommentService = eventCommentService;
     this.licenceService = licenceService;
   }
 
@@ -47,10 +52,16 @@ public class LicenceSchedulePhaseDeletionController {
       @PathVariable UUID licenceSchedulePhaseId
   ) {
     var phase = licenceSchedulePhaseService.getPhaseByIdOrThrow(licenceSchedulePhaseId);
+    var pendingComment = phase.getEventReference() != null
+        ? eventCommentService.findPendingCommentForEventReference(phase.getEventReference())
+            .map(EventComment::getComment)
+            .orElse("")
+        : "";
 
     return new ModelAndView("lms/licence/schedule/deleteSchedulePhase")
         .addObject("pageTitle", PAGE_TITLE.formatted(phase.getPhaseType().getDisplayName()))
         .addObject("licenceSchedulePhaseSummaryView", LicenceSchedulePhaseSummaryView.fromPhase(phase))
+        .addObject("pendingComment", pendingComment)
         .addObject("cancelUrl", phase.getLicenceScheduleDetail().getScheduleTimelineRouteUrl())
         .addObject("pageCaption",
             licenceService.getLicencePageCaption(phase.getLicenceScheduleDetail().getLicenceSchedule().getLicence()));

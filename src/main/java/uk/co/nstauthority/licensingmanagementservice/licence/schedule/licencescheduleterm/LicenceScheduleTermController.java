@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTeamType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.licencescheduledetail.LicenceScheduleDetailHasStatus;
@@ -57,13 +58,14 @@ public class LicenceScheduleTermController {
       @PathVariable UUID licenceScheduleDetailId,
       LicenceScheduleDetail licenceScheduleDetail,
       @ModelAttribute("form") LicenceScheduleTermForm form,
-      BindingResult bindingResult
+      BindingResult bindingResult,
+      ServiceUserDetail serviceUserDetail
   ) {
     if (!licenceScheduleTermFormValidator.isValid(form, bindingResult, licenceScheduleDetail)) {
       return getScheduleTermModelAndView(form, licenceScheduleDetail);
     }
 
-    licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail, new LicenceScheduleTerm());
+    licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail, new LicenceScheduleTerm(), serviceUserDetail);
 
     return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
   }
@@ -81,7 +83,8 @@ public class LicenceScheduleTermController {
   ModelAndView submitUpdateTermForm(
       @PathVariable UUID licenceScheduleTermId,
       @ModelAttribute("form") LicenceScheduleTermForm form,
-      BindingResult bindingResult
+      BindingResult bindingResult,
+      ServiceUserDetail serviceUserDetail
   ) {
     var term = licenceScheduleTermService.getTermByIdOrThrow(licenceScheduleTermId);
     var licenceScheduleDetail = term.getLicenceScheduleDetail();
@@ -90,7 +93,7 @@ public class LicenceScheduleTermController {
       return getScheduleTermModelAndView(form, licenceScheduleDetail);
     }
 
-    licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail, term);
+    licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail, term, serviceUserDetail);
 
     return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
   }

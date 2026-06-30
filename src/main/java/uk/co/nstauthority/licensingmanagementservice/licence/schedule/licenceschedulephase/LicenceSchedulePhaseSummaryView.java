@@ -6,16 +6,14 @@ import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 public record LicenceSchedulePhaseSummaryView(
     String duration,
     String startDate,
-    String endDate,
-    String comments
+    String endDate
 ) {
 
   public static LicenceSchedulePhaseSummaryView fromPhase(LicenceSchedulePhase phase) {
     return new LicenceSchedulePhaseSummaryView(
         ThreeFieldDurationDisplayUtil.convertToDisplayText(phase.getPhaseDuration()),
         DateFormatUtil.convertToDisplayText(phase.getStartDate()),
-        DateFormatUtil.convertToDisplayText(phase.getEndDate()),
-        phase.getComments()
+        DateFormatUtil.convertToDisplayText(phase.getEndDate())
     );
   }
 

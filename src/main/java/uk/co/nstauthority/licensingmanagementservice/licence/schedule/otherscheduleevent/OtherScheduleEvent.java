@@ -58,8 +58,6 @@ public class OtherScheduleEvent implements LinkedToDuplicationParent<LicenceSche
 
   private LocalDate eventDate;
 
-  private String comments;
-
   @ManyToOne
   @JoinColumn(name = "event_reference_id")
   private EventReference eventReference;
@@ -147,14 +145,6 @@ public class OtherScheduleEvent implements LinkedToDuplicationParent<LicenceSche
 
   public void setEventDate(LocalDate dueDate) {
     this.eventDate = dueDate;
-  }
-
-  public String getComments() {
-    return comments;
-  }
-
-  public void setComments(String comments) {
-    this.comments = comments;
   }
 
   public String getCategoryString() {

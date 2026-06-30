@@ -116,13 +116,13 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(WorkProgrammeActivityController.class)
-                .submitAddNewActivityForm(licenceScheduleDetail.getId(), null, null, null)))
+                .submitAddNewActivityForm(licenceScheduleDetail.getId(), null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(workProgrammeActivityFormService).saveActivityFromForm(any(), eq(licenceScheduleDetail), any());
+    verify(workProgrammeActivityFormService).saveActivityFromForm(any(), eq(licenceScheduleDetail), any(), any());
   }
 
   @Test
@@ -139,7 +139,7 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(WorkProgrammeActivityController.class)
-                .submitAddNewActivityForm(licenceScheduleDetail.getId(), null, null, null)))
+                .submitAddNewActivityForm(licenceScheduleDetail.getId(), null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
@@ -154,7 +154,7 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
 
-    verify(workProgrammeActivityFormService, never()).saveActivityFromForm(any(), any(), any());
+    verify(workProgrammeActivityFormService, never()).saveActivityFromForm(any(), any(), any(), any());
   }
 
   @Test
@@ -164,13 +164,13 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(WorkProgrammeActivityController.class)
-                .submitAddNewActivityForm(licenceScheduleDetail.getId(), null, null, null)))
+                .submitAddNewActivityForm(licenceScheduleDetail.getId(), null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().isForbidden());
 
-    verify(workProgrammeActivityFormService, never()).saveActivityFromForm(any(), any(), any());
+    verify(workProgrammeActivityFormService, never()).saveActivityFromForm(any(), any(), any(), any());
   }
 
   @Test
@@ -224,13 +224,13 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(WorkProgrammeActivityController.class)
-                .submitUpdateActivityForm(workProgrammeActivity.getId(), null, null, null)))
+                .submitUpdateActivityForm(workProgrammeActivity.getId(), null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(workProgrammeActivityFormService).saveActivityFromForm(any(), eq(licenceScheduleDetail), eq(workProgrammeActivity));
+    verify(workProgrammeActivityFormService).saveActivityFromForm(any(), eq(licenceScheduleDetail), eq(workProgrammeActivity), any());
   }
 
   @Test
@@ -248,7 +248,7 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(WorkProgrammeActivityController.class)
-                .submitUpdateActivityForm(workProgrammeActivity.getId(), null, null, null)))
+                .submitUpdateActivityForm(workProgrammeActivity.getId(), null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
@@ -263,7 +263,7 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
 
-    verify(workProgrammeActivityFormService, never()).saveActivityFromForm(any(), any(), any());
+    verify(workProgrammeActivityFormService, never()).saveActivityFromForm(any(), any(), any(), any());
   }
 
   @Test
@@ -273,12 +273,12 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(WorkProgrammeActivityController.class)
-                .submitUpdateActivityForm(workProgrammeActivity.getId(), null, null, null)))
+                .submitUpdateActivityForm(workProgrammeActivity.getId(), null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().isForbidden());
 
-    verify(workProgrammeActivityFormService, never()).saveActivityFromForm(any(), any(), any());
+    verify(workProgrammeActivityFormService, never()).saveActivityFromForm(any(), any(), any(), any());
   }
 }

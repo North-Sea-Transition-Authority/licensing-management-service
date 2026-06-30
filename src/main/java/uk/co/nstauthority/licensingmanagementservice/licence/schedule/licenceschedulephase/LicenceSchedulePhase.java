@@ -49,8 +49,6 @@ public class LicenceSchedulePhase implements LinkedToDuplicationParent<LicenceSc
 
   private LocalDate endDate;
 
-  private String comments;
-
   @ManyToOne
   @JoinColumn(name = "event_reference_id")
   private EventReference eventReference;
@@ -106,14 +104,6 @@ public class LicenceSchedulePhase implements LinkedToDuplicationParent<LicenceSc
 
   public void setEndDate(LocalDate endDate) {
     this.endDate = endDate;
-  }
-
-  public String getComments() {
-    return comments;
-  }
-
-  public void setComments(String comments) {
-    this.comments = comments;
   }
 
   public LicenceScheduleTerm getLicenceScheduleTerm() {

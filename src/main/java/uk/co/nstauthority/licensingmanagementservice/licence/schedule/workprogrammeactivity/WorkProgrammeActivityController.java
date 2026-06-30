@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTeamType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.licencescheduledetail.LicenceScheduleDetailHasStatus;
@@ -58,7 +59,8 @@ public class WorkProgrammeActivityController {
       @PathVariable UUID licenceScheduleDetailId,
       LicenceScheduleDetail licenceScheduleDetail,
       @ModelAttribute("form") WorkProgrammeActivityForm form,
-      BindingResult bindingResult
+      BindingResult bindingResult,
+      ServiceUserDetail serviceUserDetail
   ) {
     if (!workProgrammeActivityFormValidator.isValid(form, bindingResult)) {
       return getActivityModelAndView(form, licenceScheduleDetail);
@@ -67,7 +69,8 @@ public class WorkProgrammeActivityController {
     workProgrammeActivityFormService.saveActivityFromForm(
         form,
         licenceScheduleDetail,
-        new WorkProgrammeActivity()
+        new WorkProgrammeActivity(),
+        serviceUserDetail
     );
 
     return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
@@ -89,7 +92,8 @@ public class WorkProgrammeActivityController {
       @PathVariable UUID workProgrammeActivityId,
       WorkProgrammeActivity workProgrammeActivity,
       @ModelAttribute("form") WorkProgrammeActivityForm form,
-      BindingResult bindingResult
+      BindingResult bindingResult,
+      ServiceUserDetail serviceUserDetail
   ) {
     var licenceScheduleDetail = workProgrammeActivity.getLicenceScheduleDetail();
 
@@ -99,7 +103,8 @@ public class WorkProgrammeActivityController {
     workProgrammeActivityFormService.saveActivityFromForm(
         form,
         licenceScheduleDetail,
-        workProgrammeActivity
+        workProgrammeActivity,
+        serviceUserDetail
     );
 
     return licenceScheduleDetail.getScheduleTimelineRedirectUrl();

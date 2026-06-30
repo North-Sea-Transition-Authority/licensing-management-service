@@ -57,8 +57,6 @@ public class LicenceScheduleRate implements LinkedToDuplicationParent<LicenceSch
 
   private BigDecimal rentalRate;
 
-  private String comments;
-
   @ManyToOne
   @JoinColumn(name = "event_reference_id")
   private EventReference eventReference;
@@ -138,14 +136,6 @@ public class LicenceScheduleRate implements LinkedToDuplicationParent<LicenceSch
 
   public void setRentalRate(BigDecimal rentalRate) {
     this.rentalRate = rentalRate;
-  }
-
-  public String getComments() {
-    return comments;
-  }
-
-  public void setComments(String comments) {
-    this.comments = comments;
   }
 
   public EventReference getEventReference() {

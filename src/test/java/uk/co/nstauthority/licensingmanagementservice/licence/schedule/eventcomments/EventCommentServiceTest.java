@@ -3,6 +3,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomm
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
@@ -90,6 +92,87 @@ class EventCommentServiceTest {
   }
 
   @Test
+  void addOrUpdatePendingComment_whenCommentIsNull_andPendingCommentExists_deletesExisting() {
+    var eventReference = new EventReference();
+    var author = ServiceUserDetailTestUtil.newBuilder().withWuaId(42L).build();
+    var existingComment = new EventComment();
+
+    when(eventCommentRepository.findByEventReferenceAndStatus(eventReference, EventCommentStatus.PENDING))
+        .thenReturn(Optional.of(existingComment));
+
+    eventCommentService.addOrUpdatePendingComment(null, eventReference, author);
+
+    verify(eventCommentRepository).delete(existingComment);
+  }
+
+  @Test
+  void addOrUpdatePendingComment_whenCommentIsBlank_andNoPendingComment_doesNothing() {
+    var eventReference = new EventReference();
+    var author = ServiceUserDetailTestUtil.newBuilder().withWuaId(42L).build();
+
+    when(eventCommentRepository.findByEventReferenceAndStatus(eventReference, EventCommentStatus.PENDING))
+        .thenReturn(Optional.empty());
+
+    eventCommentService.addOrUpdatePendingComment("  ", eventReference, author);
+
+    verify(eventCommentRepository, never()).save(any(EventComment.class));
+    verify(eventCommentRepository, never()).delete(any(EventComment.class));
+  }
+
+  @Test
+  void addOrUpdatePendingComment_whenCommentProvided_andNoPendingComment_savesNewComment() {
+    var eventReference = new EventReference();
+    var author = ServiceUserDetailTestUtil.newBuilder().withWuaId(42L).build();
+    var fixedInstant = Instant.parse("2025-01-01T10:00:00Z");
+
+    when(eventCommentRepository.findByEventReferenceAndStatus(eventReference, EventCommentStatus.PENDING))
+        .thenReturn(Optional.empty());
+    when(clock.instant()).thenReturn(fixedInstant);
+
+    eventCommentService.addOrUpdatePendingComment("New comment", eventReference, author);
+
+    verify(eventCommentRepository).save(eventCommentArgumentCaptor.capture());
+
+    assertThat(eventCommentArgumentCaptor.getValue())
+        .extracting(
+            EventComment::getEventReference,
+            EventComment::getComment,
+            EventComment::getStatus,
+            EventComment::getAuthorWuaId,
+            EventComment::getTimestamp
+        )
+        .containsExactly(eventReference, "New comment", EventCommentStatus.PENDING, 42L, fixedInstant);
+  }
+
+  @Test
+  void addOrUpdatePendingComment_whenCommentProvided_andPendingCommentExists_updatesExisting() {
+    var eventReference = new EventReference();
+    var author = ServiceUserDetailTestUtil.newBuilder().withWuaId(42L).build();
+    var existingComment = new EventComment();
+    existingComment.setComment("Old comment");
+    var fixedInstant = Instant.parse("2025-06-01T12:00:00Z");
+
+    when(eventCommentRepository.findByEventReferenceAndStatus(eventReference, EventCommentStatus.PENDING))
+        .thenReturn(Optional.of(existingComment));
+    when(clock.instant()).thenReturn(fixedInstant);
+
+    eventCommentService.addOrUpdatePendingComment("Updated comment", eventReference, author);
+
+    verify(eventCommentRepository).save(eventCommentArgumentCaptor.capture());
+
+    assertThat(eventCommentArgumentCaptor.getValue())
+        .isSameAs(existingComment)
+        .extracting(
+            EventComment::getEventReference,
+            EventComment::getComment,
+            EventComment::getStatus,
+            EventComment::getAuthorWuaId,
+            EventComment::getTimestamp
+        )
+        .containsExactly(eventReference, "Updated comment", EventCommentStatus.PENDING, 42L, fixedInstant);
+  }
+
+  @Test
   void getEventCommentViewsForSchedule_returnsCommentsMappedByEventReferenceId() {
     var licenceSchedule = new LicenceSchedule();
 
@@ -115,7 +198,7 @@ class EventCommentServiceTest {
     comment2.setAuthorWuaId(authorWuaId);
     comment2.setTimestamp(Instant.parse("2025-01-02T12:00:00Z"));
 
-    when(eventCommentRepository.getAllByEventReference_LicenceSchedule(licenceSchedule))
+    when(eventCommentRepository.getAllByEventReference_LicenceScheduleAndStatus(licenceSchedule, EventCommentStatus.PUBLISHED))
         .thenReturn(List.of(comment1, comment2));
 
     var userJson = new EnergyPortalUserJson(authorWuaId, null, "Jane", "Smith", null, null, true, null, false);
@@ -171,7 +254,7 @@ class EventCommentServiceTest {
     olderComment.setAuthorWuaId(authorWuaId);
     olderComment.setTimestamp(Instant.parse("2025-01-01T09:00:00Z"));
 
-    when(eventCommentRepository.getAllByEventReference_LicenceSchedule(licenceSchedule))
+    when(eventCommentRepository.getAllByEventReference_LicenceScheduleAndStatus(licenceSchedule, EventCommentStatus.PUBLISHED))
         .thenReturn(List.of(newerComment, olderComment));
 
     var userJson = new EnergyPortalUserJson(authorWuaId, null, "Bob", "Jones", null, null, true, null, false);
@@ -195,7 +278,7 @@ class EventCommentServiceTest {
   void getEventCommentViewsForSchedule_emptySchedule() {
     var licenceSchedule = new LicenceSchedule();
 
-    when(eventCommentRepository.getAllByEventReference_LicenceSchedule(licenceSchedule))
+    when(eventCommentRepository.getAllByEventReference_LicenceScheduleAndStatus(licenceSchedule, EventCommentStatus.PUBLISHED))
         .thenReturn(List.of());
 
     var result = eventCommentService.getEventCommentViewsForSchedule(licenceSchedule);
@@ -250,6 +333,50 @@ class EventCommentServiceTest {
             ReverseRouter.route(on(EventCommentDeletionController.class)
                 .renderDeleteCommentPage(eventComment.getId(), null))
         ));
+  }
+
+  @Test
+  void deletePendingCommentsForSchedule_deletesAllPendingComments() {
+    var licenceSchedule = new LicenceSchedule();
+
+    eventCommentService.deletePendingCommentsForSchedule(licenceSchedule);
+
+    verify(eventCommentRepository).deleteAllByEventReference_LicenceScheduleAndStatus(
+        licenceSchedule, EventCommentStatus.PENDING);
+  }
+
+  @Test
+  void publishPendingCommentsForSchedule_setsPendingCommentStatusToPublished() {
+    var licenceSchedule = new LicenceSchedule();
+
+    var comment1 = new EventComment();
+    comment1.setStatus(EventCommentStatus.PENDING);
+
+    var comment2 = new EventComment();
+    comment2.setStatus(EventCommentStatus.PENDING);
+
+    when(eventCommentRepository.getAllByEventReference_LicenceScheduleAndStatus(
+        licenceSchedule, EventCommentStatus.PENDING))
+        .thenReturn(List.of(comment1, comment2));
+
+    eventCommentService.publishPendingCommentsForSchedule(licenceSchedule);
+
+    assertThat(comment1.getStatus()).isEqualTo(EventCommentStatus.PUBLISHED);
+    assertThat(comment2.getStatus()).isEqualTo(EventCommentStatus.PUBLISHED);
+    verify(eventCommentRepository).saveAll(List.of(comment1, comment2));
+  }
+
+  @Test
+  void publishPendingCommentsForSchedule_whenNoPendingComments_savesNothing() {
+    var licenceSchedule = new LicenceSchedule();
+
+    when(eventCommentRepository.getAllByEventReference_LicenceScheduleAndStatus(
+        licenceSchedule, EventCommentStatus.PENDING))
+        .thenReturn(List.of());
+
+    eventCommentService.publishPendingCommentsForSchedule(licenceSchedule);
+
+    verify(eventCommentRepository).saveAll(List.of());
   }
 
   @Test

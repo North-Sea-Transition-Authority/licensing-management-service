@@ -11,9 +11,12 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -21,6 +24,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.S
 
 @ExtendWith(MockitoExtension.class)
 class LicenceScheduleTermFormServiceTest {
+
+  private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder().build();
 
   @Mock
   private LicenceScheduleTermRepository licenceScheduleTermRepository;
@@ -30,6 +35,9 @@ class LicenceScheduleTermFormServiceTest {
 
   @Mock
   private EventReferenceService eventReferenceService;
+
+  @Mock
+  private EventCommentService eventCommentService;
 
   @InjectMocks
   private LicenceScheduleTermFormService licenceScheduleTermFormService;
@@ -52,7 +60,7 @@ class LicenceScheduleTermFormServiceTest {
     var eventReference = new EventReference();
     when(eventReferenceService.createEventReference(licenceSchedule, ScheduleEventType.TERM)).thenReturn(eventReference);
 
-    licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail, new LicenceScheduleTerm());
+    licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail, new LicenceScheduleTerm(), USER);
 
     verify(licenceScheduleTermRepository).save(licenceScheduleTermArgumentCaptor.capture());
 
@@ -70,6 +78,7 @@ class LicenceScheduleTermFormServiceTest {
         eventReference
     );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -86,7 +95,7 @@ class LicenceScheduleTermFormServiceTest {
     var term = new LicenceScheduleTerm();
     term.setEventReference(new EventReference());
 
-    licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail, term);
+    licenceScheduleTermFormService.saveTermFromForm(form, licenceScheduleDetail, term, USER);
 
     verify(licenceScheduleTermRepository).save(licenceScheduleTermArgumentCaptor.capture());
 
@@ -104,6 +113,7 @@ class LicenceScheduleTermFormServiceTest {
         term.getEventReference()
     );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), term.getEventReference(), USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 }

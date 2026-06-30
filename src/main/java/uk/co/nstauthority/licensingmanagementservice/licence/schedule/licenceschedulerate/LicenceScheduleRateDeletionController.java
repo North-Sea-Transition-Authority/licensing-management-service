@@ -13,6 +13,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamT
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.licencescheduledetail.LicenceScheduleDetailHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventComment;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -28,13 +30,16 @@ public class LicenceScheduleRateDeletionController {
   private static final String PAGE_TITLE = "Do you want to delete this rate?";
 
   private final LicenceScheduleRateService licenceScheduleRateService;
+  private final EventCommentService eventCommentService;
   private final LicenceService licenceService;
 
   public LicenceScheduleRateDeletionController(
       LicenceScheduleRateService licenceScheduleRateService,
+      EventCommentService eventCommentService,
       LicenceService licenceService
   ) {
     this.licenceScheduleRateService = licenceScheduleRateService;
+    this.eventCommentService = eventCommentService;
     this.licenceService = licenceService;
   }
 
@@ -43,10 +48,16 @@ public class LicenceScheduleRateDeletionController {
       @PathVariable UUID licenceScheduleRateId
   ) {
     var rate = licenceScheduleRateService.getRateByIdOrThrow(licenceScheduleRateId);
+    var pendingComment = rate.getEventReference() != null
+        ? eventCommentService.findPendingCommentForEventReference(rate.getEventReference())
+            .map(EventComment::getComment)
+            .orElse("")
+        : "";
 
     return new ModelAndView("lms/licence/schedule/deleteScheduleRate")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("summaryView", LicenceScheduleRateSummaryView.from(rate))
+        .addObject("pendingComment", pendingComment)
         .addObject("cancelUrl", rate.getLicenceScheduleDetail().getScheduleTimelineRouteUrl())
         .addObject("pageCaption",
             licenceService.getLicencePageCaption(rate.getLicenceScheduleDetail().getLicenceSchedule().getLicence()));

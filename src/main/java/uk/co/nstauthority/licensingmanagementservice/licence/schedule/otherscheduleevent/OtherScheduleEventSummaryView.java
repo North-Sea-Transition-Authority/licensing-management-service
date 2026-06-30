@@ -4,8 +4,7 @@ import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 
 public record OtherScheduleEventSummaryView(
     String description,
-    String eventDate,
-    String comments
+    String eventDate
 ) {
 
   public static OtherScheduleEventSummaryView fromOtherScheduleEvent(OtherScheduleEvent otherScheduleEvent) {
@@ -15,8 +14,7 @@ public record OtherScheduleEventSummaryView(
 
     return new OtherScheduleEventSummaryView(
         otherScheduleEvent.getDescription(),
-        eventDateString,
-        otherScheduleEvent.getComments()
+        eventDateString
     );
   }
 

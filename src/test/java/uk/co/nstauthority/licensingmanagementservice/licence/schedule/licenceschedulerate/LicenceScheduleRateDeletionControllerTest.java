@@ -14,6 +14,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +25,9 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventComment;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -34,6 +38,9 @@ class LicenceScheduleRateDeletionControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private LicenceScheduleRateService licenceScheduleRateService;
+
+  @MockitoBean
+  private EventCommentService eventCommentService;
 
   private Licence licence;
   private LicenceScheduleDetail licenceScheduleDetail;
@@ -53,7 +60,6 @@ class LicenceScheduleRateDeletionControllerTest extends AbstractControllerTest {
     rate.setLicenceScheduleDetail(licenceScheduleDetail);
     rate.setStartDate(LocalDate.now());
     rate.setRentalRate(BigDecimal.ONE);
-    rate.setComments("comments");
   }
 
   @Test
@@ -72,7 +78,8 @@ class LicenceScheduleRateDeletionControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("pageTitle", "Do you want to delete this rate?"))
         .andExpect(model().attribute("summaryView", LicenceScheduleRateSummaryView.from(rate)))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
-        .andExpect(model().attribute("pageCaption", "caption"));
+        .andExpect(model().attribute("pageCaption", "caption"))
+        .andExpect(model().attribute("pendingComment", ""));
   }
 
   @Test
@@ -118,6 +125,47 @@ class LicenceScheduleRateDeletionControllerTest extends AbstractControllerTest {
         .andExpect(status().isForbidden());
 
     verify(licenceScheduleRateService, never()).deleteLicenceScheduleRate(rate);
+  }
+
+  @Test
+  void renderDeleteRatePage_whenRateHasEventReferenceAndPendingCommentExists_showsPendingComment() throws Exception {
+    var eventReference = new EventReference();
+    rate.setEventReference(eventReference);
+
+    var eventComment = new EventComment();
+    eventComment.setComment("a pending comment");
+
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
+    when(licenceScheduleRateService.getRateByIdOrThrow(rate.getId())).thenReturn(rate);
+    when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");
+    when(eventCommentService.findPendingCommentForEventReference(eventReference)).thenReturn(Optional.of(eventComment));
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceScheduleRateDeletionController.class).renderDeleteRatePage(rate.getId())))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("pendingComment", "a pending comment"));
+  }
+
+  @Test
+  void renderDeleteRatePage_whenRateHasEventReferenceAndNoPendingComment_showsEmptyPendingComment() throws Exception {
+    var eventReference = new EventReference();
+    rate.setEventReference(eventReference);
+
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
+    when(licenceScheduleRateService.getRateByIdOrThrow(rate.getId())).thenReturn(rate);
+    when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");
+    when(eventCommentService.findPendingCommentForEventReference(eventReference)).thenReturn(Optional.empty());
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceScheduleRateDeletionController.class).renderDeleteRatePage(rate.getId())))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("pendingComment", ""));
   }
 
 }

@@ -9,6 +9,8 @@ public class LicenceScheduleTermForm {
 
   private ThreeFieldDurationInput termDuration = new ThreeFieldDurationInput("termDuration", "term");
 
+  private String comments;
+
   public TermType getTermType() {
     return termType;
   }
@@ -23,5 +25,13 @@ public class LicenceScheduleTermForm {
 
   public void setTermDuration(ThreeFieldDurationInput termDuration) {
     this.termDuration = termDuration;
+  }
+
+  public String getComments() {
+    return comments;
+  }
+
+  public void setComments(String comments) {
+    this.comments = comments;
   }
 }

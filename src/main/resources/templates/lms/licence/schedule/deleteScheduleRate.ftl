@@ -14,9 +14,11 @@ errorSummaryItems=errorSummaryItems>
       <@fdsSummaryList.summaryListRowNoAction keyText="Rental rate">
         ${summaryView.rentalRate()} per km<sup>2</sup>
       </@fdsSummaryList.summaryListRowNoAction>
-      <@fdsSummaryList.summaryListRowNoAction keyText="Comments">
-        ${summaryView.comments()!""}
-      </@fdsSummaryList.summaryListRowNoAction>
+      <#if pendingComment?has_content>
+        <@fdsSummaryList.summaryListRowNoAction keyText="Comment">
+          ${pendingComment}
+        </@fdsSummaryList.summaryListRowNoAction>
+      </#if>
     </@fdsSummaryList.summaryList>
 
     <@fdsAction.submitButtons

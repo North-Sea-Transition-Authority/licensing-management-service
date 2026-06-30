@@ -7,6 +7,7 @@ import java.time.Clock;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -64,8 +65,36 @@ public class EventCommentService {
     eventCommentRepository.save(eventComment);
   }
 
+  @Transactional
+  public void addOrUpdatePendingComment(
+      String comment,
+      EventReference eventReference,
+      ServiceUserDetail author
+  ) {
+    var existingPendingComment = eventCommentRepository.findByEventReferenceAndStatus(
+        eventReference, EventCommentStatus.PENDING);
+
+    if (comment == null || comment.isBlank()) {
+      existingPendingComment.ifPresent(eventCommentRepository::delete);
+      return;
+    }
+
+    var eventComment = existingPendingComment.orElseGet(EventComment::new);
+    eventComment.setEventReference(eventReference);
+    eventComment.setComment(comment);
+    eventComment.setStatus(EventCommentStatus.PENDING);
+    eventComment.setTimestamp(clock.instant());
+    eventComment.setAuthorWuaId(author.wuaId());
+    eventCommentRepository.save(eventComment);
+  }
+
+  public Optional<EventComment> findPendingCommentForEventReference(EventReference eventReference) {
+    return eventCommentRepository.findByEventReferenceAndStatus(eventReference, EventCommentStatus.PENDING);
+  }
+
   public Map<UUID, List<EventCommentView>> getEventCommentViewsForSchedule(LicenceSchedule licenceSchedule) {
-    var comments = eventCommentRepository.getAllByEventReference_LicenceSchedule(licenceSchedule);
+    var comments = eventCommentRepository.getAllByEventReference_LicenceScheduleAndStatus(
+        licenceSchedule, EventCommentStatus.PUBLISHED);
 
     if (comments.isEmpty()) {
       return Map.of();
@@ -90,6 +119,20 @@ public class EventCommentService {
             comment -> comment.getEventReference().getId(),
             Collectors.mapping(eventComment -> createViewFrom(eventComment, wuaIdNameMap), Collectors.toList())
         ));
+  }
+
+  @Transactional
+  public void deletePendingCommentsForSchedule(LicenceSchedule licenceSchedule) {
+    eventCommentRepository.deleteAllByEventReference_LicenceScheduleAndStatus(
+        licenceSchedule, EventCommentStatus.PENDING);
+  }
+
+  @Transactional
+  public void publishPendingCommentsForSchedule(LicenceSchedule licenceSchedule) {
+    var pendingComments = eventCommentRepository.getAllByEventReference_LicenceScheduleAndStatus(
+        licenceSchedule, EventCommentStatus.PENDING);
+    pendingComments.forEach(comment -> comment.setStatus(EventCommentStatus.PUBLISHED));
+    eventCommentRepository.saveAll(pendingComments);
   }
 
   public EventComment getEventCommentByIdOrThrow(UUID id) {

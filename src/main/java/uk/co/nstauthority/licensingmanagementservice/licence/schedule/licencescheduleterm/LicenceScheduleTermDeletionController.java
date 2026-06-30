@@ -14,6 +14,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.licence
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventComment;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -30,15 +32,18 @@ public class LicenceScheduleTermDeletionController {
 
   private final LicenceScheduleTermService licenceScheduleTermService;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
+  private final EventCommentService eventCommentService;
   private final LicenceService licenceService;
 
   public LicenceScheduleTermDeletionController(
       LicenceScheduleTermService licenceScheduleTermService,
       LicenceScheduleCalculationService licenceScheduleCalculationService,
+      EventCommentService eventCommentService,
       LicenceService licenceService
   ) {
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
+    this.eventCommentService = eventCommentService;
     this.licenceService = licenceService;
   }
 
@@ -47,10 +52,16 @@ public class LicenceScheduleTermDeletionController {
       @PathVariable UUID licenceScheduleTermId
   ) {
     var term = licenceScheduleTermService.getTermByIdOrThrow(licenceScheduleTermId);
+    var pendingComment = term.getEventReference() != null
+        ? eventCommentService.findPendingCommentForEventReference(term.getEventReference())
+            .map(EventComment::getComment)
+            .orElse("")
+        : "";
 
     return new ModelAndView("lms/licence/schedule/deleteScheduleTerm")
         .addObject("pageTitle", PAGE_TITLE.formatted(term.getTermType().getDisplayName()))
         .addObject("licenceScheduleTermSummaryView", LicenceScheduleTermSummaryView.fromTerm(term))
+        .addObject("pendingComment", pendingComment)
         .addObject("cancelUrl", term.getLicenceScheduleDetail().getScheduleTimelineRouteUrl())
         .addObject("pageCaption",
             licenceService.getLicencePageCaption(term.getLicenceScheduleDetail().getLicenceSchedule().getLicence()));

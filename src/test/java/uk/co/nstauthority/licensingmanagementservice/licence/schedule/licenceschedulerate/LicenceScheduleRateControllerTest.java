@@ -112,13 +112,13 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
     when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class))).thenReturn(true);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null, null, null)))
+            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(licenceScheduleRateFormService).saveRateFromForm(any(), eq(licenceScheduleDetail), any());
+    verify(licenceScheduleRateFormService).saveRateFromForm(any(), eq(licenceScheduleDetail), any(), any());
   }
 
   @Test
@@ -135,7 +135,7 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(pageCaption);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null, null, null)))
+            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
@@ -149,7 +149,7 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("pageCaption", pageCaption))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
 
-    verify(licenceScheduleRateFormService, never()).saveRateFromForm(any(), any(), any());
+    verify(licenceScheduleRateFormService, never()).saveRateFromForm(any(), any(), any(), any());
   }
 
   @Test
@@ -158,13 +158,13 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
         .thenReturn(false);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null, null, null)))
+            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().isForbidden());
 
-    verify(licenceScheduleRateFormService, never()).saveRateFromForm(any(), any(), any());
+    verify(licenceScheduleRateFormService, never()).saveRateFromForm(any(), any(), any(), any());
   }
 
   @Test
@@ -231,13 +231,13 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
     when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class))).thenReturn(true);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitUpdateLicenceScheduleRateForm(rate.getId(), null, null)))
+            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitUpdateLicenceScheduleRateForm(rate.getId(), null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(licenceScheduleRateFormService).saveRateFromForm(any(), eq(licenceScheduleDetail), eq(rate));
+    verify(licenceScheduleRateFormService).saveRateFromForm(any(), eq(licenceScheduleDetail), eq(rate), any());
   }
 
   @Test
@@ -258,7 +258,7 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(pageCaption);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitUpdateLicenceScheduleRateForm(rate.getId(), null, null)))
+            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitUpdateLicenceScheduleRateForm(rate.getId(), null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
@@ -272,7 +272,7 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("pageCaption", pageCaption))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
 
-    verify(licenceScheduleRateFormService, never()).saveRateFromForm(any(), any(), any());
+    verify(licenceScheduleRateFormService, never()).saveRateFromForm(any(), any(), any(), any());
   }
 
   @Test
@@ -285,13 +285,13 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
         .thenReturn(false);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitUpdateLicenceScheduleRateForm(rate.getId(), null, null)))
+            post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitUpdateLicenceScheduleRateForm(rate.getId(), null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().isForbidden());
 
-    verify(licenceScheduleRateFormService, never()).saveRateFromForm(any(), any(), any());
+    verify(licenceScheduleRateFormService, never()).saveRateFromForm(any(), any(), any(), any());
   }
 
 }

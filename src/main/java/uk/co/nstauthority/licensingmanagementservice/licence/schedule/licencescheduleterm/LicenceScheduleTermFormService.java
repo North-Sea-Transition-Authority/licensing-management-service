@@ -2,7 +2,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesc
 
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
@@ -13,22 +15,26 @@ public class LicenceScheduleTermFormService {
   private final LicenceScheduleTermRepository licenceScheduleTermRepository;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
   private final EventReferenceService eventReferenceService;
+  private final EventCommentService eventCommentService;
 
   public LicenceScheduleTermFormService(
       LicenceScheduleTermRepository licenceScheduleTermRepository,
       LicenceScheduleCalculationService licenceScheduleCalculationService,
-      EventReferenceService eventReferenceService
+      EventReferenceService eventReferenceService,
+      EventCommentService eventCommentService
   ) {
     this.licenceScheduleTermRepository = licenceScheduleTermRepository;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
     this.eventReferenceService = eventReferenceService;
+    this.eventCommentService = eventCommentService;
   }
 
   @Transactional
   public void saveTermFromForm(
       LicenceScheduleTermForm licenceScheduleTermForm,
       LicenceScheduleDetail licenceScheduleDetail,
-      LicenceScheduleTerm licenceScheduleTerm
+      LicenceScheduleTerm licenceScheduleTerm,
+      ServiceUserDetail serviceUserDetail
   ) {
     licenceScheduleTerm.setLicenceScheduleDetail(licenceScheduleDetail);
     licenceScheduleTerm.setTermType(licenceScheduleTermForm.getTermType());
@@ -41,6 +47,11 @@ public class LicenceScheduleTermFormService {
     }
 
     licenceScheduleTermRepository.save(licenceScheduleTerm);
+    eventCommentService.addOrUpdatePendingComment(
+        licenceScheduleTermForm.getComments(),
+        licenceScheduleTerm.getEventReference(),
+        serviceUserDetail
+    );
 
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
@@ -49,6 +60,10 @@ public class LicenceScheduleTermFormService {
     var form = new LicenceScheduleTermForm();
     form.setTermType(term.getTermType());
     form.getTermDuration().setFromThreeFieldDuration(term.getTermDuration());
+    if (term.getEventReference() != null) {
+      eventCommentService.findPendingCommentForEventReference(term.getEventReference())
+          .ifPresent(comment -> form.setComments(comment.getComment()));
+    }
 
     return form;
   }

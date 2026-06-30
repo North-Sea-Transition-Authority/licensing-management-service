@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTeamType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.licencescheduledetail.LicenceScheduleDetailHasStatus;
@@ -58,13 +59,14 @@ public class LicenceSchedulePhaseController {
       @PathVariable UUID licenceScheduleDetailId,
       LicenceScheduleDetail licenceScheduleDetail,
       @ModelAttribute("form") LicenceSchedulePhaseForm form,
-      BindingResult bindingResult
+      BindingResult bindingResult,
+      ServiceUserDetail serviceUserDetail
   ) {
     if (!licenceSchedulePhaseFormValidator.isValid(form, bindingResult, licenceScheduleDetail)) {
       return getSchedulePhaseModelAndView(form, licenceScheduleDetail);
     }
 
-    licenceSchedulePhaseFormService.savePhaseFromForm(form, licenceScheduleDetail, new LicenceSchedulePhase());
+    licenceSchedulePhaseFormService.savePhaseFromForm(form, licenceScheduleDetail, new LicenceSchedulePhase(), serviceUserDetail);
 
     return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
   }
@@ -82,7 +84,8 @@ public class LicenceSchedulePhaseController {
   ModelAndView submitUpdatePhaseForm(
       @PathVariable UUID licenceSchedulePhaseId,
       @ModelAttribute("form") LicenceSchedulePhaseForm form,
-      BindingResult bindingResult
+      BindingResult bindingResult,
+      ServiceUserDetail serviceUserDetail
   ) {
     var phase = licenceSchedulePhaseService.getPhaseByIdOrThrow(licenceSchedulePhaseId);
     var licenceScheduleDetail = phase.getLicenceScheduleDetail();
@@ -91,7 +94,7 @@ public class LicenceSchedulePhaseController {
       return getSchedulePhaseModelAndView(form, licenceScheduleDetail);
     }
 
-    licenceSchedulePhaseFormService.savePhaseFromForm(form, licenceScheduleDetail, phase);
+    licenceSchedulePhaseFormService.savePhaseFromForm(form, licenceScheduleDetail, phase, serviceUserDetail);
 
     return licenceScheduleDetail.getScheduleTimelineRedirectUrl();
   }

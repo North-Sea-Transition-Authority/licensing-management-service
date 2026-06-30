@@ -14,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTea
 import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineService;
@@ -35,15 +36,18 @@ public class ReviewAndApplyScheduleController {
   private final LicenceService licenceService;
   private final LicenceScheduleDetailService licenceScheduleDetailService;
   private final LicenceScheduleTimelineService licenceScheduleTimelineService;
+  private final EventCommentService eventCommentService;
 
   public ReviewAndApplyScheduleController(
       LicenceService licenceService,
       LicenceScheduleDetailService licenceScheduleDetailService,
-      LicenceScheduleTimelineService licenceScheduleTimelineService
+      LicenceScheduleTimelineService licenceScheduleTimelineService,
+      EventCommentService eventCommentService
   ) {
     this.licenceService = licenceService;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.licenceScheduleTimelineService = licenceScheduleTimelineService;
+    this.eventCommentService = eventCommentService;
   }
 
   @GetMapping
@@ -65,6 +69,7 @@ public class ReviewAndApplyScheduleController {
       LicenceScheduleDetail licenceScheduleDetail,
       RedirectAttributes redirectAttributes
   ) {
+    eventCommentService.publishPendingCommentsForSchedule(licenceScheduleDetail.getLicenceSchedule());
     licenceScheduleDetailService.applyAndReplaceActiveScheduleDetail(licenceScheduleDetail);
 
     var licenceReference = licenceScheduleDetail.getLicenceSchedule().getLicence().getLicenceReference();

@@ -18,6 +18,8 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -26,6 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRu
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -39,6 +42,8 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEn
 
 @ExtendWith(MockitoExtension.class)
 class WorkProgrammeActivityFormServiceTest {
+
+  private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder().build();
 
   @Mock
   private WorkProgrammeActivityRepository workProgrammeActivityRepository;
@@ -63,6 +68,9 @@ class WorkProgrammeActivityFormServiceTest {
 
   @Mock
   private EventReferenceService eventReferenceService;
+
+  @Mock
+  private EventCommentService eventCommentService;
 
   @InjectMocks
   private WorkProgrammeActivityFormService workProgrammeActivityFormService;
@@ -147,7 +155,7 @@ class WorkProgrammeActivityFormServiceTest {
 
     form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
 
-    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, new WorkProgrammeActivity());
+    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, new WorkProgrammeActivity(), USER);
 
     verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
 
@@ -179,6 +187,7 @@ class WorkProgrammeActivityFormServiceTest {
             eventReference
         );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
     verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
@@ -207,7 +216,7 @@ class WorkProgrammeActivityFormServiceTest {
     var activity = new WorkProgrammeActivity();
     activity.setEventReference(new EventReference());
 
-    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, activity);
+    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, activity, USER);
 
     verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
 
@@ -239,6 +248,7 @@ class WorkProgrammeActivityFormServiceTest {
             activity.getEventReference()
         );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), activity.getEventReference(), USER);
     verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
@@ -267,7 +277,7 @@ class WorkProgrammeActivityFormServiceTest {
 
     form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
 
-    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, new WorkProgrammeActivity());
+    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, new WorkProgrammeActivity(), USER);
 
     verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
 
@@ -299,6 +309,7 @@ class WorkProgrammeActivityFormServiceTest {
             eventReference
         );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
     verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
@@ -323,7 +334,7 @@ class WorkProgrammeActivityFormServiceTest {
     var eventReference = new EventReference();
     when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.WORK_PROGRAMME_ACTIVITY)).thenReturn(eventReference);
 
-    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, new WorkProgrammeActivity());
+    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, new WorkProgrammeActivity(), USER);
 
     verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
 
@@ -353,6 +364,7 @@ class WorkProgrammeActivityFormServiceTest {
             eventReference
         );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
     verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
@@ -374,7 +386,7 @@ class WorkProgrammeActivityFormServiceTest {
     var activity = new WorkProgrammeActivity();
     activity.setDueDate(LocalDate.of(2025, 1, 1));
 
-    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, activity);
+    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, activity, USER);
 
     verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
 
@@ -401,7 +413,7 @@ class WorkProgrammeActivityFormServiceTest {
     var eventReference = new EventReference();
     when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.WORK_PROGRAMME_ACTIVITY)).thenReturn(eventReference);
 
-    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, new WorkProgrammeActivity());
+    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, new WorkProgrammeActivity(), USER);
 
     verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
 
@@ -431,6 +443,7 @@ class WorkProgrammeActivityFormServiceTest {
             eventReference
         );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
     verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
@@ -452,7 +465,7 @@ class WorkProgrammeActivityFormServiceTest {
     var activity = new WorkProgrammeActivity();
     activity.setDueDate(LocalDate.of(2025, 1, 1));
 
-    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, activity);
+    workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, activity, USER);
 
     verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
 
@@ -471,7 +484,6 @@ class WorkProgrammeActivityFormServiceTest {
     workProgrammeActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     workProgrammeActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
     workProgrammeActivity.setLicenceScheduleTerm(term);
-    workProgrammeActivity.setComments("comments");
 
     assertThat(workProgrammeActivityFormService.getActivityForm(workProgrammeActivity))
         .extracting(
@@ -494,7 +506,7 @@ class WorkProgrammeActivityFormServiceTest {
             String.valueOf(workProgrammeActivity.getLicenceScheduleTerm().getId()),
             null,
             null,
-            workProgrammeActivity.getComments()
+            null
     );
   }
 
@@ -510,7 +522,6 @@ class WorkProgrammeActivityFormServiceTest {
     workProgrammeActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     workProgrammeActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
     workProgrammeActivity.setLicenceSchedulePhase(phase);
-    workProgrammeActivity.setComments("comments");
 
     assertThat(workProgrammeActivityFormService.getActivityForm(workProgrammeActivity))
         .extracting(
@@ -533,7 +544,7 @@ class WorkProgrammeActivityFormServiceTest {
             null,
             String.valueOf(workProgrammeActivity.getLicenceSchedulePhase().getId()),
             null,
-            workProgrammeActivity.getComments()
+            null
         );
   }
 
@@ -550,7 +561,6 @@ class WorkProgrammeActivityFormServiceTest {
     workProgrammeActivity.setDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
     workProgrammeActivity.setRelativeDuration(new ThreeFieldDuration(1, 2, 3));
     workProgrammeActivity.setLicenceSchedulePhase(phase);
-    workProgrammeActivity.setComments("comments");
 
     var result = workProgrammeActivityFormService.getActivityForm(workProgrammeActivity);
 
@@ -575,7 +585,7 @@ class WorkProgrammeActivityFormServiceTest {
             null,
             null,
             String.valueOf(workProgrammeActivity.getLicenceSchedulePhase().getId()),
-            workProgrammeActivity.getComments()
+            null
         );
 
     var duration = result.getRelativeDuration().toThreeFieldDuration();

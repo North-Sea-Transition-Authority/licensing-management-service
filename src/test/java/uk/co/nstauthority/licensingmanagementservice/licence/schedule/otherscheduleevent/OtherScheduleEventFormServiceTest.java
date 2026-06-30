@@ -18,6 +18,8 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -26,6 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRu
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -38,6 +41,8 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEn
 
 @ExtendWith(MockitoExtension.class)
 class OtherScheduleEventFormServiceTest {
+
+  private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder().build();
 
   @Mock
   private OtherScheduleEventRepository otherScheduleEventRepository;
@@ -59,6 +64,9 @@ class OtherScheduleEventFormServiceTest {
 
   @Mock
   private EventReferenceService eventReferenceService;
+
+  @Mock
+  private EventCommentService eventCommentService;
 
   @InjectMocks
   private OtherScheduleEventFormService otherScheduleEventFormService;
@@ -143,7 +151,7 @@ class OtherScheduleEventFormServiceTest {
 
     form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
 
-    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, new OtherScheduleEvent());
+    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, new OtherScheduleEvent(), USER);
 
     verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
 
@@ -173,6 +181,7 @@ class OtherScheduleEventFormServiceTest {
             eventReference
         );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -199,7 +208,7 @@ class OtherScheduleEventFormServiceTest {
     var event = new OtherScheduleEvent();
     event.setEventReference(new EventReference());
 
-    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, event);
+    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, event, USER);
 
     verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
 
@@ -229,6 +238,7 @@ class OtherScheduleEventFormServiceTest {
             event.getEventReference()
         );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), event.getEventReference(), USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -255,7 +265,7 @@ class OtherScheduleEventFormServiceTest {
 
     form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
 
-    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, new OtherScheduleEvent());
+    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, new OtherScheduleEvent(), USER);
 
     verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
 
@@ -285,6 +295,7 @@ class OtherScheduleEventFormServiceTest {
             eventReference
         );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -307,7 +318,7 @@ class OtherScheduleEventFormServiceTest {
     var eventReference = new EventReference();
     when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.OTHER)).thenReturn(eventReference);
 
-    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, new OtherScheduleEvent());
+    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, new OtherScheduleEvent(), USER);
 
     verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
 
@@ -335,6 +346,7 @@ class OtherScheduleEventFormServiceTest {
             eventReference
         );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -354,7 +366,7 @@ class OtherScheduleEventFormServiceTest {
     var event = new OtherScheduleEvent();
     event.setEventDate(LocalDate.of(2025, 1, 1));
 
-    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, event);
+    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, event, USER);
 
     verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
 
@@ -380,7 +392,7 @@ class OtherScheduleEventFormServiceTest {
     var eventReference = new EventReference();
     when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.OTHER)).thenReturn(eventReference);
 
-    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, new OtherScheduleEvent());
+    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, new OtherScheduleEvent(), USER);
 
     verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
 
@@ -408,6 +420,7 @@ class OtherScheduleEventFormServiceTest {
             eventReference
         );
 
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -427,7 +440,7 @@ class OtherScheduleEventFormServiceTest {
     var event = new OtherScheduleEvent();
     event.setEventDate(LocalDate.of(2025, 1, 1));
 
-    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, event);
+    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, event, USER);
 
     verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
 
@@ -445,7 +458,6 @@ class OtherScheduleEventFormServiceTest {
     otherScheduleEvent.setDescription("description");
     otherScheduleEvent.setDateOption(OtherScheduleEventDateOption.WITHIN_A_TERM);
     otherScheduleEvent.setLicenceScheduleTerm(term);
-    otherScheduleEvent.setComments("comments");
 
     assertThat(otherScheduleEventFormService.getEventForm(otherScheduleEvent))
         .extracting(
@@ -466,7 +478,7 @@ class OtherScheduleEventFormServiceTest {
             String.valueOf(otherScheduleEvent.getLicenceScheduleTerm().getId()),
             null,
             null,
-            otherScheduleEvent.getComments()
+            null
     );
   }
 
@@ -481,7 +493,6 @@ class OtherScheduleEventFormServiceTest {
     otherScheduleEvent.setDescription("description");
     otherScheduleEvent.setDateOption(OtherScheduleEventDateOption.WITHIN_A_PHASE);
     otherScheduleEvent.setLicenceSchedulePhase(phase);
-    otherScheduleEvent.setComments("comments");
 
     assertThat(otherScheduleEventFormService.getEventForm(otherScheduleEvent))
         .extracting(
@@ -502,7 +513,7 @@ class OtherScheduleEventFormServiceTest {
             null,
             String.valueOf(otherScheduleEvent.getLicenceSchedulePhase().getId()),
             null,
-            otherScheduleEvent.getComments()
+            null
         );
   }
 
@@ -518,7 +529,6 @@ class OtherScheduleEventFormServiceTest {
     otherScheduleEvent.setDateOption(OtherScheduleEventDateOption.RELATIVE_DATE);
     otherScheduleEvent.setRelativeDuration(new ThreeFieldDuration(1, 2, 3));
     otherScheduleEvent.setLicenceSchedulePhase(phase);
-    otherScheduleEvent.setComments("comments");
 
     var result = otherScheduleEventFormService.getEventForm(otherScheduleEvent);
 
@@ -541,7 +551,7 @@ class OtherScheduleEventFormServiceTest {
             null,
             null,
             String.valueOf(otherScheduleEvent.getLicenceSchedulePhase().getId()),
-            otherScheduleEvent.getComments()
+            null
         );
 
     var duration = result.getRelativeDuration().toThreeFieldDuration();

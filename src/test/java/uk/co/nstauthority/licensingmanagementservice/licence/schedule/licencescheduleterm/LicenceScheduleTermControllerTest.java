@@ -109,13 +109,13 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
     when(licenceScheduleTermFormValidator.isValid(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleTermController.class).submitAddNewTermForm(LICENCE_SCHEDULE_DETAIL_ID, null, null, null)))
+            post(ReverseRouter.route(on(LicenceScheduleTermController.class).submitAddNewTermForm(LICENCE_SCHEDULE_DETAIL_ID, null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(licenceScheduleTermFormService).saveTermFromForm(any(), eq(licenceScheduleDetail), any());
+    verify(licenceScheduleTermFormService).saveTermFromForm(any(), eq(licenceScheduleDetail), any(), any());
   }
 
   @Test
@@ -127,7 +127,7 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
     when(licenceScheduleTermFormValidator.isValid(any(), any(), any())).thenReturn(false);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleTermController.class).submitAddNewTermForm(LICENCE_SCHEDULE_DETAIL_ID, null, null, null)))
+            post(ReverseRouter.route(on(LicenceScheduleTermController.class).submitAddNewTermForm(LICENCE_SCHEDULE_DETAIL_ID, null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
@@ -136,7 +136,7 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("radioOptions", TermType.getTermRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
 
-    verify(licenceScheduleTermFormService, never()).saveTermFromForm(any(), any(), any());
+    verify(licenceScheduleTermFormService, never()).saveTermFromForm(any(), any(), any(), any());
   }
 
   @Test
@@ -145,13 +145,13 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
         .thenReturn(false);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleTermController.class).submitAddNewTermForm(LICENCE_SCHEDULE_DETAIL_ID, null, null, null)))
+            post(ReverseRouter.route(on(LicenceScheduleTermController.class).submitAddNewTermForm(LICENCE_SCHEDULE_DETAIL_ID, null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().isForbidden());
 
-    verify(licenceScheduleTermFormService, never()).saveTermFromForm(any(), any(), any());
+    verify(licenceScheduleTermFormService, never()).saveTermFromForm(any(), any(), any(), any());
   }
 
   @Test
@@ -193,13 +193,13 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
     when(licenceScheduleTermFormValidator.isValidUpdate(any(), any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleTermController.class).submitUpdateTermForm(LICENCE_SCHEDULE_TERM_ID, null, null)))
+            post(ReverseRouter.route(on(LicenceScheduleTermController.class).submitUpdateTermForm(LICENCE_SCHEDULE_TERM_ID, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(licenceScheduleTermFormService).saveTermFromForm(any(), eq(licenceScheduleDetail), eq(licenceScheduleTerm));
+    verify(licenceScheduleTermFormService).saveTermFromForm(any(), eq(licenceScheduleDetail), eq(licenceScheduleTerm), any());
   }
 
   @Test
@@ -211,7 +211,7 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
     when(licenceScheduleTermFormValidator.isValidUpdate(any(), any(), any(), any())).thenReturn(false);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleTermController.class).submitUpdateTermForm(LICENCE_SCHEDULE_TERM_ID, null, null)))
+            post(ReverseRouter.route(on(LicenceScheduleTermController.class).submitUpdateTermForm(LICENCE_SCHEDULE_TERM_ID, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
@@ -220,7 +220,7 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("radioOptions", TermType.getTermRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
 
-    verify(licenceScheduleTermFormService, never()).saveTermFromForm(any(), any(), any());
+    verify(licenceScheduleTermFormService, never()).saveTermFromForm(any(), any(), any(), any());
   }
 
   @Test
@@ -229,12 +229,12 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
         .thenReturn(false);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceScheduleTermController.class).submitUpdateTermForm(LICENCE_SCHEDULE_TERM_ID, null, null)))
+            post(ReverseRouter.route(on(LicenceScheduleTermController.class).submitUpdateTermForm(LICENCE_SCHEDULE_TERM_ID, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().isForbidden());
 
-    verify(licenceScheduleTermFormService, never()).saveTermFromForm(any(), any(), any());
+    verify(licenceScheduleTermFormService, never()).saveTermFromForm(any(), any(), any(), any());
   }
 }

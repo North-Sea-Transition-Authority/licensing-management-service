@@ -112,7 +112,7 @@ IS
         c.line_sid_id
       , c.ancestor_b_sid_id
       , sid_s.si_id
-      , level connection_order
+      , c.connection_first_node connection_order
       , spatialmgr.sp_util.generalise_nav_type(c.navigation_type) line_navigation_type
       , sdo_util.to_geojson(
           CASE
@@ -831,55 +831,76 @@ IS
   
   PROCEDURE load_subareas
   IS
+  
+    K_RELINQUISHED_STATUS CONSTANT VARCHAR2(4000) := 'RELINQUISHED';
+    
   BEGIN
   
-    INSERT ALL
-      INTO lms_gis_migration.migration_tracker (
-        migration_shape_si_id
-      , migration_shape_name
-      , migration_shape_start_date
-      , migration_shape_end_date
-      , migration_layer_id
-      , migration_order
-      )
-      VALUES (
-        si_id
-      , map_display_name
-      , start_datetime
-      , end_datetime
-      , sl_id
-      , migration_order
-      )
-      INTO lms_gis_migration.migration_shape_links (
-        child_shape_si_id
-      , parent_shape_si_id      
-      )
-      VALUES (
-        si_id
-      , COALESCE(parent_si_id_latest, parent_si_id_earliest)
-      )
-      -- a block could be partially surrendered without impacting the subarea shape
-      -- this would result in the subarea shape being associated with multiple block shapes
-      -- we only want to cascade subarea geodesic from a single block, take the latest version      
-      SELECT DISTINCT
-        ps.si_id
-      , ps.short_name map_display_name
-      , ps.start_datetime
-      -- shape may get a new version with a new end date, but not start date, as a result of a block change
-      -- shape itself has not changed since fits inside new block, so end date should match the latest version
-      , FIRST_VALUE(ps.end_datetime) OVER (PARTITION BY ps.si_id ORDER BY ps.end_datetime DESC NULLS FIRST) end_datetime
-      , sip.sl_id
-      , K_SUBAREA_MIGRATION_ORDER migration_order
-      -- single subarea shape may remain unchanged over multiple blocks changes
-      -- since shape always fit inside block take latest version as this is the most likely to share a node
-      , FIRST_VALUE(plb.si_id) OVER (PARTITION BY ps.si_id ORDER BY plb.start_datetime DESC) parent_si_id_latest
-      -- timeline errors could result in block shape being in error and not created, take earliest value instead
-      , FIRST_VALUE(plb.si_id) OVER (PARTITION BY ps.si_id ORDER BY plb.start_datetime) parent_si_id_earliest
-      FROM pedmgr.ped_current_data_points pdp
-      JOIN pedmgr.ped_subareas ps ON ps.ped_dp_id = pdp.id
+    INSERT INTO lms_gis_migration.migration_tracker (
+      migration_shape_si_id
+    , migration_shape_name
+    , migration_shape_start_date
+    , migration_shape_end_date
+    , migration_layer_id
+    , migration_order
+    )
+    SELECT
+      ps.si_id
+    , ps.short_name map_display_name
+    -- subarea start is when the subarea was first created
+    -- if the boundary is cropped back the subarea start date is unchanged
+    -- hence we need to use the shape (sip) start date which is set for each new shape the subarea uses
+    , sip.period_start_datetime start_date
+    -- sip end date does not appear to be updated when subarea versions end
+    -- the subarea end date is set for each version as shape is cropped back so can be used for the shape end
+    , CASE 
+        -- shape should not be ended if the subarea is still active
+        WHEN COUNT(CASE WHEN ps.end_datetime IS NULL THEN 1 END) > 0 THEN NULL
+        -- else set the shape end date to the latest subarea version end date 
+        ELSE MAX(ps.end_datetime)
+      END AS end_date
+    , sip.sl_id
+    , K_SUBAREA_MIGRATION_ORDER migration_order
+    FROM pedmgr.ped_current_data_points pcdp
+    JOIN pedmgr.ped_subareas ps ON ps.ped_dp_id = pcdp.id
+    JOIN spatialmgr.spatial_instance_periods sip ON sip.si_id = ps.si_id AND sip.status_control = 'C'
+    WHERE pcdp.ped_sim_id = K_LIVE_SIMULATION_ID
+    GROUP BY 
+      ps.si_id
+    , ps.short_name
+    , sip.period_start_datetime
+    , sip.sl_id;
+  
+    INSERT INTO lms_gis_migration.migration_shape_links (
+      child_shape_si_id
+    , parent_shape_si_id      
+    )
+    WITH ranked_parents AS (
+      SELECT 
+        mt.migration_shape_si_id child_si_id
+      , plb.si_id parent_si_id
+      -- rank blocks to find most recent version based on start date
+      , ROW_NUMBER() OVER (PARTITION BY ps.si_id ORDER BY plb.start_datetime DESC) parent_rank
+      FROM lms_gis_migration.migration_tracker mt
+      JOIN pedmgr.ped_subareas ps ON ps.si_id = mt.migration_shape_si_id
       JOIN pedmgr.ped_licence_blocks plb ON plb.id = ps.ped_lb_id
-      JOIN spatialmgr.spatial_instance_periods sip ON sip.si_id = ps.si_id AND sip.status_control = 'C'
-      WHERE pdp.ped_sim_id = K_LIVE_SIMULATION_ID;
+      JOIN pedmgr.ped_current_data_points pcdp ON pcdp.id = plb.ped_dp_id
+      WHERE mt.migration_order = K_SUBAREA_MIGRATION_ORDER
+      AND pcdp.ped_sim_id = K_LIVE_SIMULATION_ID
+      -- relinquished subareas won't fit inside their parent block, so don't link them
+      AND ps.status != K_RELINQUISHED_STATUS
+      -- can happen due to timeline processing errors resulting in shape not being created 
+      AND plb.si_id IS NOT NULL
+      -- subareas are copied forward to later blocks even after they are ended
+      -- ignore these later block where the subarea is already ended since they won't fit inside them
+      AND plb.start_datetime <= COALESCE(mt.migration_shape_end_date, SYSDATE)
+    )
+    SELECT
+      rp.child_si_id
+    , rp.parent_si_id
+    FROM ranked_parents rp
+    -- link to most recent block version
+    WHERE rp.parent_rank = 1;
       
   END load_subareas;
   

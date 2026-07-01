@@ -132,4 +132,8 @@ public class LicenceScheduleRateService {
   public List<LicenceScheduleRate> getAllRatesLinkedTo(LicenceScheduleTerm licenceScheduleTerm) {
     return licenceScheduleRateRepository.findAllByLicenceScheduleTerm(licenceScheduleTerm);
   }
+
+  public List<LicenceScheduleRate> getAllRatesLinkedTo(LicenceSchedulePhase licenceSchedulePhase) {
+    return licenceScheduleRateRepository.findAllByLicenceSchedulePhase(licenceSchedulePhase);
+  }
 }

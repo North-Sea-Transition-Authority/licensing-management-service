@@ -109,6 +109,10 @@ public class WorkProgrammeActivityService {
     return workProgrammeActivityRepository.findByLicenceScheduleTerm(licenceScheduleTerm);
   }
 
+  public List<WorkProgrammeActivity> getAllActivitiesLinkedTo(LicenceSchedulePhase licenceSchedulePhase) {
+    return workProgrammeActivityRepository.findByLicenceSchedulePhase(licenceSchedulePhase);
+  }
+
   @Transactional
   public void deleteWorkProgrammeActivity(WorkProgrammeActivity workProgrammeActivity) {
     workProgrammeActivityRepository.delete(workProgrammeActivity);

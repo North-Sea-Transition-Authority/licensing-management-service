@@ -64,7 +64,8 @@ public class LicenceSchedulePhaseDeletionController {
         .addObject("pendingComment", pendingComment)
         .addObject("cancelUrl", phase.getLicenceScheduleDetail().getScheduleTimelineRouteUrl())
         .addObject("pageCaption",
-            licenceService.getLicencePageCaption(phase.getLicenceScheduleDetail().getLicenceSchedule().getLicence()));
+            licenceService.getLicencePageCaption(phase.getLicenceScheduleDetail().getLicenceSchedule().getLicence()))
+        .addObject("canDelete", licenceSchedulePhaseService.canDeletePhase(phase));
   }
 
   @PostMapping

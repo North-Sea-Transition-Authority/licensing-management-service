@@ -203,4 +203,18 @@ class LicenceScheduleRateServiceTest {
 
     verify(licenceScheduleRateRepository).delete(rate);
   }
+
+  @Test
+  void getAllRatesLinkedTo_term() {
+    licenceScheduleRateService.getAllRatesLinkedTo(term);
+
+    verify(licenceScheduleRateRepository).findAllByLicenceScheduleTerm(term);
+  }
+
+  @Test
+  void getAllRatesLinkedTo_phase() {
+    licenceScheduleRateService.getAllRatesLinkedTo(phase);
+
+    verify(licenceScheduleRateRepository).findAllByLicenceSchedulePhase(phase);
+  }
 }

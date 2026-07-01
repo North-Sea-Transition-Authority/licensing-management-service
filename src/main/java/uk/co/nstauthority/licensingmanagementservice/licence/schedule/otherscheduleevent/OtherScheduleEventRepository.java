@@ -47,4 +47,6 @@ public interface OtherScheduleEventRepository
   );
 
   List<OtherScheduleEvent> findAllByLicenceScheduleTerm(LicenceScheduleTerm licenceScheduleTerm);
+
+  List<OtherScheduleEvent> findAllByLicenceSchedulePhase(LicenceSchedulePhase licenceSchedulePhase);
 }

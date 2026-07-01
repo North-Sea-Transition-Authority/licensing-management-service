@@ -47,4 +47,6 @@ public interface LicenceScheduleRateRepository
   );
 
   List<LicenceScheduleRate> findAllByLicenceScheduleTerm(LicenceScheduleTerm licenceScheduleTerm);
+
+  List<LicenceScheduleRate> findAllByLicenceSchedulePhase(LicenceSchedulePhase licenceSchedulePhase);
 }

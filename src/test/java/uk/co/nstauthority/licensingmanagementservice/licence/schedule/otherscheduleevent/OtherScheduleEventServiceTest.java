@@ -174,6 +174,15 @@ class OtherScheduleEventServiceTest {
   }
 
   @Test
+  void getAllEventsLinkedTo_phase() {
+    var phase = new LicenceSchedulePhase();
+
+    otherScheduleEventService.getAllEventsLinkedTo(phase);
+
+    verify(otherScheduleEventRepository).findAllByLicenceSchedulePhase(phase);
+  }
+
+  @Test
   void hasEventWithinScheduleWindow_whenWithinTermEventInCurrentOrNextTerm_returnsTrue() {
     var currentTerm = new LicenceScheduleTerm();
     var nextTerm = new LicenceScheduleTerm();

@@ -14,16 +14,32 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceSchedulePhaseServiceTest {
 
   @Mock
   private LicenceSchedulePhaseRepository licenceSchedulePhaseRepository;
+
+  @Mock
+  private LicenceScheduleRateService licenceScheduleRateService;
+
+  @Mock
+  private WorkProgrammeActivityService workProgrammeActivityService;
+
+  @Mock
+  private OtherScheduleEventService otherScheduleEventService;
 
   @InjectMocks
   private LicenceSchedulePhaseService licenceSchedulePhaseService;
@@ -101,11 +117,67 @@ class LicenceSchedulePhaseServiceTest {
   }
 
   @Test
-  void deletePhase() {
+  void deletePhase_whenCanDeletePhase_deletesSuccessfully() {
     var licenceSchedulePhase = new LicenceSchedulePhase();
+
+    when(licenceScheduleRateService.getAllRatesLinkedTo(licenceSchedulePhase)).thenReturn(List.of());
+    when(workProgrammeActivityService.getAllActivitiesLinkedTo(licenceSchedulePhase)).thenReturn(List.of());
+    when(otherScheduleEventService.getAllEventsLinkedTo(licenceSchedulePhase)).thenReturn(List.of());
 
     licenceSchedulePhaseService.deletePhase(licenceSchedulePhase);
 
     verify(licenceSchedulePhaseRepository).delete(licenceSchedulePhase);
+  }
+
+  @Test
+  void deletePhase_whenCannotDeletePhase_throwsResponseStatusException() {
+    var licenceSchedulePhase = new LicenceSchedulePhase();
+    licenceSchedulePhase.setId(UUID.randomUUID());
+
+    when(licenceScheduleRateService.getAllRatesLinkedTo(licenceSchedulePhase)).thenReturn(List.of(new LicenceScheduleRate()));
+
+    assertThatThrownBy(() -> licenceSchedulePhaseService.deletePhase(licenceSchedulePhase))
+        .isInstanceOf(ResponseStatusException.class);
+  }
+
+  @Test
+  void canDeletePhase_whenHasLinkedRates_returnsFalse() {
+    var licenceSchedulePhase = new LicenceSchedulePhase();
+
+    when(licenceScheduleRateService.getAllRatesLinkedTo(licenceSchedulePhase)).thenReturn(List.of(new LicenceScheduleRate()));
+
+    assertThat(licenceSchedulePhaseService.canDeletePhase(licenceSchedulePhase)).isFalse();
+  }
+
+  @Test
+  void canDeletePhase_whenHasLinkedWorkProgrammeActivities_returnsFalse() {
+    var licenceSchedulePhase = new LicenceSchedulePhase();
+
+    when(licenceScheduleRateService.getAllRatesLinkedTo(licenceSchedulePhase)).thenReturn(List.of());
+    when(workProgrammeActivityService.getAllActivitiesLinkedTo(licenceSchedulePhase)).thenReturn(List.of(new WorkProgrammeActivity()));
+
+    assertThat(licenceSchedulePhaseService.canDeletePhase(licenceSchedulePhase)).isFalse();
+  }
+
+  @Test
+  void canDeletePhase_whenHasLinkedOtherScheduleEvents_returnsFalse() {
+    var licenceSchedulePhase = new LicenceSchedulePhase();
+
+    when(licenceScheduleRateService.getAllRatesLinkedTo(licenceSchedulePhase)).thenReturn(List.of());
+    when(workProgrammeActivityService.getAllActivitiesLinkedTo(licenceSchedulePhase)).thenReturn(List.of());
+    when(otherScheduleEventService.getAllEventsLinkedTo(licenceSchedulePhase)).thenReturn(List.of(new OtherScheduleEvent()));
+
+    assertThat(licenceSchedulePhaseService.canDeletePhase(licenceSchedulePhase)).isFalse();
+  }
+
+  @Test
+  void canDeletePhase_whenNoReferences_returnsTrue() {
+    var licenceSchedulePhase = new LicenceSchedulePhase();
+
+    when(licenceScheduleRateService.getAllRatesLinkedTo(licenceSchedulePhase)).thenReturn(List.of());
+    when(workProgrammeActivityService.getAllActivitiesLinkedTo(licenceSchedulePhase)).thenReturn(List.of());
+    when(otherScheduleEventService.getAllEventsLinkedTo(licenceSchedulePhase)).thenReturn(List.of());
+
+    assertThat(licenceSchedulePhaseService.canDeletePhase(licenceSchedulePhase)).isTrue();
   }
 }

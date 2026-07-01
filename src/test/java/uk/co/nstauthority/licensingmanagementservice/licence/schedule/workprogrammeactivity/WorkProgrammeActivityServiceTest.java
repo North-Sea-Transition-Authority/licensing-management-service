@@ -199,6 +199,15 @@ class WorkProgrammeActivityServiceTest {
   }
 
   @Test
+  void getAllActivitiesLinkedTo_phase() {
+    var phase = new LicenceSchedulePhase();
+
+    workProgrammeActivityService.getAllActivitiesLinkedTo(phase);
+
+    verify(workProgrammeActivityRepository).findByLicenceSchedulePhase(phase);
+  }
+
+  @Test
   void hasActivitiesForPhase() {
     var phase = new LicenceSchedulePhase();
     when(workProgrammeActivityRepository.existsByLicenceSchedulePhase(phase)).thenReturn(true);

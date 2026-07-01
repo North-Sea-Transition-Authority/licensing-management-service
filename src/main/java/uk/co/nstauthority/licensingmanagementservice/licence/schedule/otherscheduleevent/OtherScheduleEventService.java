@@ -96,6 +96,10 @@ public class OtherScheduleEventService {
     return otherScheduleEventRepository.findAllByLicenceScheduleTerm(licenceScheduleTerm);
   }
 
+  public List<OtherScheduleEvent> getAllEventsLinkedTo(LicenceSchedulePhase licenceSchedulePhase) {
+    return otherScheduleEventRepository.findAllByLicenceSchedulePhase(licenceSchedulePhase);
+  }
+
   @Transactional
   public void deleteOtherScheduleEvent(OtherScheduleEvent otherScheduleEvent) {
     otherScheduleEventRepository.delete(otherScheduleEvent);

@@ -24,12 +24,20 @@ errorSummaryItems=errorSummaryItems>
       </#if>
     </@fdsSummaryList.summaryList>
 
-    <@fdsAction.submitButtons
+    <#if canDelete>
+      <@fdsAction.submitButtons
       primaryButtonText="Delete"
       secondaryLinkText="Cancel"
       linkSecondaryAction=true
       linkSecondaryActionUrl=springUrl(cancelUrl)
       primaryButtonClass="govuk-button govuk-button--warning"
-    />
+      />
+    <#else>
+      <@fdsWarning.warning>
+        This cannot be deleted as it is referenced by other schedule events.
+      </@fdsWarning.warning>
+
+      <@fdsBackLink.backLink backLinkUrl=springUrl(cancelUrl)/>
+    </#if>
   </@fdsForm.htmlForm>
 </@defaultPage>

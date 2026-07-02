@@ -36,6 +36,11 @@ public interface LicenceScheduleDetailRepository extends JpaRepository<LicenceSc
       AND UPPER(lsd.licenceSchedule.licence.licenceReference) LIKE UPPER(CONCAT('%', :searchTerm, '%'))
       AND lsd.licenceSchedule.licence.type IN :licenceTypes
       AND sd.startDate <= CURRENT_TIMESTAMP
+      AND EXISTS (
+          SELECT t FROM licence_schedule_terms t
+          WHERE t.licenceScheduleDetail = lsd
+          AND t.endDate > CURRENT_DATE
+      )
       """
   )
   List<LicenceScheduleDetail> searchByLicenceReferenceLicenceTypesAndStatus(

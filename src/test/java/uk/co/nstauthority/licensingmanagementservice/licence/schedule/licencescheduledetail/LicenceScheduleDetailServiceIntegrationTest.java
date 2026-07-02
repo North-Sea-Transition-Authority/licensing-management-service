@@ -14,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
 
@@ -36,12 +37,13 @@ class LicenceScheduleDetailServiceIntegrationTest {
   @Test
   void searchByLicenceReferenceLicenceTypeAndStatus() {
     var pastDate = LocalDate.now().minusDays(1);
+    var futureTermEndDate = LocalDate.now().plusYears(1);
 
-    var licenceScheduleDetail = createLicenceAndScheduleDetail(1, "CS001", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, pastDate);
-    createLicenceAndScheduleDetail(2, "CS002", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, pastDate);
-    var licenceScheduleDetail3 = createLicenceAndScheduleDetail(4, "EX011", LicenceType.LANDWARD_PRODUCTION, LicenceScheduleDetailStatus.ACTIVE, pastDate);
-    createLicenceAndScheduleDetail(5, "EX012", LicenceType.LANDWARD_PRODUCTION, LicenceScheduleDetailStatus.DRAFT, pastDate);
-    createLicenceAndScheduleDetail(6, "P001", LicenceType.SEAWARD_PRODUCTION, LicenceScheduleDetailStatus.ACTIVE, pastDate);
+    var licenceScheduleDetail = createLicenceAndScheduleDetail(1, "CS001", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, pastDate, futureTermEndDate);
+    createLicenceAndScheduleDetail(2, "CS002", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, pastDate, futureTermEndDate);
+    var licenceScheduleDetail3 = createLicenceAndScheduleDetail(4, "EX011", LicenceType.LANDWARD_PRODUCTION, LicenceScheduleDetailStatus.ACTIVE, pastDate, futureTermEndDate);
+    createLicenceAndScheduleDetail(5, "EX012", LicenceType.LANDWARD_PRODUCTION, LicenceScheduleDetailStatus.DRAFT, pastDate, futureTermEndDate);
+    createLicenceAndScheduleDetail(6, "P001", LicenceType.SEAWARD_PRODUCTION, LicenceScheduleDetailStatus.ACTIVE, pastDate, futureTermEndDate);
 
     em.flush();
 
@@ -60,9 +62,10 @@ class LicenceScheduleDetailServiceIntegrationTest {
   void searchByLicenceReferenceLicenceTypeAndStatus_excludesFutureStartDates() {
     var pastDate = LocalDate.now().minusDays(1);
     var futureDate = LocalDate.now().plusDays(1);
+    var futureTermEndDate = LocalDate.now().plusYears(1);
 
-    var pastScheduleDetail = createLicenceAndScheduleDetail(1, "CS001", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, pastDate);
-    createLicenceAndScheduleDetail(2, "CS002", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, futureDate);
+    var pastScheduleDetail = createLicenceAndScheduleDetail(1, "CS001", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, pastDate, futureTermEndDate);
+    createLicenceAndScheduleDetail(2, "CS002", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, futureDate, futureTermEndDate);
 
     em.flush();
 
@@ -80,9 +83,10 @@ class LicenceScheduleDetailServiceIntegrationTest {
   @Test
   void searchByLicenceReferenceLicenceTypeAndStatus_excludesScheduleDetailsWithNoStartDate() {
     var pastDate = LocalDate.now().minusDays(1);
+    var futureTermEndDate = LocalDate.now().plusYears(1);
 
-    var scheduleDetailWithStartDate = createLicenceAndScheduleDetail(1, "CS001", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, pastDate);
-    createLicenceAndScheduleDetail(2, "CS002", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, null);
+    var scheduleDetailWithStartDate = createLicenceAndScheduleDetail(1, "CS001", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, pastDate, futureTermEndDate);
+    createLicenceAndScheduleDetail(2, "CS002", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, null, futureTermEndDate);
 
     em.flush();
 
@@ -97,11 +101,34 @@ class LicenceScheduleDetailServiceIntegrationTest {
         .containsExactly(scheduleDetailWithStartDate);
   }
 
+  @Test
+  void searchByLicenceReferenceLicenceTypeAndStatus_excludesScheduleDetailsWithAllTermsInThePast() {
+    var pastDate = LocalDate.now().minusDays(1);
+    var futureTermEndDate = LocalDate.now().plusYears(1);
+    var pastTermEndDate = LocalDate.now().minusDays(1);
+
+    var currentScheduleDetail = createLicenceAndScheduleDetail(1, "CS001", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, pastDate, futureTermEndDate);
+    createLicenceAndScheduleDetail(2, "CS002", LicenceType.CARBON_STORAGE, LicenceScheduleDetailStatus.ACTIVE, pastDate, pastTermEndDate);
+
+    em.flush();
+
+    var result = licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
+        "CS",
+        List.of(LicenceType.CARBON_STORAGE),
+        LicenceScheduleDetailStatus.ACTIVE
+    );
+
+    assertThat(result)
+        .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
+        .containsExactly(currentScheduleDetail);
+  }
+
   private LicenceScheduleDetail createLicenceAndScheduleDetail(int id,
                                                                String licenceReference,
                                                                LicenceType licenceType,
                                                                LicenceScheduleDetailStatus licenceScheduleDetailStatus,
-                                                               LocalDate startDate) {
+                                                               LocalDate startDate,
+                                                               LocalDate termEndDate) {
     var licence = createLicence(id, licenceReference, licenceType);
     var licenceSchedule = createLicenceSchedule(licence);
     var licenceScheduleDetail = createLicenceScheduleDetail(licenceSchedule, licenceScheduleDetailStatus);
@@ -109,6 +136,8 @@ class LicenceScheduleDetailServiceIntegrationTest {
     if (startDate != null) {
       createLicenceStartDate(licenceScheduleDetail, startDate);
     }
+
+    createLicenceScheduleTerm(licenceScheduleDetail, termEndDate);
 
     return licenceScheduleDetail;
   }
@@ -136,6 +165,15 @@ class LicenceScheduleDetailServiceIntegrationTest {
 
     em.persist(licenceStartDate);
     return licenceStartDate;
+  }
+
+  private LicenceScheduleTerm createLicenceScheduleTerm(LicenceScheduleDetail licenceScheduleDetail, LocalDate endDate) {
+    var term = new LicenceScheduleTerm();
+    term.setLicenceScheduleDetail(licenceScheduleDetail);
+    term.setEndDate(endDate);
+
+    em.persist(term);
+    return term;
   }
 
   private Licence createLicence(int id, String licenceReference, LicenceType licenceType) {

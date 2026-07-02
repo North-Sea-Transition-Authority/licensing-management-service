@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.workarea;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import java.util.UUID;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Controller;
@@ -10,7 +12,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/licence-corrections")
@@ -35,7 +39,10 @@ public class LicenceCorrectionController {
         .addObject("pageTitle", licence.getLicenceReference())
         .addObject("correctionReference", correction.getCorrectionReference())
         .addObject("reason", correction.getReason())
-        .addObject("licencePositionTimelineView", licencePositionService.getTimelineView(licence));
+        .addObject("licencePositionTimelineView", licencePositionService.getTimelineView(licence))
+        .addObject("addPositionUrl",
+            ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
+                .renderAddLicencePositionCorrection(correction.getId(), null)));
   }
 
 }

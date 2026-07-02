@@ -19,6 +19,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -67,7 +68,10 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
             model().attribute("pageTitle", PAGE_TITLE),
             model().attribute("correctionReference", CORRECTION_REFERENCE),
             model().attribute("reason", REASON),
-            model().attributeExists("licencePositionTimelineView")
+            model().attributeExists("licencePositionTimelineView"),
+            model().attribute("addPositionUrl",
+                ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
+                    .renderAddLicencePositionCorrection(CORRECTION_ID, null)))
         );
   }
 

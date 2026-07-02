@@ -34,6 +34,7 @@ CVE-2026-50010
 # org.bouncycastle:bcpkix-jdk18on
 CVE-2023-33202
 CVE-2025-8916
+CVE-2025-14813
 
 # org.bouncycastle:bcprov-jdk18on
 CVE-2025-8885

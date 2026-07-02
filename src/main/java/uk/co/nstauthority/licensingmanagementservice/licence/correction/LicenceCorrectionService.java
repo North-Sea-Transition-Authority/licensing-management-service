@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 
 @Service
@@ -63,5 +64,11 @@ public class LicenceCorrectionService {
   public Collection<LicenceCorrection> getAllInProgressCorrectionsForUser(ServiceUserDetail user) {
     return licenceCorrectionRepository
         .findAllByStatusAndAllocatedToWuaId(LicenceCorrectionStatus.IN_PROGRESS, user.wuaId());
+  }
+
+  public LicenceCorrection getInProgressCorrectionOrThrow(Licence licence) {
+    return licenceCorrectionRepository.findByLicenceAndStatus(licence, LicenceCorrectionStatus.IN_PROGRESS)
+        .orElseThrow(() -> new LmsEntityNotFoundException(
+            "No in progress correction found for licence %s".formatted(licence.getId())));
   }
 }

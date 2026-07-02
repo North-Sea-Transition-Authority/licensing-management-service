@@ -16,4 +16,6 @@ public interface LicenceCorrectionRepository extends JpaRepository<LicenceCorrec
   List<LicenceCorrection> findAllByStatusAndAllocatedToWuaId(LicenceCorrectionStatus status, long wuaId);
 
   Optional<LicenceCorrection> findByIdAndAllocatedToWuaId(UUID id, long wuaId);
+
+  Optional<LicenceCorrection> findByLicenceAndStatus(Licence licence, LicenceCorrectionStatus status);
 }

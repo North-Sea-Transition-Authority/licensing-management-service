@@ -13,6 +13,8 @@
         </@fdsSummaryList.summaryListRowNoAction>
     </@fdsSummaryList.summaryListCard>
 
+    <@fdsAction.link linkText="Add position" linkUrl=springUrl(addPositionUrl) linkClass="govuk-button"/>
+
   <h2 class="govuk-heading-m">Executed timeline</h2>
 
     <#if licencePositionTimelineView?has_content>

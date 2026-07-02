@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 
@@ -129,5 +131,37 @@ class LicenceCorrectionServiceTest {
     var result = licenceCorrectionService.findByIdAndAllocatedToWuaId(correctionId, USER);
 
     assertThat(result).isEmpty();
+  }
+
+  @Test
+  void getAllInProgressCorrectionsForUser() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
+    when(licenceCorrectionRepository
+        .findAllByStatusAndAllocatedToWuaId(LicenceCorrectionStatus.IN_PROGRESS, USER.wuaId()))
+        .thenReturn(List.of(correction));
+
+    var result = licenceCorrectionService.getAllInProgressCorrectionsForUser(USER);
+
+    assertThat(result).containsExactly(correction);
+  }
+
+  @Test
+  void getInProgressCorrectionOrThrow_whenFound() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
+    when(licenceCorrectionRepository.findByLicenceAndStatus(LICENCE, LicenceCorrectionStatus.IN_PROGRESS))
+        .thenReturn(Optional.of(correction));
+
+    var result = licenceCorrectionService.getInProgressCorrectionOrThrow(LICENCE);
+
+    assertThat(result).isEqualTo(correction);
+  }
+
+  @Test
+  void getInProgressCorrectionOrThrow_whenNotFound() {
+    when(licenceCorrectionRepository.findByLicenceAndStatus(LICENCE, LicenceCorrectionStatus.IN_PROGRESS))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> licenceCorrectionService.getInProgressCorrectionOrThrow(LICENCE))
+        .isInstanceOf(LmsEntityNotFoundException.class);
   }
 }

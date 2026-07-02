@@ -77,7 +77,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
     when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
 
-    var timelineSummaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatus.EXTANT.getDisplayName());
+    var timelineSummaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatus.EXTANT.getDisplayName(), "", "");
     var timelineActionViews = List.of(new TimelineActionView(LicenceScheduleTimelineAction.ADD_A_TERM, ""));
     var scheduleEventViews = List.of(new TimelineTermView(List.of(), List.of(), TermType.INITIAL, "", "", "", "", "", true, List.of()));
     var invalidEventViews = List.of((ScheduleEvent) new TimelineRateView("", LocalDate.now(), "", "", "", "", "", List.of()));
@@ -124,7 +124,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
     when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
 
-    var timelineSummaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatus.EXTANT.getDisplayName());
+    var timelineSummaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatus.EXTANT.getDisplayName(), "", "");
     var allowedActions = List.of(ScheduleEventAction.EDIT_WORK_PROGRAMME);
 
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);

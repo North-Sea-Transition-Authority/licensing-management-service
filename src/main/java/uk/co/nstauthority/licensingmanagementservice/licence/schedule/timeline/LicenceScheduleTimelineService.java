@@ -17,6 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationDisplayUtil;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
@@ -100,12 +101,17 @@ public class LicenceScheduleTimelineService {
         .map(this::getExpiryDateString)
         .orElse("");
 
+    var licenceEndDateString = getDateEndedOnString(licence, licenceStartDate.getStartDate());
+    var finalTermEndDateString = getFinalTermDateString(licenceScheduleDetail, licenceStartDate.getStartDate());
+
     return new TimelineSummaryCardView(
         DateFormatUtil.convertToDisplayText(licenceStartDate.getStartDate()),
         licenceExpiryDateString,
         licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType()),
         licence.getRoundIssuedOn(),
-        licence.getStatus().getDisplayName()
+        licence.getStatus().getDisplayName(),
+        licenceEndDateString,
+        finalTermEndDateString
     );
   }
 
@@ -115,6 +121,41 @@ public class LicenceScheduleTimelineService {
     }
 
     return DateFormatUtil.convertToDisplayText(licenceScheduleExpiry.getExpiryDate());
+  }
+
+  private String getDateEndedOnString(
+      Licence licence,
+      LocalDate startDate
+  ) {
+    var endDate = licence.getEndDate();
+
+    if (endDate == null) {
+      return "";
+    }
+
+    return "%s (%s)".formatted(
+        DateFormatUtil.convertToDisplayText(endDate),
+        ThreeFieldDurationDisplayUtil.convertDatesToDurationDisplayText(startDate, endDate)
+    );
+  }
+
+  private String getFinalTermDateString(
+      LicenceScheduleDetail licenceScheduleDetail,
+      LocalDate startDate
+  ) {
+    var finalTerm = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
+        .max(Comparator.comparing(term -> term.getTermType().getDisplayOrder()));
+
+    if (finalTerm.isEmpty()) {
+      return "";
+    }
+
+    var finalTermEndDate = finalTerm.get().getEndDate();
+
+    return "%s (%s)".formatted(
+        DateFormatUtil.convertToDisplayText(finalTermEndDate),
+        ThreeFieldDurationDisplayUtil.convertDatesToDurationDisplayText(startDate, finalTermEndDate)
+    );
   }
 
   List<TimelineActionView> getLicenceScheduleTimelineActions(

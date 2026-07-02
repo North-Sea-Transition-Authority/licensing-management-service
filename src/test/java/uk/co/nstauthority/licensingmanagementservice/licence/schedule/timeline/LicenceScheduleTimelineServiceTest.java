@@ -192,6 +192,75 @@ class LicenceScheduleTimelineServiceTest {
   }
 
   @Test
+  void getTimelineSummaryCardView_withLicenceEndDate() {
+    var startDate = LocalDate.of(2025, 1, 1);
+    var endDate = LocalDate.of(2027, 1, 1);
+    licence.setEndDate(endDate);
+
+    var licenceStartDate = new LicenceStartDate();
+    licenceStartDate.setStartDate(startDate);
+
+    when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail)).thenReturn(licenceStartDate);
+    when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(Optional.empty());
+    when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(false);
+
+    assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
+        .extracting(TimelineSummaryCardView::licenceEndedDate)
+        .isEqualTo("1 January 2027 (2 years 1 day)");
+  }
+
+  @Test
+  void getTimelineSummaryCardView_withNoLicenceEndDate() {
+    var licenceStartDate = new LicenceStartDate();
+    licenceStartDate.setStartDate(LocalDate.of(2025, 1, 1));
+
+    when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail)).thenReturn(licenceStartDate);
+    when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(Optional.empty());
+    when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(false);
+
+    assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
+        .extracting(TimelineSummaryCardView::licenceEndedDate)
+        .isEqualTo("");
+  }
+
+  @Test
+  void getTimelineSummaryCardView_withFinalTerm() {
+    var startDate = LocalDate.of(2025, 1, 1);
+    var finalTermEndDate = LocalDate.of(2026, 1, 1);
+
+    var licenceStartDate = new LicenceStartDate();
+    licenceStartDate.setStartDate(startDate);
+
+    var term = new LicenceScheduleTerm();
+    term.setTermType(TermType.SECOND);
+    term.setEndDate(finalTermEndDate);
+
+    when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail)).thenReturn(licenceStartDate);
+    when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(Optional.empty());
+    when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(false);
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+
+    assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
+        .extracting(TimelineSummaryCardView::finalTermEndDate)
+        .isEqualTo("1 January 2026 (1 year 1 day)");
+  }
+
+  @Test
+  void getTimelineSummaryCardView_withNoTerms() {
+    var licenceStartDate = new LicenceStartDate();
+    licenceStartDate.setStartDate(LocalDate.of(2025, 1, 1));
+
+    when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail)).thenReturn(licenceStartDate);
+    when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(Optional.empty());
+    when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(false);
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
+
+    assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
+        .extracting(TimelineSummaryCardView::finalTermEndDate)
+        .isEqualTo("");
+  }
+
+  @Test
   void getLicenceScheduleTimelineActions() {
     when(licenceTypeRulesResolver.arePhasesCaptured(licence.getType())).thenReturn(true);
     when(licenceTypeRulesResolver.hasWorkProgramme(licence.getType())).thenReturn(true);

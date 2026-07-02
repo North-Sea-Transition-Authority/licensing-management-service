@@ -28,6 +28,7 @@ public class LicenceQueryService {
           .licenceNo()
           .licenceRef()
           .roundIssuedOn()
+          .licenceEndDate()
           .licenceStatus()
           .getParent()
           .licensees()
@@ -80,6 +81,7 @@ public class LicenceQueryService {
     licence.setStatus(
         uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus.valueOf(portalLicence.getLicenceStatus().name())
     );
+    licence.setEndDate(portalLicence.getLicenceEndDate());
     return licence;
   }
 

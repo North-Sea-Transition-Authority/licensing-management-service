@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence;
 
+import java.time.LocalDate;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceTeam;
 
 public class LicenceTestUtil {
@@ -20,6 +21,7 @@ public class LicenceTestUtil {
     private String roundIssuedOn;
     private LicenceStatus status;
     private LicenceTeam licenceTeam;
+    private LocalDate endDate;
 
     private Builder() {}
 
@@ -63,6 +65,11 @@ public class LicenceTestUtil {
       return this;
     }
 
+    public Builder withEndDate(LocalDate endDate) {
+      this.endDate = endDate;
+      return this;
+    }
+
     public Licence build() {
       var licence = new Licence();
       licence.setId(id);
@@ -73,6 +80,7 @@ public class LicenceTestUtil {
       licence.setRoundIssuedOn(roundIssuedOn);
       licence.setStatus(status);
       licence.setResponsibleTeam(licenceTeam);
+      licence.setEndDate(endDate);
 
       return licence;
     }

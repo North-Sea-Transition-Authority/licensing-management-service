@@ -23,6 +23,16 @@
             </@fdsSummaryList.summaryListRowNoAction>
         </#if>
 
+        <#if timelineSummaryCardView.licenceEndedDate()?has_content>
+            <@fdsSummaryList.summaryListRowNoAction keyText="Licence ended on">
+                ${timelineSummaryCardView.licenceEndedDate()}
+            </@fdsSummaryList.summaryListRowNoAction>
+        <#else>
+            <@fdsSummaryList.summaryListRowNoAction keyText="Projected licence end date">
+                ${timelineSummaryCardView.finalTermEndDate()!""}
+            </@fdsSummaryList.summaryListRowNoAction>
+        </#if>
+
         <@fdsSummaryList.summaryListRowNoAction keyText="Status">
             ${timelineSummaryCardView.status()!""}
         </@fdsSummaryList.summaryListRowNoAction>

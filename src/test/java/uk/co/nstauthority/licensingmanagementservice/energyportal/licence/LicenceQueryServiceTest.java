@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,6 +84,39 @@ class LicenceQueryServiceTest {
 
     assertThat(result.licences()).usingRecursiveComparison().isEqualTo(expectedResult.licences());
     assertThat(result.licenceIdOrgIdMap()).usingRecursiveComparison().isEqualTo(expectedResult.licenceIdOrgIdMap());
+  }
+
+  @Test
+  void getEpaLicenceData_whenLicenceHasEndDate_thenEndDateIsMapped() {
+    var endDate = LocalDate.of(2025, 6, 1);
+
+    var portalLicence = new uk.co.fivium.energyportalapi.generated.types.Licence(
+        1,
+        "P",
+        "Frontier",
+        1,
+        "P1",
+        null,
+        endDate,
+        null,
+        uk.co.fivium.energyportalapi.generated.types.LicenceStatus.EXTANT,
+        null,
+        List.of(organisationUnit),
+        "1"
+    );
+
+    when(licenceApi.searchLicences(
+        any(LicenceSearchFilter.class),
+        eq(LicenceQueryService.LICENCE_PROJECTION_ROOT),
+        any(),
+        any()
+    )).thenReturn(List.of(portalLicence));
+
+    var result = licenceQueryService.getEpaLicenceData();
+
+    assertThat(result.licences())
+        .extracting(Licence::getEndDate)
+        .containsExactly(endDate);
   }
 
   private List<uk.co.fivium.energyportalapi.generated.types.Licence> createPortalLicences() {

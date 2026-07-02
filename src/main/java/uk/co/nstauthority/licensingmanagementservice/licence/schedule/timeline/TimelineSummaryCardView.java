@@ -5,6 +5,8 @@ public record TimelineSummaryCardView(
     String licenceExpiryDate,
     boolean showRoundIssuedOn,
     String roundIssuedOn,
-    String status
+    String status,
+    String licenceEndedDate,
+    String finalTermEndDate
 ) {
 }

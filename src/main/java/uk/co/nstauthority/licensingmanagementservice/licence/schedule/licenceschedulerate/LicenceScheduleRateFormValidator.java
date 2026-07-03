@@ -64,8 +64,8 @@ public class LicenceScheduleRateFormValidator {
         .invalidInputErrorMessage("The rental rate must be a positive number")
         .mustBeMoreThanOrEqualTo(BigDecimal.ZERO)
         .mustBeMoreThanOrEqualToErrorMessage("The rental rate must be a positive number")
-        .mustHaveDecimalPlaces(2)
-        .mustHaveDecimalPlacesErrorMessage("The rental rate must have 2 decimal places")
+        .mustHaveNoMoreThanDecimalPlaces(2)
+        .mustHaveNoMoreThanDecimalPlacesErrorMessage("The rental rate can only include pounds and pence")
         .validate(form.getRentalRate(), errors);
 
     return !errors.hasErrors();

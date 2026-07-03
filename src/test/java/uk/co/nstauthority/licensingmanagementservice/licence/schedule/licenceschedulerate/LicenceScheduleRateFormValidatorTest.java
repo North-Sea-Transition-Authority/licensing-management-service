@@ -156,9 +156,29 @@ class LicenceScheduleRateFormValidatorTest {
   }
 
   @Test
-  void isValid_invalidForm_rentalRateDecimalPlaces() {
+  void isValid_rentalRateWithNoDecimalPlaces() {
     var form = createValidForm();
     form.getRentalRate().setInputValue("1");
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(validator.isValid(form, bindingResult)).isTrue();
+  }
+
+  @Test
+  void isValid_rentalRateWithOneDecimalPlace() {
+    var form = createValidForm();
+    form.getRentalRate().setInputValue("1.5");
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(validator.isValid(form, bindingResult)).isTrue();
+  }
+
+  @Test
+  void isValid_invalidForm_rentalRateTooManyDecimalPlaces() {
+    var form = createValidForm();
+    form.getRentalRate().setInputValue("1.234");
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 

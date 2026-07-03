@@ -29,7 +29,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventComment;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -136,9 +135,8 @@ class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderDeleteTermPage_whenTermHasEventReferenceAndPendingCommentExists_showsPendingComment() throws Exception {
-    var eventReference = new EventReference();
-    licenceScheduleTerm.setEventReference(eventReference);
+  void renderDeleteTermPage_whenTermHasLicenceScheduleAndPendingCommentExists_showsPendingComment() throws Exception {
+    licenceScheduleTerm.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
 
     var eventComment = new EventComment();
     eventComment.setComment("a pending comment");
@@ -147,7 +145,7 @@ class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
         .thenReturn(true);
     when(licenceScheduleTermService.getTermByIdOrThrow(LICENCE_SCHEDULE_TERM_ID)).thenReturn(licenceScheduleTerm);
     when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");
-    when(eventCommentService.findPendingCommentForEventReference(eventReference)).thenReturn(Optional.of(eventComment));
+    when(eventCommentService.findPendingCommentForScheduleEvent(licenceScheduleTerm)).thenReturn(Optional.of(eventComment));
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(LICENCE_SCHEDULE_TERM_ID)))
@@ -158,15 +156,14 @@ class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderDeleteTermPage_whenTermHasEventReferenceAndNoPendingComment_showsEmptyPendingComment() throws Exception {
-    var eventReference = new EventReference();
-    licenceScheduleTerm.setEventReference(eventReference);
+  void renderDeleteTermPage_whenTermHasLicenceScheduleAndNoPendingComment_showsEmptyPendingComment() throws Exception {
+    licenceScheduleTerm.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
 
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
         .thenReturn(true);
     when(licenceScheduleTermService.getTermByIdOrThrow(LICENCE_SCHEDULE_TERM_ID)).thenReturn(licenceScheduleTerm);
     when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");
-    when(eventCommentService.findPendingCommentForEventReference(eventReference)).thenReturn(Optional.empty());
+    when(eventCommentService.findPendingCommentForScheduleEvent(licenceScheduleTerm)).thenReturn(Optional.empty());
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(LICENCE_SCHEDULE_TERM_ID)))

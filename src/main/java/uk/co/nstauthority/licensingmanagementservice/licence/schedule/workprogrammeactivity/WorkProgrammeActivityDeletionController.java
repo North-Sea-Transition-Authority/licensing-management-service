@@ -48,8 +48,8 @@ public class WorkProgrammeActivityDeletionController {
       @PathVariable UUID workProgrammeActivityId,
       WorkProgrammeActivity activity
   ) {
-    var pendingComment = activity.getEventReference() != null
-        ? eventCommentService.findPendingCommentForEventReference(activity.getEventReference())
+    var pendingComment = activity.getLicenceSchedule() != null
+        ? eventCommentService.findPendingCommentForScheduleEvent(activity)
             .map(EventComment::getComment)
             .orElse("")
         : "";

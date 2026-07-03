@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
@@ -48,14 +47,6 @@ public class LicenceScheduleTermService {
   public LicenceScheduleTerm getTermByIdOrThrow(UUID id) {
     return licenceScheduleTermRepository.findById(id)
         .orElseThrow(() -> new LmsEntityNotFoundException("LicenceScheduleTerm not found", id.toString()));
-  }
-
-  public LicenceScheduleTerm getTermByScheduleDetailAndEventReferenceOrThrow(
-      LicenceScheduleDetail scheduleDetail,
-      EventReference eventReference
-  ) {
-    return licenceScheduleTermRepository.findByLicenceScheduleDetailAndEventReference(scheduleDetail, eventReference)
-        .orElseThrow(() -> new LmsEntityNotFoundException("LicenceScheduleTerm", eventReference.getId()));
   }
 
   @Transactional

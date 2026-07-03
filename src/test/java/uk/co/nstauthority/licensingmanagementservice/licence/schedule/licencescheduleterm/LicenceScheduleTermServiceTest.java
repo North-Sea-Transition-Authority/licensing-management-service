@@ -16,7 +16,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
@@ -81,32 +80,6 @@ class LicenceScheduleTermServiceTest {
     when(licenceScheduleTermRepository.findById(any())).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> licenceScheduleTermService.getTermByIdOrThrow(UUID.randomUUID()))
-        .isInstanceOf(LmsEntityNotFoundException.class);
-  }
-
-  @Test
-  void getTermByScheduleDetailAndEventReferenceOrThrow() {
-    var detail = new LicenceScheduleDetail();
-    var eventReference = new EventReference();
-    var term = new LicenceScheduleTerm();
-
-    when(licenceScheduleTermRepository.findByLicenceScheduleDetailAndEventReference(detail, eventReference))
-        .thenReturn(Optional.of(term));
-
-    assertThat(licenceScheduleTermService.getTermByScheduleDetailAndEventReferenceOrThrow(detail, eventReference))
-        .isEqualTo(term);
-  }
-
-  @Test
-  void getTermByScheduleDetailAndEventReferenceOrThrow_notFound() {
-    var eventReference = new EventReference();
-    eventReference.setId(UUID.randomUUID());
-
-    when(licenceScheduleTermRepository.findByLicenceScheduleDetailAndEventReference(any(), any()))
-        .thenReturn(Optional.empty());
-
-    var detail = new LicenceScheduleDetail();
-    assertThatThrownBy(() -> licenceScheduleTermService.getTermByScheduleDetailAndEventReferenceOrThrow(detail, eventReference))
         .isInstanceOf(LmsEntityNotFoundException.class);
   }
 

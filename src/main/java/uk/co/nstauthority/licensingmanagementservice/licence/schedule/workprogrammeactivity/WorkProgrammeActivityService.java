@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -97,14 +96,6 @@ public class WorkProgrammeActivityService {
     return workProgrammeActivityRepository.findAllByLicenceScheduleDetailAndDueDateAfter(licenceScheduleDetail, date);
   }
 
-  public WorkProgrammeActivity getWorkProgrammeActivityByScheduleDetailAndEventReferenceOrThrow(
-      LicenceScheduleDetail scheduleDetail,
-      EventReference eventReference
-  ) {
-    return workProgrammeActivityRepository.findByLicenceScheduleDetailAndEventReference(scheduleDetail, eventReference)
-        .orElseThrow(() -> new LmsEntityNotFoundException("WorkProgrammeActivity", eventReference.getId()));
-  }
-
   public List<WorkProgrammeActivity> getAllActivitiesLinkedTo(LicenceScheduleTerm licenceScheduleTerm) {
     return workProgrammeActivityRepository.findByLicenceScheduleTerm(licenceScheduleTerm);
   }
@@ -174,7 +165,7 @@ public class WorkProgrammeActivityService {
   private List<WorkProgrammeActivityView> buildWorkProgrammeActivityViews(List<WorkProgrammeActivity> activities) {
     var statusByRef = workProgrammeActivityStatusService.getLatestStatusesFor(activities);
     return activities.stream()
-        .map(activity -> createWorkProgrammeActivityView(activity, statusByRef.get(activity.getEventReference().getId())))
+        .map(activity -> createWorkProgrammeActivityView(activity, statusByRef.get(activity.getOriginalEventId())))
         .toList();
   }
 

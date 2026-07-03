@@ -67,17 +67,17 @@ public record TimelineWorkProgrammeActivityView(
 
     var addCommentUrl = allowedActions.contains(ScheduleEventAction.ADD_WORK_PROGRAMME_COMMENT)
         ? ReverseRouter.route(on(EventCommentController.class)
-          .renderAddCommentForm(workProgrammeActivity.getEventReference().getId(), null)
+          .renderAddCommentForm(workProgrammeActivity.getId(), null)
     )
         : "";
 
-    var status = eventRefWorkProgrammeStatusMap.get(workProgrammeActivity.getEventReference().getId());
+    var status = eventRefWorkProgrammeStatusMap.get(workProgrammeActivity.getOriginalEventId());
 
     var statusView = status != null
         ? status.getStatus()
         : null;
 
-    var comments = eventComments.getOrDefault(workProgrammeActivity.getEventReference().getId(), List.of());
+    var comments = eventComments.getOrDefault(workProgrammeActivity.getOriginalEventId(), List.of());
 
     return new TimelineWorkProgrammeActivityView(
         workProgrammeActivity.getCategoryString(),

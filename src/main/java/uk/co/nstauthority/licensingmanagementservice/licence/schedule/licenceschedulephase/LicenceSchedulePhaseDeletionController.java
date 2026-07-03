@@ -52,8 +52,8 @@ public class LicenceSchedulePhaseDeletionController {
       @PathVariable UUID licenceSchedulePhaseId
   ) {
     var phase = licenceSchedulePhaseService.getPhaseByIdOrThrow(licenceSchedulePhaseId);
-    var pendingComment = phase.getEventReference() != null
-        ? eventCommentService.findPendingCommentForEventReference(phase.getEventReference())
+    var pendingComment = phase.getLicenceSchedule() != null
+        ? eventCommentService.findPendingCommentForScheduleEvent(phase)
             .map(EventComment::getComment)
             .orElse("")
         : "";

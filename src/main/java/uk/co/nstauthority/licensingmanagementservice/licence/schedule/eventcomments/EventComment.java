@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.ScheduleEvent;
 
 @Audited
 @Entity
@@ -24,7 +24,7 @@ public class EventComment {
 
   @ManyToOne
   @JoinColumn(name = "event_reference_id")
-  private EventReference eventReference;
+  private ScheduleEvent scheduleEvent;
 
   private String comment;
 
@@ -43,12 +43,12 @@ public class EventComment {
     return id;
   }
 
-  public EventReference getEventReference() {
-    return eventReference;
+  public ScheduleEvent getScheduleEvent() {
+    return scheduleEvent;
   }
 
-  public void setEventReference(EventReference eventReference) {
-    this.eventReference = eventReference;
+  public void setScheduleEvent(ScheduleEvent scheduleEvent) {
+    this.scheduleEvent = scheduleEvent;
   }
 
   public String getComment() {

@@ -48,8 +48,8 @@ public class OtherScheduleEventDeletionController {
       @PathVariable UUID otherScheduleEventId
   ) {
     var event = otherScheduleEventService.getOtherScheduleEventByIdOrThrow(otherScheduleEventId);
-    var pendingComment = event.getEventReference() != null
-        ? eventCommentService.findPendingCommentForEventReference(event.getEventReference())
+    var pendingComment = event.getLicenceSchedule() != null
+        ? eventCommentService.findPendingCommentForScheduleEvent(event)
             .map(EventComment::getComment)
             .orElse("")
         : "";

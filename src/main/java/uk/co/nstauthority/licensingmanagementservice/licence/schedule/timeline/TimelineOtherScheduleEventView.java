@@ -56,10 +56,10 @@ public record TimelineOtherScheduleEventView(
 
     var addCommentUrl = allowedActions.contains(ScheduleEventAction.ADD_SCHEDULE_COMMENT)
         ? ReverseRouter.route(on(EventCommentController.class)
-          .renderAddCommentForm(otherScheduleEvent.getEventReference().getId(), null))
+          .renderAddCommentForm(otherScheduleEvent.getId(), null))
         : "";
 
-    var comments = eventComments.getOrDefault(otherScheduleEvent.getEventReference().getId(), List.of());
+    var comments = eventComments.getOrDefault(otherScheduleEvent.getOriginalEventId(), List.of());
 
     return new TimelineOtherScheduleEventView(
         otherScheduleEvent.getCategoryString(),

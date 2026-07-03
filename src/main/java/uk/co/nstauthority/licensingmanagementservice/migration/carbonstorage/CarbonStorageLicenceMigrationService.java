@@ -168,6 +168,7 @@ public class CarbonStorageLicenceMigrationService {
         );
         var term = new LicenceScheduleTerm();
         term.setLicenceScheduleDetail(licenceScheduleDetail);
+        term.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
         var termType = migrationTerm.getTerm().equals("Initial")
             ? TermType.INITIAL_CS
             : EnumUtils.getEnum(TermType.class, migrationTerm.getTerm().toUpperCase());

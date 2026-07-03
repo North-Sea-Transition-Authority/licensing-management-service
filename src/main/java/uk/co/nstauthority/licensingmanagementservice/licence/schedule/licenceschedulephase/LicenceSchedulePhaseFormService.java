@@ -7,11 +7,9 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 
 @Service
 public class LicenceSchedulePhaseFormService {
@@ -19,20 +17,17 @@ public class LicenceSchedulePhaseFormService {
   private final LicenceSchedulePhaseRepository licenceSchedulePhaseRepository;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
   private final LicenceScheduleTermService licenceScheduleTermService;
-  private final EventReferenceService eventReferenceService;
   private final EventCommentService eventCommentService;
 
   public LicenceSchedulePhaseFormService(
       LicenceSchedulePhaseRepository licenceSchedulePhaseRepository,
       LicenceScheduleCalculationService licenceScheduleCalculationService,
       LicenceScheduleTermService licenceScheduleTermService,
-      EventReferenceService eventReferenceService,
       EventCommentService eventCommentService
   ) {
     this.licenceSchedulePhaseRepository = licenceSchedulePhaseRepository;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
     this.licenceScheduleTermService = licenceScheduleTermService;
-    this.eventReferenceService = eventReferenceService;
     this.eventCommentService = eventCommentService;
   }
 
@@ -48,17 +43,15 @@ public class LicenceSchedulePhaseFormService {
     licenceSchedulePhase.setPhaseDuration(licenceSchedulePhaseForm.getPhaseDuration().toThreeFieldDuration());
     licenceSchedulePhase.setLicenceScheduleTerm(getRelatedTerm(licenceScheduleDetail, licenceSchedulePhaseForm.getPhaseType()));
 
-    if (licenceSchedulePhase.getEventReference() == null) {
-      licenceSchedulePhase.setEventReference(
-          eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.PHASE)
-      );
+    if (licenceSchedulePhase.getLicenceSchedule() == null) {
+      licenceSchedulePhase.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
     }
 
     licenceSchedulePhaseRepository.save(licenceSchedulePhase);
 
     eventCommentService.addOrUpdatePendingComment(
         licenceSchedulePhaseForm.getComments(),
-        licenceSchedulePhase.getEventReference(),
+        licenceSchedulePhase,
         serviceUserDetail
     );
 
@@ -70,8 +63,8 @@ public class LicenceSchedulePhaseFormService {
     form.setPhaseType(phase.getPhaseType());
     form.getPhaseDuration().setFromThreeFieldDuration(phase.getPhaseDuration());
 
-    if (phase.getEventReference() != null) {
-      eventCommentService.findPendingCommentForEventReference(phase.getEventReference())
+    if (phase.getLicenceSchedule() != null) {
+      eventCommentService.findPendingCommentForScheduleEvent(phase)
           .ifPresent(comment -> form.setComments(comment.getComment()));
     }
 

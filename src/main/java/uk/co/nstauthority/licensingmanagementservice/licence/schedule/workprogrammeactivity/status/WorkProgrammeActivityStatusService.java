@@ -35,12 +35,12 @@ public class WorkProgrammeActivityStatusService {
 
   @Transactional
   public void createInitialStatusFor(WorkProgrammeActivity activity) {
-    if (!workProgrammeActivityStatusRepository.findAllByEventReference(activity.getEventReference()).isEmpty()) {
+    if (!workProgrammeActivityStatusRepository.findAllByScheduleEvent_OriginalEventId(activity.getOriginalEventId()).isEmpty()) {
       return;
     }
 
     var activityStatus = new WorkProgrammeActivityStatus();
-    activityStatus.setEventReference(activity.getEventReference());
+    activityStatus.setScheduleEvent(activity);
     activityStatus.setStatus(WorkProgrammeStatus.OPEN);
     activityStatus.setAppliedDatetime(Instant.now(clock));
 
@@ -50,7 +50,7 @@ public class WorkProgrammeActivityStatusService {
   @Transactional
   public void saveStatusFromForm(WorkProgrammeActivityStatusForm form, WorkProgrammeActivity activity) {
     var activityStatus = new WorkProgrammeActivityStatus();
-    activityStatus.setEventReference(activity.getEventReference());
+    activityStatus.setScheduleEvent(activity);
     activityStatus.setStatus(form.getStatus());
     activityStatus.setAppliedDatetime(Instant.now(clock));
 
@@ -65,29 +65,30 @@ public class WorkProgrammeActivityStatusService {
   }
 
   public WorkProgrammeActivityStatus getLatestStatusFor(WorkProgrammeActivity activity) {
-    return workProgrammeActivityStatusRepository.findAllByEventReference(activity.getEventReference()).stream()
+    return workProgrammeActivityStatusRepository.findAllByScheduleEvent_OriginalEventId(activity.getOriginalEventId()).stream()
         .max(Comparator.comparing(WorkProgrammeActivityStatus::getAppliedDatetime))
         .orElseThrow(() -> new LmsEntityNotFoundException(
-                "No status found for WorkProgrammeActivity with event reference: %s"
-                    .formatted(activity.getEventReference().getId())
+                "No status found for WorkProgrammeActivity with id: %s"
+                    .formatted(activity.getId())
             )
         );
   }
 
   public Map<UUID, WorkProgrammeActivityStatus> getLatestStatusesFor(List<WorkProgrammeActivity> workProgrammeActivities) {
-    var eventReferences = workProgrammeActivities.stream()
-        .map(WorkProgrammeActivity::getEventReference)
+    var originalEventIds = workProgrammeActivities.stream()
+        .map(WorkProgrammeActivity::getOriginalEventId)
         .toList();
 
-    var eventReferenceStatusesMap = workProgrammeActivityStatusRepository.findAllByEventReferenceIn(eventReferences)
+    var scheduleEventStatusesMap = workProgrammeActivityStatusRepository
+        .findAllByScheduleEvent_OriginalEventIdIn(originalEventIds)
         .stream()
-        .collect(Collectors.groupingBy(e -> e.getEventReference().getId(), Collectors.toList()));
+        .collect(Collectors.groupingBy(e -> e.getScheduleEvent().getOriginalEventId(), Collectors.toList()));
 
-    return eventReferences.stream()
-        .map(ref -> eventReferenceStatusesMap.getOrDefault(ref.getId(), List.of()))
+    return workProgrammeActivities.stream()
+        .map(activity -> scheduleEventStatusesMap.getOrDefault(activity.getOriginalEventId(), List.of()))
         .map(this::getLatestStatusFromList)
         .flatMap(Optional::stream)
-        .collect(StreamUtil.toLinkedHashMap(s -> s.getEventReference().getId(), Function.identity()));
+        .collect(StreamUtil.toLinkedHashMap(s -> s.getScheduleEvent().getOriginalEventId(), Function.identity()));
   }
 
   private Optional<WorkProgrammeActivityStatus> getLatestStatusFromList(

@@ -31,8 +31,8 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAc
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -60,7 +60,7 @@ class EventCommentServiceTest {
 
   @Test
   void addNewComment() {
-    var eventReference = new EventReference();
+    var scheduleEvent = new WorkProgrammeActivity();
     var form = new EventCommentForm();
     form.setComment("Test comment");
     var author = ServiceUserDetailTestUtil.newBuilder()
@@ -70,20 +70,20 @@ class EventCommentServiceTest {
     var fixedInstant = Instant.now();
     when(clock.instant()).thenReturn(fixedInstant);
 
-    eventCommentService.addNewComment(form, eventReference, author);
+    eventCommentService.addNewComment(form, scheduleEvent, author);
 
     verify(eventCommentRepository).save(eventCommentArgumentCaptor.capture());
 
     assertThat(eventCommentArgumentCaptor.getValue())
         .extracting(
-            EventComment::getEventReference,
+            EventComment::getScheduleEvent,
             EventComment::getComment,
             EventComment::getStatus,
             EventComment::getAuthorWuaId,
             EventComment::getTimestamp
         )
         .containsExactly(
-            eventReference,
+            scheduleEvent,
             "Test comment",
             EventCommentStatus.PUBLISHED,
             42L,
@@ -93,27 +93,31 @@ class EventCommentServiceTest {
 
   @Test
   void addOrUpdatePendingComment_whenCommentIsNull_andPendingCommentExists_deletesExisting() {
-    var eventReference = new EventReference();
+    var scheduleEvent = new WorkProgrammeActivity();
+    scheduleEvent.setOriginalEventId(UUID.randomUUID());
     var author = ServiceUserDetailTestUtil.newBuilder().withWuaId(42L).build();
     var existingComment = new EventComment();
 
-    when(eventCommentRepository.findByEventReferenceAndStatus(eventReference, EventCommentStatus.PENDING))
+    when(eventCommentRepository.findByScheduleEvent_OriginalEventIdAndStatus(
+        scheduleEvent.getOriginalEventId(), EventCommentStatus.PENDING))
         .thenReturn(Optional.of(existingComment));
 
-    eventCommentService.addOrUpdatePendingComment(null, eventReference, author);
+    eventCommentService.addOrUpdatePendingComment(null, scheduleEvent, author);
 
     verify(eventCommentRepository).delete(existingComment);
   }
 
   @Test
   void addOrUpdatePendingComment_whenCommentIsBlank_andNoPendingComment_doesNothing() {
-    var eventReference = new EventReference();
+    var scheduleEvent = new WorkProgrammeActivity();
+    scheduleEvent.setOriginalEventId(UUID.randomUUID());
     var author = ServiceUserDetailTestUtil.newBuilder().withWuaId(42L).build();
 
-    when(eventCommentRepository.findByEventReferenceAndStatus(eventReference, EventCommentStatus.PENDING))
+    when(eventCommentRepository.findByScheduleEvent_OriginalEventIdAndStatus(
+        scheduleEvent.getOriginalEventId(), EventCommentStatus.PENDING))
         .thenReturn(Optional.empty());
 
-    eventCommentService.addOrUpdatePendingComment("  ", eventReference, author);
+    eventCommentService.addOrUpdatePendingComment("  ", scheduleEvent, author);
 
     verify(eventCommentRepository, never()).save(any(EventComment.class));
     verify(eventCommentRepository, never()).delete(any(EventComment.class));
@@ -121,84 +125,90 @@ class EventCommentServiceTest {
 
   @Test
   void addOrUpdatePendingComment_whenCommentProvided_andNoPendingComment_savesNewComment() {
-    var eventReference = new EventReference();
+    var scheduleEvent = new WorkProgrammeActivity();
+    scheduleEvent.setOriginalEventId(UUID.randomUUID());
     var author = ServiceUserDetailTestUtil.newBuilder().withWuaId(42L).build();
     var fixedInstant = Instant.parse("2025-01-01T10:00:00Z");
 
-    when(eventCommentRepository.findByEventReferenceAndStatus(eventReference, EventCommentStatus.PENDING))
+    when(eventCommentRepository.findByScheduleEvent_OriginalEventIdAndStatus(
+        scheduleEvent.getOriginalEventId(), EventCommentStatus.PENDING))
         .thenReturn(Optional.empty());
     when(clock.instant()).thenReturn(fixedInstant);
 
-    eventCommentService.addOrUpdatePendingComment("New comment", eventReference, author);
+    eventCommentService.addOrUpdatePendingComment("New comment", scheduleEvent, author);
 
     verify(eventCommentRepository).save(eventCommentArgumentCaptor.capture());
 
     assertThat(eventCommentArgumentCaptor.getValue())
         .extracting(
-            EventComment::getEventReference,
+            EventComment::getScheduleEvent,
             EventComment::getComment,
             EventComment::getStatus,
             EventComment::getAuthorWuaId,
             EventComment::getTimestamp
         )
-        .containsExactly(eventReference, "New comment", EventCommentStatus.PENDING, 42L, fixedInstant);
+        .containsExactly(scheduleEvent, "New comment", EventCommentStatus.PENDING, 42L, fixedInstant);
   }
 
   @Test
   void addOrUpdatePendingComment_whenCommentProvided_andPendingCommentExists_updatesExisting() {
-    var eventReference = new EventReference();
+    var scheduleEvent = new WorkProgrammeActivity();
+    scheduleEvent.setOriginalEventId(UUID.randomUUID());
     var author = ServiceUserDetailTestUtil.newBuilder().withWuaId(42L).build();
     var existingComment = new EventComment();
     existingComment.setComment("Old comment");
     var fixedInstant = Instant.parse("2025-06-01T12:00:00Z");
 
-    when(eventCommentRepository.findByEventReferenceAndStatus(eventReference, EventCommentStatus.PENDING))
+    when(eventCommentRepository.findByScheduleEvent_OriginalEventIdAndStatus(
+        scheduleEvent.getOriginalEventId(), EventCommentStatus.PENDING))
         .thenReturn(Optional.of(existingComment));
     when(clock.instant()).thenReturn(fixedInstant);
 
-    eventCommentService.addOrUpdatePendingComment("Updated comment", eventReference, author);
+    eventCommentService.addOrUpdatePendingComment("Updated comment", scheduleEvent, author);
 
     verify(eventCommentRepository).save(eventCommentArgumentCaptor.capture());
 
     assertThat(eventCommentArgumentCaptor.getValue())
         .isSameAs(existingComment)
         .extracting(
-            EventComment::getEventReference,
+            EventComment::getScheduleEvent,
             EventComment::getComment,
             EventComment::getStatus,
             EventComment::getAuthorWuaId,
             EventComment::getTimestamp
         )
-        .containsExactly(eventReference, "Updated comment", EventCommentStatus.PENDING, 42L, fixedInstant);
+        .containsExactly(scheduleEvent, "Updated comment", EventCommentStatus.PENDING, 42L, fixedInstant);
   }
 
   @Test
   void getEventCommentViewsForSchedule_returnsCommentsMappedByEventReferenceId() {
     var licenceSchedule = new LicenceSchedule();
 
-    var eventRef1 = new EventReference();
-    eventRef1.setId(UUID.randomUUID());
+    var scheduleEvent1 = new WorkProgrammeActivity();
+    scheduleEvent1.setId(UUID.randomUUID());
+    scheduleEvent1.setOriginalEventId(scheduleEvent1.getId());
 
-    var eventRef2 = new EventReference();
-    eventRef2.setId(UUID.randomUUID());
+    var scheduleEvent2 = new WorkProgrammeActivity();
+    scheduleEvent2.setId(UUID.randomUUID());
+    scheduleEvent2.setOriginalEventId(scheduleEvent2.getId());
 
     var authorWuaId = 99L;
 
     var comment1 = new EventComment();
     comment1.setId(UUID.randomUUID());
-    comment1.setEventReference(eventRef1);
+    comment1.setScheduleEvent(scheduleEvent1);
     comment1.setComment("First comment");
     comment1.setAuthorWuaId(authorWuaId);
     comment1.setTimestamp(Instant.parse("2025-01-01T10:00:00Z"));
 
     var comment2 = new EventComment();
     comment2.setId(UUID.randomUUID());
-    comment2.setEventReference(eventRef2);
+    comment2.setScheduleEvent(scheduleEvent2);
     comment2.setComment("Second comment");
     comment2.setAuthorWuaId(authorWuaId);
     comment2.setTimestamp(Instant.parse("2025-01-02T12:00:00Z"));
 
-    when(eventCommentRepository.getAllByEventReference_LicenceScheduleAndStatus(licenceSchedule, EventCommentStatus.PUBLISHED))
+    when(eventCommentRepository.getAllByScheduleEvent_LicenceScheduleAndStatus(licenceSchedule, EventCommentStatus.PUBLISHED))
         .thenReturn(List.of(comment1, comment2));
 
     var userJson = new EnergyPortalUserJson(authorWuaId, null, "Jane", "Smith", null, null, true, null, false);
@@ -212,7 +222,7 @@ class EventCommentServiceTest {
 
     assertThat(result).hasSize(2);
 
-    assertThat(result.get(eventRef1.getId()))
+    assertThat(result.get(scheduleEvent1.getOriginalEventId()))
         .usingRecursiveComparison()
         .isEqualTo(List.of(new EventCommentView(
             "First comment",
@@ -222,7 +232,7 @@ class EventCommentServiceTest {
                 .renderDeleteCommentPage(comment1.getId(), null))
         )));
 
-    assertThat(result.get(eventRef2.getId()))
+    assertThat(result.get(scheduleEvent2.getOriginalEventId()))
         .usingRecursiveComparison()
         .isEqualTo(List.of(new EventCommentView(
             "Second comment",
@@ -237,24 +247,25 @@ class EventCommentServiceTest {
   void getEventCommentViewsForSchedule_sortsByTimestamp() {
     var licenceSchedule = new LicenceSchedule();
 
-    var eventRef = new EventReference();
-    eventRef.setId(UUID.randomUUID());
+    var scheduleEvent = new WorkProgrammeActivity();
+    scheduleEvent.setId(UUID.randomUUID());
+    scheduleEvent.setOriginalEventId(scheduleEvent.getId());
 
     var authorWuaId = 55L;
 
     var newerComment = new EventComment();
-    newerComment.setEventReference(eventRef);
+    newerComment.setScheduleEvent(scheduleEvent);
     newerComment.setComment("Newer comment");
     newerComment.setAuthorWuaId(authorWuaId);
     newerComment.setTimestamp(Instant.parse("2025-06-01T15:00:00Z"));
 
     var olderComment = new EventComment();
-    olderComment.setEventReference(eventRef);
+    olderComment.setScheduleEvent(scheduleEvent);
     olderComment.setComment("Older comment");
     olderComment.setAuthorWuaId(authorWuaId);
     olderComment.setTimestamp(Instant.parse("2025-01-01T09:00:00Z"));
 
-    when(eventCommentRepository.getAllByEventReference_LicenceScheduleAndStatus(licenceSchedule, EventCommentStatus.PUBLISHED))
+    when(eventCommentRepository.getAllByScheduleEvent_LicenceScheduleAndStatus(licenceSchedule, EventCommentStatus.PUBLISHED))
         .thenReturn(List.of(newerComment, olderComment));
 
     var userJson = new EnergyPortalUserJson(authorWuaId, null, "Bob", "Jones", null, null, true, null, false);
@@ -268,7 +279,7 @@ class EventCommentServiceTest {
 
     assertThat(result).hasSize(1);
 
-    var comments = result.get(eventRef.getId());
+    var comments = result.get(scheduleEvent.getOriginalEventId());
     assertThat(comments).hasSize(2);
     assertThat(comments.get(0).comment()).isEqualTo("Older comment");
     assertThat(comments.get(1).comment()).isEqualTo("Newer comment");
@@ -278,7 +289,7 @@ class EventCommentServiceTest {
   void getEventCommentViewsForSchedule_emptySchedule() {
     var licenceSchedule = new LicenceSchedule();
 
-    when(eventCommentRepository.getAllByEventReference_LicenceScheduleAndStatus(licenceSchedule, EventCommentStatus.PUBLISHED))
+    when(eventCommentRepository.getAllByScheduleEvent_LicenceScheduleAndStatus(licenceSchedule, EventCommentStatus.PUBLISHED))
         .thenReturn(List.of());
 
     var result = eventCommentService.getEventCommentViewsForSchedule(licenceSchedule);
@@ -341,7 +352,7 @@ class EventCommentServiceTest {
 
     eventCommentService.deletePendingCommentsForSchedule(licenceSchedule);
 
-    verify(eventCommentRepository).deleteAllByEventReference_LicenceScheduleAndStatus(
+    verify(eventCommentRepository).deleteAllByScheduleEvent_LicenceScheduleAndStatus(
         licenceSchedule, EventCommentStatus.PENDING);
   }
 
@@ -355,7 +366,7 @@ class EventCommentServiceTest {
     var comment2 = new EventComment();
     comment2.setStatus(EventCommentStatus.PENDING);
 
-    when(eventCommentRepository.getAllByEventReference_LicenceScheduleAndStatus(
+    when(eventCommentRepository.getAllByScheduleEvent_LicenceScheduleAndStatus(
         licenceSchedule, EventCommentStatus.PENDING))
         .thenReturn(List.of(comment1, comment2));
 
@@ -370,13 +381,39 @@ class EventCommentServiceTest {
   void publishPendingCommentsForSchedule_whenNoPendingComments_savesNothing() {
     var licenceSchedule = new LicenceSchedule();
 
-    when(eventCommentRepository.getAllByEventReference_LicenceScheduleAndStatus(
+    when(eventCommentRepository.getAllByScheduleEvent_LicenceScheduleAndStatus(
         licenceSchedule, EventCommentStatus.PENDING))
         .thenReturn(List.of());
 
     eventCommentService.publishPendingCommentsForSchedule(licenceSchedule);
 
     verify(eventCommentRepository).saveAll(List.of());
+  }
+
+  @Test
+  void findPendingCommentForScheduleEvent_whenPendingCommentExists_returnsComment() {
+    var scheduleEvent = new WorkProgrammeActivity();
+    scheduleEvent.setOriginalEventId(UUID.randomUUID());
+    var pendingComment = new EventComment();
+
+    when(eventCommentRepository.findByScheduleEvent_OriginalEventIdAndStatus(
+        scheduleEvent.getOriginalEventId(), EventCommentStatus.PENDING))
+        .thenReturn(Optional.of(pendingComment));
+
+    assertThat(eventCommentService.findPendingCommentForScheduleEvent(scheduleEvent))
+        .contains(pendingComment);
+  }
+
+  @Test
+  void findPendingCommentForScheduleEvent_whenNoPendingComment_returnsEmpty() {
+    var scheduleEvent = new WorkProgrammeActivity();
+    scheduleEvent.setOriginalEventId(UUID.randomUUID());
+
+    when(eventCommentRepository.findByScheduleEvent_OriginalEventIdAndStatus(
+        scheduleEvent.getOriginalEventId(), EventCommentStatus.PENDING))
+        .thenReturn(Optional.empty());
+
+    assertThat(eventCommentService.findPendingCommentForScheduleEvent(scheduleEvent)).isEmpty();
   }
 
   @Test

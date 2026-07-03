@@ -16,7 +16,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiry;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
@@ -32,7 +31,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesta
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventRepository;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityRepository;
@@ -47,7 +45,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
 
   @Autowired
   private LicenceScheduleDetailRepository licenceScheduleDetailRepository;
-  
+
   @Autowired
   private LicenceScheduleTermRepository licenceScheduleTermRepository;
 
@@ -137,75 +135,71 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     );
 
     var newLicenceScheduleTerm = licenceScheduleTermRepository.findAllByLicenceScheduleDetail(newLicenceScheduleDetail).getFirst();
-    
+
     assertThat(newLicenceScheduleTerm).extracting(
         LicenceScheduleTerm::getLicenceScheduleDetail,
         LicenceScheduleTerm::getTermType,
-        LicenceScheduleTerm::getTermDuration,
-        LicenceScheduleTerm::getEventReference
+        LicenceScheduleTerm::getTermDuration
     ).containsExactly(
         newLicenceScheduleDetail,
         licenceScheduleTerm.getTermType(),
-        licenceScheduleTerm.getTermDuration(),
-        licenceScheduleTerm.getEventReference()
+        licenceScheduleTerm.getTermDuration()
     );
-    
+
     var newLicenceSchedulePhase = licenceSchedulePhaseRepository.findAllByLicenceScheduleDetail(newLicenceScheduleDetail).getFirst();
 
     assertThat(newLicenceSchedulePhase).extracting(
         LicenceSchedulePhase::getLicenceScheduleDetail,
         LicenceSchedulePhase::getLicenceScheduleTerm,
         LicenceSchedulePhase::getPhaseType,
-        LicenceSchedulePhase::getPhaseDuration,
-        LicenceSchedulePhase::getEventReference
+        LicenceSchedulePhase::getPhaseDuration
     ).containsExactly(
         newLicenceScheduleDetail,
         newLicenceScheduleTerm,
         licenceSchedulePhase.getPhaseType(),
-        licenceSchedulePhase.getPhaseDuration(),
-        licenceSchedulePhase.getEventReference()
+        licenceSchedulePhase.getPhaseDuration()
     );
-    
+
     var newActivities = workProgrammeActivityRepository.findAllByLicenceScheduleDetail(newLicenceScheduleDetail);
-    
+
     var expectedNewTermLinkedActivity = new WorkProgrammeActivity();
     expectedNewTermLinkedActivity.setLicenceScheduleDetail(newLicenceScheduleDetail);
     expectedNewTermLinkedActivity.setLicenceScheduleTerm(newLicenceScheduleTerm);
     expectedNewTermLinkedActivity.setDateOption(termLinkedActivity.getDateOption());
     expectedNewTermLinkedActivity.setRelativeDuration(termLinkedActivity.getRelativeDuration());
-    expectedNewTermLinkedActivity.setEventReference(termLinkedActivity.getEventReference());
+    expectedNewTermLinkedActivity.setLicenceSchedule(licenceSchedule);
 
     var expectedNewPhaseLinkedActivity = new WorkProgrammeActivity();
     expectedNewPhaseLinkedActivity.setLicenceScheduleDetail(newLicenceScheduleDetail);
     expectedNewPhaseLinkedActivity.setLicenceSchedulePhase(newLicenceSchedulePhase);
     expectedNewPhaseLinkedActivity.setDateOption(phaseLinkedActivity.getDateOption());
     expectedNewPhaseLinkedActivity.setRelativeDuration(phaseLinkedActivity.getRelativeDuration());
-    expectedNewPhaseLinkedActivity.setEventReference(phaseLinkedActivity.getEventReference());
-    
+    expectedNewPhaseLinkedActivity.setLicenceSchedule(licenceSchedule);
+
     assertThat(newActivities)
         .usingRecursiveComparison()
-        .ignoringFields("id", "dueDate")
+        .ignoringFields("id", "dueDate", "originalEventId")
         .ignoringCollectionOrder()
         .isEqualTo(List.of(expectedNewTermLinkedActivity, expectedNewPhaseLinkedActivity));
-    
+
     var newRates = licenceScheduleRateRepository.findAllByLicenceScheduleDetail(newLicenceScheduleDetail);
-    
+
     var expectedNewTermLinkedRate = new LicenceScheduleRate();
     expectedNewTermLinkedRate.setLicenceScheduleDetail(newLicenceScheduleDetail);
     expectedNewTermLinkedRate.setLicenceScheduleTerm(newLicenceScheduleTerm);
     expectedNewTermLinkedRate.setRateDefinitionOption(termLinkedRate.getRateDefinitionOption());
-    expectedNewTermLinkedRate.setEventReference(termLinkedRate.getEventReference());
+    expectedNewTermLinkedRate.setLicenceSchedule(licenceSchedule);
 
     var expectedNewPhaseLinkedRate = new LicenceScheduleRate();
     expectedNewPhaseLinkedRate.setLicenceScheduleDetail(newLicenceScheduleDetail);
     expectedNewPhaseLinkedRate.setLicenceSchedulePhase(newLicenceSchedulePhase);
     expectedNewPhaseLinkedRate.setRateDefinitionOption(phaseLinkedRate.getRateDefinitionOption());
     expectedNewPhaseLinkedRate.setRateRelativeDateOption(phaseLinkedRate.getRateRelativeDateOption());
-    expectedNewPhaseLinkedRate.setEventReference(phaseLinkedRate.getEventReference());
+    expectedNewPhaseLinkedRate.setLicenceSchedule(licenceSchedule);
 
     assertThat(newRates)
         .usingRecursiveComparison()
-        .ignoringFields("id", "startDate")
+        .ignoringFields("id", "startDate", "originalEventId")
         .ignoringCollectionOrder()
         .isEqualTo(List.of(expectedNewTermLinkedRate, expectedNewPhaseLinkedRate));
 
@@ -216,18 +210,18 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     expectedNewTermLinkedEvent.setLicenceScheduleTerm(newLicenceScheduleTerm);
     expectedNewTermLinkedEvent.setDateOption(termLinkedEvent.getDateOption());
     expectedNewTermLinkedEvent.setRelativeDuration(termLinkedEvent.getRelativeDuration());
-    expectedNewTermLinkedEvent.setEventReference(termLinkedEvent.getEventReference());
+    expectedNewTermLinkedEvent.setLicenceSchedule(licenceSchedule);
 
     var expectedNewPhaseLinkedEvent = new OtherScheduleEvent();
     expectedNewPhaseLinkedEvent.setLicenceScheduleDetail(newLicenceScheduleDetail);
     expectedNewPhaseLinkedEvent.setLicenceSchedulePhase(newLicenceSchedulePhase);
     expectedNewPhaseLinkedEvent.setDateOption(phaseLinkedEvent.getDateOption());
     expectedNewPhaseLinkedEvent.setRelativeDuration(phaseLinkedEvent.getRelativeDuration());
-    expectedNewPhaseLinkedEvent.setEventReference(phaseLinkedEvent.getEventReference());
+    expectedNewPhaseLinkedEvent.setLicenceSchedule(licenceSchedule);
 
     assertThat(newEvents)
         .usingRecursiveComparison()
-        .ignoringFields("id", "eventDate")
+        .ignoringFields("id", "eventDate", "originalEventId")
         .ignoringCollectionOrder()
         .isEqualTo(List.of(expectedNewTermLinkedEvent, expectedNewPhaseLinkedEvent));
   }
@@ -260,6 +254,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     licenceScheduleExpiry = new LicenceScheduleExpiry();
     licenceScheduleExpiry.setLicenceScheduleDetail(oldLicenceScheduleDetail);
     licenceScheduleExpiry.setExpiryDate(LocalDate.of(2050, 1, 1));
+    licenceScheduleExpiry.setLicenceSchedule(licenceSchedule);
 
     em.persist(licenceScheduleExpiry);
 
@@ -267,11 +262,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     licenceScheduleTerm.setLicenceScheduleDetail(oldLicenceScheduleDetail);
     licenceScheduleTerm.setTermType(TermType.INITIAL);
     licenceScheduleTerm.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    var termEventRef = new EventReference();
-    termEventRef.setLicenceSchedule(licenceSchedule);
-    termEventRef.setEventType(ScheduleEventType.TERM);
-    em.persist(termEventRef);
-    licenceScheduleTerm.setEventReference(termEventRef);
+    licenceScheduleTerm.setLicenceSchedule(licenceSchedule);
 
     em.persist(licenceScheduleTerm);
 
@@ -280,11 +271,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     licenceSchedulePhase.setLicenceScheduleTerm(licenceScheduleTerm);
     licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
     licenceSchedulePhase.setPhaseDuration(new ThreeFieldDuration(0, 1, 0));
-    var phaseEventRef = new EventReference();
-    phaseEventRef.setLicenceSchedule(licenceSchedule);
-    phaseEventRef.setEventType(ScheduleEventType.PHASE);
-    em.persist(phaseEventRef);
-    licenceSchedulePhase.setEventReference(phaseEventRef);
+    licenceSchedulePhase.setLicenceSchedule(licenceSchedule);
 
     em.persist(licenceSchedulePhase);
 
@@ -293,11 +280,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     termLinkedActivity.setLicenceScheduleTerm(licenceScheduleTerm);
     termLinkedActivity.setDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
     termLinkedActivity.setRelativeDuration(new ThreeFieldDuration(1, 0, 0));
-    var termActivityEventRef = new EventReference();
-    termActivityEventRef.setLicenceSchedule(licenceSchedule);
-    termActivityEventRef.setEventType(ScheduleEventType.WORK_PROGRAMME_ACTIVITY);
-    em.persist(termActivityEventRef);
-    termLinkedActivity.setEventReference(termActivityEventRef);
+    termLinkedActivity.setLicenceSchedule(licenceSchedule);
 
     em.persist(termLinkedActivity);
 
@@ -306,11 +289,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     phaseLinkedActivity.setLicenceSchedulePhase(licenceSchedulePhase);
     phaseLinkedActivity.setDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
     phaseLinkedActivity.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
-    var phaseActivityEventRef = new EventReference();
-    phaseActivityEventRef.setLicenceSchedule(licenceSchedule);
-    phaseActivityEventRef.setEventType(ScheduleEventType.WORK_PROGRAMME_ACTIVITY);
-    em.persist(phaseActivityEventRef);
-    phaseLinkedActivity.setEventReference(phaseActivityEventRef);
+    phaseLinkedActivity.setLicenceSchedule(licenceSchedule);
 
     em.persist(phaseLinkedActivity);
 
@@ -318,11 +297,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     termLinkedRate.setLicenceScheduleDetail(oldLicenceScheduleDetail);
     termLinkedRate.setLicenceScheduleTerm(licenceScheduleTerm);
     termLinkedRate.setRateDefinitionOption(RateDefinitionOption.TERM);
-    var termRateEventRef = new EventReference();
-    termRateEventRef.setLicenceSchedule(licenceSchedule);
-    termRateEventRef.setEventType(ScheduleEventType.RATE);
-    em.persist(termRateEventRef);
-    termLinkedRate.setEventReference(termRateEventRef);
+    termLinkedRate.setLicenceSchedule(licenceSchedule);
 
     em.persist(termLinkedRate);
 
@@ -331,11 +306,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     phaseLinkedRate.setLicenceSchedulePhase(licenceSchedulePhase);
     phaseLinkedRate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
     phaseLinkedRate.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
-    var phaseRateEventRef = new EventReference();
-    phaseRateEventRef.setLicenceSchedule(licenceSchedule);
-    phaseRateEventRef.setEventType(ScheduleEventType.RATE);
-    em.persist(phaseRateEventRef);
-    phaseLinkedRate.setEventReference(phaseRateEventRef);
+    phaseLinkedRate.setLicenceSchedule(licenceSchedule);
 
     em.persist(phaseLinkedRate);
 
@@ -344,11 +315,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     termLinkedEvent.setLicenceScheduleTerm(licenceScheduleTerm);
     termLinkedEvent.setDateOption(OtherScheduleEventDateOption.RELATIVE_DATE);
     termLinkedEvent.setRelativeDuration(new ThreeFieldDuration(1, 0, 0));
-    var termEventEventRef = new EventReference();
-    termEventEventRef.setLicenceSchedule(licenceSchedule);
-    termEventEventRef.setEventType(ScheduleEventType.OTHER);
-    em.persist(termEventEventRef);
-    termLinkedEvent.setEventReference(termEventEventRef);
+    termLinkedEvent.setLicenceSchedule(licenceSchedule);
 
     em.persist(termLinkedEvent);
 
@@ -357,11 +324,7 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
     phaseLinkedEvent.setLicenceSchedulePhase(licenceSchedulePhase);
     phaseLinkedEvent.setDateOption(OtherScheduleEventDateOption.RELATIVE_DATE);
     phaseLinkedEvent.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
-    var phaseEventEventRef = new EventReference();
-    phaseEventEventRef.setLicenceSchedule(licenceSchedule);
-    phaseEventEventRef.setEventType(ScheduleEventType.OTHER);
-    em.persist(phaseEventEventRef);
-    phaseLinkedEvent.setEventReference(phaseEventEventRef);
+    phaseLinkedEvent.setLicenceSchedule(licenceSchedule);
 
     em.persist(phaseLinkedEvent);
     em.flush();

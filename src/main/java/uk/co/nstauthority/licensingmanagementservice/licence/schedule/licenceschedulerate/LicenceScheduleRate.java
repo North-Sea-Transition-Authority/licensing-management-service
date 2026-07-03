@@ -2,32 +2,30 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesc
 
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.UUID;
-import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.ScheduleEvent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 
 @Audited
-@Entity(name = "licence_schedule_rates")
-public class LicenceScheduleRate implements LinkedToDuplicationParent<LicenceScheduleDetail> {
-
-  @Id
-  @UuidGenerator
-  private UUID id;
+@Entity
+@Table(name = "licence_schedule_rates")
+@DiscriminatorValue("RATE")
+public class LicenceScheduleRate extends ScheduleEvent implements LinkedToDuplicationParent<LicenceScheduleDetail> {
 
   @ManyToOne
   @JoinColumn(name = "licence_schedule_detail_id")
@@ -56,18 +54,6 @@ public class LicenceScheduleRate implements LinkedToDuplicationParent<LicenceSch
   private LocalDate startDate;
 
   private BigDecimal rentalRate;
-
-  @ManyToOne
-  @JoinColumn(name = "event_reference_id")
-  private EventReference eventReference;
-
-  public UUID getId() {
-    return id;
-  }
-
-  public void setId(UUID id) {
-    this.id = id;
-  }
 
   public LicenceScheduleDetail getLicenceScheduleDetail() {
     return licenceScheduleDetail;
@@ -138,11 +124,19 @@ public class LicenceScheduleRate implements LinkedToDuplicationParent<LicenceSch
     this.rentalRate = rentalRate;
   }
 
-  public EventReference getEventReference() {
-    return eventReference;
+  @Override
+  public ScheduleEventType getEventType() {
+    return ScheduleEventType.RATE;
   }
 
-  public void setEventReference(EventReference eventReference) {
-    this.eventReference = eventReference;
+  @Override
+  public String getEventCaption() {
+    if (rateDefinitionOption.equals(RateDefinitionOption.TERM)) {
+      return "%s rate".formatted(licenceScheduleTerm.getTermType().getDisplayName());
+    }
+    if (rateDefinitionOption.equals(RateDefinitionOption.PHASE)) {
+      return "%s rate".formatted(licenceSchedulePhase.getPhaseType().getDisplayName());
+    }
+    return "Rate";
   }
 }

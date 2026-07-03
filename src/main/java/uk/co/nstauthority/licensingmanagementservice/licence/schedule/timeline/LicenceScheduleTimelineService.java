@@ -343,10 +343,10 @@ public class LicenceScheduleTimelineService {
 
     var addCommentUrl = allowedActions.contains(ScheduleEventAction.ADD_SCHEDULE_COMMENT)
         ? ReverseRouter.route(on(EventCommentController.class)
-          .renderAddCommentForm(licenceScheduleTerm.getEventReference().getId(), null))
+          .renderAddCommentForm(licenceScheduleTerm.getId(), null))
         : "";
 
-    var termComments = eventRefCommentsMap.getOrDefault(licenceScheduleTerm.getEventReference().getId(), List.of());
+    var termComments = eventRefCommentsMap.getOrDefault(licenceScheduleTerm.getOriginalEventId(), List.of());
 
     return new TimelineTermView(
         scheduleEvents,
@@ -514,10 +514,10 @@ public class LicenceScheduleTimelineService {
 
     var addCommentUrl = allowedActions.contains(ScheduleEventAction.ADD_SCHEDULE_COMMENT)
         ? ReverseRouter.route(on(EventCommentController.class)
-          .renderAddCommentForm(licenceSchedulePhase.getEventReference().getId(), null))
+          .renderAddCommentForm(licenceSchedulePhase.getId(), null))
         : "";
 
-    var phaseComments = eventRefCommentsMap.getOrDefault(licenceSchedulePhase.getEventReference().getId(), List.of());
+    var phaseComments = eventRefCommentsMap.getOrDefault(licenceSchedulePhase.getOriginalEventId(), List.of());
 
     return new TimelinePhaseView(
         getScheduleEventsForPhase(

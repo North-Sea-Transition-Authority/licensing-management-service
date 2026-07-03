@@ -11,7 +11,7 @@ import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.ScheduleEvent;
 
 @Audited
 @Entity(name = "work_programme_activity_statuses")
@@ -23,7 +23,7 @@ public class WorkProgrammeActivityStatus {
 
   @ManyToOne
   @JoinColumn(name = "event_reference_id")
-  private EventReference eventReference;
+  private ScheduleEvent scheduleEvent;
 
   @Enumerated(EnumType.STRING)
   private WorkProgrammeStatus status;
@@ -42,12 +42,12 @@ public class WorkProgrammeActivityStatus {
     this.id = id;
   }
 
-  public EventReference getEventReference() {
-    return eventReference;
+  public ScheduleEvent getScheduleEvent() {
+    return scheduleEvent;
   }
 
-  public void setEventReference(EventReference eventReference) {
-    this.eventReference = eventReference;
+  public void setScheduleEvent(ScheduleEvent scheduleEvent) {
+    this.scheduleEvent = scheduleEvent;
   }
 
   public WorkProgrammeStatus getStatus() {

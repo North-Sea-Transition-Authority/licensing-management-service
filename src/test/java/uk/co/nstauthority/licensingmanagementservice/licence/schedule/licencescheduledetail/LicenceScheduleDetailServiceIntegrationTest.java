@@ -170,6 +170,7 @@ class LicenceScheduleDetailServiceIntegrationTest {
   private LicenceScheduleTerm createLicenceScheduleTerm(LicenceScheduleDetail licenceScheduleDetail, LocalDate endDate) {
     var term = new LicenceScheduleTerm();
     term.setLicenceScheduleDetail(licenceScheduleDetail);
+    term.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
     term.setEndDate(endDate);
 
     em.persist(term);

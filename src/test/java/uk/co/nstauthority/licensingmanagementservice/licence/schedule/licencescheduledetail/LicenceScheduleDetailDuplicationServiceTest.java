@@ -9,7 +9,6 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -19,10 +18,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationService;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationSource;
+import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
+import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
@@ -128,23 +128,19 @@ class LicenceScheduleDetailDuplicationServiceTest {
 
     var oldTerm = new LicenceScheduleTerm();
     oldTerm.setLicenceScheduleDetail(oldDetail);
-    var oldTermRef = new EventReference();
-    oldTermRef.setId(UUID.randomUUID());
-    oldTerm.setEventReference(oldTermRef);
+    oldTerm.setTermType(TermType.INITIAL);
 
     var newTerm = new LicenceScheduleTerm();
     newTerm.setLicenceScheduleDetail(newDetail);
-    newTerm.setEventReference(oldTerm.getEventReference());
+    newTerm.setTermType(TermType.INITIAL);
 
     var oldPhase = new LicenceSchedulePhase();
     oldPhase.setLicenceScheduleDetail(oldDetail);
-    var oldPhaseRef = new EventReference();
-    oldPhaseRef.setId(UUID.randomUUID());
-    oldPhase.setEventReference(oldPhaseRef);
+    oldPhase.setPhaseType(PhaseType.PHASE_A);
 
     var newPhase = new LicenceSchedulePhase();
     newPhase.setLicenceScheduleDetail(newDetail);
-    newPhase.setEventReference(oldPhase.getEventReference());
+    newPhase.setPhaseType(PhaseType.PHASE_A);
     newPhase.setLicenceScheduleTerm(oldTerm);
     
     var termLinkedRate = new LicenceScheduleRate();

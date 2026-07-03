@@ -2,14 +2,12 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogr
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicateThisOnUpdate;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationSource;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -51,9 +49,4 @@ public interface WorkProgrammeActivityRepository
   boolean existsByLicenceSchedulePhase(LicenceSchedulePhase licenceSchedulePhase);
 
   boolean existsByLicenceScheduleTerm(LicenceScheduleTerm licenceScheduleTerm);
-
-  Optional<WorkProgrammeActivity> findByLicenceScheduleDetailAndEventReference(
-      LicenceScheduleDetail licenceScheduleDetail,
-      EventReference eventReference
-  );
 }

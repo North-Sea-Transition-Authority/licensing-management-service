@@ -12,12 +12,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRu
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusService;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
@@ -32,7 +30,6 @@ public class WorkProgrammeActivityFormService {
   private final LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
   private final WorkProgrammeActivityStatusService workProgrammeActivityStatusService;
-  private final EventReferenceService eventReferenceService;
   private final EventCommentService eventCommentService;
 
   public WorkProgrammeActivityFormService(
@@ -43,7 +40,6 @@ public class WorkProgrammeActivityFormService {
       LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService,
       LicenceScheduleCalculationService licenceScheduleCalculationService,
       WorkProgrammeActivityStatusService workProgrammeActivityStatusService,
-      EventReferenceService eventReferenceService,
       EventCommentService eventCommentService
   ) {
     this.workProgrammeActivityRepository = workProgrammeActivityRepository;
@@ -53,7 +49,6 @@ public class WorkProgrammeActivityFormService {
     this.licenceScheduleRelativeOptionsService = licenceScheduleRelativeOptionsService;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
     this.workProgrammeActivityStatusService = workProgrammeActivityStatusService;
-    this.eventReferenceService = eventReferenceService;
     this.eventCommentService = eventCommentService;
   }
 
@@ -112,17 +107,12 @@ public class WorkProgrammeActivityFormService {
       activity.setRelativeDuration(null);
     }
 
-    if (activity.getEventReference() == null) {
-      activity.setEventReference(
-          eventReferenceService.createEventReference(
-              licenceScheduleDetail.getLicenceSchedule(),
-              ScheduleEventType.WORK_PROGRAMME_ACTIVITY
-          )
-      );
+    if (activity.getLicenceSchedule() == null) {
+      activity.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
     }
 
     workProgrammeActivityRepository.save(activity);
-    eventCommentService.addOrUpdatePendingComment(form.getComments(), activity.getEventReference(), serviceUserDetail);
+    eventCommentService.addOrUpdatePendingComment(form.getComments(), activity, serviceUserDetail);
     workProgrammeActivityStatusService.createInitialStatusFor(activity);
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
@@ -133,8 +123,8 @@ public class WorkProgrammeActivityFormService {
     form.setOtherCategoryName(workProgrammeActivity.getOtherCategoryName());
     form.setDescription(workProgrammeActivity.getDescription());
     form.setWorkProgrammeActivityCommitment(workProgrammeActivity.getCommitment());
-    if (workProgrammeActivity.getEventReference() != null) {
-      eventCommentService.findPendingCommentForEventReference(workProgrammeActivity.getEventReference())
+    if (workProgrammeActivity.getLicenceSchedule() != null) {
+      eventCommentService.findPendingCommentForScheduleEvent(workProgrammeActivity)
           .ifPresent(comment -> form.setComments(comment.getComment()));
     }
 

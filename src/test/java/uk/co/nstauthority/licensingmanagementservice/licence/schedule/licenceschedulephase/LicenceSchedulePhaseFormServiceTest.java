@@ -22,12 +22,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventComment;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceSchedulePhaseFormServiceTest {
@@ -40,9 +37,6 @@ class LicenceSchedulePhaseFormServiceTest {
 
   @Mock
   private LicenceScheduleTermService licenceScheduleTermService;
-
-  @Mock
-  private EventReferenceService eventReferenceService;
 
   @Mock
   private EventCommentService eventCommentService;
@@ -72,8 +66,6 @@ class LicenceSchedulePhaseFormServiceTest {
     term.setTermType(TermType.INITIAL);
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
-    var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceSchedule, ScheduleEventType.PHASE)).thenReturn(eventReference);
 
     licenceSchedulePhaseFormService.savePhaseFromForm(form, licenceScheduleDetail, new LicenceSchedulePhase(), USER);
 
@@ -86,21 +78,21 @@ class LicenceSchedulePhaseFormServiceTest {
         LicenceSchedulePhase::getPhaseType,
         LicenceSchedulePhase::getPhaseDuration,
         LicenceSchedulePhase::getLicenceScheduleTerm,
-        LicenceSchedulePhase::getEventReference
+        LicenceSchedulePhase::getLicenceSchedule
     ).containsExactly(
         licenceScheduleDetail,
         PhaseType.PHASE_A,
         form.getPhaseDuration().toThreeFieldDuration(),
         term,
-        eventReference
+        licenceSchedule
     );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), result, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
   @Test
-  void savePhaseFromForm_existingPhase_doesntOverwriteEventReference() {
+  void savePhaseFromForm_existingPhase_doesntOverwriteLicenceSchedule() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
 
     var form = new LicenceSchedulePhaseForm();
@@ -116,8 +108,8 @@ class LicenceSchedulePhaseFormServiceTest {
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
 
     var phase = new LicenceSchedulePhase();
-    var existingEventReference = new EventReference();
-    phase.setEventReference(existingEventReference);
+    var existingSchedule = new LicenceSchedule();
+    phase.setLicenceSchedule(existingSchedule);
 
     licenceSchedulePhaseFormService.savePhaseFromForm(form, licenceScheduleDetail, phase, USER);
 
@@ -130,30 +122,30 @@ class LicenceSchedulePhaseFormServiceTest {
         LicenceSchedulePhase::getPhaseType,
         LicenceSchedulePhase::getPhaseDuration,
         LicenceSchedulePhase::getLicenceScheduleTerm,
-        LicenceSchedulePhase::getEventReference
+        LicenceSchedulePhase::getLicenceSchedule
     ).containsExactly(
         licenceScheduleDetail,
         PhaseType.PHASE_A,
         form.getPhaseDuration().toThreeFieldDuration(),
         term,
-        existingEventReference
+        existingSchedule
     );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), existingEventReference, USER);
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), phase, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
   @Test
   void getPhaseForm_withPendingComment_populatesComments() {
-    var eventReference = new EventReference();
+    var licenceSchedule = new LicenceSchedule();
     var phase = new LicenceSchedulePhase();
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
-    phase.setEventReference(eventReference);
+    phase.setLicenceSchedule(licenceSchedule);
 
     var pendingComment = new EventComment();
     pendingComment.setComment("pending comment text");
-    when(eventCommentService.findPendingCommentForEventReference(eventReference)).thenReturn(Optional.of(pendingComment));
+    when(eventCommentService.findPendingCommentForScheduleEvent(phase)).thenReturn(Optional.of(pendingComment));
 
     var result = licenceSchedulePhaseFormService.getPhaseForm(phase);
 
@@ -162,13 +154,13 @@ class LicenceSchedulePhaseFormServiceTest {
 
   @Test
   void getPhaseForm_noPendingComment_commentsIsNull() {
-    var eventReference = new EventReference();
+    var licenceSchedule = new LicenceSchedule();
     var phase = new LicenceSchedulePhase();
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
-    phase.setEventReference(eventReference);
+    phase.setLicenceSchedule(licenceSchedule);
 
-    when(eventCommentService.findPendingCommentForEventReference(eventReference)).thenReturn(Optional.empty());
+    when(eventCommentService.findPendingCommentForScheduleEvent(phase)).thenReturn(Optional.empty());
 
     var result = licenceSchedulePhaseFormService.getPhaseForm(phase);
 
@@ -176,7 +168,7 @@ class LicenceSchedulePhaseFormServiceTest {
   }
 
   @Test
-  void getPhaseForm_noEventReference_commentsIsNull() {
+  void getPhaseForm_noLicenceSchedule_commentsIsNull() {
     var phase = new LicenceSchedulePhase();
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));

@@ -48,11 +48,11 @@ public class EventCommentDeletionController {
   ) {
     var eventComment = eventCommentService.getEventCommentByIdOrThrow(eventCommentId);
     eventCommentService.checkCommenterHasPermissionsOrThrow(
-        eventComment.getEventReference().getEventType(),
+        eventComment.getScheduleEvent().getEventType(),
         serviceUserDetail
     );
 
-    var licence = eventComment.getEventReference().getLicenceSchedule().getLicence();
+    var licence = eventComment.getScheduleEvent().getLicenceSchedule().getLicence();
 
     return new ModelAndView("lms/licence/schedule/deleteEventComment")
         .addObject("commentView", eventCommentService.getEventCommentViewFor(eventComment))
@@ -69,11 +69,11 @@ public class EventCommentDeletionController {
   ) {
     var eventComment = eventCommentService.getEventCommentByIdOrThrow(eventCommentId);
     eventCommentService.checkCommenterHasPermissionsOrThrow(
-        eventComment.getEventReference().getEventType(),
+        eventComment.getScheduleEvent().getEventType(),
         serviceUserDetail
     );
 
-    var licenceId = eventComment.getEventReference().getLicenceSchedule().getLicence().getId();
+    var licenceId = eventComment.getScheduleEvent().getLicenceSchedule().getLicence().getId();
 
     eventCommentService.deleteEventComment(eventComment);
 

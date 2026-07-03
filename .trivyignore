@@ -1,5 +1,6 @@
 # ch.qos.logback:logback-core
 CVE-2026-1225
+CVE-2026-9828
 
 # com.google.guava:guava
 CVE-2023-2976

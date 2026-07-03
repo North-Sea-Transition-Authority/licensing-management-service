@@ -12,12 +12,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRu
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
@@ -30,7 +28,6 @@ public class LicenceScheduleRateFormService {
   private final LicenceTypeRulesResolver licenceTypeRulesResolver;
   private final LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
-  private final EventReferenceService eventReferenceService;
   private final EventCommentService eventCommentService;
 
   public LicenceScheduleRateFormService(
@@ -40,7 +37,6 @@ public class LicenceScheduleRateFormService {
       LicenceTypeRulesResolver licenceTypeRulesResolver,
       LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService,
       LicenceScheduleCalculationService licenceScheduleCalculationService,
-      EventReferenceService eventReferenceService,
       EventCommentService eventCommentService
   ) {
     this.licenceScheduleRateRepository = licenceScheduleRateRepository;
@@ -49,7 +45,6 @@ public class LicenceScheduleRateFormService {
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
     this.licenceScheduleRelativeOptionsService = licenceScheduleRelativeOptionsService;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
-    this.eventReferenceService = eventReferenceService;
     this.eventCommentService = eventCommentService;
   }
 
@@ -94,22 +89,20 @@ public class LicenceScheduleRateFormService {
 
     licenceScheduleRate.setRentalRate(form.getRentalRate().getAsBigDecimal().orElse(null));
 
-    if (licenceScheduleRate.getEventReference() == null) {
-      licenceScheduleRate.setEventReference(
-          eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.RATE)
-      );
+    if (licenceScheduleRate.getLicenceSchedule() == null) {
+      licenceScheduleRate.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
     }
 
     licenceScheduleRateRepository.save(licenceScheduleRate);
-    eventCommentService.addOrUpdatePendingComment(form.getComments(), licenceScheduleRate.getEventReference(), serviceUserDetail);
+    eventCommentService.addOrUpdatePendingComment(form.getComments(), licenceScheduleRate, serviceUserDetail);
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
   public LicenceScheduleRateForm getFormFromRate(LicenceScheduleRate licenceScheduleRate) {
     LicenceScheduleRateForm form = new LicenceScheduleRateForm();
     form.getRentalRate().setInputValue(licenceScheduleRate.getRentalRate().toString());
-    if (licenceScheduleRate.getEventReference() != null) {
-      eventCommentService.findPendingCommentForEventReference(licenceScheduleRate.getEventReference())
+    if (licenceScheduleRate.getLicenceSchedule() != null) {
+      eventCommentService.findPendingCommentForScheduleEvent(licenceScheduleRate)
           .ifPresent(comment -> form.setComments(comment.getComment()));
     }
 

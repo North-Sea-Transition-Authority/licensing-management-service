@@ -29,14 +29,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusService;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
@@ -65,9 +62,6 @@ class WorkProgrammeActivityFormServiceTest {
 
   @Mock
   private WorkProgrammeActivityStatusService workProgrammeActivityStatusService;
-
-  @Mock
-  private EventReferenceService eventReferenceService;
 
   @Mock
   private EventCommentService eventCommentService;
@@ -148,9 +142,6 @@ class WorkProgrammeActivityFormServiceTest {
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
 
-    var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.WORK_PROGRAMME_ACTIVITY)).thenReturn(eventReference);
-
     var testDuration = new ThreeFieldDuration(1,0,0);
 
     form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
@@ -159,7 +150,9 @@ class WorkProgrammeActivityFormServiceTest {
 
     verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
 
-    assertThat(workProgrammeActivityArgumentCaptor.getValue())
+    var result = workProgrammeActivityArgumentCaptor.getValue();
+
+    assertThat(result)
         .extracting(
             WorkProgrammeActivity::getLicenceScheduleDetail,
             WorkProgrammeActivity::getCategory,
@@ -171,7 +164,7 @@ class WorkProgrammeActivityFormServiceTest {
             WorkProgrammeActivity::getLicenceScheduleTerm,
             WorkProgrammeActivity::getLicenceSchedulePhase,
             WorkProgrammeActivity::getRelativeDuration,
-            WorkProgrammeActivity::getEventReference
+            WorkProgrammeActivity::getLicenceSchedule
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -184,16 +177,16 @@ class WorkProgrammeActivityFormServiceTest {
             term,
             null,
             testDuration,
-            eventReference
+            licenceScheduleDetail.getLicenceSchedule()
         );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
-    verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), result, USER);
+    verify(workProgrammeActivityStatusService).createInitialStatusFor(result);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
   @Test
-  void saveActivityFromForm_relativeDate_relatedToTerm_existingActivity_doesntOverwriteEventReference() {
+  void saveActivityFromForm_relativeDate_relatedToTerm_existingActivity_doesntOverwriteLicenceSchedule() {
     var form = new WorkProgrammeActivityForm();
     form.setWorkProgrammeActivityCategory(WorkProgrammeActivityCategory.WELL_TEST);
     form.setDescription("description");
@@ -214,7 +207,10 @@ class WorkProgrammeActivityFormServiceTest {
     form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
 
     var activity = new WorkProgrammeActivity();
-    activity.setEventReference(new EventReference());
+    var existingSchedule = LicenceScheduleTestUtil.createLicenceSchedule(
+        LicenceTestUtil.builder().withLicenceType(LicenceType.SEAWARD_PRODUCTION).build()
+    );
+    activity.setLicenceSchedule(existingSchedule);
 
     workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, activity, USER);
 
@@ -232,7 +228,7 @@ class WorkProgrammeActivityFormServiceTest {
             WorkProgrammeActivity::getLicenceScheduleTerm,
             WorkProgrammeActivity::getLicenceSchedulePhase,
             WorkProgrammeActivity::getRelativeDuration,
-            WorkProgrammeActivity::getEventReference
+            WorkProgrammeActivity::getLicenceSchedule
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -245,11 +241,11 @@ class WorkProgrammeActivityFormServiceTest {
             term,
             null,
             testDuration,
-            activity.getEventReference()
+            existingSchedule
         );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), activity.getEventReference(), USER);
-    verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), activity, USER);
+    verify(workProgrammeActivityStatusService).createInitialStatusFor(activity);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -270,9 +266,6 @@ class WorkProgrammeActivityFormServiceTest {
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
 
-    var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.WORK_PROGRAMME_ACTIVITY)).thenReturn(eventReference);
-
     var testDuration = new ThreeFieldDuration(1,0,0);
 
     form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
@@ -281,7 +274,9 @@ class WorkProgrammeActivityFormServiceTest {
 
     verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
 
-    assertThat(workProgrammeActivityArgumentCaptor.getValue())
+    var result = workProgrammeActivityArgumentCaptor.getValue();
+
+    assertThat(result)
         .extracting(
             WorkProgrammeActivity::getLicenceScheduleDetail,
             WorkProgrammeActivity::getCategory,
@@ -293,7 +288,7 @@ class WorkProgrammeActivityFormServiceTest {
             WorkProgrammeActivity::getLicenceScheduleTerm,
             WorkProgrammeActivity::getLicenceSchedulePhase,
             WorkProgrammeActivity::getRelativeDuration,
-            WorkProgrammeActivity::getEventReference
+            WorkProgrammeActivity::getLicenceSchedule
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -306,11 +301,11 @@ class WorkProgrammeActivityFormServiceTest {
             null,
             phase,
             testDuration,
-            eventReference
+            licenceScheduleDetail.getLicenceSchedule()
         );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
-    verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), result, USER);
+    verify(workProgrammeActivityStatusService).createInitialStatusFor(result);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -331,14 +326,13 @@ class WorkProgrammeActivityFormServiceTest {
 
     when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
 
-    var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.WORK_PROGRAMME_ACTIVITY)).thenReturn(eventReference);
-
     workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, new WorkProgrammeActivity(), USER);
 
     verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
 
-    assertThat(workProgrammeActivityArgumentCaptor.getValue())
+    var result = workProgrammeActivityArgumentCaptor.getValue();
+
+    assertThat(result)
         .extracting(
             WorkProgrammeActivity::getLicenceScheduleDetail,
             WorkProgrammeActivity::getCategory,
@@ -349,7 +343,7 @@ class WorkProgrammeActivityFormServiceTest {
             WorkProgrammeActivity::getDueDate,
             WorkProgrammeActivity::getLicenceScheduleTerm,
             WorkProgrammeActivity::getLicenceSchedulePhase,
-            WorkProgrammeActivity::getEventReference
+            WorkProgrammeActivity::getLicenceSchedule
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -361,11 +355,11 @@ class WorkProgrammeActivityFormServiceTest {
             null,
             term,
             null,
-            eventReference
+            licenceScheduleDetail.getLicenceSchedule()
         );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
-    verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), result, USER);
+    verify(workProgrammeActivityStatusService).createInitialStatusFor(result);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -410,14 +404,13 @@ class WorkProgrammeActivityFormServiceTest {
 
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
 
-    var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.WORK_PROGRAMME_ACTIVITY)).thenReturn(eventReference);
-
     workProgrammeActivityFormService.saveActivityFromForm(form, licenceScheduleDetail, new WorkProgrammeActivity(), USER);
 
     verify(workProgrammeActivityRepository).save(workProgrammeActivityArgumentCaptor.capture());
 
-    assertThat(workProgrammeActivityArgumentCaptor.getValue())
+    var result = workProgrammeActivityArgumentCaptor.getValue();
+
+    assertThat(result)
         .extracting(
             WorkProgrammeActivity::getLicenceScheduleDetail,
             WorkProgrammeActivity::getCategory,
@@ -428,7 +421,7 @@ class WorkProgrammeActivityFormServiceTest {
             WorkProgrammeActivity::getDueDate,
             WorkProgrammeActivity::getLicenceScheduleTerm,
             WorkProgrammeActivity::getLicenceSchedulePhase,
-            WorkProgrammeActivity::getEventReference
+            WorkProgrammeActivity::getLicenceSchedule
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -440,11 +433,11 @@ class WorkProgrammeActivityFormServiceTest {
             null,
             null,
             phase,
-            eventReference
+            licenceScheduleDetail.getLicenceSchedule()
         );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
-    verify(workProgrammeActivityStatusService).createInitialStatusFor(workProgrammeActivityArgumentCaptor.getValue());
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), result, USER);
+    verify(workProgrammeActivityStatusService).createInitialStatusFor(result);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 

@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -50,14 +49,6 @@ public class LicenceSchedulePhaseService {
 
   public List<LicenceSchedulePhase> getPhasesByTerm(LicenceScheduleTerm licenceScheduleTerm) {
     return licenceSchedulePhaseRepository.findAllByLicenceScheduleTerm(licenceScheduleTerm);
-  }
-
-  public LicenceSchedulePhase getPhaseByScheduleDetailAndEventReferenceOrThrow(
-      LicenceScheduleDetail scheduleDetail,
-      EventReference eventReference
-  ) {
-    return licenceSchedulePhaseRepository.findByLicenceScheduleDetailAndEventReference(scheduleDetail, eventReference)
-        .orElseThrow(() -> new LmsEntityNotFoundException("LicenceSchedulePhase", eventReference.getId()));
   }
 
   boolean canDeletePhase(LicenceSchedulePhase licenceSchedulePhase) {

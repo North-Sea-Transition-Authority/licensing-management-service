@@ -18,7 +18,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,11 +43,10 @@ class WorkProgrammeActivityStatusServiceTest {
   @Test
   void createInitialStatusFor() {
     var activity = new WorkProgrammeActivity();
-    var activityRef = new EventReference();
-    activityRef.setId(UUID.randomUUID());
-    activity.setEventReference(activityRef);
+    activity.setId(UUID.randomUUID());
+    activity.setOriginalEventId(activity.getId());
 
-    when(workProgrammeActivityStatusRepository.findAllByEventReference(activity.getEventReference()))
+    when(workProgrammeActivityStatusRepository.findAllByScheduleEvent_OriginalEventId(activity.getOriginalEventId()))
         .thenReturn(List.of());
 
     when(clock.instant()).thenReturn(instant);
@@ -60,12 +58,12 @@ class WorkProgrammeActivityStatusServiceTest {
     assertThat(workProgrammeActivityStatusArgumentCaptor.getValue())
         .extracting(
             WorkProgrammeActivityStatus::getStatus,
-            WorkProgrammeActivityStatus::getEventReference,
+            WorkProgrammeActivityStatus::getScheduleEvent,
             WorkProgrammeActivityStatus::getAppliedDatetime
         )
         .containsExactly(
             WorkProgrammeStatus.OPEN,
-            activity.getEventReference(),
+            activity,
             instant
         );
   }
@@ -73,9 +71,7 @@ class WorkProgrammeActivityStatusServiceTest {
   @Test
   void saveStatusFromForm() {
     var activity = new WorkProgrammeActivity();
-    var activityRef = new EventReference();
-    activityRef.setId(UUID.randomUUID());
-    activity.setEventReference(activityRef);
+    activity.setId(UUID.randomUUID());
 
     var form = new WorkProgrammeActivityStatusForm();
     form.setStatus(WorkProgrammeStatus.IN_PROGRESS);
@@ -89,12 +85,12 @@ class WorkProgrammeActivityStatusServiceTest {
     assertThat(workProgrammeActivityStatusArgumentCaptor.getValue())
         .extracting(
             WorkProgrammeActivityStatus::getStatus,
-            WorkProgrammeActivityStatus::getEventReference,
+            WorkProgrammeActivityStatus::getScheduleEvent,
             WorkProgrammeActivityStatus::getAppliedDatetime
         )
         .containsExactly(
             form.getStatus(),
-            activity.getEventReference(),
+            activity,
             instant
         );
   }
@@ -102,9 +98,8 @@ class WorkProgrammeActivityStatusServiceTest {
   @Test
   void getLatestStatusFor() {
     var activity = new WorkProgrammeActivity();
-    var activityRef = new EventReference();
-    activityRef.setId(UUID.randomUUID());
-    activity.setEventReference(activityRef);
+    activity.setId(UUID.randomUUID());
+    activity.setOriginalEventId(activity.getId());
 
     var activityStatus = new WorkProgrammeActivityStatus();
     activityStatus.setAppliedDatetime(instant);
@@ -112,7 +107,7 @@ class WorkProgrammeActivityStatusServiceTest {
     var activityStatus2 = new WorkProgrammeActivityStatus();
     activityStatus2.setAppliedDatetime(instant.plusSeconds(100L));
 
-    when(workProgrammeActivityStatusRepository.findAllByEventReference(activity.getEventReference()))
+    when(workProgrammeActivityStatusRepository.findAllByScheduleEvent_OriginalEventId(activity.getOriginalEventId()))
         .thenReturn(List.of(activityStatus, activityStatus2));
 
     assertThat(workProgrammeActivityStatusService.getLatestStatusFor(activity)).isEqualTo(activityStatus2);
@@ -121,51 +116,47 @@ class WorkProgrammeActivityStatusServiceTest {
   @Test
   void getLatestStatusesFor() {
     var activity = new WorkProgrammeActivity();
-    var activityRef = new EventReference();
-    activityRef.setId(UUID.randomUUID());
-    activity.setEventReference(activityRef);
+    activity.setId(UUID.randomUUID());
+    activity.setOriginalEventId(activity.getId());
 
     var activityStatus = new WorkProgrammeActivityStatus();
-    activityStatus.setEventReference(activity.getEventReference());
+    activityStatus.setScheduleEvent(activity);
     activityStatus.setAppliedDatetime(Instant.now());
 
     var activityStatus2 = new WorkProgrammeActivityStatus();
-    activityStatus2.setEventReference(activity.getEventReference());
+    activityStatus2.setScheduleEvent(activity);
     activityStatus2.setAppliedDatetime(Instant.now().plus(1, ChronoUnit.DAYS));
 
     var activity2 = new WorkProgrammeActivity();
-    var activity2Ref = new EventReference();
-    activity2Ref.setId(UUID.randomUUID());
-    activity2.setEventReference(activity2Ref);
+    activity2.setId(UUID.randomUUID());
+    activity2.setOriginalEventId(activity2.getId());
 
     var activityStatus3 = new WorkProgrammeActivityStatus();
-    activityStatus3.setEventReference(activity2.getEventReference());
+    activityStatus3.setScheduleEvent(activity2);
     activityStatus3.setAppliedDatetime(Instant.now());
 
-    var refList = List.of(activity.getEventReference(), activity2.getEventReference());
-
-    when(workProgrammeActivityStatusRepository.findAllByEventReferenceIn(refList))
+    when(workProgrammeActivityStatusRepository.findAllByScheduleEvent_OriginalEventIdIn(
+        List.of(activity.getOriginalEventId(), activity2.getOriginalEventId())))
         .thenReturn(List.of(activityStatus, activityStatus2, activityStatus3));
 
     assertThat(workProgrammeActivityStatusService.getLatestStatusesFor(List.of(activity, activity2)))
         .containsExactly(
-            entry(activity.getEventReference().getId(), activityStatus2),
-            entry(activity2.getEventReference().getId(), activityStatus3)
+            entry(activity.getOriginalEventId(), activityStatus2),
+            entry(activity2.getOriginalEventId(), activityStatus3)
         );
   }
 
   @Test
   void getStatusForm() {
     var activity = new WorkProgrammeActivity();
-    var activityRef = new EventReference();
-    activityRef.setId(UUID.randomUUID());
-    activity.setEventReference(activityRef);
+    activity.setId(UUID.randomUUID());
+    activity.setOriginalEventId(activity.getId());
 
     var activityStatus = new WorkProgrammeActivityStatus();
     activityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
     activityStatus.setAppliedDatetime(instant);
 
-    when(workProgrammeActivityStatusRepository.findAllByEventReference(activity.getEventReference()))
+    when(workProgrammeActivityStatusRepository.findAllByScheduleEvent_OriginalEventId(activity.getOriginalEventId()))
         .thenReturn(List.of(activityStatus));
 
     assertThat(workProgrammeActivityStatusService.getStatusForm(activity))

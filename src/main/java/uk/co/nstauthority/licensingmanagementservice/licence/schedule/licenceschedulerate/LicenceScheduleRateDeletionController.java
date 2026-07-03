@@ -48,8 +48,8 @@ public class LicenceScheduleRateDeletionController {
       @PathVariable UUID licenceScheduleRateId
   ) {
     var rate = licenceScheduleRateService.getRateByIdOrThrow(licenceScheduleRateId);
-    var pendingComment = rate.getEventReference() != null
-        ? eventCommentService.findPendingCommentForEventReference(rate.getEventReference())
+    var pendingComment = rate.getLicenceSchedule() != null
+        ? eventCommentService.findPendingCommentForScheduleEvent(rate)
             .map(EventComment::getComment)
             .orElse("")
         : "";

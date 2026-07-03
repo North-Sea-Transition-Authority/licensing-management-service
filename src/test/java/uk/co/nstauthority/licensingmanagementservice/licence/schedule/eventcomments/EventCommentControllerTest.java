@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,10 +23,11 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.ScheduleEventRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -41,9 +43,7 @@ class EventCommentControllerTest extends AbstractControllerTest {
 
   private static final String LICENCE_CAPTION = "page caption";
 
-  private static final String EVENT_CAPTION = "event caption";
-
-  private static final String PAGE_CAPTION = "%s - %s".formatted(LICENCE_CAPTION, EVENT_CAPTION);
+  private static final String PAGE_CAPTION = "%s - %s".formatted(LICENCE_CAPTION, TermType.INITIAL.getDisplayName());
 
   @MockitoBean
   private EventCommentService eventCommentService;
@@ -52,9 +52,9 @@ class EventCommentControllerTest extends AbstractControllerTest {
   private EventCommentValidator eventCommentValidator;
 
   @MockitoBean
-  private EventReferenceService eventReferenceService;
+  private ScheduleEventRepository scheduleEventRepository;
 
-  private EventReference eventReference;
+  private LicenceScheduleTerm scheduleEvent;
 
   @BeforeEach
   void setUp() {
@@ -63,29 +63,29 @@ class EventCommentControllerTest extends AbstractControllerTest {
         .build();
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
 
-    eventReference = new EventReference();
-    eventReference.setId(UUID.randomUUID());
-    eventReference.setLicenceSchedule(licenceSchedule);
+    scheduleEvent = new LicenceScheduleTerm();
+    scheduleEvent.setId(UUID.randomUUID());
+    scheduleEvent.setLicenceSchedule(licenceSchedule);
+    scheduleEvent.setTermType(TermType.INITIAL);
   }
 
   @Test
   void renderAddCommentForm() throws Exception {
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, PERMITTED_ROLES))
         .thenReturn(true);
-    when(eventReferenceService.getEventReferenceByIdOrThrow(eventReference.getId()))
-        .thenReturn(eventReference);
+    when(scheduleEventRepository.findById(scheduleEvent.getId()))
+        .thenReturn(Optional.of(scheduleEvent));
     when(licenceService.getLicencePageCaption(any())).thenReturn(LICENCE_CAPTION);
-    when(eventReferenceService.getEventReferenceEventCaption(any())).thenReturn(EVENT_CAPTION);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(EventCommentController.class)
-                .renderAddCommentForm(eventReference.getId(), null)))
+                .renderAddCommentForm(scheduleEvent.getId(), null)))
                 .with(user(regulatorUser))
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createEventComment"))
         .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceOverviewController.class)
-            .renderLicenceOverview(eventReference.getLicenceSchedule().getLicence().getId(), null, null, null))))
+            .renderLicenceOverview(scheduleEvent.getLicenceSchedule().getLicence().getId(), null, null, null))))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
   }
 
@@ -96,7 +96,7 @@ class EventCommentControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             get(ReverseRouter.route(on(EventCommentController.class)
-                .renderAddCommentForm(eventReference.getId(), null)))
+                .renderAddCommentForm(scheduleEvent.getId(), null)))
                 .with(user(regulatorUser))
         )
         .andExpect(status().isForbidden());
@@ -106,34 +106,33 @@ class EventCommentControllerTest extends AbstractControllerTest {
   void submitAddCommentForm() throws Exception {
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, PERMITTED_ROLES))
         .thenReturn(true);
-    when(eventReferenceService.getEventReferenceByIdOrThrow(eventReference.getId()))
-        .thenReturn(eventReference);
+    when(scheduleEventRepository.findById(scheduleEvent.getId()))
+        .thenReturn(Optional.of(scheduleEvent));
     when(eventCommentValidator.isValid(any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(EventCommentController.class)
-                .submitAddCommentForm(eventReference.getId(), null, null, null, null)))
+                .submitAddCommentForm(scheduleEvent.getId(), null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(eventCommentService).addNewComment(any(), eq(eventReference), any());
+    verify(eventCommentService).addNewComment(any(), eq(scheduleEvent), any());
   }
 
   @Test
   void submitAddCommentForm_invalidForm() throws Exception {
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, PERMITTED_ROLES))
         .thenReturn(true);
-    when(eventReferenceService.getEventReferenceByIdOrThrow(eventReference.getId()))
-        .thenReturn(eventReference);
+    when(scheduleEventRepository.findById(scheduleEvent.getId()))
+        .thenReturn(Optional.of(scheduleEvent));
     when(licenceService.getLicencePageCaption(any())).thenReturn(LICENCE_CAPTION);
-    when(eventReferenceService.getEventReferenceEventCaption(any())).thenReturn(EVENT_CAPTION);
     when(eventCommentValidator.isValid(any())).thenReturn(false);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(EventCommentController.class)
-                .submitAddCommentForm(eventReference.getId(), null, null, null, null)))
+                .submitAddCommentForm(scheduleEvent.getId(), null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )
@@ -151,7 +150,7 @@ class EventCommentControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(
             post(ReverseRouter.route(on(EventCommentController.class)
-                .submitAddCommentForm(eventReference.getId(), null, null, null, null)))
+                .submitAddCommentForm(scheduleEvent.getId(), null, null, null, null)))
                 .with(user(regulatorUser))
                 .with(csrf())
         )

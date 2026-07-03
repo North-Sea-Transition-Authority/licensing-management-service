@@ -15,19 +15,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceScheduleExpiryServiceTest {
 
   @Mock
   private LicenceScheduleExpiryRepository licenceScheduleExpiryRepository;
-
-  @Mock
-  private EventReferenceService eventReferenceService;
 
   @InjectMocks
   private LicenceScheduleExpiryService licenceScheduleExpiryService;
@@ -64,9 +58,6 @@ class LicenceScheduleExpiryServiceTest {
     form.getExpiryDate().setDate(LocalDate.of(2026, 1, 1));
     form.setComments("Comments");
 
-    var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.EXPIRY)).thenReturn(eventReference);
-
     licenceScheduleExpiryService.saveExpiryFromForm(form, licenceScheduleDetail, new LicenceScheduleExpiry());
 
     verify(licenceScheduleExpiryRepository).save(licenceScheduleExpiryArgumentCaptor.capture());
@@ -75,23 +66,24 @@ class LicenceScheduleExpiryServiceTest {
         LicenceScheduleExpiry::getLicenceScheduleDetail,
         LicenceScheduleExpiry::getExpiryDate,
         LicenceScheduleExpiry::getComments,
-        LicenceScheduleExpiry::getEventReference
+        LicenceScheduleExpiry::getLicenceSchedule
     ).containsExactly(
         licenceScheduleDetail,
         form.getExpiryDate().getAsLocalDate().orElse(null),
         form.getComments(),
-        eventReference
+        licenceScheduleDetail.getLicenceSchedule()
     );
   }
 
   @Test
-  void saveExpiryFromForm_existingExpiry_doesntOverwriteEventReference() {
+  void saveExpiryFromForm_existingExpiry_doesntOverwriteLicenceSchedule() {
     var form = new LicenceScheduleExpiryForm();
     form.getExpiryDate().setDate(LocalDate.of(2026, 1, 1));
     form.setComments("Comments");
 
     var expiry = new LicenceScheduleExpiry();
-    expiry.setEventReference(new EventReference());
+    var existingSchedule = new LicenceSchedule();
+    expiry.setLicenceSchedule(existingSchedule);
 
     licenceScheduleExpiryService.saveExpiryFromForm(form, licenceScheduleDetail, expiry);
 
@@ -101,12 +93,12 @@ class LicenceScheduleExpiryServiceTest {
         LicenceScheduleExpiry::getLicenceScheduleDetail,
         LicenceScheduleExpiry::getExpiryDate,
         LicenceScheduleExpiry::getComments,
-        LicenceScheduleExpiry::getEventReference
+        LicenceScheduleExpiry::getLicenceSchedule
     ).containsExactly(
         licenceScheduleDetail,
         form.getExpiryDate().getAsLocalDate().orElse(null),
         form.getComments(),
-        expiry.getEventReference()
+        existingSchedule
     );
   }
 
@@ -114,9 +106,6 @@ class LicenceScheduleExpiryServiceTest {
   void saveExpiryFromForm_dateNotProvided() {
     var form = new LicenceScheduleExpiryForm();
     form.setComments("Comments");
-
-    var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.EXPIRY)).thenReturn(eventReference);
 
     licenceScheduleExpiryService.saveExpiryFromForm(form, licenceScheduleDetail, new LicenceScheduleExpiry());
 
@@ -126,12 +115,12 @@ class LicenceScheduleExpiryServiceTest {
         LicenceScheduleExpiry::getLicenceScheduleDetail,
         LicenceScheduleExpiry::getExpiryDate,
         LicenceScheduleExpiry::getComments,
-        LicenceScheduleExpiry::getEventReference
+        LicenceScheduleExpiry::getLicenceSchedule
     ).containsExactly(
         licenceScheduleDetail,
         form.getExpiryDate().getAsLocalDate().orElse(null),
         form.getComments(),
-        eventReference
+        licenceScheduleDetail.getLicenceSchedule()
     );
   }
 

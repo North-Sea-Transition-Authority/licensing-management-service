@@ -9,8 +9,12 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseRepository;
@@ -53,6 +57,8 @@ class LicenceScheduleCalculationServiceIntegrationTest {
 
   @Autowired
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
+
+  private LicenceSchedule licenceSchedule;
 
   private LicenceScheduleDetail licenceScheduleDetail;
 
@@ -163,7 +169,18 @@ class LicenceScheduleCalculationServiceIntegrationTest {
   }
 
   private void createDbBaseline() {
+    Licence licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+    em.persist(licence);
+
+    licenceSchedule = new LicenceSchedule();
+    licenceSchedule.setLicence(licence);
+    em.persist(licenceSchedule);
+
     licenceScheduleDetail = new LicenceScheduleDetail();
+    licenceScheduleDetail.setLicenceSchedule(licenceSchedule);
 
     em.persist(licenceScheduleDetail);
 
@@ -175,6 +192,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
 
     licenceScheduleTerm = new LicenceScheduleTerm();
     licenceScheduleTerm.setLicenceScheduleDetail(licenceScheduleDetail);
+    licenceScheduleTerm.setLicenceSchedule(licenceSchedule);
     licenceScheduleTerm.setTermType(TermType.INITIAL);
     licenceScheduleTerm.setTermDuration(new ThreeFieldDuration(1, 0, 0));
 
@@ -182,6 +200,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
 
     licenceScheduleTerm2 = new LicenceScheduleTerm();
     licenceScheduleTerm2.setLicenceScheduleDetail(licenceScheduleDetail);
+    licenceScheduleTerm2.setLicenceSchedule(licenceSchedule);
     licenceScheduleTerm2.setTermType(TermType.SECOND);
     licenceScheduleTerm2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
 
@@ -189,6 +208,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
 
     licenceScheduleTerm3 = new LicenceScheduleTerm();
     licenceScheduleTerm3.setLicenceScheduleDetail(licenceScheduleDetail);
+    licenceScheduleTerm3.setLicenceSchedule(licenceSchedule);
     licenceScheduleTerm3.setTermType(TermType.THIRD);
     licenceScheduleTerm3.setTermDuration(new ThreeFieldDuration(1, 0, 0));
 
@@ -196,6 +216,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
 
     licenceSchedulePhase = new LicenceSchedulePhase();
     licenceSchedulePhase.setLicenceScheduleDetail(licenceScheduleDetail);
+    licenceSchedulePhase.setLicenceSchedule(licenceSchedule);
     licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
     licenceSchedulePhase.setPhaseDuration(new ThreeFieldDuration(0, 1, 0));
 
@@ -203,6 +224,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
 
     licenceSchedulePhase2 = new LicenceSchedulePhase();
     licenceSchedulePhase2.setLicenceScheduleDetail(licenceScheduleDetail);
+    licenceSchedulePhase2.setLicenceSchedule(licenceSchedule);
     licenceSchedulePhase2.setPhaseType(PhaseType.PHASE_B);
     licenceSchedulePhase2.setPhaseDuration(new ThreeFieldDuration(0, 1, 0));
 
@@ -210,6 +232,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
 
     licenceSchedulePhase3 = new LicenceSchedulePhase();
     licenceSchedulePhase3.setLicenceScheduleDetail(licenceScheduleDetail);
+    licenceSchedulePhase3.setLicenceSchedule(licenceSchedule);
     licenceSchedulePhase3.setPhaseType(PhaseType.PHASE_C);
     licenceSchedulePhase3.setPhaseDuration(new ThreeFieldDuration(0, 1, 0));
 
@@ -217,6 +240,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
 
     workProgrammeActivity = new WorkProgrammeActivity();
     workProgrammeActivity.setLicenceScheduleDetail(licenceScheduleDetail);
+    workProgrammeActivity.setLicenceSchedule(licenceSchedule);
     workProgrammeActivity.setLicenceScheduleTerm(licenceScheduleTerm);
     workProgrammeActivity.setDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
     workProgrammeActivity.setRelativeDuration(new ThreeFieldDuration(1, 0, 0));
@@ -225,6 +249,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
 
     workProgrammeActivity2 = new WorkProgrammeActivity();
     workProgrammeActivity2.setLicenceScheduleDetail(licenceScheduleDetail);
+    workProgrammeActivity2.setLicenceSchedule(licenceSchedule);
     workProgrammeActivity2.setLicenceSchedulePhase(licenceSchedulePhase2);
     workProgrammeActivity2.setDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
     workProgrammeActivity2.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
@@ -233,6 +258,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
 
     linkedRate = new LicenceScheduleRate();
     linkedRate.setLicenceScheduleDetail(licenceScheduleDetail);
+    linkedRate.setLicenceSchedule(licenceSchedule);
     linkedRate.setLicenceScheduleTerm(licenceScheduleTerm2);
     linkedRate.setRateDefinitionOption(RateDefinitionOption.TERM);
 
@@ -240,6 +266,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
 
     startDateRate = new LicenceScheduleRate();
     startDateRate.setLicenceScheduleDetail(licenceScheduleDetail);
+    startDateRate.setLicenceSchedule(licenceSchedule);
     startDateRate.setLicenceSchedulePhase(licenceSchedulePhase);
     startDateRate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
     startDateRate.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
@@ -248,6 +275,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
 
     relativeRate = new LicenceScheduleRate();
     relativeRate.setLicenceScheduleDetail(licenceScheduleDetail);
+    relativeRate.setLicenceSchedule(licenceSchedule);
     relativeRate.setLicenceSchedulePhase(licenceSchedulePhase);
     relativeRate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
     relativeRate.setRateRelativeDateOption(RateRelativeDateOption.RELATIVE_TO_START_DATE);
@@ -257,6 +285,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
 
     otherScheduleEvent = new OtherScheduleEvent();
     otherScheduleEvent.setLicenceScheduleDetail(licenceScheduleDetail);
+    otherScheduleEvent.setLicenceSchedule(licenceSchedule);
     otherScheduleEvent.setLicenceScheduleTerm(licenceScheduleTerm);
     otherScheduleEvent.setDateOption(OtherScheduleEventDateOption.RELATIVE_DATE);
     otherScheduleEvent.setRelativeDuration(new ThreeFieldDuration(1, 0, 0));
@@ -265,6 +294,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
 
     otherScheduleEvent2 = new OtherScheduleEvent();
     otherScheduleEvent2.setLicenceScheduleDetail(licenceScheduleDetail);
+    otherScheduleEvent2.setLicenceSchedule(licenceSchedule);
     otherScheduleEvent2.setLicenceSchedulePhase(licenceSchedulePhase2);
     otherScheduleEvent2.setDateOption(OtherScheduleEventDateOption.RELATIVE_DATE);
     otherScheduleEvent2.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));

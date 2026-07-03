@@ -37,7 +37,7 @@ public interface LicenceScheduleDetailRepository extends JpaRepository<LicenceSc
       AND lsd.licenceSchedule.licence.type IN :licenceTypes
       AND sd.startDate <= CURRENT_TIMESTAMP
       AND EXISTS (
-          SELECT t FROM licence_schedule_terms t
+          SELECT t FROM LicenceScheduleTerm t
           WHERE t.licenceScheduleDetail = lsd
           AND t.endDate > CURRENT_DATE
       )

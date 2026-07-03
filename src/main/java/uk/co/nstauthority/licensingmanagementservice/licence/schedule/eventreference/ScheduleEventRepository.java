@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationSource;
 
 @Repository
-public interface EventReferenceRepository extends JpaRepository<EventReference, UUID>, NotDuplicationSource {
+public interface ScheduleEventRepository extends JpaRepository<ScheduleEvent, UUID>, NotDuplicationSource {
 }

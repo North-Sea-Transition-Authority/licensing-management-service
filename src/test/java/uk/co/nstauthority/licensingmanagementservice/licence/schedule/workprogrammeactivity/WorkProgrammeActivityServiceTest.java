@@ -19,7 +19,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -155,32 +154,6 @@ class WorkProgrammeActivityServiceTest {
   }
 
   @Test
-  void getWorkProgrammeActivityByScheduleDetailAndEventReferenceOrThrow() {
-    var detail = new LicenceScheduleDetail();
-    var eventReference = new EventReference();
-    var activity = new WorkProgrammeActivity();
-
-    when(workProgrammeActivityRepository.findByLicenceScheduleDetailAndEventReference(detail, eventReference))
-        .thenReturn(Optional.of(activity));
-
-    assertThat(workProgrammeActivityService.getWorkProgrammeActivityByScheduleDetailAndEventReferenceOrThrow(detail, eventReference))
-        .isEqualTo(activity);
-  }
-
-  @Test
-  void getWorkProgrammeActivityByScheduleDetailAndEventReferenceOrThrow_notFound() {
-    var eventReference = new EventReference();
-    eventReference.setId(UUID.randomUUID());
-
-    when(workProgrammeActivityRepository.findByLicenceScheduleDetailAndEventReference(any(), any()))
-        .thenReturn(Optional.empty());
-
-    var detail = new LicenceScheduleDetail();
-    assertThatThrownBy(() -> workProgrammeActivityService.getWorkProgrammeActivityByScheduleDetailAndEventReferenceOrThrow(detail, eventReference))
-        .isInstanceOf(LmsEntityNotFoundException.class);
-  }
-
-  @Test
   void deleteWorkProgrammeActivity() {
     var workProgrammeActivity = new WorkProgrammeActivity();
 
@@ -227,11 +200,9 @@ class WorkProgrammeActivityServiceTest {
   void getLicenceWorkProgramActivitiesViews_mapsAllFieldsCorrectly() {
     LocalDate fixedDate = LocalDate.of(2026, 5, 10);
     WorkProgrammeActivity workProgrammeActivity = mock(WorkProgrammeActivity.class);
-    var eventRef = new EventReference();
-    eventRef.setId(UUID.randomUUID());
 
     when(workProgrammeActivity.getId()).thenReturn(ACTIVITY_ID);
-    when(workProgrammeActivity.getEventReference()).thenReturn(eventRef);
+    when(workProgrammeActivity.getOriginalEventId()).thenReturn(ACTIVITY_ID);
     when(workProgrammeActivity.getDateOption()).thenReturn(WorkProgrammeActivityDateOption.RELATIVE_DATE);
     when(workProgrammeActivity.getCategory()).thenReturn(WorkProgrammeActivityCategory.WELL_TEST);
     when(workProgrammeActivity.getOtherCategoryName()).thenReturn(null);
@@ -239,7 +210,7 @@ class WorkProgrammeActivityServiceTest {
     when(workProgrammeActivity.getDescription()).thenReturn("Test Description");
     when(workProgrammeActivity.getCommitment()).thenReturn(WorkProgrammeActivityCommitment.FIRM);
     when(workProgrammeActivityStatusService.getLatestStatusesFor(List.of(workProgrammeActivity)))
-        .thenReturn(Map.of(eventRef.getId(), workProgrammeActivityStatus));
+        .thenReturn(Map.of(ACTIVITY_ID, workProgrammeActivityStatus));
 
     when(workProgrammeActivityRepository.findAllByLicenceScheduleDetail(any()))
         .thenReturn(List.of(workProgrammeActivity));

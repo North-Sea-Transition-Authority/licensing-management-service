@@ -29,14 +29,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceScheduleRateFormServiceTest {
@@ -60,9 +57,6 @@ class LicenceScheduleRateFormServiceTest {
 
   @Mock
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
-
-  @Mock
-  private EventReferenceService eventReferenceService;
 
   @Mock
   private EventCommentService eventCommentService;
@@ -102,14 +96,13 @@ class LicenceScheduleRateFormServiceTest {
 
     when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
 
-    var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.RATE)).thenReturn(eventReference);
-
     licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate(), USER);
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
-    assertThat(licenceScheduleRateArgumentCaptor.getValue()).extracting(
+    var result = licenceScheduleRateArgumentCaptor.getValue();
+
+    assertThat(result).extracting(
         LicenceScheduleRate::getLicenceScheduleDetail,
         LicenceScheduleRate::getRateDefinitionOption,
         LicenceScheduleRate::getLicenceScheduleTerm,
@@ -118,7 +111,7 @@ class LicenceScheduleRateFormServiceTest {
         LicenceScheduleRate::getRelativeDuration,
         LicenceScheduleRate::getStartDate,
         LicenceScheduleRate::getRentalRate,
-        LicenceScheduleRate::getEventReference
+        LicenceScheduleRate::getLicenceSchedule
     ).containsExactly(
         licenceScheduleDetail,
         RateDefinitionOption.TERM,
@@ -128,15 +121,15 @@ class LicenceScheduleRateFormServiceTest {
         null,
         null,
         BigDecimal.ONE,
-        eventReference
+        licenceScheduleDetail.getLicenceSchedule()
     );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), result, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
   @Test
-  void saveRateFromForm_termOption_existingRate_doesntOverwriteEventReference() {
+  void saveRateFromForm_termOption_existingRate_doesntOverwriteLicenceSchedule() {
     var form = new LicenceScheduleRateForm();
     form.setRateDefinitionOption(RateDefinitionOption.TERM);
     form.getRentalRate().setInputValue("1");
@@ -150,7 +143,8 @@ class LicenceScheduleRateFormServiceTest {
     when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
 
     var rate = new LicenceScheduleRate();
-    rate.setEventReference(new EventReference());
+    var existingSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+    rate.setLicenceSchedule(existingSchedule);
 
     licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, rate, USER);
 
@@ -165,7 +159,7 @@ class LicenceScheduleRateFormServiceTest {
         LicenceScheduleRate::getRelativeDuration,
         LicenceScheduleRate::getStartDate,
         LicenceScheduleRate::getRentalRate,
-        LicenceScheduleRate::getEventReference
+        LicenceScheduleRate::getLicenceSchedule
     ).containsExactly(
         licenceScheduleDetail,
         RateDefinitionOption.TERM,
@@ -175,10 +169,10 @@ class LicenceScheduleRateFormServiceTest {
         null,
         null,
         BigDecimal.ONE,
-        rate.getEventReference()
+        existingSchedule
     );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), rate.getEventReference(), USER);
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), rate, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -217,14 +211,13 @@ class LicenceScheduleRateFormServiceTest {
 
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
 
-    var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.RATE)).thenReturn(eventReference);
-
     licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate(), USER);
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
-    assertThat(licenceScheduleRateArgumentCaptor.getValue()).extracting(
+    var result = licenceScheduleRateArgumentCaptor.getValue();
+
+    assertThat(result).extracting(
         LicenceScheduleRate::getLicenceScheduleDetail,
         LicenceScheduleRate::getRateDefinitionOption,
         LicenceScheduleRate::getLicenceScheduleTerm,
@@ -233,7 +226,7 @@ class LicenceScheduleRateFormServiceTest {
         LicenceScheduleRate::getRelativeDuration,
         LicenceScheduleRate::getStartDate,
         LicenceScheduleRate::getRentalRate,
-        LicenceScheduleRate::getEventReference
+        LicenceScheduleRate::getLicenceSchedule
     ).containsExactly(
         licenceScheduleDetail,
         RateDefinitionOption.PHASE,
@@ -243,10 +236,10 @@ class LicenceScheduleRateFormServiceTest {
         null,
         null,
         BigDecimal.ONE,
-        eventReference
+        licenceScheduleDetail.getLicenceSchedule()
     );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), result, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -286,14 +279,13 @@ class LicenceScheduleRateFormServiceTest {
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
 
-    var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.RATE)).thenReturn(eventReference);
-
     licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate(), USER);
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
-    assertThat(licenceScheduleRateArgumentCaptor.getValue()).extracting(
+    var result = licenceScheduleRateArgumentCaptor.getValue();
+
+    assertThat(result).extracting(
         LicenceScheduleRate::getLicenceScheduleDetail,
         LicenceScheduleRate::getRateDefinitionOption,
         LicenceScheduleRate::getLicenceScheduleTerm,
@@ -302,7 +294,7 @@ class LicenceScheduleRateFormServiceTest {
         LicenceScheduleRate::getRelativeDuration,
         LicenceScheduleRate::getStartDate,
         LicenceScheduleRate::getRentalRate,
-        LicenceScheduleRate::getEventReference
+        LicenceScheduleRate::getLicenceSchedule
     ).containsExactly(
         licenceScheduleDetail,
         RateDefinitionOption.CUSTOM_PERIOD,
@@ -312,10 +304,10 @@ class LicenceScheduleRateFormServiceTest {
         null,
         null,
         BigDecimal.ONE,
-        eventReference
+        licenceScheduleDetail.getLicenceSchedule()
     );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), result, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -335,14 +327,13 @@ class LicenceScheduleRateFormServiceTest {
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
 
-    var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.RATE)).thenReturn(eventReference);
-
     licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, new LicenceScheduleRate(), USER);
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
-    assertThat(licenceScheduleRateArgumentCaptor.getValue()).extracting(
+    var result = licenceScheduleRateArgumentCaptor.getValue();
+
+    assertThat(result).extracting(
         LicenceScheduleRate::getLicenceScheduleDetail,
         LicenceScheduleRate::getRateDefinitionOption,
         LicenceScheduleRate::getLicenceScheduleTerm,
@@ -351,7 +342,7 @@ class LicenceScheduleRateFormServiceTest {
         LicenceScheduleRate::getRelativeDuration,
         LicenceScheduleRate::getStartDate,
         LicenceScheduleRate::getRentalRate,
-        LicenceScheduleRate::getEventReference
+        LicenceScheduleRate::getLicenceSchedule
     ).containsExactly(
         licenceScheduleDetail,
         RateDefinitionOption.CUSTOM_PERIOD,
@@ -361,10 +352,10 @@ class LicenceScheduleRateFormServiceTest {
         null,
         null,
         BigDecimal.ONE,
-        eventReference
+        licenceScheduleDetail.getLicenceSchedule()
     );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), result, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -383,9 +374,6 @@ class LicenceScheduleRateFormServiceTest {
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
 
-    var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.RATE)).thenReturn(eventReference);
-
     var duration = new ThreeFieldDuration(1, 0, 0);
     form.getRelativeDuration().setFromThreeFieldDuration(duration);
 
@@ -393,7 +381,9 @@ class LicenceScheduleRateFormServiceTest {
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
-    assertThat(licenceScheduleRateArgumentCaptor.getValue()).extracting(
+    var result = licenceScheduleRateArgumentCaptor.getValue();
+
+    assertThat(result).extracting(
         LicenceScheduleRate::getLicenceScheduleDetail,
         LicenceScheduleRate::getRateDefinitionOption,
         LicenceScheduleRate::getLicenceScheduleTerm,
@@ -402,7 +392,7 @@ class LicenceScheduleRateFormServiceTest {
         LicenceScheduleRate::getRelativeDuration,
         LicenceScheduleRate::getStartDate,
         LicenceScheduleRate::getRentalRate,
-        LicenceScheduleRate::getEventReference
+        LicenceScheduleRate::getLicenceSchedule
     ).containsExactly(
         licenceScheduleDetail,
         RateDefinitionOption.CUSTOM_PERIOD,
@@ -412,10 +402,10 @@ class LicenceScheduleRateFormServiceTest {
         duration,
         null,
         BigDecimal.ONE,
-        eventReference
+        licenceScheduleDetail.getLicenceSchedule()
     );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), result, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -435,9 +425,6 @@ class LicenceScheduleRateFormServiceTest {
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
 
-    var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.RATE)).thenReturn(eventReference);
-
     var duration = new ThreeFieldDuration(1, 0, 0);
     form.getRelativeDuration().setFromThreeFieldDuration(duration);
 
@@ -445,7 +432,9 @@ class LicenceScheduleRateFormServiceTest {
 
     verify(licenceScheduleRateRepository).save(licenceScheduleRateArgumentCaptor.capture());
 
-    assertThat(licenceScheduleRateArgumentCaptor.getValue()).extracting(
+    var result = licenceScheduleRateArgumentCaptor.getValue();
+
+    assertThat(result).extracting(
         LicenceScheduleRate::getLicenceScheduleDetail,
         LicenceScheduleRate::getRateDefinitionOption,
         LicenceScheduleRate::getLicenceScheduleTerm,
@@ -454,7 +443,7 @@ class LicenceScheduleRateFormServiceTest {
         LicenceScheduleRate::getRelativeDuration,
         LicenceScheduleRate::getStartDate,
         LicenceScheduleRate::getRentalRate,
-        LicenceScheduleRate::getEventReference
+        LicenceScheduleRate::getLicenceSchedule
     ).containsExactly(
         licenceScheduleDetail,
         RateDefinitionOption.CUSTOM_PERIOD,
@@ -464,10 +453,10 @@ class LicenceScheduleRateFormServiceTest {
         duration,
         null,
         BigDecimal.ONE,
-        eventReference
+        licenceScheduleDetail.getLicenceSchedule()
     );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), result, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 

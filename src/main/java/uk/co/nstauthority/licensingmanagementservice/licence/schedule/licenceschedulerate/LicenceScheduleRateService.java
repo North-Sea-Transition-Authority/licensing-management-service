@@ -7,7 +7,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -114,14 +113,6 @@ public class LicenceScheduleRateService {
   @Transactional
   public void saveLicenceScheduleRates(List<LicenceScheduleRate> licenceScheduleRates) {
     licenceScheduleRateRepository.saveAll(licenceScheduleRates);
-  }
-
-  public LicenceScheduleRate getRateByScheduleDetailAndEventReferenceOrThrow(
-      LicenceScheduleDetail scheduleDetail,
-      EventReference eventReference
-  ) {
-    return licenceScheduleRateRepository.findByLicenceScheduleDetailAndEventReference(scheduleDetail, eventReference)
-        .orElseThrow(() -> new LmsEntityNotFoundException("LicenceScheduleRate", eventReference.getId()));
   }
 
   @Transactional

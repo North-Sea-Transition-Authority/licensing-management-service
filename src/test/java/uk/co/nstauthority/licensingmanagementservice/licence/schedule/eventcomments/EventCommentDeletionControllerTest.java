@@ -22,7 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -52,13 +52,13 @@ class EventCommentDeletionControllerTest extends AbstractControllerTest {
         .build();
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
 
-    var eventReference = new EventReference();
-    eventReference.setId(UUID.randomUUID());
-    eventReference.setLicenceSchedule(licenceSchedule);
+    var scheduleEvent = new LicenceScheduleTerm();
+    scheduleEvent.setId(UUID.randomUUID());
+    scheduleEvent.setLicenceSchedule(licenceSchedule);
 
     eventComment = new EventComment();
     eventComment.setId(UUID.randomUUID());
-    eventComment.setEventReference(eventReference);
+    eventComment.setScheduleEvent(scheduleEvent);
 
     commentView = new EventCommentView("comment text", "Author Name", "1 January 2025 10:00:00", "");
   }
@@ -71,7 +71,7 @@ class EventCommentDeletionControllerTest extends AbstractControllerTest {
         .thenReturn(eventComment);
     when(eventCommentService.getEventCommentViewFor(eventComment))
         .thenReturn(commentView);
-    when(licenceService.getLicencePageCaption(eventComment.getEventReference().getLicenceSchedule().getLicence()))
+    when(licenceService.getLicencePageCaption(eventComment.getScheduleEvent().getLicenceSchedule().getLicence()))
         .thenReturn(LICENCE_CAPTION);
 
     mockMvc.perform(
@@ -84,7 +84,7 @@ class EventCommentDeletionControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("commentView", commentView))
         .andExpect(model().attribute("pageCaption", LICENCE_CAPTION))
         .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceOverviewController.class)
-            .renderLicenceOverview(eventComment.getEventReference().getLicenceSchedule().getLicence().getId(), null, null, null))));
+            .renderLicenceOverview(eventComment.getScheduleEvent().getLicenceSchedule().getLicence().getId(), null, null, null))));
   }
 
   @Test

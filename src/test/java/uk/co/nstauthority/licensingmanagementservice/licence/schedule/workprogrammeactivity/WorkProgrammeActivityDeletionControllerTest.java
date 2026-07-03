@@ -26,7 +26,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventComment;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -124,9 +123,8 @@ class WorkProgrammeActivityDeletionControllerTest extends AbstractControllerTest
   }
 
   @Test
-  void renderDeleteActivityPage_whenActivityHasEventReferenceAndPendingCommentExists_showsPendingComment() throws Exception {
-    var eventReference = new EventReference();
-    workProgrammeActivity.setEventReference(eventReference);
+  void renderDeleteActivityPage_whenActivityHasLicenceScheduleAndPendingCommentExists_showsPendingComment() throws Exception {
+    workProgrammeActivity.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
 
     var eventComment = new EventComment();
     eventComment.setComment("a pending comment");
@@ -135,7 +133,7 @@ class WorkProgrammeActivityDeletionControllerTest extends AbstractControllerTest
         .thenReturn(true);
     when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(workProgrammeActivity.getId())).thenReturn(workProgrammeActivity);
     when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");
-    when(eventCommentService.findPendingCommentForEventReference(eventReference)).thenReturn(Optional.of(eventComment));
+    when(eventCommentService.findPendingCommentForScheduleEvent(workProgrammeActivity)).thenReturn(Optional.of(eventComment));
 
     mockMvc.perform(
             get(ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class).renderDeleteActivityPage(workProgrammeActivity.getId(), null)))
@@ -146,15 +144,14 @@ class WorkProgrammeActivityDeletionControllerTest extends AbstractControllerTest
   }
 
   @Test
-  void renderDeleteActivityPage_whenActivityHasEventReferenceAndNoPendingComment_showsEmptyPendingComment() throws Exception {
-    var eventReference = new EventReference();
-    workProgrammeActivity.setEventReference(eventReference);
+  void renderDeleteActivityPage_whenActivityHasLicenceScheduleAndNoPendingComment_showsEmptyPendingComment() throws Exception {
+    workProgrammeActivity.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
 
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR)))
         .thenReturn(true);
     when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(workProgrammeActivity.getId())).thenReturn(workProgrammeActivity);
     when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");
-    when(eventCommentService.findPendingCommentForEventReference(eventReference)).thenReturn(Optional.empty());
+    when(eventCommentService.findPendingCommentForScheduleEvent(workProgrammeActivity)).thenReturn(Optional.empty());
 
     mockMvc.perform(
             get(ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class).renderDeleteActivityPage(workProgrammeActivity.getId(), null)))

@@ -2,32 +2,30 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogr
 
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import java.time.LocalDate;
-import java.util.UUID;
-import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.ScheduleEvent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 
 @Audited
-@Entity(name = "work_programme_activities")
-public class WorkProgrammeActivity implements LinkedToDuplicationParent<LicenceScheduleDetail> {
-
-  @Id
-  @UuidGenerator
-  private UUID id;
+@Entity
+@Table(name = "work_programme_activities")
+@DiscriminatorValue("WORK_PROGRAMME_ACTIVITY")
+public class WorkProgrammeActivity extends ScheduleEvent implements LinkedToDuplicationParent<LicenceScheduleDetail> {
 
   @ManyToOne
   @JoinColumn(name = "licence_schedule_detail_id")
@@ -61,18 +59,6 @@ public class WorkProgrammeActivity implements LinkedToDuplicationParent<LicenceS
   private ThreeFieldDuration relativeDuration;
 
   private LocalDate dueDate;
-
-  @ManyToOne
-  @JoinColumn(name = "event_reference_id")
-  private EventReference eventReference;
-
-  public UUID getId() {
-    return id;
-  }
-
-  public void setId(UUID id) {
-    this.id = id;
-  }
 
   public LicenceScheduleDetail getLicenceScheduleDetail() {
     return licenceScheduleDetail;
@@ -165,17 +151,19 @@ public class WorkProgrammeActivity implements LinkedToDuplicationParent<LicenceS
         : category.getDisplayName();
   }
 
-  public EventReference getEventReference() {
-    return eventReference;
-  }
-
-  public void setEventReference(EventReference eventReference) {
-    this.eventReference = eventReference;
-  }
-
   public Licence getLicence() {
     return this.getLicenceScheduleDetail()
         .getLicenceSchedule()
         .getLicence();
+  }
+
+  @Override
+  public ScheduleEventType getEventType() {
+    return ScheduleEventType.WORK_PROGRAMME_ACTIVITY;
+  }
+
+  @Override
+  public String getEventCaption() {
+    return getCategoryString();
   }
 }

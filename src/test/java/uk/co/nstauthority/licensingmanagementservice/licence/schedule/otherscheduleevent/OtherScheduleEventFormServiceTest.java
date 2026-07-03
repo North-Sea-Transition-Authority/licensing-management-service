@@ -29,14 +29,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,9 +58,6 @@ class OtherScheduleEventFormServiceTest {
 
   @Mock
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
-
-  @Mock
-  private EventReferenceService eventReferenceService;
 
   @Mock
   private EventCommentService eventCommentService;
@@ -144,9 +138,6 @@ class OtherScheduleEventFormServiceTest {
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
 
-    var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.OTHER)).thenReturn(eventReference);
-
     var testDuration = new ThreeFieldDuration(1,0,0);
 
     form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
@@ -155,7 +146,9 @@ class OtherScheduleEventFormServiceTest {
 
     verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
 
-    assertThat(otherScheduleEventArgumentCaptor.getValue())
+    var result = otherScheduleEventArgumentCaptor.getValue();
+
+    assertThat(result)
         .extracting(
             OtherScheduleEvent::getLicenceScheduleDetail,
             OtherScheduleEvent::getCategory,
@@ -166,7 +159,7 @@ class OtherScheduleEventFormServiceTest {
             OtherScheduleEvent::getLicenceScheduleTerm,
             OtherScheduleEvent::getLicenceSchedulePhase,
             OtherScheduleEvent::getRelativeDuration,
-            OtherScheduleEvent::getEventReference
+            OtherScheduleEvent::getLicenceSchedule
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -178,15 +171,15 @@ class OtherScheduleEventFormServiceTest {
             term,
             null,
             testDuration,
-            eventReference
+            licenceScheduleDetail.getLicenceSchedule()
         );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), result, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
   @Test
-  void saveEventFromForm_relativeDate_relatedToTerm_existingEvent_doesntOverwriteEventReference() {
+  void saveEventFromForm_relativeDate_relatedToTerm_existingEvent_doesntOverwriteLicenceSchedule() {
     var form = new OtherScheduleEventForm();
     form.setOtherScheduleEventCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     form.setDescription("description");
@@ -206,7 +199,10 @@ class OtherScheduleEventFormServiceTest {
     form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
 
     var event = new OtherScheduleEvent();
-    event.setEventReference(new EventReference());
+    var existingSchedule = LicenceScheduleTestUtil.createLicenceSchedule(
+        LicenceTestUtil.builder().withLicenceType(LicenceType.SEAWARD_PRODUCTION).build()
+    );
+    event.setLicenceSchedule(existingSchedule);
 
     otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, event, USER);
 
@@ -223,7 +219,7 @@ class OtherScheduleEventFormServiceTest {
             OtherScheduleEvent::getLicenceScheduleTerm,
             OtherScheduleEvent::getLicenceSchedulePhase,
             OtherScheduleEvent::getRelativeDuration,
-            OtherScheduleEvent::getEventReference
+            OtherScheduleEvent::getLicenceSchedule
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -235,10 +231,10 @@ class OtherScheduleEventFormServiceTest {
             term,
             null,
             testDuration,
-            event.getEventReference()
+            existingSchedule
         );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), event.getEventReference(), USER);
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), event, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -258,9 +254,6 @@ class OtherScheduleEventFormServiceTest {
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
 
-    var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.OTHER)).thenReturn(eventReference);
-
     var testDuration = new ThreeFieldDuration(1,0,0);
 
     form.getRelativeDuration().setFromThreeFieldDuration(testDuration);
@@ -269,7 +262,9 @@ class OtherScheduleEventFormServiceTest {
 
     verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
 
-    assertThat(otherScheduleEventArgumentCaptor.getValue())
+    var result = otherScheduleEventArgumentCaptor.getValue();
+
+    assertThat(result)
         .extracting(
             OtherScheduleEvent::getLicenceScheduleDetail,
             OtherScheduleEvent::getCategory,
@@ -280,7 +275,7 @@ class OtherScheduleEventFormServiceTest {
             OtherScheduleEvent::getLicenceScheduleTerm,
             OtherScheduleEvent::getLicenceSchedulePhase,
             OtherScheduleEvent::getRelativeDuration,
-            OtherScheduleEvent::getEventReference
+            OtherScheduleEvent::getLicenceSchedule
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -292,10 +287,10 @@ class OtherScheduleEventFormServiceTest {
             null,
             phase,
             testDuration,
-            eventReference
+            licenceScheduleDetail.getLicenceSchedule()
         );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), result, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -315,14 +310,13 @@ class OtherScheduleEventFormServiceTest {
 
     when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
 
-    var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.OTHER)).thenReturn(eventReference);
-
     otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, new OtherScheduleEvent(), USER);
 
     verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
 
-    assertThat(otherScheduleEventArgumentCaptor.getValue())
+    var result = otherScheduleEventArgumentCaptor.getValue();
+
+    assertThat(result)
         .extracting(
             OtherScheduleEvent::getLicenceScheduleDetail,
             OtherScheduleEvent::getCategory,
@@ -332,7 +326,7 @@ class OtherScheduleEventFormServiceTest {
             OtherScheduleEvent::getEventDate,
             OtherScheduleEvent::getLicenceScheduleTerm,
             OtherScheduleEvent::getLicenceSchedulePhase,
-            OtherScheduleEvent::getEventReference
+            OtherScheduleEvent::getLicenceSchedule
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -343,10 +337,10 @@ class OtherScheduleEventFormServiceTest {
             null,
             term,
             null,
-            eventReference
+            licenceScheduleDetail.getLicenceSchedule()
         );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), result, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -389,14 +383,13 @@ class OtherScheduleEventFormServiceTest {
 
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
 
-    var eventReference = new EventReference();
-    when(eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.OTHER)).thenReturn(eventReference);
-
     otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, new OtherScheduleEvent(), USER);
 
     verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
 
-    assertThat(otherScheduleEventArgumentCaptor.getValue())
+    var result = otherScheduleEventArgumentCaptor.getValue();
+
+    assertThat(result)
         .extracting(
             OtherScheduleEvent::getLicenceScheduleDetail,
             OtherScheduleEvent::getCategory,
@@ -406,7 +399,7 @@ class OtherScheduleEventFormServiceTest {
             OtherScheduleEvent::getEventDate,
             OtherScheduleEvent::getLicenceScheduleTerm,
             OtherScheduleEvent::getLicenceSchedulePhase,
-            OtherScheduleEvent::getEventReference
+            OtherScheduleEvent::getLicenceSchedule
         )
         .containsExactly(
             licenceScheduleDetail,
@@ -417,10 +410,10 @@ class OtherScheduleEventFormServiceTest {
             null,
             null,
             phase,
-            eventReference
+            licenceScheduleDetail.getLicenceSchedule()
         );
 
-    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), eventReference, USER);
+    verify(eventCommentService).addOrUpdatePendingComment(form.getComments(), result, USER);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 

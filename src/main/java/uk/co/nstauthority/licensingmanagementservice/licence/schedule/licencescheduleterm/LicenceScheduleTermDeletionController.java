@@ -52,8 +52,8 @@ public class LicenceScheduleTermDeletionController {
       @PathVariable UUID licenceScheduleTermId
   ) {
     var term = licenceScheduleTermService.getTermByIdOrThrow(licenceScheduleTermId);
-    var pendingComment = term.getEventReference() != null
-        ? eventCommentService.findPendingCommentForEventReference(term.getEventReference())
+    var pendingComment = term.getLicenceSchedule() != null
+        ? eventCommentService.findPendingCommentForScheduleEvent(term)
             .map(EventComment::getComment)
             .orElse("")
         : "";

@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomm
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
@@ -18,8 +20,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamT
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.ScheduleEvent;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.ScheduleEventRepository;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -36,18 +38,18 @@ public class EventCommentController {
 
   private final EventCommentService eventCommentService;
   private final EventCommentValidator eventCommentValidator;
-  private final EventReferenceService eventReferenceService;
+  private final ScheduleEventRepository scheduleEventRepository;
   private final LicenceService licenceService;
 
   public EventCommentController(
       EventCommentService eventCommentService,
       EventCommentValidator eventCommentValidator,
-      EventReferenceService eventReferenceService,
+      ScheduleEventRepository scheduleEventRepository,
       LicenceService licenceService
   ) {
     this.eventCommentService = eventCommentService;
     this.eventCommentValidator = eventCommentValidator;
-    this.eventReferenceService = eventReferenceService;
+    this.scheduleEventRepository = scheduleEventRepository;
     this.licenceService = licenceService;
   }
 
@@ -56,13 +58,13 @@ public class EventCommentController {
       @PathVariable UUID eventReferenceId,
       ServiceUserDetail serviceUserDetail
   ) {
-    var eventReference = eventReferenceService.getEventReferenceByIdOrThrow(eventReferenceId);
+    var scheduleEvent = getScheduleEventOrThrow(eventReferenceId);
     eventCommentService.checkCommenterHasPermissionsOrThrow(
-        eventReference.getEventType(),
+        scheduleEvent.getEventType(),
         serviceUserDetail
     );
 
-    return getCommentModelAndView(new EventCommentForm(), eventReference);
+    return getCommentModelAndView(new EventCommentForm(), scheduleEvent);
   }
 
   @PostMapping
@@ -73,32 +75,32 @@ public class EventCommentController {
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var eventReference = eventReferenceService.getEventReferenceByIdOrThrow(eventReferenceId);
+    var scheduleEvent = getScheduleEventOrThrow(eventReferenceId);
     eventCommentService.checkCommenterHasPermissionsOrThrow(
-        eventReference.getEventType(),
+        scheduleEvent.getEventType(),
         serviceUserDetail
     );
 
     if (!eventCommentValidator.isValid(bindingResult)) {
-      return getCommentModelAndView(form, eventReference);
+      return getCommentModelAndView(form, scheduleEvent);
     }
 
-    eventCommentService.addNewComment(form, eventReference, serviceUserDetail);
+    eventCommentService.addNewComment(form, scheduleEvent, serviceUserDetail);
 
     NotificationBanner.newSuccessBanner()
         .withHeadingContent("Comment added")
         .applyTo(redirectAttributes);
 
     return ReverseRouter.redirect(on(LicenceOverviewController.class)
-        .renderLicenceOverview(eventReference.getLicenceSchedule().getLicence().getId(), null, null, null));
+        .renderLicenceOverview(scheduleEvent.getLicenceSchedule().getLicence().getId(), null, null, null));
   }
 
-  private ModelAndView getCommentModelAndView(EventCommentForm form, EventReference eventReference) {
-    var licence = eventReference.getLicenceSchedule().getLicence();
+  private ModelAndView getCommentModelAndView(EventCommentForm form, ScheduleEvent scheduleEvent) {
+    var licence = scheduleEvent.getLicenceSchedule().getLicence();
 
     var caption = "%s - %s".formatted(
         licenceService.getLicencePageCaption(licence),
-        eventReferenceService.getEventReferenceEventCaption(eventReference)
+        scheduleEvent.getEventCaption()
     );
 
     return new ModelAndView("lms/licence/schedule/createEventComment")
@@ -106,5 +108,10 @@ public class EventCommentController {
         .addObject("cancelUrl", ReverseRouter.route(on(LicenceOverviewController.class)
             .renderLicenceOverview(licence.getId(), null, null, null)))
         .addObject("pageCaption", caption);
+  }
+
+  private ScheduleEvent getScheduleEventOrThrow(UUID id) {
+    return scheduleEventRepository.findById(id)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
   }
 }

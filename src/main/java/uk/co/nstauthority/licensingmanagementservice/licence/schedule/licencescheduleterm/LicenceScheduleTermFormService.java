@@ -5,27 +5,22 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 
 @Service
 public class LicenceScheduleTermFormService {
 
   private final LicenceScheduleTermRepository licenceScheduleTermRepository;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
-  private final EventReferenceService eventReferenceService;
   private final EventCommentService eventCommentService;
 
   public LicenceScheduleTermFormService(
       LicenceScheduleTermRepository licenceScheduleTermRepository,
       LicenceScheduleCalculationService licenceScheduleCalculationService,
-      EventReferenceService eventReferenceService,
       EventCommentService eventCommentService
   ) {
     this.licenceScheduleTermRepository = licenceScheduleTermRepository;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
-    this.eventReferenceService = eventReferenceService;
     this.eventCommentService = eventCommentService;
   }
 
@@ -40,16 +35,14 @@ public class LicenceScheduleTermFormService {
     licenceScheduleTerm.setTermType(licenceScheduleTermForm.getTermType());
     licenceScheduleTerm.setTermDuration(licenceScheduleTermForm.getTermDuration().toThreeFieldDuration());
 
-    if (licenceScheduleTerm.getEventReference() == null) {
-      licenceScheduleTerm.setEventReference(
-          eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.TERM)
-      );
+    if (licenceScheduleTerm.getLicenceSchedule() == null) {
+      licenceScheduleTerm.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
     }
 
     licenceScheduleTermRepository.save(licenceScheduleTerm);
     eventCommentService.addOrUpdatePendingComment(
         licenceScheduleTermForm.getComments(),
-        licenceScheduleTerm.getEventReference(),
+        licenceScheduleTerm,
         serviceUserDetail
     );
 
@@ -60,8 +53,8 @@ public class LicenceScheduleTermFormService {
     var form = new LicenceScheduleTermForm();
     form.setTermType(term.getTermType());
     form.getTermDuration().setFromThreeFieldDuration(term.getTermDuration());
-    if (term.getEventReference() != null) {
-      eventCommentService.findPendingCommentForEventReference(term.getEventReference())
+    if (term.getLicenceSchedule() != null) {
+      eventCommentService.findPendingCommentForScheduleEvent(term)
           .ifPresent(comment -> form.setComments(comment.getComment()));
     }
 

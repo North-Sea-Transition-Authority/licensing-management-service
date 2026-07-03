@@ -12,12 +12,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRu
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.LicenceScheduleRelativeOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
@@ -30,7 +28,6 @@ public class OtherScheduleEventFormService {
   private final LicenceTypeRulesResolver licenceTypeRulesResolver;
   private final LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
-  private final EventReferenceService eventReferenceService;
   private final EventCommentService eventCommentService;
 
   public OtherScheduleEventFormService(
@@ -40,7 +37,6 @@ public class OtherScheduleEventFormService {
       LicenceTypeRulesResolver licenceTypeRulesResolver,
       LicenceScheduleRelativeOptionsService licenceScheduleRelativeOptionsService,
       LicenceScheduleCalculationService licenceScheduleCalculationService,
-      EventReferenceService eventReferenceService,
       EventCommentService eventCommentService
   ) {
     this.otherScheduleEventRepository = otherScheduleEventRepository;
@@ -49,7 +45,6 @@ public class OtherScheduleEventFormService {
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
     this.licenceScheduleRelativeOptionsService = licenceScheduleRelativeOptionsService;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
-    this.eventReferenceService = eventReferenceService;
     this.eventCommentService = eventCommentService;
   }
 
@@ -107,14 +102,12 @@ public class OtherScheduleEventFormService {
       event.setRelativeDuration(null);
     }
 
-    if (event.getEventReference() == null) {
-      event.setEventReference(
-          eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.OTHER)
-      );
+    if (event.getLicenceSchedule() == null) {
+      event.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
     }
 
     otherScheduleEventRepository.save(event);
-    eventCommentService.addOrUpdatePendingComment(form.getComments(), event.getEventReference(), serviceUserDetail);
+    eventCommentService.addOrUpdatePendingComment(form.getComments(), event, serviceUserDetail);
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
@@ -123,8 +116,8 @@ public class OtherScheduleEventFormService {
     form.setOtherScheduleEventCategory(otherScheduleEvent.getCategory());
     form.setOtherCategoryName(otherScheduleEvent.getOtherCategoryName());
     form.setDescription(otherScheduleEvent.getDescription());
-    if (otherScheduleEvent.getEventReference() != null) {
-      eventCommentService.findPendingCommentForEventReference(otherScheduleEvent.getEventReference())
+    if (otherScheduleEvent.getLicenceSchedule() != null) {
+      eventCommentService.findPendingCommentForScheduleEvent(otherScheduleEvent)
           .ifPresent(comment -> form.setComments(comment.getComment()));
     }
 

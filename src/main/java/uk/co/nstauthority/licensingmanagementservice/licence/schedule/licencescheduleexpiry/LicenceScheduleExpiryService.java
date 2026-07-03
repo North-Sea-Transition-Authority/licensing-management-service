@@ -3,22 +3,17 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesc
 import jakarta.transaction.Transactional;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReferenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 
 @Service
 public class LicenceScheduleExpiryService {
 
   private final LicenceScheduleExpiryRepository licenceScheduleExpiryRepository;
-  private final EventReferenceService eventReferenceService;
 
   public LicenceScheduleExpiryService(
-      LicenceScheduleExpiryRepository licenceScheduleExpiryRepository,
-      EventReferenceService eventReferenceService
+      LicenceScheduleExpiryRepository licenceScheduleExpiryRepository
   ) {
     this.licenceScheduleExpiryRepository = licenceScheduleExpiryRepository;
-    this.eventReferenceService = eventReferenceService;
   }
 
   public Optional<LicenceScheduleExpiry> getExpiryForLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
@@ -39,10 +34,8 @@ public class LicenceScheduleExpiryService {
     licenceScheduleExpiry.setExpiryDate(form.getExpiryDate().getAsLocalDate().orElse(null));
     licenceScheduleExpiry.setComments(form.getComments());
 
-    if (licenceScheduleExpiry.getEventReference() == null) {
-      licenceScheduleExpiry.setEventReference(
-          eventReferenceService.createEventReference(licenceScheduleDetail.getLicenceSchedule(), ScheduleEventType.EXPIRY)
-      );
+    if (licenceScheduleExpiry.getLicenceSchedule() == null) {
+      licenceScheduleExpiry.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
     }
 
     licenceScheduleExpiryRepository.save(licenceScheduleExpiry);

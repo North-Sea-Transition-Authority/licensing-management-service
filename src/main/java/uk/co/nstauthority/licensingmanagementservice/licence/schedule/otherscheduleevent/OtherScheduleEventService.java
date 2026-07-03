@@ -11,7 +11,6 @@ import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -82,14 +81,6 @@ public class OtherScheduleEventService {
       LocalDate date
   ) {
     return otherScheduleEventRepository.findAllByLicenceScheduleDetailAndEventDateAfter(licenceScheduleDetail, date);
-  }
-
-  public OtherScheduleEvent getOtherScheduleEventByScheduleDetailAndEventReferenceOrThrow(
-      LicenceScheduleDetail scheduleDetail,
-      EventReference eventReference
-  ) {
-    return otherScheduleEventRepository.findByLicenceScheduleDetailAndEventReference(scheduleDetail, eventReference)
-        .orElseThrow(() -> new LmsEntityNotFoundException("OtherScheduleEvent", eventReference.getId()));
   }
 
   public List<OtherScheduleEvent> getAllEventsLinkedTo(LicenceScheduleTerm licenceScheduleTerm) {

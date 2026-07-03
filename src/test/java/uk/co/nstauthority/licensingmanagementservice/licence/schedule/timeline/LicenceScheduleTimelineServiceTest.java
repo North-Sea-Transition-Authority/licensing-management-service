@@ -33,7 +33,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculatio
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentView;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.EventReference;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiry;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryService;
@@ -376,15 +375,13 @@ class LicenceScheduleTimelineServiceTest {
   void getEditableLicenceScheduleEventViews() {
     var midPhaseActivity = new WorkProgrammeActivity();
     midPhaseActivity.setId(UUID.randomUUID());
+    midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
-    var midPhaseActivityRef = new EventReference();
-    midPhaseActivityRef.setId(UUID.randomUUID());
-    midPhaseActivity.setEventReference(midPhaseActivityRef);
 
     var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
-    midPhaseActivityStatus.setEventReference(midPhaseActivity.getEventReference());
+    midPhaseActivityStatus.setScheduleEvent(midPhaseActivity);
     midPhaseActivityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
@@ -404,14 +401,12 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
     endOfPhaseActivity.setId(UUID.randomUUID());
+    endOfPhaseActivity.setOriginalEventId(endOfPhaseActivity.getId());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
     endOfPhaseActivity.setDescription("description");
-    var endOfPhaseActivityRef = new EventReference();
-    endOfPhaseActivityRef.setId(UUID.randomUUID());
-    endOfPhaseActivity.setEventReference(endOfPhaseActivityRef);
 
     var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
-    endOfPhaseActivityStatus.setEventReference(endOfPhaseActivity.getEventReference());
+    endOfPhaseActivityStatus.setScheduleEvent(endOfPhaseActivity);
     endOfPhaseActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
@@ -431,15 +426,13 @@ class LicenceScheduleTimelineServiceTest {
 
     var midTerm2Activity = new WorkProgrammeActivity();
     midTerm2Activity.setId(UUID.randomUUID());
+    midTerm2Activity.setOriginalEventId(midTerm2Activity.getId());
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
-    var midTerm2ActivityRef = new EventReference();
-    midTerm2ActivityRef.setId(UUID.randomUUID());
-    midTerm2Activity.setEventReference(midTerm2ActivityRef);
 
     var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
-    midTerm2ActivityStatus.setEventReference(midTerm2Activity.getEventReference());
+    midTerm2ActivityStatus.setScheduleEvent(midTerm2Activity);
     midTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
@@ -459,14 +452,12 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
     endOfTerm2Activity.setId(UUID.randomUUID());
+    endOfTerm2Activity.setOriginalEventId(endOfTerm2Activity.getId());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
     endOfTerm2Activity.setDescription("description");
-    var endOfTerm2ActivityRef = new EventReference();
-    endOfTerm2ActivityRef.setId(UUID.randomUUID());
-    endOfTerm2Activity.setEventReference(endOfTerm2ActivityRef);
 
     var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
-    endOfTerm2ActivityStatus.setEventReference(endOfTerm2Activity.getEventReference());
+    endOfTerm2ActivityStatus.setScheduleEvent(endOfTerm2Activity);
     endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
@@ -484,14 +475,12 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var midPhaseEventRef = new EventReference();
-    midPhaseEventRef.setId(UUID.randomUUID());
     var midPhaseEvent = new OtherScheduleEvent();
     midPhaseEvent.setId(UUID.randomUUID());
+    midPhaseEvent.setOriginalEventId(midPhaseEvent.getId());
     midPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midPhaseEvent.setDescription("description");
     midPhaseEvent.setEventDate(LocalDate.of(2025, 2, 1));
-    midPhaseEvent.setEventReference(midPhaseEventRef);
 
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -506,13 +495,11 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var endOfPhaseEventRef = new EventReference();
-    endOfPhaseEventRef.setId(UUID.randomUUID());
     var endOfPhaseEvent = new OtherScheduleEvent();
     endOfPhaseEvent.setId(UUID.randomUUID());
+    endOfPhaseEvent.setOriginalEventId(endOfPhaseEvent.getId());
     endOfPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfPhaseEvent.setDescription("description");
-    endOfPhaseEvent.setEventReference(endOfPhaseEventRef);
 
     var endOfPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -527,14 +514,12 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var midTerm2EventRef = new EventReference();
-    midTerm2EventRef.setId(UUID.randomUUID());
     var midTerm2Event = new OtherScheduleEvent();
     midTerm2Event.setId(UUID.randomUUID());
+    midTerm2Event.setOriginalEventId(midTerm2Event.getId());
     midTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midTerm2Event.setDescription("description");
     midTerm2Event.setEventDate(LocalDate.of(2026, 2, 1));
-    midTerm2Event.setEventReference(midTerm2EventRef);
 
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -549,13 +534,11 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var endOfTerm2EventRef = new EventReference();
-    endOfTerm2EventRef.setId(UUID.randomUUID());
     var endOfTerm2Event = new OtherScheduleEvent();
     endOfTerm2Event.setId(UUID.randomUUID());
+    endOfTerm2Event.setOriginalEventId(endOfTerm2Event.getId());
     endOfTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfTerm2Event.setDescription("description");
-    endOfTerm2Event.setEventReference(endOfTerm2EventRef);
 
     var endOfTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -570,26 +553,22 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var phaseRef = new EventReference();
-    phaseRef.setId(UUID.randomUUID());
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
+    phase.setOriginalEventId(phase.getId());
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
-    phase.setEventReference(phaseRef);
 
-    var phaseRateRef = new EventReference();
-    phaseRateRef.setId(UUID.randomUUID());
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
+    phaseRate.setOriginalEventId(phaseRate.getId());
     phaseRate.setRateDefinitionOption(RateDefinitionOption.PHASE);
     phaseRate.setLicenceSchedulePhase(phase);
     phaseRate.setRentalRate(new BigDecimal("1.00"));
     phaseRate.setStartDate(phase.getStartDate());
-    phaseRate.setEventReference(phaseRateRef);
 
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
@@ -617,16 +596,14 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var termRef = new EventReference();
-    termRef.setId(UUID.randomUUID());
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
+    term.setOriginalEventId(term.getId());
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
-    term.setEventReference(termRef);
 
     var termView = new TimelineTermView(
         List.of(phaseView),
@@ -641,26 +618,22 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var term2Ref = new EventReference();
-    term2Ref.setId(UUID.randomUUID());
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
+    term2.setOriginalEventId(term2.getId());
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
     term2.setTermType(TermType.SECOND);
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
-    term2.setEventReference(term2Ref);
 
-    var term2RateRef = new EventReference();
-    term2RateRef.setId(UUID.randomUUID());
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
+    term2Rate.setOriginalEventId(term2Rate.getId());
     term2Rate.setRateDefinitionOption(RateDefinitionOption.TERM);
     term2Rate.setLicenceScheduleTerm(term2);
     term2Rate.setRentalRate(new BigDecimal("2.00"));
     term2Rate.setStartDate(term2.getStartDate());
-    term2Rate.setEventReference(term2RateRef);
 
     var term2RateView = new TimelineRateView(
         "Second Term rate",
@@ -698,10 +671,10 @@ class LicenceScheduleTimelineServiceTest {
     when(workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
     when(workProgrammeActivityStatusService.getLatestStatusesFor(activities)).thenReturn(
         Map.of(
-            midPhaseActivity.getEventReference().getId(), midPhaseActivityStatus,
-            endOfPhaseActivity.getEventReference().getId(), endOfPhaseActivityStatus,
-            midTerm2Activity.getEventReference().getId(), midTerm2ActivityStatus,
-            endOfTerm2Activity.getEventReference().getId(), endOfTerm2ActivityStatus
+            midPhaseActivity.getId(), midPhaseActivityStatus,
+            endOfPhaseActivity.getId(), endOfPhaseActivityStatus,
+            midTerm2Activity.getId(), midTerm2ActivityStatus,
+            endOfTerm2Activity.getId(), endOfTerm2ActivityStatus
         )
     );
 
@@ -749,15 +722,13 @@ class LicenceScheduleTimelineServiceTest {
   void getEditableLicenceScheduleEventViews_noEditPermissions() {
     var midPhaseActivity = new WorkProgrammeActivity();
     midPhaseActivity.setId(UUID.randomUUID());
+    midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
-    var midPhaseActivityRef = new EventReference();
-    midPhaseActivityRef.setId(UUID.randomUUID());
-    midPhaseActivity.setEventReference(midPhaseActivityRef);
 
     var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
-    midPhaseActivityStatus.setEventReference(midPhaseActivity.getEventReference());
+    midPhaseActivityStatus.setScheduleEvent(midPhaseActivity);
     midPhaseActivityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
@@ -775,14 +746,12 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
     endOfPhaseActivity.setId(UUID.randomUUID());
+    endOfPhaseActivity.setOriginalEventId(endOfPhaseActivity.getId());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
     endOfPhaseActivity.setDescription("description");
-    var endOfPhaseActivityRef = new EventReference();
-    endOfPhaseActivityRef.setId(UUID.randomUUID());
-    endOfPhaseActivity.setEventReference(endOfPhaseActivityRef);
 
     var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
-    endOfPhaseActivityStatus.setEventReference(endOfPhaseActivity.getEventReference());
+    endOfPhaseActivityStatus.setScheduleEvent(endOfPhaseActivity);
     endOfPhaseActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
@@ -800,15 +769,13 @@ class LicenceScheduleTimelineServiceTest {
 
     var midTerm2Activity = new WorkProgrammeActivity();
     midTerm2Activity.setId(UUID.randomUUID());
+    midTerm2Activity.setOriginalEventId(midTerm2Activity.getId());
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
-    var midTerm2ActivityRef = new EventReference();
-    midTerm2ActivityRef.setId(UUID.randomUUID());
-    midTerm2Activity.setEventReference(midTerm2ActivityRef);
 
     var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
-    midTerm2ActivityStatus.setEventReference(midTerm2Activity.getEventReference());
+    midTerm2ActivityStatus.setScheduleEvent(midTerm2Activity);
     midTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
@@ -826,14 +793,12 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
     endOfTerm2Activity.setId(UUID.randomUUID());
+    endOfTerm2Activity.setOriginalEventId(endOfTerm2Activity.getId());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
     endOfTerm2Activity.setDescription("description");
-    var endOfTerm2ActivityRef = new EventReference();
-    endOfTerm2ActivityRef.setId(UUID.randomUUID());
-    endOfTerm2Activity.setEventReference(endOfTerm2ActivityRef);
 
     var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
-    endOfTerm2ActivityStatus.setEventReference(endOfTerm2Activity.getEventReference());
+    endOfTerm2ActivityStatus.setScheduleEvent(endOfTerm2Activity);
     endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
@@ -849,14 +814,12 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var midPhaseEventRef = new EventReference();
-    midPhaseEventRef.setId(UUID.randomUUID());
     var midPhaseEvent = new OtherScheduleEvent();
     midPhaseEvent.setId(UUID.randomUUID());
+    midPhaseEvent.setOriginalEventId(midPhaseEvent.getId());
     midPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midPhaseEvent.setDescription("description");
     midPhaseEvent.setEventDate(LocalDate.of(2025, 2, 1));
-    midPhaseEvent.setEventReference(midPhaseEventRef);
 
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -869,13 +832,11 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var endOfPhaseEventRef = new EventReference();
-    endOfPhaseEventRef.setId(UUID.randomUUID());
     var endOfPhaseEvent = new OtherScheduleEvent();
     endOfPhaseEvent.setId(UUID.randomUUID());
+    endOfPhaseEvent.setOriginalEventId(endOfPhaseEvent.getId());
     endOfPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfPhaseEvent.setDescription("description");
-    endOfPhaseEvent.setEventReference(endOfPhaseEventRef);
 
     var endOfPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -888,14 +849,12 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var midTerm2EventRef = new EventReference();
-    midTerm2EventRef.setId(UUID.randomUUID());
     var midTerm2Event = new OtherScheduleEvent();
     midTerm2Event.setId(UUID.randomUUID());
+    midTerm2Event.setOriginalEventId(midTerm2Event.getId());
     midTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midTerm2Event.setDescription("description");
     midTerm2Event.setEventDate(LocalDate.of(2026, 2, 1));
-    midTerm2Event.setEventReference(midTerm2EventRef);
 
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -908,13 +867,11 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var endOfTerm2EventRef = new EventReference();
-    endOfTerm2EventRef.setId(UUID.randomUUID());
     var endOfTerm2Event = new OtherScheduleEvent();
     endOfTerm2Event.setId(UUID.randomUUID());
+    endOfTerm2Event.setOriginalEventId(endOfTerm2Event.getId());
     endOfTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfTerm2Event.setDescription("description");
-    endOfTerm2Event.setEventReference(endOfTerm2EventRef);
 
     var endOfTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -927,26 +884,22 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var phaseRef = new EventReference();
-    phaseRef.setId(UUID.randomUUID());
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
+    phase.setOriginalEventId(phase.getId());
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
-    phase.setEventReference(phaseRef);
 
-    var phaseRateRef = new EventReference();
-    phaseRateRef.setId(UUID.randomUUID());
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
+    phaseRate.setOriginalEventId(phaseRate.getId());
     phaseRate.setRateDefinitionOption(RateDefinitionOption.PHASE);
     phaseRate.setLicenceSchedulePhase(phase);
     phaseRate.setRentalRate(new BigDecimal("1.00"));
     phaseRate.setStartDate(phase.getStartDate());
-    phaseRate.setEventReference(phaseRateRef);
 
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
@@ -972,16 +925,14 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var termRef = new EventReference();
-    termRef.setId(UUID.randomUUID());
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
+    term.setOriginalEventId(term.getId());
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
-    term.setEventReference(termRef);
 
     var termView = new TimelineTermView(
         List.of(phaseView),
@@ -996,26 +947,22 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var term2Ref = new EventReference();
-    term2Ref.setId(UUID.randomUUID());
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
+    term2.setOriginalEventId(term2.getId());
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
     term2.setTermType(TermType.SECOND);
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
-    term2.setEventReference(term2Ref);
 
-    var term2RateRef = new EventReference();
-    term2RateRef.setId(UUID.randomUUID());
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
+    term2Rate.setOriginalEventId(term2Rate.getId());
     term2Rate.setRateDefinitionOption(RateDefinitionOption.TERM);
     term2Rate.setLicenceScheduleTerm(term2);
     term2Rate.setRentalRate(new BigDecimal("2.00"));
     term2Rate.setStartDate(term2.getStartDate());
-    term2Rate.setEventReference(term2RateRef);
 
     var term2RateView = new TimelineRateView(
         "Second Term rate",
@@ -1049,10 +996,10 @@ class LicenceScheduleTimelineServiceTest {
     when(workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
     when(workProgrammeActivityStatusService.getLatestStatusesFor(activities)).thenReturn(
         Map.of(
-            midPhaseActivity.getEventReference().getId(), midPhaseActivityStatus,
-            endOfPhaseActivity.getEventReference().getId(), endOfPhaseActivityStatus,
-            midTerm2Activity.getEventReference().getId(), midTerm2ActivityStatus,
-            endOfTerm2Activity.getEventReference().getId(), endOfTerm2ActivityStatus
+            midPhaseActivity.getId(), midPhaseActivityStatus,
+            endOfPhaseActivity.getId(), endOfPhaseActivityStatus,
+            midTerm2Activity.getId(), midTerm2ActivityStatus,
+            endOfTerm2Activity.getId(), endOfTerm2ActivityStatus
         )
     );
 
@@ -1100,15 +1047,13 @@ class LicenceScheduleTimelineServiceTest {
   void getEditableLicenceScheduleEventViews_rateFilterEnabled() {
     var midPhaseActivity = new WorkProgrammeActivity();
     midPhaseActivity.setId(UUID.randomUUID());
+    midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
-    var midPhaseActivityRef = new EventReference();
-    midPhaseActivityRef.setId(UUID.randomUUID());
-    midPhaseActivity.setEventReference(midPhaseActivityRef);
 
     var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
-    midPhaseActivityStatus.setEventReference(midPhaseActivity.getEventReference());
+    midPhaseActivityStatus.setScheduleEvent(midPhaseActivity);
     midPhaseActivityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
@@ -1128,14 +1073,12 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
     endOfPhaseActivity.setId(UUID.randomUUID());
+    endOfPhaseActivity.setOriginalEventId(endOfPhaseActivity.getId());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
     endOfPhaseActivity.setDescription("description");
-    var endOfPhaseActivityRef = new EventReference();
-    endOfPhaseActivityRef.setId(UUID.randomUUID());
-    endOfPhaseActivity.setEventReference(endOfPhaseActivityRef);
 
     var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
-    endOfPhaseActivityStatus.setEventReference(endOfPhaseActivity.getEventReference());
+    endOfPhaseActivityStatus.setScheduleEvent(endOfPhaseActivity);
     endOfPhaseActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
@@ -1155,15 +1098,13 @@ class LicenceScheduleTimelineServiceTest {
 
     var midTerm2Activity = new WorkProgrammeActivity();
     midTerm2Activity.setId(UUID.randomUUID());
+    midTerm2Activity.setOriginalEventId(midTerm2Activity.getId());
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
-    var midTerm2ActivityRef = new EventReference();
-    midTerm2ActivityRef.setId(UUID.randomUUID());
-    midTerm2Activity.setEventReference(midTerm2ActivityRef);
 
     var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
-    midTerm2ActivityStatus.setEventReference(midTerm2Activity.getEventReference());
+    midTerm2ActivityStatus.setScheduleEvent(midTerm2Activity);
     midTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
@@ -1183,14 +1124,12 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
     endOfTerm2Activity.setId(UUID.randomUUID());
+    endOfTerm2Activity.setOriginalEventId(endOfTerm2Activity.getId());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
     endOfTerm2Activity.setDescription("description");
-    var endOfTerm2ActivityRef = new EventReference();
-    endOfTerm2ActivityRef.setId(UUID.randomUUID());
-    endOfTerm2Activity.setEventReference(endOfTerm2ActivityRef);
 
     var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
-    endOfTerm2ActivityStatus.setEventReference(endOfTerm2Activity.getEventReference());
+    endOfTerm2ActivityStatus.setScheduleEvent(endOfTerm2Activity);
     endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
@@ -1208,14 +1147,12 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var midPhaseEventRef = new EventReference();
-    midPhaseEventRef.setId(UUID.randomUUID());
     var midPhaseEvent = new OtherScheduleEvent();
     midPhaseEvent.setId(UUID.randomUUID());
+    midPhaseEvent.setOriginalEventId(midPhaseEvent.getId());
     midPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midPhaseEvent.setDescription("description");
     midPhaseEvent.setEventDate(LocalDate.of(2025, 2, 1));
-    midPhaseEvent.setEventReference(midPhaseEventRef);
 
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -1230,13 +1167,11 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var endOfPhaseEventRef = new EventReference();
-    endOfPhaseEventRef.setId(UUID.randomUUID());
     var endOfPhaseEvent = new OtherScheduleEvent();
     endOfPhaseEvent.setId(UUID.randomUUID());
+    endOfPhaseEvent.setOriginalEventId(endOfPhaseEvent.getId());
     endOfPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfPhaseEvent.setDescription("description");
-    endOfPhaseEvent.setEventReference(endOfPhaseEventRef);
 
     var endOfPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -1251,14 +1186,12 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var midTerm2EventRef = new EventReference();
-    midTerm2EventRef.setId(UUID.randomUUID());
     var midTerm2Event = new OtherScheduleEvent();
     midTerm2Event.setId(UUID.randomUUID());
+    midTerm2Event.setOriginalEventId(midTerm2Event.getId());
     midTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midTerm2Event.setDescription("description");
     midTerm2Event.setEventDate(LocalDate.of(2026, 2, 1));
-    midTerm2Event.setEventReference(midTerm2EventRef);
 
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -1273,13 +1206,11 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var endOfTerm2EventRef = new EventReference();
-    endOfTerm2EventRef.setId(UUID.randomUUID());
     var endOfTerm2Event = new OtherScheduleEvent();
     endOfTerm2Event.setId(UUID.randomUUID());
+    endOfTerm2Event.setOriginalEventId(endOfTerm2Event.getId());
     endOfTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfTerm2Event.setDescription("description");
-    endOfTerm2Event.setEventReference(endOfTerm2EventRef);
 
     var endOfTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -1294,26 +1225,22 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var phaseRef = new EventReference();
-    phaseRef.setId(UUID.randomUUID());
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
+    phase.setOriginalEventId(phase.getId());
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
-    phase.setEventReference(phaseRef);
 
-    var phaseRateRef = new EventReference();
-    phaseRateRef.setId(UUID.randomUUID());
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
+    phaseRate.setOriginalEventId(phaseRate.getId());
     phaseRate.setRateDefinitionOption(RateDefinitionOption.PHASE);
     phaseRate.setLicenceSchedulePhase(phase);
     phaseRate.setRentalRate(new BigDecimal("1.00"));
     phaseRate.setStartDate(phase.getStartDate());
-    phaseRate.setEventReference(phaseRateRef);
 
     var phaseView = new TimelinePhaseView(
         List.of(midPhaseActivityView, midPhaseEventView),
@@ -1328,16 +1255,14 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var termRef = new EventReference();
-    termRef.setId(UUID.randomUUID());
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
+    term.setOriginalEventId(term.getId());
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
-    term.setEventReference(termRef);
 
     var termView = new TimelineTermView(
         List.of(phaseView),
@@ -1352,26 +1277,22 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var term2Ref = new EventReference();
-    term2Ref.setId(UUID.randomUUID());
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
+    term2.setOriginalEventId(term2.getId());
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
     term2.setTermType(TermType.SECOND);
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
-    term2.setEventReference(term2Ref);
 
-    var term2RateRef = new EventReference();
-    term2RateRef.setId(UUID.randomUUID());
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
+    term2Rate.setOriginalEventId(term2Rate.getId());
     term2Rate.setRateDefinitionOption(RateDefinitionOption.TERM);
     term2Rate.setLicenceScheduleTerm(term2);
     term2Rate.setRentalRate(new BigDecimal("2.00"));
     term2Rate.setStartDate(term2.getStartDate());
-    term2Rate.setEventReference(term2RateRef);
 
     var termView2 = new TimelineTermView(
         List.of(midTerm2ActivityView, midTerm2EventView),
@@ -1399,10 +1320,10 @@ class LicenceScheduleTimelineServiceTest {
     when(workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
     when(workProgrammeActivityStatusService.getLatestStatusesFor(activities)).thenReturn(
         Map.of(
-            midPhaseActivity.getEventReference().getId(), midPhaseActivityStatus,
-            endOfPhaseActivity.getEventReference().getId(), endOfPhaseActivityStatus,
-            midTerm2Activity.getEventReference().getId(), midTerm2ActivityStatus,
-            endOfTerm2Activity.getEventReference().getId(), endOfTerm2ActivityStatus
+            midPhaseActivity.getId(), midPhaseActivityStatus,
+            endOfPhaseActivity.getId(), endOfPhaseActivityStatus,
+            midTerm2Activity.getId(), midTerm2ActivityStatus,
+            endOfTerm2Activity.getId(), endOfTerm2ActivityStatus
         )
     );
 
@@ -1450,62 +1371,52 @@ class LicenceScheduleTimelineServiceTest {
   void getEditableLicenceScheduleEventViews_workProgrammeActivityFilterEnabled() {
     var midPhaseActivity = new WorkProgrammeActivity();
     midPhaseActivity.setId(UUID.randomUUID());
+    midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
-    var midPhaseActivityRef = new EventReference();
-    midPhaseActivityRef.setId(UUID.randomUUID());
-    midPhaseActivity.setEventReference(midPhaseActivityRef);
 
     var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
-    midPhaseActivityStatus.setEventReference(midPhaseActivity.getEventReference());
+    midPhaseActivityStatus.setScheduleEvent(midPhaseActivity);
     midPhaseActivityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
     endOfPhaseActivity.setId(UUID.randomUUID());
+    endOfPhaseActivity.setOriginalEventId(endOfPhaseActivity.getId());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
     endOfPhaseActivity.setDescription("description");
-    var endOfPhaseActivityRef = new EventReference();
-    endOfPhaseActivityRef.setId(UUID.randomUUID());
-    endOfPhaseActivity.setEventReference(endOfPhaseActivityRef);
 
     var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
-    endOfPhaseActivityStatus.setEventReference(endOfPhaseActivity.getEventReference());
+    endOfPhaseActivityStatus.setScheduleEvent(endOfPhaseActivity);
     endOfPhaseActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var midTerm2Activity = new WorkProgrammeActivity();
     midTerm2Activity.setId(UUID.randomUUID());
+    midTerm2Activity.setOriginalEventId(midTerm2Activity.getId());
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
-    var midTerm2ActivityRef = new EventReference();
-    midTerm2ActivityRef.setId(UUID.randomUUID());
-    midTerm2Activity.setEventReference(midTerm2ActivityRef);
 
     var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
-    midTerm2ActivityStatus.setEventReference(midTerm2Activity.getEventReference());
+    midTerm2ActivityStatus.setScheduleEvent(midTerm2Activity);
     midTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
     endOfTerm2Activity.setId(UUID.randomUUID());
+    endOfTerm2Activity.setOriginalEventId(endOfTerm2Activity.getId());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
     endOfTerm2Activity.setDescription("description");
-    var endOfTerm2ActivityRef = new EventReference();
-    endOfTerm2ActivityRef.setId(UUID.randomUUID());
-    endOfTerm2Activity.setEventReference(endOfTerm2ActivityRef);
 
     var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
-    endOfTerm2ActivityStatus.setEventReference(endOfTerm2Activity.getEventReference());
+    endOfTerm2ActivityStatus.setScheduleEvent(endOfTerm2Activity);
     endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
-    var midPhaseEventRef = new EventReference();
-    midPhaseEventRef.setId(UUID.randomUUID());
     var midPhaseEvent = new OtherScheduleEvent();
     midPhaseEvent.setId(UUID.randomUUID());
+    midPhaseEvent.setOriginalEventId(midPhaseEvent.getId());
     midPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midPhaseEvent.setDescription("description");
     midPhaseEvent.setEventDate(LocalDate.of(2025, 2, 1));
-    midPhaseEvent.setEventReference(midPhaseEventRef);
 
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -1520,13 +1431,11 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var endOfPhaseEventRef = new EventReference();
-    endOfPhaseEventRef.setId(UUID.randomUUID());
     var endOfPhaseEvent = new OtherScheduleEvent();
     endOfPhaseEvent.setId(UUID.randomUUID());
+    endOfPhaseEvent.setOriginalEventId(endOfPhaseEvent.getId());
     endOfPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfPhaseEvent.setDescription("description");
-    endOfPhaseEvent.setEventReference(endOfPhaseEventRef);
 
     var endOfPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -1541,14 +1450,12 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var midTerm2EventRef = new EventReference();
-    midTerm2EventRef.setId(UUID.randomUUID());
     var midTerm2Event = new OtherScheduleEvent();
     midTerm2Event.setId(UUID.randomUUID());
+    midTerm2Event.setOriginalEventId(midTerm2Event.getId());
     midTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midTerm2Event.setDescription("description");
     midTerm2Event.setEventDate(LocalDate.of(2026, 2, 1));
-    midTerm2Event.setEventReference(midTerm2EventRef);
 
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -1563,13 +1470,11 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var endOfTerm2EventRef = new EventReference();
-    endOfTerm2EventRef.setId(UUID.randomUUID());
     var endOfTerm2Event = new OtherScheduleEvent();
     endOfTerm2Event.setId(UUID.randomUUID());
+    endOfTerm2Event.setOriginalEventId(endOfTerm2Event.getId());
     endOfTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfTerm2Event.setDescription("description");
-    endOfTerm2Event.setEventReference(endOfTerm2EventRef);
 
     var endOfTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -1584,26 +1489,22 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var phaseRef = new EventReference();
-    phaseRef.setId(UUID.randomUUID());
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
+    phase.setOriginalEventId(phase.getId());
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
-    phase.setEventReference(phaseRef);
 
-    var phaseRateRef = new EventReference();
-    phaseRateRef.setId(UUID.randomUUID());
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
+    phaseRate.setOriginalEventId(phaseRate.getId());
     phaseRate.setRateDefinitionOption(RateDefinitionOption.PHASE);
     phaseRate.setLicenceSchedulePhase(phase);
     phaseRate.setRentalRate(new BigDecimal("1.00"));
     phaseRate.setStartDate(phase.getStartDate());
-    phaseRate.setEventReference(phaseRateRef);
 
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
@@ -1631,16 +1532,14 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var termRef = new EventReference();
-    termRef.setId(UUID.randomUUID());
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
+    term.setOriginalEventId(term.getId());
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
-    term.setEventReference(termRef);
 
     var termView = new TimelineTermView(
         List.of(phaseView),
@@ -1655,26 +1554,22 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var term2Ref = new EventReference();
-    term2Ref.setId(UUID.randomUUID());
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
+    term2.setOriginalEventId(term2.getId());
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
     term2.setTermType(TermType.SECOND);
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
-    term2.setEventReference(term2Ref);
 
-    var term2RateRef = new EventReference();
-    term2RateRef.setId(UUID.randomUUID());
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
+    term2Rate.setOriginalEventId(term2Rate.getId());
     term2Rate.setRateDefinitionOption(RateDefinitionOption.TERM);
     term2Rate.setLicenceScheduleTerm(term2);
     term2Rate.setRentalRate(new BigDecimal("2.00"));
     term2Rate.setStartDate(term2.getStartDate());
-    term2Rate.setEventReference(term2RateRef);
 
     var term2RateView = new TimelineRateView(
         "Second Term rate",
@@ -1715,10 +1610,10 @@ class LicenceScheduleTimelineServiceTest {
     when(workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
     when(workProgrammeActivityStatusService.getLatestStatusesFor(activities)).thenReturn(
         Map.of(
-            midPhaseActivity.getEventReference().getId(), midPhaseActivityStatus,
-            endOfPhaseActivity.getEventReference().getId(), endOfPhaseActivityStatus,
-            midTerm2Activity.getEventReference().getId(), midTerm2ActivityStatus,
-            endOfTerm2Activity.getEventReference().getId(), endOfTerm2ActivityStatus
+            midPhaseActivity.getId(), midPhaseActivityStatus,
+            endOfPhaseActivity.getId(), endOfPhaseActivityStatus,
+            midTerm2Activity.getId(), midTerm2ActivityStatus,
+            endOfTerm2Activity.getId(), endOfTerm2ActivityStatus
         )
     );
 
@@ -1766,15 +1661,13 @@ class LicenceScheduleTimelineServiceTest {
   void getEditableLicenceScheduleEventViews_otherEventFilterEnabled() {
     var midPhaseActivity = new WorkProgrammeActivity();
     midPhaseActivity.setId(UUID.randomUUID());
+    midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
-    var midPhaseActivityRef = new EventReference();
-    midPhaseActivityRef.setId(UUID.randomUUID());
-    midPhaseActivity.setEventReference(midPhaseActivityRef);
 
     var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
-    midPhaseActivityStatus.setEventReference(midPhaseActivity.getEventReference());
+    midPhaseActivityStatus.setScheduleEvent(midPhaseActivity);
     midPhaseActivityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
@@ -1794,14 +1687,12 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
     endOfPhaseActivity.setId(UUID.randomUUID());
+    endOfPhaseActivity.setOriginalEventId(endOfPhaseActivity.getId());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
     endOfPhaseActivity.setDescription("description");
-    var endOfPhaseActivityRef = new EventReference();
-    endOfPhaseActivityRef.setId(UUID.randomUUID());
-    endOfPhaseActivity.setEventReference(endOfPhaseActivityRef);
 
     var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
-    endOfPhaseActivityStatus.setEventReference(endOfPhaseActivity.getEventReference());
+    endOfPhaseActivityStatus.setScheduleEvent(endOfPhaseActivity);
     endOfPhaseActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
@@ -1821,15 +1712,13 @@ class LicenceScheduleTimelineServiceTest {
 
     var midTerm2Activity = new WorkProgrammeActivity();
     midTerm2Activity.setId(UUID.randomUUID());
+    midTerm2Activity.setOriginalEventId(midTerm2Activity.getId());
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
-    var midTerm2ActivityRef = new EventReference();
-    midTerm2ActivityRef.setId(UUID.randomUUID());
-    midTerm2Activity.setEventReference(midTerm2ActivityRef);
 
     var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
-    midTerm2ActivityStatus.setEventReference(midTerm2Activity.getEventReference());
+    midTerm2ActivityStatus.setScheduleEvent(midTerm2Activity);
     midTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
@@ -1849,14 +1738,12 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
     endOfTerm2Activity.setId(UUID.randomUUID());
+    endOfTerm2Activity.setOriginalEventId(endOfTerm2Activity.getId());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
     endOfTerm2Activity.setDescription("description");
-    var endOfTerm2ActivityRef = new EventReference();
-    endOfTerm2ActivityRef.setId(UUID.randomUUID());
-    endOfTerm2Activity.setEventReference(endOfTerm2ActivityRef);
 
     var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
-    endOfTerm2ActivityStatus.setEventReference(endOfTerm2Activity.getEventReference());
+    endOfTerm2ActivityStatus.setScheduleEvent(endOfTerm2Activity);
     endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
@@ -1874,60 +1761,48 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var midPhaseEventRef = new EventReference();
-    midPhaseEventRef.setId(UUID.randomUUID());
     var midPhaseEvent = new OtherScheduleEvent();
     midPhaseEvent.setId(UUID.randomUUID());
+    midPhaseEvent.setOriginalEventId(midPhaseEvent.getId());
     midPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midPhaseEvent.setDescription("description");
     midPhaseEvent.setEventDate(LocalDate.of(2025, 2, 1));
-    midPhaseEvent.setEventReference(midPhaseEventRef);
 
-    var endOfPhaseEventRef = new EventReference();
-    endOfPhaseEventRef.setId(UUID.randomUUID());
     var endOfPhaseEvent = new OtherScheduleEvent();
     endOfPhaseEvent.setId(UUID.randomUUID());
+    endOfPhaseEvent.setOriginalEventId(endOfPhaseEvent.getId());
     endOfPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfPhaseEvent.setDescription("description");
-    endOfPhaseEvent.setEventReference(endOfPhaseEventRef);
 
-    var midTerm2EventRef = new EventReference();
-    midTerm2EventRef.setId(UUID.randomUUID());
     var midTerm2Event = new OtherScheduleEvent();
     midTerm2Event.setId(UUID.randomUUID());
+    midTerm2Event.setOriginalEventId(midTerm2Event.getId());
     midTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midTerm2Event.setDescription("description");
     midTerm2Event.setEventDate(LocalDate.of(2026, 2, 1));
-    midTerm2Event.setEventReference(midTerm2EventRef);
 
-    var endOfTerm2EventRef = new EventReference();
-    endOfTerm2EventRef.setId(UUID.randomUUID());
     var endOfTerm2Event = new OtherScheduleEvent();
     endOfTerm2Event.setId(UUID.randomUUID());
+    endOfTerm2Event.setOriginalEventId(endOfTerm2Event.getId());
     endOfTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     endOfTerm2Event.setDescription("description");
-    endOfTerm2Event.setEventReference(endOfTerm2EventRef);
 
-    var phaseRef = new EventReference();
-    phaseRef.setId(UUID.randomUUID());
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
+    phase.setOriginalEventId(phase.getId());
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
-    phase.setEventReference(phaseRef);
 
-    var phaseRateRef = new EventReference();
-    phaseRateRef.setId(UUID.randomUUID());
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
+    phaseRate.setOriginalEventId(phaseRate.getId());
     phaseRate.setRateDefinitionOption(RateDefinitionOption.PHASE);
     phaseRate.setLicenceSchedulePhase(phase);
     phaseRate.setRentalRate(new BigDecimal("1.00"));
     phaseRate.setStartDate(phase.getStartDate());
-    phaseRate.setEventReference(phaseRateRef);
 
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
@@ -1955,16 +1830,14 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var termRef = new EventReference();
-    termRef.setId(UUID.randomUUID());
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
+    term.setOriginalEventId(term.getId());
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
-    term.setEventReference(termRef);
 
     var termView = new TimelineTermView(
         List.of(phaseView),
@@ -1979,26 +1852,22 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var term2Ref = new EventReference();
-    term2Ref.setId(UUID.randomUUID());
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
+    term2.setOriginalEventId(term2.getId());
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
     term2.setTermType(TermType.SECOND);
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
-    term2.setEventReference(term2Ref);
 
-    var term2RateRef = new EventReference();
-    term2RateRef.setId(UUID.randomUUID());
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
+    term2Rate.setOriginalEventId(term2Rate.getId());
     term2Rate.setRateDefinitionOption(RateDefinitionOption.TERM);
     term2Rate.setLicenceScheduleTerm(term2);
     term2Rate.setRentalRate(new BigDecimal("2.00"));
     term2Rate.setStartDate(term2.getStartDate());
-    term2Rate.setEventReference(term2RateRef);
 
     var term2RateView = new TimelineRateView(
         "Second Term rate",
@@ -2039,10 +1908,10 @@ class LicenceScheduleTimelineServiceTest {
     when(workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
     when(workProgrammeActivityStatusService.getLatestStatusesFor(activities)).thenReturn(
         Map.of(
-            midPhaseActivity.getEventReference().getId(), midPhaseActivityStatus,
-            endOfPhaseActivity.getEventReference().getId(), endOfPhaseActivityStatus,
-            midTerm2Activity.getEventReference().getId(), midTerm2ActivityStatus,
-            endOfTerm2Activity.getEventReference().getId(), endOfTerm2ActivityStatus
+            midPhaseActivity.getId(), midPhaseActivityStatus,
+            endOfPhaseActivity.getId(), endOfPhaseActivityStatus,
+            midTerm2Activity.getId(), midTerm2ActivityStatus,
+            endOfTerm2Activity.getId(), endOfTerm2ActivityStatus
         )
     );
 
@@ -2090,15 +1959,13 @@ class LicenceScheduleTimelineServiceTest {
   void getLicenceScheduleEventViewsForOverview_userHasWpStatusPermissions() {
     var midPhaseActivity = new WorkProgrammeActivity();
     midPhaseActivity.setId(UUID.randomUUID());
+    midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
-    var midPhaseActivityRef = new EventReference();
-    midPhaseActivityRef.setId(UUID.randomUUID());
-    midPhaseActivity.setEventReference(midPhaseActivityRef);
 
     var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
-    midPhaseActivityStatus.setEventReference(midPhaseActivity.getEventReference());
+    midPhaseActivityStatus.setScheduleEvent(midPhaseActivity);
     midPhaseActivityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
@@ -2111,21 +1978,19 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(WorkProgrammeActivityStatusController.class)
             .renderStatusUpdatePage(midPhaseActivity.getId(), null)),
         ReverseRouter.route(on(EventCommentController.class)
-            .renderAddCommentForm(midPhaseActivity.getEventReference().getId(), null)),
+            .renderAddCommentForm(midPhaseActivity.getId(), null)),
         WorkProgrammeStatus.IN_PROGRESS,
         List.of()
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
     endOfPhaseActivity.setId(UUID.randomUUID());
+    endOfPhaseActivity.setOriginalEventId(endOfPhaseActivity.getId());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
     endOfPhaseActivity.setDescription("description");
-    var endOfPhaseActivityRef = new EventReference();
-    endOfPhaseActivityRef.setId(UUID.randomUUID());
-    endOfPhaseActivity.setEventReference(endOfPhaseActivityRef);
 
     var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
-    endOfPhaseActivityStatus.setEventReference(endOfPhaseActivity.getEventReference());
+    endOfPhaseActivityStatus.setScheduleEvent(endOfPhaseActivity);
     endOfPhaseActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
@@ -2138,22 +2003,20 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(WorkProgrammeActivityStatusController.class)
             .renderStatusUpdatePage(endOfPhaseActivity.getId(), null)),
         ReverseRouter.route(on(EventCommentController.class)
-            .renderAddCommentForm(endOfPhaseActivity.getEventReference().getId(), null)),
+            .renderAddCommentForm(endOfPhaseActivity.getId(), null)),
         WorkProgrammeStatus.OPEN,
         List.of()
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
     midTerm2Activity.setId(UUID.randomUUID());
+    midTerm2Activity.setOriginalEventId(midTerm2Activity.getId());
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
-    var midTerm2ActivityRef = new EventReference();
-    midTerm2ActivityRef.setId(UUID.randomUUID());
-    midTerm2Activity.setEventReference(midTerm2ActivityRef);
 
     var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
-    midTerm2ActivityStatus.setEventReference(midTerm2Activity.getEventReference());
+    midTerm2ActivityStatus.setScheduleEvent(midTerm2Activity);
     midTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
@@ -2166,21 +2029,19 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(WorkProgrammeActivityStatusController.class)
             .renderStatusUpdatePage(midTerm2Activity.getId(), null)),
         ReverseRouter.route(on(EventCommentController.class)
-            .renderAddCommentForm(midTerm2Activity.getEventReference().getId(), null)),
+            .renderAddCommentForm(midTerm2Activity.getId(), null)),
         WorkProgrammeStatus.OPEN,
         List.of()
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
     endOfTerm2Activity.setId(UUID.randomUUID());
+    endOfTerm2Activity.setOriginalEventId(endOfTerm2Activity.getId());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
     endOfTerm2Activity.setDescription("description");
-    var endOfTerm2ActivityRef = new EventReference();
-    endOfTerm2ActivityRef.setId(UUID.randomUUID());
-    endOfTerm2Activity.setEventReference(endOfTerm2ActivityRef);
 
     var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
-    endOfTerm2ActivityStatus.setEventReference(endOfTerm2Activity.getEventReference());
+    endOfTerm2ActivityStatus.setScheduleEvent(endOfTerm2Activity);
     endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
@@ -2193,31 +2054,27 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(WorkProgrammeActivityStatusController.class)
             .renderStatusUpdatePage(endOfTerm2Activity.getId(), null)),
         ReverseRouter.route(on(EventCommentController.class)
-            .renderAddCommentForm(endOfTerm2Activity.getEventReference().getId(), null)),
+            .renderAddCommentForm(endOfTerm2Activity.getId(), null)),
         WorkProgrammeStatus.OPEN,
         List.of()
     );
 
-    var phaseRef = new EventReference();
-    phaseRef.setId(UUID.randomUUID());
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
+    phase.setOriginalEventId(phase.getId());
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
-    phase.setEventReference(phaseRef);
 
-    var phaseRateRef = new EventReference();
-    phaseRateRef.setId(UUID.randomUUID());
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
+    phaseRate.setOriginalEventId(phaseRate.getId());
     phaseRate.setRateDefinitionOption(RateDefinitionOption.PHASE);
     phaseRate.setLicenceSchedulePhase(phase);
     phaseRate.setRentalRate(new BigDecimal("1.00"));
     phaseRate.setStartDate(phase.getStartDate());
-    phaseRate.setEventReference(phaseRateRef);
 
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
@@ -2243,16 +2100,14 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var termRef = new EventReference();
-    termRef.setId(UUID.randomUUID());
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
+    term.setOriginalEventId(term.getId());
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
-    term.setEventReference(termRef);
 
     var termView = new TimelineTermView(
         List.of(phaseView),
@@ -2267,26 +2122,22 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var term2Ref = new EventReference();
-    term2Ref.setId(UUID.randomUUID());
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
+    term2.setOriginalEventId(term2.getId());
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
     term2.setTermType(TermType.SECOND);
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
-    term2.setEventReference(term2Ref);
 
-    var term2RateRef = new EventReference();
-    term2RateRef.setId(UUID.randomUUID());
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
+    term2Rate.setOriginalEventId(term2Rate.getId());
     term2Rate.setRateDefinitionOption(RateDefinitionOption.TERM);
     term2Rate.setLicenceScheduleTerm(term2);
     term2Rate.setRentalRate(new BigDecimal("2.00"));
     term2Rate.setStartDate(term2.getStartDate());
-    term2Rate.setEventReference(term2RateRef);
 
     var term2RateView = new TimelineRateView(
         "Second Term rate",
@@ -2328,10 +2179,10 @@ class LicenceScheduleTimelineServiceTest {
     when(workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
     when(workProgrammeActivityStatusService.getLatestStatusesFor(activities)).thenReturn(
         Map.of(
-            midPhaseActivity.getEventReference().getId(), midPhaseActivityStatus,
-            endOfPhaseActivity.getEventReference().getId(), endOfPhaseActivityStatus,
-            midTerm2Activity.getEventReference().getId(), midTerm2ActivityStatus,
-            endOfTerm2Activity.getEventReference().getId(), endOfTerm2ActivityStatus
+            midPhaseActivity.getId(), midPhaseActivityStatus,
+            endOfPhaseActivity.getId(), endOfPhaseActivityStatus,
+            midTerm2Activity.getId(), midTerm2ActivityStatus,
+            endOfTerm2Activity.getId(), endOfTerm2ActivityStatus
         )
     );
 
@@ -2369,12 +2220,10 @@ class LicenceScheduleTimelineServiceTest {
   void getLicenceScheduleEventViewsForOverview_userDoesNotHaveWpStatusPermissions_userIsNotRegulator() {
     var midPhaseActivity = new WorkProgrammeActivity();
     midPhaseActivity.setId(UUID.randomUUID());
+    midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
-    var midPhaseActivityRef = new EventReference();
-    midPhaseActivityRef.setId(UUID.randomUUID());
-    midPhaseActivity.setEventReference(midPhaseActivityRef);
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName(),
@@ -2391,11 +2240,9 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
     endOfPhaseActivity.setId(UUID.randomUUID());
+    endOfPhaseActivity.setOriginalEventId(endOfPhaseActivity.getId());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
     endOfPhaseActivity.setDescription("description");
-    var endOfPhaseActivityRef = new EventReference();
-    endOfPhaseActivityRef.setId(UUID.randomUUID());
-    endOfPhaseActivity.setEventReference(endOfPhaseActivityRef);
 
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL.getDisplayName(),
@@ -2412,12 +2259,10 @@ class LicenceScheduleTimelineServiceTest {
 
     var midTerm2Activity = new WorkProgrammeActivity();
     midTerm2Activity.setId(UUID.randomUUID());
+    midTerm2Activity.setOriginalEventId(midTerm2Activity.getId());
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
-    var midTerm2ActivityRef = new EventReference();
-    midTerm2ActivityRef.setId(UUID.randomUUID());
-    midTerm2Activity.setEventReference(midTerm2ActivityRef);
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT.getDisplayName(),
@@ -2434,11 +2279,9 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
     endOfTerm2Activity.setId(UUID.randomUUID());
+    endOfTerm2Activity.setOriginalEventId(endOfTerm2Activity.getId());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
     endOfTerm2Activity.setDescription("description");
-    var endOfTerm2ActivityRef = new EventReference();
-    endOfTerm2ActivityRef.setId(UUID.randomUUID());
-    endOfTerm2Activity.setEventReference(endOfTerm2ActivityRef);
 
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA.getDisplayName(),
@@ -2453,26 +2296,22 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var phaseRef = new EventReference();
-    phaseRef.setId(UUID.randomUUID());
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
+    phase.setOriginalEventId(phase.getId());
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
-    phase.setEventReference(phaseRef);
 
-    var phaseRateRef = new EventReference();
-    phaseRateRef.setId(UUID.randomUUID());
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
+    phaseRate.setOriginalEventId(phaseRate.getId());
     phaseRate.setRateDefinitionOption(RateDefinitionOption.PHASE);
     phaseRate.setLicenceSchedulePhase(phase);
     phaseRate.setRentalRate(new BigDecimal("1.00"));
     phaseRate.setStartDate(phase.getStartDate());
-    phaseRate.setEventReference(phaseRateRef);
 
     var phaseRateView = new TimelineRateView(
         "Phase A rate",
@@ -2498,16 +2337,14 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var termRef = new EventReference();
-    termRef.setId(UUID.randomUUID());
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
+    term.setOriginalEventId(term.getId());
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
-    term.setEventReference(termRef);
 
     var termView = new TimelineTermView(
         List.of(phaseView),
@@ -2522,26 +2359,22 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var term2Ref = new EventReference();
-    term2Ref.setId(UUID.randomUUID());
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
+    term2.setOriginalEventId(term2.getId());
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
     term2.setTermType(TermType.SECOND);
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
-    term2.setEventReference(term2Ref);
 
-    var term2RateRef = new EventReference();
-    term2RateRef.setId(UUID.randomUUID());
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
+    term2Rate.setOriginalEventId(term2Rate.getId());
     term2Rate.setRateDefinitionOption(RateDefinitionOption.TERM);
     term2Rate.setLicenceScheduleTerm(term2);
     term2Rate.setRentalRate(new BigDecimal("2.00"));
     term2Rate.setStartDate(term2.getStartDate());
-    term2Rate.setEventReference(term2RateRef);
 
     var term2RateView = new TimelineRateView(
         "Second Term rate",
@@ -2612,15 +2445,13 @@ class LicenceScheduleTimelineServiceTest {
     finalTerm.setTermType(TermType.SECOND);
     finalTerm.setEndDate(finalTermEndDate);
 
-    var rateRef = new EventReference();
-    rateRef.setId(UUID.randomUUID());
     var rate = new LicenceScheduleRate();
     rate.setId(UUID.randomUUID());
+    rate.setOriginalEventId(rate.getId());
     rate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
     rate.setRateRelativeDateOption(RateRelativeDateOption.RELATIVE_TO_START_DATE);
     rate.setRentalRate(new BigDecimal("2.00"));
     rate.setStartDate(finalTermEndDate.plusYears(1));
-    rate.setEventReference(rateRef);
 
     var rateView = new TimelineRateView(
         "Rate",
@@ -2637,15 +2468,13 @@ class LicenceScheduleTimelineServiceTest {
 
     var activity = new WorkProgrammeActivity();
     activity.setId(UUID.randomUUID());
+    activity.setOriginalEventId(activity.getId());
     activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     activity.setDescription("description");
     activity.setDueDate(finalTermEndDate.plusYears(2));
-    var activityRef = new EventReference();
-    activityRef.setId(UUID.randomUUID());
-    activity.setEventReference(activityRef);
 
     var activityStatus = new WorkProgrammeActivityStatus();
-    activityStatus.setEventReference(activity.getEventReference());
+    activityStatus.setScheduleEvent(activity);
     activityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var activityView = new TimelineWorkProgrammeActivityView(
@@ -2663,14 +2492,12 @@ class LicenceScheduleTimelineServiceTest {
         List.of()
     );
 
-    var eventRef = new EventReference();
-    eventRef.setId(UUID.randomUUID());
     var event = new OtherScheduleEvent();
     event.setId(UUID.randomUUID());
+    event.setOriginalEventId(event.getId());
     event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     event.setDescription("description");
     event.setEventDate(finalTermEndDate.plusYears(3));
-    event.setEventReference(eventRef);
 
     var eventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
@@ -2691,7 +2518,7 @@ class LicenceScheduleTimelineServiceTest {
 
     when(workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
     when(workProgrammeActivityStatusService.getLatestStatusesFor(activities))
-        .thenReturn(Map.of(activity.getEventReference().getId(), activityStatus));
+        .thenReturn(Map.of(activity.getId(), activityStatus));
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(firstTerm, finalTerm));
@@ -2719,48 +2546,42 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getEditableLicenceScheduleEventViews_commentsArePopulatedOnViews() {
-    var termRef = new EventReference();
-    termRef.setId(UUID.randomUUID());
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
+    term.setOriginalEventId(term.getId());
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
-    term.setEventReference(termRef);
+    term.setOriginalEventId(term.getId());
 
-    var wpaRef = new EventReference();
-    wpaRef.setId(UUID.randomUUID());
     var wpa = new WorkProgrammeActivity();
     wpa.setId(UUID.randomUUID());
+    wpa.setOriginalEventId(wpa.getId());
     wpa.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     wpa.setDescription("WPA description");
     wpa.setDueDate(LocalDate.of(2025, 6, 1));
-    wpa.setEventReference(wpaRef);
 
     var wpaStatus = new WorkProgrammeActivityStatus();
-    wpaStatus.setEventReference(wpaRef);
+    wpaStatus.setScheduleEvent(wpa);
     wpaStatus.setStatus(WorkProgrammeStatus.OPEN);
 
-    var rateRef = new EventReference();
-    rateRef.setId(UUID.randomUUID());
     var rate = new LicenceScheduleRate();
     rate.setId(UUID.randomUUID());
+    rate.setOriginalEventId(rate.getId());
     rate.setRateDefinitionOption(RateDefinitionOption.TERM);
     rate.setLicenceScheduleTerm(term);
+    rate.setOriginalEventId(rate.getId());
     rate.setRentalRate(new BigDecimal("3.00"));
     rate.setStartDate(LocalDate.of(2025, 1, 1));
-    rate.setEventReference(rateRef);
 
-    var otherEventRef = new EventReference();
-    otherEventRef.setId(UUID.randomUUID());
     var otherEvent = new OtherScheduleEvent();
     otherEvent.setId(UUID.randomUUID());
     otherEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     otherEvent.setDescription("Event description");
+    otherEvent.setOriginalEventId(otherEvent.getId());
     otherEvent.setEventDate(LocalDate.of(2025, 9, 1));
-    otherEvent.setEventReference(otherEventRef);
 
     var termComment = new EventCommentView("Term note", "Author A", "1 January 2025 12:00:00", "");
     var wpaComment = new EventCommentView("WPA note", "Author B", "2 January 2025 12:00:00", "");
@@ -2768,10 +2589,10 @@ class LicenceScheduleTimelineServiceTest {
     var eventComment = new EventCommentView("Event note", "Author D", "4 January 2025 12:00:00", "");
 
     var commentsMap = Map.of(
-        termRef.getId(), List.of(termComment),
-        wpaRef.getId(), List.of(wpaComment),
-        rateRef.getId(), List.of(rateComment),
-        otherEventRef.getId(), List.of(eventComment)
+        term.getId(), List.of(termComment),
+        wpa.getId(), List.of(wpaComment),
+        rate.getId(), List.of(rateComment),
+        otherEvent.getId(), List.of(eventComment)
     );
 
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
@@ -2780,7 +2601,7 @@ class LicenceScheduleTimelineServiceTest {
     var activities = List.of(wpa);
     when(workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
     when(workProgrammeActivityStatusService.getLatestStatusesFor(activities))
-        .thenReturn(Map.of(wpaRef.getId(), wpaStatus));
+        .thenReturn(Map.of(wpa.getId(), wpaStatus));
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(term));

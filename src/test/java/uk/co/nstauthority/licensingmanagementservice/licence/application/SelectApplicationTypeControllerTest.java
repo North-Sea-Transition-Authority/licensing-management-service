@@ -13,7 +13,6 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 import static uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController.PAGE_TITLE;
 
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
@@ -23,7 +22,6 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.startjourney.StartContinuationApplicationController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ContextConfiguration(classes = SelectApplicationTypeController.class)
@@ -47,7 +45,6 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
 
   @Test
   void render() throws Exception {
-    var applicationTypes = List.of(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, ApplicationType.CONTINUATION_APPLICATION);
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
     mockMvc.perform(
             get(ReverseRouter.route(on(SelectApplicationTypeController.class).render()))
@@ -56,7 +53,7 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/application/selectApplicationType"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
-        .andExpect(model().attribute("applicationTypeOptions", DisplayableEnumOptionUtil.getDisplayableOptions(applicationTypes)))
+        .andExpect(model().attribute("applicationTypeOptions", ApplicationType.getSelectionDisplayOptions()))
         .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))));
   }
 
@@ -85,7 +82,6 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
 
   @Test
   void submit_invalid() throws Exception {
-    var applicationTypes = List.of(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, ApplicationType.CONTINUATION_APPLICATION);
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
     when(selectApplicationTypeFormValidator.isValid(any())).thenReturn(false);
 
@@ -97,7 +93,7 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/application/selectApplicationType"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
-        .andExpect(model().attribute("applicationTypeOptions", DisplayableEnumOptionUtil.getDisplayableOptions(applicationTypes)))
+        .andExpect(model().attribute("applicationTypeOptions", ApplicationType.getSelectionDisplayOptions()))
         .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))));
   }
 

@@ -11,14 +11,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InvokingUserCanStartApplication;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @Controller
 @RequestMapping("licences/start-application")
 @InvokingUserCanStartApplication
 public class SelectApplicationTypeController {
-  public static final String PAGE_TITLE = "What are you applying for?";
+  public static final String PAGE_TITLE = "What are you applying to do?";
 
   private final SelectApplicationTypeFormValidator selectApplicationTypeFormValidator;
   private final SelectApplicationTypeService selectApplicationTypeService;
@@ -50,7 +49,7 @@ public class SelectApplicationTypeController {
   private ModelAndView getModelAndView(
       SelectApplicationTypeForm form
   ) {
-    var applicationTypeOptions = DisplayableEnumOptionUtil.getDisplayableOptions(ApplicationType.class);
+    var applicationTypeOptions = ApplicationType.getSelectionDisplayOptions();
 
     return new ModelAndView("lms/licence/application/selectApplicationType")
         .addObject("form", form)

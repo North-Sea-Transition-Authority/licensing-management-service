@@ -113,7 +113,7 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
         .thenReturn(true);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
-    when(otherScheduleEventFormValidator.isValid(any(), any())).thenReturn(true);
+    when(otherScheduleEventFormValidator.isValid(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(OtherScheduleEventController.class)
@@ -132,7 +132,7 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
         .thenReturn(true);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
-    when(otherScheduleEventFormValidator.isValid(any(), any())).thenReturn(false);
+    when(otherScheduleEventFormValidator.isValid(any(), any(), any())).thenReturn(false);
     when(otherScheduleEventFormService.getDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
@@ -219,7 +219,7 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
         .thenReturn(true);
     when(otherScheduleEventService.getOtherScheduleEventByIdOrThrow(otherScheduleEvent.getId())).thenReturn(otherScheduleEvent);
-    when(otherScheduleEventFormValidator.isValid(any(), any())).thenReturn(true);
+    when(otherScheduleEventFormValidator.isValid(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(OtherScheduleEventController.class)
@@ -238,7 +238,7 @@ class OtherScheduleEventControllerTest extends AbstractControllerTest {
         .thenReturn(true);
     when(otherScheduleEventService.getOtherScheduleEventByIdOrThrow(otherScheduleEvent.getId())).thenReturn(otherScheduleEvent);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
-    when(otherScheduleEventFormValidator.isValid(any(), any())).thenReturn(false);
+    when(otherScheduleEventFormValidator.isValid(any(), any(), any())).thenReturn(false);
     when(otherScheduleEventFormService.getDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());

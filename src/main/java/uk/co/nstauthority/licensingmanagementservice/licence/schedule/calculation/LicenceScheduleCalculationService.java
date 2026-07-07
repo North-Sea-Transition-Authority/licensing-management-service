@@ -259,7 +259,7 @@ public class LicenceScheduleCalculationService {
         : endDate;
   }
 
-  LocalDate calculateRelativeStartDueDate(LocalDate startDate, ThreeFieldDuration duration) {
+  public LocalDate calculateRelativeStartDueDate(LocalDate startDate, ThreeFieldDuration duration) {
     return startDate
         .plusYears(duration.years())
         .plusMonths(duration.months())

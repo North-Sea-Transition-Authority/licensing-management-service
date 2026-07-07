@@ -112,7 +112,7 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR)))
         .thenReturn(true);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
-    when(workProgrammeActivityFormValidator.isValid(any(), any())).thenReturn(true);
+    when(workProgrammeActivityFormValidator.isValid(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(WorkProgrammeActivityController.class)
@@ -131,7 +131,7 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
         .thenReturn(true);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
-    when(workProgrammeActivityFormValidator.isValid(any(), any())).thenReturn(false);
+    when(workProgrammeActivityFormValidator.isValid(any(), any(), any())).thenReturn(false);
     when(workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
@@ -220,7 +220,7 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR)))
         .thenReturn(true);
     when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(workProgrammeActivity.getId())).thenReturn(workProgrammeActivity);
-    when(workProgrammeActivityFormValidator.isValid(any(), any())).thenReturn(true);
+    when(workProgrammeActivityFormValidator.isValid(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(WorkProgrammeActivityController.class)
@@ -239,7 +239,7 @@ class WorkProgrammeActivityControllerTest extends AbstractControllerTest {
         .thenReturn(true);
     when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(workProgrammeActivity.getId())).thenReturn(workProgrammeActivity);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
-    when(workProgrammeActivityFormValidator.isValid(any(), any())).thenReturn(false);
+    when(workProgrammeActivityFormValidator.isValid(any(), any(), any())).thenReturn(false);
     when(workProgrammeActivityFormService.getDateOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());

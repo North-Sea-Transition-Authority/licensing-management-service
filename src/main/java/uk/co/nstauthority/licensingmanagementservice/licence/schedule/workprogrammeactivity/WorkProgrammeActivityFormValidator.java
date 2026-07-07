@@ -1,16 +1,26 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity;
 
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationValidationUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.ScheduleRelativeDateValidationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Service
 public class WorkProgrammeActivityFormValidator {
 
+  private final ScheduleRelativeDateValidationService scheduleRelativeDateValidationService;
+
+  public WorkProgrammeActivityFormValidator(ScheduleRelativeDateValidationService scheduleRelativeDateValidationService) {
+    this.scheduleRelativeDateValidationService = scheduleRelativeDateValidationService;
+  }
+
   boolean isValid(
       WorkProgrammeActivityForm form,
-      Errors errors
+      Errors errors,
+      LicenceScheduleDetail licenceScheduleDetail
   ) {
     ValidationUtils.rejectIfEmpty(
         errors,
@@ -78,6 +88,15 @@ public class WorkProgrammeActivityFormValidator {
         );
 
         ThreeFieldDurationValidationUtil.validate(form.getRelativeDuration(), errors);
+
+        if (form.getRelativeEventId() != null) {
+          scheduleRelativeDateValidationService.validateRelativeDateBeforeEndOfSchedule(
+              licenceScheduleDetail,
+              form.getRelativeDuration(),
+              UUID.fromString(form.getRelativeEventId()),
+              errors
+          );
+        }
       }
     }
 

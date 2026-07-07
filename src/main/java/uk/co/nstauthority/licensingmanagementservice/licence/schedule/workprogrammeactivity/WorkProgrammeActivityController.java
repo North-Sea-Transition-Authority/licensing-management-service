@@ -62,7 +62,7 @@ public class WorkProgrammeActivityController {
       BindingResult bindingResult,
       ServiceUserDetail serviceUserDetail
   ) {
-    if (!workProgrammeActivityFormValidator.isValid(form, bindingResult)) {
+    if (!workProgrammeActivityFormValidator.isValid(form, bindingResult, licenceScheduleDetail)) {
       return getActivityModelAndView(form, licenceScheduleDetail);
     }
 
@@ -97,7 +97,7 @@ public class WorkProgrammeActivityController {
   ) {
     var licenceScheduleDetail = workProgrammeActivity.getLicenceScheduleDetail();
 
-    if (!workProgrammeActivityFormValidator.isValid(form, bindingResult)) {
+    if (!workProgrammeActivityFormValidator.isValid(form, bindingResult, licenceScheduleDetail)) {
       return getActivityModelAndView(form, licenceScheduleDetail);
     }
     workProgrammeActivityFormService.saveActivityFromForm(

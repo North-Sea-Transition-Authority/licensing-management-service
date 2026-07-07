@@ -1,16 +1,25 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
 import uk.co.fivium.formlibrary.validator.decimal.DecimalInputValidator;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationValidationUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.ScheduleRelativeDateValidationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Service
 public class LicenceScheduleRateFormValidator {
 
-  boolean isValid(LicenceScheduleRateForm form, Errors errors) {
+  private final ScheduleRelativeDateValidationService scheduleRelativeDateValidationService;
+
+  public LicenceScheduleRateFormValidator(ScheduleRelativeDateValidationService scheduleRelativeDateValidationService) {
+    this.scheduleRelativeDateValidationService = scheduleRelativeDateValidationService;
+  }
+
+  boolean isValid(LicenceScheduleRateForm form, Errors errors, LicenceScheduleDetail licenceScheduleDetail) {
     ValidationUtils.rejectIfEmpty(
         errors,
         "rateDefinitionOption",
@@ -55,6 +64,15 @@ public class LicenceScheduleRateFormValidator {
         if (form.getRateRelativeDateOption() != null
             && form.getRateRelativeDateOption().equals(RateRelativeDateOption.RELATIVE_TO_START_DATE)) {
           ThreeFieldDurationValidationUtil.validate(form.getRelativeDuration(), errors);
+
+          if (form.getRelativeEventId() != null) {
+            scheduleRelativeDateValidationService.validateRelativeDateBeforeEndOfSchedule(
+                licenceScheduleDetail,
+                form.getRelativeDuration(),
+                UUID.fromString(form.getRelativeEventId()),
+                errors
+            );
+          }
         }
       }
     }

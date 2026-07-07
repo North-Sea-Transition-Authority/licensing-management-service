@@ -64,7 +64,7 @@ public class OtherScheduleEventController {
       BindingResult bindingResult,
       ServiceUserDetail serviceUserDetail
   ) {
-    if (!otherScheduleEventFormValidator.isValid(form, bindingResult)) {
+    if (!otherScheduleEventFormValidator.isValid(form, bindingResult, licenceScheduleDetail)) {
       return getActivityModelAndView(form, licenceScheduleDetail);
     }
 
@@ -100,7 +100,7 @@ public class OtherScheduleEventController {
     var event = otherScheduleEventService.getOtherScheduleEventByIdOrThrow(otherScheduleEventId);
     var licenceScheduleDetail = event.getLicenceScheduleDetail();
 
-    if (!otherScheduleEventFormValidator.isValid(form, bindingResult)) {
+    if (!otherScheduleEventFormValidator.isValid(form, bindingResult, licenceScheduleDetail)) {
       return getActivityModelAndView(form, licenceScheduleDetail);
     }
 

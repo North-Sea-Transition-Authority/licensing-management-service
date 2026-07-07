@@ -109,7 +109,7 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
   void submitNewLicenceScheduleRateForm() throws Exception {
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
         .thenReturn(true);
-    when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class))).thenReturn(true);
+    when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class), any(LicenceScheduleDetail.class))).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitNewLicenceScheduleRateForm(licenceScheduleDetail.getId(), null, null, null, null)))
@@ -125,13 +125,14 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
   void submitNewLicenceScheduleRateForm_invalid() throws Exception {
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
         .thenReturn(true);
-    when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class))).thenReturn(false);
+    when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class), any(LicenceScheduleDetail.class))).thenReturn(false);
 
     var pageCaption = "P001";
 
     when(licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceScheduleRateFormService.getRateDefinitionOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getRelativeEventOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceService.getLicencePageCaption(licence)).thenReturn(pageCaption);
 
     mockMvc.perform(
@@ -228,7 +229,7 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
     rate.setLicenceScheduleDetail(licenceScheduleDetail);
 
     when(licenceScheduleRateService.getRateByIdOrThrow(rate.getId())).thenReturn(rate);
-    when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class))).thenReturn(true);
+    when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class), any(LicenceScheduleDetail.class))).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceScheduleRateController.class).submitUpdateLicenceScheduleRateForm(rate.getId(), null, null, null)))
@@ -244,7 +245,7 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
   void submitUpdateLicenceScheduleRateForm_invalid() throws Exception {
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
         .thenReturn(true);
-    when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class))).thenReturn(false);
+    when(licenceScheduleRateFormValidator.isValid(any(LicenceScheduleRateForm.class), any(Errors.class), any(LicenceScheduleDetail.class))).thenReturn(false);
 
     var pageCaption = "P001";
 
@@ -255,6 +256,7 @@ class LicenceScheduleRateControllerTest extends AbstractControllerTest {
     when(licenceScheduleRelativeOptionsService.getScheduleTermOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceScheduleRelativeOptionsService.getSchedulePhaseOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceScheduleRateFormService.getRateDefinitionOptions(licenceScheduleDetail)).thenReturn(Map.of());
+    when(licenceScheduleRelativeOptionsService.getRelativeEventOptions(licenceScheduleDetail)).thenReturn(Map.of());
     when(licenceService.getLicencePageCaption(licence)).thenReturn(pageCaption);
 
     mockMvc.perform(

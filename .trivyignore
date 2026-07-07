@@ -54,6 +54,9 @@ CVE-2026-42198
 # commons-io:commons-io
 CVE-2024-47554
 
+# commons-beanutils:commons-beanutils
+CVE-2025-48734
+
 # com.fasterxml.jackson.core:jackson-core
 GHSA-72hv-8253-57qq
 CVE-2026-54512

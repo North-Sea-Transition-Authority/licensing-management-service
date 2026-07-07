@@ -5,6 +5,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.util.HashSet;
 import java.util.Set;
 import uk.co.nstauthority.licensingmanagementservice.document.search.DocumentTemplateSearchController;
+import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactController;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -30,9 +31,16 @@ public enum TopNavigationItem implements Displayable {
       30,
       ReverseRouter.route(on(TeamManagementController.class).renderTeamTypeList(null))
   ),
+  LICENCE_CONTACTS(
+      "Licensee contacts",
+      40,
+      ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null)),
+      TeamType.ORGANISATION,
+      Set.of(Role.LICENSEE_CONTACTS_MANAGEMENT)
+  ),
   DOCUMENT_LIBRARY(
       "Document library",
-      40,
+      50,
       ReverseRouter.route(on(DocumentTemplateSearchController.class)
           .renderDocumentTemplateSearch(null, null, null)),
       TeamType.LICENCE_MANAGEMENT,

@@ -1,12 +1,14 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -18,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
@@ -62,6 +65,35 @@ class LicenceResponsibleOrganisationServiceTest {
     licenceResponsibleOrganisationService.getAllByLicence(licence);
 
     verify(licenceResponsibleOrganisationRepository).findAllByLicence(licence);
+  }
+
+  @Test
+  void getAllByResponsibleOrganisationIdIn() {
+    var responsibleOrganisationIds = List.of(10, 20);
+
+    licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(responsibleOrganisationIds);
+
+    verify(licenceResponsibleOrganisationRepository).findAllByResponsibleOrganisationIdIn(responsibleOrganisationIds);
+  }
+
+  @Test
+  void getByLicenceIdAndResponsibleOrganisationIdOrThrow_whenFound_returnsIt() {
+    var licensee = new LicenceResponsibleOrganisation();
+    when(licenceResponsibleOrganisationRepository.findByLicence_IdAndResponsibleOrganisationId(1, 10))
+        .thenReturn(Optional.of(licensee));
+
+    assertThat(licenceResponsibleOrganisationService.getByLicenceIdAndResponsibleOrganisationIdOrThrow(1, 10))
+        .isEqualTo(licensee);
+  }
+
+  @Test
+  void getByLicenceIdAndResponsibleOrganisationIdOrThrow_whenNotFound_throws() {
+    when(licenceResponsibleOrganisationRepository.findByLicence_IdAndResponsibleOrganisationId(1, 10))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+        () -> licenceResponsibleOrganisationService.getByLicenceIdAndResponsibleOrganisationIdOrThrow(1, 10))
+        .isInstanceOf(LmsEntityNotFoundException.class);
   }
 
   @Test

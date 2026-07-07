@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
@@ -47,6 +48,22 @@ public class LicenceResponsibleOrganisationService {
 
   public List<LicenceResponsibleOrganisation> getAllByLicenceIn(Collection<Licence> licences) {
     return licenceResponsibleOrganisationRepository.findAllByLicenceIn(licences);
+  }
+
+  public List<LicenceResponsibleOrganisation> getAllByResponsibleOrganisationIdIn(
+      Collection<Integer> responsibleOrganisationIds
+  ) {
+    return licenceResponsibleOrganisationRepository.findAllByResponsibleOrganisationIdIn(responsibleOrganisationIds);
+  }
+
+  public LicenceResponsibleOrganisation getByLicenceIdAndResponsibleOrganisationIdOrThrow(
+      Integer licenceId,
+      Integer responsibleOrganisationId
+  ) {
+    return licenceResponsibleOrganisationRepository
+        .findByLicence_IdAndResponsibleOrganisationId(licenceId, responsibleOrganisationId)
+        .orElseThrow(() -> new LmsEntityNotFoundException(
+            "licence responsible organisation", "%d/%d".formatted(licenceId, responsibleOrganisationId)));
   }
 
   public Map<Licence, List<OrganisationUnit>> getResponsibleOrganisationsByLicences(Collection<Licence> licences) {

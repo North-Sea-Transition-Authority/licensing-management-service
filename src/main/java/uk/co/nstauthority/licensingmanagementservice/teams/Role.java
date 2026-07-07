@@ -26,6 +26,11 @@ public enum Role {
       "Application submitter",
       "Can create, edit, submit and view applications on behalf of this organisation"
   ),
+
+  LICENSEE_CONTACTS_MANAGEMENT(
+      "Licensee contacts management",
+      "Can add and update the contact email for each licensee this organisation is responsible for"
+  ),
   EXTERNAL_APPLICATION_VIEWER(
       "External application viewer",
       "Can view and track this application"

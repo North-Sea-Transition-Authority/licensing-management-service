@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsible
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,4 +20,12 @@ public interface LicenceResponsibleOrganisationRepository
 
   @EntityGraph(attributePaths = "licence")
   List<LicenceResponsibleOrganisation> findAllByLicenceIn(Collection<Licence> licences);
+
+  @EntityGraph(attributePaths = "licence")
+  List<LicenceResponsibleOrganisation> findAllByResponsibleOrganisationIdIn(Collection<Integer> responsibleOrganisationIds);
+
+  Optional<LicenceResponsibleOrganisation> findByLicence_IdAndResponsibleOrganisationId(
+      Integer licenceId,
+      Integer responsibleOrganisationId
+  );
 }

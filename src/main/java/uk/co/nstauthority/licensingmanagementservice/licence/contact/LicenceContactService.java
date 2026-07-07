@@ -1,0 +1,113 @@
+package uk.co.nstauthority.licensingmanagementservice.licence.contact;
+
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
+import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableRow;
+import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableValue;
+import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableView;
+import uk.co.nstauthority.licensingmanagementservice.fds.table.Tag;
+import uk.co.nstauthority.licensingmanagementservice.fds.table.TagColour;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceOrganisationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+
+@Service
+public class LicenceContactService {
+
+  private final LicenceContactRepository licenceContactRepository;
+  private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
+  private final LicenceOrganisationService licenceOrganisationService;
+
+  public LicenceContactService(
+      LicenceContactRepository licenceContactRepository,
+      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
+      LicenceOrganisationService licenceOrganisationService
+  ) {
+    this.licenceContactRepository = licenceContactRepository;
+    this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
+    this.licenceOrganisationService = licenceOrganisationService;
+  }
+
+  public String getContactTableForUser(ServiceUserDetail user) {
+    var tableBuilder = SortableTableView.sortableTableBuilder()
+        .newWithHeadings("Licence", "Licensee", "Contact email")
+        .withActionHeading("Action");
+
+    var usersOrgUnits = licenceOrganisationService.getUsersOrgUnits(user);
+    if (usersOrgUnits.isEmpty()) {
+      return tableBuilder.build().toString();
+    }
+
+    var nameByOrgUnitId = usersOrgUnits.stream()
+        .collect(Collectors.toMap(OrganisationUnitJson::organisationUnitId, OrganisationUnitJson::name, (a, b) -> a));
+    var orgUnitIds = nameByOrgUnitId.keySet();
+    var licensees = licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(orgUnitIds);
+    var emailByLicensee = licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(orgUnitIds)
+        .stream()
+        .collect(Collectors.toMap(LicenceContact::getLicensee, LicenceContact::getContactEmail));
+
+    licensees.forEach(licensee -> tableBuilder.addRow(toRow(licensee, nameByOrgUnitId, emailByLicensee)));
+
+    return tableBuilder.build().toString();
+  }
+
+  private SortableTableRow toRow(
+      LicenceResponsibleOrganisation licensee,
+      Map<Integer, String> nameByOrgUnitId,
+      Map<LicenceResponsibleOrganisation, String> emailByLicensee
+  ) {
+    var licenceId = licensee.getLicence().getId();
+    var organisationId = licensee.getResponsibleOrganisationId();
+    var licenceReference = licensee.getLicence().getLicenceReference();
+    var licenseeName = nameByOrgUnitId.getOrDefault(organisationId, "");
+    var contactEmail = emailByLicensee.get(licensee);
+    var hasContact = StringUtils.isNotBlank(contactEmail);
+
+    var emailValue = hasContact
+        ? new SortableTableValue(contactEmail)
+        : new SortableTableValue("", List.of(new Tag("Not assigned", TagColour.GREY)));
+    var actionLabel = hasContact ? "Update contact email" : "Add contact email";
+
+    var addUpdateContactUrl = StringUtils.removeStart(
+        ReverseRouter.route(on(LicenceContactController.class).renderUpdateContact(licenceId, organisationId, null)),
+        "/");
+
+    return SortableTableRow.builder()
+        .withValue(licenceReference)
+        .withValue(licenseeName)
+        .withValue(emailValue)
+        .withAction(actionLabel, addUpdateContactUrl, "for %s".formatted(licenceReference))
+        .build();
+  }
+
+  public LicenceContactFormView getLicenceContactFormView(ServiceUserDetail user, Integer licenceId, Integer organisationId) {
+    licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, organisationId);
+    var licensee = licenceResponsibleOrganisationService
+        .getByLicenceIdAndResponsibleOrganisationIdOrThrow(licenceId, organisationId);
+    var currentEmail = licenceContactRepository.findByLicensee(licensee)
+        .map(LicenceContact::getContactEmail)
+        .orElse(null);
+    return new LicenceContactFormView(licensee.getLicence().getLicenceReference(), currentEmail);
+  }
+
+  @Transactional
+  public void saveContact(ServiceUserDetail user, Integer licenceId, Integer organisationId, String contactEmail) {
+    licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, organisationId);
+    var licensee = licenceResponsibleOrganisationService
+        .getByLicenceIdAndResponsibleOrganisationIdOrThrow(licenceId, organisationId);
+
+    var contact = licenceContactRepository.findByLicensee(licensee).orElseGet(LicenceContact::new);
+    contact.setLicensee(licensee);
+    contact.setContactEmail(contactEmail);
+    licenceContactRepository.save(contact);
+  }
+}

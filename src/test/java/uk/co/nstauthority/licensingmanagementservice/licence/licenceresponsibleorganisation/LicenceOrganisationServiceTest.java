@@ -64,5 +64,21 @@ class LicenceOrganisationServiceTest {
     assertThat(result).hasSize(1).contains(ou);
   }
 
+  @Test
+  void getScopedOrgUnitNameOrThrow_whenUserManagesOrgUnit_returnsName() {
+    when(serviceUserDetail.wuaId()).thenReturn(1L);
 
+    Team team = mock(Team.class);
+    TeamRole teamRole = mock(TeamRole.class);
+    when(teamRole.getTeam()).thenReturn(team);
+    when(team.getTeamType()).thenReturn(TeamType.ORGANISATION);
+    when(team.getScopeId()).thenReturn("2");
+    when(teamQueryService.getTeamRolesForUser(1L)).thenReturn(Set.of(teamRole));
+    when(organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(List.of(2)))
+        .thenReturn(List.of(new OrganisationUnitJson(20, "Org Twenty")));
+
+    var name = licenceOrganisationService.getScopedOrgUnitNameOrThrow(serviceUserDetail, 20);
+
+    assertThat(name).isEqualTo("Org Twenty");
+  }
 }

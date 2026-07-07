@@ -2,7 +2,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsible
 
 import java.util.Collections;
 import java.util.List;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
@@ -32,6 +34,15 @@ public class LicenceOrganisationService {
     }
 
     return organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(usersOrgGroupIds);
+  }
+
+  public String getScopedOrgUnitNameOrThrow(ServiceUserDetail user, Integer organisationUnitId) {
+    return getUsersOrgUnits(user).stream()
+        .filter(orgUnit -> orgUnit.organisationUnitId().equals(organisationUnitId))
+        .map(OrganisationUnitJson::name)
+        .findFirst()
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
+            "User does not manage organisation %d".formatted(organisationUnitId)));
   }
 
   public List<Integer> getUsersOrgGroupIds(ServiceUserDetail user) {

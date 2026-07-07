@@ -12,6 +12,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -202,6 +203,11 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
         .andExpect(model().attribute("accordionId", licenceContinuationApplicationDetail.getId()))
         .andExpect(model().attributeExists("isSubmittable"))
         .andExpect(model().attributeExists("userCanSubmit"))
-        .andExpect(model().attribute("submitterRoleName", Role.APPLICATION_SUBMITTER.getName()));
+        .andExpect(model().attribute("submitterRoleName", Role.APPLICATION_SUBMITTER.getName()))
+        .andExpect(model().attribute("breadcrumbs", Map.of(
+            ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+            ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(id, null, null)), "Task list"
+        )))
+        .andExpect(model().attribute("currentPage", "Review your application before submitting"));
   }
 }

@@ -11,7 +11,7 @@ pageHeading=pageTitle
 pageHeadingClass="govuk-heading-xl"
 pageSize=PageSize.FULL_COLUMN
 extendContainerWidth=true
-backLinkUrl=springUrl(cancelUrl)>
+breadcrumbs=breadcrumbs>
     <#if !isSubmittable>
       <@banner.summaryMissingInformationNotificationBanner/>
     <#elseif !userCanSubmit>

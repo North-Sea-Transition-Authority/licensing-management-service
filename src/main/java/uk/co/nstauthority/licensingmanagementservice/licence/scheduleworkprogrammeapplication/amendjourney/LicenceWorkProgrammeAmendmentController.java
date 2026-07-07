@@ -14,11 +14,14 @@ import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.RequestPurposeChoiceMustBeApplicable;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 
@@ -86,7 +89,10 @@ public class LicenceWorkProgrammeAmendmentController {
       LicenceWorkProgrammeAmendmentForm form,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
-    return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeAmendment")
+    var taskListUrl = ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+        .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null));
+
+    var modelAndView = new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeAmendment")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("form", form)
         .addObject("workProgrammeActivityDetails",
@@ -98,5 +104,13 @@ public class LicenceWorkProgrammeAmendmentController {
         .addObject("cancelUrl", ReverseRouter.route(
             on(LicenceWorkProgrammeAmendmentSummaryController.class)
                 .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null)));
+
+    var breadcrumbs = Breadcrumbs.builder(PAGE_TITLE)
+        .addWorkAreaBreadcrumb()
+        .addTaskListBreadcrumb(taskListUrl)
+        .build();
+
+    BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
+    return modelAndView;
   }
 }

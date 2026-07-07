@@ -18,6 +18,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListSectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ContextConfiguration(classes = LicenceScheduleExtensionController.class)
 class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
@@ -140,7 +142,12 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
                  DateFormatUtil.convertToDisplayText(licenceScheduleTerm.getEndDate())))
           .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
               ScheduleWorkProgrammeApplicationTaskListController.class)
-              .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
+              .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))))
+          .andExpect(model().attribute("breadcrumbs", Map.of(
+              ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+              ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)), "Task list"
+          )))
+          .andExpect(model().attribute("currentPage", "Extension Details"));
   }
 
   @Test
@@ -182,7 +189,12 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
             DateFormatUtil.convertToDisplayText(licenceScheduleTerm.getEndDate())))
            .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
                ScheduleWorkProgrammeApplicationTaskListController.class)
-                .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
+                .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))))
+           .andExpect(model().attribute("breadcrumbs", Map.of(
+               ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+               ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)), "Task list"
+           )))
+           .andExpect(model().attribute("currentPage", "Extension Details"));
   }
 
   @Test
@@ -234,7 +246,12 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
              .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
                      ScheduleWorkProgrammeApplicationTaskListController.class)
                                                        .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))
-             ));
+             ))
+             .andExpect(model().attribute("breadcrumbs", Map.of(
+                 ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+                 ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)), "Task list"
+             )))
+             .andExpect(model().attribute("currentPage", "Extension Details"));
 
     verify(licenceScheduleExtensionService, never()).saveExtensionForm(any(), any());
 

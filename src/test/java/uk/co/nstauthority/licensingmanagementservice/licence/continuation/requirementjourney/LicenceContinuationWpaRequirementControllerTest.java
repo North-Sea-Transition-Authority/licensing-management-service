@@ -18,6 +18,7 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.continuation
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
@@ -37,6 +38,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.WorkProgrammeActivityView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ContextConfiguration(classes = LicenceContinuationWpaRequirementController.class)
 class LicenceContinuationWpaRequirementControllerTest extends AbstractControllerTest {
@@ -98,7 +100,12 @@ class LicenceContinuationWpaRequirementControllerTest extends AbstractController
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("form", form))
         .andExpect(model().attribute("workProgrammeActivities", activities))
-        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null))));
+        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null))))
+        .andExpect(model().attribute("breadcrumbs", Map.of(
+            ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+            ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null)), "Task list"
+        )))
+        .andExpect(model().attribute("currentPage", PAGE_TITLE));
   }
 
   @Test

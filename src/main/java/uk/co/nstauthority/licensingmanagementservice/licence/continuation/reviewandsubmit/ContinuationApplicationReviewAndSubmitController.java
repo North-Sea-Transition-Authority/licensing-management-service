@@ -13,6 +13,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplication;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
@@ -95,47 +97,32 @@ public class ContinuationApplicationReviewAndSubmitController {
       boolean isSubmittable,
       ServiceUserDetail user
   ) {
-
     var workProgrammeActivities = licenceScheduleService.getCurrentWorkProgrammeActivitiesViews(
         licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail)
     );
 
-    return new ModelAndView("lms/licence/continuation/reviewAndSubmit")
-        .addObject(
-            "cancelUrl",
-            ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(
-                licenceContinuationApplicationDetail.getId(),
-                null,
-                null
-            )))
-        .addObject(
-            "pageCaption",
-            licenceService.getLicencePageCaption(licenceContinuationApplicationDetail.getLicence())
+    var taskListUrl = ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(
+        licenceContinuationApplicationDetail.getId(), null, null));
+
+    var modelAndView = new ModelAndView("lms/licence/continuation/reviewAndSubmit")
+        .addObject("cancelUrl", taskListUrl)
+        .addObject("pageCaption", licenceService.getLicencePageCaption(licenceContinuationApplicationDetail.getLicence()))
+        .addObject("summarySections", continuationSummarySectionService.getSummarySections(
+            licenceContinuationApplicationDetail, null)
         )
-        .addObject(
-            "summarySections",
-            continuationSummarySectionService.getSummarySections(licenceContinuationApplicationDetail, null
-            )
-        )
-        .addObject(
-            "accordionId",
-            licenceContinuationApplicationDetail.getId()
-        )
-        .addObject(
-            "isSubmittable",
-            isSubmittable
-        )
-        .addObject(
-            "userCanSubmit",
-            licenceContinuationService.userCanSubmitApplication(licenceContinuationApplicationDetail, user)
-        )
-        .addObject(
-            "submitterRoleName",
-            Role.APPLICATION_SUBMITTER.getName()
-        )
-        .addObject(
-            "workProgrammeActivities",
-            workProgrammeActivities
-        );
+        .addObject("accordionId", licenceContinuationApplicationDetail.getId())
+        .addObject("isSubmittable", isSubmittable)
+        .addObject("userCanSubmit", licenceContinuationService.userCanSubmitApplication(
+            licenceContinuationApplicationDetail, user))
+        .addObject("submitterRoleName", Role.APPLICATION_SUBMITTER.getName())
+        .addObject("workProgrammeActivities", workProgrammeActivities);
+
+    var breadcrumbs = Breadcrumbs.builder("Review your application before submitting")
+        .addWorkAreaBreadcrumb()
+        .addTaskListBreadcrumb(taskListUrl)
+        .build();
+
+    BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
+    return modelAndView;
   }
 }

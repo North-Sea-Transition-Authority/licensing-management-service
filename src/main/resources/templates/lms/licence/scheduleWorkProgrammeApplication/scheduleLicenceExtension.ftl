@@ -1,7 +1,7 @@
 <#include '../../layout/layout.ftl'>
 <#import '../../component/duration/threeFieldDuration.ftl' as duration>
 
-<@defaultPage htmlTitle=pageTitle pageHeading=pageTitle pageSize=PageSize.TWO_THIRDS_COLUMN errorSummaryItems=errorSummaryItems>
+<@defaultPage htmlTitle=pageTitle pageHeading=pageTitle pageSize=PageSize.TWO_THIRDS_COLUMN breadcrumbs=breadcrumbs errorSummaryItems=errorSummaryItems>
     <@fdsForm.htmlForm>
 
         <@fdsSummaryList.summaryListCard headingText="Current Term Details" summaryListId="Current Term Details" >

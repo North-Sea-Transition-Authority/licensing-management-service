@@ -17,6 +17,8 @@ import uk.co.fivium.fileuploadlibrary.fds.FileDeleteResponse;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
@@ -94,6 +96,9 @@ public class LicenceScheduleSupportingInformationController {
 
     var licence = scheduleWorkProgrammeApplicationDetail.getLicence();
 
+    var taskListUrl = ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+        .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null));
+
     var modelAndView = new ModelAndView(
         "lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceSupportingInformationRequest");
     modelAndView.addObject("pageTitle", PAGE_TITLE)
@@ -102,14 +107,14 @@ public class LicenceScheduleSupportingInformationController {
                 .addObject("isExtension", licenceScheduleSupportingInformationHelperService.isExtensionOrAmendment(
                     scheduleWorkProgrammeApplicationDetail))
                 .addObject("isCarbonStorageLicence", licenceService.isCarbonStorageLicence(licence))
-        .addObject("cancelUrl", ReverseRouter.route(
-            on(ScheduleWorkProgrammeApplicationTaskListController.class)
-                .getTaskList(
-                    scheduleWorkProgrammeApplicationDetail.getId(),
-                    null,
-                    null
-                ))
-        );
+                .addObject("cancelUrl", taskListUrl);
+
+    var breadcrumbs = Breadcrumbs.builder(PAGE_TITLE)
+        .addWorkAreaBreadcrumb()
+        .addTaskListBreadcrumb(taskListUrl)
+        .build();
+
+    BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
     return modelAndView;
   }
 

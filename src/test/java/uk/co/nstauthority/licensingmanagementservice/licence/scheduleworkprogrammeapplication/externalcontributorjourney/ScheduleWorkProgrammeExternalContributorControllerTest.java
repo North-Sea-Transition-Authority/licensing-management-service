@@ -15,6 +15,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 import static uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.externalcontributorjourney.ScheduleWorkProgrammeExternalContributorController.PAGE_TITLE;
 
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementController;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ContextConfiguration(classes = ScheduleWorkProgrammeExternalContributorController.class)
 class ScheduleWorkProgrammeExternalContributorControllerTest extends AbstractControllerTest {
@@ -92,7 +94,12 @@ class ScheduleWorkProgrammeExternalContributorControllerTest extends AbstractCon
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("form", form))
         .andExpect(model().attribute("cancelUrl", ReverseRouter.route(
-            on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(DETAIL_ID, null, null))));
+            on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(DETAIL_ID, null, null))))
+        .andExpect(model().attribute("breadcrumbs", Map.of(
+            ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(DETAIL_ID, null, null)), "Task list"
+        )))
+        .andExpect(model().attribute("currentPage", PAGE_TITLE));
   }
 
   @Test

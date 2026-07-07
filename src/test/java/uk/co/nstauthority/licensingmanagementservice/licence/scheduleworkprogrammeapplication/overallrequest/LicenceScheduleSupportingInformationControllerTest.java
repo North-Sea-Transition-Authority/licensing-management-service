@@ -16,6 +16,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -45,6 +46,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ContextConfiguration(classes = LicenceScheduleSupportingInformationController.class)
 class LicenceScheduleSupportingInformationControllerTest extends AbstractControllerTest {
@@ -129,7 +131,12 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
         .andExpect(model().attribute("fileUploadAttributes", fileUploadComponentAttributes))
         .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
             ScheduleWorkProgrammeApplicationTaskListController.class)
-            .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
+            .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))))
+        .andExpect(model().attribute("breadcrumbs", Map.of(
+            ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)), "Task list"
+        )))
+        .andExpect(model().attribute("currentPage", LicenceScheduleSupportingInformationController.PAGE_TITLE));
 
   }
 
@@ -207,7 +214,12 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
            .andExpect(model().attribute("fileUploadAttributes", fileUploadComponentAttributes))
            .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(
                    ScheduleWorkProgrammeApplicationTaskListController.class)
-                   .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))));
+                   .getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))))
+           .andExpect(model().attribute("breadcrumbs", Map.of(
+               ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+               ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)), "Task list"
+           )))
+           .andExpect(model().attribute("currentPage", LicenceScheduleSupportingInformationController.PAGE_TITLE));
 
     verify(licenceScheduleSupportingInformationService, never()).saveRequestForm(any(), any());
 

@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.externalcontributors.ExternalContributorForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.externalcontributors.ExternalContributorFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
@@ -86,12 +88,20 @@ public class ScheduleWorkProgrammeExternalContributorController {
       ExternalContributorForm form,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
-    return new ModelAndView("lms/licence/application/externalContributor")
+    var taskListUrl = ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+        .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null));
+
+    var modelAndView = new ModelAndView("lms/licence/application/externalContributor")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("form", form)
-        .addObject("cancelUrl", ReverseRouter.route(
-            on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
-                scheduleWorkProgrammeApplicationDetail.getId(), null, null
-            )));
+        .addObject("cancelUrl", taskListUrl);
+
+    var breadcrumbs = Breadcrumbs.builder(PAGE_TITLE)
+        .addWorkAreaBreadcrumb()
+        .addTaskListBreadcrumb(taskListUrl)
+        .build();
+
+    BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
+    return modelAndView;
   }
 }

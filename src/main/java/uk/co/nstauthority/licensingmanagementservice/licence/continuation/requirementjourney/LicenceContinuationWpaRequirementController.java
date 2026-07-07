@@ -14,6 +14,8 @@ import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasWorkProgrammeActivities;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplication;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
@@ -88,17 +90,25 @@ public class LicenceContinuationWpaRequirementController {
       LicenceContinuationWpaRequirementForm form,
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
   ) {
-
     var scheduleDetail = licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail);
 
     var workProgrammeActivities = licenceScheduleService.getCurrentWorkProgrammeActivitiesViews(scheduleDetail);
 
-    return new ModelAndView("lms/licence/continuation/licenceContinuationWpaRequirement")
+    var taskListUrl = ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
+        .getTaskList(licenceContinuationApplicationDetail.getId(), null, null));
+
+    var modelAndView = new ModelAndView("lms/licence/continuation/licenceContinuationWpaRequirement")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("form", form)
         .addObject("workProgrammeActivities", workProgrammeActivities)
-        .addObject("cancelUrl", ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(
-                licenceContinuationApplicationDetail.getId(), null, null))
-        );
+        .addObject("cancelUrl", taskListUrl);
+
+    var breadcrumbs = Breadcrumbs.builder(PAGE_TITLE)
+        .addWorkAreaBreadcrumb()
+        .addTaskListBreadcrumb(taskListUrl)
+        .build();
+
+    BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
+    return modelAndView;
   }
 }

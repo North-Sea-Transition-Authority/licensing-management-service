@@ -1,5 +1,5 @@
 <#include '../../layout/layout.ftl'>
-<@defaultPage htmlTitle=pageTitle pageHeading="" pageSize=PageSize.TWO_THIRDS_COLUMN errorSummaryItems=errorSummaryItems>
+<@defaultPage htmlTitle=pageTitle pageHeading="" pageSize=PageSize.TWO_THIRDS_COLUMN breadcrumbs=breadcrumbs errorSummaryItems=errorSummaryItems>
 
     <@fdsForm.htmlForm>
         <@fdsRadio.radioGroup path="form.selectedWorkProgrammeActivityAmendmentId" labelText=pageTitle hiddenContent=false fieldsetHeadingSize="h1"

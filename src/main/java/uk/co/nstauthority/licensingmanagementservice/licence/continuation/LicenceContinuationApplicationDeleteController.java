@@ -13,6 +13,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplication;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.reviewandsubmit.ContinuationSummarySectionService;
@@ -62,21 +64,25 @@ public class LicenceContinuationApplicationDeleteController {
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
       ServiceUserDetail serviceUserDetail
   ) {
-    return new ModelAndView("lms/licence/continuation/licenceContinuationApplicationDeleteConfirmation")
-        .addObject("backToTaskListUrl", ReverseRouter.route(on(
-                LicenceContinuationApplicationTaskListController.class).getTaskList(
-                licenceContinuationApplicationDetailId,
-                null,
-                null)))
+    var taskListUrl = ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
+        .getTaskList(licenceContinuationApplicationDetailId, null, null));
+
+    var modelAndView = new ModelAndView("lms/licence/continuation/licenceContinuationApplicationDeleteConfirmation")
+        .addObject("backToTaskListUrl", taskListUrl)
         .addObject("actionUrl", ReverseRouter.route(on(
                 LicenceContinuationApplicationDeleteController.class).deleteLicenceContinuationApplication(
-                licenceContinuationApplicationDetailId,
-                null,
-                null)))
+                licenceContinuationApplicationDetailId, null, null)))
         .addObject("summarySections", continuationSummarySectionService.getSummarySections(
-                licenceContinuationApplicationDetail,
-                serviceUserDetail))
+                licenceContinuationApplicationDetail, serviceUserDetail))
         .addObject("accordionId", licenceContinuationApplicationDetailId);
+
+    var breadcrumbs = Breadcrumbs.builder("Are you sure you want to delete this application?")
+        .addWorkAreaBreadcrumb()
+        .addTaskListBreadcrumb(taskListUrl)
+        .build();
+
+    BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
+    return modelAndView;
   }
 
   private void addRedirectNotification(

@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
@@ -83,6 +85,9 @@ public class LicenceScheduleExtensionController {
     var currentPhase = licenceScheduleService.getCurrentPhase(licenceScheduleDetail);
     var extendableTermAndPhases = licenceScheduleExtensionFormService.getExtendableTermAndPhases(licenceScheduleDetail);
 
+    var taskListUrl = ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+        .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null));
+
     var modelAndView = new ModelAndView(
         "lms/licence/scheduleWorkProgrammeApplication/scheduleLicenceExtension")
                 .addObject("pageTitle", PAGE_TITLE)
@@ -92,8 +97,7 @@ public class LicenceScheduleExtensionController {
                 .addObject("validTermsAndPhases", extendableTermAndPhases)
                 .addObject("canExtendMoreThanOneOption",
                     licenceScheduleExtensionFormService.canExtendMoreThanOneOption(extendableTermAndPhases))
-                .addObject("cancelUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
-                            .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null)));
+                .addObject("cancelUrl", taskListUrl);
 
     if (currentTerm != null) {
       modelAndView.addObject("currentTermEndDate", DateFormatUtil.convertToDisplayText(currentTerm.getEndDate()));
@@ -103,6 +107,12 @@ public class LicenceScheduleExtensionController {
       modelAndView.addObject("currentPhaseEndDate", DateFormatUtil.convertToDisplayText(currentPhase.getEndDate()));
     }
 
+    var breadcrumbs = Breadcrumbs.builder(PAGE_TITLE)
+        .addWorkAreaBreadcrumb()
+        .addTaskListBreadcrumb(taskListUrl)
+        .build();
+
+    BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
     return modelAndView;
   }
 }

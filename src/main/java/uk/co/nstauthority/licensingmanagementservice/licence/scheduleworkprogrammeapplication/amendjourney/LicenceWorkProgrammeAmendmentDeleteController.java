@@ -13,10 +13,13 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.RequestPurposeChoiceMustBeApplicable;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -85,8 +88,10 @@ public class LicenceWorkProgrammeAmendmentDeleteController {
                                        UUID scheduleWorkProgrammeApplicationDetailId,
                                        LicenceWorkProgrammeAmendmentRequest licenceWorkProgrammeAmendmentRequest
   ) {
+    var taskListUrl = ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+        .getTaskList(scheduleWorkProgrammeApplicationDetailId, null, null));
 
-    return new ModelAndView(
+    var modelAndView = new ModelAndView(
         "lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeAmendmentDeleteConfirmation")
         .addObject("backToSummaryUrl", ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class)
             .renderForm(scheduleWorkProgrammeApplicationDetailId, null)))
@@ -96,6 +101,14 @@ public class LicenceWorkProgrammeAmendmentDeleteController {
         .addObject("LicenceWorkProgrammeAmendmentSummaryView",
             licenceWorkProgrammeAmendmentSummaryService.createSummaryViewFromWorkProgrammeAmendments(
                 licenceWorkProgrammeAmendmentRequest, LicenceWorkProgrammeAmendmentSummaryMode.VIEW));
+
+    var breadcrumbs = Breadcrumbs.builder("Are you sure you want to delete this work programme amendment?")
+        .addWorkAreaBreadcrumb()
+        .addTaskListBreadcrumb(taskListUrl)
+        .build();
+
+    BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
+    return modelAndView;
   }
 
   private void addRedirectNotification(WorkProgrammeActivity workProgrammeActivity, RedirectAttributes redirectAttributes) {

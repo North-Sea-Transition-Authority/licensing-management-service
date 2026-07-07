@@ -3,7 +3,7 @@
 
 <#assign pageTitle = "Are you sure you want to delete this work programme amendment?" />
 
-<@defaultPage htmlTitle=pageTitle pageHeading=pageTitle pageSize=PageSize.TWO_THIRDS_COLUMN errorSummaryItems=errorSummaryItems>
+<@defaultPage htmlTitle=pageTitle pageHeading=pageTitle pageSize=PageSize.TWO_THIRDS_COLUMN breadcrumbs=breadcrumbs errorSummaryItems=errorSummaryItems>
 
   <@fdsForm.htmlForm actionUrl=springUrl(actionUrl)>
     <@licenceWorkProgrammeAmendmentCard.licenceWorkProgrammeAmendments

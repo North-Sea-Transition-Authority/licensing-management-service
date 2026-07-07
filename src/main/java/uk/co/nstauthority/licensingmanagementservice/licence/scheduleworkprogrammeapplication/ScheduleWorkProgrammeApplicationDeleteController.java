@@ -12,6 +12,8 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.reviewandsubmit.LicenceScheduleSummarySectionService;
@@ -59,21 +61,26 @@ public class ScheduleWorkProgrammeApplicationDeleteController {
       UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
-    return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeApplicationDeleteConfirmation")
-        .addObject("backToTaskListUrl", ReverseRouter.route(on(
-                ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
-                scheduleWorkProgrammeApplicationDetailId,
-                null,
-                null)))
+    var taskListUrl = ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+        .getTaskList(scheduleWorkProgrammeApplicationDetailId, null, null));
+
+    var modelAndView = new ModelAndView(
+        "lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeApplicationDeleteConfirmation"
+    )
+        .addObject("backToTaskListUrl", taskListUrl)
         .addObject("actionUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationDeleteController.class)
-                                                        .deleteScheduleWorkProgrammeApplication(
-                                                            scheduleWorkProgrammeApplicationDetailId,
-                                                            null,
-                                                            null)))
+            .deleteScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplicationDetailId, null, null)))
         .addObject("summarySections", licenceScheduleSummarySectionService.getSummarySections(
-                scheduleWorkProgrammeApplicationDetail,
-                null))
+                scheduleWorkProgrammeApplicationDetail, null))
         .addObject("accordionId", scheduleWorkProgrammeApplicationDetailId);
+
+    var breadcrumbs = Breadcrumbs.builder("Are you sure you want to delete this application?")
+        .addWorkAreaBreadcrumb()
+        .addTaskListBreadcrumb(taskListUrl)
+        .build();
+
+    BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
+    return modelAndView;
   }
 
   private void addRedirectNotification(

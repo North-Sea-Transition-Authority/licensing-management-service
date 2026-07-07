@@ -7,6 +7,7 @@ pageHeading="Licence operators"
 caption=pageCaption
 captionClass="govuk-caption-m"
 pageSize=PageSize.TWO_THIRDS_COLUMN
+breadcrumbs=breadcrumbs
 errorSummaryItems=errorSummaryItems>
 
     <@fdsForm.htmlForm>

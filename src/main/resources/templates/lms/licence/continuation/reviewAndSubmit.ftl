@@ -11,7 +11,7 @@ pageHeading=pageTitle
 pageHeadingClass="govuk-heading-xl"
 pageSize=PageSize.FULL_COLUMN
 extendContainerWidth=true
-backLinkUrl=springUrl(cancelUrl)>
+breadcrumbs=breadcrumbs>
     <@fdsForm.htmlForm>
         <@continuationApplicationSummary.continuationApplicationSummary accordionId=accordionId summarySections=summarySections workProgrammeActivities=workProgrammeActivities![]/>
         <#if isSubmittable>

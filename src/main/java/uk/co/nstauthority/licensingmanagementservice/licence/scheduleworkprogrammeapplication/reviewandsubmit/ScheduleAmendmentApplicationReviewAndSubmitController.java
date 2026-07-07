@@ -13,6 +13,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
@@ -65,15 +67,25 @@ public class ScheduleAmendmentApplicationReviewAndSubmitController {
       boolean isSubmittable,
       ServiceUserDetail user
   ) {
-    return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/reviewAndSubmit")
-        .addObject("cancelUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
-            .getTaskList(applicationDetail.getId(), null, null)))
+    var taskListUrl = ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+        .getTaskList(applicationDetail.getId(), null, null));
+
+    var modelAndView = new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/reviewAndSubmit")
+        .addObject("cancelUrl", taskListUrl)
         .addObject("pageCaption", licenceService.getLicencePageCaption(applicationDetail.getLicence()))
         .addObject("summarySections", licenceScheduleSummarySectionService.getSummarySections(applicationDetail, null))
         .addObject("accordionId", applicationDetail.getId())
         .addObject("isSubmittable", isSubmittable)
         .addObject("userCanSubmit", scheduleWorkProgrammeApplicationService.userCanSubmitApplication(applicationDetail, user))
         .addObject("submitterRoleName", Role.APPLICATION_SUBMITTER.getName());
+
+    var breadcrumbs = Breadcrumbs.builder("Review your application before submitting")
+        .addWorkAreaBreadcrumb()
+        .addTaskListBreadcrumb(taskListUrl)
+        .build();
+
+    BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
+    return modelAndView;
   }
 
   @PostMapping

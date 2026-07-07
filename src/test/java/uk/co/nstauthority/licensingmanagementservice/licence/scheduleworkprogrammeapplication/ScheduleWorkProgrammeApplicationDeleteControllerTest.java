@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -84,7 +85,12 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
            .andExpect(model().attribute("backToTaskListUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null))))
            .andExpect(model().attribute("actionUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationDeleteController.class).deleteScheduleWorkProgrammeApplication(SCHEDULE_APPLICATION_DETAIL_ID, null, null))))
            .andExpect(model().attributeExists("summarySections"))
-           .andExpect(model().attribute("accordionId", SCHEDULE_APPLICATION_DETAIL_ID));
+           .andExpect(model().attribute("accordionId", SCHEDULE_APPLICATION_DETAIL_ID))
+           .andExpect(model().attribute("breadcrumbs", Map.of(
+               ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+               ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)), "Task list"
+           )))
+           .andExpect(model().attribute("currentPage", "Are you sure you want to delete this application?"));
 
     verify(licenceScheduleSummarySectionService).getSummarySections(scheduleWorkProgrammeApplicationDetail, null);
   }

@@ -17,6 +17,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListSectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ContextConfiguration(classes = LicenceWorkProgrammeAmendmentSummaryController.class)
 class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControllerTest {
@@ -124,7 +126,12 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
         .andExpect(model().attribute("licenceWorkProgrammeAmendments", is(amendmentViews)))
         .andExpect(model().attribute("cancelUrl", (ReverseRouter.route  (on(
             ScheduleWorkProgrammeApplicationTaskListController.class)
-            .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null)))));
+            .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null)))))
+        .andExpect(model().attribute("breadcrumbs", Map.of(
+            ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)), "Task list"
+        )))
+        .andExpect(model().attribute("currentPage", LicenceWorkProgrammeAmendmentSummaryController.PAGE_TITLE));
 
     verify(licenceWorkProgrammeAmendmentRepository).findAllByScheduleWorkProgrammeApplicationDetails(
         scheduleWorkProgrammeApplicationDetail);
@@ -251,7 +258,12 @@ class LicenceWorkProgrammeAmendmentSummaryControllerTest extends AbstractControl
         .andExpect(model().attribute("licenceWorkProgrammeAmendments", is(amendmentViews)))
         .andExpect(model().attribute("cancelUrl", (ReverseRouter.route  (on(
             ScheduleWorkProgrammeApplicationTaskListController.class)
-            .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null)))));
+            .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null)))))
+        .andExpect(model().attribute("breadcrumbs", Map.of(
+            ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)), "Task list"
+        )))
+        .andExpect(model().attribute("currentPage", LicenceWorkProgrammeAmendmentSummaryController.PAGE_TITLE));
 
     verify(licenceWorkProgrammeAmendmentSummaryFormValidator).isValid(any());
   }

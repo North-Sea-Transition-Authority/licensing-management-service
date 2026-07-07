@@ -4,6 +4,7 @@
 htmlTitle=pageTitle
 pageHeading="External contributors"
 pageSize=PageSize.TWO_THIRDS_COLUMN
+breadcrumbs=breadcrumbs
 errorSummaryItems=errorSummaryItems>
 
     <@fdsForm.htmlForm>

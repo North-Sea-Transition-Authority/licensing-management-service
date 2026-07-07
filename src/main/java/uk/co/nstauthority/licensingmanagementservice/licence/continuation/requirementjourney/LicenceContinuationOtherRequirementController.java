@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplication;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
@@ -90,11 +92,21 @@ public class LicenceContinuationOtherRequirementController {
                                         .getTaskList(licenceContinuationApplicationDetail.getId(), null, null));
     }
 
-    return new ModelAndView("lms/licence/continuation/licenceContinuationOtherRequirement")
+    var taskListUrl = ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
+        .getTaskList(licenceContinuationApplicationDetail.getId(), null, null));
+
+    var modelAndView = new ModelAndView("lms/licence/continuation/licenceContinuationOtherRequirement")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("form", form)
         .addObject("otherRequirementsVisibility", otherRequirementsVisibility)
-        .addObject("cancelUrl", ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
-                                                        .getTaskList(licenceContinuationApplicationDetail.getId(), null, null)));
+        .addObject("cancelUrl", taskListUrl);
+
+    var breadcrumbs = Breadcrumbs.builder(PAGE_TITLE)
+        .addWorkAreaBreadcrumb()
+        .addTaskListBreadcrumb(taskListUrl)
+        .build();
+
+    BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
+    return modelAndView;
   }
 }

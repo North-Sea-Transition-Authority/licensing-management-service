@@ -15,6 +15,8 @@ import org.springframework.web.servlet.ModelAndView;
 import uk.co.fivium.energyportalapi.generated.types.Subarea;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplication;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
+import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
@@ -87,13 +89,22 @@ public class LicenceContinuationLicenceOperatorsController {
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
       List<Subarea> subareas
   ) {
+    var taskListUrl = ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
+        .getTaskList(licenceContinuationApplicationDetail.getId(), null, null));
 
-    return new ModelAndView("lms/licence/continuation/licenceOperator/licenceContinuationLicenceOperators")
+    var modelAndView = new ModelAndView("lms/licence/continuation/licenceOperator/licenceContinuationLicenceOperators")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("form", form)
         .addObject("hasMissingOperators", licenceContinuationLicenceOperatorsService.hasMissingOperators(subareas))
         .addObject("subareas", subareas)
-        .addObject("cancelUrl", ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
-                                 .getTaskList(licenceContinuationApplicationDetail.getId(), null, null)));
+        .addObject("cancelUrl", taskListUrl);
+
+    var breadcrumbs = Breadcrumbs.builder(PAGE_TITLE)
+        .addWorkAreaBreadcrumb()
+        .addTaskListBreadcrumb(taskListUrl)
+        .build();
+
+    BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
+    return modelAndView;
   }
 }

@@ -37,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementController;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ContextConfiguration(classes = LicenceContinuationExternalContributorController.class)
 class LicenceContinuationExternalContributorControllerTest extends AbstractControllerTest {
@@ -86,7 +87,12 @@ class LicenceContinuationExternalContributorControllerTest extends AbstractContr
         .andExpect(model().attribute("form", form))
         .andExpect(model().attribute("cancelUrl", ReverseRouter.route(
             on(LicenceContinuationApplicationTaskListController.class)
-                .getTaskList(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null))));
+                .getTaskList(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null))))
+        .andExpect(model().attribute("breadcrumbs", Map.of(
+            ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+            ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null)), "Task list"
+        )))
+        .andExpect(model().attribute("currentPage", PAGE_TITLE));
   }
 
   @Test

@@ -16,6 +16,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 import static uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementController.PAGE_TITLE;
 
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
@@ -32,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ContextConfiguration(classes = LicenceContinuationOtherRequirementController.class)
 class LicenceContinuationOtherRequirementControllerTest extends AbstractControllerTest {
@@ -94,7 +96,12 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("form", licenceContinuationOtherRequirementForm))
         .andExpect(model().attribute("otherRequirementsVisibility", VISIBILITY_WITH_REQUIREMENTS))
-        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null))));
+        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null))))
+        .andExpect(model().attribute("breadcrumbs", Map.of(
+            ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+            ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null)), "Task list"
+        )))
+        .andExpect(model().attribute("currentPage", PAGE_TITLE));
   }
 
   @Test
@@ -166,7 +173,12 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/continuation/licenceContinuationOtherRequirement"))
-        .andExpect(model().attribute("otherRequirementsVisibility", VISIBILITY_WITH_REQUIREMENTS));
+        .andExpect(model().attribute("otherRequirementsVisibility", VISIBILITY_WITH_REQUIREMENTS))
+        .andExpect(model().attribute("breadcrumbs", Map.of(
+            ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+            ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null)), "Task list"
+        )))
+        .andExpect(model().attribute("currentPage", PAGE_TITLE));
     verifyNoInteractions(licenceContinuationOtherRequirementService);
   }
 

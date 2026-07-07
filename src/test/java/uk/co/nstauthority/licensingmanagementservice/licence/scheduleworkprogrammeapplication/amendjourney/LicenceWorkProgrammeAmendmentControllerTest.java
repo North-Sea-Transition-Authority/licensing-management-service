@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,9 +38,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListSectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ContextConfiguration(classes = LicenceWorkProgrammeAmendmentController.class)
 class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest {
@@ -127,7 +130,12 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
         .andExpect(model().attribute("workProgrammeActivityDetails", mockWorkProgrammeActivityAmendmentView))
         .andExpect(model().attribute("isLinkedRelativeDate", true))
         .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class)
-            .renderForm(scheduleWorkProgrammeApplicationDetail.getId(),null)))));
+            .renderForm(scheduleWorkProgrammeApplicationDetail.getId(),null)))))
+        .andExpect(model().attribute("breadcrumbs", Map.of(
+            ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)), "Task list"
+        )))
+        .andExpect(model().attribute("currentPage", "Work programme amendments"));
   }
 
   @Test
@@ -184,7 +192,12 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
           .andExpect(model().attribute("workProgrammeActivityDetails", mockWorkProgrammeActivityAmendmentView))
           .andExpect(model().attribute("isLinkedRelativeDate", true))
           .andExpect(model().attribute("cancelUrl", (ReverseRouter.route(on(LicenceWorkProgrammeAmendmentSummaryController.class)
-              .renderForm(scheduleWorkProgrammeApplicationDetail.getId(),null)))));
+              .renderForm(scheduleWorkProgrammeApplicationDetail.getId(),null)))))
+          .andExpect(model().attribute("breadcrumbs", Map.of(
+              ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+              ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(SCHEDULE_APPLICATION_DETAIL_ID, null, null)), "Task list"
+          )))
+          .andExpect(model().attribute("currentPage", "Work programme amendments"));
 
       verify(licenceWorkProgrammeAmendmentService, never()).saveAmendmentForm(any(), any(), any());
   }

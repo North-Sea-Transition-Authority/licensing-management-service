@@ -16,6 +16,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,9 +31,10 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @WebMvcTest(LicenceContinuationLicenceOperatorsController.class)
 @ContextConfiguration(classes = LicenceContinuationLicenceOperatorsController.class)
@@ -98,7 +100,12 @@ class LicenceContinuationLicenceOperatorsControllerTest extends AbstractControll
         .andExpect(model().attribute("form", form))
         .andExpect(model().attribute("hasMissingOperators", true))
         .andExpect(model().attribute("subareas", subareas))
-        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(applicationId, null, null))));
+        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(applicationId, null, null))))
+        .andExpect(model().attribute("breadcrumbs", Map.of(
+            ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+            ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(applicationId, null, null)), "Task list"
+        )))
+        .andExpect(model().attribute("currentPage", LicenceContinuationLicenceOperatorsController.PAGE_TITLE));
   }
 
   @Test
@@ -119,7 +126,12 @@ class LicenceContinuationLicenceOperatorsControllerTest extends AbstractControll
         .andExpect(view().name("lms/licence/continuation/licenceOperator/licenceContinuationLicenceOperators"))
         .andExpect(model().attributeExists("form"))
         .andExpect(model().attribute("hasMissingOperators", true))
-        .andExpect(model().attribute("subareas", subareas));
+        .andExpect(model().attribute("subareas", subareas))
+        .andExpect(model().attribute("breadcrumbs", Map.of(
+            ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)), "Work area",
+            ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(applicationId, null, null)), "Task list"
+        )))
+        .andExpect(model().attribute("currentPage", LicenceContinuationLicenceOperatorsController.PAGE_TITLE));
   }
 
   @Test

@@ -2,10 +2,12 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -24,6 +26,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
@@ -50,6 +59,9 @@ class LicencePositionServiceTest {
   @Mock
   private LicencePositionStateViewService licencePositionStateViewService;
 
+  @Mock
+  private LicencePositionCorrectionService licencePositionCorrectionService;
+
   @InjectMocks
   private LicencePositionService licencePositionService;
 
@@ -60,7 +72,7 @@ class LicencePositionServiceTest {
   @MethodSource("provideMaxPositionOrderCombinations")
   void createLicencePosition_noExistingPositionOnDate(Integer maxPositionOrder, int positionOrder) {
     var transaction = LicenceTransactionTestUtil.newBuilder().build();
-    var date  = LocalDate.of(2026, 1, 1);
+    var date  = LocalDate.of(2026, Month.JANUARY, 1);
 
     when(licencePositionRepository.findMaxPositionDateOrder(LICENCE, date)).thenReturn(maxPositionOrder);
 
@@ -108,11 +120,11 @@ class LicencePositionServiceTest {
   @Test
   void getChronologicalLicencePositions() {
     var olderPosition1 = LicencePositionTestUtil.newBuilder()
-        .withPositionDate(LocalDate.of(2026, 1, 1)).withPositionOrder(1).build();
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
     var olderPosition2 = LicencePositionTestUtil.newBuilder()
-        .withPositionDate(LocalDate.of(2026, 1, 1)).withPositionOrder(2).build();
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(2).build();
     var newestPosition = LicencePositionTestUtil.newBuilder()
-        .withPositionDate(LocalDate.of(2026, 6, 1)).withPositionOrder(1).build();
+        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).build();
 
 
     when(licencePositionRepository.findByLicence(LICENCE))
@@ -127,11 +139,11 @@ class LicencePositionServiceTest {
     var older = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
-        .withPositionDate(LocalDate.of(2026, 1, 1)).withPositionOrder(1).build();
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY  , 1)).withPositionOrder(1).withIsExecuted(true).build();
     var newer = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-2").build())
-        .withPositionDate(LocalDate.of(2026, 6, 1)).withPositionOrder(1).build();
+        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(false).build();
     var chronological = List.of(older, newer);
 
     var changes = List.of(
@@ -142,7 +154,7 @@ class LicencePositionServiceTest {
 
     var stateView = new LicencePositionStateView(null);
 
-    when(licencePositionService.getChronologicalLicencePositions(LICENCE)).thenReturn(chronological);
+    when(licencePositionRepository.findByLicence(LICENCE)).thenReturn(chronological);
     when(licencePositionChangeService.findByLicencePositionIn(chronological)).thenReturn(changes);
     when(licencePositionChangeViewService.getChangeViews(newer, chronological, changes)).thenReturn(changeViews);
     when(licencePositionStateViewService.getStateView(newer, chronological, changes)).thenReturn(stateView);
@@ -151,9 +163,150 @@ class LicencePositionServiceTest {
 
     assertThat(result.timelineViews())
         .extracting(LicencePositionTimelineView::regulatorReference)
-        .containsExactly("REF-2", "REF-1");
-    assertThat(result.licencePosition()).isEqualTo(newer);
+        .containsExactly("REF-1");
     assertThat(result.changeViewByType()).isEqualTo(changeViews);
     assertThat(result.stateView()).isEqualTo(stateView);
+  }
+
+  @Test
+  void getCorrectionPositionPageView_buildsEditUrlsAndIncludesAddedPositions() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+
+    var executed = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true).build();
+    var chronological = List.of(executed);
+
+    List<LicencePositionChange> changes = List.of();
+    Map<String, LicencePositionChangeView> changeViews = Map.of();
+    var stateView = new LicencePositionStateView(null);
+
+    var addedPositionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withEffectiveDate(LocalDate.of(2026, Month.JUNE, 1))
+            .withCorrectionReference("ADD-REF")
+            .build())
+        .build();
+
+    when(licencePositionRepository.findByLicence(LICENCE)).thenReturn(chronological);
+    when(licencePositionChangeService.findByLicencePositionIn(chronological)).thenReturn(changes);
+    when(licencePositionChangeViewService.getChangeViews(executed, chronological, changes)).thenReturn(changeViews);
+    when(licencePositionStateViewService.getStateView(executed, chronological, changes)).thenReturn(stateView);
+    when(licencePositionCorrectionService.getAddedLicencePositionCorrections(correction))
+        .thenReturn(List.of(addedPositionCorrection));
+
+    var result = licencePositionService.getCorrectionPositionPageView(correction, executed);
+
+    assertThat(result.canEdit()).isTrue();
+    assertThat(result.timelineViews())
+        .extracting(LicencePositionTimelineView::regulatorReference, LicencePositionTimelineView::addedInThisCorrection)
+        .containsExactly(
+            tuple("ADD-REF", true),
+            tuple("REF-1", false)
+        );
+  }
+
+  @Test
+  void getCorrectionAddedPositionPageView() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var payload = CreateLicencePositionPayloadTestUtil.newBuilder()
+        .withEffectiveDate(LocalDate.of(2026, Month.JUNE, 5))
+        .withCorrectionReference("ADD-REF")
+        .build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withPayload(payload)
+        .build();
+
+    var executed = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true).build();
+    var chronological = List.of(executed);
+
+    when(licencePositionRepository.findByLicence(LICENCE)).thenReturn(chronological);
+    when(licencePositionCorrectionService.getAddedLicencePositionCorrections(correction))
+        .thenReturn(List.of(positionCorrection));
+
+    var result = licencePositionService.getCorrectionAddedPositionPageView(correction, positionCorrection);
+
+    assertThat(result.changeViewByType()).isEmpty();
+    assertThat(result.stateView()).isNull();
+    assertThat(result.canEdit()).isTrue();
+    assertThat(result.selectedPositionId()).isEqualTo(UUID.fromString(payload.licencePositionId()));
+    assertThat(result.timelineViews())
+        .extracting(LicencePositionTimelineView::regulatorReference)
+        .containsExactly("ADD-REF", "REF-1");
+  }
+
+  @Test
+  void getCorrectionTimeline_ordersLiveAndAddedPositionsByDateThenOrderDescending() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+
+    var liveJan = executedPosition("LIVE-JAN", LocalDate.of(2026, Month.JANUARY, 1), 1);
+    var liveJun1 = executedPosition("LIVE-JUN-1", LocalDate.of(2026, Month.JUNE, 1), 1);
+    var liveJun2 = executedPosition("LIVE-JUN-2", LocalDate.of(2026, Month.JUNE, 1), 2);
+
+    var addedMar = addedCorrection(correction, "ADD-MAR", LocalDate.of(2026, Month.MARCH, 1), 1);
+    var addedJun3 = addedCorrection(correction, "ADD-JUN-3", LocalDate.of(2026, Month.JUNE, 1), 3);
+
+    when(licencePositionRepository.findByLicence(LICENCE)).thenReturn(List.of(liveJan, liveJun1, liveJun2));
+    when(licencePositionCorrectionService.getAddedLicencePositionCorrections(correction))
+        .thenReturn(List.of(addedMar, addedJun3));
+
+    var result = licencePositionService.getCorrectionAddedPositionPageView(correction, addedMar);
+
+    assertThat(result.timelineViews())
+        .extracting(LicencePositionTimelineView::regulatorReference)
+        .containsExactly("ADD-JUN-3", "LIVE-JUN-2", "LIVE-JUN-1", "ADD-MAR", "LIVE-JAN");
+  }
+
+  private LicencePosition executedPosition(String regulatorReference, LocalDate positionDate, int positionOrder) {
+    return LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference(regulatorReference).build())
+        .withPositionDate(positionDate)
+        .withPositionOrder(positionOrder)
+        .withIsExecuted(true)
+        .build();
+  }
+
+  private LicencePositionCorrection addedCorrection(
+      LicenceCorrection correction,
+      String correctionReference,
+      LocalDate effectiveDate,
+      int effectiveDateOrder
+  ) {
+    return LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withEffectiveDate(effectiveDate)
+            .withEffectiveDateOrder(effectiveDateOrder)
+            .withCorrectionReference(correctionReference)
+            .build())
+        .build();
+  }
+
+  @Test
+  void getExecutedChronologicalLicencePositions_returnsOnlyExecutedInChronologicalOrder() {
+    var licence = LicenceTestUtil.builder().build();
+
+    var earlierExecuted = LicencePositionTestUtil.newBuilder()
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1))
+        .withIsExecuted(true)
+        .build();
+    var nonExecuted = LicencePositionTestUtil.newBuilder()
+        .withPositionDate(LocalDate.of(2026, Month.MARCH, 1))
+        .withIsExecuted(false)
+        .build();
+
+    when(licencePositionRepository.findByLicence(licence))
+        .thenReturn(List.of(nonExecuted, earlierExecuted));
+
+    var result = licencePositionService.getExecutedChronologicalLicencePositions(licence);
+
+    assertThat(result).containsExactly(earlierExecuted);
   }
 }

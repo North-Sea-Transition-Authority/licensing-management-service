@@ -4,7 +4,7 @@
 
 <#assign pageTitle>
   <#if licencePositionPageView.hasPositions()>
-    ${licencePositionPageView.licencePosition().getFormattedPositionDate()} (${licencePositionPageView.licencePosition().getLicenceTransaction().getRegulatorReference()})
+      ${licencePositionPageView.date()} (${licencePositionPageView.regulatorReference()})
   <#else>
       Licence positions
   </#if>
@@ -21,13 +21,12 @@
       <@grid.gridRow>
         <@grid.threeQuarterColumn>
           <@licencePositionDetails.details
-            licencePosition=licencePositionPageView.licencePosition()
             licencePositionState=licencePositionPageView.stateView()
             licencePositionChanges=licencePositionPageView.changeViewByType()
           />
         </@grid.threeQuarterColumn>
         <@grid.oneQuarterColumn>
-          <@licencePositionTimeLine.timeline licencePositionTimelineView=licencePositionPageView.timelineViews() licencePosition=licencePositionPageView.licencePosition()/>
+          <@licencePositionTimeLine.timeline licencePositionTimelineViews=licencePositionPageView.timelineViews() selectedPositionId=licencePositionPageView.selectedPositionId()/>
         </@grid.oneQuarterColumn>
       </@grid.gridRow>
     <#else>

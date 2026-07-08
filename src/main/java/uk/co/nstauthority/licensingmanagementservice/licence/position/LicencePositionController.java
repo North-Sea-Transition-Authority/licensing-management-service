@@ -19,7 +19,6 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 public class LicencePositionController {
 
   //TODO LMS2-52: Access to timeline, licence position and schedule information for a licence
-
   private final LicencePositionService licencePositionService;
   private final LicenceService licenceService;
 

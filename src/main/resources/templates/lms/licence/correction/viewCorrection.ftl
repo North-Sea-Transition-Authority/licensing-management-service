@@ -1,11 +1,14 @@
 <#include '../../layout/layout.ftl'>
+<#import '../position/_licencePositionTimeLine.ftl' as licencePositionTimeLine>
+<#import '../position/_licencePositionDetails.ftl' as licencePositionDetails>
 
 <@defaultPage
   htmlTitle=pageTitle
   pageHeading=pageTitle
+  pageSize=PageSize.FULL_COLUMN
 >
   <@fdsSummaryList.summaryListCard summaryListId="correction-details" headingText="Correction details">
-   <@fdsSummaryList.summaryListRowNoAction keyText="Correction reference">
+    <@fdsSummaryList.summaryListRowNoAction keyText="Correction reference">
             ${correctionReference}
         </@fdsSummaryList.summaryListRowNoAction>
         <@fdsSummaryList.summaryListRowNoAction keyText="Reason for correction">
@@ -15,25 +18,29 @@
 
     <@fdsAction.link linkText="Add position" linkUrl=springUrl(addPositionUrl) linkClass="govuk-button"/>
 
-  <h2 class="govuk-heading-m">Executed timeline</h2>
-
-    <#if licencePositionTimelineView?has_content>
-        <@fdsTimeline.timeline>
-            <@fdsTimeline.timelineSection>
-                <#list licencePositionTimelineView as licencePositionTimelineEntry>
-                    <@fdsTimeline.timelineTimeStamp
-                    timeStampHeading=licencePositionTimelineEntry.formattedPositionDate()
-                    timeStampHeadingHint=licencePositionTimelineEntry.regulatorReference()
-                    timeStampClass=licencePositionTimelineEntry?is_last?then("fds-timeline__time-stamp--no-border", "")
-                    >
-                        <@fdsTimeline.timelineEvent>
-                          <p class="govuk-body">[POSITION STATE HERE]</p>
-                        </@fdsTimeline.timelineEvent>
-                    </@fdsTimeline.timelineTimeStamp>
-                </#list>
-            </@fdsTimeline.timelineSection>
-        </@fdsTimeline.timeline>
+    <#if licencePositionPageView.hasPositions()>
+      <h2 class="govuk-heading-m">${licencePositionPageView.date()} (${licencePositionPageView.regulatorReference()})</h2>
+        <@grid.gridRow>
+            <@grid.threeQuarterColumn>
+            <#if licencePositionPageView.isAddedPosition()>
+              <h2 class="govuk-heading-m">${licencePositionPageView.date()}</h2>
+                <@fdsSummaryList.summaryListCard headingText="Added position" summaryListId="added-position">
+                    <@fdsSummaryList.summaryListRowNoAction keyText="Regulator reference">
+                        ${licencePositionPageView.regulatorReference()}
+                    </@fdsSummaryList.summaryListRowNoAction>
+                </@fdsSummaryList.summaryListCard>
+            <#else>
+                <@licencePositionDetails.details
+                licencePositionState=licencePositionPageView.stateView()
+                licencePositionChanges=licencePositionPageView.changeViewByType()
+                />
+            </#if>
+            </@grid.threeQuarterColumn>
+            <@grid.oneQuarterColumn>
+                <@licencePositionTimeLine.timeline licencePositionTimelineViews=licencePositionPageView.timelineViews() selectedPositionId=licencePositionPageView.selectedPositionId()/>
+            </@grid.oneQuarterColumn>
+        </@grid.gridRow>
     <#else>
-      <p class="govuk-body">No executed licence positions for this licence.</p>
+      <@fdsInsetText.insetText>No licence positions for this licence.</@fdsInsetText.insetText>
     </#if>
 </@defaultPage>

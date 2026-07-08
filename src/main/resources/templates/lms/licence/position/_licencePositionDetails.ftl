@@ -1,10 +1,7 @@
 <#include '../../layout/layout.ftl'>
 <#import '_positionChanges.ftl' as positionChanges>
 
-<#macro details licencePosition licencePositionState licencePositionChanges canEdit=false>
-    <#assign headingText>
-      ${licencePosition.getFormattedPositionDate()} (${licencePosition.getLicenceTransaction().getRegulatorReference()})
-    </#assign>
+<#macro details licencePositionState licencePositionChanges canEdit=false>
     <#if canEdit>
       <@fdsAction.buttonGroup>
           <@fdsAction.link

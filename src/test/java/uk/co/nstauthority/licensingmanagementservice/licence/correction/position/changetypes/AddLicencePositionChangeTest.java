@@ -10,7 +10,11 @@ class AddLicencePositionChangeTest {
 
   @Test
   void builder() {
-    List<LicencePositionChangeOperation> changes = List.of();
+    var operation = LicencePositionChangeOperation.newAdministratorChange()
+        .withOperator(1)
+        .build();
+
+    List<LicencePositionChangeOperation> changes = List.of(operation);
 
     var addChanges = LicencePositionChangeType.addLicencePositionChange()
         .withChangeId("123")
@@ -20,7 +24,7 @@ class AddLicencePositionChangeTest {
 
     assertThat(addChanges.changeId()).isEqualTo("123");
     assertThat(addChanges.changeOrder()).isEqualTo(123);
-    assertThat(addChanges.operations()).isEqualTo(changes);
+    assertThat(addChanges.operations()).containsExactly(operation);
     assertThat(addChanges.type()).isEqualTo(LicencePositionChangeType.ADD_CHANGE);
   }
 }

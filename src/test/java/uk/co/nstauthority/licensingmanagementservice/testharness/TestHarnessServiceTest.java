@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -42,7 +43,7 @@ class TestHarnessServiceTest {
   private static final int BP_EXPLORATION_ALPHA_LTD_ID = 304;
   private static final int SHELL_PLC_ID = 9205;
 
-  private static final LocalDate TODAY = LocalDate.of(2026, 6, 10);
+  private static final LocalDate TODAY = LocalDate.of(2026, Month.JUNE, 10);
   private static final Clock CLOCK = Clock.fixed(TODAY.atStartOfDay(ZoneOffset.UTC).toInstant(), ZoneOffset.UTC);
 
   private static final LicenceTransaction TRANSACTION_1 = LicenceTransactionTestUtil.newBuilder().build();

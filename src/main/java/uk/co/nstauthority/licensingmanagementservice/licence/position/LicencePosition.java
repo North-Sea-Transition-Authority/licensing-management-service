@@ -40,6 +40,8 @@ public class LicencePosition {
 
   private int positionDateOrder;
 
+  private boolean isExecuted;
+
   public LicencePosition() {
 
   }
@@ -88,4 +90,11 @@ public class LicencePosition {
     return DateUtil.formatLongDate(this.positionDate);
   }
 
+  public boolean isExecuted() {
+    return isExecuted;
+  }
+
+  public void setExecuted(boolean executed) {
+    isExecuted = executed;
+  }
 }

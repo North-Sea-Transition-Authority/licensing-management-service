@@ -1,11 +1,15 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -13,6 +17,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
@@ -28,7 +33,7 @@ class LicencePositionCorrectionServiceTest {
   private static final LicenceCorrection LICENCE_CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withLicence(LICENCE)
       .build();
-  private static final LocalDate POSITION_DATE = LocalDate.of(2026, 6, 5);
+  private static final LocalDate POSITION_DATE = LocalDate.of(2026, Month.JUNE, 5);
   private static final String CORRECTION_REFERENCE = "TEST-REF";
 
   @Mock
@@ -110,6 +115,54 @@ class LicencePositionCorrectionServiceTest {
     licencePositionCorrectionService.addNewPosition(LICENCE_CORRECTION, POSITION_DATE, CORRECTION_REFERENCE);
 
     assertThat(captureSavedPayload().effectiveDateOrder()).isEqualTo(6);
+  }
+
+  @Test
+  void getPositionCorrectionForCorrection_whenFound_returnsCorrection() {
+    var positionCorrectionId = UUID.randomUUID();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withId(positionCorrectionId)
+        .build();
+
+    when(licencePositionCorrectionRepository.findByIdAndLicenceCorrection(positionCorrectionId, LICENCE_CORRECTION))
+        .thenReturn(Optional.of(positionCorrection));
+
+    assertThat(licencePositionCorrectionService
+        .getPositionCorrectionForCorrection(positionCorrectionId, LICENCE_CORRECTION))
+        .isEqualTo(positionCorrection);
+  }
+
+  @Test
+  void getPositionCorrectionForCorrection_whenNotFound_throws() {
+    var positionCorrectionId = UUID.randomUUID();
+
+    when(licencePositionCorrectionRepository.findByIdAndLicenceCorrection(positionCorrectionId, LICENCE_CORRECTION))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> licencePositionCorrectionService
+        .getPositionCorrectionForCorrection(positionCorrectionId, LICENCE_CORRECTION))
+        .isInstanceOf(LmsEntityNotFoundException.class);
+  }
+
+  @Test
+  void undoPositionCorrection_deletesCorrection() {
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+
+    licencePositionCorrectionService.undoPositionCorrection(positionCorrection);
+
+    verify(licencePositionCorrectionRepository).delete(positionCorrection);
+  }
+
+  @Test
+  void getAddedLicencePositionCorrections_returnsAddPositionCorrectionsFromRepository() {
+    var addedCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+
+    when(licencePositionCorrectionRepository
+        .findByLicenceCorrectionAndChangeType(LICENCE_CORRECTION, LicencePositionCorrectionChangeType.ADD_POSITION))
+        .thenReturn(List.of(addedCorrection));
+
+    assertThat(licencePositionCorrectionService.getAddedLicencePositionCorrections(LICENCE_CORRECTION))
+        .containsExactly(addedCorrection);
   }
 
   private CreateLicencePositionPayload captureSavedPayload() {

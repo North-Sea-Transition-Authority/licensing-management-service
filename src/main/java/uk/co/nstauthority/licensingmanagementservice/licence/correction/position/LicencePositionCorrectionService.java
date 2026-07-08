@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
@@ -51,6 +52,26 @@ public class LicencePositionCorrectionService {
     licenceCorrectionPosition.setPayload(payload);
 
     licencePositionCorrectionRepository.save(licenceCorrectionPosition);
+  }
+
+  public LicencePositionCorrection getPositionCorrectionForCorrection(
+      UUID licencePositionCorrectionId,
+      LicenceCorrection licenceCorrection
+  ) {
+    return licencePositionCorrectionRepository
+        .findByIdAndLicenceCorrection(licencePositionCorrectionId, licenceCorrection)
+        .orElseThrow(() -> new LmsEntityNotFoundException("licencePositionCorrection", licencePositionCorrectionId));
+  }
+
+  @Transactional
+  public void undoPositionCorrection(LicencePositionCorrection licencePositionCorrection) {
+    licencePositionCorrectionRepository.delete(licencePositionCorrection);
+  }
+
+
+  public List<LicencePositionCorrection> getAddedLicencePositionCorrections(LicenceCorrection licenceCorrection) {
+    return licencePositionCorrectionRepository
+        .findByLicenceCorrectionAndChangeType(licenceCorrection, LicencePositionCorrectionChangeType.ADD_POSITION);
   }
 
   //TODO - Effective date order is auto-assigned for now. When multiple

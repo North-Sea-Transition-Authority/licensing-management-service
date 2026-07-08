@@ -1,9 +1,9 @@
 <#include '../../layout/layout.ftl'>
 
-<#macro timeline licencePositionTimelineView licencePosition>
+<#macro timeline licencePositionTimelineViews selectedPositionId>
   <@fdsTimeline.timeline>
       <@fdsTimeline.timelineSection>
-          <#list licencePositionTimelineView as licencePositionTimelineViewEntry>
+          <#list licencePositionTimelineViews as licencePositionTimelineViewEntry>
               <#assign positionUrl>
                   <@fdsAction.link
                     linkText=licencePositionTimelineViewEntry.formattedPositionDate()
@@ -15,7 +15,7 @@
               <#if licencePositionTimelineViewEntry?is_last>
                   <#assign timeStampClasses += ["fds-timeline__time-stamp--no-border"]/>
               </#if>
-              <#if licencePositionTimelineViewEntry.positionId() == licencePosition.id>
+              <#if licencePositionTimelineViewEntry.positionId() == selectedPositionId>
                   <#assign timeStampClasses += ["fds-timeline__time-stamp--selected"]/>
               </#if>
               <@fdsTimeline.timelineTimeStamp
@@ -23,6 +23,16 @@
                 timeStampHeadingHint=licencePositionTimelineViewEntry.regulatorReference()
                 timeStampClass=timeStampClasses?join(" ")
               >
+              <#if licencePositionTimelineViewEntry.addedInThisCorrection()>
+                <p class="govuk-body">
+                    <@fdsTag.tag tagClass="govuk-tag--green">Added position</@fdsTag.tag>
+                </p>
+                  <@fdsAction.link
+                  linkText="Undo"
+                  linkUrl=springUrl(licencePositionTimelineViewEntry.undoUrl())
+                  linkScreenReaderText=licencePositionTimelineViewEntry.formattedPositionDate()
+                  />
+              </#if>
               </@fdsTimeline.timelineTimeStamp>
           </#list>
       </@fdsTimeline.timelineSection>

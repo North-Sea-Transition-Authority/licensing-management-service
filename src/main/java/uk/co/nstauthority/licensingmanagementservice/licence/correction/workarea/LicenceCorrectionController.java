@@ -11,8 +11,11 @@ import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionPageView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -23,26 +26,82 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 public class LicenceCorrectionController {
 
   private final LicencePositionService licencePositionService;
+  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicenceService licenceService;
 
-  public LicenceCorrectionController(LicencePositionService licencePositionService) {
+  public LicenceCorrectionController(
+      LicencePositionService licencePositionService,
+      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicenceService licenceService
+  ) {
     this.licencePositionService = licencePositionService;
+    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licenceService = licenceService;
   }
 
   @GetMapping("/{correctionId}")
   public ModelAndView renderCorrection(
       @PathVariable UUID correctionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      @RequestAttribute("validatedCorrection") LicenceCorrection licenceCorrection
   ) {
-    var licence = correction.getLicence();
+    var licence = licenceCorrection.getLicence();
+    var executedLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
+    var addedPositions = licencePositionCorrectionService.getAddedLicencePositionCorrections(licenceCorrection);
 
+    if (executedLicencePositions.isEmpty() && addedPositions.isEmpty()) {
+      return licencePositionsModelAndView(licenceCorrection, LicencePositionPageView.empty());
+    }
+
+    if (!executedLicencePositions.isEmpty()) {
+      return ReverseRouter.redirect(on(this.getClass()).renderLicencePosition(
+          correctionId, executedLicencePositions.getLast().getId(), licenceCorrection));
+    }
+
+    return ReverseRouter.redirect(on(this.getClass()).renderAddedPosition(
+        correctionId, addedPositions.getLast().getId(), licenceCorrection));
+  }
+
+  @GetMapping("/{correctionId}/{licencePositionId}")
+  public ModelAndView renderLicencePosition(
+      @PathVariable UUID correctionId,
+      @PathVariable UUID licencePositionId,
+      @RequestAttribute("validatedCorrection") LicenceCorrection licenceCorrection
+  ) {
+    var licence = licenceCorrection.getLicence();
+    var licencePosition = licencePositionService.getPositionForLicence(licence, licencePositionId);
+    var licencePositionPageView = licencePositionService.getCorrectionPositionPageView(licenceCorrection, licencePosition);
+
+    return licencePositionsModelAndView(licenceCorrection, licencePositionPageView);
+  }
+
+  @GetMapping("/{correctionId}/added-positions/{licencePositionCorrectionId}")
+  public ModelAndView renderAddedPosition(
+      @PathVariable UUID correctionId,
+      @PathVariable UUID licencePositionCorrectionId,
+      @RequestAttribute("validatedCorrection") LicenceCorrection licenceCorrection
+  ) {
+    var positionCorrection = licencePositionCorrectionService
+        .getPositionCorrectionForCorrection(licencePositionCorrectionId, licenceCorrection);
+    var licencePositionPageView = licencePositionService
+        .getCorrectionAddedPositionPageView(licenceCorrection, positionCorrection);
+
+    return licencePositionsModelAndView(licenceCorrection, licencePositionPageView);
+  }
+
+  private ModelAndView licencePositionsModelAndView(
+      LicenceCorrection licenceCorrection,
+      LicencePositionPageView licencePositionPageView
+  ) {
+    var licence =  licenceCorrection.getLicence();
     return new ModelAndView("lms/licence/correction/viewCorrection")
+        .addObject("pageCaption", licenceService.getLicencePageCaption(licence))
+        .addObject("licencePositionPageView", licencePositionPageView)
         .addObject("pageTitle", licence.getLicenceReference())
-        .addObject("correctionReference", correction.getCorrectionReference())
-        .addObject("reason", correction.getReason())
-        .addObject("licencePositionTimelineView", licencePositionService.getTimelineView(licence))
+        .addObject("correctionReference", licenceCorrection.getCorrectionReference())
+        .addObject("reason", licenceCorrection.getReason())
         .addObject("addPositionUrl",
             ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-                .renderAddLicencePositionCorrection(correction.getId(), null)));
+                .renderAddLicencePositionCorrection(licenceCorrection.getId(), null)));
   }
 
 }

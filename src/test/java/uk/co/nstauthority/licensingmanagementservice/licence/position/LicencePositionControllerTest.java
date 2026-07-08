@@ -11,6 +11,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -31,7 +32,10 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 class LicencePositionControllerTest extends AbstractControllerTest {
 
   private static final Integer LICENCE_ID = 1;
-  private static final Licence LICENCE = LicenceTestUtil.builder().withId(LICENCE_ID).build();
+  private static final Licence LICENCE = LicenceTestUtil.builder()
+      .withId(LICENCE_ID)
+      .withLicenceReference("REF-1")
+      .build();
   private static final String PAGE_CAPTION = "licence - 1";
   private static final UUID POSITION_ID = UUID.randomUUID();
 
@@ -51,8 +55,8 @@ class LicencePositionControllerTest extends AbstractControllerTest {
 
   @Test
   void renderLicencePositionTimeline_redirectsToLatestPosition() throws Exception {
-    var older  = LicencePositionTestUtil.newBuilder().withPositionDate(LocalDate.of(2026, 1, 1)).build();
-    var latest = LicencePositionTestUtil.newBuilder().withPositionDate(LocalDate.of(2026, 6, 1)).build();
+    var older  = LicencePositionTestUtil.newBuilder().withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).build();
+    var latest = LicencePositionTestUtil.newBuilder().withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).build();
 
     when(licencePositionService.getChronologicalLicencePositions(LICENCE))
         .thenReturn(List.of(older, latest));
@@ -90,12 +94,16 @@ class LicencePositionControllerTest extends AbstractControllerTest {
   void renderLicencePosition() throws Exception {
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var pageView = new LicencePositionPageView(
-        List.of(new LicencePositionTimelineView(POSITION_ID, "url1", "REF-2", "5 June 2026")),
-        position,
+        List.of(new LicencePositionTimelineView(POSITION_ID, "url1", "REF-2", "5 June 2026", false, null)),
+        position.getFormattedPositionDate(),
+        position.getLicence().getLicenceReference(),
         Map.of(),
         new LicencePositionStateView(
             new AdministratorStateView("admin organisation")
-        )
+        ),
+        false,
+        POSITION_ID,
+        false
     );
 
     when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(PAGE_CAPTION);

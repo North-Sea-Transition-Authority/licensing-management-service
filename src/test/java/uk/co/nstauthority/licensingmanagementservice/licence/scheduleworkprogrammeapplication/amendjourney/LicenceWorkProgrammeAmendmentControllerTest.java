@@ -140,7 +140,7 @@ class LicenceWorkProgrammeAmendmentControllerTest extends AbstractControllerTest
 
   @Test
   void submitValidForm() throws Exception {
-    when(licenceWorkProgrammeAmendmentFormValidator.isValid(any(), any()))
+    when(licenceWorkProgrammeAmendmentFormValidator.isValid(any(), any(), any()))
         .thenReturn(true);
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 

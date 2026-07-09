@@ -174,7 +174,7 @@ class LicenceWorkProgrammeAmendmentServiceTest {
 
   @Test
   void validateAllWorkProgrammeAmendments_withValidAmendments() {
-    when(licenceWorkProgrammeAmendmentFormValidator.isValid(any(), any())).thenReturn(true);
+    when(licenceWorkProgrammeAmendmentFormValidator.isValid(any(), any(), any())).thenReturn(true);
 
     LicenceWorkProgrammeAmendmentRequest request = new LicenceWorkProgrammeAmendmentRequest();
     request.setWorkProgrammeChangeRequested(true);
@@ -185,19 +185,19 @@ class LicenceWorkProgrammeAmendmentServiceTest {
     boolean result = licenceWorkProgrammeAmendmentService.validateAllWorkProgrammeAmendments(List.of(request));
 
     assertTrue(result);
-    verify(licenceWorkProgrammeAmendmentFormValidator).isValid(any(LicenceWorkProgrammeAmendmentForm.class), any());
+    verify(licenceWorkProgrammeAmendmentFormValidator).isValid(any(LicenceWorkProgrammeAmendmentForm.class), any(), any());
   }
 
   @Test
   void validateAllWorkProgrammeAmendments_withInvalidAmendments() {
-    when(licenceWorkProgrammeAmendmentFormValidator.isValid(any(), any())).thenReturn(false);
+    when(licenceWorkProgrammeAmendmentFormValidator.isValid(any(), any(), any())).thenReturn(false);
 
     LicenceWorkProgrammeAmendmentRequest request = new LicenceWorkProgrammeAmendmentRequest();
     request.setWorkProgrammeChangeRequested(false);
     request.setWorkProgrammeCompletionDateChangeRequested(false);
 
     assertFalse(licenceWorkProgrammeAmendmentService.validateAllWorkProgrammeAmendments(List.of(request)));
-    verify(licenceWorkProgrammeAmendmentFormValidator).isValid(any(LicenceWorkProgrammeAmendmentForm.class), any());
+    verify(licenceWorkProgrammeAmendmentFormValidator).isValid(any(LicenceWorkProgrammeAmendmentForm.class), any(), any());
   }
 
   @Test

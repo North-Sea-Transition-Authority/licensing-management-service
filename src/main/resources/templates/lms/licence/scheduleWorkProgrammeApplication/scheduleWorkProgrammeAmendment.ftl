@@ -20,12 +20,12 @@
 
         </@fdsSummaryList.summaryListCard>
 
-        <#if (isLinkedRelativeDate)>
+        <#if isLinkedRelativeDate>
             <@fdsRadio.radioGroup
-            path="form.durationExtensionRequired"
-            labelText="Are you requesting an extension to the work programme completion date?"
-            hiddenContent=true>
-
+                path="form.durationExtensionRequired"
+                labelText="Are you requesting an extension to the work programme completion date?"
+                hiddenContent=true
+            >
                 <@fdsRadio.radioYes path="form.durationExtensionRequired">
                     <@duration.threeFieldDuration
                     dayPath="form.workProgrammeExtensionDuration.days"
@@ -41,21 +41,29 @@
                 <@fdsRadio.radioNo path="form.durationExtensionRequired"/>
 
             </@fdsRadio.radioGroup>
-        </#if>
-        <@fdsRadio.radioGroup
-        path="form.additionalInfoRequired"
-        labelText="Are you requesting an amendment to the work programme activity content?"
-        hiddenContent=true>
+            <@fdsRadio.radioGroup
+                path="form.additionalInfoRequired"
+                labelText="Are you requesting an amendment to the work programme activity content?"
+                hiddenContent=true
+            >
+                <@fdsRadio.radioYes path="form.additionalInfoRequired">
+                    <@fdsTextarea.textarea
+                        path="form.workProgrammeAmendmentInformation"
+                        nestingPath="form.additionalInfoRequired"
+                        labelText="What amendments would you like to request?"
+                    />
+                </@fdsRadio.radioYes>
 
-            <@fdsRadio.radioYes path="form.additionalInfoRequired">
-                <@fdsTextarea.textarea
+                <@fdsRadio.radioNo path="form.additionalInfoRequired"/>
+            </@fdsRadio.radioGroup>
+        <#else>
+            <@fdsTextarea.textarea
                 path="form.workProgrammeAmendmentInformation"
                 nestingPath="form.additionalInfoRequired"
-                labelText="What amendments would you like to request?"/>
-            </@fdsRadio.radioYes>
+                labelText="What amendments would you like to request?"
+            />
+        </#if>
 
-            <@fdsRadio.radioNo path="form.additionalInfoRequired"/>
-        </@fdsRadio.radioGroup>
       <br>
 
         <@fdsAction.submitButtons

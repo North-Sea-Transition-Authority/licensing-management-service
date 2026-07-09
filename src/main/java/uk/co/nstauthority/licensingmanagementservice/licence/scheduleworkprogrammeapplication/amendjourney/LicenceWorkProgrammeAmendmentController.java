@@ -74,7 +74,7 @@ public class LicenceWorkProgrammeAmendmentController {
       @ModelAttribute("form") LicenceWorkProgrammeAmendmentForm form,
       BindingResult bindingResult
   ) {
-    if (!licenceWorkProgrammeAmendmentFormValidator.isValid(form, bindingResult)) {
+    if (!licenceWorkProgrammeAmendmentFormValidator.isValid(form, bindingResult, workProgrammeActivity)) {
       return getModelAndView(workProgrammeActivity, form, scheduleWorkProgrammeApplicationDetail);
     }
 

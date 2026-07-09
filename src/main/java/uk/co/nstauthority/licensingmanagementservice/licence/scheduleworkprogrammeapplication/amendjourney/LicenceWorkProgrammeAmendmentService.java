@@ -154,15 +154,13 @@ public class LicenceWorkProgrammeAmendmentService {
   ) {
     return workProgrammeApplicationDetails
         .stream()
-        .map(this::licenceWorkProgramAmendmentToForm)
-        .allMatch(form -> {
-          BindingResult bindingResult = new BeanPropertyBindingResult(
-              form,
-              "form"
-          );
+        .allMatch(request -> {
+          var form = licenceWorkProgramAmendmentToForm(request);
+          BindingResult bindingResult = new BeanPropertyBindingResult(form, "form");
           return licenceWorkProgrammeAmendmentFormValidator.isValid(
               form,
-              bindingResult
+              bindingResult,
+              request.getWorkProgrammeActivity()
           );
         });
   }

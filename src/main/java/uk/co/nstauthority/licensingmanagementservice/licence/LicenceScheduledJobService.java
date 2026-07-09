@@ -28,7 +28,7 @@ public class LicenceScheduledJobService {
   }
 
   @Transactional
-  @Scheduled(cron = "0 0 * * * *")
+  @Scheduled(fixedRateString = "PT1H")
   public void retrieveAndSavePearsLicences() {
 
     LOGGER.info("Starting update of PEARS licences and responsible organisations");

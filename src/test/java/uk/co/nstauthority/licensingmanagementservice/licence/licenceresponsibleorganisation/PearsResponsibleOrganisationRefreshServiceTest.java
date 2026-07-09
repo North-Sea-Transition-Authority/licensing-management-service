@@ -14,12 +14,17 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContact;
+import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactRepository;
 
 @ExtendWith(MockitoExtension.class)
 class PearsResponsibleOrganisationRefreshServiceTest {
 
   @Mock
   private LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository;
+
+  @Mock
+  private LicenceContactRepository licenceContactRepository;
 
   @InjectMocks
   private PearsResponsibleOrganisationRefreshService pearsResponsibleOrganisationRefreshService;
@@ -108,5 +113,35 @@ class PearsResponsibleOrganisationRefreshServiceTest {
     pearsResponsibleOrganisationRefreshService.deleteRemovedResponsibleOrganisationsForLicences(licenceMap);
 
     verify(licenceResponsibleOrganisationRepository).deleteAll(List.of(existingOrganisation3));
+  }
+
+  @Test
+  void deleteRemovedResponsibleOrganisationsForLicences_deletesContactsForDepartedLicensees() {
+    var licenceMap = Map.of(1, List.of(1));
+
+    var licence = new Licence();
+    licence.setId(1);
+
+    var activeLicensee = new LicenceResponsibleOrganisation();
+    activeLicensee.setLicence(licence);
+    activeLicensee.setResponsibleOrganisationId(1);
+    activeLicensee.setManagedByLms(false);
+
+    var departedLicensee = new LicenceResponsibleOrganisation();
+    departedLicensee.setLicence(licence);
+    departedLicensee.setResponsibleOrganisationId(2);
+    departedLicensee.setManagedByLms(false);
+
+    when(licenceResponsibleOrganisationRepository.findAllByManagedByLmsIsFalse())
+        .thenReturn(List.of(activeLicensee, departedLicensee));
+
+    var departedContact = new LicenceContact();
+    departedContact.setLicensee(departedLicensee);
+    when(licenceContactRepository.findAllByLicenseeIn(List.of(departedLicensee)))
+        .thenReturn(List.of(departedContact));
+
+    pearsResponsibleOrganisationRefreshService.deleteRemovedResponsibleOrganisationsForLicences(licenceMap);
+
+    verify(licenceContactRepository).deleteAll(List.of(departedContact));
   }
 }

@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactRepository;
 
 @Service
 public class PearsResponsibleOrganisationRefreshService {
@@ -15,10 +16,13 @@ public class PearsResponsibleOrganisationRefreshService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PearsResponsibleOrganisationRefreshService.class);
 
   private final LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository;
+  private final LicenceContactRepository licenceContactRepository;
 
   public PearsResponsibleOrganisationRefreshService(
-      LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository) {
+      LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository,
+      LicenceContactRepository licenceContactRepository) {
     this.licenceResponsibleOrganisationRepository = licenceResponsibleOrganisationRepository;
+    this.licenceContactRepository = licenceContactRepository;
   }
 
   @Transactional
@@ -39,6 +43,9 @@ public class PearsResponsibleOrganisationRefreshService {
             .noneMatch(licenceOrg -> Objects.equals(licenceOrg.licenceId(), org.getLicence().getId())
                 && Objects.equals(licenceOrg.responsibleOrganisationId(), org.getResponsibleOrganisationId())))
         .toList();
+
+    var removedContacts = licenceContactRepository.findAllByLicenseeIn(removedOrganisations);
+    licenceContactRepository.deleteAll(removedContacts);
 
     // Delete the removed organisations
     licenceResponsibleOrganisationRepository.deleteAll(removedOrganisations);

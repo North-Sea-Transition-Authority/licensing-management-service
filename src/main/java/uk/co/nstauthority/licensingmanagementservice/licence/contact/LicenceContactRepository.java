@@ -17,4 +17,6 @@ public interface LicenceContactRepository extends JpaRepository<LicenceContact, 
 
   @EntityGraph(attributePaths = {"licensee", "licensee.licence"})
   List<LicenceContact> findAllByLicensee_ResponsibleOrganisationIdIn(Collection<Integer> responsibleOrganisationIds);
+
+  List<LicenceContact> findAllByLicenseeIn(Collection<LicenceResponsibleOrganisation> licensees);
 }

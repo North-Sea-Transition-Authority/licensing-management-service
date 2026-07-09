@@ -135,9 +135,9 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
         .toList();
 
     var dataItemRow = SummaryDataView.newBuilder()
-        .addStringValue("Status", applicationDetail.getStatus().getDisplayName())
-        .addStringValue("Licence type", licence.getType().getDisplayName())
+        .addStringValue("Licence", licence.getLicenceReference())
         .addStringValue("Licensees", String.join(", ", licensees))
+        .addStringValue("Status", applicationDetail.getStatus().getDisplayName())
         .build();
 
     var linkHeadingUrl = switch (applicationDetail.getStatus()) {

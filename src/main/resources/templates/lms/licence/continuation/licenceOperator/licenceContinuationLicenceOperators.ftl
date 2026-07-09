@@ -19,11 +19,11 @@ errorSummaryItems=errorSummaryItems>
             <@fdsTextarea.textarea
             path="form.pendingActionsExplanation"
             labelText="You have blocks without an assigned operator. What actions are being taken to assign an operator to these blocks?" />
+            <@fdsAction.submitButtons primaryButtonText="Save and continue" secondaryLinkText="Back" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>
         <#else>
           <p class="govuk-body">All blocks currently have an assigned operator. No further action is required for this section.</p>
+            <@fdsAction.link linkText="Back" linkUrl="${springUrl(cancelUrl)}"/>
         </#if>
-
-        <@fdsAction.submitButtons primaryButtonText="Save and continue" secondaryLinkText="Back" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>
 
     </@fdsForm.htmlForm>
 </@defaultPage>

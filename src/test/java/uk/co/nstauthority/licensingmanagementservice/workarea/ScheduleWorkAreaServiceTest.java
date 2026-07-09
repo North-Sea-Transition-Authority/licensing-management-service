@@ -111,7 +111,7 @@ class ScheduleWorkAreaServiceTest {
                 ReverseRouter.route(on(LicenceScheduleTimelineController.class)
                     .renderLicenceScheduleTimeline(licenceScheduleDetail1.getId(), null, null, null)),
                 List.of(SummaryDataView.newBuilder()
-                    .addStringValue("Licence type", licence1.getType().getDisplayName())
+                    .addStringValue("Licence", licence1.getLicenceReference())
                     .addStringValue("Licensees", String.join(", ", orgList1))
                     .build()),
                 String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(licenceScheduleDetail1.getCreatedInstant()))
@@ -122,7 +122,7 @@ class ScheduleWorkAreaServiceTest {
                 ReverseRouter.route(on(LicenceScheduleTimelineController.class)
                     .renderLicenceScheduleTimeline(licenceScheduleDetail2.getId(), null, null, null)),
             List.of(SummaryDataView.newBuilder()
-                .addStringValue("Licence type", licence2.getType().getDisplayName())
+                .addStringValue("Licence", licence2.getLicenceReference())
                 .addStringValue("Licensees", String.join(", ", orgList2))
                 .build()),
                 String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(licenceScheduleDetail2.getCreatedInstant()))
@@ -186,7 +186,7 @@ class ScheduleWorkAreaServiceTest {
                 ReverseRouter.route(on(LicenceScheduleTimelineController.class)
                     .renderLicenceScheduleTimeline(licenceScheduleDetail2.getId(), null, null, null)),
                 List.of(SummaryDataView.newBuilder()
-                    .addStringValue("Licence type", licence2.getType().getDisplayName())
+                    .addStringValue("Licence", licence2.getLicenceReference())
                     .addStringValue("Licensees", String.join(", ", org1))
                     .build()),
                 String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(licenceScheduleDetail2.getCreatedInstant()))

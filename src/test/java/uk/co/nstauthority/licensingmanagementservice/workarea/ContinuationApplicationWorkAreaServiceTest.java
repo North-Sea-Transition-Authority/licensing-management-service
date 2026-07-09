@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anySet;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -27,6 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
@@ -137,14 +137,14 @@ class ContinuationApplicationWorkAreaServiceTest {
 
     var summaryDataView1 = SummaryDataView
         .newBuilder()
-        .addStringValue("Status", licenceContinuationApplicationDetail.getStatus().getDisplayName())
-        .addStringValue("Licence type", licence1.getType().getDisplayName())
+        .addStringValue("Licence", licence1.getLicenceReference())
         .addStringValue("Licensees", String.join(", ", orgList1))
+        .addStringValue("Status", licenceContinuationApplicationDetail.getStatus().getDisplayName())
         .build();
     var summaryDataView2 = SummaryDataView.newBuilder()
-        .addStringValue("Status", licenceContinuationApplicationDetail2.getStatus().getDisplayName())
-        .addStringValue("Licence type", licence2.getType().getDisplayName())
+        .addStringValue("Licence", licence2.getLicenceReference())
         .addStringValue("Licensees", String.join(", ", orgList2))
+        .addStringValue("Status", licenceContinuationApplicationDetail2.getStatus().getDisplayName())
         .build();
 
     assertThat(workAreaItems)
@@ -193,9 +193,9 @@ class ContinuationApplicationWorkAreaServiceTest {
     var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
 
     var summaryDataView = SummaryDataView.newBuilder()
-        .addStringValue("Status", licenceContinuationApplicationDetail2.getStatus().getDisplayName())
-        .addStringValue("Licence type", licence2.getType().getDisplayName())
+        .addStringValue("Licence", licence2.getLicenceReference())
         .addStringValue("Licensees", String.join(", ", org1))
+        .addStringValue("Status", licenceContinuationApplicationDetail2.getStatus().getDisplayName())
         .build();
 
     assertThat(workAreaItems)
@@ -249,9 +249,9 @@ class ContinuationApplicationWorkAreaServiceTest {
     var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     var summaryDataView = SummaryDataView.newBuilder()
-        .addStringValue("Status", licenceContinuationApplicationDetail.getStatus().getDisplayName())
-        .addStringValue("Licence type", licence1.getType().getDisplayName())
+        .addStringValue("Licence", licence1.getLicenceReference())
         .addStringValue("Licensees", String.join(", ", orgList1))
+        .addStringValue("Status", licenceContinuationApplicationDetail.getStatus().getDisplayName())
         .build();
 
     assertThat(workAreaItems)
@@ -290,9 +290,9 @@ class ContinuationApplicationWorkAreaServiceTest {
     var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     var summaryDataView = SummaryDataView.newBuilder()
-        .addStringValue("Status", licenceContinuationApplicationDetail2.getStatus().getDisplayName())
-        .addStringValue("Licence type", licence2.getType().getDisplayName())
+        .addStringValue("Licence", licence2.getLicenceReference())
         .addStringValue("Licensees", String.join(", ", org1))
+        .addStringValue("Status", licenceContinuationApplicationDetail2.getStatus().getDisplayName())
         .build();
 
     assertThat(workAreaItems)
@@ -334,9 +334,9 @@ class ContinuationApplicationWorkAreaServiceTest {
     var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     var summaryDataView = SummaryDataView.newBuilder()
-        .addStringValue("Status", licenceContinuationApplicationDetail2.getStatus().getDisplayName())
-        .addStringValue("Licence type", licence2.getType().getDisplayName())
+        .addStringValue("Licence", licence2.getLicenceReference())
         .addStringValue("Licensees", String.join(", ", org1))
+        .addStringValue("Status", licenceContinuationApplicationDetail2.getStatus().getDisplayName())
         .build();
 
     assertThat(workAreaItems)

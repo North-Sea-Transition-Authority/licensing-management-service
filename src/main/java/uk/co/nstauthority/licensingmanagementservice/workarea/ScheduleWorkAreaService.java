@@ -91,7 +91,7 @@ public class ScheduleWorkAreaService implements WorkAreaItemProvider {
         .toList();
 
     var dataItemRow = SummaryDataView.newBuilder()
-        .addStringValue("Licence type", licence.getType().getDisplayName())
+        .addStringValue("Licence", licence.getLicenceReference())
         .addStringValue("Licensees", String.join(", ", licensees))
         .build();
 

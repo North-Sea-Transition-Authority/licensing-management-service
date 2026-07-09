@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.contact;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableRow;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableValue;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableView;
@@ -26,34 +28,52 @@ public class LicenceContactService {
   private final LicenceContactRepository licenceContactRepository;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final LicenceOrganisationService licenceOrganisationService;
+  private final OrganisationUnitQueryService organisationUnitQueryService;
 
   public LicenceContactService(
       LicenceContactRepository licenceContactRepository,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
-      LicenceOrganisationService licenceOrganisationService
+      LicenceOrganisationService licenceOrganisationService,
+      OrganisationUnitQueryService organisationUnitQueryService
   ) {
     this.licenceContactRepository = licenceContactRepository;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.licenceOrganisationService = licenceOrganisationService;
+    this.organisationUnitQueryService = organisationUnitQueryService;
   }
 
-  public String getContactTableForUser(ServiceUserDetail user, boolean canManage) {
+  public String getIndustryContactsTable(ServiceUserDetail user, boolean canManage) {
+    var usersOrgUnits = licenceOrganisationService.getUsersOrgUnits(user);
+    var nameByOrgUnitId = usersOrgUnits.stream()
+        .collect(Collectors.toMap(OrganisationUnitJson::organisationUnitId, OrganisationUnitJson::name, (a, b) -> a));
+    var orgUnitIds = nameByOrgUnitId.keySet();
+    var licensees = licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(orgUnitIds);
+    return buildContactsTable(licensees, nameByOrgUnitId, orgUnitIds, canManage);
+  }
+
+  public String getRegulatorContactsTable() {
+    var licensees = licenceResponsibleOrganisationService.getAll();
+    var orgUnitIds = licensees.stream()
+        .map(LicenceResponsibleOrganisation::getResponsibleOrganisationId)
+        .distinct()
+        .toList();
+    var nameByOrgUnitId = organisationUnitQueryService.getOrganisationUnitNamesByIds(orgUnitIds);
+    return buildContactsTable(licensees, nameByOrgUnitId, orgUnitIds, false);
+  }
+
+  private String buildContactsTable(
+      List<LicenceResponsibleOrganisation> licensees,
+      Map<Integer, String> nameByOrgUnitId,
+      Collection<Integer> orgUnitIds,
+      boolean canManage
+  ) {
     var tableBuilder = SortableTableView.sortableTableBuilder()
         .newWithHeadings("Licence", "Licensee", "Contact email");
-
-    var usersOrgUnits = licenceOrganisationService.getUsersOrgUnits(user);
-    if (usersOrgUnits.isEmpty()) {
-      return tableBuilder.build().toString();
-    }
 
     if (canManage) {
       tableBuilder.withActionHeading("Action");
     }
 
-    var nameByOrgUnitId = usersOrgUnits.stream()
-        .collect(Collectors.toMap(OrganisationUnitJson::organisationUnitId, OrganisationUnitJson::name, (a, b) -> a));
-    var orgUnitIds = nameByOrgUnitId.keySet();
-    var licensees = licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(orgUnitIds);
     var emailByLicensee = licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(orgUnitIds)
         .stream()
         .collect(Collectors.toMap(LicenceContact::getLicensee, LicenceContact::getContactEmail));

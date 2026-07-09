@@ -34,9 +34,7 @@ public enum TopNavigationItem implements Displayable {
   LICENCE_CONTACTS(
       "Licence contacts",
       40,
-      ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null)),
-      TeamType.ORGANISATION,
-      new HashSet<>(TeamType.ORGANISATION.getAllowedRoles())
+      ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null))
   ),
   DOCUMENT_LIBRARY(
       "Document library",

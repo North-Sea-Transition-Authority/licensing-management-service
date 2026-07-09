@@ -42,6 +42,10 @@ public class LicenceResponsibleOrganisationService {
     this.organisationUnitQueryService = organisationUnitQueryService;
   }
 
+  public List<LicenceResponsibleOrganisation> getAll() {
+    return licenceResponsibleOrganisationRepository.findAll();
+  }
+
   public List<LicenceResponsibleOrganisation> getAllByLicence(Licence licence) {
     return licenceResponsibleOrganisationRepository.findAllByLicence(licence);
   }

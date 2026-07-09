@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -51,6 +53,9 @@ class LicenceContactServiceTest {
   @Mock
   private LicenceOrganisationService licenceOrganisationService;
 
+  @Mock
+  private OrganisationUnitQueryService organisationUnitQueryService;
+
   @InjectMocks
   private LicenceContactService licenceContactService;
 
@@ -58,24 +63,23 @@ class LicenceContactServiceTest {
   private ArgumentCaptor<LicenceContact> contactCaptor;
 
   @Test
-  void getContactTableForUser_whenUserHasNoOrgUnits_returnsEmptyTableAndDoesNotQuery() {
+  void getIndustryContactsTable_whenUserHasNoOrgUnits_returnsEmptyTable() {
     when(licenceOrganisationService.getUsersOrgUnits(user)).thenReturn(List.of());
 
-    var tableJson = licenceContactService.getContactTableForUser(user, true);
+    var tableJson = licenceContactService.getIndustryContactsTable(user, true);
 
     assertThat(tableJson).doesNotContain("licence-contacts/");
-    verifyNoInteractions(licenceResponsibleOrganisationService, licenceContactRepository);
   }
 
   @Test
-  void getContactTableForUser_whenLicenseeHasNoContact_showsNotAssigned() {
+  void getIndustryContactsTable_whenLicenseeHasNoContact_showsNotAssigned() {
     when(licenceOrganisationService.getUsersOrgUnits(user)).thenReturn(List.of(ORG_UNIT));
     when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(licensee()));
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of());
 
-    var tableJson = licenceContactService.getContactTableForUser(user, true);
+    var tableJson = licenceContactService.getIndustryContactsTable(user, true);
 
     assertThat(tableJson)
         .contains("P 123")
@@ -85,7 +89,7 @@ class LicenceContactServiceTest {
   }
 
   @Test
-  void getContactTableForUser_whenLicenseeHasContact_showsEmail() {
+  void getIndustryContactsTable_whenLicenseeHasContact_showsEmail() {
     var licensee = licensee();
     when(licenceOrganisationService.getUsersOrgUnits(user)).thenReturn(List.of(ORG_UNIT));
     when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
@@ -93,7 +97,7 @@ class LicenceContactServiceTest {
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(contact(licensee, "licensing@example.com")));
 
-    var tableJson = licenceContactService.getContactTableForUser(user, true);
+    var tableJson = licenceContactService.getIndustryContactsTable(user, true);
 
     assertThat(tableJson)
         .contains("licensing@example.com")
@@ -101,18 +105,62 @@ class LicenceContactServiceTest {
   }
 
   @Test
-  void getContactTableForUser_whenUserCannotManage_hasNoActionLink() {
+  void getIndustryContactsTable_whenUserCannotManage_hasNoActionLink() {
     when(licenceOrganisationService.getUsersOrgUnits(user)).thenReturn(List.of(ORG_UNIT));
     when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(licensee()));
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of());
 
-    var tableJson = licenceContactService.getContactTableForUser(user, false);
+    var tableJson = licenceContactService.getIndustryContactsTable(user, false);
 
     assertThat(tableJson)
         .contains("P 123")
         .doesNotContain("licence-contacts/");
+  }
+
+  @Test
+  void getRegulatorContactsTable_whenNoLicensees_returnsEmptyTable() {
+    when(licenceResponsibleOrganisationService.getAll()).thenReturn(List.of());
+
+    var tableJson = licenceContactService.getRegulatorContactsTable();
+
+    assertThat(tableJson).doesNotContain("P 123");
+  }
+
+  @Test
+  void getRegulatorContactsTable_whenLicenseeHasContact_showsEmailAndNoActionColumn() {
+    var licensee = licensee();
+    when(licenceResponsibleOrganisationService.getAll()).thenReturn(List.of(licensee));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(ORG_ID)))
+        .thenReturn(Map.of(ORG_ID, SHELL_U_K_LIMITED));
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(List.of(ORG_ID)))
+        .thenReturn(List.of(contact(licensee, "licensing@example.com")));
+
+    var tableJson = licenceContactService.getRegulatorContactsTable();
+
+    assertThat(tableJson)
+        .contains("P 123")
+        .contains(SHELL_U_K_LIMITED)
+        .contains("licensing@example.com")
+        .doesNotContain("Not assigned");
+  }
+
+  @Test
+  void getRegulatorContactsTable_whenLicenseeHasNoContact_showsNotAssigned() {
+    var licensee = licensee();
+    when(licenceResponsibleOrganisationService.getAll()).thenReturn(List.of(licensee));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(ORG_ID)))
+        .thenReturn(Map.of(ORG_ID, SHELL_U_K_LIMITED));
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(List.of(ORG_ID)))
+        .thenReturn(List.of());
+
+    var tableJson = licenceContactService.getRegulatorContactsTable();
+
+    assertThat(tableJson)
+        .contains("P 123")
+        .contains(SHELL_U_K_LIMITED)
+        .contains("Not assigned");
   }
 
   @Test

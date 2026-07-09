@@ -15,9 +15,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTeamType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasAnyRoleInTeamTypeInterceptorRule.HasAnyRoleInTeamType;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -29,26 +29,36 @@ public class LicenceContactController {
   private final LicenceContactService licenceContactService;
   private final LicenceContactFormValidator licenceContactFormValidator;
   private final TeamQueryService teamQueryService;
+  private final RegulatorRoleService regulatorRoleService;
 
   public LicenceContactController(
       LicenceContactService licenceContactService,
       LicenceContactFormValidator licenceContactFormValidator,
-      TeamQueryService teamQueryService
+      TeamQueryService teamQueryService,
+      RegulatorRoleService regulatorRoleService
   ) {
     this.licenceContactService = licenceContactService;
     this.licenceContactFormValidator = licenceContactFormValidator;
     this.teamQueryService = teamQueryService;
+    this.regulatorRoleService = regulatorRoleService;
   }
 
   @GetMapping
-  @HasAnyRoleInTeamType(TeamType.ORGANISATION)
   public ModelAndView renderManageContacts(ServiceUserDetail user) {
+    if (regulatorRoleService.isRegulator(user)) {
+      return contactsModelAndView("Licence contact details", licenceContactService.getRegulatorContactsTable());
+    }
+
     var canManage = teamQueryService.userHasRoleInTeamType(
         user.wuaId(), TeamType.ORGANISATION, Set.of(Role.LICENSEE_CONTACTS_MANAGER));
     var pageTitle = canManage ? "Manage licence contact details" : "Licence contact details";
+    return contactsModelAndView(pageTitle, licenceContactService.getIndustryContactsTable(user, canManage));
+  }
+
+  private ModelAndView contactsModelAndView(String pageTitle, String contactsTableJson) {
     return new ModelAndView("lms/licence/contact/manageContacts")
         .addObject("pageTitle", pageTitle)
-        .addObject("contactsTableJson", licenceContactService.getContactTableForUser(user, canManage));
+        .addObject("contactsTableJson", contactsTableJson);
   }
 
   @GetMapping("/licence/{licenceId}/responsible-organisation/{responsibleOrganisationId}")

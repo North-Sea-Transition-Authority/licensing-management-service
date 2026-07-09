@@ -14,6 +14,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 public interface LicenceResponsibleOrganisationRepository
     extends JpaRepository<LicenceResponsibleOrganisation, UUID>, NotDuplicationSource {
 
+  @Override
+  @EntityGraph(attributePaths = "licence")
+  List<LicenceResponsibleOrganisation> findAll();
+
   List<LicenceResponsibleOrganisation> findAllByManagedByLmsIsFalse();
 
   List<LicenceResponsibleOrganisation> findAllByLicence(Licence licence);

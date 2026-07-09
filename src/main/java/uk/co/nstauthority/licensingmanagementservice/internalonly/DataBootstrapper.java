@@ -105,6 +105,7 @@ public class DataBootstrapper {
 
     var industryTeamUsers = new HashMap<Role, String>();
     industryTeamUsers.put(Role.MANAGE_TEAM, "bp.administrator@lms.co.uk");
+    industryTeamUsers.put(Role.LICENSEE_CONTACTS_MANAGER, "bp.contacts.manager@lms.co.uk");
     industryTeamUsers.put(Role.APPLICATION_EDITOR, "bp.editor@lms.co.uk");
     industryTeamUsers.put(Role.APPLICATION_SUBMITTER, "bp.submitter@lms.co.uk");
     industryTeamUsers.put(Role.VIEW_ORGANISATION_LICENCES, "bp.viewer@lms.co.uk");

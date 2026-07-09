@@ -61,7 +61,7 @@ class LicenceContactServiceTest {
   void getContactTableForUser_whenUserHasNoOrgUnits_returnsEmptyTableAndDoesNotQuery() {
     when(licenceOrganisationService.getUsersOrgUnits(user)).thenReturn(List.of());
 
-    var tableJson = licenceContactService.getContactTableForUser(user);
+    var tableJson = licenceContactService.getContactTableForUser(user, true);
 
     assertThat(tableJson).doesNotContain("licence-contacts/");
     verifyNoInteractions(licenceResponsibleOrganisationService, licenceContactRepository);
@@ -75,7 +75,7 @@ class LicenceContactServiceTest {
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of());
 
-    var tableJson = licenceContactService.getContactTableForUser(user);
+    var tableJson = licenceContactService.getContactTableForUser(user, true);
 
     assertThat(tableJson)
         .contains("P 123")
@@ -93,11 +93,26 @@ class LicenceContactServiceTest {
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(contact(licensee, "licensing@example.com")));
 
-    var tableJson = licenceContactService.getContactTableForUser(user);
+    var tableJson = licenceContactService.getContactTableForUser(user, true);
 
     assertThat(tableJson)
         .contains("licensing@example.com")
         .doesNotContain("Not assigned");
+  }
+
+  @Test
+  void getContactTableForUser_whenUserCannotManage_hasNoActionLink() {
+    when(licenceOrganisationService.getUsersOrgUnits(user)).thenReturn(List.of(ORG_UNIT));
+    when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of(licensee()));
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of());
+
+    var tableJson = licenceContactService.getContactTableForUser(user, false);
+
+    assertThat(tableJson)
+        .contains("P 123")
+        .doesNotContain("licence-contacts/");
   }
 
   @Test

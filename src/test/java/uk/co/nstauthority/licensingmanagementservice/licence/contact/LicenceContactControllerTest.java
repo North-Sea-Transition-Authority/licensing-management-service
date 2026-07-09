@@ -47,8 +47,10 @@ class LicenceContactControllerTest extends AbstractControllerTest {
   @BeforeEach
   void setUp() {
     contactManager = ServiceUserDetailTestUtil.newBuilder().withWuaId(200L).build();
+    when(teamManagementService.getTeamTypesUserIsMemberOf(contactManager.wuaId()))
+        .thenReturn(Set.of(TeamType.ORGANISATION));
     when(teamQueryService.userHasRoleInTeamType(
-        contactManager.wuaId(), TeamType.ORGANISATION, Set.of(Role.LICENSEE_CONTACTS_MANAGEMENT)))
+        contactManager.wuaId(), TeamType.ORGANISATION, Set.of(Role.LICENSEE_CONTACTS_MANAGER)))
         .thenReturn(true);
   }
 
@@ -72,7 +74,7 @@ class LicenceContactControllerTest extends AbstractControllerTest {
         .newWithHeadings("Licence", "Licensee", "Contact email")
         .build()
         .toString();
-    when(licenceContactService.getContactTableForUser(contactManager))
+    when(licenceContactService.getContactTableForUser(contactManager, true))
         .thenReturn(tableJson);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null)))
@@ -80,7 +82,35 @@ class LicenceContactControllerTest extends AbstractControllerTest {
         .andExpectAll(
             status().isOk(),
             view().name("lms/licence/contact/manageContacts"),
-            model().attributeExists("contactsTableJson"));
+            model().attributeExists("contactsTableJson"),
+            model().attribute("pageTitle", "Manage licence contact details"));
+  }
+
+  @Test
+  void renderManageContacts_whenOrgMemberWithoutManagerRole_canView() throws Exception {
+    var viewer = ServiceUserDetailTestUtil.newBuilder().withWuaId(250L).build();
+    var tableJson = SortableTableView.sortableTableBuilder()
+        .newWithHeadings("Licence", "Licensee", "Contact email")
+        .build()
+        .toString();
+    when(teamManagementService.getTeamTypesUserIsMemberOf(viewer.wuaId()))
+        .thenReturn(Set.of(TeamType.ORGANISATION));
+    when(licenceContactService.getContactTableForUser(viewer, false)).thenReturn(tableJson);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null)))
+            .with(user(viewer)))
+        .andExpectAll(
+            status().isOk(),
+            model().attribute("pageTitle", "Licence contact details"));
+  }
+
+  @Test
+  void renderUpdateContact_whenNotManager_isForbidden() throws Exception {
+    var viewer = ServiceUserDetailTestUtil.newBuilder().withWuaId(250L).build();
+    mockMvc.perform(get(ReverseRouter.route(
+            on(LicenceContactController.class).renderUpdateContact(LICENCE_ID, ORG_ID, null)))
+            .with(user(viewer)))
+        .andExpect(status().isForbidden());
   }
 
   @Test

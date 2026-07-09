@@ -37,14 +37,17 @@ public class LicenceContactService {
     this.licenceOrganisationService = licenceOrganisationService;
   }
 
-  public String getContactTableForUser(ServiceUserDetail user) {
+  public String getContactTableForUser(ServiceUserDetail user, boolean canManage) {
     var tableBuilder = SortableTableView.sortableTableBuilder()
-        .newWithHeadings("Licence", "Licensee", "Contact email")
-        .withActionHeading("Action");
+        .newWithHeadings("Licence", "Licensee", "Contact email");
 
     var usersOrgUnits = licenceOrganisationService.getUsersOrgUnits(user);
     if (usersOrgUnits.isEmpty()) {
       return tableBuilder.build().toString();
+    }
+
+    if (canManage) {
+      tableBuilder.withActionHeading("Action");
     }
 
     var nameByOrgUnitId = usersOrgUnits.stream()
@@ -55,7 +58,7 @@ public class LicenceContactService {
         .stream()
         .collect(Collectors.toMap(LicenceContact::getLicensee, LicenceContact::getContactEmail));
 
-    licensees.forEach(licensee -> tableBuilder.addRow(toRow(licensee, nameByOrgUnitId, emailByLicensee)));
+    licensees.forEach(licensee -> tableBuilder.addRow(toRow(licensee, nameByOrgUnitId, emailByLicensee, canManage)));
 
     return tableBuilder.build().toString();
   }
@@ -63,7 +66,8 @@ public class LicenceContactService {
   private SortableTableRow toRow(
       LicenceResponsibleOrganisation licensee,
       Map<Integer, String> nameByOrgUnitId,
-      Map<LicenceResponsibleOrganisation, String> emailByLicensee
+      Map<LicenceResponsibleOrganisation, String> emailByLicensee,
+      boolean canManage
   ) {
     var licenceId = licensee.getLicence().getId();
     var organisationId = licensee.getResponsibleOrganisationId();
@@ -75,18 +79,21 @@ public class LicenceContactService {
     var emailValue = hasContact
         ? new SortableTableValue(contactEmail)
         : new SortableTableValue("", List.of(new Tag("Not assigned", TagColour.GREY)));
-    var actionLabel = hasContact ? "Update contact email" : "Add contact email";
 
-    var addUpdateContactUrl = StringUtils.removeStart(
-        ReverseRouter.route(on(LicenceContactController.class).renderUpdateContact(licenceId, organisationId, null)),
-        "/");
-
-    return SortableTableRow.builder()
+    var rowBuilder = SortableTableRow.builder()
         .withValue(licenceReference)
         .withValue(licenseeName)
-        .withValue(emailValue)
-        .withAction(actionLabel, addUpdateContactUrl, "for %s".formatted(licenceReference))
-        .build();
+        .withValue(emailValue);
+
+    if (canManage) {
+      var actionLabel = hasContact ? "Update contact email" : "Add contact email";
+      var addUpdateContactUrl = StringUtils.removeStart(
+          ReverseRouter.route(on(LicenceContactController.class).renderUpdateContact(licenceId, organisationId, null)),
+          "/");
+      rowBuilder.withAction(actionLabel, addUpdateContactUrl, "for %s".formatted(licenceReference));
+    }
+
+    return rowBuilder.build();
   }
 
   public LicenceContactFormView getLicenceContactFormView(ServiceUserDetail user, Integer licenceId, Integer organisationId) {

@@ -80,7 +80,7 @@ class EnergyPortalDataServiceTest {
         createServiceRoleDto(Role.APPLICATION_EDITOR, false),
         createServiceRoleDto(Role.APPLICATION_SUBMITTER, false),
         createServiceRoleDto(Role.VIEW_ORGANISATION_LICENCES, false),
-        createServiceRoleDto(Role.LICENSEE_CONTACTS_MANAGEMENT, false)
+        createServiceRoleDto(Role.LICENSEE_CONTACTS_MANAGER, false)
     );
 
     var externalContributorsRoleDtos = Set.of(

@@ -99,7 +99,8 @@ public enum TeamType implements Displayable {
       true,
       false,
       List.of(Role.MANAGE_TEAM, Role.APPLICATION_EDITOR, Role.APPLICATION_SUBMITTER, Role.VIEW_ORGANISATION_LICENCES,
-          Role.LICENSEE_CONTACTS_MANAGEMENT),
+          Role.LICENSEE_CONTACTS_MANAGER
+      ),
           () ->
               ReverseRouter.route(on(ScopedTeamManagementController.class).renderCreateNewOrgTeam(null)),
       false

@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.contact;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.util.Set;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,37 +15,44 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTeamType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasAnyRoleInTeamTypeInterceptorRule.HasAnyRoleInTeamType;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @Controller
 @RequestMapping("/licence-contacts")
-@HasRolesInTeamType(value = {
-    @RolesAndTeamType(roles = {Role.LICENSEE_CONTACTS_MANAGEMENT}, teamType = TeamType.ORGANISATION)
-})
 public class LicenceContactController {
 
   private final LicenceContactService licenceContactService;
   private final LicenceContactFormValidator licenceContactFormValidator;
+  private final TeamQueryService teamQueryService;
 
   public LicenceContactController(
       LicenceContactService licenceContactService,
-      LicenceContactFormValidator licenceContactFormValidator
+      LicenceContactFormValidator licenceContactFormValidator,
+      TeamQueryService teamQueryService
   ) {
     this.licenceContactService = licenceContactService;
     this.licenceContactFormValidator = licenceContactFormValidator;
+    this.teamQueryService = teamQueryService;
   }
 
   @GetMapping
+  @HasAnyRoleInTeamType(TeamType.ORGANISATION)
   public ModelAndView renderManageContacts(ServiceUserDetail user) {
+    var canManage = teamQueryService.userHasRoleInTeamType(
+        user.wuaId(), TeamType.ORGANISATION, Set.of(Role.LICENSEE_CONTACTS_MANAGER));
+    var pageTitle = canManage ? "Manage licence contact details" : "Licence contact details";
     return new ModelAndView("lms/licence/contact/manageContacts")
-        .addObject("pageTitle", "Manage licence contact details")
-        .addObject("contactsTableJson", licenceContactService.getContactTableForUser(user));
+        .addObject("pageTitle", pageTitle)
+        .addObject("contactsTableJson", licenceContactService.getContactTableForUser(user, canManage));
   }
 
   @GetMapping("/licence/{licenceId}/responsible-organisation/{responsibleOrganisationId}")
+  @HasRolesInTeamType(@RolesAndTeamType(roles = {Role.LICENSEE_CONTACTS_MANAGER}, teamType = TeamType.ORGANISATION))
   public ModelAndView renderUpdateContact(
       @PathVariable Integer licenceId,
       @PathVariable Integer responsibleOrganisationId,
@@ -57,6 +65,7 @@ public class LicenceContactController {
   }
 
   @PostMapping("/licence/{licenceId}/responsible-organisation/{responsibleOrganisationId}")
+  @HasRolesInTeamType(@RolesAndTeamType(roles = {Role.LICENSEE_CONTACTS_MANAGER}, teamType = TeamType.ORGANISATION))
   public ModelAndView saveContact(
       @PathVariable Integer licenceId,
       @PathVariable Integer responsibleOrganisationId,

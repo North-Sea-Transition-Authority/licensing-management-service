@@ -6,13 +6,20 @@
   htmlTitle=pageTitle
   pageHeading=pageTitle
   pageSize=PageSize.FULL_COLUMN
+  caption=pageCaption
 >
   <@fdsSummaryList.summaryListCard summaryListId="correction-details" headingText="Correction details">
     <@fdsSummaryList.summaryListRowNoAction keyText="Correction reference">
-            ${correctionReference}
+        ${correction.getCorrectionReference()}
         </@fdsSummaryList.summaryListRowNoAction>
         <@fdsSummaryList.summaryListRowNoAction keyText="Reason for correction">
-            ${reason}
+            ${correction.getReason()}
+        </@fdsSummaryList.summaryListRowNoAction>
+        <@fdsSummaryList.summaryListRowNoAction keyText="Allocated to">
+            ${allocatedToUser}
+        </@fdsSummaryList.summaryListRowNoAction>
+        <@fdsSummaryList.summaryListRowNoAction keyText="Status">
+            ${correction.getStatus().displayName}
         </@fdsSummaryList.summaryListRowNoAction>
     </@fdsSummaryList.summaryListCard>
 

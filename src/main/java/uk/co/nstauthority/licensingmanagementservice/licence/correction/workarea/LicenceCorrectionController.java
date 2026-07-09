@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionCorrectionController;
@@ -28,15 +30,18 @@ public class LicenceCorrectionController {
   private final LicencePositionService licencePositionService;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final LicenceService licenceService;
+  private final EnergyPortalUserService energyPortalUserService;
 
   public LicenceCorrectionController(
       LicencePositionService licencePositionService,
       LicencePositionCorrectionService licencePositionCorrectionService,
-      LicenceService licenceService
+      LicenceService licenceService,
+      EnergyPortalUserService energyPortalUserService
   ) {
     this.licencePositionService = licencePositionService;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.licenceService = licenceService;
+    this.energyPortalUserService = energyPortalUserService;
   }
 
   @GetMapping("/{correctionId}")
@@ -93,12 +98,17 @@ public class LicenceCorrectionController {
       LicencePositionPageView licencePositionPageView
   ) {
     var licence =  licenceCorrection.getLicence();
+    var allocatedToUserDetail = energyPortalUserService.getByWuaId(
+        WebUserAccountId.from(licenceCorrection.getAllocatedToWuaId()),
+        "Get correction allocated to user details"
+    );
+
     return new ModelAndView("lms/licence/correction/viewCorrection")
+        .addObject("pageTitle", "%s - licence correction".formatted(licence.getLicenceReference()))
         .addObject("pageCaption", licenceService.getLicencePageCaption(licence))
         .addObject("licencePositionPageView", licencePositionPageView)
-        .addObject("pageTitle", licence.getLicenceReference())
-        .addObject("correctionReference", licenceCorrection.getCorrectionReference())
-        .addObject("reason", licenceCorrection.getReason())
+        .addObject("correction", licenceCorrection)
+        .addObject("allocatedToUser", allocatedToUserDetail.displayName())
         .addObject("addPositionUrl",
             ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
                 .renderAddLicencePositionCorrection(licenceCorrection.getId(), null)));

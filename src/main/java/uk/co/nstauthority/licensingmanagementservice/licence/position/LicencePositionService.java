@@ -5,6 +5,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.RemoveExecutedLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.UndoLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.workarea.LicenceCorrectionController;
@@ -105,9 +107,17 @@ public class LicencePositionService {
     var licence = licencePosition.getLicence();
     var chronologicalLicencePositions = getChronologicalLicencePositions(licence);
     var licencePositionChanges = licencePositionChangeService.findByLicencePositionIn(chronologicalLicencePositions);
+    var removedPositionIds = licencePositionCorrectionService.getRemovedLicencePositionIds(licenceCorrection);
+
+    //todo kept in temporarily to fix an exception being thrown.
+    // Checks licence postions and filters out the ones that are marked for removal.
+    var timelineStatePositions = chronologicalLicencePositions.stream()
+        .filter(position -> position.getId().equals(licencePosition.getId())
+            || !removedPositionIds.contains(position.getId()))
+        .toList();
 
     return LicencePositionPageView.fromExecutedPosition(
-        getCorrectionTimelineView(chronologicalLicencePositions, licenceCorrection),
+        getCorrectionTimelineView(chronologicalLicencePositions, licenceCorrection, removedPositionIds),
         licencePosition.getFormattedPositionDate(),
         licence.getLicenceReference(),
         licencePositionChangeViewService.getChangeViews(licencePosition, chronologicalLicencePositions, licencePositionChanges),
@@ -122,9 +132,10 @@ public class LicencePositionService {
   ) {
     var payload = (CreateLicencePositionPayload) positionCorrection.getPayload();
     var chronologicalLicencePositions = getChronologicalLicencePositions(licenceCorrection.getLicence());
+    var removedPositionIds = licencePositionCorrectionService.getRemovedLicencePositionIds(licenceCorrection);
 
     return LicencePositionPageView.fromNonExecutedPosition(
-        getCorrectionTimelineView(chronologicalLicencePositions, licenceCorrection),
+        getCorrectionTimelineView(chronologicalLicencePositions, licenceCorrection, removedPositionIds),
         DateUtil.formatLongDate(payload.effectiveDate()),
         payload.correctionReference(),
         UUID.fromString(payload.licencePositionId())
@@ -153,21 +164,40 @@ public class LicencePositionService {
 
   private List<LicencePositionTimelineView> getCorrectionTimelineView(
       List<LicencePosition> licencePositions,
-      LicenceCorrection licenceCorrection
+      LicenceCorrection licenceCorrection,
+      Set<UUID> removedPositionIds
   ) {
-    var livePositions = licencePositions.stream()
-        .filter(LicencePosition::isExecuted)
-        .map(licencePosition -> new TimelineEntry(
-            licencePosition.getPositionDate(),
-            licencePosition.getPositionDateOrder(),
-            baseTimelineViewBuilder(licencePosition, getCorrectionPositionUrl(licenceCorrection, licencePosition)).build()
-        ));
-
+    var livePositions = getLivePositionEntries(licencePositions, licenceCorrection, removedPositionIds);
     var addedPositions = getAddedPositionEntries(licenceCorrection);
 
-    return Stream.concat(livePositions, addedPositions.stream())
+    return Stream.concat(livePositions.stream(), addedPositions.stream())
         .sorted(TIMELINE_ORDER_COMPARATOR)
         .map(TimelineEntry::view)
+        .toList();
+  }
+
+  private List<TimelineEntry> getLivePositionEntries(
+      List<LicencePosition> licencePositions,
+      LicenceCorrection licenceCorrection,
+      Set<UUID> removedPositionIds
+  ) {
+    return licencePositions.stream()
+        .filter(LicencePosition::isExecuted)
+        .map(licencePosition -> {
+          var removed = removedPositionIds.contains(licencePosition.getId());
+          var timelineViewBuilder = baseTimelineViewBuilder(
+              licencePosition, getCorrectionPositionUrl(licenceCorrection, licencePosition))
+              .withRemovedInThisCorrection(removed);
+
+          if (!removed) {
+            timelineViewBuilder.withRemoveUrl(getRemovePositionUrl(licenceCorrection, licencePosition));
+          }
+
+          return new TimelineEntry(
+              licencePosition.getPositionDate(),
+              licencePosition.getPositionDateOrder(),
+              timelineViewBuilder.build());
+        })
         .toList();
   }
 
@@ -203,6 +233,11 @@ public class LicencePositionService {
   private String getCorrectionPositionUrl(LicenceCorrection correction, LicencePosition position) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
         .renderLicencePosition(correction.getId(), position.getId(), correction));
+  }
+
+  private String getRemovePositionUrl(LicenceCorrection correction, LicencePosition position) {
+    return ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
+        .renderRemovePosition(correction.getId(), position.getId(), null));
   }
 
   private LicencePositionTimelineView.Builder baseTimelineViewBuilder(LicencePosition position, String url) {

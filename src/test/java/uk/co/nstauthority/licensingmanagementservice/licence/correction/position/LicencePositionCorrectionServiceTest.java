@@ -2,6 +2,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -12,6 +14,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
@@ -24,7 +28,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 class LicencePositionCorrectionServiceTest {
@@ -35,6 +41,9 @@ class LicencePositionCorrectionServiceTest {
       .build();
   private static final LocalDate POSITION_DATE = LocalDate.of(2026, Month.JUNE, 5);
   private static final String CORRECTION_REFERENCE = "TEST-REF";
+  private static final LicencePosition LICENCE_POSITION = LicencePositionTestUtil.newBuilder()
+      .withLicence(LICENCE)
+      .build();
 
   @Mock
   private LicencePositionCorrectionRepository licencePositionCorrectionRepository;
@@ -165,11 +174,114 @@ class LicencePositionCorrectionServiceTest {
         .containsExactly(addedCorrection);
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"REF-1", "ref-1"})
+  void isCorrectionReferenceInUse_whenReferenceMatchesExistingIgnoringCase_returnsTrue(String correctionReference) {
+    when(licencePositionCorrectionRepository
+        .findByLicenceCorrectionAndChangeType(LICENCE_CORRECTION, LicencePositionCorrectionChangeType.ADD_POSITION))
+        .thenReturn(List.of(addedCorrectionWithReference("REF-1")));
+
+    assertThat(licencePositionCorrectionService.isCorrectionReferenceInUse(LICENCE_CORRECTION, correctionReference))
+        .isTrue();
+  }
+
+  @Test
+  void isCorrectionReferenceInUse_whenReferenceDoesNotMatchAnyExisting_returnsFalse() {
+    when(licencePositionCorrectionRepository
+        .findByLicenceCorrectionAndChangeType(LICENCE_CORRECTION, LicencePositionCorrectionChangeType.ADD_POSITION))
+        .thenReturn(List.of(addedCorrectionWithReference("REF-1")));
+
+    assertThat(licencePositionCorrectionService.isCorrectionReferenceInUse(LICENCE_CORRECTION, "REF-2")).isFalse();
+  }
+
+  @Test
+  void removeExecutedPosition_savesRemovePositionCorrectionWithNoPayload() {
+    licencePositionCorrectionService.removeExecutedPosition(LICENCE_CORRECTION, LICENCE_POSITION);
+
+    verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
+    var saved = licencePositionCorrectionCaptor.getValue();
+
+    assertThat(saved.getLicenceCorrection()).isEqualTo(LICENCE_CORRECTION);
+    assertThat(saved.getChangeType()).isEqualTo(LicencePositionCorrectionChangeType.REMOVE_POSITION);
+    assertThat(saved.getTargetLicencePosition()).isEqualTo(LICENCE_POSITION);
+    assertThat(saved.getPayload()).isNull();
+  }
+
+  @Test
+  void removeExecutedPosition_whenPositionAlreadyTargetedByRemoveCorrection_throwsAndDoesNotSave() {
+    when(licencePositionCorrectionRepository
+        .existsByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+            LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.REMOVE_POSITION))
+        .thenReturn(true);
+
+    assertThatThrownBy(() ->
+        licencePositionCorrectionService.removeExecutedPosition(LICENCE_CORRECTION, LICENCE_POSITION))
+        .isInstanceOf(IllegalStateException.class);
+
+    verify(licencePositionCorrectionRepository, never()).save(any());
+  }
+
+  @Test
+  void canRemovePosition_whenPositionNotAlreadyTargetedByRemoveCorrection_returnsTrue() {
+    when(licencePositionCorrectionRepository
+        .existsByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+            LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.REMOVE_POSITION))
+        .thenReturn(false);
+
+    assertThat(licencePositionCorrectionService.canRemovePosition(LICENCE_CORRECTION, LICENCE_POSITION)).isTrue();
+  }
+
+  @Test
+  void canRemovePosition_whenPositionAlreadyTargetedByRemoveCorrection_returnsFalse() {
+    when(licencePositionCorrectionRepository
+        .existsByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+            LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.REMOVE_POSITION))
+        .thenReturn(true);
+
+    assertThat(licencePositionCorrectionService.canRemovePosition(LICENCE_CORRECTION, LICENCE_POSITION)).isFalse();
+  }
+
+  @Test
+  void canRemovePosition_whenPositionNotExecuted_returnsFalse() {
+    var nonExecutedPosition = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withIsExecuted(false)
+        .build();
+
+    assertThat(licencePositionCorrectionService.canRemovePosition(LICENCE_CORRECTION, nonExecutedPosition)).isFalse();
+  }
+
+  @Test
+  void getRemovedLicencePositionIds_returnsTargetPositionIdsOfRemoveCorrections() {
+    var removedPosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
+    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+        .withTargetLicencePosition(removedPosition)
+        .build();
+
+    when(licencePositionCorrectionRepository
+        .findByLicenceCorrectionAndChangeType(LICENCE_CORRECTION, LicencePositionCorrectionChangeType.REMOVE_POSITION))
+        .thenReturn(List.of(removeCorrection));
+
+    assertThat(licencePositionCorrectionService.getRemovedLicencePositionIds(LICENCE_CORRECTION))
+        .containsExactlyInAnyOrder(removedPosition.getId());
+  }
+
   private CreateLicencePositionPayload captureSavedPayload() {
     verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
     var payload = licencePositionCorrectionCaptor.getValue().getPayload();
     assertThat(payload).isInstanceOf(CreateLicencePositionPayload.class);
     return (CreateLicencePositionPayload) payload;
+  }
+
+  private LicencePositionCorrection addedCorrectionWithReference(String correctionReference) {
+    var payload = LicencePositionPayload.newCreateLicencePositionPayload()
+        .withCorrectionReference(correctionReference)
+        .build();
+
+    return LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(payload)
+        .build();
   }
 
   private LicencePositionCorrection draftCorrectionWith(LocalDate effectiveDate, int effectiveDateOrder) {

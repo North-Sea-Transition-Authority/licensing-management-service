@@ -11,6 +11,7 @@ import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -308,5 +309,72 @@ class LicencePositionServiceTest {
     var result = licencePositionService.getExecutedChronologicalLicencePositions(licence);
 
     assertThat(result).containsExactly(earlierExecuted);
+  }
+
+  @Test
+  void getCorrectionPositionPageView_marksRemovedPositionsAndExcludesThemFromStateRecalculation() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+
+    var current = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("CURRENT").build())
+        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+    var chronological = List.of(current);
+
+    List<LicencePositionChange> changes = List.of();
+    var stateView = new LicencePositionStateView(null);
+    var stateCalculationPositions = List.of(current);
+
+    when(licencePositionRepository.findByLicence(LICENCE)).thenReturn(chronological);
+    when(licencePositionChangeService.findByLicencePositionIn(chronological)).thenReturn(changes);
+    when(licencePositionChangeViewService.getChangeViews(current, stateCalculationPositions, changes)).thenReturn(Map.of());
+    when(licencePositionStateViewService.getStateView(current, stateCalculationPositions, changes)).thenReturn(stateView);
+    when(licencePositionCorrectionService.getAddedLicencePositionCorrections(correction)).thenReturn(List.of());
+
+    var result = licencePositionService.getCorrectionPositionPageView(correction, current);
+
+    assertThat(result.stateView()).isEqualTo(stateView);
+    assertThat(result.timelineViews())
+        .extracting(
+            LicencePositionTimelineView::regulatorReference,
+            LicencePositionTimelineView::removedInThisCorrection,
+            timelineView -> timelineView.removeUrl() != null)
+        .containsExactly(
+            tuple("CURRENT", false, true)
+        );
+  }
+
+  @Test
+  void getCorrectionPositionPageView_whenPositionRemovedInThisCorrection_omitsRemoveUrl() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+
+    var removed = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REMOVED").build())
+        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+    var chronological = List.of(removed);
+
+    List<LicencePositionChange> changes = List.of();
+    var stateView = new LicencePositionStateView(null);
+
+    when(licencePositionRepository.findByLicence(LICENCE)).thenReturn(chronological);
+    when(licencePositionChangeService.findByLicencePositionIn(chronological)).thenReturn(changes);
+    when(licencePositionChangeViewService.getChangeViews(removed, chronological, changes)).thenReturn(Map.of());
+    when(licencePositionStateViewService.getStateView(removed, chronological, changes)).thenReturn(stateView);
+    when(licencePositionCorrectionService.getRemovedLicencePositionIds(correction)).thenReturn(Set.of(POSITION_ID));
+    when(licencePositionCorrectionService.getAddedLicencePositionCorrections(correction)).thenReturn(List.of());
+
+    var result = licencePositionService.getCorrectionPositionPageView(correction, removed);
+
+    assertThat(result.timelineViews())
+        .extracting(
+            LicencePositionTimelineView::regulatorReference,
+            LicencePositionTimelineView::removedInThisCorrection,
+            timelineView -> timelineView.removeUrl() != null)
+        .containsExactly(
+            tuple("REMOVED", true, false)
+        );
   }
 }

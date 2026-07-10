@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanRemoveLicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -74,4 +75,11 @@ public class InterceptorRuleTestEndpoints {
   public ResponseEntity<String> logWorkAreaItemDisabled() {
     return ResponseEntity.ok("log work area item disabled test endpoint");
   }
+
+  @GetMapping("can-remove-licence-position")
+  @InvokingUserCanRemoveLicencePosition
+  public ResponseEntity<String> canRemoveLicencePosition() {
+    return ResponseEntity.ok("can remove licence position test endpoint");
+  }
+
 }

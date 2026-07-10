@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 
 @Repository
 public interface LicencePositionCorrectionRepository
@@ -20,5 +21,11 @@ public interface LicencePositionCorrectionRepository
   Optional<LicencePositionCorrection> findByIdAndLicenceCorrection(
       UUID id,
       LicenceCorrection licenceCorrection
+  );
+
+  boolean existsByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+      LicenceCorrection licenceCorrection,
+      LicencePosition licencePosition,
+      LicencePositionCorrectionChangeType changeType
   );
 }

@@ -34,7 +34,7 @@ public class LicencePositionCorrectionTestUtil {
     return this;
   }
 
-  public LicencePositionCorrectionTestUtil withTargetLicencePositionId(LicencePosition targetLicencePosition) {
+  public LicencePositionCorrectionTestUtil withTargetLicencePosition(LicencePosition targetLicencePosition) {
     this.targetLicencePosition = targetLicencePosition;
     return this;
   }

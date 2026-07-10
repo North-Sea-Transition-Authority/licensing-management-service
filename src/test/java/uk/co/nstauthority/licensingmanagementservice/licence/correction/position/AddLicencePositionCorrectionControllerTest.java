@@ -42,9 +42,6 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
   @MockitoBean
   private AddLicencePositionCorrectionFormValidator addLicencePositionCorrectionValidator;
 
-  @MockitoBean
-  private LicencePositionCorrectionService licencePositionCorrectionService;
-
   private static final Licence LICENCE = LicenceTestUtil.builder().build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final LocalDate POSITION_DATE = LocalDate.of(2026, Month.JUNE, 1);
@@ -104,7 +101,8 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
     form.getCorrectionReference().setInputValue(REGULATOR_REFERENCE);
     form.getPositionDate().setDate(POSITION_DATE);
 
-    when(addLicencePositionCorrectionValidator.hasErrors(eq(form), any(BindingResult.class))).thenReturn(false);
+    when(addLicencePositionCorrectionValidator.hasErrors(eq(form), eq(correction), any(BindingResult.class)))
+        .thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
             .addLicencePositionCorrection(CORRECTION_ID, null, null, null, null)))
@@ -124,11 +122,12 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
 
   @Test
   void addLicencePositionCorrection_whenInvalid() throws Exception {
-    givenCorrectionAllocatedToUser();
+    var correction = givenCorrectionAllocatedToUser();
 
     var form = new AddLicencePositionCorrectionForm();
 
-    when(addLicencePositionCorrectionValidator.hasErrors(eq(form), any(BindingResult.class))).thenReturn(true);
+    when(addLicencePositionCorrectionValidator.hasErrors(eq(form), eq(correction), any(BindingResult.class)))
+        .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
             .addLicencePositionCorrection(CORRECTION_ID, null, null, null, null)))

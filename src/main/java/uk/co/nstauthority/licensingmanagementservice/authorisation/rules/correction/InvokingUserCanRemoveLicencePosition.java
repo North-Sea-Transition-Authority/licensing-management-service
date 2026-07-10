@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.authorisation.rules;
+package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,5 +7,5 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE, ElementType.METHOD})
-public @interface InvokingUserCanViewCorrection {
+public @interface InvokingUserCanRemoveLicencePosition {
 }

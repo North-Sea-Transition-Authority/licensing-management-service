@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.authorisation.rules;
+package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AccessInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 
 @Component

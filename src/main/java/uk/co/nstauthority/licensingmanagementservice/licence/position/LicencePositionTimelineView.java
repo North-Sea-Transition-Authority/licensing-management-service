@@ -1,7 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
+import jakarta.annotation.Nullable;
 import java.util.UUID;
-import javax.annotation.Nullable;
 
 /**
  * One row in a licence position timeline (read-only or correction view).
@@ -21,6 +21,12 @@ import javax.annotation.Nullable;
  *                              Drives the "Added position" tag and Undo link in the template
  * @param undoUrl null for live (executed) positions; populated only for positions added in the
  *                current correction
+ * @param removedInThisCorrection {@code true} when this row is a live position marked
+ *                                for removal in the current correction (a draft); {@code false}
+ *                                for live positions that remain and for added rows. Drives the
+ *                                "Removed" tag in the template
+ * @param removeUrl link to remove live position as part of the correction; populated
+ *                  only for live positions not yet removed.
  */
 public record LicencePositionTimelineView(
     UUID positionId,
@@ -28,7 +34,9 @@ public record LicencePositionTimelineView(
     String regulatorReference,
     String formattedPositionDate,
     boolean addedInThisCorrection,
-    @Nullable String undoUrl
+    @Nullable String undoUrl,
+    boolean removedInThisCorrection,
+    @Nullable String removeUrl
 ) {
 
   public static Builder builder() {
@@ -41,8 +49,9 @@ public record LicencePositionTimelineView(
     private String regulatorReference;
     private String formattedPositionDate;
     private boolean addedInThisCorrection;
-    private String undoUrl;
-
+    @Nullable private String undoUrl;
+    private boolean removedInThisCorrection;
+    @Nullable private String removeUrl;
 
     public Builder withPositionId(UUID positionId) {
       this.positionId = positionId;
@@ -74,6 +83,16 @@ public record LicencePositionTimelineView(
       return this;
     }
 
+    public Builder withRemovedInThisCorrection(boolean removedInThisCorrection) {
+      this.removedInThisCorrection = removedInThisCorrection;
+      return this;
+    }
+
+    public Builder withRemoveUrl(String removeUrl) {
+      this.removeUrl = removeUrl;
+      return this;
+    }
+
     public LicencePositionTimelineView build() {
       return new LicencePositionTimelineView(
           positionId,
@@ -81,7 +100,9 @@ public record LicencePositionTimelineView(
           regulatorReference,
           formattedPositionDate,
           addedInThisCorrection,
-          undoUrl
+          undoUrl,
+          removedInThisCorrection,
+          removeUrl
       );
     }
   }

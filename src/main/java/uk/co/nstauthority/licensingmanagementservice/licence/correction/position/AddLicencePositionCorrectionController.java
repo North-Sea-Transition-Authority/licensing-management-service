@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.workarea.LicenceCorrectionController;
@@ -55,7 +55,7 @@ public class AddLicencePositionCorrectionController {
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    if (addLicencePositionCorrectionValidator.hasErrors(form, bindingResult)) {
+    if (addLicencePositionCorrectionValidator.hasErrors(form, correction, bindingResult)) {
       return addLicencePositionCorrectionModelAndView(correction, form);
     }
 

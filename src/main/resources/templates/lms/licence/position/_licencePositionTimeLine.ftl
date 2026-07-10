@@ -25,7 +25,7 @@
               >
               <#if licencePositionTimelineViewEntry.addedInThisCorrection()>
                 <p class="govuk-body">
-                    <@fdsTag.tag tagClass="govuk-tag--green">Added position</@fdsTag.tag>
+                    <@fdsTag.tag tagClass="govuk-tag--green">New position</@fdsTag.tag>
                 </p>
                   <@fdsAction.link
                   linkText="Undo"
@@ -33,6 +33,18 @@
                   linkScreenReaderText=licencePositionTimelineViewEntry.formattedPositionDate()
                   />
               </#if>
+                  <#if licencePositionTimelineViewEntry.removedInThisCorrection()>
+                    <p class="govuk-body">
+                        <@fdsTag.tag tagClass="govuk-tag--red">Removed</@fdsTag.tag>
+                    </p>
+                  </#if>
+                  <#if licencePositionTimelineViewEntry.removeUrl()??>
+                      <@fdsAction.link
+                      linkText="Remove"
+                      linkUrl=springUrl(licencePositionTimelineViewEntry.removeUrl())
+                      linkScreenReaderText=licencePositionTimelineViewEntry.formattedPositionDate()
+                      />
+                  </#if>
               </@fdsTimeline.timelineTimeStamp>
           </#list>
       </@fdsTimeline.timelineSection>

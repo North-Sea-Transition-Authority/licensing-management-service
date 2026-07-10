@@ -19,7 +19,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -38,9 +37,6 @@ class LicencePositionControllerTest extends AbstractControllerTest {
       .build();
   private static final String PAGE_CAPTION = "licence - 1";
   private static final UUID POSITION_ID = UUID.randomUUID();
-
-  @MockitoBean
-  private LicencePositionService licencePositionService;
 
   @BeforeEach
   void setUp() {
@@ -94,7 +90,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
   void renderLicencePosition() throws Exception {
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var pageView = new LicencePositionPageView(
-        List.of(new LicencePositionTimelineView(POSITION_ID, "url1", "REF-2", "5 June 2026", false, null)),
+        List.of(new LicencePositionTimelineView(POSITION_ID, "url1", "REF-2", "5 June 2026", false, null, false, null)),
         position.getFormattedPositionDate(),
         position.getLicence().getLicenceReference(),
         Map.of(),

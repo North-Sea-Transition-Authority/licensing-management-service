@@ -28,10 +28,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionPageView;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUtil;
@@ -39,12 +37,6 @@ import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUt
 @ContextConfiguration(classes = LicenceCorrectionController.class)
 @ActiveProfiles({"test", "enable-lms2"})
 class LicenceCorrectionControllerTest extends AbstractControllerTest {
-
-  @MockitoBean
-  private LicencePositionService licencePositionService;
-
-  @MockitoBean
-  private LicencePositionCorrectionService licencePositionCorrectionService;
 
   @MockitoBean
   private EnergyPortalUserService energyPortalUserService;

@@ -3,9 +3,11 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.tuple;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.ZoneOffset;
 import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,16 +19,23 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 class AddLicencePositionCorrectionFormValidatorTest {
 
   private static final UnaryOperator<String> REQUIRED = "%s.required"::formatted;
 
-  private static final LocalDate TODAY = LocalDate.of(2024, 6, 15);
+  private static final LocalDate TODAY = LocalDate.of(2024, Month.JUNE, 15);
+
+  private static final LicenceCorrection LICENCE_CORRECTION = LicenceCorrectionTestUtil.newBuilder().build();
 
   @Mock
   private Clock clock;
+
+  @Mock
+  private LicencePositionCorrectionService licencePositionCorrectionService;
 
   @InjectMocks
   private AddLicencePositionCorrectionFormValidator addLicencePositionCorrectionFormValidator;
@@ -46,8 +55,8 @@ class AddLicencePositionCorrectionFormValidatorTest {
 
   @Test
   void hasErrors_emptyForm() {
-    var hasErrors =
-        addLicencePositionCorrectionFormValidator.hasErrors(addLicencePositionCorrectionForm, bindingResult);
+    var hasErrors = addLicencePositionCorrectionFormValidator
+        .hasErrors(addLicencePositionCorrectionForm, LICENCE_CORRECTION, bindingResult);
 
     assertThat(bindingResult.getFieldErrors())
         .extracting(FieldError::getField)
@@ -73,8 +82,11 @@ class AddLicencePositionCorrectionFormValidatorTest {
     addLicencePositionCorrectionForm.getCorrectionReference().setInputValue("TEST-REF");
     addLicencePositionCorrectionForm.getPositionDate().setDate(TODAY.plusDays(1));
 
-    var hasErrors =
-        addLicencePositionCorrectionFormValidator.hasErrors(addLicencePositionCorrectionForm, bindingResult);
+    when(licencePositionCorrectionService.isCorrectionReferenceInUse(LICENCE_CORRECTION, "TEST-REF"))
+        .thenReturn(false);
+
+    var hasErrors = addLicencePositionCorrectionFormValidator
+        .hasErrors(addLicencePositionCorrectionForm, LICENCE_CORRECTION, bindingResult);
 
     assertThat(bindingResult.getFieldErrors())
         .extracting(FieldError::getField)
@@ -88,12 +100,36 @@ class AddLicencePositionCorrectionFormValidatorTest {
   }
 
   @Test
+  void hasErrors_duplicateCorrectionReference() {
+    addLicencePositionCorrectionForm.getCorrectionReference().setInputValue("TEST-REF");
+    addLicencePositionCorrectionForm.getPositionDate().setDate(TODAY);
+
+    when(licencePositionCorrectionService.isCorrectionReferenceInUse(LICENCE_CORRECTION, "TEST-REF"))
+        .thenReturn(true);
+
+    var hasErrors = addLicencePositionCorrectionFormValidator
+        .hasErrors(addLicencePositionCorrectionForm, LICENCE_CORRECTION, bindingResult);
+
+    assertThat(bindingResult.getFieldErrors())
+        .filteredOn(fieldError -> "correctionReference.inputValue".equals(fieldError.getField()))
+        .extracting(FieldError::getDefaultMessage, FieldError::getCode)
+        .containsExactly(
+            tuple("Enter a correction reference that has not already been used", "correctionReference.duplicate")
+        );
+
+    assertThat(hasErrors).isTrue();
+  }
+
+  @Test
   void hasErrors_validForm() {
     addLicencePositionCorrectionForm.getCorrectionReference().setInputValue("TEST-REF");
     addLicencePositionCorrectionForm.getPositionDate().setDate(TODAY);
 
-    var hasErrors =
-        addLicencePositionCorrectionFormValidator.hasErrors(addLicencePositionCorrectionForm, bindingResult);
+    when(licencePositionCorrectionService.isCorrectionReferenceInUse(LICENCE_CORRECTION, "TEST-REF"))
+        .thenReturn(false);
+
+    var hasErrors = addLicencePositionCorrectionFormValidator
+        .hasErrors(addLicencePositionCorrectionForm, LICENCE_CORRECTION, bindingResult);
 
     assertThat(hasErrors).isFalse();
   }

@@ -246,7 +246,7 @@ public class LicenceScheduleCalculationService {
     otherScheduleEventService.saveScheduleEvents(events);
   }
 
-  LocalDate calculateDurationEndDate(LocalDate startDate, ThreeFieldDuration duration) {
+  public LocalDate calculateDurationEndDate(LocalDate startDate, ThreeFieldDuration duration) {
     var endDate = startDate
         .plusYears(duration.years())
         .plusMonths(duration.months())

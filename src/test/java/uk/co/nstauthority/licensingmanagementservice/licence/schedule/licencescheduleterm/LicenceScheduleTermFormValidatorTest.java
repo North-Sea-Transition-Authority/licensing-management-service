@@ -1,6 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -10,8 +12,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.validation.Errors;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationInput;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.ScheduleRelativeDateValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 
@@ -20,6 +24,9 @@ class LicenceScheduleTermFormValidatorTest {
 
   @Mock
   private LicenceScheduleTermService licenceScheduleTermService;
+
+  @Mock
+  private ScheduleRelativeDateValidationService scheduleRelativeDateValidationService;
 
   @InjectMocks
   private LicenceScheduleTermFormValidator licenceScheduleTermFormValidator;
@@ -90,6 +97,35 @@ class LicenceScheduleTermFormValidatorTest {
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
     assertThat(licenceScheduleTermFormValidator.isValidUpdate(form, bindingResult, licenceScheduleDetail, licenceScheduleTerm)).isTrue();
+  }
+
+  @Test
+  void isValidUpdate_invalid_termShorteningCausesValidationError() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    var licenceScheduleTerm = new LicenceScheduleTerm();
+    licenceScheduleTerm.setId(UUID.randomUUID());
+    licenceScheduleTerm.setTermType(TermType.INITIAL);
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(licenceScheduleTerm));
+
+    doAnswer(invocation -> {
+      Errors errorsArg = invocation.getArgument(2);
+      errorsArg.rejectValue(
+          "termDuration.years",
+          ".invalid",
+          "The term duration cannot be reduced as this would cause events to occur after the end of the final term"
+      );
+      return null;
+    }).when(scheduleRelativeDateValidationService).validateTermLengthUpdate(any(), any(), any());
+
+    var form = new LicenceScheduleTermForm();
+    form.setTermType(TermType.INITIAL);
+    form.setTermDuration(getValidDuration());
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(licenceScheduleTermFormValidator.isValidUpdate(form, bindingResult, licenceScheduleDetail, licenceScheduleTerm)).isFalse();
   }
 
   @Test

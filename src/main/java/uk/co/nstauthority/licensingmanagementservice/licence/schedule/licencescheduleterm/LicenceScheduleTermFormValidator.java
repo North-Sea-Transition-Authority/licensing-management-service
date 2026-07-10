@@ -6,15 +6,20 @@ import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationValidationUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.ScheduleRelativeDateValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Service
 public class LicenceScheduleTermFormValidator {
 
   private final LicenceScheduleTermService licenceScheduleTermService;
+  private final ScheduleRelativeDateValidationService scheduleRelativeDateValidationService;
 
-  public LicenceScheduleTermFormValidator(LicenceScheduleTermService licenceScheduleTermService) {
+  public LicenceScheduleTermFormValidator(LicenceScheduleTermService licenceScheduleTermService,
+                                          ScheduleRelativeDateValidationService scheduleRelativeDateValidationService
+  ) {
     this.licenceScheduleTermService = licenceScheduleTermService;
+    this.scheduleRelativeDateValidationService = scheduleRelativeDateValidationService;
   }
 
   boolean isValid(
@@ -26,7 +31,8 @@ public class LicenceScheduleTermFormValidator {
         .map(LicenceScheduleTerm::getTermType)
         .toList();
 
-    return doValidation(form, errors, existingTermTypes);
+    doValidation(form, errors, existingTermTypes);
+    return !errors.hasErrors();
   }
 
   boolean isValidUpdate(
@@ -40,10 +46,16 @@ public class LicenceScheduleTermFormValidator {
         .map(LicenceScheduleTerm::getTermType)
         .toList();
 
-    return doValidation(form, errors, existingTermTypes);
+    doValidation(form, errors, existingTermTypes);
+    scheduleRelativeDateValidationService.validateTermLengthUpdate(
+        licenceScheduleTerm,
+        form.getTermDuration(),
+        errors
+    );
+    return !errors.hasErrors();
   }
 
-  private boolean doValidation(
+  private void doValidation(
       LicenceScheduleTermForm form,
       Errors errors,
       List<TermType> existingTermTypes
@@ -59,6 +71,6 @@ public class LicenceScheduleTermFormValidator {
 
     ThreeFieldDurationValidationUtil.validate(form.getTermDuration(), errors);
 
-    return !errors.hasErrors();
+
   }
 }

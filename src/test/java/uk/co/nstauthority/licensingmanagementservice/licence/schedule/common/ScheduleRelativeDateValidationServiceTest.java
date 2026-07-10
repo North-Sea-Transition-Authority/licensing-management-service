@@ -23,7 +23,16 @@ import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,6 +46,18 @@ class ScheduleRelativeDateValidationServiceTest {
 
   @Mock
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
+
+  @Mock
+  private LicenceStartDateService licenceStartDateService;
+
+  @Mock
+  private WorkProgrammeActivityService workProgrammeActivityService;
+
+  @Mock
+  private LicenceScheduleRateService licenceScheduleRateService;
+
+  @Mock
+  private OtherScheduleEventService otherScheduleEventService;
 
   @InjectMocks
   private ScheduleRelativeDateValidationService service;
@@ -293,6 +314,250 @@ class ScheduleRelativeDateValidationServiceTest {
     );
 
     assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validateTermLengthUpdate_whenDurationNotShortened_sameDuration_noErrors() {
+    var licenceScheduleTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withLicenceScheduleDetail(licenceScheduleDetail)
+        .withTermType(TermType.INITIAL)
+        .withTermDuration(new ThreeFieldDuration(5, 0, 0))
+        .build();
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validateTermLengthUpdate(
+        licenceScheduleTerm,
+        createDuration("termDuration", new ThreeFieldDuration(5, 0, 0)),
+        errors
+    );
+
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validateTermLengthUpdate_whenDurationIncreased_noErrors() {
+    var licenceScheduleTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withLicenceScheduleDetail(licenceScheduleDetail)
+        .withTermType(TermType.INITIAL)
+        .withTermDuration(new ThreeFieldDuration(5, 0, 0))
+        .build();
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validateTermLengthUpdate(
+        licenceScheduleTerm,
+        createDuration("termDuration", new ThreeFieldDuration(6, 0, 0)),
+        errors
+    );
+
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validateTermLengthUpdate_whenDurationShortened_noInvalidEntities_noErrors() {
+    var termId = UUID.randomUUID();
+
+    var licenceScheduleTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(termId)
+        .withLicenceScheduleDetail(licenceScheduleDetail)
+        .withTermType(TermType.INITIAL)
+        .withTermDuration(new ThreeFieldDuration(5, 0, 0))
+        .build();
+
+    var newEndDate = setupShortenedTermMocks(licenceScheduleTerm);
+
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of());
+    when(licenceScheduleRateService.getRatesAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of());
+    when(otherScheduleEventService.getEventsAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of());
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validateTermLengthUpdate(
+        licenceScheduleTerm,
+        createDuration("termDuration", new ThreeFieldDuration(4, 0, 0)),
+        errors
+    );
+
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validateTermLengthUpdate_whenDurationShortened_withInvalidActivities_rejectsFields() {
+    var termId = UUID.randomUUID();
+
+    var licenceScheduleTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(termId)
+        .withLicenceScheduleDetail(licenceScheduleDetail)
+        .withTermType(TermType.INITIAL)
+        .withTermDuration(new ThreeFieldDuration(5, 0, 0))
+        .build();
+
+    var newEndDate = setupShortenedTermMocks(licenceScheduleTerm);
+
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of(new WorkProgrammeActivity()));
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validateTermLengthUpdate(
+        licenceScheduleTerm,
+        createDuration("termDuration", new ThreeFieldDuration(4, 0, 0)),
+        errors
+    );
+
+    assertThat(errors.hasErrors()).isTrue();
+    var errorMessages = ValidatorTestingUtil.extractErrorMessages(errors);
+    assertThat(errorMessages.get("termDuration.years"))
+        .contains("The term duration cannot be reduced as this would cause events to occur after the end of the final term");
+    assertThat(errorMessages).containsKey("termDuration.months");
+    assertThat(errorMessages).containsKey("termDuration.days");
+  }
+
+  @Test
+  void validateTermLengthUpdate_whenDurationShortened_withInvalidRates_rejectsFields() {
+    var termId = UUID.randomUUID();
+
+    var licenceScheduleTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(termId)
+        .withLicenceScheduleDetail(licenceScheduleDetail)
+        .withTermType(TermType.INITIAL)
+        .withTermDuration(new ThreeFieldDuration(5, 0, 0))
+        .build();
+
+    var newEndDate = setupShortenedTermMocks(licenceScheduleTerm);
+
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of());
+    when(licenceScheduleRateService.getRatesAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of(new LicenceScheduleRate()));
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validateTermLengthUpdate(
+        licenceScheduleTerm,
+        createDuration("termDuration", new ThreeFieldDuration(4, 0, 0)),
+        errors
+    );
+
+    assertThat(errors.hasErrors()).isTrue();
+    var errorMessages = ValidatorTestingUtil.extractErrorMessages(errors);
+    assertThat(errorMessages.get("termDuration.years"))
+        .contains("The term duration cannot be reduced as this would cause events to occur after the end of the final term");
+    assertThat(errorMessages).containsKey("termDuration.months");
+    assertThat(errorMessages).containsKey("termDuration.days");
+  }
+
+  @Test
+  void validateTermLengthUpdate_whenDurationShortened_withInvalidEvents_rejectsFields() {
+    var termId = UUID.randomUUID();
+
+    var licenceScheduleTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(termId)
+        .withLicenceScheduleDetail(licenceScheduleDetail)
+        .withTermType(TermType.INITIAL)
+        .withTermDuration(new ThreeFieldDuration(5, 0, 0))
+        .build();
+
+    var newEndDate = setupShortenedTermMocks(licenceScheduleTerm);
+
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of());
+    when(licenceScheduleRateService.getRatesAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of());
+    when(otherScheduleEventService.getEventsAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of(new OtherScheduleEvent()));
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validateTermLengthUpdate(
+        licenceScheduleTerm,
+        createDuration("termDuration", new ThreeFieldDuration(4, 0, 0)),
+        errors
+    );
+
+    assertThat(errors.hasErrors()).isTrue();
+    var errorMessages = ValidatorTestingUtil.extractErrorMessages(errors);
+    assertThat(errorMessages.get("termDuration.years"))
+        .contains("The term duration cannot be reduced as this would cause events to occur after the end of the final term");
+    assertThat(errorMessages).containsKey("termDuration.months");
+    assertThat(errorMessages).containsKey("termDuration.days");
+  }
+
+  @Test
+  void validateTermLengthUpdate_whenMonthsDecreased_sameYears_withInvalidActivities_rejectsFields() {
+    var termId = UUID.randomUUID();
+
+    var licenceScheduleTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(termId)
+        .withLicenceScheduleDetail(licenceScheduleDetail)
+        .withTermType(TermType.INITIAL)
+        .withTermDuration(new ThreeFieldDuration(5, 6, 0))
+        .build();
+
+    var newEndDate = setupShortenedTermMocks(licenceScheduleTerm);
+
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of(new WorkProgrammeActivity()));
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    // Same years (5), reduced months (6 → 5)
+    service.validateTermLengthUpdate(
+        licenceScheduleTerm,
+        createDuration("termDuration", new ThreeFieldDuration(5, 5, 0)),
+        errors
+    );
+
+    assertThat(errors.hasErrors()).isTrue();
+  }
+
+  @Test
+  void validateTermLengthUpdate_whenDaysDecreased_sameYearsAndMonths_withInvalidActivities_rejectsFields() {
+    var termId = UUID.randomUUID();
+
+    var licenceScheduleTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(termId)
+        .withLicenceScheduleDetail(licenceScheduleDetail)
+        .withTermType(TermType.INITIAL)
+        .withTermDuration(new ThreeFieldDuration(5, 0, 10))
+        .build();
+
+    var newEndDate = setupShortenedTermMocks(licenceScheduleTerm);
+
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of(new WorkProgrammeActivity()));
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    // Same years (5) and months (0), reduced days (10 → 9)
+    service.validateTermLengthUpdate(
+        licenceScheduleTerm,
+        createDuration("termDuration", new ThreeFieldDuration(5, 0, 9)),
+        errors
+    );
+
+    assertThat(errors.hasErrors()).isTrue();
+  }
+
+  private LocalDate setupShortenedTermMocks(LicenceScheduleTerm licenceScheduleTerm) {
+    var licenceStartDate = new LicenceStartDate();
+    licenceStartDate.setStartDate(LocalDate.of(2020, 1, 1));
+    var newEndDate = LocalDate.of(2023, 12, 31);
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(licenceScheduleTerm));
+    when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail))
+        .thenReturn(licenceStartDate);
+    when(licenceScheduleCalculationService.calculateDurationEndDate(any(), any()))
+        .thenReturn(newEndDate);
+
+    return newEndDate;
   }
 
   private ThreeFieldDurationInput createDuration(String fieldName, ThreeFieldDuration duration) {

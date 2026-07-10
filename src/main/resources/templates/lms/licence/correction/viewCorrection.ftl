@@ -23,7 +23,10 @@
         </@fdsSummaryList.summaryListRowNoAction>
     </@fdsSummaryList.summaryListCard>
 
-    <@fdsAction.link linkText="Add position" linkUrl=springUrl(addPositionUrl) linkClass="govuk-button"/>
+    <@fdsAction.buttonGroup>
+      <@fdsAction.link linkText="Add position" linkUrl=springUrl(addPositionUrl) linkClass="govuk-button"/>
+      <@fdsAction.link linkText="Cancel correction" linkUrl=springUrl(cancelCorrectionUrl) linkClass="govuk-button govuk-button--secondary"/>
+    </@fdsAction.buttonGroup>
 
     <#if licencePositionPageView.hasPositions()>
       <h2 class="govuk-heading-m">${licencePositionPageView.date()} (${licencePositionPageView.regulatorReference()})</h2>

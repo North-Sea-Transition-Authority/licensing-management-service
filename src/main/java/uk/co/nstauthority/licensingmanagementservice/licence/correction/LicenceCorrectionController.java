@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.correction.workarea;
+package uk.co.nstauthority.licensingmanagementservice.licence.correction;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
@@ -14,7 +14,6 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionPageView;
@@ -111,7 +110,9 @@ public class LicenceCorrectionController {
         .addObject("allocatedToUser", allocatedToUserDetail.displayName())
         .addObject("addPositionUrl",
             ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-                .renderAddLicencePositionCorrection(licenceCorrection.getId(), null)));
+                .renderAddLicencePositionCorrection(licenceCorrection.getId(), null)))
+        .addObject("cancelCorrectionUrl", ReverseRouter.route(on(LicenceCorrectionCancelController.class)
+            .renderCancelCorrection(licenceCorrection.getId(), null)));
   }
 
 }

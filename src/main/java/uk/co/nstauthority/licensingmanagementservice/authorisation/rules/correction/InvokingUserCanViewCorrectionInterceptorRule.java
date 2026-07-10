@@ -10,6 +10,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailSe
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AccessInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 
 @Component
 @Order(8)
@@ -41,15 +42,22 @@ public class InvokingUserCanViewCorrectionInterceptorRule implements AccessInter
 
     var user = userDetailService.getUserDetail();
 
-    var correction = licenceCorrectionService.findByIdAndAllocatedToWuaId(correctionId, user);
-    if (correction.isEmpty()) {
+    var correctionOptional = licenceCorrectionService.findByIdAndAllocatedToWuaId(correctionId, user);
+    if (correctionOptional.isEmpty()) {
       return SecurityRuleResult.checkFailedWithStatusAndMessage(
           HttpStatus.FORBIDDEN,
           "Licence correction %s is not assigned to wuaId %s".formatted(correctionId, user.wuaId())
       );
     }
+    var correction = correctionOptional.get();
+    if (LicenceCorrectionStatus.CANCELLED.equals(correction.getStatus())) {
+      return SecurityRuleResult.checkFailedWithStatusAndMessage(
+          HttpStatus.FORBIDDEN,
+          "Licence correction %s is cancelled".formatted(correctionId)
+      );
+    }
 
-    request.setAttribute("validatedCorrection", correction.get());
+    request.setAttribute("validatedCorrection", correction);
     return SecurityRuleResult.continueAsNormal();
   }
 }

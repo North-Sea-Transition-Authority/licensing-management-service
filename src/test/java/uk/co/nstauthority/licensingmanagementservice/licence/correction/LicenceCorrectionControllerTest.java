@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.correction.workarea;
+package uk.co.nstauthority.licensingmanagementservice.licence.correction;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -25,7 +25,6 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPor
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
@@ -100,7 +99,9 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
             model().attribute("addPositionUrl",
                 ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
                     .renderAddLicencePositionCorrection(CORRECTION_ID, null))),
-            model().attributeExists("licencePositionPageView")
+            model().attributeExists("licencePositionPageView"),
+            model().attribute("cancelCorrectionUrl", ReverseRouter.route(on(LicenceCorrectionCancelController.class)
+                .renderCancelCorrection(CORRECTION_ID, null)))
         );
   }
 
@@ -203,7 +204,9 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
             model().attribute("pageCaption", PAGE_CAPTION),
             model().attribute("correction", correction),
             model().attribute("allocatedToUser", allocatedToUser.displayName()),
-            model().attribute("licencePositionPageView", pageView)
+            model().attribute("licencePositionPageView", pageView),
+            model().attribute("cancelCorrectionUrl", ReverseRouter.route(on(LicenceCorrectionCancelController.class)
+                .renderCancelCorrection(CORRECTION_ID, null)))
         );
   }
 
@@ -248,7 +251,9 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
             model().attribute("pageCaption", PAGE_CAPTION),
             model().attribute("correction", correction),
             model().attribute("allocatedToUser", allocatedToUser.displayName()),
-            model().attribute("licencePositionPageView", pageView)
+            model().attribute("licencePositionPageView", pageView),
+            model().attribute("cancelCorrectionUrl", ReverseRouter.route(on(LicenceCorrectionCancelController.class)
+                .renderCancelCorrection(CORRECTION_ID, null)))
         );
 
   }

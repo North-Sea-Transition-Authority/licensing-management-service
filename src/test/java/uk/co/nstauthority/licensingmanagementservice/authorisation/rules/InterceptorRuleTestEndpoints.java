@@ -3,11 +3,14 @@ package uk.co.nstauthority.licensingmanagementservice.authorisation.rules;
 
 import static uk.co.nstauthority.licensingmanagementservice.xyzapplication.processing.action.CaseProcessingActionItem.PROGRESS_APPLICATION;
 
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanRemoveLicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -82,4 +85,10 @@ public class InterceptorRuleTestEndpoints {
     return ResponseEntity.ok("can remove licence position test endpoint");
   }
 
+
+  @GetMapping("/invoking-user-can-view-correction/{correctionId}")
+  @InvokingUserCanViewCorrection
+  public String invokingUserCanViewCorrection(@PathVariable UUID correctionId) {
+    return "invoking user can view correction test endpoint";
+  }
 }

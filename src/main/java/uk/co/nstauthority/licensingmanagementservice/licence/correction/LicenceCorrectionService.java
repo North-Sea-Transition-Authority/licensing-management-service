@@ -53,6 +53,12 @@ public class LicenceCorrectionService {
     }
   }
 
+  @Transactional
+  public void cancelCorrection(LicenceCorrection licenceCorrection) {
+    licenceCorrection.setStatus(LicenceCorrectionStatus.CANCELLED);
+    licenceCorrectionRepository.save(licenceCorrection);
+  }
+
   public boolean hasOpenCorrection(Licence licence) {
     return licenceCorrectionRepository.existsByLicenceAndStatus(licence, LicenceCorrectionStatus.IN_PROGRESS);
   }

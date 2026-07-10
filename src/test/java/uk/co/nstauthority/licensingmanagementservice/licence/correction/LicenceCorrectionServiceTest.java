@@ -164,4 +164,20 @@ class LicenceCorrectionServiceTest {
     assertThatThrownBy(() -> licenceCorrectionService.getInProgressCorrectionOrThrow(LICENCE))
         .isInstanceOf(LmsEntityNotFoundException.class);
   }
+
+  @Test
+  void cancelCorrection() {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withStatus(LicenceCorrectionStatus.IN_PROGRESS)
+        .build();
+
+    licenceCorrectionService.cancelCorrection(correction);
+
+    verify(licenceCorrectionRepository).save(licenceCorrectionCaptor.capture());
+    var persistedCorrection = licenceCorrectionCaptor.getValue();
+    assertThat(persistedCorrection)
+        .usingRecursiveComparison()
+        .isEqualTo(correction);
+    assertThat(persistedCorrection.getStatus()).isEqualTo(LicenceCorrectionStatus.CANCELLED);
+  }
 }

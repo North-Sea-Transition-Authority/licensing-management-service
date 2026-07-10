@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.common;
 
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
@@ -12,7 +13,11 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateDefinitionOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateRelativeDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
@@ -66,7 +71,7 @@ public class ScheduleRelativeDateValidationService {
       UUID relativeToId,
       Errors errors
   ) {
-    var terms =  licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail);
+    var terms = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail);
 
     var finalTerm = terms.stream()
         .max(Comparator.comparing(term -> term.getTermType().getDisplayOrder()));
@@ -238,5 +243,179 @@ public class ScheduleRelativeDateValidationService {
     return current.years().equals(updated.years())
         && current.months().equals(updated.months())
         && current.days() > updated.days();
+  }
+
+  public void validateTermRateOverlap(
+      LicenceScheduleRate rate,
+      LicenceScheduleDetail licenceScheduleDetail,
+      LicenceScheduleRateForm form,
+      Errors errors
+  ) {
+    var linkedToTerm = licenceScheduleTermService.getTermByIdOrThrow(UUID.fromString(form.getLicenceScheduleTermId()));
+    validateRateOverlapForDateRange(
+        rate,
+        licenceScheduleDetail,
+        linkedToTerm.getStartDate(),
+        linkedToTerm.getEndDate(),
+        "licenceScheduleTermId",
+        "licenceScheduleTermId.invalid",
+        "A rate cannot be added for this term as there are already rates that exist within it",
+        errors
+    );
+  }
+
+  public void validatePhaseRateOverlap(
+      LicenceScheduleRate rate,
+      LicenceScheduleDetail licenceScheduleDetail,
+      LicenceScheduleRateForm form,
+      Errors errors
+  ) {
+    var linkedToPhase = licenceSchedulePhaseService.getPhaseByIdOrThrow(UUID.fromString(form.getLicenceSchedulePhaseId()));
+    validateRateOverlapForDateRange(
+        rate,
+        licenceScheduleDetail,
+        linkedToPhase.getStartDate(),
+        linkedToPhase.getEndDate(),
+        "licenceSchedulePhaseId",
+        "licenceSchedulePhaseId.invalid",
+        "A rate cannot be added for this phase as it would overlap existing rates",
+        errors
+    );
+  }
+
+  private void validateRateOverlapForDateRange(
+      LicenceScheduleRate rate,
+      LicenceScheduleDetail licenceScheduleDetail,
+      LocalDate startDate,
+      LocalDate endDate,
+      String fieldName,
+      String errorCode,
+      String errorMessage,
+      Errors errors
+  ) {
+    var rates = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
+
+    var overlappingRates = rates.entrySet().stream()
+        .filter(startEndDates ->
+            startEndDates.getValue().startDate().isBefore(startDate)
+                || startEndDates.getValue().startDate().isEqual(startDate))
+        .filter(startEndDates ->
+            startEndDates.getValue().endDate().isAfter(endDate)
+                || startEndDates.getValue().endDate().isEqual(endDate))
+        .collect(StreamUtil.toLinkedHashMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    if (overlappingRates.isEmpty() || rate != null && overlappingRates.containsKey(rate.getId())) {
+      return;
+    }
+
+    errors.rejectValue(fieldName, errorCode, errorMessage);
+  }
+
+  public void validateRelativeRateOverlap(
+      LicenceScheduleRate rate,
+      LicenceScheduleDetail licenceScheduleDetail,
+      LicenceScheduleRateForm form,
+      Errors errors
+  ) {
+    var ratesDatesMap = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
+
+    var rateStartDate = calculateRateStartDate(licenceScheduleDetail, form);
+
+    var ratesStartingOnDate = ratesDatesMap.entrySet().stream()
+        .filter(startEndDates -> startEndDates.getValue().startDate().isEqual(rateStartDate))
+        .collect(StreamUtil.toLinkedHashMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    if (!ratesStartingOnDate.isEmpty()) {
+      if (rate == null || !ratesStartingOnDate.containsKey(rate.getId())) {
+        applyRelativeRateValidation(
+            "A rate cannot be added on this date as there is already a rate on the schedule with the same start date",
+            form,
+            errors
+        );
+        return;
+      }
+    }
+
+    var rates = licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail).stream()
+        .collect(StreamUtil.toLinkedHashMap(LicenceScheduleRate::getId, Function.identity()));
+
+    var overlappingRates = ratesDatesMap.entrySet().stream()
+        .filter(startEndDates ->
+            rates.get(startEndDates.getKey()).getRateDefinitionOption() != RateDefinitionOption.CUSTOM_PERIOD)
+        .filter(startEndDates ->
+            startEndDates.getValue().startDate().isBefore(rateStartDate))
+        .filter(startEndDates ->
+            startEndDates.getValue().endDate().isAfter(rateStartDate)
+                || startEndDates.getValue().endDate().isEqual(rateStartDate))
+
+        .collect(StreamUtil.toLinkedHashMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    if (overlappingRates.isEmpty()) {
+      return;
+    }
+
+    applyRelativeRateValidation(
+        "A rate cannot be added on this date as there is already a rate defined for the term/phase the start date is within",
+        form,
+        errors
+    );
+  }
+
+  private void applyRelativeRateValidation(
+      String message,
+      LicenceScheduleRateForm form,
+      Errors errors
+  ) {
+    if (form.getRateRelativeDateOption().equals(RateRelativeDateOption.ON_START_DATE)) {
+      errors.rejectValue("rateRelativeDateOption",
+          "rateRelativeDateOption.invalid",
+          message
+      );
+    } else {
+      var fieldName = form.getRelativeDuration().getFieldName();
+      errors.rejectValue(
+          fieldName + YEAR_FIELD_SUFFIX,
+          INVALID_ERROR_CODE,
+          message
+      );
+
+      errors.rejectValue(
+          fieldName + MONTH_FIELD_SUFFIX,
+          INVALID_ERROR_CODE,
+          ""
+      );
+
+      errors.rejectValue(
+          fieldName + DAY_FIELD_SUFFIX,
+          INVALID_ERROR_CODE,
+          ""
+      );
+    }
+  }
+
+  private LocalDate calculateRateStartDate(
+      LicenceScheduleDetail licenceScheduleDetail,
+      LicenceScheduleRateForm form
+  ) {
+    var termMap = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
+        .collect(StreamUtil.toLinkedHashMap(LicenceScheduleTerm::getId, Function.identity()));
+
+    var relativeToId = UUID.fromString(form.getRelativeEventId());
+
+    LocalDate durationStartDate;
+    if (termMap.containsKey(relativeToId)) {
+      durationStartDate = termMap.get(relativeToId).getStartDate();
+    } else {
+      durationStartDate = licenceSchedulePhaseService.getPhaseByIdOrThrow(relativeToId).getStartDate();
+    }
+
+    if (form.getRateRelativeDateOption().equals(RateRelativeDateOption.ON_START_DATE)) {
+      return durationStartDate;
+    }
+
+    return licenceScheduleCalculationService.calculateRelativeStartDueDate(
+        durationStartDate,
+        form.getRelativeDuration().toThreeFieldDuration()
+    );
   }
 }

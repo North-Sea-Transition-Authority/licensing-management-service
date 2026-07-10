@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -21,10 +22,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceSchedulePhas
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduleTermTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.StartEndDates;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateDefinitionOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateRelativeDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
@@ -543,6 +548,506 @@ class ScheduleRelativeDateValidationServiceTest {
     );
 
     assertThat(errors.hasErrors()).isTrue();
+  }
+
+  @Test
+  void validateTermRateOverlap_emptyRatesMap_noErrors() {
+    var termId = UUID.randomUUID();
+    var form = new LicenceScheduleRateForm();
+    form.setLicenceScheduleTermId(termId.toString());
+
+    var term = LicenceScheduleTermTestUtil.builder()
+        .withId(termId)
+        .withTermType(TermType.INITIAL)
+        .withStartDate(LocalDate.of(2020, 1, 1))
+        .withEndDate(LocalDate.of(2025, 12, 31))
+        .build();
+
+    when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(new LinkedHashMap<>());
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validateTermRateOverlap(null, licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validateTermRateOverlap_rateDoesNotEncompassTerm_noErrors() {
+    var termId = UUID.randomUUID();
+    var form = new LicenceScheduleRateForm();
+    form.setLicenceScheduleTermId(termId.toString());
+
+    var term = LicenceScheduleTermTestUtil.builder()
+        .withId(termId)
+        .withTermType(TermType.INITIAL)
+        .withStartDate(LocalDate.of(2020, 1, 1))
+        .withEndDate(LocalDate.of(2025, 12, 31))
+        .build();
+
+    when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
+
+    var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
+    ratesMap.put(UUID.randomUUID(), new StartEndDates(LocalDate.of(2021, 1, 1), LocalDate.of(2030, 12, 31)));
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(ratesMap);
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validateTermRateOverlap(null, licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validateTermRateOverlap_rateEncompassesTerm_noExistingRate_rejectsField() {
+    var termId = UUID.randomUUID();
+    var form = new LicenceScheduleRateForm();
+    form.setLicenceScheduleTermId(termId.toString());
+
+    var term = LicenceScheduleTermTestUtil.builder()
+        .withId(termId)
+        .withTermType(TermType.INITIAL)
+        .withStartDate(LocalDate.of(2020, 1, 1))
+        .withEndDate(LocalDate.of(2025, 12, 31))
+        .build();
+
+    when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
+
+    var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
+    ratesMap.put(UUID.randomUUID(), new StartEndDates(LocalDate.of(2019, 1, 1), LocalDate.of(2026, 12, 31)));
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(ratesMap);
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validateTermRateOverlap(null, licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isTrue();
+    var errorMessages = ValidatorTestingUtil.extractErrorMessages(errors);
+    assertThat(errorMessages.get("licenceScheduleTermId"))
+        .contains("A rate cannot be added for this term as there are already rates that exist within it");
+  }
+
+  @Test
+  void validateTermRateOverlap_rateEncompassesTerm_existingRateIsOverlapping_noErrors() {
+    var termId = UUID.randomUUID();
+    var existingRateId = UUID.randomUUID();
+    var form = new LicenceScheduleRateForm();
+    form.setLicenceScheduleTermId(termId.toString());
+
+    var term = LicenceScheduleTermTestUtil.builder()
+        .withId(termId)
+        .withTermType(TermType.INITIAL)
+        .withStartDate(LocalDate.of(2020, 1, 1))
+        .withEndDate(LocalDate.of(2025, 12, 31))
+        .build();
+
+    when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
+
+    var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
+    ratesMap.put(existingRateId, new StartEndDates(LocalDate.of(2019, 1, 1), LocalDate.of(2026, 12, 31)));
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(ratesMap);
+
+    var existingRate = new LicenceScheduleRate();
+    existingRate.setId(existingRateId);
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validateTermRateOverlap(existingRate, licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validateTermRateOverlap_rateEncompassesTerm_existingRateIsDifferent_rejectsField() {
+    var termId = UUID.randomUUID();
+    var overlappingRateId = UUID.randomUUID();
+    var form = new LicenceScheduleRateForm();
+    form.setLicenceScheduleTermId(termId.toString());
+
+    var term = LicenceScheduleTermTestUtil.builder()
+        .withId(termId)
+        .withTermType(TermType.INITIAL)
+        .withStartDate(LocalDate.of(2020, 1, 1))
+        .withEndDate(LocalDate.of(2025, 12, 31))
+        .build();
+
+    when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
+
+    var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
+    ratesMap.put(overlappingRateId, new StartEndDates(LocalDate.of(2019, 1, 1), LocalDate.of(2026, 12, 31)));
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(ratesMap);
+
+    var editingRate = new LicenceScheduleRate();
+    editingRate.setId(UUID.randomUUID());
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validateTermRateOverlap(editingRate, licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isTrue();
+  }
+
+  @Test
+  void validatePhaseRateOverlap_emptyRatesMap_noErrors() {
+    var phaseId = UUID.randomUUID();
+    var form = new LicenceScheduleRateForm();
+    form.setLicenceSchedulePhaseId(phaseId.toString());
+
+    var phase = LicenceSchedulePhaseTestUtil.builder()
+        .withId(phaseId)
+        .withStartDate(LocalDate.of(2021, 1, 1))
+        .withEndDate(LocalDate.of(2023, 12, 31))
+        .build();
+
+    when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(new LinkedHashMap<>());
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validatePhaseRateOverlap(null, licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validatePhaseRateOverlap_rateDoesNotEncompassPhase_noErrors() {
+    var phaseId = UUID.randomUUID();
+    var form = new LicenceScheduleRateForm();
+    form.setLicenceSchedulePhaseId(phaseId.toString());
+
+    var phase = LicenceSchedulePhaseTestUtil.builder()
+        .withId(phaseId)
+        .withStartDate(LocalDate.of(2021, 1, 1))
+        .withEndDate(LocalDate.of(2023, 12, 31))
+        .build();
+
+    when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
+
+    var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
+    ratesMap.put(UUID.randomUUID(), new StartEndDates(LocalDate.of(2022, 1, 1), LocalDate.of(2025, 12, 31)));
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(ratesMap);
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validatePhaseRateOverlap(null, licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validatePhaseRateOverlap_rateEncompassesPhase_noExistingRate_rejectsField() {
+    var phaseId = UUID.randomUUID();
+    var form = new LicenceScheduleRateForm();
+    form.setLicenceSchedulePhaseId(phaseId.toString());
+
+    var phase = LicenceSchedulePhaseTestUtil.builder()
+        .withId(phaseId)
+        .withStartDate(LocalDate.of(2021, 1, 1))
+        .withEndDate(LocalDate.of(2023, 12, 31))
+        .build();
+
+    when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
+
+    var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
+    ratesMap.put(UUID.randomUUID(), new StartEndDates(LocalDate.of(2020, 1, 1), LocalDate.of(2025, 12, 31)));
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(ratesMap);
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validatePhaseRateOverlap(null, licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isTrue();
+    var errorMessages = ValidatorTestingUtil.extractErrorMessages(errors);
+    assertThat(errorMessages.get("licenceSchedulePhaseId"))
+        .contains("A rate cannot be added for this phase as it would overlap existing rates");
+  }
+
+  @Test
+  void validatePhaseRateOverlap_rateEncompassesPhase_existingRateIsOverlapping_noErrors() {
+    var phaseId = UUID.randomUUID();
+    var existingRateId = UUID.randomUUID();
+    var form = new LicenceScheduleRateForm();
+    form.setLicenceSchedulePhaseId(phaseId.toString());
+
+    var phase = LicenceSchedulePhaseTestUtil.builder()
+        .withId(phaseId)
+        .withStartDate(LocalDate.of(2021, 1, 1))
+        .withEndDate(LocalDate.of(2023, 12, 31))
+        .build();
+
+    when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
+
+    var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
+    ratesMap.put(existingRateId, new StartEndDates(LocalDate.of(2020, 1, 1), LocalDate.of(2025, 12, 31)));
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(ratesMap);
+
+    var existingRate = new LicenceScheduleRate();
+    existingRate.setId(existingRateId);
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validatePhaseRateOverlap(existingRate, licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validatePhaseRateOverlap_rateEncompassesPhase_existingRateIsDifferent_rejectsField() {
+    var phaseId = UUID.randomUUID();
+    var overlappingRateId = UUID.randomUUID();
+    var form = new LicenceScheduleRateForm();
+    form.setLicenceSchedulePhaseId(phaseId.toString());
+
+    var phase = LicenceSchedulePhaseTestUtil.builder()
+        .withId(phaseId)
+        .withStartDate(LocalDate.of(2021, 1, 1))
+        .withEndDate(LocalDate.of(2023, 12, 31))
+        .build();
+
+    when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
+
+    var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
+    ratesMap.put(overlappingRateId, new StartEndDates(LocalDate.of(2020, 1, 1), LocalDate.of(2025, 12, 31)));
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(ratesMap);
+
+    var editingRate = new LicenceScheduleRate();
+    editingRate.setId(UUID.randomUUID());
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validatePhaseRateOverlap(editingRate, licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isTrue();
+  }
+
+  @Test
+  void validateRelativeRateOverlap_emptyRatesMap_noErrors() {
+    var relativeEventId = UUID.randomUUID();
+    var form = new LicenceScheduleRateForm();
+    form.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
+    form.setRelativeEventId(relativeEventId.toString());
+
+    var term = LicenceScheduleTermTestUtil.builder()
+        .withId(relativeEventId)
+        .withTermType(TermType.INITIAL)
+        .withStartDate(LocalDate.of(2020, 1, 1))
+        .withEndDate(LocalDate.of(2025, 12, 31))
+        .build();
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(term));
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(new LinkedHashMap<>());
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
+        .thenReturn(List.of());
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validateRelativeRateOverlap(null, licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validateRelativeRateOverlap_sameStartDate_noExistingRate_onStartDate_rejectsRelativeDateOption() {
+    var relativeEventId = UUID.randomUUID();
+    var form = new LicenceScheduleRateForm();
+    form.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
+    form.setRelativeEventId(relativeEventId.toString());
+
+    var termStartDate = LocalDate.of(2020, 1, 1);
+    var term = LicenceScheduleTermTestUtil.builder()
+        .withId(relativeEventId)
+        .withTermType(TermType.INITIAL)
+        .withStartDate(termStartDate)
+        .withEndDate(LocalDate.of(2025, 12, 31))
+        .build();
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(term));
+
+    var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
+    ratesMap.put(UUID.randomUUID(), new StartEndDates(termStartDate, LocalDate.of(2025, 12, 31)));
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(ratesMap);
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validateRelativeRateOverlap(null, licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isTrue();
+    var errorMessages = ValidatorTestingUtil.extractErrorMessages(errors);
+    assertThat(errorMessages.get("rateRelativeDateOption"))
+        .contains("A rate cannot be added on this date as there is already a rate on the schedule with the same start date");
+  }
+
+  @Test
+  void validateRelativeRateOverlap_sameStartDate_noExistingRate_relativeToStartDate_rejectsDurationFields() {
+    var relativeEventId = UUID.randomUUID();
+    var form = new LicenceScheduleRateForm();
+    form.setRateRelativeDateOption(RateRelativeDateOption.RELATIVE_TO_START_DATE);
+    form.setRelativeEventId(relativeEventId.toString());
+    form.getRelativeDuration().setFromThreeFieldDuration(new ThreeFieldDuration(2, 0, 0));
+
+    var termStartDate = LocalDate.of(2020, 1, 1);
+    var term = LicenceScheduleTermTestUtil.builder()
+        .withId(relativeEventId)
+        .withTermType(TermType.INITIAL)
+        .withStartDate(termStartDate)
+        .withEndDate(LocalDate.of(2025, 12, 31))
+        .build();
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(term));
+
+    var calculatedStartDate = LocalDate.of(2022, 1, 1);
+    when(licenceScheduleCalculationService.calculateRelativeStartDueDate(eq(termStartDate), any(ThreeFieldDuration.class)))
+        .thenReturn(calculatedStartDate);
+
+    var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
+    ratesMap.put(UUID.randomUUID(), new StartEndDates(calculatedStartDate, LocalDate.of(2025, 12, 31)));
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(ratesMap);
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validateRelativeRateOverlap(null, licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isTrue();
+    var errorMessages = ValidatorTestingUtil.extractErrorMessages(errors);
+    assertThat(errorMessages.get("relativeDuration.years"))
+        .contains("A rate cannot be added on this date as there is already a rate on the schedule with the same start date");
+    assertThat(errorMessages).containsKey("relativeDuration.months");
+    assertThat(errorMessages).containsKey("relativeDuration.days");
+  }
+
+  @Test
+  void validateRelativeRateOverlap_sameStartDate_existingRateHasSameStartDate_noErrors() {
+    var relativeEventId = UUID.randomUUID();
+    var existingRateId = UUID.randomUUID();
+    var form = new LicenceScheduleRateForm();
+    form.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
+    form.setRelativeEventId(relativeEventId.toString());
+
+    var termStartDate = LocalDate.of(2020, 1, 1);
+    var term = LicenceScheduleTermTestUtil.builder()
+        .withId(relativeEventId)
+        .withTermType(TermType.INITIAL)
+        .withStartDate(termStartDate)
+        .withEndDate(LocalDate.of(2025, 12, 31))
+        .build();
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(term));
+
+    var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
+    ratesMap.put(existingRateId, new StartEndDates(termStartDate, LocalDate.of(2025, 12, 31)));
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(ratesMap);
+
+    var existingRate = new LicenceScheduleRate();
+    existingRate.setId(existingRateId);
+    existingRate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
+
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
+        .thenReturn(List.of(existingRate));
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validateRelativeRateOverlap(existingRate, licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validateRelativeRateOverlap_startDateWithinExistingTermOrPhaseRate_noExistingRate_rejectsField() {
+    var relativeEventId = UUID.randomUUID();
+    var existingRateId = UUID.randomUUID();
+    var form = new LicenceScheduleRateForm();
+    form.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
+    form.setRelativeEventId(relativeEventId.toString());
+
+    var termStartDate = LocalDate.of(2022, 6, 1);
+    var term = LicenceScheduleTermTestUtil.builder()
+        .withId(relativeEventId)
+        .withTermType(TermType.INITIAL)
+        .withStartDate(termStartDate)
+        .withEndDate(LocalDate.of(2025, 12, 31))
+        .build();
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(term));
+
+    // Existing rate covers 2020-2030; the proposed start date (2022-06-01) falls within it
+    var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
+    ratesMap.put(existingRateId, new StartEndDates(LocalDate.of(2020, 1, 1), LocalDate.of(2030, 12, 31)));
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(ratesMap);
+
+    var existingRate = new LicenceScheduleRate();
+    existingRate.setId(existingRateId);
+    existingRate.setRateDefinitionOption(RateDefinitionOption.TERM);
+
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
+        .thenReturn(List.of(existingRate));
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validateRelativeRateOverlap(null, licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isTrue();
+    var errorMessages = ValidatorTestingUtil.extractErrorMessages(errors);
+    assertThat(errorMessages.get("rateRelativeDateOption"))
+        .contains("A rate cannot be added on this date as there is already a rate defined for the term/phase the start date is within");
+  }
+
+  @Test
+  void validateRelativeRateOverlap_startDateWithinExistingCustomPeriodRate_noErrors() {
+    var relativeEventId = UUID.randomUUID();
+    var existingRateId = UUID.randomUUID();
+    var form = new LicenceScheduleRateForm();
+    form.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
+    form.setRelativeEventId(relativeEventId.toString());
+
+    var termStartDate = LocalDate.of(2022, 6, 1);
+    var term = LicenceScheduleTermTestUtil.builder()
+        .withId(relativeEventId)
+        .withTermType(TermType.INITIAL)
+        .withStartDate(termStartDate)
+        .withEndDate(LocalDate.of(2025, 12, 31))
+        .build();
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(term));
+
+    var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
+    ratesMap.put(existingRateId, new StartEndDates(LocalDate.of(2020, 1, 1), LocalDate.of(2030, 12, 31)));
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(ratesMap);
+
+    var existingRate = new LicenceScheduleRate();
+    existingRate.setId(existingRateId);
+    existingRate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
+
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
+        .thenReturn(List.of(existingRate));
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validateRelativeRateOverlap(null, licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isFalse();
   }
 
   private LocalDate setupShortenedTermMocks(LicenceScheduleTerm licenceScheduleTerm) {

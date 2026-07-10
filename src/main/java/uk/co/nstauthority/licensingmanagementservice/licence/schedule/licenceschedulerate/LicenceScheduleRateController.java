@@ -64,7 +64,7 @@ public class LicenceScheduleRateController {
       BindingResult bindingResult,
       ServiceUserDetail serviceUserDetail
   ) {
-    if (!licenceScheduleRateFormValidator.isValid(form, bindingResult, licenceScheduleDetail)) {
+    if (!licenceScheduleRateFormValidator.isValid(form, bindingResult, licenceScheduleDetail, null)) {
       return getScheduleRateModelAndView(form, licenceScheduleDetail);
     }
 
@@ -100,7 +100,7 @@ public class LicenceScheduleRateController {
     var rate = licenceScheduleRateService.getRateByIdOrThrow(licenceScheduleRateId);
     var detail = rate.getLicenceScheduleDetail();
 
-    if (!licenceScheduleRateFormValidator.isValid(form, bindingResult, detail)) {
+    if (!licenceScheduleRateFormValidator.isValid(form, bindingResult, detail, rate)) {
       return getScheduleRateModelAndView(form, detail);
     }
 

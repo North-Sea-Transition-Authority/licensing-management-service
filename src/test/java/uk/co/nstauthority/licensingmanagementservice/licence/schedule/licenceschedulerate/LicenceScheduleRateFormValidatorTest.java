@@ -1,6 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -30,7 +33,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isTrue();
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail, null)).isTrue();
   }
 
   @Test
@@ -41,7 +44,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isTrue();
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail, null)).isTrue();
   }
 
   @Test
@@ -53,7 +56,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isTrue();
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail, null)).isTrue();
   }
 
   @Test
@@ -66,7 +69,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isTrue();
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail, null)).isTrue();
   }
 
   @Test
@@ -76,7 +79,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail, null)).isFalse();
   }
 
   @Test
@@ -86,7 +89,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail, null)).isFalse();
   }
 
   @Test
@@ -96,7 +99,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail, null)).isFalse();
   }
 
   @Test
@@ -108,7 +111,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail, null)).isFalse();
   }
 
   @Test
@@ -119,7 +122,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail, null)).isFalse();
   }
 
   @Test
@@ -131,7 +134,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail, null)).isFalse();
   }
 
   @Test
@@ -141,7 +144,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail, null)).isFalse();
   }
 
   @Test
@@ -151,7 +154,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail, null)).isFalse();
   }
 
   @Test
@@ -161,7 +164,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail, null)).isFalse();
   }
 
   @Test
@@ -171,7 +174,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isTrue();
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail, null)).isTrue();
   }
 
   @Test
@@ -181,7 +184,7 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isTrue();
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail, null)).isTrue();
   }
 
   @Test
@@ -191,7 +194,94 @@ class LicenceScheduleRateFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail, null)).isFalse();
+  }
+
+  @Test
+  void isValid_termOption_withTermId_callsTermOverlapValidation() {
+    var form = createValidForm();
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    validator.isValid(form, bindingResult, licenceScheduleDetail, null);
+
+    verify(scheduleRelativeDateValidationService).validateTermRateOverlap(
+        null, licenceScheduleDetail, form, bindingResult);
+  }
+
+  @Test
+  void isValid_termOption_withoutTermId_doesNotCallTermOverlapValidation() {
+    var form = createValidForm();
+    form.setLicenceScheduleTermId(null);
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    validator.isValid(form, bindingResult, licenceScheduleDetail, null);
+
+    verify(scheduleRelativeDateValidationService, never()).validateTermRateOverlap(any(), any(), any(), any());
+  }
+
+  @Test
+  void isValid_phaseOption_withPhaseId_callsPhaseOverlapValidation() {
+    var form = createValidForm();
+    form.setRateDefinitionOption(RateDefinitionOption.PHASE);
+    form.setLicenceSchedulePhaseId("licenceSchedulePhaseId");
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    validator.isValid(form, bindingResult, licenceScheduleDetail, null);
+
+    verify(scheduleRelativeDateValidationService).validatePhaseRateOverlap(
+        null, licenceScheduleDetail, form, bindingResult);
+  }
+
+  @Test
+  void isValid_phaseOption_withoutPhaseId_doesNotCallPhaseOverlapValidation() {
+    var form = createValidForm();
+    form.setRateDefinitionOption(RateDefinitionOption.PHASE);
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    validator.isValid(form, bindingResult, licenceScheduleDetail, null);
+
+    verify(scheduleRelativeDateValidationService, never()).validatePhaseRateOverlap(any(), any(), any(), any());
+  }
+
+  @Test
+  void isValid_customPeriodOption_onStartDate_withEventId_callsRelativeOverlapValidation() {
+    var form = createValidForm();
+    form.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
+    form.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
+    form.setRelativeEventId(UUID.randomUUID().toString());
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    validator.isValid(form, bindingResult, licenceScheduleDetail, null);
+
+    verify(scheduleRelativeDateValidationService).validateRelativeRateOverlap(
+        null, licenceScheduleDetail, form, bindingResult);
+  }
+
+  @Test
+  void isValid_customPeriodOption_relativeToStartDate_withEventId_callsRelativeOverlapValidation() {
+    var form = createValidForm();
+    form.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
+    form.setRateRelativeDateOption(RateRelativeDateOption.RELATIVE_TO_START_DATE);
+    form.setRelativeEventId(UUID.randomUUID().toString());
+    form.getRelativeDuration().setFromThreeFieldDuration(new ThreeFieldDuration(1, 0, 0));
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    validator.isValid(form, bindingResult, licenceScheduleDetail, null);
+
+    verify(scheduleRelativeDateValidationService).validateRelativeRateOverlap(
+        null, licenceScheduleDetail, form, bindingResult);
+  }
+
+  @Test
+  void isValid_customPeriodOption_withoutEventId_doesNotCallRelativeOverlapValidation() {
+    var form = createValidForm();
+    form.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
+    form.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    validator.isValid(form, bindingResult, licenceScheduleDetail, null);
+
+    verify(scheduleRelativeDateValidationService, never()).validateRelativeRateOverlap(any(), any(), any(), any());
   }
 
   private LicenceScheduleRateForm createValidForm() {

@@ -19,7 +19,12 @@ public class LicenceScheduleRateFormValidator {
     this.scheduleRelativeDateValidationService = scheduleRelativeDateValidationService;
   }
 
-  boolean isValid(LicenceScheduleRateForm form, Errors errors, LicenceScheduleDetail licenceScheduleDetail) {
+  boolean isValid(
+      LicenceScheduleRateForm form,
+      Errors errors,
+      LicenceScheduleDetail licenceScheduleDetail,
+      LicenceScheduleRate licenceScheduleRate
+  ) {
     ValidationUtils.rejectIfEmpty(
         errors,
         "rateDefinitionOption",
@@ -35,6 +40,15 @@ public class LicenceScheduleRateFormValidator {
             "licenceScheduleTermId.required",
             "Select a term"
         );
+
+        if (form.getLicenceScheduleTermId() != null) {
+          scheduleRelativeDateValidationService.validateTermRateOverlap(
+              licenceScheduleRate,
+              licenceScheduleDetail,
+              form,
+              errors
+          );
+        }
       }
 
       if (form.getRateDefinitionOption().equals(RateDefinitionOption.PHASE)) {
@@ -44,6 +58,15 @@ public class LicenceScheduleRateFormValidator {
             "licenceSchedulePhaseId.required",
             "Select a phase"
         );
+
+        if (form.getLicenceSchedulePhaseId() != null) {
+          scheduleRelativeDateValidationService.validatePhaseRateOverlap(
+              licenceScheduleRate,
+              licenceScheduleDetail,
+              form,
+              errors
+          );
+        }
       }
 
       if (form.getRateDefinitionOption().equals(RateDefinitionOption.CUSTOM_PERIOD)) {
@@ -61,15 +84,30 @@ public class LicenceScheduleRateFormValidator {
             "Select an option"
         );
 
-        if (form.getRateRelativeDateOption() != null
-            && form.getRateRelativeDateOption().equals(RateRelativeDateOption.RELATIVE_TO_START_DATE)) {
-          ThreeFieldDurationValidationUtil.validate(form.getRelativeDuration(), errors);
+        if (form.getRateRelativeDateOption() != null) {
+          if (form.getRateRelativeDateOption().equals(RateRelativeDateOption.RELATIVE_TO_START_DATE)) {
+            ThreeFieldDurationValidationUtil.validate(form.getRelativeDuration(), errors);
 
-          if (form.getRelativeEventId() != null) {
-            scheduleRelativeDateValidationService.validateRelativeDateBeforeEndOfSchedule(
+            if (form.getRelativeEventId() != null) {
+              scheduleRelativeDateValidationService.validateRelativeDateBeforeEndOfSchedule(
+                  licenceScheduleDetail,
+                  form.getRelativeDuration(),
+                  UUID.fromString(form.getRelativeEventId()),
+                  errors
+              );
+
+              scheduleRelativeDateValidationService.validateRelativeRateOverlap(
+                  licenceScheduleRate,
+                  licenceScheduleDetail,
+                  form,
+                  errors
+              );
+            }
+          } else if (form.getRelativeEventId() != null) {
+            scheduleRelativeDateValidationService.validateRelativeRateOverlap(
+                licenceScheduleRate,
                 licenceScheduleDetail,
-                form.getRelativeDuration(),
-                UUID.fromString(form.getRelativeEventId()),
+                form,
                 errors
             );
           }

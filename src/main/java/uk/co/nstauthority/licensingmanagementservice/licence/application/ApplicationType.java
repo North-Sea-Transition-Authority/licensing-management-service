@@ -19,7 +19,7 @@ public enum ApplicationType implements Displayable, PathVariableEnum {
       "Licence continuation application",
       "licence-continuation-application",
       20,
-      "I want to continue into the next term or phase of my licence"
+      "I want to continue into the next term or phase of my production licence"
   ),
   ;
 

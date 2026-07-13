@@ -25,6 +25,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContact;
+import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactRepository;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceResponsibleOrganisationServiceTest {
@@ -46,6 +48,9 @@ class LicenceResponsibleOrganisationServiceTest {
 
   @Mock
   private OrganisationUnitQueryService organisationUnitQueryService;
+
+  @Mock
+  private LicenceContactRepository licenceContactRepository;
 
   @InjectMocks
   private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
@@ -144,6 +149,33 @@ class LicenceResponsibleOrganisationServiceTest {
         .usingRecursiveComparison()
         .ignoringCollectionOrder()
         .isEqualTo(expectedResult);
+  }
+
+  @Test
+  void saveLicenseesFromForm_deletesContactsForRemovedLicensees() {
+    var licence = new Licence();
+
+    var keptLicensee = new LicenceResponsibleOrganisation();
+    keptLicensee.setResponsibleOrganisationId(1);
+    keptLicensee.setLicence(licence);
+    keptLicensee.setManagedByLms(true);
+
+    var removedLicensee = new LicenceResponsibleOrganisation();
+    removedLicensee.setResponsibleOrganisationId(2);
+    removedLicensee.setLicence(licence);
+    removedLicensee.setManagedByLms(true);
+
+    when(licenceResponsibleOrganisationRepository.findAllByLicence(licence))
+        .thenReturn(List.of(keptLicensee, removedLicensee));
+
+    var removedContact = new LicenceContact();
+    removedContact.setLicensee(removedLicensee);
+    when(licenceContactRepository.findAllByLicenseeIn(List.of(removedLicensee)))
+        .thenReturn(List.of(removedContact));
+
+    licenceResponsibleOrganisationService.saveLicenseesFromForm(licence, List.of("1"));
+
+    verify(licenceContactRepository).deleteAll(List.of(removedContact));
   }
 
   @Test

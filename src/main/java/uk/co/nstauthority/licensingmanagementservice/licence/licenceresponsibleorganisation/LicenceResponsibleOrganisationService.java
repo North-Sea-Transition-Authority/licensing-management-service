@@ -17,6 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactRepository;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 @Service
@@ -27,19 +28,22 @@ public class LicenceResponsibleOrganisationService {
   private final LicenceOrganisationService licenceOrganisationService;
   private final ApplicationAccessService applicationAccessService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
+  private final LicenceContactRepository licenceContactRepository;
 
   public LicenceResponsibleOrganisationService(
       LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository,
       PearsResponsibleOrganisationRefreshService pearsResponsibleOrganisationRefreshService,
       LicenceOrganisationService licenceOrganisationService,
       ApplicationAccessService applicationAccessService,
-      OrganisationUnitQueryService organisationUnitQueryService
+      OrganisationUnitQueryService organisationUnitQueryService,
+      LicenceContactRepository licenceContactRepository
   ) {
     this.licenceResponsibleOrganisationRepository = licenceResponsibleOrganisationRepository;
     this.pearsResponsibleOrganisationRefreshService = pearsResponsibleOrganisationRefreshService;
     this.licenceOrganisationService = licenceOrganisationService;
     this.applicationAccessService = applicationAccessService;
     this.organisationUnitQueryService = organisationUnitQueryService;
+    this.licenceContactRepository = licenceContactRepository;
   }
 
   public List<LicenceResponsibleOrganisation> getAll() {
@@ -169,6 +173,9 @@ public class LicenceResponsibleOrganisationService {
         .filter(id -> !existingResponsibleOrganisationIdMap.containsKey(id))
         .map(id -> createManagedLicensee(licence, id))
         .toList();
+
+    var removedContacts = licenceContactRepository.findAllByLicenseeIn(responsibleOrganisationsToDelete);
+    licenceContactRepository.deleteAll(removedContacts);
 
     licenceResponsibleOrganisationRepository.deleteAll(responsibleOrganisationsToDelete);
 

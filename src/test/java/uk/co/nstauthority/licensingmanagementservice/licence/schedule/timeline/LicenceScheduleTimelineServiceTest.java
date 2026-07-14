@@ -60,6 +60,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.othersched
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCategory;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCommitment;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDeletionController;
@@ -377,6 +378,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setId(UUID.randomUUID());
     midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
+    midPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
 
@@ -385,7 +387,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midPhaseActivity),
         "description",
         LocalDate.of(2025, 2, 1),
         "1 February 2025",
@@ -403,6 +405,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfPhaseActivity.setId(UUID.randomUUID());
     endOfPhaseActivity.setOriginalEventId(endOfPhaseActivity.getId());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
+    endOfPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     endOfPhaseActivity.setDescription("description");
 
     var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
@@ -410,7 +413,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfPhaseActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(endOfPhaseActivity),
         "description",
         null,
         "",
@@ -428,6 +431,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setId(UUID.randomUUID());
     midTerm2Activity.setOriginalEventId(midTerm2Activity.getId());
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
+    midTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
 
@@ -436,7 +440,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midTerm2Activity),
         "description",
         LocalDate.of(2026, 2, 1),
         "1 February 2026",
@@ -454,6 +458,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfTerm2Activity.setId(UUID.randomUUID());
     endOfTerm2Activity.setOriginalEventId(endOfTerm2Activity.getId());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
+    endOfTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     endOfTerm2Activity.setDescription("description");
 
     var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
@@ -461,7 +466,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(endOfTerm2Activity),
         "description",
         null,
         "",
@@ -724,6 +729,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setId(UUID.randomUUID());
     midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
+    midPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.CONDITIONAL);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
 
@@ -732,7 +738,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midPhaseActivity),
         "description",
         LocalDate.of(2025, 2, 1),
         "1 February 2025",
@@ -748,6 +754,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfPhaseActivity.setId(UUID.randomUUID());
     endOfPhaseActivity.setOriginalEventId(endOfPhaseActivity.getId());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
+    endOfPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.CONDITIONAL);
     endOfPhaseActivity.setDescription("description");
 
     var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
@@ -755,7 +762,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfPhaseActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(endOfPhaseActivity),
         "description",
         null,
         "",
@@ -771,6 +778,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setId(UUID.randomUUID());
     midTerm2Activity.setOriginalEventId(midTerm2Activity.getId());
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
+    midTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.CONTINGENT);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
 
@@ -779,7 +787,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midTerm2Activity),
         "description",
         LocalDate.of(2026, 2, 1),
         "1 February 2026",
@@ -795,6 +803,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfTerm2Activity.setId(UUID.randomUUID());
     endOfTerm2Activity.setOriginalEventId(endOfTerm2Activity.getId());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
+    endOfTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.CONDITIONAL);
     endOfTerm2Activity.setDescription("description");
 
     var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
@@ -802,7 +811,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(endOfTerm2Activity),
         "description",
         null,
         "",
@@ -1049,6 +1058,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setId(UUID.randomUUID());
     midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
+    midPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.CONDITIONAL);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
 
@@ -1057,7 +1067,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midPhaseActivity),
         "description",
         LocalDate.of(2025, 2, 1),
         "1 February 2025",
@@ -1075,6 +1085,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfPhaseActivity.setId(UUID.randomUUID());
     endOfPhaseActivity.setOriginalEventId(endOfPhaseActivity.getId());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
+    endOfPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.CONDITIONAL);
     endOfPhaseActivity.setDescription("description");
 
     var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
@@ -1082,7 +1093,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfPhaseActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(endOfPhaseActivity),
         "description",
         null,
         "",
@@ -1100,6 +1111,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setId(UUID.randomUUID());
     midTerm2Activity.setOriginalEventId(midTerm2Activity.getId());
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
+    midTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
 
@@ -1108,7 +1120,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midTerm2Activity),
         "description",
         LocalDate.of(2026, 2, 1),
         "1 February 2026",
@@ -1126,6 +1138,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfTerm2Activity.setId(UUID.randomUUID());
     endOfTerm2Activity.setOriginalEventId(endOfTerm2Activity.getId());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
+    endOfTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.CONDITIONAL);
     endOfTerm2Activity.setDescription("description");
 
     var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
@@ -1133,7 +1146,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(endOfTerm2Activity),
         "description",
         null,
         "",
@@ -1373,6 +1386,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setId(UUID.randomUUID());
     midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
+    midPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
 
@@ -1384,6 +1398,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfPhaseActivity.setId(UUID.randomUUID());
     endOfPhaseActivity.setOriginalEventId(endOfPhaseActivity.getId());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
+    endOfPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     endOfPhaseActivity.setDescription("description");
 
     var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
@@ -1394,6 +1409,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setId(UUID.randomUUID());
     midTerm2Activity.setOriginalEventId(midTerm2Activity.getId());
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
+    midTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
 
@@ -1405,6 +1421,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfTerm2Activity.setId(UUID.randomUUID());
     endOfTerm2Activity.setOriginalEventId(endOfTerm2Activity.getId());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
+    endOfTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.CONTINGENT);
     endOfTerm2Activity.setDescription("description");
 
     var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
@@ -1663,6 +1680,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setId(UUID.randomUUID());
     midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
+    midPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
 
@@ -1671,7 +1689,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midPhaseActivity),
         "description",
         LocalDate.of(2025, 2, 1),
         "1 February 2025",
@@ -1689,6 +1707,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfPhaseActivity.setId(UUID.randomUUID());
     endOfPhaseActivity.setOriginalEventId(endOfPhaseActivity.getId());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
+    endOfPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     endOfPhaseActivity.setDescription("description");
 
     var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
@@ -1696,7 +1715,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfPhaseActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(endOfPhaseActivity),
         "description",
         null,
         "",
@@ -1714,6 +1733,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setId(UUID.randomUUID());
     midTerm2Activity.setOriginalEventId(midTerm2Activity.getId());
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
+    midTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
 
@@ -1722,7 +1742,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midTerm2Activity),
         "description",
         LocalDate.of(2026, 2, 1),
         "1 February 2026",
@@ -1740,6 +1760,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfTerm2Activity.setId(UUID.randomUUID());
     endOfTerm2Activity.setOriginalEventId(endOfTerm2Activity.getId());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
+    endOfTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.CONDITIONAL);
     endOfTerm2Activity.setDescription("description");
 
     var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
@@ -1747,7 +1768,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(endOfTerm2Activity),
         "description",
         null,
         "",
@@ -1961,6 +1982,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setId(UUID.randomUUID());
     midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
+    midPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.CONTINGENT);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
 
@@ -1969,7 +1991,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivityStatus.setStatus(WorkProgrammeStatus.IN_PROGRESS);
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midPhaseActivity),
         "description",
         LocalDate.of(2025, 2, 1),
         "1 February 2025",
@@ -1987,6 +2009,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfPhaseActivity.setId(UUID.randomUUID());
     endOfPhaseActivity.setOriginalEventId(endOfPhaseActivity.getId());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
+    endOfPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.CONTINGENT);
     endOfPhaseActivity.setDescription("description");
 
     var endOfPhaseActivityStatus = new WorkProgrammeActivityStatus();
@@ -1994,7 +2017,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfPhaseActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(endOfPhaseActivity),
         "description",
         null,
         "",
@@ -2012,6 +2035,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setId(UUID.randomUUID());
     midTerm2Activity.setOriginalEventId(midTerm2Activity.getId());
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
+    midTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.CONTINGENT);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
 
@@ -2020,7 +2044,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midTerm2Activity),
         "description",
         LocalDate.of(2026, 2, 1),
         "1 February 2026",
@@ -2038,6 +2062,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfTerm2Activity.setId(UUID.randomUUID());
     endOfTerm2Activity.setOriginalEventId(endOfTerm2Activity.getId());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
+    endOfTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     endOfTerm2Activity.setDescription("description");
 
     var endOfTerm2ActivityStatus = new WorkProgrammeActivityStatus();
@@ -2045,7 +2070,7 @@ class LicenceScheduleTimelineServiceTest {
     endOfTerm2ActivityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(endOfTerm2Activity),
         "description",
         null,
         "",
@@ -2222,11 +2247,12 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setId(UUID.randomUUID());
     midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
+    midPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midPhaseActivity.setDescription("description");
     midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midPhaseActivity),
         "description",
         LocalDate.of(2025, 2, 1),
         "1 February 2025",
@@ -2242,10 +2268,11 @@ class LicenceScheduleTimelineServiceTest {
     endOfPhaseActivity.setId(UUID.randomUUID());
     endOfPhaseActivity.setOriginalEventId(endOfPhaseActivity.getId());
     endOfPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL);
+    endOfPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     endOfPhaseActivity.setDescription("description");
 
     var endOfPhaseActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(endOfPhaseActivity),
         "description",
         null,
         "",
@@ -2261,11 +2288,12 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setId(UUID.randomUUID());
     midTerm2Activity.setOriginalEventId(midTerm2Activity.getId());
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
+    midTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midTerm2Activity.setDescription("description");
     midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midTerm2Activity),
         "description",
         LocalDate.of(2026, 2, 1),
         "1 February 2026",
@@ -2281,10 +2309,11 @@ class LicenceScheduleTimelineServiceTest {
     endOfTerm2Activity.setId(UUID.randomUUID());
     endOfTerm2Activity.setOriginalEventId(endOfTerm2Activity.getId());
     endOfTerm2Activity.setCategory(WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA);
+    endOfTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     endOfTerm2Activity.setDescription("description");
 
     var endOfTerm2ActivityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.NEW_SHOOT_2_D_SEISMIC_DATA.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(endOfTerm2Activity),
         "description",
         null,
         "",
@@ -2470,6 +2499,7 @@ class LicenceScheduleTimelineServiceTest {
     activity.setId(UUID.randomUUID());
     activity.setOriginalEventId(activity.getId());
     activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
+    activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     activity.setDescription("description");
     activity.setDueDate(finalTermEndDate.plusYears(2));
 
@@ -2478,7 +2508,7 @@ class LicenceScheduleTimelineServiceTest {
     activityStatus.setStatus(WorkProgrammeStatus.OPEN);
 
     var activityView = new TimelineWorkProgrammeActivityView(
-        WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT.getDisplayName(),
+        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(activity),
         "description",
         activity.getDueDate(),
         "1 January 2028",
@@ -2560,6 +2590,7 @@ class LicenceScheduleTimelineServiceTest {
     wpa.setId(UUID.randomUUID());
     wpa.setOriginalEventId(wpa.getId());
     wpa.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
+    wpa.setCommitment(WorkProgrammeActivityCommitment.CONTINGENT);
     wpa.setDescription("WPA description");
     wpa.setDueDate(LocalDate.of(2025, 6, 1));
 

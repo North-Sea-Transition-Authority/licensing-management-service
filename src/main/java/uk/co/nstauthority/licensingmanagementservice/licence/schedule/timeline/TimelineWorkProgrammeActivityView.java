@@ -80,7 +80,7 @@ public record TimelineWorkProgrammeActivityView(
     var comments = eventComments.getOrDefault(workProgrammeActivity.getOriginalEventId(), List.of());
 
     return new TimelineWorkProgrammeActivityView(
-        workProgrammeActivity.getCategoryString(),
+        getCategoryAndCommitmentString(workProgrammeActivity),
         workProgrammeActivity.getDescription(),
         workProgrammeActivity.getDueDate(),
         dueDateString,
@@ -90,6 +90,13 @@ public record TimelineWorkProgrammeActivityView(
         addCommentUrl,
         statusView,
         comments
+    );
+  }
+
+  public static String getCategoryAndCommitmentString(WorkProgrammeActivity workProgrammeActivity) {
+    return String.format("%s (%s)",
+        workProgrammeActivity.getCategoryString(),
+        workProgrammeActivity.getCommitment().getDisplayName()
     );
   }
 

@@ -49,7 +49,7 @@ public enum Role {
   ),
   WORK_PROGRAMME_ADMINISTRATOR(
       "Work programme administrator",
-      "Add, remove and update work programmes"
+      "Add, remove and update work programme activities"
   ),
   WORK_PROGRAMME_STATUS_ADMINISTRATOR(
       "Work programme status administrator",

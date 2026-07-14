@@ -56,7 +56,7 @@
           <p class="govuk-body">Example documents include:</p>
           <ul class="govuk-list govuk-list--bullet">
             <li>Present the impact on further work programme requirements in the form of a schedule</li>
-            <li>Approved work programmes</li>
+            <li>Approved work programme activities</li>
             <li>Budgets</li>
             <li>Agreed firm exploration schedule</li>
           </ul>

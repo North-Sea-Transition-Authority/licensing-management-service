@@ -22,7 +22,7 @@
 
             <@fdsRadio.radioItem
                 path="form.addAnotherOption"
-                itemMap={"no": "No, I have added all work programmes I need to"}/>
+                itemMap={"no": "No, I have added all work programme activities I need to"}/>
 
         </@fdsRadio.radioGroup>
 

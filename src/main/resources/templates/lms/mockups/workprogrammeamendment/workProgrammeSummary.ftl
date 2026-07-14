@@ -11,7 +11,7 @@
 
         <@fdsRadio.radioGroup
             path="form.addAnotherOption"
-            labelText="Do you want to add another work programme to the scope of this decision?"
+            labelText="Do you want to add another work programme activity to the scope of this decision?"
             fieldsetHeadingSize="h2"
             fieldsetHeadingClass="govuk-fieldset__legend--m">
 

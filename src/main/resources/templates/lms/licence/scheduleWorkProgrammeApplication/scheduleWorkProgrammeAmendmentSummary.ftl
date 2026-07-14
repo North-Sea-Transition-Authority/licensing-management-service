@@ -14,7 +14,7 @@
         <@fdsRadio.radioGroup
         path="form.licenceWorkProgrammeAmendmentSummaryOptions"
         fieldsetHeadingClass="govuk-fieldset__legend--l"
-        labelText="Do you want to add another work programme amendment?"
+        labelText="Do you want to add another work programme amendment to this application?"
         hiddenContent=true>
             <#assign firstItem=true/>
             <#list licenceWorkProgrammeAmendmentSummaryOptions as key, value>

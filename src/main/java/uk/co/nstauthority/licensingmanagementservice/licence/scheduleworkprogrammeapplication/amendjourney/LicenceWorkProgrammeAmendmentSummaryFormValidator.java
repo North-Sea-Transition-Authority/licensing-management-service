@@ -15,7 +15,7 @@ public class LicenceWorkProgrammeAmendmentSummaryFormValidator {
         errors,
         "licenceWorkProgrammeAmendmentSummaryOptions",
         "licenceWorkProgrammeAmendmentSummaryOptions.required",
-        "Select if you want to add another work programme amendment"
+        "Select if you want to add another work programme amendment to this application"
     );
 
     return !errors.hasErrors();

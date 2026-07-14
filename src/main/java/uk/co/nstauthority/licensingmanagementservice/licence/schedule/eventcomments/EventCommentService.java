@@ -7,6 +7,7 @@ import java.time.Clock;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -103,6 +104,7 @@ public class EventCommentService {
 
     var authorWuaIds = comments.stream()
         .map(EventComment::getAuthorWuaId)
+        .filter(Objects::nonNull)
         .distinct()
         .map(WebUserAccountId::from)
         .toList();
@@ -172,7 +174,7 @@ public class EventCommentService {
 
     return new EventCommentView(
         eventComment.getComment(),
-        authorName,
+        authorName != null ? authorName : "Unknown",
         DateFormatUtil.convertToDisplayTextWithTime(eventComment.getTimestamp()),
         deleteUrl
     );

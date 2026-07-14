@@ -1,6 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status;
 
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
@@ -33,6 +35,12 @@ public enum WorkProgrammeStatus implements Displayable {
   @Override
   public int getDisplayOrder() {
     return displayOrder;
+  }
+
+  public static Optional<WorkProgrammeStatus> fromDisplayName(String displayName) {
+    return Arrays.stream(values())
+        .filter(s -> s.displayName.equals(displayName))
+        .findFirst();
   }
 
   public static Map<String, String> getRadioOptions() {

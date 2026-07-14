@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -32,6 +33,12 @@ public enum TermType implements Displayable {
 
   public Set<LicenceType> getLicenceTypes() {
     return licenceTypes;
+  }
+
+  public static Optional<TermType> fromDisplayName(String displayName) {
+    return Stream.of(values())
+        .filter(t -> t.displayName.equals(displayName))
+        .findFirst();
   }
 
   public static Set<TermType> getTermsFor(LicenceType licenceType) {

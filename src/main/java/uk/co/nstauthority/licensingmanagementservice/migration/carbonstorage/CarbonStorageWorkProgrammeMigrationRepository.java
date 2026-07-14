@@ -7,12 +7,12 @@ import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationSource;
 
 @Repository
-public interface CarbonStorageTermMigrationRepository
-    extends CrudRepository<CarbonStorageTermMigrationExtract, Integer>, NotDuplicationSource {
+public interface CarbonStorageWorkProgrammeMigrationRepository
+    extends CrudRepository<CarbonStorageWorkProgrammeMigrationExtract, Integer>, NotDuplicationSource {
 
   @Query(value = """
       SELECT DISTINCT licence_ref AS licenceRef, case_date AS caseDate
-      FROM lms.cs_term_migration_extract
+      FROM lms.cs_work_programme_migration_extract
       """, nativeQuery = true)
   List<CsLicenceCase> findDistinctCases();
 }

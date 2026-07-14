@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogr
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
@@ -140,6 +141,12 @@ public enum WorkProgrammeActivityCategory implements Displayable {
   @Override
   public int getDisplayOrder() {
     return displayOrder;
+  }
+
+  public static Optional<WorkProgrammeActivityCategory> fromDisplayName(String displayName) {
+    return Arrays.stream(values())
+        .filter(c -> c.displayName.equals(displayName))
+        .findFirst();
   }
 
   public static Map<String, String> getCategoriesForLicenceType(LicenceType licenceType) {

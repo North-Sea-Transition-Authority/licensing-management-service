@@ -298,6 +298,43 @@ class EventCommentServiceTest {
   }
 
   @Test
+  void getEventCommentViewsForSchedule_whenAuthorWuaIdIsNull_usesUnknownAuthorName() {
+    var licenceSchedule = new LicenceSchedule();
+
+    var scheduleEvent = new WorkProgrammeActivity();
+    scheduleEvent.setId(UUID.randomUUID());
+    scheduleEvent.setOriginalEventId(scheduleEvent.getId());
+
+    var comment = new EventComment();
+    comment.setId(UUID.randomUUID());
+    comment.setScheduleEvent(scheduleEvent);
+    comment.setComment("A comment");
+    comment.setAuthorWuaId(null);
+    comment.setTimestamp(Instant.parse("2025-01-01T10:00:00Z"));
+
+    when(eventCommentRepository.getAllByScheduleEvent_LicenceScheduleAndStatus(licenceSchedule, EventCommentStatus.PUBLISHED))
+        .thenReturn(List.of(comment));
+
+    when(energyPortalUserService.findByWuaIds(
+        List.of(),
+        EventCommentService.COMMENT_AUTHOR_PURPOSE
+    )).thenReturn(List.of());
+
+    var result = eventCommentService.getEventCommentViewsForSchedule(licenceSchedule);
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(scheduleEvent.getOriginalEventId()))
+        .usingRecursiveComparison()
+        .isEqualTo(List.of(new EventCommentView(
+            "A comment",
+            "Unknown",
+            DateFormatUtil.convertToDisplayTextWithTime(comment.getTimestamp()),
+            ReverseRouter.route(on(EventCommentDeletionController.class)
+                .renderDeleteCommentPage(comment.getId(), null))
+        )));
+  }
+
+  @Test
   void getEventCommentByIdOrThrow_whenCommentExists_returnsComment() {
     var id = UUID.randomUUID();
     var eventComment = new EventComment();

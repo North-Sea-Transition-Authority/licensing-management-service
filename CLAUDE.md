@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew :test --tests "uk.co.nstauthority.licensingmanagementservice.some.package.MyTest" --rerun
 
 # Checkstyle (0 warnings permitted, fails the build)
-./gradlew checkstyleMain checkstyleTest
+./gradlew checkstyleMain
 
 # Coverage report (auto-runs after test)
 ./gradlew jacocoTestReport

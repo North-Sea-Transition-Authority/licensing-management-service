@@ -14,6 +14,8 @@ public class CarbonStorageTermMigrationExtract {
 
   private String licenceRef;
 
+  private String caseDate;
+
   private String term;
 
   private Integer years;
@@ -36,6 +38,14 @@ public class CarbonStorageTermMigrationExtract {
 
   public void setLicenceRef(String licenceRef) {
     this.licenceRef = licenceRef;
+  }
+
+  public String getCaseDate() {
+    return caseDate;
+  }
+
+  public void setCaseDate(String caseDate) {
+    this.caseDate = caseDate;
   }
 
   public String getTerm() {

@@ -30,13 +30,20 @@ CREATE TABLE lms.cs_term_migration_extract (
 );
 
 CREATE TABLE lms.cs_work_programme_migration_extract (
+    id INTEGER,
     licence_ref TEXT,
     category TEXT,
+    other_category TEXT,
     description TEXT,
     commitment TEXT,
     status TEXT,
     term TEXT,
+    date_option TEXT,
+    relative_years INTEGER,
+    relative_months INTEGER,
+    relative_days INTEGER,
     comments TEXT,
+    unique_event_id UUID,
     case_id TEXT,
     case_date TEXT
 );

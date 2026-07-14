@@ -21,8 +21,28 @@ CREATE TABLE IF NOT EXISTS lms.cs_start_date_migration_extract (
 CREATE TABLE IF NOT EXISTS lms.cs_term_migration_extract (
     id INTEGER,
     licence_ref TEXT,
+    case_date TEXT,
     term TEXT,
     years INTEGER,
     months INTEGER,
     days INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS lms.cs_work_programme_migration_extract (
+    id INTEGER,
+    licence_ref TEXT,
+    case_id TEXT,
+    case_date TEXT,
+    unique_event_id UUID,
+    category TEXT,
+    other_category TEXT,
+    description TEXT,
+    commitment TEXT,
+    status TEXT,
+    term TEXT,
+    date_option TEXT,
+    relative_years INTEGER,
+    relative_months INTEGER,
+    relative_days INTEGER,
+    comments TEXT
 );

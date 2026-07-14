@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity;
 
+import java.util.Arrays;
+import java.util.Optional;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
 public enum WorkProgrammeActivityCommitment implements Displayable {
@@ -26,5 +28,11 @@ public enum WorkProgrammeActivityCommitment implements Displayable {
   @Override
   public int getDisplayOrder() {
     return displayOrder;
+  }
+
+  public static Optional<WorkProgrammeActivityCommitment> fromDisplayName(String displayName) {
+    return Arrays.stream(values())
+        .filter(c -> c.displayName.equals(displayName))
+        .findFirst();
   }
 }

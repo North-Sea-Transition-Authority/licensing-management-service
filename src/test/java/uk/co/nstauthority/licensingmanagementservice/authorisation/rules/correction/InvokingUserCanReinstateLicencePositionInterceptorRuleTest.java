@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.authorisation.rules;
+package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -14,8 +14,8 @@ import org.mockito.Mock;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.servlet.HandlerMapping;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanRemoveLicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanRemoveLicencePositionInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AbstractInterceptorRuleTest;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InterceptorRuleTestEndpoints;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
@@ -25,9 +25,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 
-class InvokingUserCanRemoveLicencePositionInterceptorRuleTest extends AbstractInterceptorRuleTest {
+class InvokingUserCanReinstateLicencePositionInterceptorRuleTest extends AbstractInterceptorRuleTest {
 
   private static final Licence LICENCE = LicenceTestUtil.builder().build();
+  private static final UUID POSITION_ID = UUID.randomUUID();
+  private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+  private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
 
   @Mock
   private LicencePositionCorrectionService licencePositionCorrectionService;
@@ -36,43 +39,43 @@ class InvokingUserCanRemoveLicencePositionInterceptorRuleTest extends AbstractIn
   private LicencePositionService licencePositionService;
 
   @InjectMocks
-  private InvokingUserCanRemoveLicencePositionInterceptorRule invokingUserCanRemoveLicencePositionInterceptorRule;
+  private LicencePositionCanBeReinstantiatedRule licencePositionCanBeReinstantiatedRule;
 
   @Test
   void supports() {
-    assertThat(invokingUserCanRemoveLicencePositionInterceptorRule.supports())
-        .isEqualTo(InvokingUserCanRemoveLicencePosition.class);
+    assertThat(licencePositionCanBeReinstantiatedRule.supports())
+        .isEqualTo(LicencePositionCanBeReinstantiated.class);
   }
 
   @Test
-  void check_whenPositionRemovable_rulePasses() throws NoSuchMethodException {
+  void check_whenPositionReinstatable_rulePasses() throws NoSuchMethodException {
     var position = mockCorrectionAndPosition();
-    when(licencePositionCorrectionService.canRemovePosition(any(LicenceCorrection.class), eq(position)))
+    when(licencePositionCorrectionService.canReinstateDeletedPositionCorrection(any(LicenceCorrection.class), eq(position)))
         .thenReturn(true);
 
     var annotation = getAnnotation(
-        InterceptorRuleTestEndpoints.class.getDeclaredMethod("canRemoveLicencePosition"),
-        InvokingUserCanRemoveLicencePosition.class
+        InterceptorRuleTestEndpoints.class.getDeclaredMethod("canReinstateLicencePosition"),
+        LicencePositionCanBeReinstantiated.class
     );
 
-    var result = invokingUserCanRemoveLicencePositionInterceptorRule.check(annotation, request, response);
+    var result = licencePositionCanBeReinstantiatedRule.check(annotation, request, response);
 
     assertThat(result.hasRulePassed()).isTrue();
     verifyNoInteractions(response);
   }
 
   @Test
-  void check_whenPositionNotRemovable_ruleFailsForbidden() throws NoSuchMethodException {
+  void check_whenPositionNotReinstatable_ruleFailsForbidden() throws NoSuchMethodException {
     var position = mockCorrectionAndPosition();
-    when(licencePositionCorrectionService.canRemovePosition(any(LicenceCorrection.class), eq(position)))
+    when(licencePositionCorrectionService.canReinstateDeletedPositionCorrection(any(LicenceCorrection.class), eq(position)))
         .thenReturn(false);
 
     var annotation = getAnnotation(
-        InterceptorRuleTestEndpoints.class.getDeclaredMethod("canRemoveLicencePosition"),
-        InvokingUserCanRemoveLicencePosition.class
+        InterceptorRuleTestEndpoints.class.getDeclaredMethod("canReinstateLicencePosition"),
+        LicencePositionCanBeReinstantiated.class
     );
 
-    var result = invokingUserCanRemoveLicencePositionInterceptorRule.check(annotation, request, response);
+    var result = licencePositionCanBeReinstantiatedRule.check(annotation, request, response);
 
     assertThat(result).extracting(
         SecurityRuleResult::hasRulePassed,
@@ -84,15 +87,13 @@ class InvokingUserCanRemoveLicencePositionInterceptorRuleTest extends AbstractIn
   }
 
   private LicencePosition mockCorrectionAndPosition() {
-    var positionId = UUID.randomUUID();
-    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
-    var position = LicencePositionTestUtil.newBuilder().withId(positionId).withLicence(LICENCE).build();
 
-    when(request.getAttribute("validatedCorrection")).thenReturn(correction);
+    when(request.getAttribute("validatedCorrection")).thenReturn(CORRECTION);
     when(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE))
-        .thenReturn(Map.of("licencePositionId", positionId.toString()));
-    when(licencePositionService.getPositionForLicence(LICENCE, positionId)).thenReturn(position);
+        .thenReturn(Map.of("licencePositionId", POSITION_ID.toString()));
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
 
-    return position;
+    return POSITION;
   }
+
 }

@@ -27,6 +27,8 @@ import java.util.UUID;
  *                                "Removed" tag in the template
  * @param removeUrl link to remove live position as part of the correction; populated
  *                  only for live positions not yet removed.
+ * @param reinstateUrl link to reinstate a live position previously marked for removal in the
+ *                     current correction; populated only for live positions currently removed.
  */
 public record LicencePositionTimelineView(
     UUID positionId,
@@ -36,7 +38,8 @@ public record LicencePositionTimelineView(
     boolean addedInThisCorrection,
     @Nullable String undoUrl,
     boolean removedInThisCorrection,
-    @Nullable String removeUrl
+    @Nullable String removeUrl,
+    @Nullable String reinstateUrl
 ) {
 
   public static Builder builder() {
@@ -52,6 +55,7 @@ public record LicencePositionTimelineView(
     @Nullable private String undoUrl;
     private boolean removedInThisCorrection;
     @Nullable private String removeUrl;
+    @Nullable private String reinstateUrl;
 
     public Builder withPositionId(UUID positionId) {
       this.positionId = positionId;
@@ -93,6 +97,11 @@ public record LicencePositionTimelineView(
       return this;
     }
 
+    public Builder withReinstateUrl(String reinstateUrl) {
+      this.reinstateUrl = reinstateUrl;
+      return this;
+    }
+
     public LicencePositionTimelineView build() {
       return new LicencePositionTimelineView(
           positionId,
@@ -102,7 +111,8 @@ public record LicencePositionTimelineView(
           addedInThisCorrection,
           undoUrl,
           removedInThisCorrection,
-          removeUrl
+          removeUrl,
+          reinstateUrl
       );
     }
   }

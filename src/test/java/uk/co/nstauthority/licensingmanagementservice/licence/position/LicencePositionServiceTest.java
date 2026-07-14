@@ -140,7 +140,7 @@ class LicencePositionServiceTest {
     var older = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
-        .withPositionDate(LocalDate.of(2026, Month.JANUARY  , 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true).build();
     var newer = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-2").build())
@@ -313,7 +313,11 @@ class LicencePositionServiceTest {
 
   @Test
   void getCorrectionPositionPageView_marksRemovedPositionsAndExcludesThemFromStateRecalculation() {
-    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(correctionId)
+        .withLicence(LICENCE)
+        .build();
 
     var current = LicencePositionTestUtil.newBuilder()
         .withId(POSITION_ID)
@@ -334,20 +338,26 @@ class LicencePositionServiceTest {
 
     var result = licencePositionService.getCorrectionPositionPageView(correction, current);
 
+    var expectedRemoveUrl = String.format("/licence-corrections/%s/positions/%s/remove",
+        correctionId, POSITION_ID);
     assertThat(result.stateView()).isEqualTo(stateView);
     assertThat(result.timelineViews())
         .extracting(
             LicencePositionTimelineView::regulatorReference,
             LicencePositionTimelineView::removedInThisCorrection,
-            timelineView -> timelineView.removeUrl() != null)
+            LicencePositionTimelineView::removeUrl)
         .containsExactly(
-            tuple("CURRENT", false, true)
+            tuple("CURRENT", false, expectedRemoveUrl)
         );
   }
 
   @Test
   void getCorrectionPositionPageView_whenPositionRemovedInThisCorrection_omitsRemoveUrl() {
-    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(correctionId)
+        .withLicence(LICENCE)
+        .build();
 
     var removed = LicencePositionTestUtil.newBuilder()
         .withId(POSITION_ID)
@@ -368,13 +378,16 @@ class LicencePositionServiceTest {
 
     var result = licencePositionService.getCorrectionPositionPageView(correction, removed);
 
+    var expectedReinstateUrl = String.format("/licence-corrections/%s/positions/%s/reinstate",
+        correctionId, POSITION_ID);
     assertThat(result.timelineViews())
         .extracting(
             LicencePositionTimelineView::regulatorReference,
             LicencePositionTimelineView::removedInThisCorrection,
-            timelineView -> timelineView.removeUrl() != null)
+            LicencePositionTimelineView::removeUrl,
+            LicencePositionTimelineView::reinstateUrl)
         .containsExactly(
-            tuple("REMOVED", true, false)
+            tuple("REMOVED", true, null, expectedReinstateUrl)
         );
   }
 }

@@ -35,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.Licence
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemViewInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatusInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplicationInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCanBeReinstantiatedRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplicationInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatusInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule;
@@ -128,6 +129,7 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     EnergyPortalAccountsControllerAdvice.class,
     InvokingUserCanViewCorrectionInterceptorRule.class,
     InvokingUserCanRemoveLicencePositionInterceptorRule.class,
+    LicencePositionCanBeReinstantiatedRule.class
 })
 @EnableConfigurationProperties({
     SamlProperties.class,

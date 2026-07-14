@@ -267,6 +267,63 @@ class LicencePositionCorrectionServiceTest {
         .containsExactlyInAnyOrder(removedPosition.getId());
   }
 
+  @Test
+  void reinstateDeletedPositionCorrection_whenMarkedForRemoval_deletesRemoveCorrections() {
+    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+        .withTargetLicencePosition(LICENCE_POSITION)
+        .build();
+
+    when(licencePositionCorrectionRepository
+        .existsByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+            LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.REMOVE_POSITION))
+        .thenReturn(true);
+    when(licencePositionCorrectionRepository
+        .findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+            LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.REMOVE_POSITION))
+        .thenReturn(List.of(removeCorrection));
+
+    licencePositionCorrectionService.reinstateDeletedPositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION);
+
+    verify(licencePositionCorrectionRepository).deleteAll(List.of(removeCorrection));
+  }
+
+  @Test
+  void reinstateDeletedPositionCorrection_whenNotMarkedForRemoval_throwsAndDoesNotDelete() {
+    when(licencePositionCorrectionRepository
+        .existsByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+            LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.REMOVE_POSITION))
+        .thenReturn(false);
+
+    assertThatThrownBy(() ->
+        licencePositionCorrectionService.reinstateDeletedPositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
+        .isInstanceOf(IllegalStateException.class);
+
+    verify(licencePositionCorrectionRepository, never()).deleteAll(any());
+  }
+
+  @Test
+  void canReinstateDeletedPositionCorrection_whenPositionTargetedByRemoveCorrection_returnsTrue() {
+    when(licencePositionCorrectionRepository
+        .existsByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+            LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.REMOVE_POSITION))
+        .thenReturn(true);
+
+    assertThat(licencePositionCorrectionService
+        .canReinstateDeletedPositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION)).isTrue();
+  }
+
+  @Test
+  void canReinstateDeletedPositionCorrection_whenPositionNotTargetedByRemoveCorrection_returnsFalse() {
+    when(licencePositionCorrectionRepository
+        .existsByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+            LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.REMOVE_POSITION))
+        .thenReturn(false);
+
+    assertThat(licencePositionCorrectionService
+        .canReinstateDeletedPositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION)).isFalse();
+  }
+
   private CreateLicencePositionPayload captureSavedPayload() {
     verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
     var payload = licencePositionCorrectionCaptor.getValue().getPayload();

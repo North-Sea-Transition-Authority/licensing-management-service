@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanRemoveLicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCanBeReinstantiated;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -85,10 +86,15 @@ public class InterceptorRuleTestEndpoints {
     return ResponseEntity.ok("can remove licence position test endpoint");
   }
 
+  @GetMapping("can-reinstate-licence-position")
+  @LicencePositionCanBeReinstantiated
+  public ResponseEntity<String> canReinstateLicencePosition() {
+    return ResponseEntity.ok("can reinstate licence position test endpoint");
+  }
 
-  @GetMapping("/invoking-user-can-view-correction/{correctionId}")
+  @GetMapping("can-view-correction/{correctionId}")
   @InvokingUserCanViewCorrection
-  public String invokingUserCanViewCorrection(@PathVariable UUID correctionId) {
-    return "invoking user can view correction test endpoint";
+  public ResponseEntity<String> invokingUserCanViewCorrection(@PathVariable UUID correctionId) {
+    return ResponseEntity.ok("can view correction test endpoint");
   }
 }

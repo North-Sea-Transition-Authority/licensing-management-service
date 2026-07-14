@@ -16,6 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.ReinstateLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.RemoveExecutedLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.UndoLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
@@ -189,7 +190,9 @@ public class LicencePositionService {
               licencePosition, getCorrectionPositionUrl(licenceCorrection, licencePosition))
               .withRemovedInThisCorrection(removed);
 
-          if (!removed) {
+          if (removed) {
+            timelineViewBuilder.withReinstateUrl(getReinstatePositionUrl(licenceCorrection, licencePosition));
+          } else {
             timelineViewBuilder.withRemoveUrl(getRemovePositionUrl(licenceCorrection, licencePosition));
           }
 
@@ -238,6 +241,11 @@ public class LicencePositionService {
   private String getRemovePositionUrl(LicenceCorrection correction, LicencePosition position) {
     return ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
         .renderRemovePosition(correction.getId(), position.getId(), null));
+  }
+
+  private String getReinstatePositionUrl(LicenceCorrection correction, LicencePosition position) {
+    return ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
+        .renderReinstatePosition(correction.getId(), position.getId(), null));
   }
 
   private LicencePositionTimelineView.Builder baseTimelineViewBuilder(LicencePosition position, String url) {

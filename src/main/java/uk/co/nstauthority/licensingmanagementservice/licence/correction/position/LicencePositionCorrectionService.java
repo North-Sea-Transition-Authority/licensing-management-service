@@ -91,6 +91,36 @@ public class LicencePositionCorrectionService {
         );
   }
 
+  @Transactional
+  public void reinstateDeletedPositionCorrection(LicenceCorrection licenceCorrection, LicencePosition licencePosition) {
+    if (!canReinstateDeletedPositionCorrection(licenceCorrection, licencePosition)) {
+      throw new IllegalStateException(
+          "Cannot reinstate licence position %s as it is not marked for removal in correction %s"
+              .formatted(licencePosition.getId(), licenceCorrection.getId()));
+    }
+
+    var removePositionCorrections = licencePositionCorrectionRepository
+        .findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+            licenceCorrection,
+            licencePosition,
+            LicencePositionCorrectionChangeType.REMOVE_POSITION
+        );
+
+    licencePositionCorrectionRepository.deleteAll(removePositionCorrections);
+  }
+
+  public boolean canReinstateDeletedPositionCorrection(
+      LicenceCorrection licenceCorrection,
+      LicencePosition licencePosition
+  ) {
+    return licencePositionCorrectionRepository
+        .existsByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+            licenceCorrection,
+            licencePosition,
+            LicencePositionCorrectionChangeType.REMOVE_POSITION
+        );
+  }
+
   public LicencePositionCorrection getPositionCorrectionForCorrection(
       UUID licencePositionCorrectionId,
       LicenceCorrection licenceCorrection

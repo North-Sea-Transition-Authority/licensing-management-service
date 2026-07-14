@@ -37,3 +37,15 @@
         />
     </@fdsSearch.searchFilterItem>
 </#macro>
+
+<#macro contactEmailFilter form>
+    <@fdsSearch.searchFilterItem itemName="Contact email" expanded=form.contactEmail?has_content>
+        <@fdsSearch.searchTextInput path="form.contactEmail" labelText="Contact email" labelClass="govuk-visually-hidden"/>
+    </@fdsSearch.searchFilterItem>
+</#macro>
+
+<#macro noContactAssignedFilter form>
+    <@fdsSearch.searchFilterItem itemName="Contact" expanded=(form.noContactAssigned!false) == true>
+        <@fdsCheckbox.checkbox path="form.noContactAssigned" labelText="No contact provided" smallCheckboxes=true/>
+    </@fdsSearch.searchFilterItem>
+</#macro>

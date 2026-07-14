@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.contact;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
@@ -37,6 +38,10 @@ class LicenceContactControllerTest extends AbstractControllerTest {
 
   private static final Integer LICENCE_ID = 1;
   private static final Integer ORG_ID = 10;
+  private static final String MANAGE_CONTACTS_ROUTE =
+      ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null, null));
+  private static final String CLEAR_FILTERS_ROUTE =
+      ReverseRouter.route(on(LicenceContactController.class).clearContactFilters(null, null));
 
   @MockitoBean
   private LicenceContactService licenceContactService;
@@ -59,7 +64,7 @@ class LicenceContactControllerTest extends AbstractControllerTest {
 
   @Test
   void renderManageContacts_whenNotLoggedIn_redirectsToLogin() throws Exception {
-    mockMvc.perform(get(ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null))))
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null, null))))
         .andExpect(redirectionToLoginUrl());
   }
 
@@ -70,15 +75,23 @@ class LicenceContactControllerTest extends AbstractControllerTest {
         .newWithHeadings("Licence", "Licensee", "Contact email")
         .build()
         .toString();
+    var form = new LicenceContactFilterForm();
+    var filterSession = new LicenceContactFilterSession(form);
     when(regulatorRoleService.isRegulator(regulator)).thenReturn(true);
-    when(licenceContactService.getRegulatorContactsTable()).thenReturn(tableJson);
+    when(licenceContactService.getRegulatorContactsTable(form))
+        .thenReturn(new LicenceContactsTableView(tableJson, 2));
 
-    mockMvc.perform(get(ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null)))
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null, null)))
+            .flashAttr("licenceContactFilterSession", filterSession)
             .with(user(regulator)))
         .andExpectAll(
             status().isOk(),
             view().name("lms/licence/contact/manageContacts"),
-            model().attributeExists("contactsTableJson"),
+            model().attribute("contactsTableJson", tableJson),
+            model().attribute("contactCount", 2),
+            model().attribute("form", form),
+            model().attribute("isRegulatorUser", true),
+            model().attribute("clearFilterUrl", CLEAR_FILTERS_ROUTE),
             model().attribute("pageTitle", "Licence contact details"));
   }
 
@@ -88,15 +101,20 @@ class LicenceContactControllerTest extends AbstractControllerTest {
         .newWithHeadings("Licence", "Licensee", "Contact email")
         .build()
         .toString();
-    when(licenceContactService.getIndustryContactsTable(contactManager, true))
-        .thenReturn(tableJson);
+    var form = new LicenceContactFilterForm();
+    var filterSession = new LicenceContactFilterSession(form);
+    when(licenceContactService.getIndustryContactsTable(contactManager, true, form))
+        .thenReturn(new LicenceContactsTableView(tableJson, 1));
 
-    mockMvc.perform(get(ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null)))
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null, null)))
+            .flashAttr("licenceContactFilterSession", filterSession)
             .with(user(contactManager)))
         .andExpectAll(
             status().isOk(),
             view().name("lms/licence/contact/manageContacts"),
-            model().attributeExists("contactsTableJson"),
+            model().attribute("contactsTableJson", tableJson),
+            model().attribute("contactCount", 1),
+            model().attribute("isRegulatorUser", false),
             model().attribute("pageTitle", "Manage licence contact details"));
   }
 
@@ -107,13 +125,41 @@ class LicenceContactControllerTest extends AbstractControllerTest {
         .newWithHeadings("Licence", "Licensee", "Contact email")
         .build()
         .toString();
-    when(licenceContactService.getIndustryContactsTable(viewer, false)).thenReturn(tableJson);
+    var form = new LicenceContactFilterForm();
+    var filterSession = new LicenceContactFilterSession(form);
+    when(licenceContactService.getIndustryContactsTable(viewer, false, form))
+        .thenReturn(new LicenceContactsTableView(tableJson, 0));
 
-    mockMvc.perform(get(ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null)))
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null, null)))
+            .flashAttr("licenceContactFilterSession", filterSession)
             .with(user(viewer)))
         .andExpectAll(
             status().isOk(),
             model().attribute("pageTitle", "Licence contact details"));
+  }
+
+  @Test
+  void filterContacts_updatesSessionAndRedirects() throws Exception {
+    var form = new LicenceContactFilterForm();
+    var filterSession = new LicenceContactFilterSession(form);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicenceContactController.class).filterContacts(null, null)))
+            .param("licenceReference", "P 123")
+            .flashAttr("licenceContactFilterSession", filterSession)
+            .with(user(contactManager))
+            .with(csrf()))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(MANAGE_CONTACTS_ROUTE));
+
+    assertThat(filterSession.getFilterForm().getLicenceReference()).isEqualTo("P 123");
+  }
+
+  @Test
+  void clearContactFilters_redirectsToManageContacts() throws Exception {
+    mockMvc.perform(get(CLEAR_FILTERS_ROUTE)
+            .with(user(contactManager)))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(MANAGE_CONTACTS_ROUTE));
   }
 
   @Test
@@ -163,7 +209,7 @@ class LicenceContactControllerTest extends AbstractControllerTest {
             .with(user(contactManager))
             .with(csrf()))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null))));
+        .andExpect(redirectedUrl(MANAGE_CONTACTS_ROUTE));
 
     verify(licenceContactService)
         .applyContactToLicences(contactManager, ORG_ID, "licensing@example.com", List.of(LICENCE_ID));

@@ -3,14 +3,17 @@ package uk.co.nstauthority.licensingmanagementservice.licence.contact;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableRow;
@@ -22,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleo
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
 
 @Service
 public class LicenceContactService {
@@ -30,43 +34,51 @@ public class LicenceContactService {
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final LicenceOrganisationService licenceOrganisationService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
+  private final OrganisationGroupQueryService organisationGroupQueryService;
 
   public LicenceContactService(
       LicenceContactRepository licenceContactRepository,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
       LicenceOrganisationService licenceOrganisationService,
-      OrganisationUnitQueryService organisationUnitQueryService
+      OrganisationUnitQueryService organisationUnitQueryService,
+      OrganisationGroupQueryService organisationGroupQueryService
   ) {
     this.licenceContactRepository = licenceContactRepository;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.licenceOrganisationService = licenceOrganisationService;
     this.organisationUnitQueryService = organisationUnitQueryService;
+    this.organisationGroupQueryService = organisationGroupQueryService;
   }
 
-  public String getIndustryContactsTable(ServiceUserDetail user, boolean canManage) {
+  public LicenceContactsTableView getIndustryContactsTable(
+      ServiceUserDetail user,
+      boolean canManage,
+      LicenceContactFilterForm filterForm
+  ) {
     var usersOrgUnits = licenceOrganisationService.getUsersOrgUnits(user);
     var nameByOrgUnitId = usersOrgUnits.stream()
         .collect(Collectors.toMap(OrganisationUnitJson::organisationUnitId, OrganisationUnitJson::name, (a, b) -> a));
     var orgUnitIds = nameByOrgUnitId.keySet();
     var licensees = licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(orgUnitIds);
-    return buildContactsTable(licensees, nameByOrgUnitId, orgUnitIds, canManage);
+    return buildContactsTable(licensees, nameByOrgUnitId, orgUnitIds, canManage, filterForm);
   }
 
-  public String getRegulatorContactsTable() {
+  public LicenceContactsTableView getRegulatorContactsTable(LicenceContactFilterForm filterForm) {
     var licensees = licenceResponsibleOrganisationService.getAll();
     var orgUnitIds = licensees.stream()
         .map(LicenceResponsibleOrganisation::getResponsibleOrganisationId)
         .distinct()
         .toList();
     var nameByOrgUnitId = organisationUnitQueryService.getOrganisationUnitNamesByIds(orgUnitIds);
-    return buildContactsTable(licensees, nameByOrgUnitId, orgUnitIds, false);
+    return buildContactsTable(licensees, nameByOrgUnitId, orgUnitIds, false, filterForm);
   }
 
-  private String buildContactsTable(
+  private LicenceContactsTableView buildContactsTable(
       List<LicenceResponsibleOrganisation> licensees,
       Map<Integer, String> nameByOrgUnitId,
       Collection<Integer> orgUnitIds,
-      boolean canManage
+      boolean canManage,
+      LicenceContactFilterForm filterForm
   ) {
     var tableBuilder = SortableTableView.sortableTableBuilder()
         .newWithHeadings("Licence", "Licensee", "Contact email");
@@ -79,9 +91,65 @@ public class LicenceContactService {
         .stream()
         .collect(Collectors.toMap(LicenceContact::getLicensee, LicenceContact::getContactEmail));
 
-    licensees.forEach(licensee -> tableBuilder.addRow(toRow(licensee, nameByOrgUnitId, emailByLicensee, canManage)));
+    var groupOrgUnitIds = getOrgUnitIdsForGroup(filterForm.getLicenseeOrgGroupId());
+    var filteredLicensees = licensees.stream()
+        .filter(licensee -> matchesFilter(licensee, emailByLicensee, groupOrgUnitIds, filterForm))
+        .toList();
 
-    return tableBuilder.build().toString();
+    filteredLicensees
+        .forEach(licensee -> tableBuilder.addRow(toRow(licensee, nameByOrgUnitId, emailByLicensee, canManage)));
+
+    return new LicenceContactsTableView(tableBuilder.build().toString(), filteredLicensees.size());
+  }
+
+  private boolean matchesFilter(
+      LicenceResponsibleOrganisation licensee,
+      Map<LicenceResponsibleOrganisation, String> emailByLicensee,
+      List<Integer> groupOrgUnitIds,
+      LicenceContactFilterForm filterForm
+  ) {
+    var licenseeOrgUnitIds = List.of(licensee.getResponsibleOrganisationId());
+    var contactEmail = Objects.toString(emailByLicensee.get(licensee), "");
+    return FilterUtil.matchesTextInput(licensee.getLicence().getLicenceReference(), filterForm.getLicenceReference())
+        && FilterUtil.matchesIdList(licenseeOrgUnitIds, filterForm.getLicenseeOrgUnitId())
+        && FilterUtil.listMatchesIdList(licenseeOrgUnitIds, groupOrgUnitIds)
+        && FilterUtil.matchesTextInput(contactEmail, filterForm.getContactEmail())
+        && (!Boolean.TRUE.equals(filterForm.getNoContactAssigned()) || StringUtils.isBlank(contactEmail));
+  }
+
+  private List<Integer> getOrgUnitIdsForGroup(Integer organisationGroupId) {
+    if (organisationGroupId == null) {
+      return null;
+    }
+
+    return organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(List.of(organisationGroupId))
+        .stream()
+        .map(OrganisationUnitJson::organisationUnitId)
+        .toList();
+  }
+
+  Map<String, String> getPreselectedOrganisationUnit(Integer organisationUnitId) {
+    if (organisationUnitId == null) {
+      return Collections.emptyMap();
+    }
+
+    return organisationUnitQueryService.getOrganisationUnitNamesByIds(Collections.singletonList(organisationUnitId))
+        .entrySet()
+        .stream()
+        .collect(Collectors.toMap(
+            entry -> entry.getKey().toString(),
+            Map.Entry::getValue
+        ));
+  }
+
+  Map<String, String> getPreselectedOrganisationGroup(Integer organisationGroupId) {
+    if (organisationGroupId == null) {
+      return Collections.emptyMap();
+    }
+
+    return organisationGroupQueryService.getOrganisationGroupById(organisationGroupId)
+        .map(group -> Map.of(group.getOrganisationGroupId().toString(), group.getOrganisationGroupName()))
+        .orElse(Collections.emptyMap());
   }
 
   private SortableTableRow toRow(

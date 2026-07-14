@@ -22,6 +22,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupDto;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
@@ -57,6 +59,9 @@ class LicenceContactServiceTest {
   @Mock
   private OrganisationUnitQueryService organisationUnitQueryService;
 
+  @Mock
+  private OrganisationGroupQueryService organisationGroupQueryService;
+
   @InjectMocks
   private LicenceContactService licenceContactService;
 
@@ -67,9 +72,10 @@ class LicenceContactServiceTest {
   void getIndustryContactsTable_whenUserHasNoOrgUnits_returnsEmptyTable() {
     when(licenceOrganisationService.getUsersOrgUnits(user)).thenReturn(List.of());
 
-    var tableJson = licenceContactService.getIndustryContactsTable(user, true);
+    var tableView = licenceContactService.getIndustryContactsTable(user, true, new LicenceContactFilterForm());
 
-    assertThat(tableJson).doesNotContain("licence-contacts/");
+    assertThat(tableView.tableJson()).doesNotContain("licence-contacts/");
+    assertThat(tableView.contactCount()).isZero();
   }
 
   @Test
@@ -80,13 +86,14 @@ class LicenceContactServiceTest {
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of());
 
-    var tableJson = licenceContactService.getIndustryContactsTable(user, true);
+    var tableView = licenceContactService.getIndustryContactsTable(user, true, new LicenceContactFilterForm());
 
-    assertThat(tableJson)
+    assertThat(tableView.tableJson())
         .contains("P 123")
         .contains(SHELL_U_K_LIMITED)
         .contains("Not assigned")
         .contains("\"licence-contacts/licence/%d/responsible-organisation/%d\"".formatted(LICENCE_ID, ORG_ID));
+    assertThat(tableView.contactCount()).isEqualTo(1);
   }
 
   @Test
@@ -98,9 +105,9 @@ class LicenceContactServiceTest {
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(contact(licensee, "licensing@example.com")));
 
-    var tableJson = licenceContactService.getIndustryContactsTable(user, true);
+    var tableView = licenceContactService.getIndustryContactsTable(user, true, new LicenceContactFilterForm());
 
-    assertThat(tableJson)
+    assertThat(tableView.tableJson())
         .contains("licensing@example.com")
         .doesNotContain("Not assigned");
   }
@@ -113,9 +120,9 @@ class LicenceContactServiceTest {
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of());
 
-    var tableJson = licenceContactService.getIndustryContactsTable(user, false);
+    var tableView = licenceContactService.getIndustryContactsTable(user, false, new LicenceContactFilterForm());
 
-    assertThat(tableJson)
+    assertThat(tableView.tableJson())
         .contains("P 123")
         .doesNotContain("licence-contacts/");
   }
@@ -124,9 +131,10 @@ class LicenceContactServiceTest {
   void getRegulatorContactsTable_whenNoLicensees_returnsEmptyTable() {
     when(licenceResponsibleOrganisationService.getAll()).thenReturn(List.of());
 
-    var tableJson = licenceContactService.getRegulatorContactsTable();
+    var tableView = licenceContactService.getRegulatorContactsTable(new LicenceContactFilterForm());
 
-    assertThat(tableJson).doesNotContain("P 123");
+    assertThat(tableView.tableJson()).doesNotContain("P 123");
+    assertThat(tableView.contactCount()).isZero();
   }
 
   @Test
@@ -138,13 +146,14 @@ class LicenceContactServiceTest {
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(List.of(ORG_ID)))
         .thenReturn(List.of(contact(licensee, "licensing@example.com")));
 
-    var tableJson = licenceContactService.getRegulatorContactsTable();
+    var tableView = licenceContactService.getRegulatorContactsTable(new LicenceContactFilterForm());
 
-    assertThat(tableJson)
+    assertThat(tableView.tableJson())
         .contains("P 123")
         .contains(SHELL_U_K_LIMITED)
         .contains("licensing@example.com")
         .doesNotContain("Not assigned");
+    assertThat(tableView.contactCount()).isEqualTo(1);
   }
 
   @Test
@@ -156,12 +165,156 @@ class LicenceContactServiceTest {
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(List.of(ORG_ID)))
         .thenReturn(List.of());
 
-    var tableJson = licenceContactService.getRegulatorContactsTable();
+    var tableView = licenceContactService.getRegulatorContactsTable(new LicenceContactFilterForm());
 
-    assertThat(tableJson)
+    assertThat(tableView.tableJson())
         .contains("P 123")
         .contains(SHELL_U_K_LIMITED)
         .contains("Not assigned");
+  }
+
+  @Test
+  void getIndustryContactsTable_whenLicenceReferenceFilter_showsOnlyMatchingRows() {
+    var otherOrgLicensee = licenseeOnLicence(otherLicence());
+    when(licenceOrganisationService.getUsersOrgUnits(user)).thenReturn(List.of(ORG_UNIT));
+    when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of(licensee(), otherOrgLicensee));
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of());
+
+    var filterForm = new LicenceContactFilterForm();
+    filterForm.setLicenceReference("456");
+
+    var tableView = licenceContactService.getIndustryContactsTable(user, true, filterForm);
+
+    assertThat(tableView.tableJson())
+        .contains("P 456")
+        .doesNotContain("P 123");
+    assertThat(tableView.contactCount()).isEqualTo(1);
+  }
+
+  @Test
+  void getIndustryContactsTable_whenContactEmailFilter_showsOnlyRowsWithMatchingEmail() {
+    var licenseeWithContact = licensee();
+    var licenseeWithoutContact = licenseeOnLicence(otherLicence());
+    when(licenceOrganisationService.getUsersOrgUnits(user)).thenReturn(List.of(ORG_UNIT));
+    when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of(licenseeWithContact, licenseeWithoutContact));
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of(contact(licenseeWithContact, "licensing@example.com")));
+
+    var filterForm = new LicenceContactFilterForm();
+    filterForm.setContactEmail("licensing@");
+
+    var tableView = licenceContactService.getIndustryContactsTable(user, true, filterForm);
+
+    assertThat(tableView.tableJson())
+        .contains("P 123")
+        .doesNotContain("P 456");
+    assertThat(tableView.contactCount()).isEqualTo(1);
+  }
+
+  @Test
+  void getIndustryContactsTable_whenNoContactAssignedFilter_showsOnlyRowsWithoutEmail() {
+    var licenseeWithContact = licensee();
+    var licenseeWithoutContact = licenseeOnLicence(otherLicence());
+    when(licenceOrganisationService.getUsersOrgUnits(user)).thenReturn(List.of(ORG_UNIT));
+    when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of(licenseeWithContact, licenseeWithoutContact));
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of(contact(licenseeWithContact, "licensing@example.com")));
+
+    var filterForm = new LicenceContactFilterForm();
+    filterForm.setNoContactAssigned(true);
+
+    var tableView = licenceContactService.getIndustryContactsTable(user, true, filterForm);
+
+    assertThat(tableView.tableJson())
+        .contains("P 456")
+        .doesNotContain("P 123");
+    assertThat(tableView.contactCount()).isEqualTo(1);
+  }
+
+  @Test
+  void getRegulatorContactsTable_whenLicenseeOrgUnitFilter_showsOnlyThatOrganisation() {
+    var shellLicensee = licensee();
+    var otherOrgLicensee = licenseeForOrg(otherLicence(), 20);
+    when(licenceResponsibleOrganisationService.getAll()).thenReturn(List.of(shellLicensee, otherOrgLicensee));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(ORG_ID, 20)))
+        .thenReturn(Map.of(ORG_ID, SHELL_U_K_LIMITED, 20, "BP Exploration"));
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(List.of(ORG_ID, 20)))
+        .thenReturn(List.of());
+
+    var filterForm = new LicenceContactFilterForm();
+    filterForm.setLicenseeOrgUnitId(20);
+
+    var tableView = licenceContactService.getRegulatorContactsTable(filterForm);
+
+    assertThat(tableView.tableJson())
+        .contains("BP Exploration")
+        .doesNotContain(SHELL_U_K_LIMITED);
+    assertThat(tableView.contactCount()).isEqualTo(1);
+  }
+
+  @Test
+  void getRegulatorContactsTable_whenLicenseeOrgGroupFilter_showsOnlyGroupMembers() {
+    var shellLicensee = licensee();
+    var otherOrgLicensee = licenseeForOrg(otherLicence(), 20);
+    when(licenceResponsibleOrganisationService.getAll()).thenReturn(List.of(shellLicensee, otherOrgLicensee));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(ORG_ID, 20)))
+        .thenReturn(Map.of(ORG_ID, SHELL_U_K_LIMITED, 20, "BP Exploration"));
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(List.of(ORG_ID, 20)))
+        .thenReturn(List.of());
+    when(organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(List.of(55)))
+        .thenReturn(List.of(ORG_UNIT));
+
+    var filterForm = new LicenceContactFilterForm();
+    filterForm.setLicenseeOrgGroupId(55);
+
+    var tableView = licenceContactService.getRegulatorContactsTable(filterForm);
+
+    assertThat(tableView.tableJson())
+        .contains(SHELL_U_K_LIMITED)
+        .doesNotContain("BP Exploration");
+    assertThat(tableView.contactCount()).isEqualTo(1);
+  }
+
+  @Test
+  void getPreselectedOrganisationUnit_whenIdProvided_returnsNameMap() {
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(ORG_ID)))
+        .thenReturn(Map.of(ORG_ID, SHELL_U_K_LIMITED));
+
+    var result = licenceContactService.getPreselectedOrganisationUnit(ORG_ID);
+
+    assertThat(result).isEqualTo(Map.of(ORG_ID.toString(), SHELL_U_K_LIMITED));
+  }
+
+  @Test
+  void getPreselectedOrganisationUnit_whenNullId_returnsEmptyMap() {
+    var result = licenceContactService.getPreselectedOrganisationUnit(null);
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(organisationUnitQueryService);
+  }
+
+  @Test
+  void getPreselectedOrganisationGroup_whenGroupExists_returnsNameMap() {
+    var groupDto = new OrganisationGroupDto();
+    groupDto.setOrganisationGroupId(55);
+    groupDto.setOrganisationGroupName("Shell Group");
+    when(organisationGroupQueryService.getOrganisationGroupById(55)).thenReturn(Optional.of(groupDto));
+
+    var result = licenceContactService.getPreselectedOrganisationGroup(55);
+
+    assertThat(result).isEqualTo(Map.of("55", "Shell Group"));
+  }
+
+  @Test
+  void getPreselectedOrganisationGroup_whenNullId_returnsEmptyMap() {
+    var result = licenceContactService.getPreselectedOrganisationGroup(null);
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(organisationGroupQueryService);
   }
 
   @Test
@@ -272,9 +425,13 @@ class LicenceContactServiceTest {
   }
 
   private static LicenceResponsibleOrganisation licenseeOnLicence(Licence licence) {
+    return licenseeForOrg(licence, ORG_ID);
+  }
+
+  private static LicenceResponsibleOrganisation licenseeForOrg(Licence licence, Integer organisationId) {
     var licensee = new LicenceResponsibleOrganisation();
     licensee.setLicence(licence);
-    licensee.setResponsibleOrganisationId(ORG_ID);
+    licensee.setResponsibleOrganisationId(organisationId);
     licensee.setManagedByLms(false);
     return licensee;
   }

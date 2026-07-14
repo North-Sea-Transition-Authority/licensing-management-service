@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.ScheduleRelativeDateValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineService;
@@ -38,6 +39,9 @@ class ReviewAndApplyScheduleControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private EventCommentService eventCommentService;
+
+  @MockitoBean
+  private ScheduleRelativeDateValidationService scheduleRelativeDateValidationService;
 
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
@@ -72,6 +76,8 @@ class ReviewAndApplyScheduleControllerTest extends AbstractControllerTest {
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
     var summaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", "status", "", "");
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(summaryCardView);
+    when(scheduleRelativeDateValidationService.doesFinalPhaseEndDateMatchEndOfInitialTerm(licenceScheduleDetail))
+        .thenReturn(true);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(ReviewAndApplyScheduleController.class).renderReviewAndApplyPage(licenceScheduleDetail.getId(), null)))
@@ -81,7 +87,32 @@ class ReviewAndApplyScheduleControllerTest extends AbstractControllerTest {
         .andExpect(view().name("lms/licence/schedule/reviewAndApply"))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION))
         .andExpect(model().attribute("summaryCardView", summaryCardView))
+        .andExpect(model().attribute("initialTermPhaseValidationError", false))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()));
+  }
+
+  @Test
+  void renderReviewAndApplyPage_whenFinalPhaseEndDateDoesNotMatchInitialTermEndDate_hasValidationError() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(
+        organisationUser.wuaId(),
+        TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR))
+    ).thenReturn(true);
+
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
+    when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
+    var summaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", "status", "", "");
+    when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(summaryCardView);
+    when(scheduleRelativeDateValidationService.doesFinalPhaseEndDateMatchEndOfInitialTerm(licenceScheduleDetail))
+        .thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(ReviewAndApplyScheduleController.class).renderReviewAndApplyPage(licenceScheduleDetail.getId(), null)))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/licence/schedule/reviewAndApply"))
+        .andExpect(model().attribute("initialTermPhaseValidationError", true));
   }
 
   @Test

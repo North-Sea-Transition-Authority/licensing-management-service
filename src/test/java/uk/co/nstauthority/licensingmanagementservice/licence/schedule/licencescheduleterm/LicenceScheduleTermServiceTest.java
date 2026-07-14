@@ -85,7 +85,7 @@ class LicenceScheduleTermServiceTest {
   }
 
   @Test
-  void getTermsByLicenceScheduleDetailAndTermTypeOrThrow() {
+  void getTermByLicenceScheduleDetailAndTermTypeOrThrow() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
     var licenceScheduleTerm = new LicenceScheduleTerm();
     licenceScheduleTerm.setTermType(TermType.INITIAL);
@@ -93,20 +93,20 @@ class LicenceScheduleTermServiceTest {
     when(licenceScheduleTermRepository.findByLicenceScheduleDetailAndTermType(licenceScheduleDetail, TermType.INITIAL))
         .thenReturn(Optional.of(licenceScheduleTerm));
 
-    assertThat(licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(
+    assertThat(licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(
         licenceScheduleDetail, TermType.INITIAL))
         .isEqualTo(licenceScheduleTerm);
   }
 
   @Test
-  void getTermsByLicenceScheduleDetailAndTermTypeOrThrow_termNotFound() {
+  void getTermByLicenceScheduleDetailAndTermTypeOrThrow_termNotFound() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
 
     when(licenceScheduleTermRepository.findByLicenceScheduleDetailAndTermType(licenceScheduleDetail, TermType.INITIAL))
         .thenReturn(Optional.empty());
 
     assertThatThrownBy(() ->
-        licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
+        licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
         .isInstanceOf(LmsEntityNotFoundException.class);
   }
 

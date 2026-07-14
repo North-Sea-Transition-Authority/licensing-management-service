@@ -14,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTea
 import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.ScheduleRelativeDateValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
@@ -37,17 +38,20 @@ public class ReviewAndApplyScheduleController {
   private final LicenceScheduleDetailService licenceScheduleDetailService;
   private final LicenceScheduleTimelineService licenceScheduleTimelineService;
   private final EventCommentService eventCommentService;
+  private final ScheduleRelativeDateValidationService scheduleRelativeDateValidationService;
 
   public ReviewAndApplyScheduleController(
       LicenceService licenceService,
       LicenceScheduleDetailService licenceScheduleDetailService,
       LicenceScheduleTimelineService licenceScheduleTimelineService,
-      EventCommentService eventCommentService
+      EventCommentService eventCommentService,
+      ScheduleRelativeDateValidationService scheduleRelativeDateValidationService
   ) {
     this.licenceService = licenceService;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.licenceScheduleTimelineService = licenceScheduleTimelineService;
     this.eventCommentService = eventCommentService;
+    this.scheduleRelativeDateValidationService = scheduleRelativeDateValidationService;
   }
 
   @GetMapping
@@ -60,6 +64,8 @@ public class ReviewAndApplyScheduleController {
     return new ModelAndView("lms/licence/schedule/reviewAndApply")
         .addObject("pageCaption", licenceService.getLicencePageCaption(licence))
         .addObject("summaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
+        .addObject("initialTermPhaseValidationError",
+            !scheduleRelativeDateValidationService.doesFinalPhaseEndDateMatchEndOfInitialTerm(licenceScheduleDetail))
         .addObject("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl());
   }
 

@@ -50,7 +50,7 @@ public class LicenceScheduleTermService {
         .orElseThrow(() -> new LmsEntityNotFoundException("LicenceScheduleTerm not found", id.toString()));
   }
 
-  public LicenceScheduleTerm getTermsByLicenceScheduleDetailAndTermTypeOrThrow(
+  public LicenceScheduleTerm getTermByLicenceScheduleDetailAndTermTypeOrThrow(
       LicenceScheduleDetail licenceScheduleDetail,
       TermType termType
   ) {

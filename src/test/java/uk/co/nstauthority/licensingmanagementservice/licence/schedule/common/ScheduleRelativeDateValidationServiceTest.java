@@ -20,8 +20,12 @@ import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFi
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationInput;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceSchedulePhaseTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduleTermTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeFeatureService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.StartEndDates;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -66,10 +70,15 @@ class ScheduleRelativeDateValidationServiceTest {
   @Mock
   private OtherScheduleEventService otherScheduleEventService;
 
+  @Mock
+  private LicenceTypeFeatureService licenceTypeFeatureService;
+
   @InjectMocks
   private ScheduleRelativeDateValidationService service;
 
-  private final LicenceScheduleDetail licenceScheduleDetail = new LicenceScheduleDetail();
+  private final LicenceScheduleDetail licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(
+      LicenceScheduleTestUtil.createLicenceSchedule(LicenceTestUtil.builder().build())
+  );
 
   @Test
   void validateRelativeDateBeforeEndOfSchedule_whenNoTerms_noErrors() {
@@ -1064,7 +1073,7 @@ class ScheduleRelativeDateValidationServiceTest {
 
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of());
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
+    when(licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
         .thenReturn(initialTerm);
     when(licenceScheduleCalculationService.calculateDurationEndDate(eq(initialTermStartDate), any(ThreeFieldDuration.class)))
         .thenReturn(LocalDate.of(2020, 12, 31));
@@ -1092,7 +1101,7 @@ class ScheduleRelativeDateValidationServiceTest {
 
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of());
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
+    when(licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
         .thenReturn(initialTerm);
     when(licenceScheduleCalculationService.calculateDurationEndDate(eq(initialTermStartDate), any(ThreeFieldDuration.class)))
         .thenReturn(LocalDate.of(2021, 1, 1));
@@ -1176,7 +1185,7 @@ class ScheduleRelativeDateValidationServiceTest {
 
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(existingPhase));
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
+    when(licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
         .thenReturn(initialTerm);
     when(licenceScheduleCalculationService.calculateDurationEndDate(eq(initialTermStartDate), any(ThreeFieldDuration.class)))
         .thenReturn(LocalDate.of(2022, 1, 1));
@@ -1215,7 +1224,7 @@ class ScheduleRelativeDateValidationServiceTest {
 
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(existingPhase));
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
+    when(licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
         .thenReturn(initialTerm);
     when(licenceScheduleCalculationService.calculateDurationEndDate(eq(initialTermStartDate), any(ThreeFieldDuration.class)))
         .thenReturn(LocalDate.of(2021, 1, 1));
@@ -1250,7 +1259,7 @@ class ScheduleRelativeDateValidationServiceTest {
 
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(existingPhase));
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
+    when(licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
         .thenReturn(initialTerm);
     when(licenceScheduleCalculationService.calculateDurationEndDate(eq(initialTermStartDate), any(ThreeFieldDuration.class)))
         .thenReturn(LocalDate.of(2021, 1, 1));
@@ -1297,7 +1306,7 @@ class ScheduleRelativeDateValidationServiceTest {
 
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(phaseA, phaseB));
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
+    when(licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
         .thenReturn(initialTerm);
 
     var phaseAEndDate = LocalDate.of(2020, 12, 31);
@@ -1324,6 +1333,93 @@ class ScheduleRelativeDateValidationServiceTest {
     var errorMessages = ValidatorTestingUtil.extractErrorMessages(errors);
     assertThat(errorMessages.get("phaseDuration.years"))
         .contains("The phase duration cannot be increased as this would cause a phase to end after the end of the initial term");
+  }
+
+  @Test
+  void doesFinalPhaseEndDateMatchEndOfInitialTerm_whenPhasesNotCapturedForLicenceType_returnsTrue() {
+    licenceScheduleDetail.getLicenceSchedule().getLicence().setType(LicenceType.CARBON_STORAGE);
+
+    when(licenceTypeFeatureService.arePhasesCaptured(LicenceType.CARBON_STORAGE)).thenReturn(false);
+
+    var result = service.doesFinalPhaseEndDateMatchEndOfInitialTerm(licenceScheduleDetail);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void doesFinalPhaseEndDateMatchEndOfInitialTerm_whenNoPhases_returnsTrue() {
+    licenceScheduleDetail.getLicenceSchedule().getLicence().setType(LicenceType.SEAWARD_PRODUCTION);
+
+    when(licenceTypeFeatureService.arePhasesCaptured(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of());
+
+    var result = service.doesFinalPhaseEndDateMatchEndOfInitialTerm(licenceScheduleDetail);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void doesFinalPhaseEndDateMatchEndOfInitialTerm_whenFinalPhaseEndDateMatchesInitialTermEndDate_returnsTrue() {
+    licenceScheduleDetail.getLicenceSchedule().getLicence().setType(LicenceType.SEAWARD_PRODUCTION);
+
+    var initialTermEndDate = LocalDate.of(2021, 12, 31);
+    var initialTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withTermType(TermType.INITIAL)
+        .withStartDate(LocalDate.of(2020, 1, 1))
+        .withEndDate(initialTermEndDate)
+        .build();
+
+    var phaseA = LicenceSchedulePhaseTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withPhaseType(PhaseType.PHASE_A)
+        .withEndDate(LocalDate.of(2020, 12, 31))
+        .build();
+
+    var phaseB = LicenceSchedulePhaseTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withPhaseType(PhaseType.PHASE_B)
+        .withEndDate(initialTermEndDate)
+        .build();
+
+    when(licenceTypeFeatureService.arePhasesCaptured(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(phaseA, phaseB));
+    when(licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
+        .thenReturn(initialTerm);
+
+    var result = service.doesFinalPhaseEndDateMatchEndOfInitialTerm(licenceScheduleDetail);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void doesFinalPhaseEndDateMatchEndOfInitialTerm_whenFinalPhaseEndDateDoesNotMatchInitialTermEndDate_returnsFalse() {
+    licenceScheduleDetail.getLicenceSchedule().getLicence().setType(LicenceType.SEAWARD_PRODUCTION);
+
+    var initialTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withTermType(TermType.INITIAL)
+        .withStartDate(LocalDate.of(2020, 1, 1))
+        .withEndDate(LocalDate.of(2021, 12, 31))
+        .build();
+
+    var finalPhase = LicenceSchedulePhaseTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withPhaseType(PhaseType.PHASE_A)
+        .withEndDate(LocalDate.of(2021, 6, 30))
+        .build();
+
+    when(licenceTypeFeatureService.arePhasesCaptured(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(finalPhase));
+    when(licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
+        .thenReturn(initialTerm);
+
+    var result = service.doesFinalPhaseEndDateMatchEndOfInitialTerm(licenceScheduleDetail);
+
+    assertThat(result).isFalse();
   }
 
   private LocalDate setupShortenedTermMocks(LicenceScheduleTerm licenceScheduleTerm) {

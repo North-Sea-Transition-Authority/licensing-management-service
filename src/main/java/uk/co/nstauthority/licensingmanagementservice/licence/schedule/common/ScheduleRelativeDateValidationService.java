@@ -13,6 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFi
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeFeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
@@ -51,6 +52,7 @@ public class ScheduleRelativeDateValidationService {
   private final LicenceScheduleRateService licenceScheduleRateService;
 
   private final OtherScheduleEventService otherScheduleEventService;
+  private final LicenceTypeFeatureService licenceTypeFeatureService;
 
   public ScheduleRelativeDateValidationService(
       LicenceScheduleTermService licenceScheduleTermService,
@@ -59,7 +61,8 @@ public class ScheduleRelativeDateValidationService {
       LicenceStartDateService licenceStartDateService,
       WorkProgrammeActivityService workProgrammeActivityService,
       LicenceScheduleRateService licenceScheduleRateService,
-      OtherScheduleEventService otherScheduleEventService
+      OtherScheduleEventService otherScheduleEventService,
+      LicenceTypeFeatureService licenceTypeFeatureService
   ) {
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
@@ -68,6 +71,7 @@ public class ScheduleRelativeDateValidationService {
     this.workProgrammeActivityService = workProgrammeActivityService;
     this.licenceScheduleRateService = licenceScheduleRateService;
     this.otherScheduleEventService = otherScheduleEventService;
+    this.licenceTypeFeatureService = licenceTypeFeatureService;
   }
 
   public void validateRelativeDateBeforeEndOfSchedule(
@@ -446,7 +450,7 @@ public class ScheduleRelativeDateValidationService {
       return;
     }
 
-    var initialTerm = licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(
+    var initialTerm = licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(
         licenceScheduleDetail,
         TermType.INITIAL
     );
@@ -532,5 +536,32 @@ public class ScheduleRelativeDateValidationService {
     var updatedDuration = form.getPhaseDuration().toThreeFieldDuration();
 
     return isDurationGreaterThan(updatedDuration, currentDuration);
+  }
+
+  public boolean doesFinalPhaseEndDateMatchEndOfInitialTerm(LicenceScheduleDetail licenceScheduleDetail) {
+    if (!licenceTypeFeatureService.arePhasesCaptured(licenceScheduleDetail.getLicenceSchedule().getLicence().getType())) {
+      return true;
+    }
+
+    var phases = licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail);
+
+    if (phases.isEmpty()) {
+      return true;
+    }
+
+    var initialTerm = licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(
+        licenceScheduleDetail,
+        TermType.INITIAL
+    );
+
+    var initialTermEndDate = initialTerm.getEndDate();
+
+    var finalPhaseEndDate = phases.stream()
+        .max(Comparator.comparing(LicenceSchedulePhase::getEndDate))
+        .orElseThrow(() -> new LmsEntityNotFoundException(
+            "licenceSchedulePhase not found for term with id: %s".formatted(initialTerm.getId()))
+        ).getEndDate();
+
+    return initialTermEndDate.isEqual(finalPhaseEndDate);
   }
 }

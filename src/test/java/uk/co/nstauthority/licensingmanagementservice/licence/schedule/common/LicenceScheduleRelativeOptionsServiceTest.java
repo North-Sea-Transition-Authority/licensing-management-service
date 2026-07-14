@@ -78,7 +78,7 @@ class LicenceScheduleRelativeOptionsServiceTest {
     phase2.setId(UUID.randomUUID());
     phase2.setPhaseType(PhaseType.PHASE_B);
 
-    when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase, phase2));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase, phase2));
 
     var expectedResult = Map.of(
         phase.getId().toString(), phase.getPhaseType().getDisplayName(),

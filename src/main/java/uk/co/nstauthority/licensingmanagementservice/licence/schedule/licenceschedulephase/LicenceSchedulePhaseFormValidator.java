@@ -6,6 +6,7 @@ import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationValidationUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.ScheduleRelativeDateValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
@@ -15,13 +16,16 @@ public class LicenceSchedulePhaseFormValidator {
 
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
   private final LicenceScheduleTermService licenceScheduleTermService;
+  private final ScheduleRelativeDateValidationService scheduleRelativeDateValidationService;
 
   public LicenceSchedulePhaseFormValidator(
       LicenceSchedulePhaseService licenceSchedulePhaseService,
-      LicenceScheduleTermService licenceScheduleTermService
+      LicenceScheduleTermService licenceScheduleTermService,
+      ScheduleRelativeDateValidationService scheduleRelativeDateValidationService
   ) {
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
     this.licenceScheduleTermService = licenceScheduleTermService;
+    this.scheduleRelativeDateValidationService = scheduleRelativeDateValidationService;
   }
 
   boolean isValid(
@@ -29,7 +33,7 @@ public class LicenceSchedulePhaseFormValidator {
       Errors errors,
       LicenceScheduleDetail licenceScheduleDetail
   ) {
-    var existingPhaseTypes = licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
+    var existingPhaseTypes = licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
         .map(LicenceSchedulePhase::getPhaseType)
         .toList();
 
@@ -47,7 +51,7 @@ public class LicenceSchedulePhaseFormValidator {
       LicenceScheduleDetail licenceScheduleDetail,
       LicenceSchedulePhase licenceSchedulePhase
   ) {
-    var existingPhaseTypes = licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
+    var existingPhaseTypes = licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
         .filter(phase -> !licenceSchedulePhase.getId().equals(phase.getId()))
         .map(LicenceSchedulePhase::getPhaseType)
         .toList();
@@ -94,6 +98,7 @@ public class LicenceSchedulePhaseFormValidator {
     }
 
     ThreeFieldDurationValidationUtil.validate(form.getPhaseDuration(), errors);
+    scheduleRelativeDateValidationService.validatePhaseLengthUpdate(licenceScheduleDetail, form, errors);
 
     return !errors.hasErrors();
   }

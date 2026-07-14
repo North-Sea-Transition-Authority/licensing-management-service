@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
@@ -80,6 +81,32 @@ class LicenceScheduleTermServiceTest {
     when(licenceScheduleTermRepository.findById(any())).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> licenceScheduleTermService.getTermByIdOrThrow(UUID.randomUUID()))
+        .isInstanceOf(LmsEntityNotFoundException.class);
+  }
+
+  @Test
+  void getTermsByLicenceScheduleDetailAndTermTypeOrThrow() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    var licenceScheduleTerm = new LicenceScheduleTerm();
+    licenceScheduleTerm.setTermType(TermType.INITIAL);
+
+    when(licenceScheduleTermRepository.findByLicenceScheduleDetailAndTermType(licenceScheduleDetail, TermType.INITIAL))
+        .thenReturn(Optional.of(licenceScheduleTerm));
+
+    assertThat(licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(
+        licenceScheduleDetail, TermType.INITIAL))
+        .isEqualTo(licenceScheduleTerm);
+  }
+
+  @Test
+  void getTermsByLicenceScheduleDetailAndTermTypeOrThrow_termNotFound() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+
+    when(licenceScheduleTermRepository.findByLicenceScheduleDetailAndTermType(licenceScheduleDetail, TermType.INITIAL))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() ->
+        licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
         .isInstanceOf(LmsEntityNotFoundException.class);
   }
 

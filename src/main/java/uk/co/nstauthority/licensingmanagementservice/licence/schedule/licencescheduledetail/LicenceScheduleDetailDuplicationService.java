@@ -144,8 +144,8 @@ public class LicenceScheduleDetailDuplicationService {
       LicenceScheduleDetail oldDetail,
       LicenceScheduleDetail newDetail
   ) {
-    var oldDetailPhases = licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(oldDetail);
-    var newDetailPhasesRefMap = licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(newDetail).stream()
+    var oldDetailPhases = licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(oldDetail);
+    var newDetailPhasesRefMap = licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(newDetail).stream()
         .collect(StreamUtil.toLinkedHashMap(
             LicenceSchedulePhase::getPhaseType,
             Function.identity()

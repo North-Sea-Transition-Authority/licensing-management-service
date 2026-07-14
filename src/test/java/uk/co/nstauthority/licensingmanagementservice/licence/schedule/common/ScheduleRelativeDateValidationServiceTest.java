@@ -20,10 +20,12 @@ import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFi
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationInput;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceSchedulePhaseTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduleTermTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.StartEndDates;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateForm;
@@ -1048,6 +1050,280 @@ class ScheduleRelativeDateValidationServiceTest {
     service.validateRelativeRateOverlap(null, licenceScheduleDetail, form, errors);
 
     assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validatePhaseLengthUpdate_newPhase_endsWithinInitialTerm_noErrors() {
+    var initialTermStartDate = LocalDate.of(2020, 1, 1);
+    var initialTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withTermType(TermType.INITIAL)
+        .withStartDate(initialTermStartDate)
+        .withEndDate(LocalDate.of(2025, 12, 31))
+        .build();
+
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of());
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
+        .thenReturn(initialTerm);
+    when(licenceScheduleCalculationService.calculateDurationEndDate(eq(initialTermStartDate), any(ThreeFieldDuration.class)))
+        .thenReturn(LocalDate.of(2020, 12, 31));
+
+    var form = new LicenceSchedulePhaseForm();
+    form.setPhaseType(PhaseType.PHASE_A);
+    form.getPhaseDuration().setFromThreeFieldDuration(new ThreeFieldDuration(1, 0, 0));
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validatePhaseLengthUpdate(licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validatePhaseLengthUpdate_newPhase_endsAfterInitialTerm_rejectsFields() {
+    var initialTermStartDate = LocalDate.of(2020, 1, 1);
+    var initialTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withTermType(TermType.INITIAL)
+        .withStartDate(initialTermStartDate)
+        .withEndDate(LocalDate.of(2020, 12, 31))
+        .build();
+
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of());
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
+        .thenReturn(initialTerm);
+    when(licenceScheduleCalculationService.calculateDurationEndDate(eq(initialTermStartDate), any(ThreeFieldDuration.class)))
+        .thenReturn(LocalDate.of(2021, 1, 1));
+
+    var form = new LicenceSchedulePhaseForm();
+    form.setPhaseType(PhaseType.PHASE_A);
+    form.getPhaseDuration().setFromThreeFieldDuration(new ThreeFieldDuration(1, 0, 0));
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validatePhaseLengthUpdate(licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isTrue();
+    var errorMessages = ValidatorTestingUtil.extractErrorMessages(errors);
+    assertThat(errorMessages.get("phaseDuration.years"))
+        .contains("A phase cannot be added with this duration as this would cause a phase to end after the end "
+            + "of the initial term");
+    assertThat(errorMessages).containsKey("phaseDuration.months");
+    assertThat(errorMessages).containsKey("phaseDuration.days");
+  }
+
+  @Test
+  void validatePhaseLengthUpdate_existingPhase_notLengthened_noErrors() {
+    var existingPhase = LicenceSchedulePhaseTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withPhaseType(PhaseType.PHASE_A)
+        .withPhaseDuration(new ThreeFieldDuration(2, 0, 0))
+        .build();
+
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(existingPhase));
+
+    var form = new LicenceSchedulePhaseForm();
+    form.setPhaseType(PhaseType.PHASE_A);
+    form.getPhaseDuration().setFromThreeFieldDuration(new ThreeFieldDuration(2, 0, 0));
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validatePhaseLengthUpdate(licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validatePhaseLengthUpdate_existingPhase_shortened_noErrors() {
+    var existingPhase = LicenceSchedulePhaseTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withPhaseType(PhaseType.PHASE_A)
+        .withPhaseDuration(new ThreeFieldDuration(2, 0, 0))
+        .build();
+
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(existingPhase));
+
+    var form = new LicenceSchedulePhaseForm();
+    form.setPhaseType(PhaseType.PHASE_A);
+    form.getPhaseDuration().setFromThreeFieldDuration(new ThreeFieldDuration(1, 0, 0));
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validatePhaseLengthUpdate(licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validatePhaseLengthUpdate_existingPhase_lengthenedByYearsOnly_endsAfterInitialTerm_rejectsFields() {
+    var initialTermStartDate = LocalDate.of(2020, 1, 1);
+    var initialTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withTermType(TermType.INITIAL)
+        .withStartDate(initialTermStartDate)
+        .withEndDate(LocalDate.of(2020, 12, 31))
+        .build();
+
+    var existingPhase = LicenceSchedulePhaseTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withPhaseType(PhaseType.PHASE_A)
+        .withPhaseDuration(new ThreeFieldDuration(1, 0, 0))
+        .build();
+
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(existingPhase));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
+        .thenReturn(initialTerm);
+    when(licenceScheduleCalculationService.calculateDurationEndDate(eq(initialTermStartDate), any(ThreeFieldDuration.class)))
+        .thenReturn(LocalDate.of(2022, 1, 1));
+
+    var form = new LicenceSchedulePhaseForm();
+    form.setPhaseType(PhaseType.PHASE_A);
+    // Lengthened by a whole year, months/days unchanged
+    form.getPhaseDuration().setFromThreeFieldDuration(new ThreeFieldDuration(2, 0, 0));
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validatePhaseLengthUpdate(licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isTrue();
+    var errorMessages = ValidatorTestingUtil.extractErrorMessages(errors);
+    assertThat(errorMessages.get("phaseDuration.years"))
+        .contains("The phase duration cannot be increased as this would cause a phase to end after the end "
+            + "of the initial term");
+  }
+
+  @Test
+  void validatePhaseLengthUpdate_existingPhase_lengthened_endsWithinInitialTerm_noErrors() {
+    var initialTermStartDate = LocalDate.of(2020, 1, 1);
+    var initialTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withTermType(TermType.INITIAL)
+        .withStartDate(initialTermStartDate)
+        .withEndDate(LocalDate.of(2021, 12, 31))
+        .build();
+
+    var existingPhase = LicenceSchedulePhaseTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withPhaseType(PhaseType.PHASE_A)
+        .withPhaseDuration(new ThreeFieldDuration(1, 0, 0))
+        .build();
+
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(existingPhase));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
+        .thenReturn(initialTerm);
+    when(licenceScheduleCalculationService.calculateDurationEndDate(eq(initialTermStartDate), any(ThreeFieldDuration.class)))
+        .thenReturn(LocalDate.of(2021, 1, 1));
+
+    var form = new LicenceSchedulePhaseForm();
+    form.setPhaseType(PhaseType.PHASE_A);
+    // Lengthened by a single day, keeping years/months unchanged
+    form.getPhaseDuration().setFromThreeFieldDuration(new ThreeFieldDuration(1, 0, 1));
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validatePhaseLengthUpdate(licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validatePhaseLengthUpdate_existingPhase_lengthened_endsAfterInitialTerm_rejectsFields() {
+    var initialTermStartDate = LocalDate.of(2020, 1, 1);
+    var initialTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withTermType(TermType.INITIAL)
+        .withStartDate(initialTermStartDate)
+        .withEndDate(LocalDate.of(2020, 12, 31))
+        .build();
+
+    var existingPhase = LicenceSchedulePhaseTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withPhaseType(PhaseType.PHASE_A)
+        .withPhaseDuration(new ThreeFieldDuration(1, 0, 0))
+        .build();
+
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(existingPhase));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
+        .thenReturn(initialTerm);
+    when(licenceScheduleCalculationService.calculateDurationEndDate(eq(initialTermStartDate), any(ThreeFieldDuration.class)))
+        .thenReturn(LocalDate.of(2021, 1, 1));
+
+    var form = new LicenceSchedulePhaseForm();
+    form.setPhaseType(PhaseType.PHASE_A);
+    // Lengthened by a single day, keeping years/months unchanged
+    form.getPhaseDuration().setFromThreeFieldDuration(new ThreeFieldDuration(1, 0, 1));
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validatePhaseLengthUpdate(licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isTrue();
+    var errorMessages = ValidatorTestingUtil.extractErrorMessages(errors);
+    assertThat(errorMessages.get("phaseDuration.years"))
+        .contains("The phase duration cannot be increased as this would cause a phase to end after the end of the initial term");
+    assertThat(errorMessages).containsKey("phaseDuration.months");
+    assertThat(errorMessages).containsKey("phaseDuration.days");
+  }
+
+  @Test
+  void validatePhaseLengthUpdate_multiplePhases_usesFinalPhaseEndDate_rejectsFields() {
+    var initialTermStartDate = LocalDate.of(2020, 1, 1);
+    var initialTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withTermType(TermType.INITIAL)
+        .withStartDate(initialTermStartDate)
+        // Ends after phase A but before the (updated) phase B end date
+        .withEndDate(LocalDate.of(2021, 6, 30))
+        .build();
+
+    var phaseA = LicenceSchedulePhaseTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withPhaseType(PhaseType.PHASE_A)
+        .withPhaseDuration(new ThreeFieldDuration(1, 0, 0))
+        .build();
+
+    var phaseB = LicenceSchedulePhaseTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withPhaseType(PhaseType.PHASE_B)
+        .withPhaseDuration(new ThreeFieldDuration(1, 0, 0))
+        .build();
+
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(phaseA, phaseB));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
+        .thenReturn(initialTerm);
+
+    var phaseAEndDate = LocalDate.of(2020, 12, 31);
+    var phaseBStartDate = phaseAEndDate.plusDays(1);
+    var phaseBEndDate = LocalDate.of(2022, 1, 1);
+
+    when(licenceScheduleCalculationService.calculateDurationEndDate(
+        initialTermStartDate, new ThreeFieldDuration(1, 0, 0)))
+        .thenReturn(phaseAEndDate);
+    when(licenceScheduleCalculationService.calculateDurationEndDate(
+        phaseBStartDate, new ThreeFieldDuration(1, 0, 1)))
+        .thenReturn(phaseBEndDate);
+
+    var form = new LicenceSchedulePhaseForm();
+    form.setPhaseType(PhaseType.PHASE_B);
+    // Lengthened by a single day, keeping years/months unchanged
+    form.getPhaseDuration().setFromThreeFieldDuration(new ThreeFieldDuration(1, 0, 1));
+
+    var errors = new MapBindingResult(new HashMap<>(), "form");
+
+    service.validatePhaseLengthUpdate(licenceScheduleDetail, form, errors);
+
+    assertThat(errors.hasErrors()).isTrue();
+    var errorMessages = ValidatorTestingUtil.extractErrorMessages(errors);
+    assertThat(errorMessages.get("phaseDuration.years"))
+        .contains("The phase duration cannot be increased as this would cause a phase to end after the end of the initial term");
   }
 
   private LocalDate setupShortenedTermMocks(LicenceScheduleTerm licenceScheduleTerm) {

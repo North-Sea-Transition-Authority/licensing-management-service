@@ -35,7 +35,7 @@ public class LicenceScheduleRelativeOptionsService {
   }
 
   public Map<String, String> getSchedulePhaseOptions(LicenceScheduleDetail licenceScheduleDetail) {
-    return licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
+    return licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
         .sorted(Comparator.comparingInt(phase -> phase.getPhaseType().getDisplayOrder()))
         .collect(StreamUtil.toLinkedHashMap(
             phase -> phase.getId().toString(),

@@ -158,8 +158,8 @@ class LicenceScheduleDetailDuplicationServiceTest {
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(oldDetail)).thenReturn(List.of(oldTerm));
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(newDetail)).thenReturn(List.of(newTerm));
 
-    when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(oldDetail)).thenReturn(List.of(oldPhase));
-    when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(newDetail)).thenReturn(List.of(newPhase));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(oldDetail)).thenReturn(List.of(oldPhase));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(newDetail)).thenReturn(List.of(newPhase));
 
     when(licenceScheduleRateService.getLicenceScheduleRates(newDetail)).thenReturn(List.of(termLinkedRate));
     when(workProgrammeActivityService.getWorkProgrammeActivities(newDetail)).thenReturn(List.of(phaseLinkedActivity));

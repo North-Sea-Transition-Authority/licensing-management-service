@@ -1,6 +1,10 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -10,9 +14,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.validation.Errors;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationInput;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.ScheduleRelativeDateValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
@@ -26,6 +32,9 @@ class LicenceSchedulePhaseFormValidatorTest {
 
   @Mock
   private LicenceScheduleTermService licenceScheduleTermService;
+
+  @Mock
+  private ScheduleRelativeDateValidationService scheduleRelativeDateValidationService;
 
   @InjectMocks
   private LicenceSchedulePhaseFormValidator licenceSchedulePhaseFormValidator;
@@ -46,6 +55,32 @@ class LicenceSchedulePhaseFormValidatorTest {
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
     assertThat(licenceSchedulePhaseFormValidator.isValid(form, bindingResult, licenceScheduleDetail)).isTrue();
+    verify(scheduleRelativeDateValidationService).validatePhaseLengthUpdate(licenceScheduleDetail, form, bindingResult);
+  }
+
+  @Test
+  void isValid_invalid_phaseLengthValidationRejectsField() {
+    var form = new LicenceSchedulePhaseForm();
+    form.setPhaseType(PhaseType.PHASE_A);
+    form.setPhaseDuration(getValidDuration());
+
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+
+    var licenceScheduleTerm = new LicenceScheduleTerm();
+    licenceScheduleTerm.setTermType(TermType.INITIAL);
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceScheduleTerm));
+
+    doAnswer(invocation -> {
+      Errors errors = invocation.getArgument(2);
+      errors.rejectValue("phaseDuration.years", "invalid", "error");
+      return null;
+    }).when(scheduleRelativeDateValidationService)
+        .validatePhaseLengthUpdate(eq(licenceScheduleDetail), eq(form), any(Errors.class));
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(licenceSchedulePhaseFormValidator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
   }
 
   @Test
@@ -88,7 +123,7 @@ class LicenceSchedulePhaseFormValidatorTest {
     licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceScheduleTerm));
-    when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceSchedulePhase));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceSchedulePhase));
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
@@ -113,7 +148,7 @@ class LicenceSchedulePhaseFormValidatorTest {
     licenceSchedulePhase.setId(UUID.randomUUID());
     licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
 
-    when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceSchedulePhase));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceSchedulePhase));
 
     var licenceScheduleTerm = new LicenceScheduleTerm();
     licenceScheduleTerm.setTermType(TermType.INITIAL);
@@ -140,7 +175,7 @@ class LicenceSchedulePhaseFormValidatorTest {
     licenceSchedulePhase2.setId(UUID.randomUUID());
     licenceSchedulePhase2.setPhaseType(PhaseType.PHASE_B);
 
-    when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceSchedulePhase, licenceSchedulePhase2));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(licenceSchedulePhase, licenceSchedulePhase2));
 
     var licenceScheduleTerm = new LicenceScheduleTerm();
     licenceScheduleTerm.setTermType(TermType.INITIAL);

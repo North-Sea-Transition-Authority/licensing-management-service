@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.common;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.UUID;
@@ -10,8 +11,12 @@ import org.springframework.validation.Errors;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationInput;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
+import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateForm;
@@ -231,18 +236,25 @@ public class ScheduleRelativeDateValidationService {
       ThreeFieldDuration current,
       ThreeFieldDuration updated
   ) {
-    if (current.years() > updated.years()) {
+    return isDurationGreaterThan(current, updated);
+  }
+
+  private boolean isDurationGreaterThan(
+      ThreeFieldDuration first,
+      ThreeFieldDuration second
+  ) {
+    if (first.years() > second.years()) {
       return true;
     }
 
-    if (current.years().equals(updated.years())
-        && current.months() > updated.months()) {
+    if (first.years().equals(second.years())
+        && first.months() > second.months()) {
       return true;
     }
 
-    return current.years().equals(updated.years())
-        && current.months().equals(updated.months())
-        && current.days() > updated.days();
+    return first.years().equals(second.years())
+        && first.months().equals(second.months())
+        && first.days() > second.days();
   }
 
   public void validateTermRateOverlap(
@@ -417,5 +429,108 @@ public class ScheduleRelativeDateValidationService {
         durationStartDate,
         form.getRelativeDuration().toThreeFieldDuration()
     );
+  }
+
+  public void validatePhaseLengthUpdate(
+      LicenceScheduleDetail licenceScheduleDetail,
+      LicenceSchedulePhaseForm form,
+      Errors errors
+  ) {
+    var phaseTypeMap = licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail).stream()
+        .sorted(Comparator.comparing(phase -> phase.getPhaseType().getDisplayOrder()))
+        .collect(StreamUtil.toLinkedHashMap(LicenceSchedulePhase::getPhaseType, Function.identity()));
+
+    var newPhase = !phaseTypeMap.containsKey(form.getPhaseType());
+
+    if (!newPhase && !isPhaseLengthened(form, phaseTypeMap)) {
+      return;
+    }
+
+    var initialTerm = licenceScheduleTermService.getTermsByLicenceScheduleDetailAndTermTypeOrThrow(
+        licenceScheduleDetail,
+        TermType.INITIAL
+    );
+
+    var updatedPhaseEndDate = calculateUpdatedFinalPhaseEndDate(initialTerm, phaseTypeMap, form);
+
+    var initialTermEndDate = initialTerm.getEndDate();
+
+    if (updatedPhaseEndDate.isAfter(initialTermEndDate)) {
+      var fieldName = form.getPhaseDuration().getFieldName();
+      var errormessage = newPhase
+          ? "A phase cannot be added with this duration as this would cause a phase to end after the end of the initial term"
+          : "The phase duration cannot be increased as this would cause a phase to end after the end of the initial term";
+
+      errors.rejectValue(
+          fieldName + YEAR_FIELD_SUFFIX,
+          INVALID_ERROR_CODE,
+          errormessage
+      );
+
+      errors.rejectValue(
+          fieldName + MONTH_FIELD_SUFFIX,
+          INVALID_ERROR_CODE,
+          ""
+      );
+
+      errors.rejectValue(
+          fieldName + DAY_FIELD_SUFFIX,
+          INVALID_ERROR_CODE,
+          ""
+      );
+    }
+  }
+
+  private LocalDate calculateUpdatedFinalPhaseEndDate(
+      LicenceScheduleTerm initialTerm,
+      Map<PhaseType, LicenceSchedulePhase> phaseTypeMap,
+      LicenceSchedulePhaseForm form
+  ) {
+    Collection<LicenceSchedulePhase> phases;
+
+    if (phaseTypeMap.containsKey(form.getPhaseType())) {
+      phaseTypeMap.get(form.getPhaseType()).setPhaseDuration(form.getPhaseDuration().toThreeFieldDuration());
+
+      phases = phaseTypeMap.values();
+    } else {
+      var simulatedPhase = new LicenceSchedulePhase();
+      simulatedPhase.setPhaseDuration(form.getPhaseDuration().toThreeFieldDuration());
+      simulatedPhase.setPhaseType(form.getPhaseType());
+
+      phaseTypeMap.put(form.getPhaseType(), simulatedPhase);
+
+      phases = phaseTypeMap.entrySet().stream()
+          .sorted(Comparator.comparing(entry -> entry.getKey().getDisplayOrder()))
+          .map(Map.Entry::getValue)
+          .toList();
+    }
+
+    var nextStartDate = initialTerm.getStartDate();
+
+    for (var phase : phases) {
+      var endDate = licenceScheduleCalculationService.calculateDurationEndDate(nextStartDate, phase.getPhaseDuration());
+
+      phase.setStartDate(nextStartDate);
+      phase.setEndDate(endDate);
+
+      nextStartDate = endDate.plusDays(1);
+    }
+
+    var finalPhase = phases.stream()
+        .max(Comparator.comparing(phase -> phase.getPhaseType().getDisplayOrder()));
+
+    return finalPhase.map(LicenceSchedulePhase::getEndDate)
+        .orElseThrow(() -> new LmsEntityNotFoundException(
+            "Final phase for licenceScheduleTerm with id %s cannot be found".formatted(initialTerm.getId())));
+  }
+
+  private boolean isPhaseLengthened(
+      LicenceSchedulePhaseForm form,
+      Map<PhaseType, LicenceSchedulePhase> phases
+  ) {
+    var currentDuration = phases.get(form.getPhaseType()).getPhaseDuration();
+    var updatedDuration = form.getPhaseDuration().toThreeFieldDuration();
+
+    return isDurationGreaterThan(updatedDuration, currentDuration);
   }
 }

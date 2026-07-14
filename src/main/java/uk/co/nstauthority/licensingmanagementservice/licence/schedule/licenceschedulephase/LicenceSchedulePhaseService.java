@@ -38,7 +38,7 @@ public class LicenceSchedulePhaseService {
         .orElseThrow(() -> new LmsEntityNotFoundException("LicenceSchedulePhase not found", id.toString()));
   }
 
-  public List<LicenceSchedulePhase> getActivePhasesByLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
+  public List<LicenceSchedulePhase> getPhasesByLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
     return licenceSchedulePhaseRepository.findAllByLicenceScheduleDetail(licenceScheduleDetail);
   }
 

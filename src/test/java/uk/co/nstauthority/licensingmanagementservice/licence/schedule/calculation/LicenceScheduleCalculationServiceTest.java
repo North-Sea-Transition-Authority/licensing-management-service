@@ -111,7 +111,7 @@ class LicenceScheduleCalculationServiceTest {
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(licenceScheduleTerms);
 
-    when(licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail))
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(licenceSchedulePhase));
 
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);

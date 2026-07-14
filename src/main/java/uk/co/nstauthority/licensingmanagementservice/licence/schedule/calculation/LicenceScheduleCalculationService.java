@@ -56,7 +56,7 @@ public class LicenceScheduleCalculationService {
     var licenceStartDate = licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail).getStartDate();
 
     var terms = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail);
-    var phases = licenceSchedulePhaseService.getActivePhasesByLicenceScheduleDetail(licenceScheduleDetail);
+    var phases = licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail);
 
     terms.sort(Comparator.comparing(term -> term.getTermType().getDisplayOrder()));
 

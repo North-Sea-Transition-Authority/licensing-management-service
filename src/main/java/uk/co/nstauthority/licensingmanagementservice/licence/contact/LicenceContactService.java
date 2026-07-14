@@ -5,6 +5,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -136,5 +137,45 @@ public class LicenceContactService {
     contact.setLicensee(licensee);
     contact.setContactEmail(contactEmail);
     licenceContactRepository.save(contact);
+  }
+
+  public List<BulkContactCandidate> getOtherLicencesHeldByLicensee(
+      ServiceUserDetail user,
+      Integer currentLicenceId,
+      Integer organisationId
+  ) {
+    var licenseeName = licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, organisationId);
+
+    var emailByLicensee = licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(organisationId))
+        .stream()
+        .collect(Collectors.toMap(LicenceContact::getLicensee, LicenceContact::getContactEmail));
+
+    return licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(organisationId)).stream()
+        .filter(licensee -> !licensee.getLicence().getId().equals(currentLicenceId))
+        .map(licensee -> new BulkContactCandidate(
+            licensee.getLicence().getId(),
+            licensee.getLicence().getLicenceReference(),
+            licenseeName,
+            emailByLicensee.get(licensee)))
+        .toList();
+  }
+
+  @Transactional
+  public void applyContactToLicences(
+      ServiceUserDetail user,
+      Integer organisationId,
+      String contactEmail,
+      Collection<Integer> licenceIds
+  ) {
+    licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, organisationId);
+
+    licenceIds.forEach(licenceId -> {
+      var licensee = licenceResponsibleOrganisationService
+          .getByLicenceIdAndResponsibleOrganisationIdOrThrow(licenceId, organisationId);
+      var contact = licenceContactRepository.findByLicensee(licensee).orElseGet(LicenceContact::new);
+      contact.setLicensee(licensee);
+      contact.setContactEmail(contactEmail);
+      licenceContactRepository.save(contact);
+    });
   }
 }

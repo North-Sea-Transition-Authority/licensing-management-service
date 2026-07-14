@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.contact;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.util.ArrayList;
 import java.util.Set;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
@@ -71,7 +72,7 @@ public class LicenceContactController {
     var editContext = licenceContactService.getLicenceContactFormView(user, licenceId, responsibleOrganisationId);
     var form = new LicenceContactForm();
     form.setContactEmail(editContext.currentEmail());
-    return updateContactModelAndView(editContext, form);
+    return updateContactModelAndView(licenceId, responsibleOrganisationId, user, editContext, form);
   }
 
   @PostMapping("/licence/{licenceId}/responsible-organisation/{responsibleOrganisationId}")
@@ -88,10 +89,14 @@ public class LicenceContactController {
 
     if (bindingResult.hasErrors()) {
       var editContext = licenceContactService.getLicenceContactFormView(user, licenceId, responsibleOrganisationId);
-      return updateContactModelAndView(editContext, form);
+      return updateContactModelAndView(licenceId, responsibleOrganisationId, user, editContext, form);
     }
 
-    licenceContactService.saveContact(user, licenceId, responsibleOrganisationId, form.getContactEmail());
+    var licenceIds = new ArrayList<Integer>();
+    licenceIds.add(licenceId);
+    licenceIds.addAll(form.getBulkUpdateLicenceIds());
+
+    licenceContactService.applyContactToLicences(user, responsibleOrganisationId, form.getContactEmail(), licenceIds);
 
     NotificationBanner.newSuccessBanner()
         .withHeadingContent("Contact email saved")
@@ -101,13 +106,20 @@ public class LicenceContactController {
   }
 
   private ModelAndView updateContactModelAndView(
+      Integer licenceId,
+      Integer organisationId,
+      ServiceUserDetail user,
       LicenceContactFormView editContext,
       LicenceContactForm form
   ) {
+    var otherLicences = licenceContactService.getOtherLicencesHeldByLicensee(user, licenceId, organisationId);
+
     return new ModelAndView("lms/licence/contact/updateContact")
         .addObject("isUpdate", editContext.isUpdate())
         .addObject("licenceReference", editContext.licenceReference())
         .addObject("form", form)
+        .addObject("otherLicences", otherLicences)
+        .addObject("licenseeName", otherLicences.isEmpty() ? null : otherLicences.getFirst().licenseeName())
         .addObject("backLinkUrl", ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null)));
   }
 }

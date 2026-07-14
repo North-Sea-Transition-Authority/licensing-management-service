@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.contact;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -226,6 +227,56 @@ class LicenceContactServiceTest {
         .isInstanceOf(ResponseStatusException.class);
 
     verifyNoInteractions(licenceResponsibleOrganisationService, licenceContactRepository);
+  }
+
+  @Test
+  void getOtherLicencesHeldByLicensee_excludesCurrentLicence_andJoinsCurrentEmails() {
+    var currentLicensee = licensee();
+    var otherLicensee = licenseeOnLicence(otherLicence());
+
+    when(licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, ORG_ID)).thenReturn(SHELL_U_K_LIMITED);
+    when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of(currentLicensee, otherLicensee));
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of(contact(otherLicensee, "other@example.com")));
+
+    var candidates = licenceContactService.getOtherLicencesHeldByLicensee(user, LICENCE_ID, ORG_ID);
+
+    assertThat(candidates)
+        .containsExactly(new BulkContactCandidate(2, "P 456", SHELL_U_K_LIMITED, "other@example.com"));
+  }
+
+  @Test
+  void applyContactToLicences_savesTheContactForEachLicence() {
+    var licensee1 = licensee();
+    var licensee2 = licenseeOnLicence(otherLicence());
+
+    when(licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, ORG_ID)).thenReturn(SHELL_U_K_LIMITED);
+    when(licenceResponsibleOrganisationService.getByLicenceIdAndResponsibleOrganisationIdOrThrow(LICENCE_ID, ORG_ID))
+        .thenReturn(licensee1);
+    when(licenceResponsibleOrganisationService.getByLicenceIdAndResponsibleOrganisationIdOrThrow(2, ORG_ID))
+        .thenReturn(licensee2);
+    when(licenceContactRepository.findByLicensee(licensee1)).thenReturn(Optional.empty());
+    when(licenceContactRepository.findByLicensee(licensee2)).thenReturn(Optional.empty());
+
+    licenceContactService.applyContactToLicences(user, ORG_ID, "new@example.com", List.of(LICENCE_ID, 2));
+
+    verify(licenceContactRepository, times(2)).save(contactCaptor.capture());
+    assertThat(contactCaptor.getAllValues())
+        .extracting(LicenceContact::getContactEmail)
+        .containsExactly("new@example.com", "new@example.com");
+  }
+
+  private static Licence otherLicence() {
+    return LicenceTestUtil.builder().withId(2).withLicenceReference("P 456").build();
+  }
+
+  private static LicenceResponsibleOrganisation licenseeOnLicence(Licence licence) {
+    var licensee = new LicenceResponsibleOrganisation();
+    licensee.setLicence(licence);
+    licensee.setResponsibleOrganisationId(ORG_ID);
+    licensee.setManagedByLms(false);
+    return licensee;
   }
 
   private static LicenceResponsibleOrganisation licensee() {

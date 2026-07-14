@@ -16,6 +16,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -139,6 +140,22 @@ class LicenceContactControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void renderUpdateContact_withOtherLicences_rendersApplyToOthersCheckboxes() throws Exception {
+    when(licenceContactService.getLicenceContactFormView(contactManager, LICENCE_ID, ORG_ID))
+        .thenReturn(new LicenceContactFormView("P 123", "licensing@example.com"));
+    when(licenceContactService.getOtherLicencesHeldByLicensee(contactManager, LICENCE_ID, ORG_ID))
+        .thenReturn(List.of(new BulkContactCandidate(2, "P 456", "Shell U.K. Limited", "other@example.com")));
+
+    mockMvc.perform(get(ReverseRouter.route(
+            on(LicenceContactController.class).renderUpdateContact(LICENCE_ID, ORG_ID, null)))
+            .with(user(contactManager)))
+        .andExpectAll(
+            status().isOk(),
+            view().name("lms/licence/contact/updateContact"),
+            model().attributeExists("otherLicences"));
+  }
+
+  @Test
   void saveContact_whenValid_savesAndRedirectsToList() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(
             on(LicenceContactController.class).saveContact(LICENCE_ID, ORG_ID, null, null, null, null)))
@@ -148,7 +165,22 @@ class LicenceContactControllerTest extends AbstractControllerTest {
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null))));
 
-    verify(licenceContactService).saveContact(contactManager, LICENCE_ID, ORG_ID, "licensing@example.com");
+    verify(licenceContactService)
+        .applyContactToLicences(contactManager, ORG_ID, "licensing@example.com", List.of(LICENCE_ID));
+  }
+
+  @Test
+  void saveContact_whenOtherLicencesSelected_appliesToCurrentAndSelected() throws Exception {
+    mockMvc.perform(post(ReverseRouter.route(
+            on(LicenceContactController.class).saveContact(LICENCE_ID, ORG_ID, null, null, null, null)))
+            .param("contactEmail", "licensing@example.com")
+            .param("bulkUpdateLicenceIds", "2")
+            .with(user(contactManager))
+            .with(csrf()))
+        .andExpect(status().is3xxRedirection());
+
+    verify(licenceContactService)
+        .applyContactToLicences(contactManager, ORG_ID, "licensing@example.com", List.of(LICENCE_ID, 2));
   }
 
   @Test
@@ -171,6 +203,6 @@ class LicenceContactControllerTest extends AbstractControllerTest {
             status().isOk(),
             view().name("lms/licence/contact/updateContact"));
 
-    verify(licenceContactService, never()).saveContact(any(), any(), any(), any());
+    verify(licenceContactService, never()).applyContactToLicences(any(), any(), any(), any());
   }
 }

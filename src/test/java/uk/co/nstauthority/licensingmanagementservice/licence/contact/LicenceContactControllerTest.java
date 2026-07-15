@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.contact;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.validation.BindingResult;
 import org.springframework.validation.Errors;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
@@ -230,13 +232,61 @@ class LicenceContactControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void saveContact_passesHeldLicenceIdsToValidator() throws Exception {
+    when(licenceContactService.getAllLicenceIdsHeldByLicensee(contactManager, LICENCE_ID, ORG_ID))
+        .thenReturn(List.of(LICENCE_ID, 2));
+
+    mockMvc.perform(post(ReverseRouter.route(
+            on(LicenceContactController.class).saveContact(LICENCE_ID, ORG_ID, null, null, null, null)))
+            .param("contactEmail", "licensing@example.com")
+            .param("bulkUpdateLicenceIds", "2")
+            .with(user(contactManager))
+            .with(csrf()))
+        .andExpect(status().is3xxRedirection());
+
+    verify(licenceContactFormValidator)
+        .isValid(any(LicenceContactForm.class), any(BindingResult.class), eq(List.of(LICENCE_ID, 2)));
+  }
+
+  @Test
+  void saveContact_whenSelectedLicenceDeparted_reRendersFormWithErrorAndDoesNotSave() throws Exception {
+    doAnswer(invocation -> {
+      Errors errors = invocation.getArgument(1);
+      errors.rejectValue("bulkUpdateLicenceIds", "bulkUpdateLicenceIds.departed",
+          "One or more selected licences are no longer held by this licensee");
+      return null;
+    }).when(licenceContactFormValidator)
+        .isValid(any(LicenceContactForm.class), any(BindingResult.class), eq(List.of(LICENCE_ID)));
+
+    when(licenceContactService.getLicenceContactFormView(contactManager, LICENCE_ID, ORG_ID))
+        .thenReturn(new LicenceContactFormView("P 123", "licensing@example.com"));
+    when(licenceContactService.getAllLicenceIdsHeldByLicensee(contactManager, LICENCE_ID, ORG_ID))
+        .thenReturn(List.of(LICENCE_ID));
+
+    mockMvc.perform(post(ReverseRouter.route(
+            on(LicenceContactController.class).saveContact(LICENCE_ID, ORG_ID, null, null, null, null)))
+            .param("contactEmail", "licensing@example.com")
+            .param("bulkUpdateLicenceIds", "2")
+            .with(user(contactManager))
+            .with(csrf()))
+        .andExpectAll(
+            status().isOk(),
+            view().name("lms/licence/contact/updateContact"));
+
+    verify(licenceContactService, never()).applyContactToLicences(any(), any(), any(), any());
+  }
+
+  @Test
   void saveContact_whenInvalid_reRendersFormAndDoesNotSave() throws Exception {
     doAnswer(invocation -> {
       Errors errors = invocation.getArgument(1);
       errors.rejectValue("contactEmail", "contactEmail.invalid", "Enter a valid email");
       return null;
-    }).when(licenceContactFormValidator).isValid(any(), any());
+    }).when(licenceContactFormValidator)
+        .isValid(any(LicenceContactForm.class), any(BindingResult.class), eq(List.of(LICENCE_ID)));
 
+    when(licenceContactService.getAllLicenceIdsHeldByLicensee(contactManager, LICENCE_ID, ORG_ID))
+        .thenReturn(List.of(LICENCE_ID));
     when(licenceContactService.getLicenceContactFormView(contactManager, LICENCE_ID, ORG_ID))
         .thenReturn(new LicenceContactFormView("P 123", null));
 

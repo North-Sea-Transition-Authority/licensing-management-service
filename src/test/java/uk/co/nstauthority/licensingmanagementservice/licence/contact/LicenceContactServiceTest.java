@@ -400,6 +400,22 @@ class LicenceContactServiceTest {
   }
 
   @Test
+  void getAllLicenceIdsHeldByLicensee_returnsCurrentLicenceFirstThenOthers() {
+    var currentLicensee = licensee();
+    var otherLicensee = licenseeOnLicence(otherLicence());
+
+    when(licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, ORG_ID)).thenReturn(SHELL_U_K_LIMITED);
+    when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of(currentLicensee, otherLicensee));
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of());
+
+    var licenceIds = licenceContactService.getAllLicenceIdsHeldByLicensee(user, LICENCE_ID, ORG_ID);
+
+    assertThat(licenceIds).containsExactly(LICENCE_ID, 2);
+  }
+
+  @Test
   void applyContactToLicences_savesTheContactForEachLicence() {
     var licensee1 = licensee();
     var licensee2 = licenseeOnLicence(otherLicence());

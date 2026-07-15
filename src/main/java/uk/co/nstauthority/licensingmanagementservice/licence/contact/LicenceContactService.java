@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.contact;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -226,6 +227,18 @@ public class LicenceContactService {
             licenseeName,
             emailByLicensee.get(licensee)))
         .toList();
+  }
+
+  public List<Integer> getAllLicenceIdsHeldByLicensee(ServiceUserDetail user, Integer currentLicenceId, Integer organisationId) {
+    var otherLicenceIds = getOtherLicencesHeldByLicensee(user, currentLicenceId, organisationId)
+        .stream()
+        .map(BulkContactCandidate::licenceId)
+        .toList();
+
+    var licenceIdsHeld = new ArrayList<Integer>();
+    licenceIdsHeld.add(currentLicenceId);
+    licenceIdsHeld.addAll(otherLicenceIds);
+    return licenceIdsHeld;
   }
 
   @Transactional

@@ -146,7 +146,8 @@ public class LicenceContactController {
       ServiceUserDetail user,
       RedirectAttributes redirectAttributes
   ) {
-    licenceContactFormValidator.isValid(form, bindingResult);
+    var validLicenceIds = licenceContactService.getAllLicenceIdsHeldByLicensee(user, licenceId, responsibleOrganisationId);
+    licenceContactFormValidator.isValid(form, bindingResult, validLicenceIds);
 
     if (bindingResult.hasErrors()) {
       var editContext = licenceContactService.getLicenceContactFormView(user, licenceId, responsibleOrganisationId);

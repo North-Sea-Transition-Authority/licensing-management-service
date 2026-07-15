@@ -637,65 +637,6 @@ public class LicenceScheduleTimelineService {
         .toList();
   }
 
-  public List<ScheduleEvent> getEventsBeyondFinalTerm(
-      LicenceScheduleDetail licenceScheduleDetail,
-      List<ScheduleEventAction> allowedActions
-  ) {
-    var finalTerm = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
-        .max(Comparator.comparing(term -> term.getTermType().getDisplayOrder()));
-
-    if (finalTerm.isEmpty()) {
-      return List.of();
-    }
-
-    var finalTermEndDate = finalTerm.get().getEndDate();
-
-    var eventRefWpStatusMap = getLatestWpStatusesForSchedule(licenceScheduleDetail);
-    var eventRefCommentsMap = eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule());
-    var rateDatesMap = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
-
-    var workProgrammeActivities = workProgrammeActivityService.getWorkProgrammeActivitiesAfterDate(
-        licenceScheduleDetail,
-        finalTermEndDate
-    )
-        .stream()
-        .map(activity -> TimelineWorkProgrammeActivityView.getScheduleEventFrom(
-            activity,
-            allowedActions,
-            eventRefWpStatusMap,
-            eventRefCommentsMap
-        ));
-
-    var rates = licenceScheduleRateService.getRatesAfterDate(
-        licenceScheduleDetail,
-        finalTermEndDate
-    )
-        .stream()
-        .map(rate -> TimelineRateView.getScheduleEventFrom(
-            rate,
-            rateDatesMap,
-            allowedActions,
-            eventRefCommentsMap
-        ));
-
-    var otherScheduleEvents = otherScheduleEventService.getEventsAfterDate(
-        licenceScheduleDetail,
-        finalTermEndDate
-    )
-        .stream()
-        .map(event -> TimelineOtherScheduleEventView.getScheduleEventFrom(
-            event,
-            allowedActions,
-            eventRefCommentsMap
-        ));
-
-    return Stream.of(workProgrammeActivities, rates, otherScheduleEvents)
-        .flatMap(Function.identity())
-        .sorted(Comparator.comparing(ScheduleEvent::getSortingDate)
-            .thenComparing(event -> event.getEventType().getEventTypeOrder()))
-        .toList();
-  }
-
   private String getDateDurationString(
       LocalDate startDate,
       LocalDate endDate,

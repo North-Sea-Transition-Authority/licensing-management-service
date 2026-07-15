@@ -45,7 +45,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateDefinitionOption;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateRelativeDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermDeletionController;
@@ -2461,117 +2460,6 @@ class LicenceScheduleTimelineServiceTest {
     assertThat(licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(licenceScheduleDetail, form, user))
         .usingRecursiveComparison()
         .isEqualTo(List.of(termView, termView2));
-  }
-
-  @Test
-  void getEventsBeyondFinalTerm() {
-    var firstTerm = new LicenceScheduleTerm();
-    firstTerm.setTermType(TermType.INITIAL);
-
-    var finalTermEndDate = LocalDate.of(2026, 1, 1);
-
-    var finalTerm = new LicenceScheduleTerm();
-    finalTerm.setTermType(TermType.SECOND);
-    finalTerm.setEndDate(finalTermEndDate);
-
-    var rate = new LicenceScheduleRate();
-    rate.setId(UUID.randomUUID());
-    rate.setOriginalEventId(rate.getId());
-    rate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
-    rate.setRateRelativeDateOption(RateRelativeDateOption.RELATIVE_TO_START_DATE);
-    rate.setRentalRate(new BigDecimal("2.00"));
-    rate.setStartDate(finalTermEndDate.plusYears(1));
-
-    var rateView = new TimelineRateView(
-        "Rate",
-        rate.getStartDate(),
-        "1 January 2027 to 31 December 2027",
-        "£2.00",
-        ReverseRouter.route(on(LicenceScheduleRateController.class)
-            .renderUpdateLicenceScheduleRateForm(rate.getId())),
-        ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
-            .renderDeleteRatePage(rate.getId())),
-        "",
-        List.of()
-    );
-
-    var activity = new WorkProgrammeActivity();
-    activity.setId(UUID.randomUUID());
-    activity.setOriginalEventId(activity.getId());
-    activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
-    activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
-    activity.setDescription("description");
-    activity.setDueDate(finalTermEndDate.plusYears(2));
-
-    var activityStatus = new WorkProgrammeActivityStatus();
-    activityStatus.setScheduleEvent(activity);
-    activityStatus.setStatus(WorkProgrammeStatus.OPEN);
-
-    var activityView = new TimelineWorkProgrammeActivityView(
-        TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(activity),
-        "description",
-        activity.getDueDate(),
-        "1 January 2028",
-        ReverseRouter.route(on(WorkProgrammeActivityController.class)
-            .renderUpdateActivityForm(activity.getId(), null)),
-        ReverseRouter.route(on(WorkProgrammeActivityDeletionController.class)
-            .renderDeleteActivityPage(activity.getId(), null)),
-        "",
-        "",
-        WorkProgrammeStatus.OPEN,
-        List.of()
-    );
-
-    var event = new OtherScheduleEvent();
-    event.setId(UUID.randomUUID());
-    event.setOriginalEventId(event.getId());
-    event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
-    event.setDescription("description");
-    event.setEventDate(finalTermEndDate.plusYears(3));
-
-    var eventView = new TimelineOtherScheduleEventView(
-        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
-        "description",
-        event.getEventDate(),
-        "1 January 2029",
-        ReverseRouter.route(on(OtherScheduleEventController.class)
-            .renderUpdateEventForm(event.getId())),
-        ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
-            .renderDeleteEventPage(event.getId())),
-        "",
-        List.of()
-    );
-
-    var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
-
-    var activities = List.of(activity);
-
-    when(workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
-    when(workProgrammeActivityStatusService.getLatestStatusesFor(activities))
-        .thenReturn(Map.of(activity.getId(), activityStatus));
-
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
-        .thenReturn(List.of(firstTerm, finalTerm));
-
-    when(licenceScheduleRateService.getRatesAfterDate(licenceScheduleDetail, finalTermEndDate))
-        .thenReturn(List.of(rate));
-
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesAfterDate(licenceScheduleDetail, finalTermEndDate))
-        .thenReturn(List.of(activity));
-
-    when(otherScheduleEventService.getEventsAfterDate(licenceScheduleDetail, finalTermEndDate))
-        .thenReturn(List.of(event));
-
-    when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
-        .thenReturn(Map.of());
-
-    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
-        .thenReturn(Map.of(
-            rate.getId(), new StartEndDates(rate.getStartDate(), LocalDate.of(2027, 12, 31))
-        ));
-
-    assertThat(licenceScheduleTimelineService.getEventsBeyondFinalTerm(licenceScheduleDetail, allowedActions))
-        .isEqualTo(List.of(rateView, activityView, eventView));
   }
 
   @Test

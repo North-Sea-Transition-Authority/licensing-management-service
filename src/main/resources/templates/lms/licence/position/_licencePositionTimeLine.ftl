@@ -18,26 +18,14 @@
         <#if licencePositionTimelineViewEntry.positionId() == selectedPositionId>
           <#assign timeStampClasses += ["fds-timeline__time-stamp--selected"]/>
         </#if>
-        <@fdsTimeline.timelineTimeStamp
-          timeStampHeading=positionUrl
-          timeStampHeadingHint=licencePositionTimelineViewEntry.regulatorReference()
-          timeStampClass=timeStampClasses?join(" ")
-        >
+        <#assign positionActions>
         <#if licencePositionTimelineViewEntry.addedInThisCorrection()>
-          <p class="govuk-body">
-            <@fdsTag.tag tagClass="govuk-tag--green">New position</@fdsTag.tag>
-          </p>
             <@fdsAction.link
               linkText="Undo"
               linkUrl=springUrl(licencePositionTimelineViewEntry.undoUrl())
               linkScreenReaderText=licencePositionTimelineViewEntry.formattedPositionDate()
             />
         </#if>
-         <#if licencePositionTimelineViewEntry.removedInThisCorrection()>
-           <p class="govuk-body">
-             <@fdsTag.tag tagClass="govuk-tag--red">Removed</@fdsTag.tag>
-           </p>
-         </#if>
          <#if licencePositionTimelineViewEntry.removeUrl()??>
            <@fdsAction.link
              linkText="Remove"
@@ -51,9 +39,38 @@
              linkUrl=springUrl(licencePositionTimelineViewEntry.reinstateUrl())
              linkScreenReaderText=licencePositionTimelineViewEntry.formattedPositionDate()
            />
+          </#if>
+         <#if licencePositionTimelineViewEntry.correctDateUrl()??>
+           <@fdsAction.link
+             linkText="Correct&nbsp;date"?no_esc
+             linkUrl=springUrl(licencePositionTimelineViewEntry.correctDateUrl())
+             linkScreenReaderText=licencePositionTimelineViewEntry.formattedPositionDate()
+           />
          </#if>
-        </@fdsTimeline.timelineTimeStamp>
-      </#list>
-    </@fdsTimeline.timelineSection>
+    </#assign>
+    <@fdsTimeline.timelineTimeStamp
+    timeStampHeading=positionUrl
+    timeStampHeadingHint=licencePositionTimelineViewEntry.regulatorReference()
+    timeStampClass=timeStampClasses?join(" ")
+    timelineActionContent=positionActions
+    >
+        <#if licencePositionTimelineViewEntry.addedInThisCorrection()>
+          <p class="govuk-body">
+              <@fdsTag.tag tagClass="govuk-tag--green">New position</@fdsTag.tag>
+          </p>
+        </#if>
+        <#if licencePositionTimelineViewEntry.removedInThisCorrection()>
+          <p class="govuk-body">
+            <@fdsTag.tag tagClass="govuk-tag--red">Removed</@fdsTag.tag>
+          </p>
+        </#if>
+        <#if licencePositionTimelineViewEntry.correctedInThisCorrection()>
+          <p class="govuk-body">
+            <@fdsTag.tag tagClass="govuk-tag--blue">Corrected</@fdsTag.tag>
+          </p>
+        </#if>
+          </@fdsTimeline.timelineTimeStamp>
+        </#list>
+      </@fdsTimeline.timelineSection>
   </@fdsTimeline.timeline>
 </#macro>

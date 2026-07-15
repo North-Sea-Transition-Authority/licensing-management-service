@@ -9,16 +9,25 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonSubTypes({
     @JsonSubTypes.Type(
         value = CreateLicencePositionPayload.class,
-        name = CreateLicencePositionPayload.ADD_POSITION
+        name = LicencePositionPayload.ADD_POSITION
+    ),
+    @JsonSubTypes.Type(
+        value = UpdateLicencePositionPayload.class,
+        name = LicencePositionPayload.UPDATE_POSITION
     )
 })
-public sealed interface LicencePositionPayload permits CreateLicencePositionPayload {
+public sealed interface LicencePositionPayload permits CreateLicencePositionPayload, UpdateLicencePositionPayload {
 
   String ADD_POSITION = "add-position";
+  String UPDATE_POSITION = "update-position";
 
   String type();
 
   static CreateLicencePositionPayload.Builder newCreateLicencePositionPayload() {
     return new CreateLicencePositionPayload.Builder();
+  }
+
+  static UpdateLicencePositionPayload.Builder newUpdateLicencePositionPayload() {
+    return new UpdateLicencePositionPayload.Builder();
   }
 }

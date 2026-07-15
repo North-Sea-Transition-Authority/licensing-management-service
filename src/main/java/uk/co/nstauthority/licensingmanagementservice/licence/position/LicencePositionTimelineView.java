@@ -29,6 +29,10 @@ import java.util.UUID;
  *                  only for live positions not yet removed.
  * @param reinstateUrl link to reinstate a live position previously marked for removal in the
  *                     current correction; populated only for live positions currently removed.
+ *                     Drives the "Reinstate" link in the template
+ * @param correctedInThisCorrection true when this row is a live position whose date has been
+ *                                  corrected in the current correction.
+ * @param correctDateUrl link to correct this live position's date as part of the correction;
  */
 public record LicencePositionTimelineView(
     UUID positionId,
@@ -39,7 +43,9 @@ public record LicencePositionTimelineView(
     @Nullable String undoUrl,
     boolean removedInThisCorrection,
     @Nullable String removeUrl,
-    @Nullable String reinstateUrl
+    @Nullable String reinstateUrl,
+    boolean correctedInThisCorrection,
+    @Nullable String correctDateUrl
 ) {
 
   public static Builder builder() {
@@ -56,6 +62,8 @@ public record LicencePositionTimelineView(
     private boolean removedInThisCorrection;
     @Nullable private String removeUrl;
     @Nullable private String reinstateUrl;
+    private boolean correctedInThisCorrection;
+    @Nullable private String correctDateUrl;
 
     public Builder withPositionId(UUID positionId) {
       this.positionId = positionId;
@@ -102,6 +110,16 @@ public record LicencePositionTimelineView(
       return this;
     }
 
+    public Builder withCorrectedInThisCorrection(boolean correctedInThisCorrection) {
+      this.correctedInThisCorrection = correctedInThisCorrection;
+      return this;
+    }
+
+    public Builder withCorrectDateUrl(String correctDateUrl) {
+      this.correctDateUrl = correctDateUrl;
+      return this;
+    }
+
     public LicencePositionTimelineView build() {
       return new LicencePositionTimelineView(
           positionId,
@@ -112,7 +130,9 @@ public record LicencePositionTimelineView(
           undoUrl,
           removedInThisCorrection,
           removeUrl,
-          reinstateUrl
+          reinstateUrl,
+          correctedInThisCorrection,
+          correctDateUrl
       );
     }
   }

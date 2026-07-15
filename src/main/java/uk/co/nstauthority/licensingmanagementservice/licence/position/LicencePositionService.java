@@ -5,6 +5,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -14,12 +15,14 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectPositionDateController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.ReinstateLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.RemoveExecutedLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.UndoLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateViewService;
@@ -121,8 +124,8 @@ public class LicencePositionService {
         getCorrectionTimelineView(chronologicalLicencePositions, licenceCorrection, removedPositionIds),
         licencePosition.getFormattedPositionDate(),
         licence.getLicenceReference(),
-        licencePositionChangeViewService.getChangeViews(licencePosition, chronologicalLicencePositions, licencePositionChanges),
-        licencePositionStateViewService.getStateView(licencePosition, chronologicalLicencePositions, licencePositionChanges),
+        licencePositionChangeViewService.getChangeViews(licencePosition, timelineStatePositions, licencePositionChanges),
+        licencePositionStateViewService.getStateView(licencePosition, timelineStatePositions, licencePositionChanges),
         licencePosition.getId()
     );
   }
@@ -168,7 +171,10 @@ public class LicencePositionService {
       LicenceCorrection licenceCorrection,
       Set<UUID> removedPositionIds
   ) {
-    var livePositions = getLivePositionEntries(licencePositions, licenceCorrection, removedPositionIds);
+    var correctedPayloadsByPositionId =
+        licencePositionCorrectionService.getUpdatedPositionPayloadsByTargetId(licenceCorrection);
+    var livePositions =
+        getLivePositionEntries(licencePositions, licenceCorrection, removedPositionIds, correctedPayloadsByPositionId);
     var addedPositions = getAddedPositionEntries(licenceCorrection);
 
     return Stream.concat(livePositions.stream(), addedPositions.stream())
@@ -180,26 +186,33 @@ public class LicencePositionService {
   private List<TimelineEntry> getLivePositionEntries(
       List<LicencePosition> licencePositions,
       LicenceCorrection licenceCorrection,
-      Set<UUID> removedPositionIds
+      Set<UUID> removedPositionIds,
+      Map<UUID, UpdateLicencePositionPayload> correctedPayloadsByPositionId
   ) {
     return licencePositions.stream()
         .filter(LicencePosition::isExecuted)
         .map(licencePosition -> {
           var removed = removedPositionIds.contains(licencePosition.getId());
+          var correctedPayload = correctedPayloadsByPositionId.get(licencePosition.getId());
+          var effectiveDate = correctedPayload != null
+              ? correctedPayload.effectiveDate() : licencePosition.getPositionDate();
+          var effectiveDateOrder = correctedPayload != null
+              ? correctedPayload.effectiveDateOrder() : licencePosition.getPositionDateOrder();
+
           var timelineViewBuilder = baseTimelineViewBuilder(
               licencePosition, getCorrectionPositionUrl(licenceCorrection, licencePosition))
+              .withFormattedPositionDate(DateUtil.formatLongDate(effectiveDate))
+              .withCorrectedInThisCorrection(correctedPayload != null)
               .withRemovedInThisCorrection(removed);
 
           if (removed) {
             timelineViewBuilder.withReinstateUrl(getReinstatePositionUrl(licenceCorrection, licencePosition));
           } else {
             timelineViewBuilder.withRemoveUrl(getRemovePositionUrl(licenceCorrection, licencePosition));
+            timelineViewBuilder.withCorrectDateUrl(getCorrectDatePositionUrl(licenceCorrection, licencePosition));
           }
 
-          return new TimelineEntry(
-              licencePosition.getPositionDate(),
-              licencePosition.getPositionDateOrder(),
-              timelineViewBuilder.build());
+          return new TimelineEntry(effectiveDate, effectiveDateOrder, timelineViewBuilder.build());
         })
         .toList();
   }
@@ -246,6 +259,11 @@ public class LicencePositionService {
   private String getReinstatePositionUrl(LicenceCorrection correction, LicencePosition position) {
     return ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
         .renderReinstatePosition(correction.getId(), position.getId(), null));
+  }
+
+  private String getCorrectDatePositionUrl(LicenceCorrection correction, LicencePosition position) {
+    return ReverseRouter.route(on(CorrectPositionDateController.class)
+        .renderCorrectLicencePositionCorrectionDate(correction.getId(), position.getId(), null));
   }
 
   private LicencePositionTimelineView.Builder baseTimelineViewBuilder(LicencePosition position, String url) {

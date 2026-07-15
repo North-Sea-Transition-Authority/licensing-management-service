@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -12,6 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
 
@@ -78,9 +80,6 @@ public class LicencePositionCorrectionService {
     licencePositionCorrectionRepository.save(licencePositionCorrection);
   }
 
-  //todo: positions marked for removalal cannot have:
-  // new changes added to them
-  // cannot have any changes updated on them
   public boolean canRemovePosition(LicenceCorrection licenceCorrection, LicencePosition licencePosition) {
     return licencePosition.isExecuted()
         && !licencePositionCorrectionRepository
@@ -158,6 +157,48 @@ public class LicencePositionCorrectionService {
         .map(CreateLicencePositionPayload.class::cast)
         .map(CreateLicencePositionPayload::correctionReference)
         .anyMatch(existingReference -> existingReference.equalsIgnoreCase(correctionReference));
+  }
+
+  public Map<UUID, UpdateLicencePositionPayload> getUpdatedPositionPayloadsByTargetId(
+      LicenceCorrection licenceCorrection
+  ) {
+    return licencePositionCorrectionRepository
+        .findByLicenceCorrectionAndChangeType(licenceCorrection, LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .stream()
+        .collect(Collectors.toMap(
+            positionCorrection -> positionCorrection.getTargetLicencePosition().getId(),
+            positionCorrection -> (UpdateLicencePositionPayload) positionCorrection.getPayload()
+        ));
+  }
+
+  @Transactional
+  public LicencePositionCorrection correctPositionDate(
+      LicenceCorrection licenceCorrection,
+      LicencePosition licencePosition,
+      LocalDate correctPositionDate
+  ) {
+    var payload = LicencePositionPayload.newUpdateLicencePositionPayload()
+        .withEffectiveDate(correctPositionDate)
+        .withEffectiveDateOrder(determineEffectiveDateOrder(licenceCorrection, correctPositionDate))
+        .withChanges(List.of())
+        .build();
+
+    var positionCorrection = licencePositionCorrectionRepository
+        .findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+            licenceCorrection, licencePosition, LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .stream()
+        .findFirst()
+        .orElseGet(() -> {
+          var newPositionCorrection = new LicencePositionCorrection();
+          newPositionCorrection.setLicenceCorrection(licenceCorrection);
+          newPositionCorrection.setTargetLicencePosition(licencePosition);
+          newPositionCorrection.setChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION);
+          return newPositionCorrection;
+        });
+
+    positionCorrection.setPayload(payload);
+
+    return licencePositionCorrectionRepository.save(positionCorrection);
   }
 
   //TODO - Effective date order is auto-assigned for now. When multiple

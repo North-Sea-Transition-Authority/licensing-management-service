@@ -33,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
@@ -389,5 +390,51 @@ class LicencePositionServiceTest {
         .containsExactly(
             tuple("REMOVED", true, null, expectedReinstateUrl)
         );
+  }
+
+  @Test
+  void getCorrectionPositionPageView_whenPositionDateCorrected_usesCorrectedDateAndSetsCorrectDateUrl() {
+    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(correctionId)
+        .withLicence(LICENCE)
+        .build();
+
+    var current = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("CURRENT").build())
+        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+    var chronological = List.of(current);
+
+    List<LicencePositionChange> changes = List.of();
+    var stateView = new LicencePositionStateView(null);
+
+    var correctedPayload = UpdateLicencePositionPayloadTestUtil.newBuilder()
+        .withEffectiveDate(LocalDate.of(2026, Month.AUGUST, 15))
+        .withEffectiveDateOrder(3)
+        .build();
+
+    when(licencePositionRepository.findByLicence(LICENCE)).thenReturn(chronological);
+    when(licencePositionChangeService.findByLicencePositionIn(chronological)).thenReturn(changes);
+    when(licencePositionChangeViewService.getChangeViews(current, chronological, changes)).thenReturn(Map.of());
+    when(licencePositionStateViewService.getStateView(current, chronological, changes)).thenReturn(stateView);
+    when(licencePositionCorrectionService.getUpdatedPositionPayloadsByTargetId(correction))
+        .thenReturn(Map.of(POSITION_ID, correctedPayload));
+    when(licencePositionCorrectionService.getAddedLicencePositionCorrections(correction)).thenReturn(List.of());
+
+    var result = licencePositionService.getCorrectionPositionPageView(correction, current);
+
+    var expectedCorrectDateUrl = String.format(
+        "/licence-corrections/%s/positions/%s/correct-position-date", correctionId, POSITION_ID);
+
+    assertThat(result.timelineViews())
+        .extracting(
+            LicencePositionTimelineView::regulatorReference,
+            LicencePositionTimelineView::formattedPositionDate,
+            LicencePositionTimelineView::correctedInThisCorrection,
+            LicencePositionTimelineView::correctDateUrl)
+        .containsExactly(
+            tuple("CURRENT", "15 August 2026", true, expectedCorrectDateUrl));
   }
 }

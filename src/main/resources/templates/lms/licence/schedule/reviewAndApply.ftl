@@ -10,10 +10,15 @@ caption=pageCaption
 pageSize=PageSize.TWO_THIRDS_COLUMN
 errorSummaryItems=errorSummaryItems>
     <@fdsForm.htmlForm>
-        <#if initialTermPhaseValidationError>
+        <#if initialTermPhaseValidationError || expiryDateMatchValidationError>
             <@fdsCard.card cardClass="fds-card--error">
                 <@fdsCard.cardHeader cardHeadingText="This schedule cannot be applied"/>
-                <p class="govuk-body">The schedule cannot be applied as the Initial Term end date does not match the date of the final phase in the term</p>
+                <#if initialTermPhaseValidationError>
+                    <p class="govuk-body">The schedule cannot be applied as the Initial Term end date does not match the date of the final phase in the term</p>
+                </#if>
+                <#if expiryDateMatchValidationError>
+                    <p class="govuk-body">The schedule cannot be applied as the expiry date does not match the end date of the final term</p>
+                </#if>
             </@fdsCard.card>
         </#if>
 
@@ -21,7 +26,7 @@ errorSummaryItems=errorSummaryItems>
             timelineSummaryCardView=summaryCardView
         />
 
-        <#if initialTermPhaseValidationError>
+        <#if initialTermPhaseValidationError || expiryDateMatchValidationError>
             <@fdsBackLink.backLink backLinkUrl=springUrl(cancelUrl)/>
         <#else>
             <@fdsAction.submitButtons

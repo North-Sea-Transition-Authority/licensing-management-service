@@ -16,6 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeFeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
@@ -53,6 +54,7 @@ public class ScheduleRelativeDateValidationService {
 
   private final OtherScheduleEventService otherScheduleEventService;
   private final LicenceTypeFeatureService licenceTypeFeatureService;
+  private final LicenceScheduleExpiryService licenceScheduleExpiryService;
 
   public ScheduleRelativeDateValidationService(
       LicenceScheduleTermService licenceScheduleTermService,
@@ -62,7 +64,8 @@ public class ScheduleRelativeDateValidationService {
       WorkProgrammeActivityService workProgrammeActivityService,
       LicenceScheduleRateService licenceScheduleRateService,
       OtherScheduleEventService otherScheduleEventService,
-      LicenceTypeFeatureService licenceTypeFeatureService
+      LicenceTypeFeatureService licenceTypeFeatureService,
+      LicenceScheduleExpiryService licenceScheduleExpiryService
   ) {
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
@@ -72,6 +75,7 @@ public class ScheduleRelativeDateValidationService {
     this.licenceScheduleRateService = licenceScheduleRateService;
     this.otherScheduleEventService = otherScheduleEventService;
     this.licenceTypeFeatureService = licenceTypeFeatureService;
+    this.licenceScheduleExpiryService = licenceScheduleExpiryService;
   }
 
   public void validateRelativeDateBeforeEndOfSchedule(
@@ -563,5 +567,27 @@ public class ScheduleRelativeDateValidationService {
         ).getEndDate();
 
     return initialTermEndDate.isEqual(finalPhaseEndDate);
+  }
+
+  public boolean doesExpiryDateMatchEndOfFinalTerm(LicenceScheduleDetail licenceScheduleDetail) {
+    var expiry = licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail);
+
+    if (expiry.isEmpty()) {
+      return true;
+    }
+
+    var terms = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail);
+
+    var finalTerm = terms.stream()
+        .max(Comparator.comparing(term -> term.getTermType().getDisplayOrder()));
+
+    if (finalTerm.isEmpty()) {
+      return true;
+    }
+
+    var expiryDate = expiry.get().getExpiryDate();
+    var finalTermEndDate = finalTerm.get().getEndDate();
+
+    return finalTermEndDate.equals(expiryDate);
   }
 }

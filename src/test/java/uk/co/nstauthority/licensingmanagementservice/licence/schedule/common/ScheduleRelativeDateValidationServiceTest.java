@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +30,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.StartEndDates;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiry;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
@@ -72,6 +75,9 @@ class ScheduleRelativeDateValidationServiceTest {
 
   @Mock
   private LicenceTypeFeatureService licenceTypeFeatureService;
+
+  @Mock
+  private LicenceScheduleExpiryService licenceScheduleExpiryService;
 
   @InjectMocks
   private ScheduleRelativeDateValidationService service;
@@ -1418,6 +1424,84 @@ class ScheduleRelativeDateValidationServiceTest {
         .thenReturn(initialTerm);
 
     var result = service.doesFinalPhaseEndDateMatchEndOfInitialTerm(licenceScheduleDetail);
+
+    assertThat(result).isFalse();
+  }
+
+  @Test
+  void doesExpiryDateMatchEndOfFinalTerm_whenNoExpiry_returnsTrue() {
+    when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(Optional.empty());
+
+    var result = service.doesExpiryDateMatchEndOfFinalTerm(licenceScheduleDetail);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void doesExpiryDateMatchEndOfFinalTerm_whenNoTerms_returnsTrue() {
+    var expiry = new LicenceScheduleExpiry();
+    expiry.setExpiryDate(LocalDate.of(2025, 12, 31));
+
+    when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(Optional.of(expiry));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of());
+
+    var result = service.doesExpiryDateMatchEndOfFinalTerm(licenceScheduleDetail);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void doesExpiryDateMatchEndOfFinalTerm_whenExpiryDateMatchesFinalTermEndDate_returnsTrue() {
+    var finalTermEndDate = LocalDate.of(2025, 12, 31);
+
+    var expiry = new LicenceScheduleExpiry();
+    expiry.setExpiryDate(finalTermEndDate);
+
+    var initialTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withTermType(TermType.INITIAL)
+        .withStartDate(LocalDate.of(2020, 1, 1))
+        .withEndDate(LocalDate.of(2024, 12, 31))
+        .build();
+
+    var finalTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withTermType(TermType.SECOND)
+        .withStartDate(LocalDate.of(2025, 1, 1))
+        .withEndDate(finalTermEndDate)
+        .build();
+
+    when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(Optional.of(expiry));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(initialTerm, finalTerm));
+
+    var result = service.doesExpiryDateMatchEndOfFinalTerm(licenceScheduleDetail);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void doesExpiryDateMatchEndOfFinalTerm_whenExpiryDateDoesNotMatchFinalTermEndDate_returnsFalse() {
+    var expiry = new LicenceScheduleExpiry();
+    expiry.setExpiryDate(LocalDate.of(2026, 6, 30));
+
+    var finalTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withTermType(TermType.INITIAL)
+        .withStartDate(LocalDate.of(2020, 1, 1))
+        .withEndDate(LocalDate.of(2025, 12, 31))
+        .build();
+
+    when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(Optional.of(expiry));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(finalTerm));
+
+    var result = service.doesExpiryDateMatchEndOfFinalTerm(licenceScheduleDetail);
 
     assertThat(result).isFalse();
   }

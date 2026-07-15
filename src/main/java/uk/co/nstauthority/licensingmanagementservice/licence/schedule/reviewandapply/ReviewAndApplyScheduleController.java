@@ -66,6 +66,8 @@ public class ReviewAndApplyScheduleController {
         .addObject("summaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .addObject("initialTermPhaseValidationError",
             !scheduleRelativeDateValidationService.doesFinalPhaseEndDateMatchEndOfInitialTerm(licenceScheduleDetail))
+        .addObject("expiryDateMatchValidationError",
+            !scheduleRelativeDateValidationService.doesExpiryDateMatchEndOfFinalTerm(licenceScheduleDetail))
         .addObject("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl());
   }
 

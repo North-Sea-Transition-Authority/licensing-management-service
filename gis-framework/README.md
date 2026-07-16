@@ -16,8 +16,9 @@ The framework also provides frontend components that can be used to display and 
 
 ## Infrastructure
 
-The GIS framework is built as a Spring Boot starter that can be added as dependency to any project.
-It also contains a node server that runs separately from the java app and is responsible for performing operations on the GIS data using the [ArcGIS JS SDK](https://developers.arcgis.com/javascript/latest/). 
+The GIS framework is built as a Spring Boot starter that can be added as a dependency to any project.
+It also contains a node server that runs separately from the java app and is responsible for performing operations on the GIS data
+using the [ArcGIS JS SDK](https://developers.arcgis.com/javascript/latest/).
 The java app communicates with the node server via gRPC to perform operations on the data.
 
 ## Building the app.
@@ -36,7 +37,9 @@ The Gradle `processResources` task also runs the Vite frontend build so the star
 and the static JS/CSS assets.
 
 Alternatively, you can build the parts separately by:
-- running `cd arcgis-node/ && npm install && npm run copy:core && npm run proto-gen && cd .. ` to install dependencies and build the gRPC proto files.
+
+- running `cd arcgis-node/ && npm install && npm run setup && cd .. ` to install dependencies and build
+  the gRPC proto files.
 - running the gradle clean and build tasks to generate the java proto classes defined in `src/main/proto`
 
 ## Frontend components
@@ -46,14 +49,17 @@ Vue components and include the Vite-built assets from `classpath:/public/gis/dis
 
 ### Include the GIS assets in your app's layout
 
-You need to include the GIS assets in your app's `layout.ftl` as this will load the necessary CSS and JS files. For the framework components to load.
-You only need to add an include statement to the layout.ftl to include the [gisAssets.ftl](src/main/resources/templates/gis/gisAssets/gisAssets.ftl) file.
+You need to include the GIS assets in your app's `layout.ftl` as this will load the necessary CSS and JS files. For the framework
+components to load.
+You only need to add an include statement to the layout.ftl to include
+the [gisAssets.ftl](src/main/resources/templates/gis/gisAssets/gisAssets.ftl) file.
 
 ```ftl
 <#include "../../gis/gisAssets/gisAssets.ftl">
 ```
 
-This will include the GIS assets in all your app pages by default. However, this shouldn't be an issue as they will be cached by the browser.
+This will include the GIS assets in all your app pages by default. However, this shouldn't be an issue as they will be cached by
+the browser.
 
 ### Using the GIS components
 
@@ -66,7 +72,7 @@ To reference the macros in a consuming app template:
 ```
 
 Vue source lives under `src/main/resources/js`. FreeMarker templates under `src/main/resources/templates` should only
-contain the macros consumed by the host app. `npm run build` creates the following resources that are served by the 
+contain the macros consumed by the host app. `npm run build` creates the following resources that are served by the
 spring app:
 
 - `/gis/dist/gis-bundle.js`
@@ -74,10 +80,14 @@ spring app:
 
 ### Frontend development
 
-For more information on the frontend implementation, see the 
-[frontend-components.md](documentation/frontend-components.md) documentation.
+When developing vue components add the `localdev-vue-hmr` profile **and** run the Vite dev server using `npm run dev` from the
+`gis-framework` directory, which will automatically build and show your changes live on the screen when you modify files.
 
-For information on frontend visual regression tests, see the [broswer-component-testing.md](documentation/browser-component-testing.md) documentation.
+For more information on the frontend implementation, see the [frontend-components.md](documentation/frontend-components.md)
+documentation.
+
+For information on frontend visual regression tests, see
+the [browser-component-testing.md](documentation/browser-component-testing.md) documentation.
 
 ## Starting the node server
 
@@ -86,21 +96,23 @@ Go to `gis-framework/arcgis-node` and run `npx tsx src/grpc-server.ts`.
 ## Developing proto features
 
 We use protobuf to define the messages and types used in the gRPC communication.
-This allows us to define the messages and types once and use them in both the java and node apps. Then proto will create the java and typescript classes based on the definitions.
+This allows us to define the messages and types once and use them in both the java and node apps. Then proto will create the java
+and typescript classes based on the definitions.
 
 Follow the [best practices for proto code](https://protobuf.dev/best-practices/)
-Once you add a new proto message or enum definition, run `npm run proto-gen` to generate the java classes. 
+Once you add a new proto message or enum definition, run `npm run proto-gen` to generate the java classes.
 Or just run `npm run build-all` to generate the proto files (java and typescript) and build the frontend.
-
 
 ## Committing Changes
 
 When you commit changes to the repo, Husky will automatically run the linting and formatting checks.
 If any issues are found, the commit will be blocked until they are resolved, but any that can be automatically fixed will be.
-If using intellij to commit, you may need to go to settings > commit > advanced commit checks > run custom configurations and select `prepare`. 
+If using intellij to commit, you may need to go to settings > commit > advanced commit checks > run custom configurations and
+select `prepare`.
 Disable Run advanced checks after a commit is done, so the commit is blocked if there are issues.
 
 ## Production
+
 - In your IntelliJ run configuration for the Spring app, include `production` in your active profiles
 - The following environment variables are required when using this profile:
 

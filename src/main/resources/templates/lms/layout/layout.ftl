@@ -1,5 +1,4 @@
 <#include '../../fds/layout.ftl'>
-<#include "../../gis/gisAssets/gisAssets.ftl">
 <#import '_pageSizes.ftl' as PageSize>
 <#import '_header.ftl' as pageHeader>
 <#import '../macros/_multiLineText.ftl' as multiLineText>

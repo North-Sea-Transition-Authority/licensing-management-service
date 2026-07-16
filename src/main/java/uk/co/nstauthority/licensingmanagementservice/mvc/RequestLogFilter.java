@@ -100,6 +100,7 @@ public class RequestLogFilter extends OncePerRequestFilter {
     var contextPath = request.getContextPath();
 
     return requestUri.equals(contextPath + "/actuator/health")
-        || requestUri.startsWith(contextPath + "/assets/");
+        || requestUri.startsWith(contextPath + "/assets/")
+        || requestUri.startsWith(contextPath + "/gis/dist/");
   }
 }

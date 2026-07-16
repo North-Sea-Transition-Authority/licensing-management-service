@@ -20,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
@@ -38,11 +39,11 @@ class LicenceSearchServiceTest {
   private static final String ORG_UNIT_NAME_BETA = "Org Beta";
   private static final int ORG_GROUP_ID = 5;
 
-  private static final Licence SEAWARD_PRODUCTION_LICENCE = buildLicence(1, LicenceType.SEAWARD_PRODUCTION, "P1");
-  private static final Licence CARBON_STORAGE_LICENCE = buildLicence(2, LicenceType.CARBON_STORAGE, "CS1");
-  private static final Licence CARBON_STORAGE_LICENCE_2 = buildLicence(5, LicenceType.CARBON_STORAGE, "CS2");
-  private static final Licence GAS_STORAGE_LICENCE = buildLicence(3, LicenceType.GAS_STORAGE, "GS1");
-  private static final Licence LANDWARD_PRODUCTION_LICENCE = buildLicence(4, LicenceType.LANDWARD_PRODUCTION, "PEDL1");
+  private static final Licence SEAWARD_PRODUCTION_LICENCE = buildLicence(1, LicenceType.SEAWARD_PRODUCTION, "P1", LicenceStatus.EXTANT);
+  private static final Licence CARBON_STORAGE_LICENCE = buildLicence(2, LicenceType.CARBON_STORAGE, "CS1", LicenceStatus.EXTANT);
+  private static final Licence CARBON_STORAGE_LICENCE_2 = buildLicence(5, LicenceType.CARBON_STORAGE, "CS2", LicenceStatus.EXTANT);
+  private static final Licence GAS_STORAGE_LICENCE = buildLicence(3, LicenceType.GAS_STORAGE, "GS1", LicenceStatus.EXPIRED);
+  private static final Licence LANDWARD_PRODUCTION_LICENCE = buildLicence(4, LicenceType.LANDWARD_PRODUCTION, "PEDL1", LicenceStatus.SURRENDERED);
 
   @Mock
   private LicenceService licenceService;
@@ -236,11 +237,12 @@ class LicenceSearchServiceTest {
     assertThat(result).isEmpty();
   }
 
-  private static Licence buildLicence(Integer id, LicenceType licenceType, String ref) {
+  private static Licence buildLicence(Integer id, LicenceType licenceType, String ref, LicenceStatus status) {
     return LicenceTestUtil.builder()
         .withId(id)
         .withLicenceType(licenceType)
         .withLicenceReference(ref)
+        .withStatus(status)
         .build();
   }
 
@@ -259,7 +261,10 @@ class LicenceSearchServiceTest {
             on(LicenceOverviewController.class).renderLicenceOverview(licence.getId(), null, null, null)))
         .withLinkHeadingText(licence.getLicenceReference())
         .withCaptionText(licence.getType().getDisplayName())
-        .withDataItemRow(SummaryDataView.newStringKeyValue("Licensee(s)", String.join(", ", licensees)))
+        .withDataItemRow(SummaryDataView.newBuilder()
+            .addStringValue("Licensee(s)", String.join(", ", licensees))
+            .addStringValue("Status", licence.getStatus().getDisplayName())
+            .build())
         .build();
   }
 }

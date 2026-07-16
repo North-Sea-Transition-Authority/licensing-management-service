@@ -148,7 +148,10 @@ public class LicenceSearchService {
           .renderLicenceOverview(licence.getId(), null, null, null)))
         .withLinkHeadingText(licence.getLicenceReference())
         .withCaptionText(licence.getType().getDisplayName())
-        .withDataItemRow(SummaryDataView.newStringKeyValue("Licensee(s)", String.join(", ", mappedLicensees)))
+        .withDataItemRow(SummaryDataView.newBuilder()
+            .addStringValue("Licensee(s)", String.join(", ", mappedLicensees))
+            .addStringValue("Status", licence.getStatus().getDisplayName())
+            .build())
         .build();
   }
 }

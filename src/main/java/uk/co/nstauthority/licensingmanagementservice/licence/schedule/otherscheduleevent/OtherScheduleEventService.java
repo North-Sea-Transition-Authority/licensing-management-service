@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -19,9 +20,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 public class OtherScheduleEventService {
 
   private final OtherScheduleEventRepository otherScheduleEventRepository;
+  private final EventCommentService eventCommentService;
 
-  public OtherScheduleEventService(OtherScheduleEventRepository otherScheduleEventRepository) {
+  public OtherScheduleEventService(
+      OtherScheduleEventRepository otherScheduleEventRepository,
+      EventCommentService eventCommentService
+  ) {
     this.otherScheduleEventRepository = otherScheduleEventRepository;
+    this.eventCommentService = eventCommentService;
   }
 
   public OtherScheduleEvent getOtherScheduleEventByIdOrThrow(UUID id) {
@@ -93,6 +99,7 @@ public class OtherScheduleEventService {
 
   @Transactional
   public void deleteOtherScheduleEvent(OtherScheduleEvent otherScheduleEvent) {
+    eventCommentService.deletePendingCommentForScheduleEvent(otherScheduleEvent);
     otherScheduleEventRepository.delete(otherScheduleEvent);
   }
 

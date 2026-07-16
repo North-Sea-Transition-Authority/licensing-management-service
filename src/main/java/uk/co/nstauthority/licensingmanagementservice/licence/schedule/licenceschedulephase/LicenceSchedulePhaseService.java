@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -20,17 +21,20 @@ public class LicenceSchedulePhaseService {
   private final LicenceScheduleRateService licenceScheduleRateService;
   private final WorkProgrammeActivityService workProgrammeActivityService;
   private final OtherScheduleEventService otherScheduleEventService;
+  private final EventCommentService eventCommentService;
 
   public LicenceSchedulePhaseService(
       LicenceSchedulePhaseRepository licenceSchedulePhaseRepository,
       LicenceScheduleRateService licenceScheduleRateService,
       WorkProgrammeActivityService workProgrammeActivityService,
-      OtherScheduleEventService otherScheduleEventService
+      OtherScheduleEventService otherScheduleEventService,
+      EventCommentService eventCommentService
   ) {
     this.licenceSchedulePhaseRepository = licenceSchedulePhaseRepository;
     this.licenceScheduleRateService = licenceScheduleRateService;
     this.workProgrammeActivityService = workProgrammeActivityService;
     this.otherScheduleEventService = otherScheduleEventService;
+    this.eventCommentService = eventCommentService;
   }
 
   public LicenceSchedulePhase getPhaseByIdOrThrow(UUID id) {
@@ -64,6 +68,7 @@ public class LicenceSchedulePhaseService {
   @Transactional
   void deletePhase(LicenceSchedulePhase licenceSchedulePhase) {
     if (canDeletePhase(licenceSchedulePhase)) {
+      eventCommentService.deletePendingCommentForScheduleEvent(licenceSchedulePhase);
       licenceSchedulePhaseRepository.delete(licenceSchedulePhase);
     } else {
       throw new ResponseStatusException(

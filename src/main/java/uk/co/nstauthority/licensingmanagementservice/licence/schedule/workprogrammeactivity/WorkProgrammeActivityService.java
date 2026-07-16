@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -23,13 +24,16 @@ public class WorkProgrammeActivityService {
 
   private final WorkProgrammeActivityRepository workProgrammeActivityRepository;
   private final WorkProgrammeActivityStatusService workProgrammeActivityStatusService;
+  private final EventCommentService eventCommentService;
 
   public WorkProgrammeActivityService(
       WorkProgrammeActivityRepository workProgrammeActivityRepository,
-      WorkProgrammeActivityStatusService workProgrammeActivityStatusService
+      WorkProgrammeActivityStatusService workProgrammeActivityStatusService,
+      EventCommentService eventCommentService
   ) {
     this.workProgrammeActivityRepository = workProgrammeActivityRepository;
     this.workProgrammeActivityStatusService = workProgrammeActivityStatusService;
+    this.eventCommentService = eventCommentService;
   }
 
   public WorkProgrammeActivity getWorkProgrammeActivityByIdOrThrow(UUID id) {
@@ -106,6 +110,7 @@ public class WorkProgrammeActivityService {
 
   @Transactional
   public void deleteWorkProgrammeActivity(WorkProgrammeActivity workProgrammeActivity) {
+    eventCommentService.deletePendingCommentForScheduleEvent(workProgrammeActivity);
     workProgrammeActivityRepository.delete(workProgrammeActivity);
   }
 

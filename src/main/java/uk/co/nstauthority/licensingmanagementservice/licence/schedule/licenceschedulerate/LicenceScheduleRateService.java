@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -15,9 +16,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 public class LicenceScheduleRateService {
 
   private final LicenceScheduleRateRepository licenceScheduleRateRepository;
+  private final EventCommentService eventCommentService;
 
-  public LicenceScheduleRateService(LicenceScheduleRateRepository licenceScheduleRateRepository) {
+  public LicenceScheduleRateService(
+      LicenceScheduleRateRepository licenceScheduleRateRepository,
+      EventCommentService eventCommentService
+  ) {
     this.licenceScheduleRateRepository = licenceScheduleRateRepository;
+    this.eventCommentService = eventCommentService;
   }
 
   public LicenceScheduleRate getRateByIdOrThrow(UUID id) {
@@ -117,6 +123,7 @@ public class LicenceScheduleRateService {
 
   @Transactional
   public void deleteLicenceScheduleRate(LicenceScheduleRate licenceScheduleRate) {
+    eventCommentService.deletePendingCommentForScheduleEvent(licenceScheduleRate);
     licenceScheduleRateRepository.delete(licenceScheduleRate);
   }
 

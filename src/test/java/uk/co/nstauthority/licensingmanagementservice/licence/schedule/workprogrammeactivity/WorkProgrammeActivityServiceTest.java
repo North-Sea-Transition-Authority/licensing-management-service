@@ -19,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -35,6 +36,9 @@ class WorkProgrammeActivityServiceTest {
 
   @Mock
   private WorkProgrammeActivityStatusService workProgrammeActivityStatusService;
+
+  @Mock
+  private EventCommentService eventCommentService;
 
   @InjectMocks
   private WorkProgrammeActivityService workProgrammeActivityService;
@@ -159,6 +163,7 @@ class WorkProgrammeActivityServiceTest {
 
     workProgrammeActivityService.deleteWorkProgrammeActivity(workProgrammeActivity);
 
+    verify(eventCommentService).deletePendingCommentForScheduleEvent(workProgrammeActivity);
     verify(workProgrammeActivityRepository).delete(workProgrammeActivity);
   }
 

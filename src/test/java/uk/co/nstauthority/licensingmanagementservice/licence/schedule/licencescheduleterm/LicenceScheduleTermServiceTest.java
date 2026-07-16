@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
@@ -44,6 +45,9 @@ class LicenceScheduleTermServiceTest {
 
   @Mock
   private OtherScheduleEventService otherScheduleEventService;
+
+  @Mock
+  private EventCommentService eventCommentService;
 
   @InjectMocks
   private LicenceScheduleTermService licenceScheduleTermService;
@@ -121,6 +125,7 @@ class LicenceScheduleTermServiceTest {
 
     licenceScheduleTermService.deleteTerm(licenceScheduleTerm);
 
+    verify(eventCommentService).deletePendingCommentForScheduleEvent(licenceScheduleTerm);
     verify(licenceScheduleTermRepository).delete(licenceScheduleTerm);
   }
 

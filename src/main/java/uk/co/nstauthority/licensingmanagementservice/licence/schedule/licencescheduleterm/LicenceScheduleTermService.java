@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
@@ -22,18 +23,21 @@ public class LicenceScheduleTermService {
   private final LicenceScheduleRateService licenceScheduleRateService;
   private final WorkProgrammeActivityService workProgrammeActivityService;
   private final OtherScheduleEventService otherScheduleEventService;
+  private final EventCommentService eventCommentService;
 
   public LicenceScheduleTermService(LicenceScheduleTermRepository licenceScheduleTermRepository,
                                     LicenceSchedulePhaseService licenceSchedulePhaseService,
                                     LicenceScheduleRateService licenceScheduleRateService,
                                     WorkProgrammeActivityService workProgrammeActivityService,
-                                    OtherScheduleEventService otherScheduleEventService
+                                    OtherScheduleEventService otherScheduleEventService,
+                                    EventCommentService eventCommentService
   ) {
     this.licenceScheduleTermRepository = licenceScheduleTermRepository;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
     this.licenceScheduleRateService = licenceScheduleRateService;
     this.workProgrammeActivityService = workProgrammeActivityService;
     this.otherScheduleEventService = otherScheduleEventService;
+    this.eventCommentService = eventCommentService;
   }
 
   public List<LicenceScheduleTerm> getTermsByLicenceScheduleDetail(LicenceScheduleDetail scheduleDetail) {
@@ -64,6 +68,7 @@ public class LicenceScheduleTermService {
   @Transactional
   void deleteTerm(LicenceScheduleTerm licenceScheduleTerm) {
     if (canDeleteTerm(licenceScheduleTerm)) {
+      eventCommentService.deletePendingCommentForScheduleEvent(licenceScheduleTerm);
       licenceScheduleTermRepository.delete(licenceScheduleTerm);
     } else {
       throw new ResponseStatusException(

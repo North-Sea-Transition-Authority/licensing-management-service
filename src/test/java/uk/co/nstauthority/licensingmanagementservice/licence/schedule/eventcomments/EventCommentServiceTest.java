@@ -454,6 +454,17 @@ class EventCommentServiceTest {
   }
 
   @Test
+  void deletePendingCommentForScheduleEvent_deletesViaPendingStatus() {
+    var scheduleEvent = new WorkProgrammeActivity();
+    scheduleEvent.setOriginalEventId(UUID.randomUUID());
+
+    eventCommentService.deletePendingCommentForScheduleEvent(scheduleEvent);
+
+    verify(eventCommentRepository).deleteByScheduleEvent_OriginalEventIdAndStatus(
+        scheduleEvent.getOriginalEventId(), EventCommentStatus.PENDING);
+  }
+
+  @Test
   void deleteEventComment_deletesComment() {
     var eventComment = new EventComment();
 

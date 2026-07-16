@@ -18,6 +18,8 @@ public interface EventCommentRepository extends JpaRepository<EventComment, UUID
 
   void deleteAllByScheduleEvent_LicenceScheduleAndStatus(LicenceSchedule licenceSchedule, EventCommentStatus status);
 
+  void deleteByScheduleEvent_OriginalEventIdAndStatus(UUID originalEventId, EventCommentStatus status);
+
   Optional<EventComment> findByScheduleEvent_OriginalEventIdAndStatus(UUID originalEventId, EventCommentStatus status);
 
 }

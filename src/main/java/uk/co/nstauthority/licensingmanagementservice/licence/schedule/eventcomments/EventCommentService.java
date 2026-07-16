@@ -154,6 +154,12 @@ public class EventCommentService {
   }
 
   @Transactional
+  public void deletePendingCommentForScheduleEvent(ScheduleEvent scheduleEvent) {
+    eventCommentRepository.deleteByScheduleEvent_OriginalEventIdAndStatus(
+        scheduleEvent.getOriginalEventId(), EventCommentStatus.PENDING);
+  }
+
+  @Transactional
   public void deleteEventComment(EventComment eventComment) {
     eventCommentRepository.delete(eventComment);
   }

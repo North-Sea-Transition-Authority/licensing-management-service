@@ -16,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -25,6 +26,9 @@ class OtherScheduleEventServiceTest {
 
   @Mock
   private OtherScheduleEventRepository otherScheduleEventRepository;
+
+  @Mock
+  private EventCommentService eventCommentService;
 
   @InjectMocks
   private OtherScheduleEventService otherScheduleEventService;
@@ -131,6 +135,7 @@ class OtherScheduleEventServiceTest {
 
     otherScheduleEventService.deleteOtherScheduleEvent(otherScheduleEvent);
 
+    verify(eventCommentService).deletePendingCommentForScheduleEvent(otherScheduleEvent);
     verify(otherScheduleEventRepository).delete(otherScheduleEvent);
   }
 

@@ -1,5 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney;
 
+import java.util.ArrayList;
+import java.util.List;
+import uk.co.fivium.fileuploadlibrary.fds.UploadedFileForm;
+
 public class LicenceContinuationOtherRequirementForm {
   private Boolean financialCapacityEvidenceSubmissionStatus;
   private String actionsToProvideFinancialEvidence;
@@ -7,6 +11,7 @@ public class LicenceContinuationOtherRequirementForm {
   private String actionsToApproveDevelopmentConsent;
   private Boolean relinquishmentRequirementStatus;
   private String actionsToRelinquishRequiredLicenceArea;
+  private List<UploadedFileForm> documents = new ArrayList<>();
 
   public Boolean getFinancialCapacityEvidenceSubmissionStatus() {
     return financialCapacityEvidenceSubmissionStatus;
@@ -54,5 +59,13 @@ public class LicenceContinuationOtherRequirementForm {
 
   public void setActionsToRelinquishRequiredLicenceArea(String actionsToRelinquishRequiredLicenceArea) {
     this.actionsToRelinquishRequiredLicenceArea = actionsToRelinquishRequiredLicenceArea;
+  }
+
+  public List<UploadedFileForm> getDocuments() {
+    return documents;
+  }
+
+  public void setDocuments(List<UploadedFileForm> documents) {
+    this.documents = documents;
   }
 }

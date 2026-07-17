@@ -19,7 +19,7 @@ public class LicenceContinuationReviewAndSubmitTaskListSectionService
     implements TaskListSectionService<LicenceContinuationApplicationDetail> {
 
   static final String REVIEW_AND_SUBMIT = "Review and submit";
-  static final int SECTION_ORDER = 30;
+  static final int SECTION_ORDER = 40;
 
   @Override
   public Optional<TaskListSection> getSection(

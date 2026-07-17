@@ -16,7 +16,9 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 import static uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementController.PAGE_TITLE;
 
+import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
@@ -24,6 +26,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
+import uk.co.nstauthority.licensingmanagementservice.file.FileUploadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
@@ -49,6 +53,9 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
 
   @MockitoBean
   private OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService;
+
+  @MockitoBean
+  private FileControllerHelperService fileControllerHelperService;
 
   private static final Licence LICENCE = LicenceTestUtil.builder().build();
   private static final LicenceScheduleDetail LICENCE_SCHEDULE_DETAIL
@@ -86,6 +93,9 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
         .thenReturn(LICENCE_SCHEDULE_DETAIL);
     when(otherRequirementsVisibilityResolverService.resolveVisibility(LICENCE_CONTINUATION_APPLICATION_DETAIL))
         .thenReturn(VISIBILITY_WITH_REQUIREMENTS);
+    when(fileControllerHelperService.fileUploadComponentAttributes(
+        any(List.class), any(Class.class), any(Function.class), any(Function.class)))
+        .thenReturn(FileUploadTestUtil.FILE_UPLOAD_COMPONENT_ATTRIBUTES);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceContinuationOtherRequirementController.class).renderForm(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null)))
@@ -95,6 +105,7 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
         .andExpect(view().name("lms/licence/continuation/licenceContinuationOtherRequirement"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("form", licenceContinuationOtherRequirementForm))
+        .andExpect(model().attribute("fileUploadAttributes", FileUploadTestUtil.FILE_UPLOAD_COMPONENT_ATTRIBUTES))
         .andExpect(model().attribute("otherRequirementsVisibility", VISIBILITY_WITH_REQUIREMENTS))
         .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null))))
         .andExpect(model().attribute("breadcrumbs", Map.of(
@@ -164,6 +175,9 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
         .thenReturn(LICENCE_SCHEDULE_DETAIL);
     when(otherRequirementsVisibilityResolverService.resolveVisibility(LICENCE_CONTINUATION_APPLICATION_DETAIL))
         .thenReturn(VISIBILITY_WITH_REQUIREMENTS);
+    when(fileControllerHelperService.fileUploadComponentAttributes(
+        any(List.class), any(Class.class), any(Function.class), any(Function.class)))
+        .thenReturn(FileUploadTestUtil.FILE_UPLOAD_COMPONENT_ATTRIBUTES);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceContinuationOtherRequirementController.class).submitForm(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, licenceContinuationOtherRequirementForm, null)))

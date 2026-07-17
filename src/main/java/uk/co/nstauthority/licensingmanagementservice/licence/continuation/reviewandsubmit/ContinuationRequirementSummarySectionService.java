@@ -1,18 +1,26 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation.reviewandsubmit;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Service;
+import uk.co.fivium.fileuploadlibrary.core.FileService;
+import uk.co.fivium.fileuploadlibrary.core.UploadedFile;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementController;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementFileUsages;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementRequest;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationOtherRequirementService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.OtherRequirementsVisibility;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.OtherRequirementsVisibilityResolverService;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryFileView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummarySectionService;
@@ -24,13 +32,16 @@ public class ContinuationRequirementSummarySectionService implements SummarySect
   public static final int SECTION_DISPLAY_ORDER = 30;
   private final LicenceContinuationOtherRequirementService licenceContinuationOtherRequirementService;
   private final OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService;
+  private final FileService fileService;
 
   public ContinuationRequirementSummarySectionService(
       LicenceContinuationOtherRequirementService licenceContinuationOtherRequirementService,
-      OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService
+      OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService,
+      FileService fileService
   ) {
     this.licenceContinuationOtherRequirementService = licenceContinuationOtherRequirementService;
     this.otherRequirementsVisibilityResolverService = otherRequirementsVisibilityResolverService;
+    this.fileService = fileService;
   }
 
   @Override
@@ -58,9 +69,46 @@ public class ContinuationRequirementSummarySectionService implements SummarySect
       summaryCards.addAll(otherRequirementRequestSummaryCard);
     }
 
+    summaryCards.add(buildSupportingDocumentsSummaryCard(licenceContinuationApplicationDetail));
+
     return SummaryItem.withCards(
         SECTION_NAME,
         summaryCards
+    );
+  }
+
+  private SummaryCard buildSupportingDocumentsSummaryCard(
+      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
+  ) {
+    var fileUsages = LicenceContinuationOtherRequirementFileUsages.fromApplication(licenceContinuationApplicationDetail);
+    var uploadedFiles = fileService.findAll(fileUsages.usageId(), fileUsages.usageType(), fileUsages.documentType());
+
+    if (uploadedFiles.isEmpty()) {
+      return SummaryCard.simpleSummaryCardWithHeading(
+          "Supporting documents",
+          SummaryDataView.newStringKeyValue("Has supporting documents", "No")
+      );
+    }
+
+    var fileViews = uploadedFiles.stream()
+        .map(uploadedFile -> toSummaryFileView(uploadedFile, licenceContinuationApplicationDetail))
+        .toList();
+    return SummaryCard.filesSummaryCardWithHeading("Supporting documents", fileViews);
+  }
+
+  private SummaryFileView toSummaryFileView(
+      UploadedFile uploadedFile,
+      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
+  ) {
+    return SummaryFileView.newFromUploadedFile(
+        uploadedFile.getKey(),
+        uploadedFile,
+        ReverseRouter.route(on(LicenceContinuationOtherRequirementController.class).downloadFile(
+            uploadedFile.getId(),
+            licenceContinuationApplicationDetail.getId(),
+            licenceContinuationApplicationDetail,
+            null
+        ))
     );
   }
 

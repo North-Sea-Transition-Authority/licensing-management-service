@@ -4,17 +4,22 @@ import java.util.Optional;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.fivium.fileuploadlibrary.FileUploadLibraryUtils;
+import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 
 @Service
 public class LicenceContinuationOtherRequirementService {
 
   private final LicenceContinuationOtherRequirementRepository licenceContinuationOtherRequirementRepository;
+  private final ApplicationFileService applicationFileService;
 
   public LicenceContinuationOtherRequirementService(
-      LicenceContinuationOtherRequirementRepository licenceContinuationWpaAmendmentRepository
+      LicenceContinuationOtherRequirementRepository licenceContinuationWpaAmendmentRepository,
+      ApplicationFileService applicationFileService
   ) {
     this.licenceContinuationOtherRequirementRepository = licenceContinuationWpaAmendmentRepository;
+    this.applicationFileService = applicationFileService;
   }
 
   @Transactional
@@ -50,6 +55,11 @@ public class LicenceContinuationOtherRequirementService {
     }
 
     licenceContinuationOtherRequirementRepository.save(otherRequirementRequest);
+
+    applicationFileService.saveDocuments(
+        LicenceContinuationOtherRequirementFileUsages.fromApplication(applicationDetail),
+        form.getDocuments()
+    );
   }
 
   public LicenceContinuationOtherRequirementForm licenceContinuationOtherRequirementRequestToForm(
@@ -68,10 +78,20 @@ public class LicenceContinuationOtherRequirementService {
   public LicenceContinuationOtherRequirementForm getLicenceContinuationOtherRequirementForm(
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
   ) {
-    return  licenceContinuationOtherRequirementRepository.findByLicenceContinuationApplicationDetail(
+    var form = licenceContinuationOtherRequirementRepository.findByLicenceContinuationApplicationDetail(
         licenceContinuationApplicationDetail
         ).map(this::licenceContinuationOtherRequirementRequestToForm)
         .orElse(new LicenceContinuationOtherRequirementForm());
+
+    var uploadedFileForms = applicationFileService.getUploadedFiles(
+            LicenceContinuationOtherRequirementFileUsages.fromApplication(licenceContinuationApplicationDetail))
+        .stream()
+        .map(FileUploadLibraryUtils::asForm)
+        .toList();
+
+    form.setDocuments(uploadedFileForms);
+
+    return form;
   }
 
   public Optional<LicenceContinuationOtherRequirementRequest> getLicenceContinuationApplicationDetail(

@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -12,6 +13,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 
 @ExtendWith(MockitoExtension.class)
@@ -19,6 +21,9 @@ class LicenceContinuationOtherRequirementServiceTest {
 
   @Mock
   private LicenceContinuationOtherRequirementRepository repository;
+
+  @Mock
+  private ApplicationFileService applicationFileService;
 
   @Captor
   private ArgumentCaptor<LicenceContinuationOtherRequirementRequest> captor;
@@ -28,7 +33,7 @@ class LicenceContinuationOtherRequirementServiceTest {
 
   @Test
   void save_WhenEvidenceSubmittedIsTrue_ClearsActions() {
-    var licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
+    var licenceContinuationApplicationDetail = detailWithId();
     var licenceContinuationOtherRequirementForm = new LicenceContinuationOtherRequirementForm();
     licenceContinuationOtherRequirementForm.setFinancialCapacityEvidenceSubmissionStatus(true);
     licenceContinuationOtherRequirementForm.setActionsToProvideFinancialEvidence("Should be cleared");
@@ -47,7 +52,7 @@ class LicenceContinuationOtherRequirementServiceTest {
 
   @Test
   void save_WhenEvidenceSubmittedIsFalse_SavesActions() {
-    var licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
+    var licenceContinuationApplicationDetail = detailWithId();
     var licenceContinuationOtherRequirementForm = new LicenceContinuationOtherRequirementForm();
     licenceContinuationOtherRequirementForm.setFinancialCapacityEvidenceSubmissionStatus(false);
     licenceContinuationOtherRequirementForm.setActionsToProvideFinancialEvidence("Actions needed");
@@ -66,7 +71,7 @@ class LicenceContinuationOtherRequirementServiceTest {
 
   @Test
   void save_WhenDevelopmentConsentGrantedIsTrue_ClearsActions() {
-    var licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
+    var licenceContinuationApplicationDetail = detailWithId();
     var form = new LicenceContinuationOtherRequirementForm();
     form.setDevelopmentConsentGrantStatus(true);
     form.setActionsToApproveDevelopmentConsent("Should be cleared");
@@ -85,7 +90,7 @@ class LicenceContinuationOtherRequirementServiceTest {
 
   @Test
   void save_WhenDevelopmentConsentGrantedIsFalse_SavesActions() {
-    var licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
+    var licenceContinuationApplicationDetail = detailWithId();
     var form = new LicenceContinuationOtherRequirementForm();
     form.setDevelopmentConsentGrantStatus(false);
     form.setActionsToApproveDevelopmentConsent("Consent Actions needed");
@@ -104,7 +109,7 @@ class LicenceContinuationOtherRequirementServiceTest {
 
   @Test
   void save_WhenRelinquishmentPerformedIsTrue_ClearsActions() {
-    var licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
+    var licenceContinuationApplicationDetail = detailWithId();
     var form = new LicenceContinuationOtherRequirementForm();
     form.setRelinquishmentRequirementStatus(true);
     form.setActionsToRelinquishRequiredLicenceArea("Should be cleared");
@@ -123,7 +128,7 @@ class LicenceContinuationOtherRequirementServiceTest {
 
   @Test
   void save_WhenRelinquishmentPerformedIsFalse_SavesActions() {
-    var licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
+    var licenceContinuationApplicationDetail = detailWithId();
     var form = new LicenceContinuationOtherRequirementForm();
     form.setRelinquishmentRequirementStatus(false);
     form.setActionsToRelinquishRequiredLicenceArea("Relinquishment actions underway");
@@ -142,7 +147,7 @@ class LicenceContinuationOtherRequirementServiceTest {
 
   @Test
   void getForm_WhenExists_ReturnsMappedForm() {
-    var licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
+    var licenceContinuationApplicationDetail = detailWithId();
     var request = new LicenceContinuationOtherRequirementRequest();
     request.setFinancialCapacityEvidenceSubmissionStatus(true);
     request.setActionsToProvideFinancialEvidence("Actions");
@@ -163,9 +168,15 @@ class LicenceContinuationOtherRequirementServiceTest {
     assertThat(result.getActionsToRelinquishRequiredLicenceArea()).isEqualTo("Relinquishment Actions");
   }
 
+  private static LicenceContinuationApplicationDetail detailWithId() {
+    var detail = new LicenceContinuationApplicationDetail();
+    detail.setId(UUID.randomUUID());
+    return detail;
+  }
+
   @Test
   void getForm_WhenNotExists_ReturnsEmptyForm() {
-    var licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
+    var licenceContinuationApplicationDetail = detailWithId();
     when(repository.findByLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail)).thenReturn(Optional.empty());
 
     var result = service.getLicenceContinuationOtherRequirementForm(licenceContinuationApplicationDetail);

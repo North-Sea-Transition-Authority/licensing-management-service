@@ -62,6 +62,17 @@ errorSummaryItems=errorSummaryItems>
             </@fdsFieldset.fieldset>
         </#if>
 
+        <@fdsFieldset.fieldset legendHeading="Supporting documents" showHeadingOnly=true legendHeadingSize="h2" optionalLabel=true>
+            <@fdsFileUpload.fileUpload
+            path=fileUploadAttributes.path()
+            allowedExtensions=fileUploadAttributes.allowedExtensions()
+            uploadUrl=fileUploadAttributes.uploadUrl()
+            downloadUrl=fileUploadAttributes.downloadUrl()
+            deleteUrl=fileUploadAttributes.deleteUrl()
+            existingFiles=fileUploadAttributes.existingFiles()
+            maxAllowedSize=fileUploadAttributes.maxAllowedSize()/>
+        </@fdsFieldset.fieldset>
+
         <@fdsAction.submitButtons primaryButtonText="Save and continue" secondaryLinkText="Back" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>
     </@fdsForm.htmlForm>
 </@defaultPage>

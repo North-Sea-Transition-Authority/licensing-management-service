@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney;
+package uk.co.nstauthority.licensingmanagementservice.licence.continuation.supportinginformation;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
@@ -26,25 +26,22 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.taskli
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
-@RequestMapping("licence/continuation-application/{licenceContinuationApplicationDetailId}/other-requirements")
+@RequestMapping("licence/continuation-application/{licenceContinuationApplicationDetailId}/additional-supporting-information")
 @InvokingUserCanAccessContinuationApplication
-public class LicenceContinuationOtherRequirementController {
+public class LicenceContinuationSupportingInformationController {
 
-  public static final String PAGE_TITLE = "Other requirements";
-  public final LicenceContinuationOtherRequirementService licenceContinuationOtherRequirementService;
-  public final LicenceContinuationOtherRequirementValidator licenceContinuationOtherRequirementValidator;
-  private final OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService;
+  public static final String PAGE_TITLE = "Additional supporting information";
+  private final LicenceContinuationSupportingInformationService licenceContinuationSupportingInformationService;
+  private final LicenceContinuationSupportingInformationValidator licenceContinuationSupportingInformationValidator;
   private final FileControllerHelperService fileControllerHelperService;
 
-  public LicenceContinuationOtherRequirementController(
-      LicenceContinuationOtherRequirementService licenceContinuationOtherRequirementService,
-      LicenceContinuationOtherRequirementValidator licenceContinuationOtherRequirementValidator,
-      OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService,
+  public LicenceContinuationSupportingInformationController(
+      LicenceContinuationSupportingInformationService licenceContinuationSupportingInformationService,
+      LicenceContinuationSupportingInformationValidator licenceContinuationSupportingInformationValidator,
       FileControllerHelperService fileControllerHelperService
   ) {
-    this.licenceContinuationOtherRequirementService = licenceContinuationOtherRequirementService;
-    this.licenceContinuationOtherRequirementValidator = licenceContinuationOtherRequirementValidator;
-    this.otherRequirementsVisibilityResolverService = otherRequirementsVisibilityResolverService;
+    this.licenceContinuationSupportingInformationService = licenceContinuationSupportingInformationService;
+    this.licenceContinuationSupportingInformationValidator = licenceContinuationSupportingInformationValidator;
     this.fileControllerHelperService = fileControllerHelperService;
   }
 
@@ -55,11 +52,9 @@ public class LicenceContinuationOtherRequirementController {
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
   ) {
     return getModelAndView(
-        licenceContinuationOtherRequirementService.getLicenceContinuationOtherRequirementForm(
+        licenceContinuationSupportingInformationService.getSupportingInformationForm(
             licenceContinuationApplicationDetail),
-        licenceContinuationApplicationDetail,
-        otherRequirementsVisibilityResolverService.resolveVisibility(licenceContinuationApplicationDetail
-        )
+        licenceContinuationApplicationDetail
     );
   }
 
@@ -68,18 +63,14 @@ public class LicenceContinuationOtherRequirementController {
   ModelAndView submitForm(
       @PathVariable UUID licenceContinuationApplicationDetailId,
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
-      @ModelAttribute("form") LicenceContinuationOtherRequirementForm form,
+      @ModelAttribute("form") LicenceContinuationSupportingInformationForm form,
       BindingResult bindingResult
   ) {
-    var otherRequirementsVisibility = otherRequirementsVisibilityResolverService.resolveVisibility(
-        licenceContinuationApplicationDetail
-    );
-
-    if (!licenceContinuationOtherRequirementValidator.isValid(form, bindingResult, otherRequirementsVisibility)) {
-      return getModelAndView(form, licenceContinuationApplicationDetail, otherRequirementsVisibility);
+    if (!licenceContinuationSupportingInformationValidator.isValid(form, bindingResult)) {
+      return getModelAndView(form, licenceContinuationApplicationDetail);
     }
 
-    licenceContinuationOtherRequirementService.saveLicenceContinuationOtherRequirementForm(
+    licenceContinuationSupportingInformationService.saveSupportingInformationForm(
         form,
         licenceContinuationApplicationDetail
     );
@@ -92,15 +83,9 @@ public class LicenceContinuationOtherRequirementController {
   }
 
   private ModelAndView getModelAndView(
-      LicenceContinuationOtherRequirementForm form,
-      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
-      OtherRequirementsVisibility otherRequirementsVisibility
+      LicenceContinuationSupportingInformationForm form,
+      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
   ) {
-    if (!otherRequirementsVisibility.hasAnyRequirements()) {
-      return ReverseRouter.redirect(on(LicenceContinuationApplicationTaskListController.class)
-                                        .getTaskList(licenceContinuationApplicationDetail.getId(), null, null));
-    }
-
     var taskListUrl = ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
         .getTaskList(licenceContinuationApplicationDetail.getId(), null, null));
 
@@ -111,10 +96,9 @@ public class LicenceContinuationOtherRequirementController {
         controller -> controller.deleteFile(null, licenceContinuationApplicationDetail.getId(), null, null)
     );
 
-    var modelAndView = new ModelAndView("lms/licence/continuation/licenceContinuationOtherRequirement")
+    var modelAndView = new ModelAndView("lms/licence/continuation/licenceContinuationAdditionalSupportingInformation")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("form", form)
-        .addObject("otherRequirementsVisibility", otherRequirementsVisibility)
         .addObject("fileUploadAttributes", fileUploadAttributes)
         .addObject("cancelUrl", taskListUrl);
 
@@ -136,7 +120,7 @@ public class LicenceContinuationOtherRequirementController {
   ) {
     return fileControllerHelperService.download(
         fileId,
-        () -> LicenceContinuationOtherRequirementFileUsages.fromApplication(licenceContinuationApplicationDetail),
+        () -> LicenceContinuationSupportingInformationFileUsages.fromApplication(licenceContinuationApplicationDetail),
         userDetail
     );
   }
@@ -151,7 +135,7 @@ public class LicenceContinuationOtherRequirementController {
   ) {
     return fileControllerHelperService.delete(
         fileId,
-        () -> LicenceContinuationOtherRequirementFileUsages.fromApplication(licenceContinuationApplicationDetail),
+        () -> LicenceContinuationSupportingInformationFileUsages.fromApplication(licenceContinuationApplicationDetail),
         userDetail
     );
   }

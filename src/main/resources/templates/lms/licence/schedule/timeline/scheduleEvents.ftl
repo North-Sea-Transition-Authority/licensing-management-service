@@ -16,11 +16,17 @@
     </#if>
 
     <#if termView.events()?has_content && termView.hasPhases()>
+        <#assign timeStampClass = "fds-timeline__time-stamp--no-border"/>
+
+        <#if termView.showStartDateProgress()>
+            <#assign timeStampClass = "fds-timeline__time-stamp--complete--no-border"/>
+        </#if>
+
         <@fdsTimeline.timelineTimeStamp
         timeStampHeading=termView.termType().displayName
         timeStampHeadingHint=termView.dateDurationString()
         timelineActionContent=timelineActions
-        timeStampClass="fds-timeline__time-stamp--no-border"
+        timeStampClass=timeStampClass
         >
             <@fdsTimeline.timelineEvent>
                 <@eventComments comments=termView.comments() canDeleteComments=termView.addCommentUrl()?has_content/>
@@ -35,31 +41,46 @@
             </#if>
         </#list>
 
+        <#assign endOfTermTimeStampClass = "fds-timeline__time-stamp--no-border"/>
+        <#assign endOfTermEventsTimeStampClass = ""/>
+        <#if termView.showEndDateProgress()>
+            <#assign endOfTermTimeStampClass = "fds-timeline__time-stamp--complete--no-border"/>
+            <#assign endOfTermEventsTimeStampClass = "fds-timeline__time-stamp--complete"/>
+        </#if>
+
         <#if termView.endOfTermEvents()?has_content>
             <@fdsTimeline.timelineTimeStamp
             timeStampHeading="End of term requirements"
             timeStampHeadingHint=termView.endDateString()
+            timeStampClass=endOfTermEventsTimeStampClass
             />
 
             <#list termView.endOfTermEvents() as eventView>
                 <#if eventView.getEventType() = "WORK_PROGRAMME_ACTIVITY">
-                    <@workProgrammeActivityEndOfPeriodRequirement activityView=eventView/>
+                    <@workProgrammeActivityEndOfPeriodRequirement activityView=eventView showProgress=termView.showEndDateProgress()/>
                 <#elseif eventView.getEventType() = "OTHER">
-                    <@otherScheduleEventEndOfPeriodRequirement eventView=eventView/>
+                    <@otherScheduleEventEndOfPeriodRequirement eventView=eventView showProgress=termView.showEndDateProgress()/>
                 </#if>
             </#list>
 
             <@fdsTimeline.timelineTimeStamp
             timeStampHeading="End of ${termView.termType().displayName}"
             timeStampHeadingHint=termView.endDateString()
-            timeStampClass="fds-timeline__time-stamp--no-border"
+            timeStampClass=endOfTermTimeStampClass
             />
         </#if>
     <#else>
+        <#assign startTimeStampClass = ""/>
+
+        <#if termView.showStartDateProgress()>
+            <#assign startTimeStampClass = "fds-timeline__time-stamp--complete"/>
+        </#if>
+
         <@fdsTimeline.timelineTimeStamp
             timeStampHeading=termView.termType().displayName
             timeStampHeadingHint=termView.dateDurationString()
             timelineActionContent=timelineActions
+            timeStampClass=startTimeStampClass
         >
             <@fdsTimeline.timelineEvent>
                 <@eventComments comments=termView.comments() canDeleteComments=termView.addCommentUrl()?has_content/>
@@ -76,17 +97,25 @@
             </#if>
         </#list>
 
+        <#assign endOfTermTimeStampClass = "fds-timeline__time-stamp--no-border"/>
+        <#assign endOfTermEventsTimeStampClass = ""/>
+        <#if termView.showEndDateProgress()>
+            <#assign endOfTermTimeStampClass = "fds-timeline__time-stamp--complete--no-border"/>
+            <#assign endOfTermEventsTimeStampClass = "fds-timeline__time-stamp--complete"/>
+        </#if>
+
         <#if termView.endOfTermEvents()?has_content>
             <@fdsTimeline.timelineTimeStamp
                 timeStampHeading="End of term requirements"
                 timeStampHeadingHint=termView.endDateString()
+                timeStampClass=endOfTermEventsTimeStampClass
             />
 
             <#list termView.endOfTermEvents() as eventView>
                 <#if eventView.getEventType() = "WORK_PROGRAMME_ACTIVITY">
-                    <@workProgrammeActivityEndOfPeriodRequirement activityView=eventView/>
+                    <@workProgrammeActivityEndOfPeriodRequirement activityView=eventView showProgress=termView.showEndDateProgress()/>
                 <#elseif eventView.getEventType() = "OTHER">
-                    <@otherScheduleEventEndOfPeriodRequirement eventView=eventView/>
+                    <@otherScheduleEventEndOfPeriodRequirement eventView=eventView showProgress=termView.showEndDateProgress()/>
                 </#if>
             </#list>
         </#if>
@@ -94,7 +123,7 @@
         <@fdsTimeline.timelineTimeStamp
             timeStampHeading="End of ${termView.termType().displayName}"
             timeStampHeadingHint=termView.endDateString()
-            timeStampClass="fds-timeline__time-stamp--no-border"
+            timeStampClass=endOfTermTimeStampClass
         />
     </#if>
 
@@ -114,10 +143,17 @@
         <#assign timelineActions></#assign>
     </#if>
 
+    <#assign phaseStartTimeStampClass = ""/>
+
+    <#if phaseView.showStartDateProgress()>
+        <#assign phaseStartTimeStampClass = "fds-timeline__time-stamp--complete"/>
+    </#if>
+
     <@fdsTimeline.timelineTimeStamp
         timeStampHeading=phaseView.phaseType().displayName
         timeStampHeadingHint=phaseView.dateDurationString()
         timelineActionContent=timelineActions
+        timeStampClass=phaseStartTimeStampClass
     >
         <@fdsTimeline.timelineEvent>
             <@eventComments comments=phaseView.comments() canDeleteComments=phaseView.addCommentUrl()?has_content/>
@@ -133,18 +169,25 @@
             <@otherScheduleEvent eventView=eventView/>
         </#if>
     </#list>
+    <#assign phaseEndTimeStampClass = "fds-timeline__time-stamp--no-border"/>
+    <#assign phaseEventsTimeStampClass = ""/>
 
+    <#if phaseView.showEndDateProgress()>
+        <#assign phaseEndTimeStampClass = "fds-timeline__time-stamp--complete--no-border"/>
+        <#assign phaseEventsTimeStampClass = "fds-timeline__time-stamp--complete"/>
+    </#if>
     <#if phaseView.endOfPhaseEvents()?has_content>
         <@fdsTimeline.timelineTimeStamp
         timeStampHeading="End of phase requirements"
         timeStampHeadingHint=phaseView.endDateString()
+        timeStampClass=phaseEventsTimeStampClass
         />
 
         <#list phaseView.endOfPhaseEvents() as eventView>
             <#if eventView.getEventType() = "WORK_PROGRAMME_ACTIVITY">
-                <@workProgrammeActivityEndOfPeriodRequirement activityView=eventView/>
+                <@workProgrammeActivityEndOfPeriodRequirement activityView=eventView showProgress=phaseView.showEndDateProgress()/>
             <#elseif eventView.getEventType() = "OTHER">
-                <@otherScheduleEventEndOfPeriodRequirement eventView=eventView/>
+                <@otherScheduleEventEndOfPeriodRequirement eventView=eventView showProgress=phaseView.showEndDateProgress()/>
             </#if>
         </#list>
     </#if>
@@ -152,7 +195,7 @@
     <@fdsTimeline.timelineTimeStamp
         timeStampHeading="End of ${phaseView.phaseType().displayName}"
         timeStampHeadingHint=phaseView.endDateString()
-        timeStampClass="fds-timeline__time-stamp--no-border"
+        timeStampClass=phaseEndTimeStampClass
     />
 </#macro>
 
@@ -174,9 +217,15 @@
     <#if smallDot=true>
         <#assign nodeClass = "fds-timeline__node-number--small-dot">
         <#assign timeStampClass = "">
+        <#if activityView.showProgress()>
+            <#assign timeStampClass = "fds-timeline__time-stamp--complete">
+        </#if>
     <#else>
         <#assign nodeClass = "">
         <#assign timeStampClass = "fds-timeline__time-stamp--no-border">
+        <#if activityView.showProgress()>
+            <#assign timeStampClass = "fds-timeline__time-stamp--complete--no-border">
+        </#if>
     </#if>
 
     <@lmsTimeStamp.lmsTimeStamp
@@ -202,7 +251,7 @@
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>
 
-<#macro workProgrammeActivityEndOfPeriodRequirement activityView>
+<#macro workProgrammeActivityEndOfPeriodRequirement activityView showProgress=false>
     <#if activityView.updateUrl()?has_content>
         <#assign timelineActions>
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(activityView.updateUrl()) linkClass="govuk-link"/>
@@ -217,9 +266,15 @@
         <#assign timelineActions></#assign>
     </#if>
 
+    <#assign timeStampClass = "">
+    <#if showProgress>
+        <#assign timeStampClass = "fds-timeline__time-stamp--complete">
+    </#if>
+
     <@lmsTimeStamp.lmsTimeStamp
         timeStampHeading=activityView.category()
         timelineActionContent=timelineActions
+        timeStampClass=timeStampClass
         nodeNumberClass="fds-timeline__node-number--no-dot"
     >
         <@fdsTimeline.timelineEvent>
@@ -256,9 +311,15 @@
     <#if smallDot=true>
         <#assign nodeClass = "fds-timeline__node-number--small-dot">
         <#assign timeStampClass = "">
+        <#if rateView.showProgress()>
+            <#assign timeStampClass = "fds-timeline__time-stamp--complete">
+        </#if>
     <#else>
         <#assign nodeClass = "">
         <#assign timeStampClass = "fds-timeline__time-stamp--no-border">
+        <#if rateView.showProgress()>
+            <#assign timeStampClass = "fds-timeline__time-stamp--complete--no-border">
+        </#if>
     </#if>
 
     <@lmsTimeStamp.lmsTimeStamp
@@ -277,7 +338,7 @@
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>
 
-<#macro otherScheduleEvent eventView smallDot = true>
+<#macro otherScheduleEvent eventView smallDot=true>
     <#if eventView.updateUrl()?has_content>
         <#assign timelineActions>
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(eventView.updateUrl()) linkClass="govuk-link"/>
@@ -294,9 +355,15 @@
     <#if smallDot=true>
         <#assign nodeClass = "fds-timeline__node-number--small-dot">
         <#assign timeStampClass = "">
+        <#if eventView.showProgress()>
+            <#assign timeStampClass = "fds-timeline__time-stamp--complete">
+        </#if>
     <#else>
         <#assign nodeClass = "">
         <#assign timeStampClass = "fds-timeline__time-stamp--no-border">
+        <#if eventView.showProgress()>
+            <#assign timeStampClass = "fds-timeline__time-stamp--complete--no-border">
+        </#if>
     </#if>
 
     <@lmsTimeStamp.lmsTimeStamp
@@ -315,7 +382,7 @@
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>
 
-<#macro otherScheduleEventEndOfPeriodRequirement eventView>
+<#macro otherScheduleEventEndOfPeriodRequirement eventView showProgress=false>
     <#if eventView.updateUrl()?has_content>
         <#assign timelineActions>
             <@fdsAction.link linkText="Edit" linkUrl=springUrl(eventView.updateUrl()) linkClass="govuk-link"/>
@@ -329,9 +396,15 @@
         <#assign timelineActions></#assign>
     </#if>
 
+    <#assign timeStampClass = "">
+    <#if showProgress>
+        <#assign timeStampClass = "fds-timeline__time-stamp--complete">
+    </#if>
+
     <@lmsTimeStamp.lmsTimeStamp
     timeStampHeading=eventView.category()
     timelineActionContent=timelineActions
+    timeStampClass=timeStampClass
     nodeNumberClass="fds-timeline__node-number--no-dot"
     >
         <@fdsTimeline.timelineEvent>
@@ -341,18 +414,6 @@
             <@eventComments comments=eventView.comments() canDeleteComments=eventView.addCommentUrl()?has_content/>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>
-</#macro>
-
-<#macro invalidEvents invalidEventViews>
-    <#list invalidEventViews as eventView>
-        <#if eventView.getEventType() = "WORK_PROGRAMME_ACTIVITY">
-            <@workProgrammeActivity activityView=eventView smallDot=false/>
-        <#elseif eventView.getEventType() = "RATE">
-            <@rate rateView=eventView smallDot=false/>
-        <#elseif eventView.getEventType() = "OTHER">
-            <@otherScheduleEvent eventView=eventView smallDot=false/>
-        </#if>
-    </#list>
 </#macro>
 
 <#macro eventComments comments canDeleteComments>

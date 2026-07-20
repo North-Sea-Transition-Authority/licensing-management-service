@@ -5,7 +5,9 @@ import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -110,6 +112,9 @@ class LicenceScheduleTimelineServiceTest {
 
   @Mock
   private LicenceScheduleCalculationService licenceScheduleCalculationService;
+
+  @Mock
+  private Clock clock;
 
   @InjectMocks
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
@@ -373,6 +378,9 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getEditableLicenceScheduleEventViews() {
+    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
     var midPhaseActivity = new WorkProgrammeActivity();
     midPhaseActivity.setId(UUID.randomUUID());
     midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
@@ -397,7 +405,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         WorkProgrammeStatus.IN_PROGRESS,
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
@@ -423,7 +432,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         WorkProgrammeStatus.OPEN,
-        List.of()
+        List.of(),
+        false
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -450,7 +460,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         WorkProgrammeStatus.OPEN,
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
@@ -476,7 +487,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         WorkProgrammeStatus.OPEN,
-        List.of()
+        List.of(),
+        false
     );
 
     var midPhaseEvent = new OtherScheduleEvent();
@@ -496,7 +508,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(midPhaseEvent.getId())),
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfPhaseEvent = new OtherScheduleEvent();
@@ -515,7 +528,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(endOfPhaseEvent.getId())),
         "",
-        List.of()
+        List.of(),
+        false
     );
 
     var midTerm2Event = new OtherScheduleEvent();
@@ -535,7 +549,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(midTerm2Event.getId())),
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfTerm2Event = new OtherScheduleEvent();
@@ -554,7 +569,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(endOfTerm2Event.getId())),
         "",
-        List.of()
+        List.of(),
+        false
     );
 
     var phase = new LicenceSchedulePhase();
@@ -584,7 +600,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
             .renderDeleteRatePage(phaseRate.getId())),
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var phaseView = new TimelinePhaseView(
@@ -597,7 +614,9 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderUpdatePhaseForm(phase.getId())),
         ReverseRouter.route(on(LicenceSchedulePhaseDeletionController.class).renderDeletePhasePage(phase.getId())),
         "",
-        List.of()
+        List.of(),
+        true,
+        true
     );
 
     var term = new LicenceScheduleTerm();
@@ -619,8 +638,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term.getId())),
         "",
         true,
-        List.of()
-    );
+        List.of(),
+        true, true);
 
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
@@ -649,7 +668,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
             .renderDeleteRatePage(term2Rate.getId())),
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var termView2 = new TimelineTermView(
@@ -662,8 +682,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term2.getId())),
         "",
         false,
-        List.of()
-    );
+        List.of(),
+        true, false);
 
     var form = new TimelineFilterForm();
     form.setEventTypes(ScheduleEventType.getFilterDefaults());
@@ -724,6 +744,9 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getEditableLicenceScheduleEventViews_noEditPermissions() {
+    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
     var midPhaseActivity = new WorkProgrammeActivity();
     midPhaseActivity.setId(UUID.randomUUID());
     midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
@@ -746,7 +769,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         WorkProgrammeStatus.IN_PROGRESS,
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
@@ -770,7 +794,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         WorkProgrammeStatus.OPEN,
-        List.of()
+        List.of(),
+        false
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -795,7 +820,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         WorkProgrammeStatus.OPEN,
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
@@ -819,7 +845,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         WorkProgrammeStatus.OPEN,
-        List.of()
+        List.of(),
+        false
     );
 
     var midPhaseEvent = new OtherScheduleEvent();
@@ -837,7 +864,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfPhaseEvent = new OtherScheduleEvent();
@@ -854,7 +882,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        List.of()
+        List.of(),
+        false
     );
 
     var midTerm2Event = new OtherScheduleEvent();
@@ -872,7 +901,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfTerm2Event = new OtherScheduleEvent();
@@ -889,7 +919,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        List.of()
+        List.of(),
+        false
     );
 
     var phase = new LicenceSchedulePhase();
@@ -917,7 +948,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var phaseView = new TimelinePhaseView(
@@ -930,7 +962,9 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        List.of()
+        List.of(),
+        true,
+        true
     );
 
     var term = new LicenceScheduleTerm();
@@ -952,8 +986,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         true,
-        List.of()
-    );
+        List.of(),
+        true, true);
 
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
@@ -980,7 +1014,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var termView2 = new TimelineTermView(
@@ -993,8 +1028,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         false,
-        List.of()
-    );
+        List.of(),
+        true, false);
 
     var form = new TimelineFilterForm();
     form.setEventTypes(ScheduleEventType.getFilterDefaults());
@@ -1053,6 +1088,9 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getEditableLicenceScheduleEventViews_rateFilterEnabled() {
+    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
     var midPhaseActivity = new WorkProgrammeActivity();
     midPhaseActivity.setId(UUID.randomUUID());
     midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
@@ -1077,7 +1115,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         WorkProgrammeStatus.IN_PROGRESS,
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
@@ -1103,7 +1142,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         WorkProgrammeStatus.OPEN,
-        List.of()
+        List.of(),
+        false
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -1130,7 +1170,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         WorkProgrammeStatus.OPEN,
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
@@ -1156,7 +1197,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         WorkProgrammeStatus.OPEN,
-        List.of()
+        List.of(),
+        false
     );
 
     var midPhaseEvent = new OtherScheduleEvent();
@@ -1176,7 +1218,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(midPhaseEvent.getId())),
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfPhaseEvent = new OtherScheduleEvent();
@@ -1195,7 +1238,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(endOfPhaseEvent.getId())),
         "",
-        List.of()
+        List.of(),
+        false
     );
 
     var midTerm2Event = new OtherScheduleEvent();
@@ -1215,7 +1259,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(midTerm2Event.getId())),
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfTerm2Event = new OtherScheduleEvent();
@@ -1234,7 +1279,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(endOfTerm2Event.getId())),
         "",
-        List.of()
+        List.of(),
+        false
     );
 
     var phase = new LicenceSchedulePhase();
@@ -1264,7 +1310,9 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderUpdatePhaseForm(phase.getId())),
         ReverseRouter.route(on(LicenceSchedulePhaseDeletionController.class).renderDeletePhasePage(phase.getId())),
         "",
-        List.of()
+        List.of(),
+        true,
+        true
     );
 
     var term = new LicenceScheduleTerm();
@@ -1286,8 +1334,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term.getId())),
         "",
         true,
-        List.of()
-    );
+        List.of(),
+        true, true);
 
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
@@ -1316,8 +1364,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term2.getId())),
         "",
         false,
-        List.of()
-    );
+        List.of(),
+        true, false);
 
     var form = new TimelineFilterForm();
     form.setEventTypes(List.of(
@@ -1381,6 +1429,9 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getEditableLicenceScheduleEventViews_workProgrammeActivityFilterEnabled() {
+    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
     var midPhaseActivity = new WorkProgrammeActivity();
     midPhaseActivity.setId(UUID.randomUUID());
     midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
@@ -1444,7 +1495,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(midPhaseEvent.getId())),
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfPhaseEvent = new OtherScheduleEvent();
@@ -1463,7 +1515,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(endOfPhaseEvent.getId())),
         "",
-        List.of()
+        List.of(),
+        false
     );
 
     var midTerm2Event = new OtherScheduleEvent();
@@ -1483,7 +1536,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(midTerm2Event.getId())),
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfTerm2Event = new OtherScheduleEvent();
@@ -1502,7 +1556,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(OtherScheduleEventDeletionController.class)
             .renderDeleteEventPage(endOfTerm2Event.getId())),
         "",
-        List.of()
+        List.of(),
+        false
     );
 
     var phase = new LicenceSchedulePhase();
@@ -1532,7 +1587,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
             .renderDeleteRatePage(phaseRate.getId())),
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var phaseView = new TimelinePhaseView(
@@ -1545,7 +1601,9 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderUpdatePhaseForm(phase.getId())),
         ReverseRouter.route(on(LicenceSchedulePhaseDeletionController.class).renderDeletePhasePage(phase.getId())),
         "",
-        List.of()
+        List.of(),
+        true,
+        true
     );
 
     var term = new LicenceScheduleTerm();
@@ -1567,8 +1625,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term.getId())),
         "",
         true,
-        List.of()
-    );
+        List.of(),
+        true, true);
 
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
@@ -1597,7 +1655,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
             .renderDeleteRatePage(term2Rate.getId())),
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var termView2 = new TimelineTermView(
@@ -1610,8 +1669,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term2.getId())),
         "",
         false,
-        List.of()
-    );
+        List.of(),
+        true, false);
 
     var form = new TimelineFilterForm();
     form.setEventTypes(List.of(
@@ -1675,6 +1734,9 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getEditableLicenceScheduleEventViews_otherEventFilterEnabled() {
+    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
     var midPhaseActivity = new WorkProgrammeActivity();
     midPhaseActivity.setId(UUID.randomUUID());
     midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
@@ -1699,7 +1761,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         WorkProgrammeStatus.IN_PROGRESS,
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
@@ -1725,7 +1788,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         WorkProgrammeStatus.OPEN,
-        List.of()
+        List.of(),
+        false
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -1752,7 +1816,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         WorkProgrammeStatus.OPEN,
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
@@ -1778,7 +1843,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         WorkProgrammeStatus.OPEN,
-        List.of()
+        List.of(),
+        false
     );
 
     var midPhaseEvent = new OtherScheduleEvent();
@@ -1834,7 +1900,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
             .renderDeleteRatePage(phaseRate.getId())),
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var phaseView = new TimelinePhaseView(
@@ -1847,7 +1914,9 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceSchedulePhaseController.class).renderUpdatePhaseForm(phase.getId())),
         ReverseRouter.route(on(LicenceSchedulePhaseDeletionController.class).renderDeletePhasePage(phase.getId())),
         "",
-        List.of()
+        List.of(),
+        true,
+        true
     );
 
     var term = new LicenceScheduleTerm();
@@ -1869,8 +1938,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term.getId())),
         "",
         true,
-        List.of()
-    );
+        List.of(),
+        true, true);
 
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
@@ -1899,7 +1968,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleRateDeletionController.class)
             .renderDeleteRatePage(term2Rate.getId())),
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var termView2 = new TimelineTermView(
@@ -1912,8 +1982,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(term2.getId())),
         "",
         false,
-        List.of()
-    );
+        List.of(),
+        true, false);
 
     var form = new TimelineFilterForm();
     form.setEventTypes(List.of(
@@ -1977,6 +2047,9 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getLicenceScheduleEventViewsForOverview_userHasWpStatusPermissions() {
+    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
     var midPhaseActivity = new WorkProgrammeActivity();
     midPhaseActivity.setId(UUID.randomUUID());
     midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
@@ -2001,7 +2074,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(EventCommentController.class)
             .renderAddCommentForm(midPhaseActivity.getId(), null)),
         WorkProgrammeStatus.IN_PROGRESS,
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
@@ -2027,7 +2101,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(EventCommentController.class)
             .renderAddCommentForm(endOfPhaseActivity.getId(), null)),
         WorkProgrammeStatus.OPEN,
-        List.of()
+        List.of(),
+        false
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -2054,7 +2129,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(EventCommentController.class)
             .renderAddCommentForm(midTerm2Activity.getId(), null)),
         WorkProgrammeStatus.OPEN,
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
@@ -2080,7 +2156,8 @@ class LicenceScheduleTimelineServiceTest {
         ReverseRouter.route(on(EventCommentController.class)
             .renderAddCommentForm(endOfTerm2Activity.getId(), null)),
         WorkProgrammeStatus.OPEN,
-        List.of()
+        List.of(),
+        false
     );
 
     var phase = new LicenceSchedulePhase();
@@ -2108,7 +2185,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var phaseView = new TimelinePhaseView(
@@ -2121,7 +2199,9 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        List.of()
+        List.of(),
+        true,
+        true
     );
 
     var term = new LicenceScheduleTerm();
@@ -2143,8 +2223,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         true,
-        List.of()
-    );
+        List.of(),
+        true, true);
 
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
@@ -2171,7 +2251,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var termView2 = new TimelineTermView(
@@ -2184,8 +2265,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         false,
-        List.of()
-    );
+        List.of(),
+        true, false);
 
     var form = new TimelineFilterForm();
     form.setEventTypes(ScheduleEventType.getFilterDefaults());
@@ -2242,6 +2323,9 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getLicenceScheduleEventViewsForOverview_userDoesNotHaveWpStatusPermissions_userIsNotRegulator() {
+    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
     var midPhaseActivity = new WorkProgrammeActivity();
     midPhaseActivity.setId(UUID.randomUUID());
     midPhaseActivity.setOriginalEventId(midPhaseActivity.getId());
@@ -2260,7 +2344,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         null,
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfPhaseActivity = new WorkProgrammeActivity();
@@ -2280,7 +2365,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         null,
-        List.of()
+        List.of(),
+        false
     );
 
     var midTerm2Activity = new WorkProgrammeActivity();
@@ -2301,7 +2387,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         null,
-        List.of()
+        List.of(),
+        true
     );
 
     var endOfTerm2Activity = new WorkProgrammeActivity();
@@ -2321,7 +2408,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         null,
-        List.of()
+        List.of(),
+        false
     );
 
     var phase = new LicenceSchedulePhase();
@@ -2349,7 +2437,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var phaseView = new TimelinePhaseView(
@@ -2362,7 +2451,9 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        List.of()
+        List.of(),
+        true,
+        true
     );
 
     var term = new LicenceScheduleTerm();
@@ -2384,8 +2475,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         true,
-        List.of()
-    );
+        List.of(),
+        true, true);
 
     var term2 = new LicenceScheduleTerm();
     term2.setId(UUID.randomUUID());
@@ -2412,7 +2503,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         "",
-        List.of()
+        List.of(),
+        true
     );
 
     var termView2 = new TimelineTermView(
@@ -2425,8 +2517,8 @@ class LicenceScheduleTimelineServiceTest {
         "",
         "",
         false,
-        List.of()
-    );
+        List.of(),
+        true, false);
 
     var form = new TimelineFilterForm();
     form.setEventTypes(ScheduleEventType.getFilterDefaults());
@@ -2464,6 +2556,9 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getEditableLicenceScheduleEventViews_commentsArePopulatedOnViews() {
+    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
     term.setOriginalEventId(term.getId());
@@ -2569,5 +2664,99 @@ class LicenceScheduleTimelineServiceTest {
         .map(e -> (TimelineOtherScheduleEventView) e)
         .findFirst().orElseThrow();
     assertThat(resultEventView.comments()).isEqualTo(List.of(eventComment));
+  }
+
+  @Test
+  void getEditableLicenceScheduleEventViews_whenLicenceHasEndedOnDate_thenProgressDateUsesLicenceEndDate() {
+    licence.setEndDate(LocalDate.of(2027, 6, 1));
+
+    var term = new LicenceScheduleTerm();
+    term.setId(UUID.randomUUID());
+    term.setOriginalEventId(term.getId());
+    term.setLicenceScheduleDetail(licenceScheduleDetail);
+    term.setTermType(TermType.INITIAL);
+    term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
+    term.setStartDate(LocalDate.of(2026, 1, 1));
+    term.setEndDate(LocalDate.of(2026, 12, 31));
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of());
+
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(term)).thenReturn(List.of());
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
+        .thenReturn(List.of());
+
+    when(licenceScheduleRateService.getLicenceScheduleRatesByTerm(term)).thenReturn(List.of());
+
+    when(otherScheduleEventService.getScheduleEventsByDateRangeFor(term)).thenReturn(List.of());
+    when(otherScheduleEventService.getScheduleEventsByTermAndDateOption(term, OtherScheduleEventDateOption.WITHIN_A_TERM))
+        .thenReturn(List.of());
+
+    when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
+        .thenReturn(Map.of());
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(Map.of());
+
+    var form = new TimelineFilterForm();
+    form.setEventTypes(ScheduleEventType.getFilterDefaults());
+
+    var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of());
+
+    assertThat(result).hasSize(1);
+    var termView = result.getFirst();
+    assertThat(termView.showStartDateProgress()).isTrue();
+    assertThat(termView.showEndDateProgress()).isTrue();
+  }
+
+  @Test
+  void getAllowedEventActionsForUser_whenUserHasBothRoles_thenBothActionsReturned() {
+    var userDetail = ServiceUserDetailTestUtil.newBuilder().build();
+
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR)))
+        .thenReturn(true);
+
+    assertThat(licenceScheduleTimelineService.getAllowedEventActionsForUser(userDetail))
+        .containsExactlyInAnyOrder(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
+  }
+
+  @Test
+  void getAllowedEventActionsForUser_whenUserHasOnlyScheduleAdminRole_thenOnlyEditScheduleEventsReturned() {
+    var userDetail = ServiceUserDetailTestUtil.newBuilder().build();
+
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR)))
+        .thenReturn(false);
+
+    assertThat(licenceScheduleTimelineService.getAllowedEventActionsForUser(userDetail))
+        .containsExactly(ScheduleEventAction.EDIT_SCHEDULE_EVENTS);
+  }
+
+  @Test
+  void getAllowedEventActionsForUser_whenUserHasOnlyWorkProgrammeAdminRole_thenOnlyEditWorkProgrammeReturned() {
+    var userDetail = ServiceUserDetailTestUtil.newBuilder().build();
+
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(false);
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR)))
+        .thenReturn(true);
+
+    assertThat(licenceScheduleTimelineService.getAllowedEventActionsForUser(userDetail))
+        .containsExactly(ScheduleEventAction.EDIT_WORK_PROGRAMME);
+  }
+
+  @Test
+  void getAllowedEventActionsForUser_whenUserHasNoRoles_thenNoActionsReturned() {
+    var userDetail = ServiceUserDetailTestUtil.newBuilder().build();
+
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(false);
+    when(teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.WORK_PROGRAMME_ADMINISTRATOR)))
+        .thenReturn(false);
+
+    assertThat(licenceScheduleTimelineService.getAllowedEventActionsForUser(userDetail))
+        .isEmpty();
   }
 }

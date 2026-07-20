@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -65,6 +66,7 @@ public class LicenceScheduleTimelineService {
   private final WorkProgrammeActivityStatusService workProgrammeActivityStatusService;
   private final EventCommentService eventCommentService;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
+  private final Clock clock;
 
   public LicenceScheduleTimelineService(
       LicenceStartDateService licenceStartDateService,
@@ -78,7 +80,8 @@ public class LicenceScheduleTimelineService {
       TeamQueryService teamQueryService,
       WorkProgrammeActivityStatusService workProgrammeActivityStatusService,
       EventCommentService eventCommentService,
-      LicenceScheduleCalculationService licenceScheduleCalculationService
+      LicenceScheduleCalculationService licenceScheduleCalculationService,
+      Clock clock
   ) {
     this.licenceStartDateService = licenceStartDateService;
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
@@ -92,6 +95,7 @@ public class LicenceScheduleTimelineService {
     this.workProgrammeActivityStatusService = workProgrammeActivityStatusService;
     this.eventCommentService = eventCommentService;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
+    this.clock = clock;
   }
 
   public TimelineSummaryCardView getTimelineSummaryCardView(LicenceScheduleDetail licenceScheduleDetail) {
@@ -212,6 +216,7 @@ public class LicenceScheduleTimelineService {
     Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap = new HashMap<>();
     Map<UUID, List<EventCommentView>> eventRefCommentsMap = new HashMap<>();
     List<ScheduleEventAction> eventActions = new ArrayList<>();
+    var finalProgressDate = getTimelineProgressDate(licenceScheduleDetail);
 
     if (teamQueryService.userIsInRegulatorTeam(userDetail.wuaId())) {
       eventRefWpStatusMap.putAll(getLatestWpStatusesForSchedule(licenceScheduleDetail));
@@ -237,8 +242,18 @@ public class LicenceScheduleTimelineService {
         timelineFilterForm,
         eventActions,
         eventRefWpStatusMap,
-        eventRefCommentsMap
+        eventRefCommentsMap,
+        finalProgressDate
     );
+  }
+
+  private LocalDate getTimelineProgressDate(LicenceScheduleDetail licenceScheduleDetail) {
+    var licenceEndedOnDate = licenceScheduleDetail.getLicenceSchedule().getLicence().getEndDate();
+    if (licenceEndedOnDate != null) {
+      return licenceEndedOnDate;
+    }
+
+    return LocalDate.now(clock);
   }
 
   List<TimelineTermView> getEditableLicenceScheduleEventViews(
@@ -248,13 +263,15 @@ public class LicenceScheduleTimelineService {
   ) {
     var eventRefWpStatusMap = getLatestWpStatusesForSchedule(licenceScheduleDetail);
     var eventRefCommentsMap = eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule());
+    var finalProgressDate = getTimelineProgressDate(licenceScheduleDetail);
 
     return getLicenceScheduleEventViews(
         licenceScheduleDetail,
         timelineFilterForm,
         allowedActions,
         eventRefWpStatusMap,
-        eventRefCommentsMap
+        eventRefCommentsMap,
+        finalProgressDate
     );
   }
 
@@ -277,7 +294,8 @@ public class LicenceScheduleTimelineService {
       TimelineFilterForm timelineFilterForm,
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
-      Map<UUID, List<EventCommentView>> eventRefCommentsMap
+      Map<UUID, List<EventCommentView>> eventRefCommentsMap,
+      LocalDate finalProgressDate
   ) {
     var includedEventTypes = timelineFilterForm.getEventTypes().stream()
         .map(ScheduleEventType::valueOf)
@@ -293,7 +311,8 @@ public class LicenceScheduleTimelineService {
             allowedActions,
             eventRefWpStatusMap,
             eventRefCommentsMap,
-            rateDatesMap
+            rateDatesMap,
+            finalProgressDate
         ))
         .toList();
   }
@@ -304,7 +323,8 @@ public class LicenceScheduleTimelineService {
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
-      Map<UUID, StartEndDates> rateDatesMap
+      Map<UUID, StartEndDates> rateDatesMap,
+      LocalDate finalProgressDate
   ) {
     var dateDurationString = getDateDurationString(
         licenceScheduleTerm.getStartDate(),
@@ -318,7 +338,8 @@ public class LicenceScheduleTimelineService {
         allowedActions,
         eventRefWpStatusMap,
         eventRefCommentsMap,
-        rateDatesMap
+        rateDatesMap,
+        finalProgressDate
     );
 
     var hasPhases = scheduleEvents.stream()
@@ -330,7 +351,8 @@ public class LicenceScheduleTimelineService {
         includedEventTypes,
         allowedActions,
         eventRefWpStatusMap,
-        eventRefCommentsMap
+        eventRefCommentsMap,
+        finalProgressDate
     );
 
     var editUrl = allowedActions.contains(ScheduleEventAction.EDIT_SCHEDULE_EVENTS)
@@ -348,6 +370,9 @@ public class LicenceScheduleTimelineService {
 
     var termComments = eventRefCommentsMap.getOrDefault(licenceScheduleTerm.getOriginalEventId(), List.of());
 
+    var showStartDateProgress = !licenceScheduleTerm.getStartDate().isAfter(finalProgressDate);
+    var showEndDateProgress = !licenceScheduleTerm.getEndDate().isAfter(finalProgressDate);
+
     return new TimelineTermView(
         scheduleEvents,
         endOfTermEvents,
@@ -358,7 +383,9 @@ public class LicenceScheduleTimelineService {
         deleteUrl,
         addCommentUrl,
         hasPhases,
-        termComments
+        termComments,
+        showStartDateProgress,
+        showEndDateProgress
     );
   }
 
@@ -368,7 +395,8 @@ public class LicenceScheduleTimelineService {
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
-      Map<UUID, StartEndDates> rateDatesMap
+      Map<UUID, StartEndDates> rateDatesMap,
+      LocalDate finalProgressDate
   ) {
     var phases = licenceSchedulePhaseService.getPhasesByTerm(licenceScheduleTerm);
 
@@ -386,7 +414,8 @@ public class LicenceScheduleTimelineService {
             allowedActions,
             eventRefWpStatusMap,
             eventRefCommentsMap,
-            rateDatesMap
+            rateDatesMap,
+            finalProgressDate
         ))
         .toList();
 
@@ -396,7 +425,8 @@ public class LicenceScheduleTimelineService {
               licenceScheduleRate,
               rateDatesMap,
               allowedActions,
-              eventRefCommentsMap
+              eventRefCommentsMap,
+              finalProgressDate
           ))
           .filter(event -> includedEventTypes.contains(event.getEventType()))
           .toList();
@@ -417,7 +447,8 @@ public class LicenceScheduleTimelineService {
                 workProgrammeActivity,
                 allowedActions,
                 eventRefWpStatusMap,
-                eventRefCommentsMap
+                eventRefCommentsMap,
+                finalProgressDate
             ));
 
     var rates = licenceScheduleRateService.getLicenceScheduleRatesByTerm(licenceScheduleTerm)
@@ -426,7 +457,8 @@ public class LicenceScheduleTimelineService {
             licenceScheduleRate,
             rateDatesMap,
             allowedActions,
-            eventRefCommentsMap
+            eventRefCommentsMap,
+            finalProgressDate
         ));
 
     var otherScheduleEvents = otherScheduleEventService
@@ -438,7 +470,8 @@ public class LicenceScheduleTimelineService {
             TimelineOtherScheduleEventView.getScheduleEventFrom(
                 otherScheduleEvent,
                 allowedActions,
-                eventRefCommentsMap
+                eventRefCommentsMap,
+                finalProgressDate
             ));
 
     return Stream.of(workProgrammeActivities, rates, otherScheduleEvents)
@@ -454,7 +487,8 @@ public class LicenceScheduleTimelineService {
       List<ScheduleEventType> includedEventTypes,
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
-      Map<UUID, List<EventCommentView>> eventRefCommentsMap
+      Map<UUID, List<EventCommentView>> eventRefCommentsMap,
+      LocalDate finalProgressDate
   ) {
     var workProgrammeActivities = workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(
         licenceScheduleTerm,
@@ -466,7 +500,8 @@ public class LicenceScheduleTimelineService {
                 workProgrammeActivity,
                 allowedActions,
                 eventRefWpStatusMap,
-                eventRefCommentsMap
+                eventRefCommentsMap,
+                finalProgressDate
             ));
 
     var otherScheduleEvents = otherScheduleEventService.getScheduleEventsByTermAndDateOption(
@@ -478,7 +513,8 @@ public class LicenceScheduleTimelineService {
             TimelineOtherScheduleEventView.getScheduleEventFrom(
                 otherScheduleEvent,
                 allowedActions,
-                eventRefCommentsMap
+                eventRefCommentsMap,
+                finalProgressDate
             ));
 
     return Stream.of(workProgrammeActivities, otherScheduleEvents)
@@ -495,7 +531,8 @@ public class LicenceScheduleTimelineService {
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
-      Map<UUID, StartEndDates> rateDatesMap
+      Map<UUID, StartEndDates> rateDatesMap,
+      LocalDate finalProgressDate
   ) {
     var dateDurationString = getDateDurationString(
         licenceSchedulePhase.getStartDate(),
@@ -519,6 +556,9 @@ public class LicenceScheduleTimelineService {
 
     var phaseComments = eventRefCommentsMap.getOrDefault(licenceSchedulePhase.getOriginalEventId(), List.of());
 
+    var showStartDateProgress = !licenceSchedulePhase.getStartDate().isAfter(finalProgressDate);
+    var showEndDateProgress = !licenceSchedulePhase.getEndDate().isAfter(finalProgressDate);
+
     return new TimelinePhaseView(
         getScheduleEventsForPhase(
             licenceSchedulePhase,
@@ -527,14 +567,16 @@ public class LicenceScheduleTimelineService {
             allowedActions,
             eventRefWpStatusMap,
             eventRefCommentsMap,
-            rateDatesMap
+            rateDatesMap,
+            finalProgressDate
         ),
         getEndOfPhaseRequirementEvents(
             licenceSchedulePhase,
             includedEventTypes,
             allowedActions,
             eventRefWpStatusMap,
-            eventRefCommentsMap
+            eventRefCommentsMap,
+            finalProgressDate
         ),
         licenceSchedulePhase.getPhaseType(),
         licenceSchedulePhase.getStartDate(),
@@ -543,7 +585,9 @@ public class LicenceScheduleTimelineService {
         editUrl,
         deleteUrl,
         addCommentUrl,
-        phaseComments
+        phaseComments,
+        showStartDateProgress,
+        showEndDateProgress
     );
   }
 
@@ -554,7 +598,8 @@ public class LicenceScheduleTimelineService {
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
-      Map<UUID, StartEndDates> rateDatesMap
+      Map<UUID, StartEndDates> rateDatesMap,
+      LocalDate finalProgressDate
   ) {
     var workProgrammeActivities = workProgrammeActivityService
         .getWorkProgrammeActivitiesByDateRangeFor(licenceSchedulePhase).stream()
@@ -567,7 +612,8 @@ public class LicenceScheduleTimelineService {
                 workProgrammeActivity,
                 allowedActions,
                 eventRefWpStatusMap,
-                eventRefCommentsMap
+                eventRefCommentsMap,
+                finalProgressDate
             ));
 
     var rates = licenceScheduleRateService.getLicenceScheduleRatesByPhase(licenceSchedulePhase, firstPhaseType).stream()
@@ -575,7 +621,8 @@ public class LicenceScheduleTimelineService {
             licenceScheduleRate,
             rateDatesMap,
             allowedActions,
-            eventRefCommentsMap
+            eventRefCommentsMap,
+            finalProgressDate
         ));
 
     var otherScheduleEvents = otherScheduleEventService
@@ -587,7 +634,8 @@ public class LicenceScheduleTimelineService {
             TimelineOtherScheduleEventView.getScheduleEventFrom(
                 otherScheduleEvent,
                 allowedActions,
-                eventRefCommentsMap
+                eventRefCommentsMap,
+                finalProgressDate
             ));
 
     return Stream.of(workProgrammeActivities, rates, otherScheduleEvents)
@@ -603,7 +651,8 @@ public class LicenceScheduleTimelineService {
       List<ScheduleEventType> includedEventTypes,
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
-      Map<UUID, List<EventCommentView>> eventRefCommentsMap
+      Map<UUID, List<EventCommentView>> eventRefCommentsMap,
+      LocalDate finalProgressDate
   ) {
     var workProgrammeActivities = workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(
             licenceSchedulePhase,
@@ -615,7 +664,8 @@ public class LicenceScheduleTimelineService {
                 workProgrammeActivity,
                 allowedActions,
                 eventRefWpStatusMap,
-                eventRefCommentsMap
+                eventRefCommentsMap,
+                finalProgressDate
             ));
 
     var otherScheduleEvents = otherScheduleEventService.getScheduleEventsByPhaseAndDateOption(
@@ -627,7 +677,8 @@ public class LicenceScheduleTimelineService {
             TimelineOtherScheduleEventView.getScheduleEventFrom(
                 otherScheduleEvent,
                 allowedActions,
-                eventRefCommentsMap
+                eventRefCommentsMap,
+                finalProgressDate
             ));
 
     return Stream.of(workProgrammeActivities, otherScheduleEvents)

@@ -24,7 +24,8 @@ public record TimelineRateView(
     String updateUrl,
     String deleteUrl,
     String addCommentUrl,
-    List<EventCommentView> comments
+    List<EventCommentView> comments,
+    boolean showProgress
 ) implements ScheduleEvent {
 
   @Override
@@ -41,7 +42,8 @@ public record TimelineRateView(
       LicenceScheduleRate licenceScheduleRate,
       Map<UUID, StartEndDates> rateDatesMap,
       List<ScheduleEventAction> allowedActions,
-      Map<UUID, List<EventCommentView>> eventComments
+      Map<UUID, List<EventCommentView>> eventComments,
+      LocalDate finalProgressDate
   ) {
     var rateDates = rateDatesMap.get(licenceScheduleRate.getId());
     var editUrl = allowedActions.contains(ScheduleEventAction.EDIT_SCHEDULE_EVENTS)
@@ -61,6 +63,8 @@ public record TimelineRateView(
 
     var comments = eventComments.getOrDefault(licenceScheduleRate.getOriginalEventId(), List.of());
 
+    var showProgress = !rateDates.startDate().isAfter(finalProgressDate);
+
     return new TimelineRateView(
         generateTitle(licenceScheduleRate),
         rateDates.startDate(),
@@ -69,7 +73,8 @@ public record TimelineRateView(
         editUrl,
         deleteUrl,
         addCommentUrl,
-        comments
+        comments,
+        showProgress
     );
   }
 

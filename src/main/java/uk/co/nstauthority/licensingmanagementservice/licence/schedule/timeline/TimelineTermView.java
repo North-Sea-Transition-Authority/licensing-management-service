@@ -14,6 +14,6 @@ public record TimelineTermView(
     String deleteUrl,
     String addCommentUrl,
     boolean hasPhases,
-    List<EventCommentView> comments
-) {
+    List<EventCommentView> comments,
+    boolean showStartDateProgress, boolean showEndDateProgress) {
 }

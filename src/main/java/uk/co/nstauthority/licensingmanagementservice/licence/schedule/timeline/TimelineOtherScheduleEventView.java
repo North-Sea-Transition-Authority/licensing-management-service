@@ -22,7 +22,8 @@ public record TimelineOtherScheduleEventView(
     String updateUrl,
     String deleteUrl,
     String addCommentUrl,
-    List<EventCommentView> comments
+    List<EventCommentView> comments,
+    boolean showProgress
 ) implements ScheduleEvent {
 
   @Override
@@ -38,7 +39,8 @@ public record TimelineOtherScheduleEventView(
   public static ScheduleEvent getScheduleEventFrom(
       OtherScheduleEvent otherScheduleEvent,
       List<ScheduleEventAction> allowedActions,
-      Map<UUID, List<EventCommentView>> eventComments
+      Map<UUID, List<EventCommentView>> eventComments,
+      LocalDate finalProgressDate
   ) {
     var eventDateString = otherScheduleEvent.getEventDate() != null
         ? DateFormatUtil.convertToDisplayText(otherScheduleEvent.getEventDate())
@@ -61,6 +63,9 @@ public record TimelineOtherScheduleEventView(
 
     var comments = eventComments.getOrDefault(otherScheduleEvent.getOriginalEventId(), List.of());
 
+    var showProgress = otherScheduleEvent.getEventDate() != null
+        && !otherScheduleEvent.getEventDate().isAfter(finalProgressDate);
+
     return new TimelineOtherScheduleEventView(
         otherScheduleEvent.getCategoryString(),
         otherScheduleEvent.getDescription(),
@@ -69,7 +74,8 @@ public record TimelineOtherScheduleEventView(
         editUrl,
         deleteUrl,
         addCommentUrl,
-        comments
+        comments,
+        showProgress
     );
   }
 

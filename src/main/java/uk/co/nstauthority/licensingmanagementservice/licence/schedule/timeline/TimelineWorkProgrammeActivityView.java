@@ -27,7 +27,8 @@ public record TimelineWorkProgrammeActivityView(
     String updateStatusUrl,
     String addCommentUrl,
     WorkProgrammeStatus status,
-    List<EventCommentView> comments
+    List<EventCommentView> comments,
+    boolean showProgress
 ) implements ScheduleEvent {
 
   @Override
@@ -44,7 +45,8 @@ public record TimelineWorkProgrammeActivityView(
       WorkProgrammeActivity workProgrammeActivity,
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWorkProgrammeStatusMap,
-      Map<UUID, List<EventCommentView>> eventComments
+      Map<UUID, List<EventCommentView>> eventComments,
+      LocalDate finalProgressDate
   ) {
     var dueDateString = workProgrammeActivity.getDueDate() != null
         ? DateFormatUtil.convertToDisplayText(workProgrammeActivity.getDueDate())
@@ -79,6 +81,9 @@ public record TimelineWorkProgrammeActivityView(
 
     var comments = eventComments.getOrDefault(workProgrammeActivity.getOriginalEventId(), List.of());
 
+    var showProgress = workProgrammeActivity.getDueDate() != null
+        && !workProgrammeActivity.getDueDate().isAfter(finalProgressDate);
+
     return new TimelineWorkProgrammeActivityView(
         getCategoryAndCommitmentString(workProgrammeActivity),
         workProgrammeActivity.getDescription(),
@@ -89,7 +94,8 @@ public record TimelineWorkProgrammeActivityView(
         editStatusUrl,
         addCommentUrl,
         statusView,
-        comments
+        comments,
+        showProgress
     );
   }
 

@@ -12,6 +12,33 @@
     }
   }
 
+  &__time-stamp--complete {
+    border-color: govuk-colour("green");
+
+    &--no-border {
+      border-color: transparent;
+
+      .fds-timeline__node-number {
+        border-color: govuk-colour("green");
+        background-color: govuk-colour("green");
+      }
+    }
+
+    &--grey-border {
+      border-color: govuk-colour("mid-grey");
+
+      .fds-timeline__node-number {
+        border-color: govuk-colour("green");
+        background-color: govuk-colour("green");
+      }
+    }
+
+    .fds-timeline__node-number {
+      border-color: govuk-colour("green");
+      background-color: govuk-colour("green");
+    }
+  }
+
   &__time-stamp--selected {
     .fds-timeline__node-number {
       background: govuk-colour("mid-grey");

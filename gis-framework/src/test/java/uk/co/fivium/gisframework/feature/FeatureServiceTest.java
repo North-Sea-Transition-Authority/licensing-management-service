@@ -18,6 +18,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
 import uk.co.fivium.gisframework.migration.oracle.Layer;
+import uk.co.fivium.grpc.gis.CoordinateSystem;
 
 @ExtendWith(MockitoExtension.class)
 class FeatureServiceTest {
@@ -234,5 +235,20 @@ class FeatureServiceTest {
     assertThatThrownBy(() -> featureService.getFeatureOrThrow(featureId))
         .isInstanceOf(EntityNotFoundException.class)
         .hasMessage("Feature %s not found".formatted(featureId));
+  }
+
+  @Test
+  void findFeatureOrThrow_whenFound() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    when(featureRepository.findFirstByCoordinateSystem(CoordinateSystem.ED50)).thenReturn(Optional.of(feature));
+    assertThat(featureService.findFeatureOrThrow(CoordinateSystem.ED50)).isEqualTo(feature);
+  }
+
+  @Test
+  void findFeatureOrThrow_whenNotFound_throw() {
+    when(featureRepository.findFirstByCoordinateSystem(CoordinateSystem.ED50)).thenReturn(Optional.empty());
+    assertThatThrownBy(() -> featureService.findFeatureOrThrow(CoordinateSystem.ED50))
+        .isInstanceOf(EntityNotFoundException.class)
+        .hasMessage("Feature with coordinate system %s not found".formatted(CoordinateSystem.ED50));
   }
 }

@@ -30,6 +30,7 @@ describe("nsta layers", () => {
 
     await waitForMapFullyLoaded();
     await pressKeyOnMap("-");
+    await pressKeyOnMap("-");
     await expect(screen.locator).toMatchScreenshot("nsta-layers-quadrants");
   });
 

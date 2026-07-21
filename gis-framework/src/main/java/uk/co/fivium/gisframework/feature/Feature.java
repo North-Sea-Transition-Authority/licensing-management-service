@@ -1,5 +1,6 @@
 package uk.co.fivium.gisframework.feature;
 
+import com.google.common.annotations.VisibleForTesting;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -48,6 +49,7 @@ public class Feature {
 
   private LocalDate endDate;
 
+  @VisibleForTesting
   Feature(UUID id) {
     this.id = id;
   }

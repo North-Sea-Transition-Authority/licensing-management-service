@@ -10,33 +10,46 @@ import { worker } from "./setup";
 import { pressKeyOnMap, waitForMapFullyLoaded } from "./visual-test-util";
 
 /**
- * Scans pixels near the map centre until a snap-point tooltip appears, then
- * leaves the pointer there for the screenshot. Throws if no snap point is
- * found within the search area.
+ * Scans pixels outward from the map centre, ring by ring, until a snap-point
+ * tooltip appears, then leaves the pointer there for the screenshot. Throws if
+ * none is found anywhere within the viewport.
  */
 async function hoverOverNearestSnapPoint(): Promise<void> {
   const viewport = document.querySelector<HTMLElement>(".ol-viewport")!;
   const rect = viewport.getBoundingClientRect();
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height / 2;
+  const step = 2;
+  const maxRadius = Math.ceil(Math.min(rect.width, rect.height) / 2);
 
-  // Snap points are spaced ~30–40 px. This will ensure we hit one point in the small search window.
-  // Found it had better consistency than hardcoding the coordinates.
-  for (let dx = -60; dx <= 60; dx += 2) {
-    for (let dy = -60; dy <= 60; dy += 2) {
-      viewport.dispatchEvent(new PointerEvent("pointermove", {
-        bubbles: true,
-        cancelable: true,
-        clientX: cx + dx,
-        clientY: cy + dy,
-      }));
-      await new Promise(resolve => requestAnimationFrame(resolve));
-      if (document.querySelector(".snap-tooltip")) {
+  const isOverSnapPoint = async (dx: number, dy: number): Promise<boolean> => {
+    viewport.dispatchEvent(new PointerEvent("pointermove", {
+      bubbles: true,
+      cancelable: true,
+      clientX: cx + dx,
+      clientY: cy + dy,
+    }));
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    return document.querySelector(".snap-tooltip") !== null;
+  };
+
+  if (await isOverSnapPoint(0, 0)) {
+    return;
+  }
+
+  for (let radius = step; radius <= maxRadius; radius += step) {
+    for (let dx = -radius; dx <= radius; dx += step) {
+      if (await isOverSnapPoint(dx, -radius) || await isOverSnapPoint(dx, radius)) {
+        return;
+      }
+    }
+    for (let dy = -radius + step; dy <= radius - step; dy += step) {
+      if (await isOverSnapPoint(-radius, dy) || await isOverSnapPoint(radius, dy)) {
         return;
       }
     }
   }
-  throw new Error("No snap point found near map centre — tooltip never appeared");
+  throw new Error("No snap point found within the map viewport — tooltip never appeared");
 }
 
 /**
@@ -72,6 +85,7 @@ describe("snap point layer", () => {
 
     await waitForMapFullyLoaded();
     await pressKeyOnMap("+");
+    await pressKeyOnMap("+");
 
     await expect(screen.locator).toMatchScreenshot("snap-points-ed50-more-zoom");
   });
@@ -95,6 +109,7 @@ describe("snap point layer", () => {
     });
 
     await waitForMapFullyLoaded();
+    await pressKeyOnMap("+");
 
     await expect(screen.locator).toMatchScreenshot("snap-points-ed50-less-zoom");
   });
@@ -142,6 +157,7 @@ describe("snap point layer", () => {
 
     await waitForMapFullyLoaded();
     await pressKeyOnMap("+");
+    await pressKeyOnMap("+");
     await expect(screen.locator).toMatchScreenshot("snap-points-bng-more-zoom");
   });
 
@@ -164,7 +180,7 @@ describe("snap point layer", () => {
     });
 
     await waitForMapFullyLoaded();
-
+    await pressKeyOnMap("+");
     await expect(screen.locator).toMatchScreenshot("snap-points-bng-less-zoom");
   });
 
@@ -201,7 +217,7 @@ describe("snap point layer", () => {
       props: {
         featuresUrl: "/api/features",
         outlineNodesUrl: "/api/outline-nodes?featureId=1",
-        srsWkid: SupportedWkid.BNG_WKID,
+        srsWkid: SupportedWkid.ED50_WKID,
         includeSnapPoints: true,
         includeNstaQuadrants: false,
         includeNstaBlocks: false,

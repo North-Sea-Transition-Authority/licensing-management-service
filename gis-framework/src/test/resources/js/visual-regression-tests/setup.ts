@@ -36,13 +36,6 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await page.viewport(1280, 800);
-
-  // OL needs explicit pixel height — height:100% from mapStyle resolves to 0
-  // inside the Vitest iframe without a defined parent height.
-  const style = document.createElement("style");
-  style.id = "vitest-map-height-override";
-  style.textContent = ".gis-framework-map { height: 600px !important; }";
-  document.head.appendChild(style);
 });
 
 afterEach(async () => {

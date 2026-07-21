@@ -5,7 +5,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import jakarta.persistence.EntityNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,7 +46,7 @@ class FeatureRestControllerTest extends AbstractControllerTest {
         }
         """;
 
-    when(featureService.getFeatureOrThrow(feature.getId())).thenReturn(feature);
+    when(featureService.getFeaturesByIds(List.of(feature.getId()))).thenReturn(List.of(feature));
     when(polygonService.getPolygonsAsEsriJson(feature, true))
         .thenReturn(List.of(esriJsonPolygon1, esriJsonPolygon2));
 
@@ -71,19 +70,10 @@ class FeatureRestControllerTest extends AbstractControllerTest {
     expectedFeatureSetMap.put("spatialReference",
         Map.of("wkid", CoordinateSystemUtils.getWkid(CoordinateSystem.WGS84)));
 
-    mockMvc.perform(get("/api/gis-framework/feature/{featureId}", feature.getId()))
+    mockMvc.perform(get("/api/gis-framework/features")
+            .param("featureIds", feature.getId().toString()))
         .andExpect(status().isOk())
         .andExpect(content().json(objectMapper.writeValueAsString(expectedFeatureSetMap), JsonCompareMode.STRICT));
-  }
-
-  @Test
-  void getFeaturesEsriJson_featureNotFound_throw404() throws Exception {
-    var feature = FeatureTestUtil.newBuilder().build();
-
-    when(featureService.getFeatureOrThrow(feature.getId())).thenThrow(new EntityNotFoundException());
-
-    mockMvc.perform(get("/api/gis-framework/feature/{featureId}", feature.getId()))
-        .andExpect(status().isNotFound());
   }
 
   @Test
@@ -110,7 +100,7 @@ class FeatureRestControllerTest extends AbstractControllerTest {
     when(lineService.getOutlineNodes(List.of(feature1, feature2))).thenReturn(featureOutlineNodes);
 
     mockMvc.perform(get("/api/gis-framework/outline-nodes")
-            .param("featureId", feature1.getId().toString(), feature2.getId().toString()))
+            .param("featureIds", feature1.getId().toString(), feature2.getId().toString()))
         .andExpect(status().isOk())
         .andExpect(content().json(objectMapper.writeValueAsString(expected), JsonCompareMode.STRICT));
   }

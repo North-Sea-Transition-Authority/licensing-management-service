@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
 import uk.co.fivium.gisframework.migration.oracle.Layer;
+import uk.co.fivium.grpc.gis.CoordinateSystem;
 
 @Service
 public class FeatureService {
@@ -116,5 +117,11 @@ public class FeatureService {
   public Feature getFeatureOrThrow(UUID featureId) {
     return featureRepository.findById(featureId).orElseThrow(() ->
         new EntityNotFoundException("Feature %s not found".formatted(featureId)));
+  }
+
+  public Feature findFeatureOrThrow(CoordinateSystem coordinateSystem) {
+    return featureRepository.findFirstByCoordinateSystem(coordinateSystem)
+        .orElseThrow(() ->
+            new EntityNotFoundException("Feature with coordinate system %s not found".formatted(coordinateSystem)));
   }
 }

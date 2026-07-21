@@ -52,6 +52,7 @@ describe("nodeNumberingLayer visual", () => {
           srsWkid,
           includeSnapPoints: false,
           includeNstaQuadrants: false,
+          includeNstaBlocks: false,
         },
         global: { plugins: [OpenLayersMap] },
       });

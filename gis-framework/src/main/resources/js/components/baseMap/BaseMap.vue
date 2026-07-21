@@ -1,5 +1,5 @@
 <template>
-  <ol-map ref="mapRef" class="gis-framework-map" :style="mapStyle" tabindex="0">
+  <ol-map ref="mapRef" :style="mapStyle" tabindex="0">
     <ol-view :center="[0, 0]" :zoom="2" :max-zoom="15"/>
     <ol-tile-layer>
       <ol-source-osm/>
@@ -59,15 +59,8 @@ const mapRef = ref<InstanceType<typeof OlMap> | null>(null);
 const hoveredSnapPoint = ref<SnapPoint | undefined>(undefined);
 const mapStyle = computed<CSSProperties>(() => ({
   width: "100%",
-  height: "100%",
+  maxWidth: "1000px",
+  height: "clamp(18.75rem, 60vh, 31.25rem)",
   display: "block",
 }));
 </script>
-
-<style scoped>
-.gis-framework-map {
-  width: 100%;
-  height: 500px;
-  display: block;
-}
-</style>

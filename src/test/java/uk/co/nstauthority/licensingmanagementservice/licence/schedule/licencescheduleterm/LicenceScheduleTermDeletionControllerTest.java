@@ -27,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.ScheduleRelativeDateValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventComment;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -45,6 +46,9 @@ class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private EventCommentService eventCommentService;
+
+  @MockitoBean
+  private ScheduleRelativeDateValidationService scheduleRelativeDateValidationService;
 
   private Licence licence;
   private LicenceScheduleDetail licenceScheduleDetail;
@@ -75,6 +79,8 @@ class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
         .thenReturn(true);
     when(licenceScheduleTermService.getTermByIdOrThrow(LICENCE_SCHEDULE_TERM_ID)).thenReturn(licenceScheduleTerm);
     when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");
+    when(licenceScheduleTermService.canDeleteTerm(licenceScheduleTerm)).thenReturn(true);
+    when(scheduleRelativeDateValidationService.isTermRemovalValid(licenceScheduleTerm)).thenReturn(true);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(LICENCE_SCHEDULE_TERM_ID)))
@@ -86,7 +92,41 @@ class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("licenceScheduleTermSummaryView", LicenceScheduleTermSummaryView.fromTerm(licenceScheduleTerm)))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
         .andExpect(model().attribute("pageCaption", "caption"))
-        .andExpect(model().attribute("pendingComment", ""));
+        .andExpect(model().attribute("pendingComment", ""))
+        .andExpect(model().attribute("canDeleteErrorMessage", ""));
+  }
+
+  @Test
+  void renderDeleteTermPage_whenTermIsReferencedByOtherScheduleEvents_showsReferencedErrorMessage() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
+    when(licenceScheduleTermService.getTermByIdOrThrow(LICENCE_SCHEDULE_TERM_ID)).thenReturn(licenceScheduleTerm);
+    when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");
+    when(licenceScheduleTermService.canDeleteTerm(licenceScheduleTerm)).thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(LICENCE_SCHEDULE_TERM_ID)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("canDeleteErrorMessage", "This cannot be deleted as it is referenced by other schedule events."));
+  }
+
+  @Test
+  void renderDeleteTermPage_whenTermRemovalWouldInvalidateRelativeDates_showsRelativeDateErrorMessage() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
+    when(licenceScheduleTermService.getTermByIdOrThrow(LICENCE_SCHEDULE_TERM_ID)).thenReturn(licenceScheduleTerm);
+    when(licenceService.getLicencePageCaption(licence)).thenReturn("caption");
+    when(licenceScheduleTermService.canDeleteTerm(licenceScheduleTerm)).thenReturn(true);
+    when(scheduleRelativeDateValidationService.isTermRemovalValid(licenceScheduleTerm)).thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).renderDeleteTermPage(LICENCE_SCHEDULE_TERM_ID)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("canDeleteErrorMessage", "This cannot be deleted as it would cause events to end after the final term."));
   }
 
   @Test
@@ -106,6 +146,8 @@ class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
     when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
         .thenReturn(true);
     when(licenceScheduleTermService.getTermByIdOrThrow(LICENCE_SCHEDULE_TERM_ID)).thenReturn(licenceScheduleTerm);
+    when(licenceScheduleTermService.canDeleteTerm(licenceScheduleTerm)).thenReturn(true);
+    when(scheduleRelativeDateValidationService.isTermRemovalValid(licenceScheduleTerm)).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).submitDeleteTermPage(LICENCE_SCHEDULE_TERM_ID, null)))
@@ -116,6 +158,43 @@ class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
 
     verify(licenceScheduleTermService).deleteTerm(licenceScheduleTerm);
     verify(licenceScheduleCalculationService).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  @Test
+  void submitDeleteTermPage_whenCannotDeleteTerm_returnsForbidden() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
+    when(licenceScheduleTermService.getTermByIdOrThrow(LICENCE_SCHEDULE_TERM_ID)).thenReturn(licenceScheduleTerm);
+    when(licenceScheduleTermService.canDeleteTerm(licenceScheduleTerm)).thenReturn(false);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).submitDeleteTermPage(LICENCE_SCHEDULE_TERM_ID, null)))
+                .with(user(regulatorUser))
+                .with(csrf())
+        )
+        .andExpect(status().isForbidden());
+
+    verify(licenceScheduleTermService, never()).deleteTerm(licenceScheduleTerm);
+    verify(licenceScheduleCalculationService, never()).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
+  }
+
+  @Test
+  void submitDeleteTermPage_whenTermRemovalWouldInvalidateRelativeDates_returnsForbidden() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(regulatorUser.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.SCHEDULE_ADMINISTRATOR)))
+        .thenReturn(true);
+    when(licenceScheduleTermService.getTermByIdOrThrow(LICENCE_SCHEDULE_TERM_ID)).thenReturn(licenceScheduleTerm);
+    when(licenceScheduleTermService.canDeleteTerm(licenceScheduleTerm)).thenReturn(true);
+    when(scheduleRelativeDateValidationService.isTermRemovalValid(licenceScheduleTerm)).thenReturn(false);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(LicenceScheduleTermDeletionController.class).submitDeleteTermPage(LICENCE_SCHEDULE_TERM_ID, null)))
+                .with(user(regulatorUser))
+                .with(csrf())
+        )
+        .andExpect(status().isForbidden());
+
+    verify(licenceScheduleTermService, never()).deleteTerm(licenceScheduleTerm);
+    verify(licenceScheduleCalculationService, never()).calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
   }
 
   @Test

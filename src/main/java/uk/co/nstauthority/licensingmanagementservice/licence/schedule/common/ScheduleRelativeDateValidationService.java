@@ -184,6 +184,71 @@ public class ScheduleRelativeDateValidationService {
     }
   }
 
+  public boolean isTermRemovalValid(LicenceScheduleTerm licenceScheduleTerm) {
+    var licenceScheduleDetail = licenceScheduleTerm.getLicenceScheduleDetail();
+
+    var updatedFinalTermEndDate = calculateUpdatedFinalTermEndDateAfterRemoval(
+        licenceScheduleTerm,
+        licenceScheduleDetail
+    );
+
+    if (updatedFinalTermEndDate == null) {
+      return true;
+    }
+
+    var invalidActivities = workProgrammeActivityService.getWorkProgrammeActivitiesAfterDate(
+        licenceScheduleDetail,
+        updatedFinalTermEndDate
+    );
+
+    if (!invalidActivities.isEmpty()) {
+      return false;
+    }
+
+    var invalidRates = licenceScheduleRateService.getRatesAfterDate(
+        licenceScheduleDetail,
+        updatedFinalTermEndDate
+    );
+
+    if (!invalidRates.isEmpty()) {
+      return false;
+    }
+
+    var invalidEvents = otherScheduleEventService.getEventsAfterDate(
+        licenceScheduleDetail,
+        updatedFinalTermEndDate
+    );
+
+    return invalidEvents.isEmpty();
+  }
+
+  private LocalDate calculateUpdatedFinalTermEndDateAfterRemoval(
+      LicenceScheduleTerm licenceScheduleTerm,
+      LicenceScheduleDetail licenceScheduleDetail
+  ) {
+    var remainingTerms = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
+        .filter(term -> !term.getId().equals(licenceScheduleTerm.getId()))
+        .sorted(Comparator.comparing(term -> term.getTermType().getDisplayOrder()))
+        .toList();
+
+    if (remainingTerms.isEmpty()) {
+      return null;
+    }
+
+    var nextStartDate = licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail).getStartDate();
+
+    for (var term : remainingTerms) {
+      var endDate = licenceScheduleCalculationService.calculateDurationEndDate(nextStartDate, term.getTermDuration());
+
+      term.setStartDate(nextStartDate);
+      term.setEndDate(endDate);
+
+      nextStartDate = endDate.plusDays(1);
+    }
+
+    return remainingTerms.getLast().getEndDate();
+  }
+
   private void applyTermLengthValidation(
       ThreeFieldDurationInput durationInput,
       Errors errors

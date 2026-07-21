@@ -568,6 +568,127 @@ class ScheduleRelativeDateValidationServiceTest {
   }
 
   @Test
+  void isTermRemovalValid_whenNoOtherTermsRemain_returnsTrue() {
+    var licenceScheduleTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withLicenceScheduleDetail(licenceScheduleDetail)
+        .withTermType(TermType.INITIAL)
+        .withTermDuration(new ThreeFieldDuration(5, 0, 0))
+        .build();
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(licenceScheduleTerm));
+
+    assertThat(service.isTermRemovalValid(licenceScheduleTerm)).isTrue();
+  }
+
+  @Test
+  void isTermRemovalValid_whenNoInvalidEntities_returnsTrue() {
+    var termToRemove = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withLicenceScheduleDetail(licenceScheduleDetail)
+        .withTermType(TermType.INITIAL)
+        .withTermDuration(new ThreeFieldDuration(5, 0, 0))
+        .build();
+
+    var remainingTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withLicenceScheduleDetail(licenceScheduleDetail)
+        .withTermType(TermType.SECOND)
+        .withTermDuration(new ThreeFieldDuration(5, 0, 0))
+        .build();
+
+    var newEndDate = setupTermRemovalMocks(termToRemove, remainingTerm);
+
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of());
+    when(licenceScheduleRateService.getRatesAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of());
+    when(otherScheduleEventService.getEventsAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of());
+
+    assertThat(service.isTermRemovalValid(termToRemove)).isTrue();
+  }
+
+  @Test
+  void isTermRemovalValid_whenInvalidActivities_returnsFalse() {
+    var termToRemove = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withLicenceScheduleDetail(licenceScheduleDetail)
+        .withTermType(TermType.INITIAL)
+        .withTermDuration(new ThreeFieldDuration(5, 0, 0))
+        .build();
+
+    var remainingTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withLicenceScheduleDetail(licenceScheduleDetail)
+        .withTermType(TermType.SECOND)
+        .withTermDuration(new ThreeFieldDuration(5, 0, 0))
+        .build();
+
+    var newEndDate = setupTermRemovalMocks(termToRemove, remainingTerm);
+
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of(new WorkProgrammeActivity()));
+
+    assertThat(service.isTermRemovalValid(termToRemove)).isFalse();
+  }
+
+  @Test
+  void isTermRemovalValid_whenInvalidRates_returnsFalse() {
+    var termToRemove = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withLicenceScheduleDetail(licenceScheduleDetail)
+        .withTermType(TermType.INITIAL)
+        .withTermDuration(new ThreeFieldDuration(5, 0, 0))
+        .build();
+
+    var remainingTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withLicenceScheduleDetail(licenceScheduleDetail)
+        .withTermType(TermType.SECOND)
+        .withTermDuration(new ThreeFieldDuration(5, 0, 0))
+        .build();
+
+    var newEndDate = setupTermRemovalMocks(termToRemove, remainingTerm);
+
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of());
+    when(licenceScheduleRateService.getRatesAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of(new LicenceScheduleRate()));
+
+    assertThat(service.isTermRemovalValid(termToRemove)).isFalse();
+  }
+
+  @Test
+  void isTermRemovalValid_whenInvalidEvents_returnsFalse() {
+    var termToRemove = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withLicenceScheduleDetail(licenceScheduleDetail)
+        .withTermType(TermType.INITIAL)
+        .withTermDuration(new ThreeFieldDuration(5, 0, 0))
+        .build();
+
+    var remainingTerm = LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withLicenceScheduleDetail(licenceScheduleDetail)
+        .withTermType(TermType.SECOND)
+        .withTermDuration(new ThreeFieldDuration(5, 0, 0))
+        .build();
+
+    var newEndDate = setupTermRemovalMocks(termToRemove, remainingTerm);
+
+    when(workProgrammeActivityService.getWorkProgrammeActivitiesAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of());
+    when(licenceScheduleRateService.getRatesAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of());
+    when(otherScheduleEventService.getEventsAfterDate(licenceScheduleDetail, newEndDate))
+        .thenReturn(List.of(new OtherScheduleEvent()));
+
+    assertThat(service.isTermRemovalValid(termToRemove)).isFalse();
+  }
+
+  @Test
   void validateTermRateOverlap_emptyRatesMap_noErrors() {
     var termId = UUID.randomUUID();
     var form = new LicenceScheduleRateForm();
@@ -1513,6 +1634,21 @@ class ScheduleRelativeDateValidationServiceTest {
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(licenceScheduleTerm));
+    when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail))
+        .thenReturn(licenceStartDate);
+    when(licenceScheduleCalculationService.calculateDurationEndDate(any(), any()))
+        .thenReturn(newEndDate);
+
+    return newEndDate;
+  }
+
+  private LocalDate setupTermRemovalMocks(LicenceScheduleTerm termToRemove, LicenceScheduleTerm remainingTerm) {
+    var licenceStartDate = new LicenceStartDate();
+    licenceStartDate.setStartDate(LocalDate.of(2020, 1, 1));
+    var newEndDate = LocalDate.of(2023, 12, 31);
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(termToRemove, remainingTerm));
     when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail))
         .thenReturn(licenceStartDate);
     when(licenceScheduleCalculationService.calculateDurationEndDate(any(), any()))

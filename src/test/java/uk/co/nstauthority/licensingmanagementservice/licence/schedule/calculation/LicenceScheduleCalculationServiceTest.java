@@ -569,7 +569,7 @@ class LicenceScheduleCalculationServiceTest {
   }
 
   @Test
-  void calculateRateEndDatesForDisplay_whenSingleTermRate_thenStartDateFromTermAndEndDateFromFinalTerm() {
+  void calculateRateEndDatesForDisplay_whenSingleTermRate_thenStartAndEndDateFromTerm() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
 
     var term = new LicenceScheduleTerm();
@@ -583,8 +583,6 @@ class LicenceScheduleCalculationServiceTest {
     rate.setLicenceScheduleTerm(term);
 
     when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate));
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
-        .thenReturn(new ArrayList<>(List.of(term)));
 
     var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
 
@@ -599,12 +597,8 @@ class LicenceScheduleCalculationServiceTest {
   }
 
   @Test
-  void calculateRateEndDatesForDisplay_whenSinglePhaseRate_thenStartDateFromPhaseAndEndDateFromFinalTerm() {
+  void calculateRateEndDatesForDisplay_whenSinglePhaseRate_thenStartAndEndDateFromPhase() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
-
-    var term = new LicenceScheduleTerm();
-    term.setTermType(TermType.INITIAL);
-    term.setEndDate(LocalDate.of(2025, 12, 31));
 
     var phase = new LicenceSchedulePhase();
     phase.setStartDate(LocalDate.of(2025, 1, 1));
@@ -616,8 +610,6 @@ class LicenceScheduleCalculationServiceTest {
     rate.setLicenceSchedulePhase(phase);
 
     when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate));
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
-        .thenReturn(new ArrayList<>(List.of(term)));
 
     var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
 
@@ -627,7 +619,7 @@ class LicenceScheduleCalculationServiceTest {
         StartEndDates::endDate
     ).containsExactly(
         LocalDate.of(2025, 1, 1),
-        LocalDate.of(2025, 12, 31)
+        LocalDate.of(2025, 6, 30)
     );
   }
 
@@ -685,8 +677,6 @@ class LicenceScheduleCalculationServiceTest {
     rate2.setLicenceScheduleTerm(term2);
 
     when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate1, rate2));
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
-        .thenReturn(new ArrayList<>(List.of(term1, term2)));
 
     var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
 
@@ -710,10 +700,6 @@ class LicenceScheduleCalculationServiceTest {
   void calculateRateEndDatesForDisplay_whenMultiplePhaseRates_thenNonFinalEndDateIsPhaseEndDate() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
 
-    var term = new LicenceScheduleTerm();
-    term.setTermType(TermType.INITIAL);
-    term.setEndDate(LocalDate.of(2025, 12, 31));
-
     var phase1 = new LicenceSchedulePhase();
     phase1.setStartDate(LocalDate.of(2025, 1, 1));
     phase1.setEndDate(LocalDate.of(2025, 6, 30));
@@ -733,8 +719,6 @@ class LicenceScheduleCalculationServiceTest {
     rate2.setLicenceSchedulePhase(phase2);
 
     when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate1, rate2));
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
-        .thenReturn(new ArrayList<>(List.of(term)));
 
     var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
 
@@ -751,6 +735,64 @@ class LicenceScheduleCalculationServiceTest {
     ).containsExactly(
         LocalDate.of(2025, 7, 1),
         LocalDate.of(2025, 12, 31)
+    );
+  }
+
+  @Test
+  void calculateRateEndDatesForDisplay_whenLastRateIsTermRateForNonFinalTerm_thenEndDateIsThatTermEndDate() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+
+    var term1 = new LicenceScheduleTerm();
+    term1.setTermType(TermType.INITIAL);
+    term1.setStartDate(LocalDate.of(2025, 1, 1));
+    term1.setEndDate(LocalDate.of(2025, 12, 31));
+
+    var term2 = new LicenceScheduleTerm();
+    term2.setTermType(TermType.SECOND);
+    term2.setStartDate(LocalDate.of(2026, 1, 1));
+    term2.setEndDate(LocalDate.of(2026, 12, 31));
+
+    var rate = new LicenceScheduleRate();
+    rate.setId(UUID.randomUUID());
+    rate.setRateDefinitionOption(RateDefinitionOption.TERM);
+    rate.setLicenceScheduleTerm(term1);
+
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate));
+
+    var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
+
+    assertThat(result.get(rate.getId())).extracting(
+        StartEndDates::startDate,
+        StartEndDates::endDate
+    ).containsExactly(
+        LocalDate.of(2025, 1, 1),
+        LocalDate.of(2025, 12, 31)
+    );
+  }
+
+  @Test
+  void calculateRateEndDatesForDisplay_whenLastRateIsPhaseRateForNonFinalTerm_thenEndDateIsThatPhaseEndDate() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+
+    var phase = new LicenceSchedulePhase();
+    phase.setStartDate(LocalDate.of(2025, 1, 1));
+    phase.setEndDate(LocalDate.of(2025, 6, 30));
+
+    var rate = new LicenceScheduleRate();
+    rate.setId(UUID.randomUUID());
+    rate.setRateDefinitionOption(RateDefinitionOption.PHASE);
+    rate.setLicenceSchedulePhase(phase);
+
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate));
+
+    var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
+
+    assertThat(result.get(rate.getId())).extracting(
+        StartEndDates::startDate,
+        StartEndDates::endDate
+    ).containsExactly(
+        LocalDate.of(2025, 1, 1),
+        LocalDate.of(2025, 6, 30)
     );
   }
 
@@ -775,8 +817,6 @@ class LicenceScheduleCalculationServiceTest {
 
     when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
         .thenReturn(List.of(customRate, termRate));
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
-        .thenReturn(new ArrayList<>(List.of(term)));
 
     var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
 
@@ -815,8 +855,6 @@ class LicenceScheduleCalculationServiceTest {
 
     when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
         .thenReturn(List.of(rate2, rate1));
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
-        .thenReturn(new ArrayList<>(List.of(term1, term2)));
 
     var result = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
 

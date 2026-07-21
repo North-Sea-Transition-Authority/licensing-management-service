@@ -280,7 +280,11 @@ public class LicenceScheduleCalculationService {
       var rate = sortedRates.get(i);
       LocalDate endDate;
 
-      if (i < sortedRates.size() - 1) {
+      var isLastRate = i == sortedRates.size() - 1;
+
+      if (rate.getRateDefinitionOption() != RateDefinitionOption.CUSTOM_PERIOD) {
+        endDate = getEndDateForRate(rate, null);
+      } else if (!isLastRate) {
         var dayBeforeNextRate = getStartDateForRate(sortedRates.get(i + 1)).minusDays(1);
         endDate = getEndDateForRate(rate, dayBeforeNextRate);
       } else {

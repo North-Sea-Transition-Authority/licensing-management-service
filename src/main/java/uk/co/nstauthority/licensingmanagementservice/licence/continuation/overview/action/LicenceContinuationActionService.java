@@ -13,8 +13,8 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
@@ -23,9 +23,9 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 public class LicenceContinuationActionService {
   private static final Map<LicenceContinuationActionItem, Set<Role>> ACTIONS_TO_ROLES
       = new EnumMap<>(LicenceContinuationActionItem.class);
-  private static final Map<LicenceContinuationApplicationStatus,
+  private static final Map<ApplicationStatus,
       Set<LicenceContinuationActionItem>> STATUS_TO_ACTIONS
-      = new EnumMap<>(LicenceContinuationApplicationStatus.class);
+      = new EnumMap<>(ApplicationStatus.class);
   private static final Map<LicenceContinuationActionItem,
       Predicate<LicenceContinuationApplicationDetail>> ACTIONS_TO_PRIMARY_PREDICATES =
       new EnumMap<>(LicenceContinuationActionItem.class);
@@ -37,11 +37,11 @@ public class LicenceContinuationActionService {
     var registeredActions = LicenceContinuationActionBuilder.newBuilder()
         .registerAction(LicenceContinuationActionItem.CONFIRM_CONTINUATION)
           .requiresAnyRoleFrom(ApplicationAccessService.CONTINUATION_REVIEWER_ROLES)
-          .requiresAnyStatusFrom(LicenceContinuationApplicationStatus.SUBMITTED)
+          .requiresAnyStatusFrom(ApplicationStatus.SUBMITTED)
           .isPrimaryButton(true)
         .registerAction(LicenceContinuationActionItem.WITHDRAW_CONTINUATION)
           .requiresAnyRoleFrom(ApplicationAccessService.CONTINUATION_REVIEWER_ROLES)
-          .requiresAnyStatusFrom(LicenceContinuationApplicationStatus.SUBMITTED)
+          .requiresAnyStatusFrom(ApplicationStatus.SUBMITTED)
         .build();
 
     ACTIONS_TO_ROLES.putAll(registeredActions.roleMap);

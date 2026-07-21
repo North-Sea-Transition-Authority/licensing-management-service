@@ -21,8 +21,8 @@ import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -53,7 +53,7 @@ public class LicenceScheduleSupportingInformationController {
   }
 
   @GetMapping
-  @ScheduleAmendmentApplicationHasStatus(value = ScheduleWorkProgrammeApplicationStatus.DRAFT)
+  @ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.DRAFT)
   public ModelAndView renderForm(
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
@@ -65,7 +65,7 @@ public class LicenceScheduleSupportingInformationController {
   }
 
   @PostMapping
-  @ScheduleAmendmentApplicationHasStatus(value = ScheduleWorkProgrammeApplicationStatus.DRAFT)
+  @ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.DRAFT)
   ModelAndView submitForm(
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
@@ -133,7 +133,7 @@ public class LicenceScheduleSupportingInformationController {
   }
 
   @PostMapping("/files/delete/{fileId}")
-  @ScheduleAmendmentApplicationHasStatus(value = ScheduleWorkProgrammeApplicationStatus.DRAFT)
+  @ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.DRAFT)
   ResponseEntity<FileDeleteResponse> deleteFile(
       @PathVariable UUID fileId,
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,

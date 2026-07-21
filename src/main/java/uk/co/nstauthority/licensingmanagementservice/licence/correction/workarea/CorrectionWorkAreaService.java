@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
@@ -36,6 +37,11 @@ public class CorrectionWorkAreaService implements WorkAreaItemProvider {
         .filter(correction -> FilterUtil.matchesTextInput(
             correction.getLicence().getLicenceReference(),
             workAreaFilterForm.getLicenceReference()
+        ))
+        .filter(correction -> FilterUtil.matchesEnum(
+            LicenceType.class,
+            correction.getLicence().getType(),
+            workAreaFilterForm.getLicenceTypes()
         ))
         .map(this::getCorrectionWorkAreaItem)
         .toList();

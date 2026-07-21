@@ -13,12 +13,13 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
@@ -34,13 +35,6 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
 
 @Service
 public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvider {
-
-  public static final Set<LicenceContinuationApplicationStatus> ACTIVE_APPLICATION_STATUSES = Set.of(
-      LicenceContinuationApplicationStatus.DRAFT,
-      LicenceContinuationApplicationStatus.SUBMITTED,
-      LicenceContinuationApplicationStatus.ISSUE_DECISION,
-      LicenceContinuationApplicationStatus.COMPLETE
-  );
 
   private final LicenceContinuationService licenceContinuationService;
   private final ApplicationAccessService applicationAccessService;
@@ -72,7 +66,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
     var isRegulator = regulatorRoleService.isRegulator(serviceUserDetail);
 
     var allApplicationDetails = licenceContinuationService
-        .getAllContinuationApplicationDetailsByStatuses(ACTIVE_APPLICATION_STATUSES);
+        .getAllContinuationApplicationDetailsByStatuses(ApplicationStatus.getSearchableStatuses());
 
     var licenceByApplicationDetail = allApplicationDetails.stream()
         .collect(Collectors.toMap(Function.identity(),
@@ -144,7 +138,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       case DRAFT -> ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
           .getTaskList(applicationDetail.getId(), null, null));
 
-      case LicenceContinuationApplicationStatus.ISSUE_DECISION -> isContinuationIssuer
+      case ApplicationStatus.ISSUE_DECISION -> isContinuationIssuer
               ? ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
                     ApplicationType.CONTINUATION_APPLICATION,
                     applicationDetail.getLicenceContinuationApplication().getId()
@@ -156,15 +150,15 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
                                          .renderOverview(applicationDetail.getId(), null, null, null));
     };
 
-    var transactionDateTime = applicationDetail.getStatus() == LicenceContinuationApplicationStatus.DRAFT
+    var transactionDateTime = applicationDetail.getStatus() == ApplicationStatus.DRAFT
         ? applicationDetail.getCreatedDateTime()
         : applicationDetail.getSubmittedDatetime();
 
-    var itemReference = applicationDetail.getStatus() == LicenceContinuationApplicationStatus.DRAFT
+    var itemReference = applicationDetail.getStatus() == ApplicationStatus.DRAFT
         ? licence.getLicenceReference()
         : applicationDetail.getLicenceContinuationApplication().getApplicationReference();
 
-    var captionText = applicationDetail.getStatus() == LicenceContinuationApplicationStatus.DRAFT
+    var captionText = applicationDetail.getStatus() == ApplicationStatus.DRAFT
         ? String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getCreatedDateTime()))
         : String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getSubmittedDatetime()));
 
@@ -191,7 +185,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       boolean isContinuationIssuer,
       Set<UUID> viewedItemIds
   ) {
-    if (applicationDetail.getStatus() == LicenceContinuationApplicationStatus.ISSUE_DECISION && isContinuationIssuer) {
+    if (applicationDetail.getStatus() == ApplicationStatus.ISSUE_DECISION && isContinuationIssuer) {
       return !viewedItemIds.contains(applicationDetail.getLicenceContinuationApplication().getId());
     }
     return !viewedItemIds.contains(applicationDetail.getId());
@@ -209,6 +203,29 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       boolean isRegulator
   ) {
     if (!FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
+      return false;
+    }
+
+    if (!FilterUtil.matchesEnum(LicenceType.class, licence.getType(), filterForm.getLicenceTypes())) {
+      return false;
+    }
+
+    if (!FilterUtil.matchesTextInput(
+        Objects.requireNonNullElse(applicationDetail.getLicenceContinuationApplication().getApplicationReference(), ""),
+        filterForm.getApplicationReference()
+    )) {
+      return false;
+    }
+
+    if (!FilterUtil.matchesEnum(
+        ApplicationType.class,
+        ApplicationType.CONTINUATION_APPLICATION,
+        filterForm.getApplicationTypes()
+    )) {
+      return false;
+    }
+
+    if (!FilterUtil.matchesEnum(ApplicationStatus.class, applicationDetail.getStatus(), filterForm.getApplicationStatuses())) {
       return false;
     }
 
@@ -235,7 +252,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
   }
 
   private static boolean hasAppAccess(
-      LicenceContinuationApplicationStatus status,
+      ApplicationStatus status,
       boolean hasAppAccess,
       boolean isReviewer,
       boolean isIssuer,

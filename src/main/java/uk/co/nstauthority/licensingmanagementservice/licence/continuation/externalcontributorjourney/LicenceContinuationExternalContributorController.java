@@ -16,17 +16,17 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continu
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.externalcontributors.ExternalContributorForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.externalcontributors.ExternalContributorFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementController;
 
 @Controller
 @RequestMapping("licence/continuation-application/{licenceContinuationApplicationDetailId}/external-contributors")
-@ContinuationApplicationHasStatus(value = LicenceContinuationApplicationStatus.DRAFT)
+@ContinuationApplicationHasStatus(value = ApplicationStatus.DRAFT)
 @InvokingUserCanAccessContinuationApplication
 public class LicenceContinuationExternalContributorController {
 

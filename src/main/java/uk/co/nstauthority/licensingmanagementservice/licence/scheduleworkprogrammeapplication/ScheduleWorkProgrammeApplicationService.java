@@ -13,6 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
@@ -112,7 +113,7 @@ public class ScheduleWorkProgrammeApplicationService {
     var scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
     scheduleWorkProgrammeApplicationDetail.setVersionNumber(1);
-    scheduleWorkProgrammeApplicationDetail.setStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT);
+    scheduleWorkProgrammeApplicationDetail.setStatus(ApplicationStatus.DRAFT);
     scheduleWorkProgrammeApplicationDetail.setCreatedDatetime(Instant.now(clock));
     scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(allLicenseesPermissionConfirmed);
     scheduleWorkProgrammeApplicationDetail.setResponsibleOrganisationUnitId(responsibleOrganisationUnitId);
@@ -124,7 +125,7 @@ public class ScheduleWorkProgrammeApplicationService {
   public void deleteScheduleWorkProgrammeApplication(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
-    scheduleWorkProgrammeApplicationDetail.setStatus(ScheduleWorkProgrammeApplicationStatus.DELETED);
+    scheduleWorkProgrammeApplicationDetail.setStatus(ApplicationStatus.DELETED);
     scheduleWorkProgrammeApplicationDetailRepository.save(scheduleWorkProgrammeApplicationDetail);
   }
 
@@ -168,7 +169,7 @@ public class ScheduleWorkProgrammeApplicationService {
   }
 
   public List<ScheduleWorkProgrammeApplicationDetail> getAllScheduleWorkProgrammeApplicationDetailsByStatuses(
-      Set<ScheduleWorkProgrammeApplicationStatus> statuses
+      Set<ApplicationStatus> statuses
   ) {
     return scheduleWorkProgrammeApplicationDetailRepository.findAllByStatusIn(statuses);
   }
@@ -189,7 +190,7 @@ public class ScheduleWorkProgrammeApplicationService {
 
     scheduleWorkProgrammeApplicationRepository.save(scheduleWorkProgrammeApplication);
 
-    scheduleWorkProgrammeApplicationDetail.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail.setStatus(ApplicationStatus.SUBMITTED);
     scheduleWorkProgrammeApplicationDetail.setSubmittedDatetime(Instant.now(clock));
     scheduleWorkProgrammeApplicationDetail.setSubmittedByWuaId(user.wuaId());
 

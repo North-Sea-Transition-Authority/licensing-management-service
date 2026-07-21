@@ -8,14 +8,15 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationSource;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 
 @Repository
 public interface LicenceContinuationApplicationDetailRepository
     extends JpaRepository<LicenceContinuationApplicationDetail, UUID>, NotDuplicationSource {
 
-  List<LicenceContinuationApplicationDetail> findAllByStatus(LicenceContinuationApplicationStatus status);
+  List<LicenceContinuationApplicationDetail> findAllByStatus(ApplicationStatus status);
 
-  List<LicenceContinuationApplicationDetail> findAllByStatusIn(Set<LicenceContinuationApplicationStatus> statuses);
+  List<LicenceContinuationApplicationDetail> findAllByStatusIn(Set<ApplicationStatus> statuses);
 
   Optional<LicenceContinuationApplicationDetail> findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(
       LicenceContinuationApplication scheduleWorkProgrammeApplication

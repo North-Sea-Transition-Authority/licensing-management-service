@@ -13,8 +13,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -46,7 +46,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
   void getAvailableUserActionItems_allocateSteward_availableWhenSubmittedAndRoleAllowed() {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()
@@ -65,7 +65,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
   void getAvailableUserActionItems_allocateSteward_notAvailableWhenWrongStatus() {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
+        .withStatus(ApplicationStatus.DRAFT)
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()
@@ -84,7 +84,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
   void getAvailableUserActionItems_allocateSteward_notAvailableWhenRoleNotAllowed() {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()
@@ -103,7 +103,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
   void getAvailableUserActionItems_recordFinalDecision_availableWhenCaseManagerAndSubmitted() {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .build();
 
     var teamRole = TeamRoleTestUtil.newBuilder()
@@ -122,7 +122,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
   void getAvailableUserActionItems_recordFinalDecision_availableWhenUserIsAllocatedStewardAndSubmitted() {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .build();
     applicationDetail.getScheduleWorkProgrammeApplication().setStewardWuaId(USER_WUA_ID);
 
@@ -142,7 +142,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
   void getAvailableUserActionItems_recordFinalDecision_notAvailableWhenNotCaseManagerAndNotAllocatedSteward() {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .build();
 
     var teamRole = TeamRoleTestUtil.newBuilder()
@@ -161,7 +161,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
   void getAvailableUserActionItems_recordFinalDecision_notAvailableWhenWrongStatus() {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
+        .withStatus(ApplicationStatus.DRAFT)
         .build();
 
     var teamRole = TeamRoleTestUtil.newBuilder()
@@ -180,7 +180,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
   void getAvailableUserActionItems_correctlyAssignsPrimaryAndSecondaryFlags() {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()

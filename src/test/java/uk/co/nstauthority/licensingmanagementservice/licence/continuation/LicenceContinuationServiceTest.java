@@ -41,6 +41,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.withdraw.ApplicationWithdrawService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
@@ -133,7 +134,7 @@ class LicenceContinuationServiceTest {
     licenceContinuationApplicationDetail = LicenceContinuationApplicationTestUtil.builder()
         .withId(UUID.randomUUID())
         .withLicenceContinuationApplication(licenceContinuationApplication)
-        .withStatus(LicenceContinuationApplicationStatus.DRAFT)
+        .withStatus(ApplicationStatus.DRAFT)
         .build();
 
     organisationUser = ServiceUserDetailTestUtil.newBuilder()
@@ -158,7 +159,7 @@ class LicenceContinuationServiceTest {
 
     assertThat(savedDetail.getLicenceContinuationApplication()).isEqualTo(savedApplication);
     assertThat(savedDetail.getVersionNumber()).isEqualTo(1);
-    assertThat(savedDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.DRAFT);
+    assertThat(savedDetail.getStatus()).isEqualTo(ApplicationStatus.DRAFT);
     assertThat(savedDetail.getResponsibleOrganisationUnitId()).isEqualTo(1);
 
     assertThat(result).isEqualTo(savedDetail);
@@ -241,16 +242,16 @@ class LicenceContinuationServiceTest {
   @Test
   void getAllContinuationApplicationDetailsByStatus() {
     licenceContinuationService.getAllContinuationApplicationDetailsByStatus(
-        LicenceContinuationApplicationStatus.DRAFT);
+        ApplicationStatus.DRAFT);
 
-    verify(licenceContinuationApplicationDetailRepository).findAllByStatus(LicenceContinuationApplicationStatus.DRAFT);
+    verify(licenceContinuationApplicationDetailRepository).findAllByStatus(ApplicationStatus.DRAFT);
   }
 
   @Test
   void getAllContinuationApplicationDetailsByStatuses() {
     var statusSet = Set.of(
-        LicenceContinuationApplicationStatus.DRAFT,
-        LicenceContinuationApplicationStatus.SUBMITTED
+        ApplicationStatus.DRAFT,
+        ApplicationStatus.SUBMITTED
     );
 
     licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(statusSet);
@@ -294,7 +295,7 @@ class LicenceContinuationServiceTest {
     assertThat(savedApp.getApplicationReference()).isEqualTo(String.format("LMS/CA/%d/%d", currentYear, existingSubmissions + 1));
     assertThat(savedApp.getSubmittedLicenceScheduleDetail()).isEqualTo(LICENCE_SCHEDULE_DETAIL);
 
-    assertThat(savedDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.SUBMITTED);
+    assertThat(savedDetail.getStatus()).isEqualTo(ApplicationStatus.SUBMITTED);
     assertThat(savedDetail.getSubmittedDatetime()).isEqualTo(FIXED_INSTANT);
     assertThat(savedDetail.getSubmittedByWuaId()).isEqualTo(WUA_ID);
     assertThat(savedDetail.getCurrentTerm()).isEqualTo(currentTerm);
@@ -331,25 +332,25 @@ class LicenceContinuationServiceTest {
   void confirmContinuationChangeStatus(){
     licenceContinuationService.confirmContinuationChangeStatus(licenceContinuationApplicationDetail);
     verify(applicationLetterService).createDocumentInstance(licenceContinuationApplicationDetail.getLicenceContinuationApplication());
-    assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+    assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(ApplicationStatus.ISSUE_DECISION);
   }
 
   @Test
   void issueContinuationLetterChangeStatus(){
-    licenceContinuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.COMPLETE);
+    licenceContinuationApplicationDetail.setStatus(ApplicationStatus.COMPLETE);
     licenceContinuationService.licenceContinuationApplicationDetailRepository.save(licenceContinuationApplicationDetail);
-    assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.COMPLETE);
+    assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(ApplicationStatus.COMPLETE);
   }
 
   @Test
   void deleteLicenceContinuationApplication_setsStatusToDeletedAndSaves() {
-    licenceContinuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.DRAFT);
+    licenceContinuationApplicationDetail.setStatus(ApplicationStatus.DRAFT);
 
     licenceContinuationService.deleteLicenceContinuationApplication(licenceContinuationApplicationDetail);
 
     verify(licenceContinuationApplicationDetailRepository).save(licenceContinuationApplicationDetailCaptor.capture());
     var savedDetail = licenceContinuationApplicationDetailCaptor.getValue();
-    assertThat(savedDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.DELETED);
+    assertThat(savedDetail.getStatus()).isEqualTo(ApplicationStatus.DELETED);
   }
 
   @Test
@@ -365,7 +366,7 @@ class LicenceContinuationServiceTest {
     licenceContinuationService.withdrawContinuationChangeStatus(licenceContinuationApplicationDetail, reason);
 
     verify(licenceContinuationApplicationDetailRepository).save(licenceContinuationApplicationDetail);
-    assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.WITHDRAWN);
+    assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(ApplicationStatus.WITHDRAWN);
 
     var application = licenceContinuationApplicationDetail.getLicenceContinuationApplication();
     verify(licenceContinuationApplicationRepository).save(application);
@@ -443,7 +444,7 @@ class LicenceContinuationServiceTest {
 
     licenceContinuationService.issueContinuationLetter(licenceApplication);
 
-    assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(LicenceContinuationApplicationStatus.COMPLETE);
+    assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(ApplicationStatus.COMPLETE);
     verify(licenceContinuationApplicationDetailRepository).save(licenceContinuationApplicationDetail);
     verify(clearDownWorkAreaLogService).clearDownAllViewsFor(
         licenceContinuationApplicationDetail.getId(),

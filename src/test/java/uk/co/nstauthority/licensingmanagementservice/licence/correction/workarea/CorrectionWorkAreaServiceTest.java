@@ -17,6 +17,8 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
@@ -91,6 +93,55 @@ class CorrectionWorkAreaServiceTest {
     assertThat(result).usingRecursiveComparison().isEqualTo(List.of(expected));
   }
 
+  @Test
+  void getWorkAreaItems_filtersByLicenceType() {
+    var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
+    var matchingId = UUID.randomUUID();
+    var matching = correction(matchingId, "P1234", LicenceType.SEAWARD_PRODUCTION, "COR-1", createdInstant);
+    var other = correction(UUID.randomUUID(), "CS9999", LicenceType.CARBON_STORAGE, "COR-2", createdInstant);
+
+    when(licenceCorrectionService.getAllInProgressCorrectionsForUser(user))
+        .thenReturn(List.of(matching, other));
+
+    var form = new WorkAreaFilterForm();
+    form.setLicenceTypes(List.of(LicenceType.SEAWARD_PRODUCTION.name()));
+    var result = correctionWorkAreaService.getWorkAreaItems(form, user);
+
+    assertThat(result).extracting(SearchResultItem::id).containsExactly(matchingId.toString());
+  }
+
+  @Test
+  void getWorkAreaItems_notAffectedByApplicationReferenceFilter() {
+    var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
+    var correctionId = UUID.randomUUID();
+    var correction = correction(correctionId, "P1234", LicenceType.SEAWARD_PRODUCTION, "COR-1", createdInstant);
+
+    when(licenceCorrectionService.getAllInProgressCorrectionsForUser(user))
+        .thenReturn(List.of(correction));
+
+    var form = new WorkAreaFilterForm();
+    form.setApplicationReference("LMS/EEA/001");
+    var result = correctionWorkAreaService.getWorkAreaItems(form, user);
+
+    assertThat(result).extracting(SearchResultItem::id).containsExactly(correctionId.toString());
+  }
+
+  @Test
+  void getWorkAreaItems_notAffectedByApplicationTypeFilter() {
+    var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
+    var correctionId = UUID.randomUUID();
+    var correction = correction(correctionId, "P1234", LicenceType.SEAWARD_PRODUCTION, "COR-1", createdInstant);
+
+    when(licenceCorrectionService.getAllInProgressCorrectionsForUser(user))
+        .thenReturn(List.of(correction));
+
+    var form = new WorkAreaFilterForm();
+    form.setApplicationTypes(List.of(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name()));
+    var result = correctionWorkAreaService.getWorkAreaItems(form, user);
+
+    assertThat(result).extracting(SearchResultItem::id).containsExactly(correctionId.toString());
+  }
+
   private WorkAreaFilterForm filterForm(String licenceReference) {
     var form = new WorkAreaFilterForm();
     form.setLicenceReference(licenceReference);
@@ -99,8 +150,14 @@ class CorrectionWorkAreaServiceTest {
 
   private LicenceCorrection correction(
       UUID id, String licenceReference, String correctionReference, Instant createdInstant) {
+    return correction(id, licenceReference, LicenceType.SEAWARD_PRODUCTION, correctionReference, createdInstant);
+  }
+
+  private LicenceCorrection correction(
+      UUID id, String licenceReference, LicenceType licenceType, String correctionReference, Instant createdInstant) {
     var licence = LicenceTestUtil.builder()
         .withLicenceReference(licenceReference)
+        .withLicenceType(licenceType)
         .build();
     return LicenceCorrectionTestUtil.newBuilder()
         .withId(id)

@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.reviewandsubmit.ContinuationSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
@@ -63,7 +64,7 @@ class LicenceContinuationApplicationDeleteControllerTest extends AbstractControl
     licenceContinuationApplicationDetail = LicenceContinuationApplicationTestUtil
         .builder()
         .withId(CONTINUATION_APPLICATION_DETAIL_ID)
-        .withStatus(LicenceContinuationApplicationStatus.DRAFT)
+        .withStatus(ApplicationStatus.DRAFT)
         .withLicenceContinuationApplication(
             LicenceContinuationApplicationTestUtil.createLicenceContinuationApplication(licenceScheduleDetail))
         .build();
@@ -121,8 +122,8 @@ class LicenceContinuationApplicationDeleteControllerTest extends AbstractControl
   }
 
   @ParameterizedTest
-  @EnumSource(value = LicenceContinuationApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
-  void renderForm_assertForbiddenOnNotDraft(LicenceContinuationApplicationStatus status) throws Exception {
+  @EnumSource(value = ApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void renderForm_assertForbiddenOnNotDraft(ApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
     var nonDraftDetail = LicenceContinuationApplicationTestUtil
         .builder()
@@ -140,9 +141,9 @@ class LicenceContinuationApplicationDeleteControllerTest extends AbstractControl
   }
 
   @ParameterizedTest
-  @EnumSource(value = LicenceContinuationApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  @EnumSource(value = ApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
   void deleteLicenceContinuationApplication_assertForbiddenOnNotDraft(
-      LicenceContinuationApplicationStatus status
+      ApplicationStatus status
   ) throws Exception {
     var id = UUID.randomUUID();
     var nonDraftDetail = LicenceContinuationApplicationTestUtil

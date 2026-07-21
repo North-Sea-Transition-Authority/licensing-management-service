@@ -31,10 +31,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationOverviewController;
@@ -108,7 +108,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     licenceContinuationApplicationDetail2 = LicenceContinuationApplicationTestUtil
         .createLicenceContinuationApplicationDetail(scheduleDetail2);
     licenceContinuationApplicationDetail2.setCreatedDateTime(testInstant.minus(1, ChronoUnit.HOURS));
-    licenceContinuationApplicationDetail2.setStatus(LicenceContinuationApplicationStatus.SUBMITTED);
+    licenceContinuationApplicationDetail2.setStatus(ApplicationStatus.SUBMITTED);
     licenceContinuationApplicationDetail2.setSubmittedDatetime(testInstant.plus(1, ChronoUnit.HOURS));
     licenceContinuationApplicationDetail2.getLicenceContinuationApplication().setApplicationReference("LMS/CA/002");
 
@@ -220,6 +220,131 @@ class ContinuationApplicationWorkAreaServiceTest {
   }
 
   @Test
+  void getWorkAreaItems_filteredByLicenceType() {
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+
+    licence1.setType(LicenceType.CARBON_STORAGE);
+
+    var org1 = "Org 1";
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
+        .thenReturn(Map.of(licence1, List.of(new OrganisationUnit(1, org1))));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setLicenceTypes(List.of(LicenceType.CARBON_STORAGE.name()));
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactly(licenceContinuationApplicationDetail.getId().toString());
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByApplicationReference() {
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+
+    var org1 = "Org 1";
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
+        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, org1))));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setApplicationReference("002");
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactly(licenceContinuationApplicationDetail2.getId().toString());
+  }
+
+  @Test
+  void getWorkAreaItems_whenDraftHasNoApplicationReferenceYet_andApplicationReferenceFilterSet_thenExcludedWithoutError() {
+    licenceContinuationApplicationDetail.getLicenceContinuationApplication().setApplicationReference(null);
+
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setApplicationReference("CA");
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems).isEmpty();
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByApplicationType_matching() {
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
+        .thenReturn(Map.of(
+            licence1, List.of(new OrganisationUnit(1, "Org 1")),
+            licence2, List.of(new OrganisationUnit(2, "Org 2"))
+        ));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setApplicationTypes(List.of(ApplicationType.CONTINUATION_APPLICATION.name()));
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactlyInAnyOrder(
+            licenceContinuationApplicationDetail.getId().toString(),
+            licenceContinuationApplicationDetail2.getId().toString()
+        );
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByApplicationType_nonMatching_thenExcluded() {
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setApplicationTypes(List.of(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name()));
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems).isEmpty();
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByApplicationStatus_matching() {
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+
+    var org1 = "Org 1";
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
+        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, org1))));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setApplicationStatuses(List.of(ApplicationStatus.SUBMITTED.name()));
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactly(licenceContinuationApplicationDetail2.getId().toString());
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByApplicationStatus_nonMatching_thenExcluded() {
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setApplicationStatuses(List.of(ApplicationStatus.ISSUE_DECISION.name()));
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems).isEmpty();
+  }
+
+  @Test
   void getWorkAreaItems_filteredByUser() {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
@@ -318,7 +443,7 @@ class ContinuationApplicationWorkAreaServiceTest {
 
   @Test
   void getWorkAreaItems_filteredByUser_isContinuationIssuer() {
-    licenceContinuationApplicationDetail2.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+    licenceContinuationApplicationDetail2.setStatus(ApplicationStatus.ISSUE_DECISION);
     licenceContinuationApplicationDetail2.setSubmittedDatetime(testInstant.plus(1, ChronoUnit.HOURS));
 
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
@@ -362,7 +487,7 @@ class ContinuationApplicationWorkAreaServiceTest {
 
   @Test
   void getWorkAreaItems_whenIssueDecision_isNotContinuationIssuer_linksToOverview() {
-    licenceContinuationApplicationDetail2.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+    licenceContinuationApplicationDetail2.setStatus(ApplicationStatus.ISSUE_DECISION);
 
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
@@ -393,7 +518,7 @@ class ContinuationApplicationWorkAreaServiceTest {
 
   @Test
   void getWorkAreaItems_whenIssueDecision_isContinuationReviewerButNotIssuer_isExcluded() {
-    licenceContinuationApplicationDetail2.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+    licenceContinuationApplicationDetail2.setStatus(ApplicationStatus.ISSUE_DECISION);
 
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
@@ -491,7 +616,7 @@ class ContinuationApplicationWorkAreaServiceTest {
 
   @Test
   void getWorkAreaItems_whenIssueDecisionItemNotYetViewed_showsNewBadge() {
-    licenceContinuationApplicationDetail2.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+    licenceContinuationApplicationDetail2.setStatus(ApplicationStatus.ISSUE_DECISION);
     licenceContinuationApplicationDetail2.setSubmittedDatetime(testInstant.plus(1, ChronoUnit.HOURS));
 
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
@@ -524,7 +649,7 @@ class ContinuationApplicationWorkAreaServiceTest {
 
   @Test
   void getWorkAreaItems_whenIssueDecisionItemAlreadyViewed_doesNotShowNewBadge() {
-    licenceContinuationApplicationDetail2.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+    licenceContinuationApplicationDetail2.setStatus(ApplicationStatus.ISSUE_DECISION);
     licenceContinuationApplicationDetail2.setSubmittedDatetime(testInstant.plus(1, ChronoUnit.HOURS));
 
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))

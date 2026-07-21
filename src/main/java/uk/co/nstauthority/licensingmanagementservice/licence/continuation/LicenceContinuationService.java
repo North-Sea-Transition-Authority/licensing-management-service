@@ -24,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.caseprocessing.OverviewTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.withdraw.ApplicationWithdrawService;
@@ -107,7 +108,7 @@ public class LicenceContinuationService {
     var licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail();
     licenceContinuationApplicationDetail.setLicenceContinuationApplication(licenceContinuationApplication);
     licenceContinuationApplicationDetail.setVersionNumber(1);
-    licenceContinuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.DRAFT);
+    licenceContinuationApplicationDetail.setStatus(ApplicationStatus.DRAFT);
     licenceContinuationApplicationDetail.setCreatedDateTime(Instant.now(clock));
     licenceContinuationApplicationDetail.setResponsibleOrganisationUnitId(responsibleOrganisationUnitId);
 
@@ -139,13 +140,13 @@ public class LicenceContinuationService {
   }
 
   public List<LicenceContinuationApplicationDetail> getAllContinuationApplicationDetailsByStatus(
-      LicenceContinuationApplicationStatus status
+      ApplicationStatus status
   ) {
     return licenceContinuationApplicationDetailRepository.findAllByStatus(status);
   }
 
   public List<LicenceContinuationApplicationDetail> getAllContinuationApplicationDetailsByStatuses(
-      Set<LicenceContinuationApplicationStatus> statuses
+      Set<ApplicationStatus> statuses
   ) {
     return licenceContinuationApplicationDetailRepository.findAllByStatusIn(statuses);
   }
@@ -193,7 +194,7 @@ public class LicenceContinuationService {
 
     var scheduleState = licenceScheduleService.getScheduleState(activeDetail);
 
-    licenceContinuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.SUBMITTED);
+    licenceContinuationApplicationDetail.setStatus(ApplicationStatus.SUBMITTED);
     licenceContinuationApplicationDetail.setSubmittedDatetime(Instant.now(clock));
     licenceContinuationApplicationDetail.setSubmittedByWuaId(user.wuaId());
     licenceContinuationApplicationDetail.setCurrentTerm(scheduleState.currentTerm());
@@ -213,7 +214,7 @@ public class LicenceContinuationService {
     applicationLetterService.createDocumentInstance(
         licenceContinuationApplicationDetail.getLicenceContinuationApplication()
     );
-    licenceContinuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+    licenceContinuationApplicationDetail.setStatus(ApplicationStatus.ISSUE_DECISION);
     licenceContinuationApplicationDetailRepository.save(licenceContinuationApplicationDetail);
   }
 
@@ -290,7 +291,7 @@ public class LicenceContinuationService {
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
       String withdrawalReason
   ) {
-    licenceContinuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.WITHDRAWN);
+    licenceContinuationApplicationDetail.setStatus(ApplicationStatus.WITHDRAWN);
     licenceContinuationApplicationDetailRepository.save(licenceContinuationApplicationDetail);
 
     var application = licenceContinuationApplicationDetail.getLicenceContinuationApplication();
@@ -312,7 +313,7 @@ public class LicenceContinuationService {
 
   @Transactional
   public void deleteLicenceContinuationApplication(LicenceContinuationApplicationDetail licenceContinuationApplicationDetail) {
-    licenceContinuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.DELETED);
+    licenceContinuationApplicationDetail.setStatus(ApplicationStatus.DELETED);
     licenceContinuationApplicationDetailRepository.save(licenceContinuationApplicationDetail);
   }
 
@@ -320,7 +321,7 @@ public class LicenceContinuationService {
   public void issueContinuationLetter(LicenceApplication application) {
     var continuationApplicationDetail = getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(application.getId());
 
-    continuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.COMPLETE);
+    continuationApplicationDetail.setStatus(ApplicationStatus.COMPLETE);
     licenceContinuationApplicationDetailRepository.save(continuationApplicationDetail);
 
     clearDownWorkAreaLogService.clearDownAllViewsFor(

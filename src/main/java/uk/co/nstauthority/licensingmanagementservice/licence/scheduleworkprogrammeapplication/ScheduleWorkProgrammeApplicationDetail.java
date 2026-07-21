@@ -18,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVari
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 
 @Audited
 @Entity(name = "schedule_work_programme_application_details")
@@ -39,7 +40,7 @@ public class ScheduleWorkProgrammeApplicationDetail implements LicenceApplicatio
 
   @Enumerated(EnumType.STRING)
   @Column
-  private ScheduleWorkProgrammeApplicationStatus status;
+  private ApplicationStatus status;
 
   @Column
   private Boolean allLicenseesPermissionConfirmed;
@@ -104,12 +105,12 @@ public class ScheduleWorkProgrammeApplicationDetail implements LicenceApplicatio
     this.versionNumber = versionNumber;
   }
 
-  public ScheduleWorkProgrammeApplicationStatus getStatus() {
+  public ApplicationStatus getStatus() {
     return status;
   }
 
   public void setStatus(
-      ScheduleWorkProgrammeApplicationStatus status) {
+      ApplicationStatus status) {
     this.status = status;
   }
 

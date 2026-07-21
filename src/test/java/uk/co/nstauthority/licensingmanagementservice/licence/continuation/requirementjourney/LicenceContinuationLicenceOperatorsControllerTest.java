@@ -28,9 +28,9 @@ import uk.co.fivium.energyportalapi.generated.types.LicenceBlock;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
 import uk.co.fivium.energyportalapi.generated.types.Subarea;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -54,7 +54,7 @@ class LicenceContinuationLicenceOperatorsControllerTest extends AbstractControll
   void setUp() {
     applicationDetail = new LicenceContinuationApplicationDetail();
     applicationDetail.setId(applicationId);
-    applicationDetail.setStatus(LicenceContinuationApplicationStatus.DRAFT);
+    applicationDetail.setStatus(ApplicationStatus.DRAFT);
     var licenceSchedule = new LicenceSchedule();
     licenceSchedule.setLicence(new uk.co.nstauthority.licensingmanagementservice.licence.Licence());
     var licenceContinuationApplication = new LicenceContinuationApplication();

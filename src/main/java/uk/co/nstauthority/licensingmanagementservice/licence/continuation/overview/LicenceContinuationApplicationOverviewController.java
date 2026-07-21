@@ -16,9 +16,9 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWork
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.caseprocessing.OverviewTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.decision.ContinuationDecisionSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.decision.ContinuationLetterFileUsages;
@@ -32,10 +32,10 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
 @Controller
 @RequestMapping("licence/continuation-application/{licenceContinuationApplicationDetailId}/overview")
 @ContinuationApplicationHasStatus(value = {
-    LicenceContinuationApplicationStatus.SUBMITTED,
-    LicenceContinuationApplicationStatus.DRAFT,
-    LicenceContinuationApplicationStatus.ISSUE_DECISION,
-    LicenceContinuationApplicationStatus.COMPLETE
+    ApplicationStatus.SUBMITTED,
+    ApplicationStatus.DRAFT,
+    ApplicationStatus.ISSUE_DECISION,
+    ApplicationStatus.COMPLETE
 })
 @InvokingUserCanAccessContinuationApplication
 @LogWorkAreaItemView(

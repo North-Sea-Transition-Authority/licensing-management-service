@@ -41,9 +41,9 @@ import uk.co.nstauthority.licensingmanagementservice.document.instance.DocumentI
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.DocumentInstanceDtoTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -108,7 +108,7 @@ class ApplicationLetterDocumentControllerTest extends AbstractControllerTest {
 
     continuationApplicationDetail = new LicenceContinuationApplicationDetail();
     continuationApplicationDetail.setId(APP_ID);
-    continuationApplicationDetail.setStatus(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+    continuationApplicationDetail.setStatus(ApplicationStatus.ISSUE_DECISION);
 
     when(licenceContinuationService.getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(APP_ID))
         .thenReturn(continuationApplicationDetail);

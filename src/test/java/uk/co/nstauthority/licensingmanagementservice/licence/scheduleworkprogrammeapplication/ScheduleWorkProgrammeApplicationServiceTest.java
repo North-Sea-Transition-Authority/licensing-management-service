@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
@@ -112,9 +113,9 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
   @Test
   void getAllScheduleWorkProgrammeApplicationDetailsByStatuses() {
-    scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(Set.of(ScheduleWorkProgrammeApplicationStatus.DRAFT));
+    scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(Set.of(ApplicationStatus.DRAFT));
 
-    verify(scheduleWorkProgrammeApplicationDetailRepository).findAllByStatusIn(Set.of(ScheduleWorkProgrammeApplicationStatus.DRAFT));
+    verify(scheduleWorkProgrammeApplicationDetailRepository).findAllByStatusIn(Set.of(ApplicationStatus.DRAFT));
   }
 
   @Test
@@ -219,19 +220,19 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     assertThat(savedApplication.getApplicationReference()).isEqualTo(String.format("LMS/EAA/%d/%d", currentYear, 3));
     assertThat(savedApplication.getSubmittedLicenceScheduleDetail()).isEqualTo(licenceScheduleDetail);
     assertThat(result).isEqualTo(savedApplication);
-    assertThat(savedDetail.getStatus()).isEqualTo(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    assertThat(savedDetail.getStatus()).isEqualTo(ApplicationStatus.SUBMITTED);
     assertThat(savedDetail.getSubmittedByWuaId()).isEqualTo(1L);
     assertThat(savedDetail.getSubmittedDatetime()).isEqualTo(Instant.now(clock));
   }
 
   @Test
   void deleteScheduleWorkProgrammeApplication_setsStatusToDeletedAndSaves() {
-    scheduleWorkProgrammeApplicationDetail.setStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT);
+    scheduleWorkProgrammeApplicationDetail.setStatus(ApplicationStatus.DRAFT);
     scheduleWorkProgrammeApplicationService.deleteScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplicationDetail);
 
     verify(scheduleWorkProgrammeApplicationDetailRepository).save(scheduleWorkProgrammeApplicationDetailCaptor.capture());
     ScheduleWorkProgrammeApplicationDetail savedEntity = scheduleWorkProgrammeApplicationDetailCaptor.getValue();
-    assertThat(savedEntity.getStatus()).isEqualTo(ScheduleWorkProgrammeApplicationStatus.DELETED);
+    assertThat(savedEntity.getStatus()).isEqualTo(ApplicationStatus.DELETED);
   }
 
   @Test

@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.continuation;
 import java.time.Instant;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
@@ -18,7 +19,7 @@ public class LicenceContinuationApplicationTestUtil {
     private UUID id = UUID.randomUUID();
     private LicenceContinuationApplication licenceContinuationApplication;
     private Integer versionNumber = 1;
-    private LicenceContinuationApplicationStatus status = LicenceContinuationApplicationStatus.DRAFT;
+    private ApplicationStatus status = ApplicationStatus.DRAFT;
     private Instant submittedDatetime;
     private Long submittedByWuaId;
     private String applicationReference;
@@ -40,7 +41,7 @@ public class LicenceContinuationApplicationTestUtil {
       return this;
     }
 
-    public Builder withStatus(LicenceContinuationApplicationStatus status) {
+    public Builder withStatus(ApplicationStatus status) {
       this.status = status;
       return this;
     }

@@ -15,8 +15,8 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
@@ -26,9 +26,9 @@ import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 public class ScheduleWorkProgrammeApplicationActionService {
   private static final Map<ScheduleWorkProgrammeApplicationActionItem, Set<Role>> ACTIONS_TO_ROLES
       = new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
-  private static final Map<ScheduleWorkProgrammeApplicationStatus,
+  private static final Map<ApplicationStatus,
       Set<ScheduleWorkProgrammeApplicationActionItem>> STATUS_TO_ACTIONS
-      = new EnumMap<>(ScheduleWorkProgrammeApplicationStatus.class);
+      = new EnumMap<>(ApplicationStatus.class);
   private static final Map<ScheduleWorkProgrammeApplicationActionItem,
       Function<ScheduleWorkProgrammeApplicationDetail, Long>> ACTIONS_TO_USER_GRANT_PREDICATES
       = new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
@@ -43,14 +43,14 @@ public class ScheduleWorkProgrammeApplicationActionService {
 
     var registeredActions = ScheduleWorkProgrammeApplicationActionBuilder.newBuilder()
         .registerAction(ScheduleWorkProgrammeApplicationActionItem.ALLOCATE_STEWARD)
-          .requiresAnyStatusFrom(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+          .requiresAnyStatusFrom(ApplicationStatus.SUBMITTED)
           .requiresAnyRoleFrom(StreamUtil.unionSets(
               ApplicationAccessService.STEWARD_ROLES,
               ApplicationAccessService.CASE_MANAGER_ROLES
           ).toArray(Role[]::new))
           .isPrimaryButton(false)
         .registerAction(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION)
-          .requiresAnyStatusFrom(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+          .requiresAnyStatusFrom(ApplicationStatus.SUBMITTED)
           .requiresAnyRoleFrom(ApplicationAccessService.CASE_MANAGER_ROLES.toArray(Role[]::new))
             .orGrantedToUser(detail -> detail.getScheduleWorkProgrammeApplication().getStewardWuaId())
           .isPrimaryButton(true)

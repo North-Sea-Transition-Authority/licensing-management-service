@@ -17,7 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryKeyValue;
 import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUtil;
@@ -41,7 +41,7 @@ class LicenceContinuationApplicationOverviewServiceTest {
     var licence = createLicence();
     var applicationDetail = LicenceContinuationApplicationTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(LicenceContinuationApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .withSubmittedDatetime(Instant.parse("2024-03-15T10:30:00Z"))
         .withSubmittedByWuaId(SUBMITTED_BY_WUA_ID)
         .withApplicationReference("LMS/CA/2024/1")
@@ -69,7 +69,7 @@ class LicenceContinuationApplicationOverviewServiceTest {
     var licence = createLicence();
     var applicationDetail = LicenceContinuationApplicationTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(LicenceContinuationApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .withSubmittedDatetime(Instant.parse("2024-03-15T10:30:00Z"))
         .withSubmittedByWuaId(SUBMITTED_BY_WUA_ID)
         .withApplicationReference("LMS/CA/2024/1")
@@ -97,7 +97,7 @@ class LicenceContinuationApplicationOverviewServiceTest {
     var licence = createLicence();
     var applicationDetail = LicenceContinuationApplicationTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(LicenceContinuationApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .withSubmittedDatetime(Instant.parse("2024-03-15T10:30:00Z"))
         .withSubmittedByWuaId(SUBMITTED_BY_WUA_ID)
         .withApplicationReference("LMS/CA/2024/1")
@@ -129,7 +129,7 @@ class LicenceContinuationApplicationOverviewServiceTest {
     var licence = createLicence();
     var applicationDetail = LicenceContinuationApplicationTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(LicenceContinuationApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .withSubmittedDatetime(Instant.parse("2024-03-15T10:30:00Z"))
         .withSubmittedByWuaId(SUBMITTED_BY_WUA_ID)
         .withApplicationReference("LMS/CA/2024/1")

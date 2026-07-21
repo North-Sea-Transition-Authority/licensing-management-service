@@ -13,14 +13,15 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterController;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -36,11 +37,6 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
 @Service
 public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkAreaItemProvider {
 
-  public static final Set<ScheduleWorkProgrammeApplicationStatus> ACTIVE_APPLICATION_STATUSES = Set.of(
-      ScheduleWorkProgrammeApplicationStatus.DRAFT,
-      ScheduleWorkProgrammeApplicationStatus.SUBMITTED,
-      ScheduleWorkProgrammeApplicationStatus.ISSUE_DECISION
-  );
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final ApplicationAccessService applicationAccessService;
   private final TeamQueryService teamQueryService;
@@ -73,7 +69,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
     var isRegulator = regulatorRoleService.isRegulator(serviceUserDetail);
 
     var allApplicationDetails = scheduleWorkProgrammeApplicationService
-        .getAllScheduleWorkProgrammeApplicationDetailsByStatuses(ACTIVE_APPLICATION_STATUSES);
+        .getAllScheduleWorkProgrammeApplicationDetailsByStatuses(ApplicationStatus.getSearchableStatuses());
 
     var licenceByApplicationDetail = allApplicationDetails.stream()
         .collect(Collectors.toMap(Function.identity(),
@@ -144,7 +140,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       case DRAFT -> ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
           .getTaskList(applicationDetail.getId(), null, null));
 
-      case ScheduleWorkProgrammeApplicationStatus.ISSUE_DECISION -> decisionIssuer
+      case ApplicationStatus.ISSUE_DECISION -> decisionIssuer
           ? ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
               ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
               applicationDetail.getScheduleWorkProgrammeApplication().getId()
@@ -156,15 +152,15 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
           .renderOverview(applicationDetail.getId(), null, null));
     };
 
-    var transactionDateTime = applicationDetail.getStatus() == ScheduleWorkProgrammeApplicationStatus.DRAFT
+    var transactionDateTime = applicationDetail.getStatus() == ApplicationStatus.DRAFT
         ? applicationDetail.getCreatedDatetime()
         : applicationDetail.getSubmittedDatetime();
 
-    var itemReference = applicationDetail.getStatus() == ScheduleWorkProgrammeApplicationStatus.DRAFT
+    var itemReference = applicationDetail.getStatus() == ApplicationStatus.DRAFT
         ? licence.getLicenceReference()
         : applicationDetail.getScheduleWorkProgrammeApplication().getApplicationReference();
 
-    var captionText = applicationDetail.getStatus() == ScheduleWorkProgrammeApplicationStatus.DRAFT
+    var captionText = applicationDetail.getStatus() == ApplicationStatus.DRAFT
         ? String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getCreatedDatetime()))
         : String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getSubmittedDatetime()));
 
@@ -215,6 +211,29 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       return false;
     }
 
+    if (!FilterUtil.matchesEnum(LicenceType.class, licence.getType(), filterForm.getLicenceTypes())) {
+      return false;
+    }
+
+    if (!FilterUtil.matchesTextInput(
+        Objects.requireNonNullElse(applicationDetail.getScheduleWorkProgrammeApplication().getApplicationReference(), ""),
+        filterForm.getApplicationReference()
+    )) {
+      return false;
+    }
+
+    if (!FilterUtil.matchesEnum(
+        ApplicationType.class,
+        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
+        filterForm.getApplicationTypes()
+    )) {
+      return false;
+    }
+
+    if (!FilterUtil.matchesEnum(ApplicationStatus.class, applicationDetail.getStatus(), filterForm.getApplicationStatuses())) {
+      return false;
+    }
+
     var licenceUnitIds = licenceResponsibleOrganisationService
         .getOrganisationUnitIdsFromLicenceOrgUnitMap(responsibleOrganisations, licence);
 
@@ -228,7 +247,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
         userDetail.wuaId()
     );
 
-    if (applicationDetail.getStatus() == ScheduleWorkProgrammeApplicationStatus.DRAFT) {
+    if (applicationDetail.getStatus() == ApplicationStatus.DRAFT) {
       return hasApplicationAccess && !isRegulator;
     }
 

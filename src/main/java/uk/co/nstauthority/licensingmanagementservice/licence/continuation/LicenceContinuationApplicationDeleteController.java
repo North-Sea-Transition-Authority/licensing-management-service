@@ -16,6 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continu
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.reviewandsubmit.ContinuationSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
@@ -24,7 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController
 
 @Controller
 @RequestMapping("/licence/continuation-application/{licenceContinuationApplicationDetailId}/delete-application")
-@ContinuationApplicationHasStatus(value = LicenceContinuationApplicationStatus.DRAFT)
+@ContinuationApplicationHasStatus(value = ApplicationStatus.DRAFT)
 @InvokingUserCanAccessContinuationApplication
 public class LicenceContinuationApplicationDeleteController {
 

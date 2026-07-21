@@ -12,9 +12,13 @@ import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @Controller
 @RequestMapping("/work-area")
@@ -67,6 +71,10 @@ public class WorkAreaController {
         .addObject("startApplicationUrl", ReverseRouter
                 .route(on(SelectApplicationTypeController.class).render()))
         .addObject("form", form)
+        .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
+        .addObject("applicationTypes", DisplayableEnumOptionUtil.getDisplayableOptions(ApplicationType.class))
+        .addObject("applicationStatuses", DisplayableEnumOptionUtil.getDisplayableOptions(
+            ApplicationStatus.getSearchableStatuses()))
         .addObject("clearFilterUrl",
         ReverseRouter.route(on(WorkAreaController.class).clearWorkAreaFilters(null, null)));
   }

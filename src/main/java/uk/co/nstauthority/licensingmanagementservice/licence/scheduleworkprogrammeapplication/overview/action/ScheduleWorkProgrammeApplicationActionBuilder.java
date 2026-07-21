@@ -12,8 +12,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 
 public class ScheduleWorkProgrammeApplicationActionBuilder {
@@ -23,8 +23,8 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
   }
 
   static class Builder implements SetRolesForAnAction, SetStatusForAnAction, RegisterAnAction {
-    public final Map<ScheduleWorkProgrammeApplicationStatus, Set<ScheduleWorkProgrammeApplicationActionItem>> statusMap =
-        new EnumMap<>(ScheduleWorkProgrammeApplicationStatus.class);
+    public final Map<ApplicationStatus, Set<ScheduleWorkProgrammeApplicationActionItem>> statusMap =
+        new EnumMap<>(ApplicationStatus.class);
     public final Map<ScheduleWorkProgrammeApplicationActionItem, Set<Role>> roleMap =
         new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
     public final Map<ScheduleWorkProgrammeApplicationActionItem,
@@ -55,8 +55,8 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
     }
 
     @Override
-    public SetRolesForAnAction requiresAnyStatusFrom(ScheduleWorkProgrammeApplicationStatus... statuses) {
-      for (ScheduleWorkProgrammeApplicationStatus status : statuses) {
+    public SetRolesForAnAction requiresAnyStatusFrom(ApplicationStatus... statuses) {
+      for (ApplicationStatus status : statuses) {
         statusMap.merge(
             status,
             Set.of(Objects.requireNonNull(actionItems.peek())),
@@ -75,8 +75,8 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
 
     @Override
     public SetRolesForAnAction requiresAnyStatus() {
-      var statuses = Arrays.stream(ScheduleWorkProgrammeApplicationStatus.values()).toList();
-      for (ScheduleWorkProgrammeApplicationStatus status : statuses) {
+      var statuses = Arrays.stream(ApplicationStatus.values()).toList();
+      for (ApplicationStatus status : statuses) {
         statusMap.merge(
             status,
             Set.of(Objects.requireNonNull(actionItems.peek())),
@@ -117,7 +117,7 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
   }
 
   interface SetStatusForAnAction {
-    SetRolesForAnAction requiresAnyStatusFrom(ScheduleWorkProgrammeApplicationStatus... statuses);
+    SetRolesForAnAction requiresAnyStatusFrom(ApplicationStatus... statuses);
 
     SetRolesForAnAction requiresAnyStatus();
   }

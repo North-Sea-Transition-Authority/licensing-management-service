@@ -24,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.reviewandsubmit.LicenceScheduleSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
@@ -63,7 +64,7 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
     scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
         .builder()
         .withId(SCHEDULE_APPLICATION_DETAIL_ID)
-        .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
+        .withStatus(ApplicationStatus.DRAFT)
         .withScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication)
         .build();
 
@@ -115,8 +116,8 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
   }
 
   @ParameterizedTest
-  @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
-  void renderForm_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
+  @EnumSource(value = ApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void renderForm_assertForbiddenOnNotDraft(ApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
     var submittedDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
         .builder()
@@ -133,8 +134,8 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
   }
 
   @ParameterizedTest
-  @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
-  void deleteScheduleWorkProgrammeApplication_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
+  @EnumSource(value = ApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void deleteScheduleWorkProgrammeApplication_assertForbiddenOnNotDraft(ApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
     var submittedDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
         .builder()

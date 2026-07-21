@@ -25,8 +25,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
@@ -113,8 +113,8 @@ class LicenceContinuationApplicationTaskListControllerTest extends AbstractContr
   }
 
   @ParameterizedTest
-  @EnumSource(value = LicenceContinuationApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
-  void getTaskList_assertForbiddenOnNotDraft(LicenceContinuationApplicationStatus status) throws Exception {
+  @EnumSource(value = ApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void getTaskList_assertForbiddenOnNotDraft(ApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
 
     LICENCE_CONTINUATION_APPLICATION_DETAIL.setId(id);

@@ -20,8 +20,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continu
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -49,7 +49,7 @@ public class LicenceContinuationOtherRequirementController {
   }
 
   @GetMapping
-  @ContinuationApplicationHasStatus(value = LicenceContinuationApplicationStatus.DRAFT)
+  @ContinuationApplicationHasStatus(value = ApplicationStatus.DRAFT)
   public ModelAndView renderForm(
       @PathVariable UUID licenceContinuationApplicationDetailId,
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
@@ -64,7 +64,7 @@ public class LicenceContinuationOtherRequirementController {
   }
 
   @PostMapping
-  @ContinuationApplicationHasStatus(value = LicenceContinuationApplicationStatus.DRAFT)
+  @ContinuationApplicationHasStatus(value = ApplicationStatus.DRAFT)
   ModelAndView submitForm(
       @PathVariable UUID licenceContinuationApplicationDetailId,
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
@@ -142,7 +142,7 @@ public class LicenceContinuationOtherRequirementController {
   }
 
   @PostMapping("/files/delete/{fileId}")
-  @ContinuationApplicationHasStatus(value = LicenceContinuationApplicationStatus.DRAFT)
+  @ContinuationApplicationHasStatus(value = ApplicationStatus.DRAFT)
   ResponseEntity<FileDeleteResponse> deleteFile(
       @PathVariable UUID fileId,
       @PathVariable UUID licenceContinuationApplicationDetailId,

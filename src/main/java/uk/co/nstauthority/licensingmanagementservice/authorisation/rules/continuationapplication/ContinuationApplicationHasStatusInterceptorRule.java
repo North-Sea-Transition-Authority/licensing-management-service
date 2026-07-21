@@ -13,8 +13,8 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.HandlerMapping;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AccessInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 
 @Component
@@ -52,7 +52,7 @@ public class ContinuationApplicationHasStatusInterceptorRule implements AccessIn
 
     var applicationDetail = getApplicationDetailFromRequest(request);
 
-    for (LicenceContinuationApplicationStatus status : applicationHasStatus.value()) {
+    for (ApplicationStatus status : applicationHasStatus.value()) {
       if (status.equals(applicationDetail.getStatus())) {
         return SecurityRuleResult.continueAsNormal();
       }

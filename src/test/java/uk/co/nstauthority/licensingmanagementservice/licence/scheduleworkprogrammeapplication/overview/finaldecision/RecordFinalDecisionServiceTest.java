@@ -17,10 +17,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.fileuploadlibrary.fds.UploadedFileForm;
 import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileService;
 import uk.co.nstauthority.licensingmanagementservice.file.FileUploadTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 
 @ExtendWith(MockitoExtension.class)
 class RecordFinalDecisionServiceTest {
@@ -91,7 +91,7 @@ class RecordFinalDecisionServiceTest {
     service.recordDecision(applicationDetail, form);
 
     assertThat(applicationDetail.getDecisionDate()).isEqualTo(LocalDate.of(2024, 3, 15));
-    assertThat(applicationDetail.getStatus()).isEqualTo(ScheduleWorkProgrammeApplicationStatus.ISSUE_DECISION);
+    assertThat(applicationDetail.getStatus()).isEqualTo(ApplicationStatus.ISSUE_DECISION);
     verify(applicationLetterService).createDocumentInstance(applicationDetail.getScheduleWorkProgrammeApplication());
     verify(detailRepository).save(applicationDetail);
   }

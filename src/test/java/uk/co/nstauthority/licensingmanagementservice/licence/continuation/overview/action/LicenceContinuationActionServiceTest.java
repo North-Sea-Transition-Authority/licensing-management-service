@@ -13,7 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
@@ -45,7 +45,7 @@ class LicenceContinuationActionServiceTest {
   void getAvailableUserActionItems_confirmContinuation_availableWhenSubmittedAndRoleAllowed() {
     var applicationDetail = LicenceContinuationApplicationTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(LicenceContinuationApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()
@@ -67,7 +67,7 @@ class LicenceContinuationActionServiceTest {
   void getAvailableUserActionItems_confirmContinuation_notAvailableWhenWrongStatus() {
     var applicationDetail = LicenceContinuationApplicationTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(LicenceContinuationApplicationStatus.DRAFT)
+        .withStatus(ApplicationStatus.DRAFT)
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()
@@ -89,7 +89,7 @@ class LicenceContinuationActionServiceTest {
   void getAvailableUserActionItems_confirmContinuation_notAvailableWhenRoleNotAllowed() {
     var applicationDetail = LicenceContinuationApplicationTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(LicenceContinuationApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()
@@ -111,7 +111,7 @@ class LicenceContinuationActionServiceTest {
   void getAvailableUserActionItems_correctlyAssignsPrimaryAndSecondaryFlags() {
     var applicationDetail = LicenceContinuationApplicationTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(LicenceContinuationApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()

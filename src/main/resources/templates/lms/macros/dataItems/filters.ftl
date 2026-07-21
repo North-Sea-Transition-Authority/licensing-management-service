@@ -12,6 +12,24 @@
     </@fdsSearch.searchFilterItem>
 </#macro>
 
+<#macro applicationReferenceFilter form>
+    <@fdsSearch.searchFilterItem itemName="Application reference" expanded=form.applicationReference?has_content>
+        <@fdsSearch.searchTextInput path="form.applicationReference" labelText="Application reference" labelClass="govuk-visually-hidden"/>
+    </@fdsSearch.searchFilterItem>
+</#macro>
+
+<#macro applicationTypeFilter form applicationTypes>
+    <@fdsSearch.searchFilterItem itemName="Application type" expanded=form.applicationTypes?has_content>
+        <@fdsSearch.searchCheckboxes path="form.applicationTypes" checkboxes=applicationTypes/>
+    </@fdsSearch.searchFilterItem>
+</#macro>
+
+<#macro applicationStatusFilter form applicationStatuses>
+    <@fdsSearch.searchFilterItem itemName="Application status" expanded=form.applicationStatuses?has_content>
+        <@fdsSearch.searchCheckboxes path="form.applicationStatuses" checkboxes=applicationStatuses/>
+    </@fdsSearch.searchFilterItem>
+</#macro>
+
 <#macro licenseeGroupFilter form licenseeGroupOrgUnitUrl preSelectedLicenseeGroup={}>
     <@fdsSearch.searchFilterItem itemName="Licensee group" expanded=form.licenseeOrgGroupId?has_content>
         <@fdsSearchSelector.searchSelectorRest

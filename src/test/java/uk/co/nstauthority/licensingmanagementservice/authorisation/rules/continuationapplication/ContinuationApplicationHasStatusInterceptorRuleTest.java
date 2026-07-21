@@ -19,8 +19,8 @@ import org.springframework.web.servlet.HandlerMapping;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AbstractInterceptorRuleTest;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
@@ -41,7 +41,7 @@ class ContinuationApplicationHasStatusInterceptorRuleTest extends AbstractInterc
 
   @Test
   void check_applicationHasStatus_oneStatus_rulePass() throws NoSuchMethodException {
-    mockApplicationInStatusAsPathVariableEntity(LicenceContinuationApplicationStatus.DRAFT);
+    mockApplicationInStatusAsPathVariableEntity(ApplicationStatus.DRAFT);
 
     var annotation = getAnnotation(
         ContinuationApplicationHasStatusInterceptorRuleTest.class.getDeclaredMethod("applicationHasStatus_oneStatus", LicenceContinuationApplicationDetail.class),
@@ -60,7 +60,7 @@ class ContinuationApplicationHasStatusInterceptorRuleTest extends AbstractInterc
 
   @Test
   void check_applicationHasStatus_oneStatus_ruleFail() throws NoSuchMethodException {
-    mockApplicationInStatusAsPathVariableEntity(LicenceContinuationApplicationStatus.SUBMITTED);
+    mockApplicationInStatusAsPathVariableEntity(ApplicationStatus.SUBMITTED);
 
     var annotation = getAnnotation(
         ContinuationApplicationHasStatusInterceptorRuleTest.class.getDeclaredMethod(
@@ -86,8 +86,8 @@ class ContinuationApplicationHasStatusInterceptorRuleTest extends AbstractInterc
   }
 
   @ParameterizedTest
-  @EnumSource(value = LicenceContinuationApplicationStatus.class, mode = EnumSource.Mode.INCLUDE, names = {"DRAFT", "SUBMITTED"})
-  void check_applicationHasStatus_manyStatuses_rulePass(LicenceContinuationApplicationStatus status) throws NoSuchMethodException {
+  @EnumSource(value = ApplicationStatus.class, mode = EnumSource.Mode.INCLUDE, names = {"DRAFT", "SUBMITTED"})
+  void check_applicationHasStatus_manyStatuses_rulePass(ApplicationStatus status) throws NoSuchMethodException {
     mockApplicationInStatusAsPathVariableEntity(status);
 
     var annotation = getAnnotation(
@@ -108,7 +108,7 @@ class ContinuationApplicationHasStatusInterceptorRuleTest extends AbstractInterc
     verifyNoInteractions(response);
   }
 
-  private void mockApplicationInStatusAsPathVariableEntity(LicenceContinuationApplicationStatus status) {
+  private void mockApplicationInStatusAsPathVariableEntity(ApplicationStatus status) {
     var id = UUID.randomUUID();
     var licence = LicenceTestUtil
         .builder()
@@ -145,13 +145,13 @@ class ContinuationApplicationHasStatusInterceptorRuleTest extends AbstractInterc
   }
 
   @GetMapping("application-has-status-one-status/{applicationId}")
-  @ContinuationApplicationHasStatus(LicenceContinuationApplicationStatus.DRAFT)
+  @ContinuationApplicationHasStatus(ApplicationStatus.DRAFT)
   public ResponseEntity<String> applicationHasStatus_oneStatus(LicenceContinuationApplicationDetail application) {
     return ResponseEntity.ok("application has status one status test endpoint");
   }
 
   @GetMapping("application-has-status-many-statuses/{applicationId}")
-  @ContinuationApplicationHasStatus({LicenceContinuationApplicationStatus.DRAFT, LicenceContinuationApplicationStatus.SUBMITTED})
+  @ContinuationApplicationHasStatus({ApplicationStatus.DRAFT, ApplicationStatus.SUBMITTED})
   public ResponseEntity<String> applicationHasStatus_manyStatuses(LicenceContinuationApplicationDetail application) {
     return ResponseEntity.ok("application has status many statuses test endpoint");
   }

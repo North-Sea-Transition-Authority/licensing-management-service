@@ -24,9 +24,9 @@ import uk.co.nstauthority.licensingmanagementservice.document.instance.LmsDocume
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.file.FileUsageType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.IssueLettersService;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -35,7 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController
 
 @Controller
 @RequestMapping("/application/{applicationType}/{applicationId}/document/{documentInstanceId}")
-@ContinuationApplicationHasStatus(value = LicenceContinuationApplicationStatus.ISSUE_DECISION)
+@ContinuationApplicationHasStatus(value = ApplicationStatus.ISSUE_DECISION)
 @HasRolesInTeamType(value = {
     @RolesAndTeamType(roles = {Role.CONTINUATION_ISSUER}, teamType = TeamType.REGULATIONS_LICENSING)
 })

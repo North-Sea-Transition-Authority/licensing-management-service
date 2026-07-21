@@ -32,6 +32,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterController;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
@@ -40,7 +41,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -168,7 +168,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
 
   @Test
   void getWorkAreaItems_whenSubmitted_linksToOverview() {
-    scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ApplicationStatus.SUBMITTED);
     scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
 
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
@@ -194,7 +194,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
 
   @Test
   void getWorkAreaItems_whenSubmitted_mapsAllFieldsCorrectly() {
-    scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ApplicationStatus.SUBMITTED);
     scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
 
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
@@ -211,7 +211,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     var summaryDataView = SummaryDataView.newBuilder()
         .addStringValue("Licence", licence1.getLicenceReference())
         .addStringValue("Licensees", org1)
-        .addStringValue("Status", ScheduleWorkProgrammeApplicationStatus.SUBMITTED.getDisplayName())
+        .addStringValue("Status", ApplicationStatus.SUBMITTED.getDisplayName())
         .build();
 
     assertThat(workAreaItems)
@@ -240,7 +240,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
 
   @Test
   void getWorkAreaItems_whenIssueDecision_IsDecisionIssuer_linksToLetterController() {
-    scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.ISSUE_DECISION);
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ApplicationStatus.ISSUE_DECISION);
     scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
 
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
@@ -265,7 +265,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
 
   @Test
   void getWorkAreaItems_whenIssueDecision_IsNotDecisionIssuer_linksToOverview() {
-    scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.ISSUE_DECISION);
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ApplicationStatus.ISSUE_DECISION);
     scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
 
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
@@ -287,7 +287,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
 
   @Test
   void getWorkAreaItems_whenItemNotYetViewed_showsNewBadge() {
-    scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ApplicationStatus.SUBMITTED);
     scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
 
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
@@ -306,7 +306,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
 
   @Test
   void getWorkAreaItems_whenItemAlreadyViewed_doesNotShowNewBadge() {
-    scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ApplicationStatus.SUBMITTED);
     scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
 
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
@@ -369,9 +369,9 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
 
   @Test
   void getWorkAreaItems_fetchesViewLogsOnceForAllItems_notPerItem() {
-    scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ApplicationStatus.SUBMITTED);
     scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
-    scheduleWorkProgrammeApplicationDetail2.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail2.setStatus(ApplicationStatus.SUBMITTED);
     scheduleWorkProgrammeApplicationDetail2.setSubmittedDatetime(testInstant);
 
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
@@ -438,6 +438,132 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
   }
 
   @Test
+  void getWorkAreaItems_filteredByLicenceType() {
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+
+    var org1 = "Org 1";
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
+        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, org1))));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setLicenceTypes(List.of(LicenceType.CARBON_STORAGE.name()));
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactly(scheduleWorkProgrammeApplicationDetail2.getId().toString());
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByApplicationReference() {
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+
+    var org1 = "Org 1";
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
+        .thenReturn(Map.of(licence1, List.of(new OrganisationUnit(1, org1))));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setApplicationReference("001");
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactly(scheduleWorkProgrammeApplicationDetail1.getId().toString());
+  }
+
+  @Test
+  void getWorkAreaItems_whenDraftHasNoApplicationReferenceYet_andApplicationReferenceFilterSet_thenExcludedWithoutError() {
+    scheduleWorkProgrammeApplicationDetail1.getScheduleWorkProgrammeApplication().setApplicationReference(null);
+
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setApplicationReference("EEA");
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems).isEmpty();
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByApplicationType_matching() {
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
+        .thenReturn(Map.of(
+            licence1, List.of(new OrganisationUnit(1, "Org 1")),
+            licence2, List.of(new OrganisationUnit(2, "Org 2"))
+        ));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setApplicationTypes(List.of(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name()));
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactlyInAnyOrder(
+            scheduleWorkProgrammeApplicationDetail1.getId().toString(),
+            scheduleWorkProgrammeApplicationDetail2.getId().toString()
+        );
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByApplicationType_nonMatching_thenExcluded() {
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setApplicationTypes(List.of(ApplicationType.CONTINUATION_APPLICATION.name()));
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems).isEmpty();
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByApplicationStatus_matching() {
+    scheduleWorkProgrammeApplicationDetail2.setStatus(ApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail2.setSubmittedDatetime(testInstant.minus(1, ChronoUnit.HOURS));
+
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+
+    var org1 = "Org 1";
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
+        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, org1))));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setApplicationStatuses(List.of(ApplicationStatus.SUBMITTED.name()));
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactly(scheduleWorkProgrammeApplicationDetail2.getId().toString());
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByApplicationStatus_nonMatching_thenExcluded() {
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setApplicationStatuses(List.of(ApplicationStatus.ISSUE_DECISION.name()));
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems).isEmpty();
+  }
+
+  @Test
   void getWorkAreaItems_filteredByUser_userHasAccessToApplication() {
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
@@ -484,7 +610,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
 
   @Test
   void getWorkAreaItems_filteredByUser_isCaseManager() {
-    scheduleWorkProgrammeApplicationDetail2.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail2.setStatus(ApplicationStatus.SUBMITTED);
     scheduleWorkProgrammeApplicationDetail2.setSubmittedDatetime(testInstant.minus(1, ChronoUnit.HOURS));
 
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
@@ -534,7 +660,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
 
   @Test
   void getWorkAreaItems_filteredByUser_isDecisionIssuer() {
-    scheduleWorkProgrammeApplicationDetail1.setStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ApplicationStatus.SUBMITTED);
     scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
 
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
@@ -598,7 +724,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
         .builder()
         .withId(UUID.randomUUID())
         .withCreatedDate(time)
-        .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
+        .withStatus(ApplicationStatus.DRAFT)
         .withApplicationReference(applicationReference)
         .withScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication)
         .build();

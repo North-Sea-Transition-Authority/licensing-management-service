@@ -27,11 +27,11 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -61,7 +61,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
     scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
         .builder()
         .withId(SCHEDULE_APPLICATION_DETAIL_ID)
-        .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
+        .withStatus(ApplicationStatus.DRAFT)
         .withScheduleWorkProgrammeApplication(
             ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(licenceScheduleDetail))
         .build();
@@ -179,8 +179,8 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
   }
 
   @ParameterizedTest
-  @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
-  void renderPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
+  @EnumSource(value = ApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void renderPage_assertForbiddenOnNotDraft(ApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
     var submittedDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
         .builder()
@@ -196,8 +196,8 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
   }
 
   @ParameterizedTest
-  @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
-  void submitPage_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
+  @EnumSource(value = ApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void submitPage_assertForbiddenOnNotDraft(ApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
     var submittedDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
         .builder()

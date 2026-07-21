@@ -18,10 +18,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.servlet.HandlerMapping;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AbstractInterceptorRuleTest;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 
 class ScheduleAmendmentApplicationHasStatusInterceptorRuleTest extends AbstractInterceptorRuleTest {
 
@@ -39,7 +39,7 @@ class ScheduleAmendmentApplicationHasStatusInterceptorRuleTest extends AbstractI
 
   @Test
   void check_applicationHasStatus_oneStatus_rulePass() throws NoSuchMethodException {
-    mockApplicationInStatusAsPathVariableEntity(ScheduleWorkProgrammeApplicationStatus.DRAFT);
+    mockApplicationInStatusAsPathVariableEntity(ApplicationStatus.DRAFT);
 
     var annotation = getAnnotation(
         ScheduleAmendmentApplicationHasStatusInterceptorRuleTest.class.getDeclaredMethod("applicationHasStatus_oneStatus", ScheduleWorkProgrammeApplicationDetail.class),
@@ -58,7 +58,7 @@ class ScheduleAmendmentApplicationHasStatusInterceptorRuleTest extends AbstractI
 
   @Test
   void check_applicationHasStatus_oneStatus_ruleFail() throws NoSuchMethodException {
-    mockApplicationInStatusAsPathVariableEntity(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+    mockApplicationInStatusAsPathVariableEntity(ApplicationStatus.SUBMITTED);
 
     var annotation = getAnnotation(
         ScheduleAmendmentApplicationHasStatusInterceptorRuleTest.class.getDeclaredMethod(
@@ -84,8 +84,8 @@ class ScheduleAmendmentApplicationHasStatusInterceptorRuleTest extends AbstractI
   }
 
   @ParameterizedTest
-  @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.INCLUDE, names = {"DRAFT", "SUBMITTED"})
-  void check_applicationHasStatus_manyStatuses_rulePass(ScheduleWorkProgrammeApplicationStatus status) throws NoSuchMethodException {
+  @EnumSource(value = ApplicationStatus.class, mode = EnumSource.Mode.INCLUDE, names = {"DRAFT", "SUBMITTED"})
+  void check_applicationHasStatus_manyStatuses_rulePass(ApplicationStatus status) throws NoSuchMethodException {
     mockApplicationInStatusAsPathVariableEntity(status);
 
     var annotation = getAnnotation(
@@ -106,7 +106,7 @@ class ScheduleAmendmentApplicationHasStatusInterceptorRuleTest extends AbstractI
     verifyNoInteractions(response);
   }
 
-  private void mockApplicationInStatusAsPathVariableEntity(ScheduleWorkProgrammeApplicationStatus status) {
+  private void mockApplicationInStatusAsPathVariableEntity(ApplicationStatus status) {
     var id = UUID.randomUUID();
     var scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
         .builder().withId(id).withStatus(status).build();
@@ -133,13 +133,13 @@ class ScheduleAmendmentApplicationHasStatusInterceptorRuleTest extends AbstractI
   }
   
   @GetMapping("application-has-status-one-status/{applicationId}")
-  @ScheduleAmendmentApplicationHasStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
+  @ScheduleAmendmentApplicationHasStatus(ApplicationStatus.DRAFT)
   public ResponseEntity<String> applicationHasStatus_oneStatus(ScheduleWorkProgrammeApplicationDetail application) {
     return ResponseEntity.ok("application has status one status test endpoint");
   }
 
   @GetMapping("application-has-status-many-statuses/{applicationId}")
-  @ScheduleAmendmentApplicationHasStatus({ScheduleWorkProgrammeApplicationStatus.DRAFT, ScheduleWorkProgrammeApplicationStatus.SUBMITTED})
+  @ScheduleAmendmentApplicationHasStatus({ApplicationStatus.DRAFT, ApplicationStatus.SUBMITTED})
   public ResponseEntity<String> applicationHasStatus_manyStatuses(ScheduleWorkProgrammeApplicationDetail application) {
     return ResponseEntity.ok("application has status many statuses test endpoint");
   }

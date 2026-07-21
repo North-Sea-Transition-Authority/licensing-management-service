@@ -16,8 +16,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continu
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
@@ -25,7 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("licence/continuation-application/{licenceContinuationApplicationDetailId}/requirements")
-@ContinuationApplicationHasStatus(value = LicenceContinuationApplicationStatus.DRAFT)
+@ContinuationApplicationHasStatus(value = ApplicationStatus.DRAFT)
 @InvokingUserCanAccessContinuationApplication
 @ContinuationApplicationHasWorkProgrammeActivities
 public class LicenceContinuationWpaRequirementController {

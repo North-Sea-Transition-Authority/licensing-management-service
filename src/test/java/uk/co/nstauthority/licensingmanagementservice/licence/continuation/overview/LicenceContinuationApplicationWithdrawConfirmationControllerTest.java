@@ -24,9 +24,9 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.withdraw.ApplicationWithdrawReasonValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.action.LicenceContinuationActionItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.action.LicenceContinuationActionService;
@@ -63,7 +63,7 @@ class LicenceContinuationApplicationWithdrawConfirmationControllerTest extends A
     when(licenceContinuationService.getDetailByIdOrThrow(LICENCE_CONTINUATION_APPLICATION_DETAIL.getId()))
         .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
 
-    LICENCE_CONTINUATION_APPLICATION_DETAIL.setStatus(LicenceContinuationApplicationStatus.SUBMITTED);
+    LICENCE_CONTINUATION_APPLICATION_DETAIL.setStatus(ApplicationStatus.SUBMITTED);
 
     when(licenceContinuationActionService.getAvailableUserActionItems(any(), any()))
         .thenReturn(List.of(

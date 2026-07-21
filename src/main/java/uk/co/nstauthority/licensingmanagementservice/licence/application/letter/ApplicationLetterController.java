@@ -21,8 +21,8 @@ import uk.co.nstauthority.licensingmanagementservice.document.DocumentLinkingSer
 import uk.co.nstauthority.licensingmanagementservice.document.instance.LmsDocumentInstanceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.letter.ContinuationApplicationDocumentActionsController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -31,7 +31,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
 
 @Controller
 @RequestMapping("/application/{applicationType}/{applicationId}")
-@ContinuationApplicationHasStatus(value = LicenceContinuationApplicationStatus.ISSUE_DECISION)
+@ContinuationApplicationHasStatus(value = ApplicationStatus.ISSUE_DECISION)
 @HasRolesInTeamType(value = {
     @RolesAndTeamType(roles = {Role.CONTINUATION_ISSUER}, teamType = TeamType.REGULATIONS_LICENSING)
 })

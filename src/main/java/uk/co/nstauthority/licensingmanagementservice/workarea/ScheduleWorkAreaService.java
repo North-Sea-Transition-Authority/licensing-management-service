@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
@@ -51,6 +52,11 @@ public class ScheduleWorkAreaService implements WorkAreaItemProvider {
             licenceScheduleDetail.getLicenceSchedule().getLicence().getLicenceReference(),
             workAreaFilterForm.getLicenceReference()
             ))
+        .filter(licenceScheduleDetail -> FilterUtil.matchesEnum(
+            LicenceType.class,
+            licenceScheduleDetail.getLicenceSchedule().getLicence().getType(),
+            workAreaFilterForm.getLicenceTypes()
+        ))
         .toList();
 
     var licences = licenceSchedules.stream()

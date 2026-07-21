@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
@@ -192,6 +193,86 @@ class ScheduleWorkAreaServiceTest {
                 String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(licenceScheduleDetail2.getCreatedInstant()))
             )
         );
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByLicenceType() {
+    var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
+    var testInstant = Instant.now(clock);
+
+    var licence1 = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .withLicenceReference("CS001")
+        .build();
+    var licenceScheduleDetail1 = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(
+            LicenceScheduleTestUtil.createLicenceSchedule(licence1))
+        .withId(UUID.randomUUID())
+        .withCreatedInstant(testInstant)
+        .build();
+
+    var licence2 = LicenceTestUtil.builder()
+        .withId(2)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withLicenceReference("P002")
+        .build();
+    var licenceScheduleDetail2 = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(
+            LicenceScheduleTestUtil.createLicenceSchedule(licence2))
+        .withId(UUID.randomUUID())
+        .withCreatedInstant(testInstant)
+        .build();
+
+    when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail)).thenReturn(
+        List.of(licenceScheduleDetail1, licenceScheduleDetail2)
+    );
+    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence2))).thenReturn(
+        Map.of(licence2, List.of())
+    );
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setLicenceTypes(List.of(LicenceType.SEAWARD_PRODUCTION.name()));
+    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactly(licenceScheduleDetail2.getId().toString());
+  }
+
+  @Test
+  void getWorkAreaItems_notAffectedByApplicationReferenceFilter() {
+    var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
+    var licence = LicenceTestUtil.builder().withId(1).withLicenceType(LicenceType.CARBON_STORAGE).withLicenceReference("CS001").build();
+    var detail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(LicenceScheduleTestUtil.createLicenceSchedule(licence))
+        .withId(UUID.randomUUID()).withCreatedInstant(Instant.now(clock)).build();
+
+    when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail)).thenReturn(List.of(detail));
+    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence))).thenReturn(Map.of(licence, List.of()));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setApplicationReference("LMS/EEA/001");
+    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems).extracting(SearchResultItem::id).containsExactly(detail.getId().toString());
+  }
+
+  @Test
+  void getWorkAreaItems_notAffectedByApplicationTypeFilter() {
+    var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
+    var licence = LicenceTestUtil.builder().withId(1).withLicenceType(LicenceType.CARBON_STORAGE).withLicenceReference("CS001").build();
+    var detail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(LicenceScheduleTestUtil.createLicenceSchedule(licence))
+        .withId(UUID.randomUUID()).withCreatedInstant(Instant.now(clock)).build();
+
+    when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail)).thenReturn(List.of(detail));
+    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
+    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence))).thenReturn(Map.of(licence, List.of()));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setApplicationTypes(List.of(ApplicationType.CONTINUATION_APPLICATION.name()));
+    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems).extracting(SearchResultItem::id).containsExactly(detail.getId().toString());
   }
 
   @Test

@@ -10,8 +10,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.apache.commons.collections4.CollectionUtils;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 
 public class LicenceContinuationActionBuilder {
@@ -21,8 +21,8 @@ public class LicenceContinuationActionBuilder {
   }
 
   static class Builder implements SetRolesForAnAction, SetStatusForAnAction, RegisterAnAction {
-    public final Map<LicenceContinuationApplicationStatus, Set<LicenceContinuationActionItem>> statusMap =
-        new EnumMap<>(LicenceContinuationApplicationStatus.class);
+    public final Map<ApplicationStatus, Set<LicenceContinuationActionItem>> statusMap =
+        new EnumMap<>(ApplicationStatus.class);
     public final Map<LicenceContinuationActionItem, Set<Role>> roleMap =
         new EnumMap<>(LicenceContinuationActionItem.class);
     private final Deque<LicenceContinuationActionItem> actionItems = new LinkedList<>();
@@ -49,8 +49,8 @@ public class LicenceContinuationActionBuilder {
     }
 
     @Override
-    public RegisterAnAction requiresAnyStatusFrom(LicenceContinuationApplicationStatus... statuses) {
-      for (LicenceContinuationApplicationStatus status : statuses) {
+    public RegisterAnAction requiresAnyStatusFrom(ApplicationStatus... statuses) {
+      for (ApplicationStatus status : statuses) {
         statusMap.merge(
             status,
             Set.of(Objects.requireNonNull(actionItems.peek())),
@@ -62,8 +62,8 @@ public class LicenceContinuationActionBuilder {
 
     @Override
     public RegisterAnAction requiresAnyStatus() {
-      var statuses = Arrays.stream(LicenceContinuationApplicationStatus.values()).toList();
-      for (LicenceContinuationApplicationStatus status : statuses) {
+      var statuses = Arrays.stream(ApplicationStatus.values()).toList();
+      for (ApplicationStatus status : statuses) {
         statusMap.merge(
             status,
             Set.of(Objects.requireNonNull(actionItems.peek())),
@@ -108,7 +108,7 @@ public class LicenceContinuationActionBuilder {
   }
 
   interface SetStatusForAnAction {
-    RegisterAnAction requiresAnyStatusFrom(LicenceContinuationApplicationStatus... statuses);
+    RegisterAnAction requiresAnyStatusFrom(ApplicationStatus... statuses);
 
     RegisterAnAction requiresAnyStatus();
   }

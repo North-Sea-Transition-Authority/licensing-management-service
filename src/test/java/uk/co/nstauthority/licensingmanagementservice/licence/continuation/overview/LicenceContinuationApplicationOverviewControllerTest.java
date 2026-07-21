@@ -28,8 +28,8 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.caseprocessing.OverviewTab;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.decision.ContinuationDecisionSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.decision.ContinuationLetterFileUsages;
@@ -81,7 +81,7 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
         LicenceScheduleTestUtil.createLicenceScheduleDetail(LicenceScheduleTestUtil.createLicenceSchedule(licence)));
     var applicationDetail = LicenceContinuationApplicationTestUtil.builder()
         .withId(applicationDetailId)
-        .withStatus(LicenceContinuationApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .withSubmittedDatetime(submittedDatetime)
         .withApplicationReference("LMS/CA/2024/1")
         .withLicenceContinuationApplication(licenceContinuationApp)
@@ -134,7 +134,7 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
     var fileId = UUID.randomUUID();
     var applicationDetail = LicenceContinuationApplicationTestUtil.builder()
         .withId(applicationDetailId)
-        .withStatus(LicenceContinuationApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .build();
 
     when(licenceContinuationService.getDetailByIdOrThrow(applicationDetailId))

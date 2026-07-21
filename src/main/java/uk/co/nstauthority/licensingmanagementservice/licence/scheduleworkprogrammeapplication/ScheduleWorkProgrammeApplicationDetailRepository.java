@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationSource;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 
 @Repository
 public interface ScheduleWorkProgrammeApplicationDetailRepository
@@ -18,5 +19,5 @@ public interface ScheduleWorkProgrammeApplicationDetailRepository
 
   int countByVersionNumberAndSubmittedDatetimeBetween(Integer versionNumber, Instant startOfYear, Instant endOfYear);
 
-  List<ScheduleWorkProgrammeApplicationDetail> findAllByStatusIn(Set<ScheduleWorkProgrammeApplicationStatus> statuses);
+  List<ScheduleWorkProgrammeApplicationDetail> findAllByStatusIn(Set<ApplicationStatus> statuses);
 }

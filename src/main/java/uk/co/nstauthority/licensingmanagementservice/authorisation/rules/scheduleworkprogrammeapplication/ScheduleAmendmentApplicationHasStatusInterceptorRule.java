@@ -10,9 +10,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AccessInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 
 @Component
 @Order(5)
@@ -44,7 +44,7 @@ public class ScheduleAmendmentApplicationHasStatusInterceptorRule implements Acc
 
     var applicationDetail = getApplicationDetailFromRequest(request);
 
-    for (ScheduleWorkProgrammeApplicationStatus status : applicationHasStatus.value()) {
+    for (ApplicationStatus status : applicationHasStatus.value()) {
       if (status.equals(applicationDetail.getStatus())) {
         return SecurityRuleResult.continueAsNormal();
       }

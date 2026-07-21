@@ -25,9 +25,9 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListService;
@@ -57,7 +57,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
   void setUp() {
     licenceContinuationApplicationDetail = LicenceContinuationApplicationTestUtil.builder()
         .withId(LICENCE_CONTINUATION_APPLICATION_DETAIL_ID)
-        .withStatus(LicenceContinuationApplicationStatus.DRAFT)
+        .withStatus(ApplicationStatus.DRAFT)
         .build();
 
     when(licenceContinuationService.getDetailByIdOrThrow(LICENCE_CONTINUATION_APPLICATION_DETAIL_ID)).thenReturn(licenceContinuationApplicationDetail);
@@ -135,8 +135,8 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
   }
 
   @ParameterizedTest
-  @EnumSource(value = LicenceContinuationApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
-  void renderPage_assertForbiddenOnNotDraft(LicenceContinuationApplicationStatus status) throws Exception {
+  @EnumSource(value = ApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void renderPage_assertForbiddenOnNotDraft(ApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
     var submittedDetail = LicenceContinuationApplicationTestUtil.builder()
         .withId(id)
@@ -162,8 +162,8 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
   }
 
   @ParameterizedTest
-  @EnumSource(value = LicenceContinuationApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
-  void submitPage_assertForbiddenOnNotDraft(LicenceContinuationApplicationStatus status) throws Exception {
+  @EnumSource(value = ApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void submitPage_assertForbiddenOnNotDraft(ApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
     var submittedDetail = LicenceContinuationApplicationTestUtil.builder()
         .withId(id)

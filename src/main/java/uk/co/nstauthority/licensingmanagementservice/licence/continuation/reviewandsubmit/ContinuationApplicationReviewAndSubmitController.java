@@ -17,8 +17,8 @@ import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListService;
@@ -29,7 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController
 
 @Controller
 @RequestMapping("/licence/continuation-application/{licenceContinuationApplicationDetailId}/review-and-submit")
-@ContinuationApplicationHasStatus(value = LicenceContinuationApplicationStatus.DRAFT)
+@ContinuationApplicationHasStatus(value = ApplicationStatus.DRAFT)
 @InvokingUserCanAccessContinuationApplication
 public class ContinuationApplicationReviewAndSubmitController {
 

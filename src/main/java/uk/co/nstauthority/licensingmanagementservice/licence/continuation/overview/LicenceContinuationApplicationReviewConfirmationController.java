@@ -13,8 +13,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.LicenceContinuationActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.action.LicenceContinuationActionItem;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -23,7 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController
 @Controller
 @RequestMapping("licence/continuation-application/{licenceContinuationApplicationDetailId}/overview/confirmation")
 @ContinuationApplicationHasStatus(value = {
-    LicenceContinuationApplicationStatus.SUBMITTED
+    ApplicationStatus.SUBMITTED
 })
 @LicenceContinuationActionEndPointInterceptorRule.ActionEndPoint(
     LicenceContinuationActionItem.CONFIRM_CONTINUATION)

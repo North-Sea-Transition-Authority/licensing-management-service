@@ -24,12 +24,12 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDeleteController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
@@ -48,7 +48,7 @@ class ScheduleWorkProgrammeApplicationTaskListControllerTest extends AbstractCon
       ScheduleWorkProgrammeApplicationDetailTestUtil
           .builder()
           .withId(UUID.randomUUID())
-          .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
+          .withStatus(ApplicationStatus.DRAFT)
           .withScheduleWorkProgrammeApplication(
               ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(LICENCE_SCHEDULE_DETAIL))
           .build();
@@ -88,8 +88,8 @@ class ScheduleWorkProgrammeApplicationTaskListControllerTest extends AbstractCon
   }
 
   @ParameterizedTest
-  @EnumSource(value = ScheduleWorkProgrammeApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
-  void getTaskList_assertForbiddenOnNotDraft(ScheduleWorkProgrammeApplicationStatus status) throws Exception {
+  @EnumSource(value = ApplicationStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "DRAFT")
+  void getTaskList_assertForbiddenOnNotDraft(ApplicationStatus status) throws Exception {
     var id = UUID.randomUUID();
     var submittedDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
         .builder()
@@ -111,7 +111,7 @@ class ScheduleWorkProgrammeApplicationTaskListControllerTest extends AbstractCon
 
     var submittedDetail = ScheduleWorkProgrammeApplicationDetailTestUtil
         .builder()
-        .withStatus(ScheduleWorkProgrammeApplicationStatus.DRAFT)
+        .withStatus(ApplicationStatus.DRAFT)
         .withId(id)
         .withScheduleWorkProgrammeApplication(
             ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(LICENCE_SCHEDULE_DETAIL))

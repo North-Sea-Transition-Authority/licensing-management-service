@@ -35,10 +35,10 @@ import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperSe
 import uk.co.nstauthority.licensingmanagementservice.file.FileUploadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action.ScheduleWorkProgrammeApplicationActionItem;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
@@ -68,7 +68,7 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
     assertThat(RecordFinalDecisionController.class)
         .hasAnnotation(ScheduleAmendmentApplicationHasStatus.class);
     assertThat(RecordFinalDecisionController.class.getAnnotation(ScheduleAmendmentApplicationHasStatus.class).value())
-        .containsOnly(ScheduleWorkProgrammeApplicationStatus.SUBMITTED);
+        .containsOnly(ApplicationStatus.SUBMITTED);
     assertThat(RecordFinalDecisionController.class)
         .hasAnnotation(InvokingUserCanAccessScheduleApplication.class);
     assertThat(RecordFinalDecisionController.class)
@@ -194,7 +194,7 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
     var swpApp = ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(licenceScheduleDetail);
     return ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(applicationDetailId)
-        .withStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .withScheduleWorkProgrammeApplication(swpApp)
         .build();
   }

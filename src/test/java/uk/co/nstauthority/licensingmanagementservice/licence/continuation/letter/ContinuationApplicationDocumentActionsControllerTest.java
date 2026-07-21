@@ -25,10 +25,10 @@ import uk.co.nstauthority.licensingmanagementservice.document.instance.LmsDocume
 import uk.co.nstauthority.licensingmanagementservice.file.FileUsageType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.IssueLettersService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
@@ -66,7 +66,7 @@ public class ContinuationApplicationDocumentActionsControllerTest extends Abstra
     when(teamQueryService.userHasRoleInTeamType(any(), any(), any())).thenReturn(true);
     when(licenceContinuationService.getDetailByIdOrThrow(any())).thenReturn(continuationApplicationDetail);
     when(licenceContinuationService.getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(any())).thenReturn(continuationApplicationDetail);
-    when(continuationApplicationDetail.getStatus()).thenReturn(LicenceContinuationApplicationStatus.ISSUE_DECISION);
+    when(continuationApplicationDetail.getStatus()).thenReturn(ApplicationStatus.ISSUE_DECISION);
   }
 
   @Test

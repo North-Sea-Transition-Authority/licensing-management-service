@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 import java.time.Instant;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
@@ -18,7 +19,7 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
     private UUID id;
     private ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication;
     private Integer versionNumber;
-    private ScheduleWorkProgrammeApplicationStatus status;
+    private ApplicationStatus status;
     private Boolean allLicenseesPermissionConfirmed;
     private Instant createdDateTime;
     private Instant submittedDatetime;
@@ -43,7 +44,7 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
       return this;
     }
 
-    public Builder withStatus(ScheduleWorkProgrammeApplicationStatus status) {
+    public Builder withStatus(ApplicationStatus status) {
       this.status = status;
       return this;
     }

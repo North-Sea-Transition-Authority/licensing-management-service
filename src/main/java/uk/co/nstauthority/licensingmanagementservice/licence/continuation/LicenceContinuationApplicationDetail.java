@@ -16,6 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVari
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
@@ -39,7 +40,7 @@ public class LicenceContinuationApplicationDetail implements LicenceApplicationD
 
   @Enumerated(EnumType.STRING)
   @Column
-  private LicenceContinuationApplicationStatus status;
+  private ApplicationStatus status;
 
   private Instant createdDateTime;
 
@@ -105,11 +106,11 @@ public class LicenceContinuationApplicationDetail implements LicenceApplicationD
     this.versionNumber = versionNumber;
   }
 
-  public LicenceContinuationApplicationStatus getStatus() {
+  public ApplicationStatus getStatus() {
     return status;
   }
 
-  public void setStatus(LicenceContinuationApplicationStatus status) {
+  public void setStatus(ApplicationStatus status) {
     this.status = status;
   }
 

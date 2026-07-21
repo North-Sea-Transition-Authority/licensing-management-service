@@ -12,13 +12,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
-import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
+import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryKeyValue;
 import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUtil;
 
@@ -41,7 +41,7 @@ class ScheduleWorkProgrammeApplicationOverviewServiceTest {
     var licence = createLicence();
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .withSubmittedDatetime(Instant.parse("2024-03-15T10:30:00Z"))
         .withSubmittedByWuaId(SUBMITTED_BY_WUA_ID)
         .withApplicationReference("LMS/EAA/2024/1")
@@ -69,7 +69,7 @@ class ScheduleWorkProgrammeApplicationOverviewServiceTest {
     var licence = createLicence();
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .withSubmittedDatetime(Instant.parse("2024-03-15T10:30:00Z"))
         .withSubmittedByWuaId(SUBMITTED_BY_WUA_ID)
         .withApplicationReference("LMS/EAA/2024/1")
@@ -97,7 +97,7 @@ class ScheduleWorkProgrammeApplicationOverviewServiceTest {
     var licence = createLicence();
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .withSubmittedDatetime(Instant.parse("2024-03-15T10:30:00Z"))
         .withSubmittedByWuaId(SUBMITTED_BY_WUA_ID)
         .withApplicationReference("LMS/EAA/2024/1")
@@ -129,7 +129,7 @@ class ScheduleWorkProgrammeApplicationOverviewServiceTest {
     var licence = createLicence();
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(ScheduleWorkProgrammeApplicationStatus.SUBMITTED)
+        .withStatus(ApplicationStatus.SUBMITTED)
         .withSubmittedDatetime(Instant.parse("2024-03-15T10:30:00Z"))
         .withSubmittedByWuaId(SUBMITTED_BY_WUA_ID)
         .withApplicationReference("LMS/EAA/2024/1")

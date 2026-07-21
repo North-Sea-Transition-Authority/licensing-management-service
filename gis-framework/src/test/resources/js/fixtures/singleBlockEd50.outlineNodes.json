@@ -2,22 +2,22 @@
   {
     "featureId": "1",
     "nodes": [
-      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 1, "x": -3.5182153826545557, "y": 53.83250365008733 },
-      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 2, "x": -3.401546128129518, "y": 53.83250511266431 },
-      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 3, "x": -3.4015401919069492, "y": 53.6658331102103 },
-      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 4, "x": -3.601544606906167, "y": 53.66583060667225 },
-      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 5, "x": -3.601548768212678, "y": 53.782501001894886 },
-      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 6, "x": -3.5848817333095417, "y": 53.78250121111287 },
-      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 7, "x": -3.5848811371848175, "y": 53.765834010950485 },
-      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 8, "x": -3.5515470672883476, "y": 53.76583442914491 },
-      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 9, "x": -3.551547663121229, "y": 53.782501629395256 },
-      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 10, "x": -3.518213592423721, "y": 53.78250204747274 },
-      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 11, "x": -3.5182153826545557, "y": 53.83250365008733 },
-      { "polygonId": "1", "lineId": "2", "ringNumber": 2, "displayOrder": 12, "x": -3.5682135069218677, "y": 53.74916702013364 },
-      { "polygonId": "1", "lineId": "2", "ringNumber": 2, "displayOrder": 13, "x": -3.5015453666944953, "y": 53.749167855936825 },
-      { "polygonId": "1", "lineId": "2", "ringNumber": 2, "displayOrder": 14, "x": -3.5015435859010524, "y": 53.6991662571914 },
-      { "polygonId": "1", "lineId": "2", "ringNumber": 2, "displayOrder": 15, "x": -3.568211724381442, "y": 53.69916542191639 },
-      { "polygonId": "1", "lineId": "2", "ringNumber": 2, "displayOrder": 16, "x": -3.5682135069218677, "y": 53.74916702013364 }
+      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 1, "x": -3.5182153826545557, "y": 53.83250365008733, "mapText": "(1, 11)" },
+      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 2, "x": -3.401546128129518, "y": 53.83250511266431, "mapText": "(2)" },
+      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 3, "x": -3.4015401919069492, "y": 53.6658331102103, "mapText": "(3)" },
+      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 4, "x": -3.601544606906167, "y": 53.66583060667225, "mapText": "(4)" },
+      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 5, "x": -3.601548768212678, "y": 53.782501001894886, "mapText": "(5)" },
+      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 6, "x": -3.5848817333095417, "y": 53.78250121111287, "mapText": "(6)" },
+      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 7, "x": -3.5848811371848175, "y": 53.765834010950485, "mapText": "(7)" },
+      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 8, "x": -3.5515470672883476, "y": 53.76583442914491, "mapText": "(8)" },
+      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 9, "x": -3.551547663121229, "y": 53.782501629395256, "mapText": "(9)" },
+      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 10, "x": -3.518213592423721, "y": 53.78250204747274, "mapText": "(10)" },
+      { "polygonId": "1", "lineId": "1", "ringNumber": 1, "displayOrder": 11, "x": -3.5182153826545557, "y": 53.83250365008733, "mapText": "(1, 11)" },
+      { "polygonId": "1", "lineId": "2", "ringNumber": 2, "displayOrder": 12, "x": -3.5682135069218677, "y": 53.74916702013364, "mapText": "(12, 16)" },
+      { "polygonId": "1", "lineId": "2", "ringNumber": 2, "displayOrder": 13, "x": -3.5015453666944953, "y": 53.749167855936825, "mapText": "(13)" },
+      { "polygonId": "1", "lineId": "2", "ringNumber": 2, "displayOrder": 14, "x": -3.5015435859010524, "y": 53.6991662571914, "mapText": "(14)" },
+      { "polygonId": "1", "lineId": "2", "ringNumber": 2, "displayOrder": 15, "x": -3.568211724381442, "y": 53.69916542191639, "mapText": "(15)" },
+      { "polygonId": "1", "lineId": "2", "ringNumber": 2, "displayOrder": 16, "x": -3.5682135069218677, "y": 53.74916702013364, "mapText": "(12, 16)" }
     ]
   }
 ]

@@ -139,21 +139,21 @@ class LineServiceTest {
     assertThat(result).containsExactly(
         new JsonFeatureOutlineNodes(FEATURE_1.getId().toString(),
             List.of(
-                new JsonOutlineNode(ring1Lines.get(0), 1, 1, 0),
-                new JsonOutlineNode(ring1Lines.get(1), 2, 2, 0),
-                new JsonOutlineNode(ring1Lines.get(2), 3, 3, 0),
-                new JsonOutlineNode(ring1Lines.get(3), 4, 4, 0),
-                new JsonOutlineNode(ring1Lines.get(3), 5, 4, 100),
-                new JsonOutlineNode(ring2Lines.get(0), 6, 5, 0),
-                new JsonOutlineNode(ring2Lines.get(1), 7, 6, 0),
-                new JsonOutlineNode(ring2Lines.get(2), 8, 7, 0),
-                new JsonOutlineNode(ring2Lines.get(3), 9, 8, 0),
-                new JsonOutlineNode(ring2Lines.get(3), 10, 8, 100),
-                new JsonOutlineNode(ring3Lines.get(0), 11, 9, 0),
-                new JsonOutlineNode(ring3Lines.get(1), 12, 10, 0),
-                new JsonOutlineNode(ring3Lines.get(2), 13, 11, 0),
-                new JsonOutlineNode(ring3Lines.get(3), 14, 12, 0),
-                new JsonOutlineNode(ring3Lines.get(3), 15, 12, 100)
+                new JsonOutlineNode(ring1Lines.get(0), 1, 1, 0, "(1)"),
+                new JsonOutlineNode(ring1Lines.get(1), 2, 2, 0, "(2)"),
+                new JsonOutlineNode(ring1Lines.get(2), 3, 3, 0, "(3)"),
+                new JsonOutlineNode(ring1Lines.get(3), 4, 4, 0, "(4)"),
+                new JsonOutlineNode(ring1Lines.get(3), 5, 4, 100, "(5)"),
+                new JsonOutlineNode(ring2Lines.get(0), 6, 5, 0, "(6)"),
+                new JsonOutlineNode(ring2Lines.get(1), 7, 6, 0, "(7)"),
+                new JsonOutlineNode(ring2Lines.get(2), 8, 7, 0, "(8)"),
+                new JsonOutlineNode(ring2Lines.get(3), 9, 8, 0, "(9)"),
+                new JsonOutlineNode(ring2Lines.get(3), 10, 8, 100, "(10)"),
+                new JsonOutlineNode(ring3Lines.get(0), 11, 9, 0, "(11)"),
+                new JsonOutlineNode(ring3Lines.get(1), 12, 10, 0, "(12)"),
+                new JsonOutlineNode(ring3Lines.get(2), 13, 11, 0, "(13)"),
+                new JsonOutlineNode(ring3Lines.get(3), 14, 12, 0, "(14)"),
+                new JsonOutlineNode(ring3Lines.get(3), 15, 12, 100, "(15)")
             )
         ));
   }
@@ -181,29 +181,58 @@ class LineServiceTest {
     var result = lineService.getOutlineNodes(FEATURES);
 
     var feature1Nodes = List.of(
-        new JsonOutlineNode(ring1Lines.get(0), 1, 1, 0),
-        new JsonOutlineNode(ring1Lines.get(1), 2, 2, 0),
-        new JsonOutlineNode(ring1Lines.get(2), 3, 3, 0),
-        new JsonOutlineNode(ring1Lines.get(3), 4, 4, 0),
-        new JsonOutlineNode(ring1Lines.get(3), 5, 4, 100),
-        new JsonOutlineNode(ring2Lines.get(0), 6, 5, 0),
-        new JsonOutlineNode(ring2Lines.get(1), 7, 6, 0),
-        new JsonOutlineNode(ring2Lines.get(2), 8, 7, 0),
-        new JsonOutlineNode(ring2Lines.get(3), 9, 8, 0),
-        new JsonOutlineNode(ring2Lines.get(3), 10, 8, 100)
+        new JsonOutlineNode(ring1Lines.get(0), 1, 1, 0, "(1)"),
+        new JsonOutlineNode(ring1Lines.get(1), 2, 2, 0, "(2)"),
+        new JsonOutlineNode(ring1Lines.get(2), 3, 3, 0, "(3)"),
+        new JsonOutlineNode(ring1Lines.get(3), 4, 4, 0, "(4)"),
+        new JsonOutlineNode(ring1Lines.get(3), 5, 4, 100, "(5)"),
+        new JsonOutlineNode(ring2Lines.get(0), 6, 5, 0, "(6)"),
+        new JsonOutlineNode(ring2Lines.get(1), 7, 6, 0, "(7)"),
+        new JsonOutlineNode(ring2Lines.get(2), 8, 7, 0, "(8)"),
+        new JsonOutlineNode(ring2Lines.get(3), 9, 8, 0, "(9)"),
+        new JsonOutlineNode(ring2Lines.get(3), 10, 8, 100, "(10)")
     );
     var feature2Nodes = List.of(
-        new JsonOutlineNode(ring3Lines.get(0), 1, 1, 0),
-        new JsonOutlineNode(ring3Lines.get(1), 2, 2, 0),
-        new JsonOutlineNode(ring3Lines.get(2), 3, 3, 0),
-        new JsonOutlineNode(ring3Lines.get(3), 4, 4, 0),
-        new JsonOutlineNode(ring3Lines.get(3), 5, 4, 100)
+        new JsonOutlineNode(ring3Lines.get(0), 1, 1, 0, "(1)"),
+        new JsonOutlineNode(ring3Lines.get(1), 2, 2, 0, "(2)"),
+        new JsonOutlineNode(ring3Lines.get(2), 3, 3, 0, "(3)"),
+        new JsonOutlineNode(ring3Lines.get(3), 4, 4, 0, "(4)"),
+        new JsonOutlineNode(ring3Lines.get(3), 5, 4, 100, "(5)")
     );
 
     assertThat(result).containsExactlyInAnyOrder(
         new JsonFeatureOutlineNodes(FEATURE_1.getId().toString(), feature1Nodes),
         new JsonFeatureOutlineNodes(FEATURE_2.getId().toString(), feature2Nodes)
     );
+  }
+
+  @Test
+  void getOutlineNodes_whenRingClosesOnItself_thenCoincidentNodesShareMapText() {
+    var polygon = PolygonTestUtil.newBuilder().withFeature(FEATURE_1).build();
+    var ringLines = ringLines(polygon, 1, 1, 4);
+
+    var startAndEndPoints = List.of(
+        new LineWithStartEndPoints(ringLines.get(0), new Point(0, 0), new Point(10, 0)),
+        new LineWithStartEndPoints(ringLines.get(1), new Point(10, 0), new Point(10, 10)),
+        new LineWithStartEndPoints(ringLines.get(2), new Point(10, 10), new Point(0, 10)),
+        new LineWithStartEndPoints(ringLines.get(3), new Point(0, 10), new Point(0, 0))
+    );
+
+    when(lineRepository.findAllByPolygon_FeatureIn(List.of(FEATURE_1))).thenReturn(ringLines);
+    when(grpcClientService.getLineStartAndEndPoints(ringLines, true)).thenReturn(startAndEndPoints);
+
+    var result = lineService.getOutlineNodes(List.of(FEATURE_1));
+
+    assertThat(result).containsExactly(
+        new JsonFeatureOutlineNodes(FEATURE_1.getId().toString(),
+            List.of(
+                new JsonOutlineNode(ringLines.get(0), 1, 0, 0, "(1, 5)"),
+                new JsonOutlineNode(ringLines.get(1), 2, 10, 0, "(2)"),
+                new JsonOutlineNode(ringLines.get(2), 3, 10, 10, "(3)"),
+                new JsonOutlineNode(ringLines.get(3), 4, 0, 10, "(4)"),
+                new JsonOutlineNode(ringLines.get(3), 5, 0, 0, "(1, 5)")
+            )
+        ));
   }
 
   private static List<Line> ringLines(Polygon polygon, int ringNumber, int fromDisplayOrder, int toDisplayOrder) {

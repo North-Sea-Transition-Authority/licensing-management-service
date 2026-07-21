@@ -5,6 +5,7 @@ export interface JsonOutlineNode  {
   displayOrder: number;
   x: number;
   y: number;
+  mapText: string;
 }
 
 export interface JsonFeatureOutlineNodes  {

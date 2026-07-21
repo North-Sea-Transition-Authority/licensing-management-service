@@ -3,6 +3,7 @@ package uk.co.fivium.gisframework.feature;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -90,15 +91,37 @@ public class LineService {
       var line = lineWrapper.line();
       int startDisplayOrder = line.getDisplayOrder() + ringCounter;
 
-      allNodes.add(new JsonOutlineNode(line, startDisplayOrder, lineWrapper.start().getX(), lineWrapper.start().getY()));
+      allNodes.add(new JsonOutlineNode(line, startDisplayOrder, lineWrapper.start()));
 
       if (isRingBoundary(i, orderedLines)) {
-        allNodes.add(new JsonOutlineNode(line, startDisplayOrder + 1, lineWrapper.end().getX(), lineWrapper.end().getY()));
+        int endDisplayOrder = startDisplayOrder + 1;
+        allNodes.add(new JsonOutlineNode(line, endDisplayOrder, lineWrapper.end()));
         ringCounter++;
       }
     }
 
-    return allNodes;
+    var ringCoordinateToNodes = new LinkedHashMap<String, List<JsonOutlineNode>>();
+    for (var node : allNodes) {
+      ringCoordinateToNodes
+          .computeIfAbsent(ringCoordinateKey(node), key -> new ArrayList<>())
+          .add(node);
+    }
+
+    var coordinateToMapText = new LinkedHashMap<String, String>();
+    ringCoordinateToNodes.forEach((key, nodes) -> coordinateToMapText.put(key, "(%s)".formatted(
+        nodes.stream()
+            .map(JsonOutlineNode::displayOrder)
+            .sorted()
+            .map(String::valueOf)
+            .collect(Collectors.joining(", ")))));
+
+    return allNodes.stream()
+        .map(node -> node.withMapText(coordinateToMapText.get(ringCoordinateKey(node))))
+        .toList();
+  }
+
+  private static String ringCoordinateKey(JsonOutlineNode node) {
+    return "%s|%s|%s,%s".formatted(node.polygonId(), node.ringNumber(), node.x(), node.y());
   }
 
   private boolean isRingBoundary(int lineIndex, List<LineWithStartEndPoints> orderedLines) {

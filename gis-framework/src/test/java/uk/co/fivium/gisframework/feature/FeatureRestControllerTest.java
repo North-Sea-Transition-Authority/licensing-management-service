@@ -92,11 +92,11 @@ class FeatureRestControllerTest extends AbstractControllerTest {
     var feature2 = FeatureTestUtil.newBuilder().build();
 
     var feature1Nodes = List.of(
-        new JsonOutlineNode("polygon-1", "line-1", 0, 1, 2, 3),
-        new JsonOutlineNode("polygon-1", "line-1", 0, 2, 4, 5)
+        new JsonOutlineNode("polygon-1", "line-1", 0, 1, 2, 3, "(1)"),
+        new JsonOutlineNode("polygon-1", "line-1", 0, 2, 4, 5, "(2)")
     );
     var feature2Nodes = List.of(
-        new JsonOutlineNode("polygon-2", "line-2", 1, 1, 6, 7)
+        new JsonOutlineNode("polygon-2", "line-2", 1, 1, 6, 7, "(1)")
     );
 
     var featureOutlineNodes = List.of(

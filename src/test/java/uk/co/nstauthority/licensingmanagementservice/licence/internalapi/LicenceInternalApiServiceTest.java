@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
@@ -74,6 +75,7 @@ class LicenceInternalApiServiceTest {
         .withId(id)
         .withLicenceReference(licenceReference)
         .withLicenceType(licenceType)
+        .withStatus(LicenceStatus.EXTANT)
         .build();
 
     var licenceResponsibleOrganisation = new LicenceResponsibleOrganisation();
@@ -91,6 +93,61 @@ class LicenceInternalApiServiceTest {
     ).thenReturn(List.of(licenceScheduleDetail));
 
     var licenceJson = new LicenceJson(id, licenceReference);
+
+    assertThat(licenceInternalApiService.searchLicencesWithInProgressSchedulesByReferenceTypeAndStatus(
+        searchTerm,
+        List.of(licenceType),
+        LicenceScheduleDetailStatus.ACTIVE,
+        serviceUserDetail
+    ))
+        .usingRecursiveComparison()
+        .isEqualTo(List.of(licenceJson));
+  }
+
+  @Test
+  void searchLicencesWithInProgressSchedulesByReferenceTypeAndStatus_whenLicenceNotExtant_thenNotReturned() {
+    serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().withWuaId(1L).build();
+    int authorizedUnitId = 99;
+    when(applicationAccessService.getOrganisationUnitIds(serviceUserDetail)).thenReturn(Set.of(authorizedUnitId));
+
+    var searchTerm = "term";
+    var licenceType = LicenceType.CARBON_STORAGE;
+
+    var extantLicenceReference = "CS001";
+    int extantLicenceId = 3;
+    var extantLicence = LicenceTestUtil.builder()
+        .withId(extantLicenceId)
+        .withLicenceReference(extantLicenceReference)
+        .withLicenceType(licenceType)
+        .withStatus(LicenceStatus.EXTANT)
+        .build();
+
+    var revokedLicence = LicenceTestUtil.builder()
+        .withId(4)
+        .withLicenceReference("CS002")
+        .withLicenceType(licenceType)
+        .withStatus(LicenceStatus.REVOKED)
+        .build();
+
+    var extantLicenceResponsibleOrganisation = new LicenceResponsibleOrganisation();
+    extantLicenceResponsibleOrganisation.setResponsibleOrganisationId(authorizedUnitId);
+    extantLicenceResponsibleOrganisation.setLicence(extantLicence);
+    when(licenceResponsibleOrganisationService.getAllByLicenceIn(List.of(extantLicence)))
+        .thenReturn(List.of(extantLicenceResponsibleOrganisation));
+
+    var extantLicenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(extantLicence);
+    var extantLicenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(extantLicenceSchedule);
+
+    var revokedLicenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(revokedLicence);
+    var revokedLicenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(revokedLicenceSchedule);
+
+    when(licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
+        searchTerm,
+        List.of(licenceType),
+        LicenceScheduleDetailStatus.ACTIVE)
+    ).thenReturn(List.of(extantLicenceScheduleDetail, revokedLicenceScheduleDetail));
+
+    var licenceJson = new LicenceJson(extantLicenceId, extantLicenceReference);
 
     assertThat(licenceInternalApiService.searchLicencesWithInProgressSchedulesByReferenceTypeAndStatus(
         searchTerm,

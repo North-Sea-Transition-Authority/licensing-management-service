@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
@@ -66,6 +67,7 @@ public class LicenceInternalApiService {
     var licences = licenceScheduleDetails.stream()
         .map(LicenceScheduleDetail::getLicenceSchedule)
         .map(LicenceSchedule::getLicence)
+        .filter(licence -> licence.getStatus() == LicenceStatus.EXTANT)
         .toList();
 
     var organisationByLicence = licenceResponsibleOrganisationService.getAllByLicenceIn(licences).stream()

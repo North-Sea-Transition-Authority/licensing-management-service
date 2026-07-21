@@ -3,6 +3,8 @@ package uk.co.nstauthority.licensingmanagementservice.workarea;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.CollectionUtils;
 
 public class WorkAreaFilterForm implements Serializable {
 
@@ -53,6 +55,12 @@ public class WorkAreaFilterForm implements Serializable {
 
   public void setApplicationStatuses(List<String> applicationStatuses) {
     this.applicationStatuses = applicationStatuses;
+  }
+
+  public boolean hasApplicationFilterApplied() {
+    return StringUtils.isNotBlank(applicationReference)
+        || !CollectionUtils.isEmpty(applicationTypes)
+        || !CollectionUtils.isEmpty(applicationStatuses);
   }
 
   public void clearFilter() {

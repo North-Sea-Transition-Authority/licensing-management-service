@@ -18,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
@@ -111,7 +112,7 @@ class CorrectionWorkAreaServiceTest {
   }
 
   @Test
-  void getWorkAreaItems_notAffectedByApplicationReferenceFilter() {
+  void getWorkAreaItems_whenApplicationReferenceFilterApplied_thenExcluded() {
     var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
     var correctionId = UUID.randomUUID();
     var correction = correction(correctionId, "P1234", LicenceType.SEAWARD_PRODUCTION, "COR-1", createdInstant);
@@ -123,11 +124,11 @@ class CorrectionWorkAreaServiceTest {
     form.setApplicationReference("LMS/EEA/001");
     var result = correctionWorkAreaService.getWorkAreaItems(form, user);
 
-    assertThat(result).extracting(SearchResultItem::id).containsExactly(correctionId.toString());
+    assertThat(result).isEmpty();
   }
 
   @Test
-  void getWorkAreaItems_notAffectedByApplicationTypeFilter() {
+  void getWorkAreaItems_whenApplicationTypeFilterApplied_thenExcluded() {
     var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
     var correctionId = UUID.randomUUID();
     var correction = correction(correctionId, "P1234", LicenceType.SEAWARD_PRODUCTION, "COR-1", createdInstant);
@@ -139,7 +140,23 @@ class CorrectionWorkAreaServiceTest {
     form.setApplicationTypes(List.of(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name()));
     var result = correctionWorkAreaService.getWorkAreaItems(form, user);
 
-    assertThat(result).extracting(SearchResultItem::id).containsExactly(correctionId.toString());
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  void getWorkAreaItems_whenApplicationStatusFilterApplied_thenExcluded() {
+    var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
+    var correctionId = UUID.randomUUID();
+    var correction = correction(correctionId, "P1234", LicenceType.SEAWARD_PRODUCTION, "COR-1", createdInstant);
+
+    when(licenceCorrectionService.getAllInProgressCorrectionsForUser(user))
+        .thenReturn(List.of(correction));
+
+    var form = new WorkAreaFilterForm();
+    form.setApplicationStatuses(List.of(ApplicationStatus.DRAFT.name()));
+    var result = correctionWorkAreaService.getWorkAreaItems(form, user);
+
+    assertThat(result).isEmpty();
   }
 
   private WorkAreaFilterForm filterForm(String licenceReference) {

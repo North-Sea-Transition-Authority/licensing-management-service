@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
@@ -240,39 +241,51 @@ class ScheduleWorkAreaServiceTest {
   }
 
   @Test
-  void getWorkAreaItems_notAffectedByApplicationReferenceFilter() {
+  void getWorkAreaItems_whenApplicationReferenceFilterApplied_thenExcluded() {
     var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
     var licence = LicenceTestUtil.builder().withId(1).withLicenceType(LicenceType.CARBON_STORAGE).withLicenceReference("CS001").build();
     var detail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(LicenceScheduleTestUtil.createLicenceSchedule(licence))
         .withId(UUID.randomUUID()).withCreatedInstant(Instant.now(clock)).build();
 
     when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail)).thenReturn(List.of(detail));
-    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
-    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence))).thenReturn(Map.of(licence, List.of()));
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setApplicationReference("LMS/EEA/001");
     var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
 
-    assertThat(workAreaItems).extracting(SearchResultItem::id).containsExactly(detail.getId().toString());
+    assertThat(workAreaItems).isEmpty();
   }
 
   @Test
-  void getWorkAreaItems_notAffectedByApplicationTypeFilter() {
+  void getWorkAreaItems_whenApplicationTypeFilterApplied_thenExcluded() {
     var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
     var licence = LicenceTestUtil.builder().withId(1).withLicenceType(LicenceType.CARBON_STORAGE).withLicenceReference("CS001").build();
     var detail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(LicenceScheduleTestUtil.createLicenceSchedule(licence))
         .withId(UUID.randomUUID()).withCreatedInstant(Instant.now(clock)).build();
 
     when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail)).thenReturn(List.of(detail));
-    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
-    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence))).thenReturn(Map.of(licence, List.of()));
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setApplicationTypes(List.of(ApplicationType.CONTINUATION_APPLICATION.name()));
     var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
 
-    assertThat(workAreaItems).extracting(SearchResultItem::id).containsExactly(detail.getId().toString());
+    assertThat(workAreaItems).isEmpty();
+  }
+
+  @Test
+  void getWorkAreaItems_whenApplicationStatusFilterApplied_thenExcluded() {
+    var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
+    var licence = LicenceTestUtil.builder().withId(1).withLicenceType(LicenceType.CARBON_STORAGE).withLicenceReference("CS001").build();
+    var detail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(LicenceScheduleTestUtil.createLicenceSchedule(licence))
+        .withId(UUID.randomUUID()).withCreatedInstant(Instant.now(clock)).build();
+
+    when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail)).thenReturn(List.of(detail));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setApplicationStatuses(List.of(ApplicationStatus.DRAFT.name()));
+    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems).isEmpty();
   }
 
   @Test

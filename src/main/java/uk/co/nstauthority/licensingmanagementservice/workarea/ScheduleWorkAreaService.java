@@ -48,6 +48,7 @@ public class ScheduleWorkAreaService implements WorkAreaItemProvider {
       ServiceUserDetail serviceUserDetail
   ) {
     var licenceSchedules = licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail).stream()
+        .filter(licenceScheduleDetail -> !workAreaFilterForm.hasApplicationFilterApplied())
         .filter(licenceScheduleDetail -> FilterUtil.matchesTextInput(
             licenceScheduleDetail.getLicenceSchedule().getLicence().getLicenceReference(),
             workAreaFilterForm.getLicenceReference()

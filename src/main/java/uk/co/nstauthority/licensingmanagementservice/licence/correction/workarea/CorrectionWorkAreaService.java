@@ -34,6 +34,7 @@ public class CorrectionWorkAreaService implements WorkAreaItemProvider {
     return licenceCorrectionService
         .getAllInProgressCorrectionsForUser(serviceUserDetail)
         .stream()
+        .filter(correction -> !workAreaFilterForm.hasApplicationFilterApplied())
         .filter(correction -> FilterUtil.matchesTextInput(
             correction.getLicence().getLicenceReference(),
             workAreaFilterForm.getLicenceReference()

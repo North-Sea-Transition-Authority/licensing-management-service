@@ -4,14 +4,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionChangeOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 
 class AddLicencePositionChangeTest {
 
   @Test
   void builder() {
-    var operation = LicencePositionChangeOperation.newAdministratorChange()
+    var administratorOperation = LicenceOperation.newAdministratorChange()
         .withOperator(1)
+        .build();
+
+    var operation = LicencePositionChangeOperation.newLicencePositionAddOperation()
+        .withOperationId(administratorOperation.id())
+        .withOperation(administratorOperation)
         .build();
 
     List<LicencePositionChangeOperation> changes = List.of(operation);

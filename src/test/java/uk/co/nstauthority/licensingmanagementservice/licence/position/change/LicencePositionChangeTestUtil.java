@@ -4,13 +4,13 @@ import java.util.List;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionChangeOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 
 public class LicencePositionChangeTestUtil {
   private UUID id = UUID.randomUUID();
   private LicencePosition licencePosition = LicencePositionTestUtil.newBuilder().build();
-  private List<LicencePositionChangeOperation> operations =
-      List.of(LicencePositionChangeOperation.newAdministratorChange().withOperator(1).build());
+  private List<LicenceOperation> operations =
+      List.of(LicenceOperation.newAdministratorChange().withOperator(1).build());
   private long changeOrder = 1L;
   private LicencePositionChangeStatus status = LicencePositionChangeStatus.CONSENTED;
 
@@ -29,7 +29,7 @@ public class LicencePositionChangeTestUtil {
     return this;
   }
 
-  public LicencePositionChangeTestUtil withOperations(List<LicencePositionChangeOperation> operations) {
+  public LicencePositionChangeTestUtil withOperations(List<LicenceOperation> operations) {
     this.operations = operations;
     return this;
   }

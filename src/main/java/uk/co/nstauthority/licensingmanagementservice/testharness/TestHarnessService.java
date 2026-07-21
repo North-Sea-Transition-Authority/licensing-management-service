@@ -7,11 +7,11 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionService;
 
 @Service
@@ -79,7 +79,7 @@ public class TestHarnessService {
   }
 
   private void createAdministratorChange(LicencePosition licencePosition, int operatorId) {
-    var administratorChange = LicencePositionChangeOperation.newAdministratorChange()
+    var administratorChange = LicenceOperation.newAdministratorChange()
         .withOperator(operatorId)
         .build();
 

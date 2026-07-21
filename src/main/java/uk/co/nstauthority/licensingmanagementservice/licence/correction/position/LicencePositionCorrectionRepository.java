@@ -29,7 +29,7 @@ public interface LicencePositionCorrectionRepository
       LicencePositionCorrectionChangeType changeType
   );
 
-  List<LicencePositionCorrection> findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+  Optional<LicencePositionCorrection> findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition,
       LicencePositionCorrectionChangeType changeType

@@ -4,8 +4,8 @@ import java.util.Collection;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionChangeOperation;
 
 @Service
 public class LicencePositionChangeService {
@@ -23,7 +23,7 @@ public class LicencePositionChangeService {
   @Transactional
   public LicencePositionChange createLicencePositionChange(
       LicencePosition licencePosition,
-      List<LicencePositionChangeOperation> operations,
+      List<LicenceOperation> operations,
       long changeOrder,
       LicencePositionChangeStatus status
   ) {

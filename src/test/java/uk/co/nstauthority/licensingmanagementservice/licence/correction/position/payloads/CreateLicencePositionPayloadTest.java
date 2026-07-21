@@ -12,7 +12,8 @@ class CreateLicencePositionPayloadTest {
 
   @Test
   void builder() {
-    List<LicencePositionChangeType> changes = List.of();
+    List<LicencePositionChangeType> changes = List.of(
+        LicencePositionChangeType.addLicencePositionChange().withChangeId("change-id").build());
 
     var payload = LicencePositionPayload.newCreateLicencePositionPayload()
         .withLicencePositionId("position-id")
@@ -30,5 +31,18 @@ class CreateLicencePositionPayloadTest {
     assertThat(payload.correctionReference()).isEqualTo("CORRECTION-REF");
     assertThat(payload.changes()).isEqualTo(changes);
     assertThat(payload.type()).isEqualTo(LicencePositionPayload.ADD_POSITION);
+  }
+
+  @Test
+  void builder_whenNoChangesSet_defaultsToEmptyList() {
+    assertThat(LicencePositionPayload.newCreateLicencePositionPayload().build().changes()).isEmpty();
+  }
+
+  @Test
+  void newUpdateLicencePositionPayload_buildsUpdateType() {
+    var payload = LicencePositionPayload.newUpdateLicencePositionPayload().build();
+
+    assertThat(payload).isInstanceOf(UpdateLicencePositionPayload.class);
+    assertThat(payload.type()).isEqualTo(LicencePositionPayload.UPDATE_POSITION);
   }
 }

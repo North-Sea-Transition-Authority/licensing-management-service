@@ -22,16 +22,24 @@ class UpdateLicencePositionPayloadTest {
     var payload = LicencePositionPayload.newUpdateLicencePositionPayload()
         .withEffectiveDate(LocalDate.of(2026, Month.JUNE, 5))
         .withEffectiveDateOrder(2)
+        .withCorrectionReference("CORRECTION-REF")
         .withChanges(changes)
         .build();
 
     var expected = new UpdateLicencePositionPayload(
         LocalDate.of(2026, Month.JUNE, 5),
         2,
+        "CORRECTION-REF",
         changes
     );
 
     assertThat(payload).usingRecursiveComparison().isEqualTo(expected);
     assertThat(payload.type()).isEqualTo(LicencePositionPayload.UPDATE_POSITION);
   }
+
+  @Test
+  void builder_whenNoChangesSet_defaultsToEmptyList() {
+    assertThat(LicencePositionPayload.newUpdateLicencePositionPayload().build().changes()).isEmpty();
+  }
+
 }

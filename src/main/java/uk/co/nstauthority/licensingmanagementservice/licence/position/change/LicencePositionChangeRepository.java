@@ -9,7 +9,7 @@ import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationS
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 
 @Repository
-interface LicencePositionChangeRepository extends JpaRepository<LicencePositionChange, UUID>, NotDuplicationSource {
+public interface LicencePositionChangeRepository extends JpaRepository<LicencePositionChange, UUID>, NotDuplicationSource {
 
   List<LicencePositionChange> findByLicencePositionIn(Collection<LicencePosition> licencePositions);
 }

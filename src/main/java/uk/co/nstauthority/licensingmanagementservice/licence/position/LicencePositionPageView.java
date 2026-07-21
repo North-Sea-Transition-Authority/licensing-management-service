@@ -22,11 +22,28 @@ public record LicencePositionPageView(
     @Nullable LicencePositionStateView stateView,
     boolean canEdit,
     UUID selectedPositionId,
-    boolean isAddedPosition
+    boolean isAddedPosition,
+    Actions actions
 ) {
 
+  /**
+   * Actions the current user can take from the position page.
+   *
+   * @param addAdministratorChangeUrl URL of the change-licence-administrator journey; null when the action is not
+   *                                  offered. It is only populated for the correction
+   *                                  views ({@link #fromExecutedPosition} and {@link #fromNonExecutedPosition}), where
+   *                                  a regulator is editing a correction and may change the administrator.
+   */
+  //TODO LMS2-86: We can use ActionItemView when more actions are added instead
+  public record Actions(@Nullable String addAdministratorChangeUrl) {
+
+    public static Actions none() {
+      return new Actions(null);
+    }
+  }
+
   public static LicencePositionPageView empty() {
-    return new LicencePositionPageView(List.of(), null, null, Map.of(), null, false, null, false);
+    return new LicencePositionPageView(List.of(), null, null, Map.of(), null, false, null, false, Actions.none());
   }
 
   public static LicencePositionPageView readOnly(
@@ -38,7 +55,8 @@ public record LicencePositionPageView(
       UUID selectedPositionId
   ) {
     return new LicencePositionPageView(
-        timelineViews, date, regulatorReference, changeViewByType, stateView, false, selectedPositionId, false);
+        timelineViews, date, regulatorReference, changeViewByType, stateView, false, selectedPositionId, false,
+        Actions.none());
   }
 
   public static LicencePositionPageView fromExecutedPosition(
@@ -47,20 +65,22 @@ public record LicencePositionPageView(
       String regulatorReference,
       Map<String, LicencePositionChangeView> changeViewByType,
       @Nullable LicencePositionStateView stateView,
-      UUID selectedPositionId
+      UUID selectedPositionId,
+      Actions actions
   ) {
     return new LicencePositionPageView(
-        timelineViews, date, regulatorReference, changeViewByType, stateView, true, selectedPositionId, false);
+        timelineViews, date, regulatorReference, changeViewByType, stateView, true, selectedPositionId, false, actions);
   }
 
   public static LicencePositionPageView fromNonExecutedPosition(
       List<LicencePositionTimelineView> timelineViews,
       String date,
       String regulatorReference,
-      UUID selectedPositionId
+      UUID selectedPositionId,
+      Actions actions
   ) {
     return new LicencePositionPageView(
-        timelineViews, date, regulatorReference, Map.of(), null, true, selectedPositionId, true);
+        timelineViews, date, regulatorReference, Map.of(), null, true, selectedPositionId, true, actions);
   }
 
   public boolean hasPositions() {

@@ -29,26 +29,27 @@
     </@fdsAction.buttonGroup>
 
     <#if licencePositionPageView.hasPositions()>
-      <h2 class="govuk-heading-m">${licencePositionPageView.date()} (${licencePositionPageView.regulatorReference()})</h2>
+      <h2 class="govuk-heading-m">
+        ${licencePositionPageView.date()} (${licencePositionPageView.regulatorReference()})
+        <#if licencePositionPageView.isAddedPosition()>
+          <@fdsTag.tag tagClass="govuk-tag--green">Added position</@fdsTag.tag>
+        </#if>
+      </h2>
         <@grid.gridRow>
-            <@grid.threeQuarterColumn>
-            <#if licencePositionPageView.isAddedPosition()>
-              <h2 class="govuk-heading-m">${licencePositionPageView.date()}</h2>
-                <@fdsSummaryList.summaryListCard headingText="Added position" summaryListId="added-position">
-                    <@fdsSummaryList.summaryListRowNoAction keyText="Regulator reference">
-                        ${licencePositionPageView.regulatorReference()}
-                    </@fdsSummaryList.summaryListRowNoAction>
-                </@fdsSummaryList.summaryListCard>
-            <#else>
-                <@licencePositionDetails.details
-                licencePositionState=licencePositionPageView.stateView()
-                licencePositionChanges=licencePositionPageView.changeViewByType()
-                />
-            </#if>
-            </@grid.threeQuarterColumn>
-            <@grid.oneQuarterColumn>
-                <@licencePositionTimeLine.timeline licencePositionTimelineViews=licencePositionPageView.timelineViews() selectedPositionId=licencePositionPageView.selectedPositionId()/>
-            </@grid.oneQuarterColumn>
+          <@grid.threeQuarterColumn>
+            <@licencePositionDetails.details
+              licencePositionState=licencePositionPageView.stateView()
+              licencePositionChanges=licencePositionPageView.changeViewByType()
+              actions=licencePositionPageView.actions()
+              canEdit=licencePositionPageView.canEdit()
+            />
+          </@grid.threeQuarterColumn>
+          <@grid.oneQuarterColumn>
+            <@licencePositionTimeLine.timeline
+              licencePositionTimelineViews=licencePositionPageView.timelineViews()
+              selectedPositionId=licencePositionPageView.selectedPositionId()
+            />
+          </@grid.oneQuarterColumn>
         </@grid.gridRow>
     <#else>
       <@fdsInsetText.insetText>No licence positions for this licence.</@fdsInsetText.insetText>

@@ -9,6 +9,7 @@ public class UpdateLicencePositionPayloadTestUtil {
 
   private LocalDate effectiveDate = LocalDate.of(2026, Month.JUNE, 5);
   private Integer effectiveDateOrder = 1;
+  private String correctionReference;
   private List<LicencePositionChangeType> changes = List.of();
 
   public static UpdateLicencePositionPayloadTestUtil newBuilder() {
@@ -25,6 +26,11 @@ public class UpdateLicencePositionPayloadTestUtil {
     return this;
   }
 
+  public UpdateLicencePositionPayloadTestUtil withCorrectionReference(String correctionReference) {
+    this.correctionReference = correctionReference;
+    return this;
+  }
+
   public UpdateLicencePositionPayloadTestUtil withChanges(List<LicencePositionChangeType> changes) {
     this.changes = changes;
     return this;
@@ -34,6 +40,7 @@ public class UpdateLicencePositionPayloadTestUtil {
     return LicencePositionPayload.newUpdateLicencePositionPayload()
         .withEffectiveDate(effectiveDate)
         .withEffectiveDateOrder(effectiveDateOrder)
+        .withCorrectionReference(correctionReference)
         .withChanges(changes)
         .build();
   }

@@ -11,8 +11,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import org.hibernate.type.SqlTypes;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionChangeOperation;
 
 @Audited
 @Entity(name = "licence_position_changes")
@@ -26,7 +26,7 @@ public class LicencePositionChange {
   private LicencePosition licencePosition;
 
   @JdbcTypeCode(SqlTypes.JSON)
-  private List<LicencePositionChangeOperation> operations;
+  private List<LicenceOperation> operations;
 
   private long changeOrder;
 
@@ -53,11 +53,11 @@ public class LicencePositionChange {
     this.licencePosition = licencePosition;
   }
 
-  public List<LicencePositionChangeOperation> getOperations() {
+  public List<LicenceOperation> getOperations() {
     return operations;
   }
 
-  public void setOperations(List<LicencePositionChangeOperation> operations) {
+  public void setOperations(List<LicenceOperation> operations) {
     this.operations = operations;
   }
 

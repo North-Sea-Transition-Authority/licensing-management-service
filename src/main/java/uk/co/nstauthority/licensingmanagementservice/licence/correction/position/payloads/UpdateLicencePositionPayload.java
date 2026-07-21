@@ -7,8 +7,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 public record UpdateLicencePositionPayload(
     LocalDate effectiveDate,
     Integer effectiveDateOrder,
+    String correctionReference,
     List<LicencePositionChangeType> changes
 ) implements LicencePositionPayload {
+
+  public UpdateLicencePositionPayload {
+    changes = (changes == null) ? List.of() : changes;
+  }
 
   @Override
   public String type() {
@@ -19,6 +24,7 @@ public record UpdateLicencePositionPayload(
 
     private LocalDate effectiveDate;
     private Integer effectiveDateOrder;
+    private String correctionReference;
     private List<LicencePositionChangeType> changes = List.of();
 
     public UpdateLicencePositionPayload.Builder withEffectiveDate(LocalDate effectiveDate) {
@@ -31,6 +37,11 @@ public record UpdateLicencePositionPayload(
       return this;
     }
 
+    public UpdateLicencePositionPayload.Builder withCorrectionReference(String correctionReference) {
+      this.correctionReference = correctionReference;
+      return this;
+    }
+
     public UpdateLicencePositionPayload.Builder withChanges(List<LicencePositionChangeType> changes) {
       this.changes = changes;
       return this;
@@ -40,6 +51,7 @@ public record UpdateLicencePositionPayload(
       return new UpdateLicencePositionPayload(
           effectiveDate,
           effectiveDateOrder,
+          correctionReference,
           changes
       );
     }

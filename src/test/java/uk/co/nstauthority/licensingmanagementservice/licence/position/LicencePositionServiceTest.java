@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.time.LocalDate;
 import java.time.Month;
@@ -32,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
@@ -42,6 +44,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ExtendWith(MockitoExtension.class)
 class LicencePositionServiceTest {
@@ -117,6 +120,20 @@ class LicencePositionServiceTest {
 
     assertThatThrownBy(() -> licencePositionService.getPositionForLicence(LICENCE, POSITION_ID))
         .isInstanceOf(LmsEntityNotFoundException.class);
+  }
+
+  @Test
+  void getCurrentAdministratorId() {
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var chronological = List.of(position);
+    List<LicencePositionChange> changes = List.of();
+
+    when(licencePositionRepository.findByLicence(LICENCE)).thenReturn(chronological);
+    when(licencePositionChangeService.findByLicencePositionIn(chronological)).thenReturn(changes);
+    when(licencePositionStateViewService.resolveCurrentAdministratorId(position, chronological, changes))
+        .thenReturn(123);
+
+    assertThat(licencePositionService.getCurrentAdministratorId(position)).isEqualTo(123);
   }
 
   @Test
@@ -201,6 +218,9 @@ class LicencePositionServiceTest {
 
     var result = licencePositionService.getCorrectionPositionPageView(correction, executed);
 
+    assertThat(result.actions().addAdministratorChangeUrl())
+        .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
+            .renderForExecutedPosition(correction.getId(), executed.getId(), null)));
     assertThat(result.canEdit()).isTrue();
     assertThat(result.timelineViews())
         .extracting(LicencePositionTimelineView::regulatorReference, LicencePositionTimelineView::addedInThisCorrection)
@@ -234,6 +254,9 @@ class LicencePositionServiceTest {
 
     var result = licencePositionService.getCorrectionAddedPositionPageView(correction, positionCorrection);
 
+    assertThat(result.actions().addAdministratorChangeUrl())
+        .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
+            .renderForAddedPosition(correction.getId(), positionCorrection.getId(), null)));
     assertThat(result.changeViewByType()).isEmpty();
     assertThat(result.stateView()).isNull();
     assertThat(result.canEdit()).isTrue();
@@ -413,6 +436,7 @@ class LicencePositionServiceTest {
     var correctedPayload = UpdateLicencePositionPayloadTestUtil.newBuilder()
         .withEffectiveDate(LocalDate.of(2026, Month.AUGUST, 15))
         .withEffectiveDateOrder(3)
+        .withCorrectionReference("CORR-REF")
         .build();
 
     when(licencePositionRepository.findByLicence(LICENCE)).thenReturn(chronological);
@@ -435,6 +459,6 @@ class LicencePositionServiceTest {
             LicencePositionTimelineView::correctedInThisCorrection,
             LicencePositionTimelineView::correctDateUrl)
         .containsExactly(
-            tuple("CURRENT", "15 August 2026", true, expectedCorrectDateUrl));
+            tuple("CORR-REF", "15 August 2026", true, expectedCorrectDateUrl));
   }
 }

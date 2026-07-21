@@ -14,7 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionChangeOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 
 @ExtendWith(MockitoExtension.class)
 class LicencePositionChangeServiceTest {
@@ -41,7 +41,7 @@ class LicencePositionChangeServiceTest {
   @Test
   void createLicencePositionChange() {
     var position = LicencePositionTestUtil.newBuilder().build();
-    var administratorChange = LicencePositionChangeOperation.newAdministratorChange().withOperator(1).build();
+    var administratorChange = LicenceOperation.newAdministratorChange().withOperator(1).build();
 
     licencePositionChangeService.createLicencePositionChange(
         position, List.of(administratorChange), 1L, LicencePositionChangeStatus.CONSENTED);

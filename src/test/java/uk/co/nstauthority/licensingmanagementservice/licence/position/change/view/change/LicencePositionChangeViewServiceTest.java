@@ -14,7 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionChangeOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 
 @ExtendWith(MockitoExtension.class)
 class LicencePositionChangeViewServiceTest {
@@ -37,7 +37,7 @@ class LicencePositionChangeViewServiceTest {
 
     var otherChange = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(otherLicencePosition)
-        .withOperations(List.of(LicencePositionChangeOperation.newAdministratorChange().withOperator(JOINING_ID).build()))
+        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build()))
         .build();
 
     var result = licencePositionChangeViewService.getChangeViews(
@@ -53,12 +53,12 @@ class LicencePositionChangeViewServiceTest {
 
     var currentChange = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(currentLicencePosition)
-        .withOperations(List.of(LicencePositionChangeOperation.newAdministratorChange().withOperator(JOINING_ID).build()))
+        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build()))
         .build();
 
     var previousChange = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(previousLicencePosition)
-        .withOperations(List.of(LicencePositionChangeOperation.newAdministratorChange().withOperator(WITHDRAWING_ID).build()))
+        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(WITHDRAWING_ID).build()))
         .build();
 
     when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(JOINING_ID, WITHDRAWING_ID)))
@@ -72,7 +72,7 @@ class LicencePositionChangeViewServiceTest {
 
     assertThat(result)
         .hasSize(1)
-        .extractingByKey(LicencePositionChangeOperation.LICENCE_ADMINISTRATOR)
+        .extractingByKey(LicenceOperation.LICENCE_ADMINISTRATOR)
         .isInstanceOf(AdministratorChangeView.class)
         .extracting(
             licencePositionChangeView -> ((AdministratorChangeView) licencePositionChangeView).withdrawingOrganisationName(),
@@ -87,7 +87,7 @@ class LicencePositionChangeViewServiceTest {
 
     var currentChange = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(currentLicencePosition)
-        .withOperations(List.of(LicencePositionChangeOperation.newAdministratorChange().withOperator(JOINING_ID).build()))
+        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build()))
         .build();
 
     when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(JOINING_ID)))
@@ -97,7 +97,7 @@ class LicencePositionChangeViewServiceTest {
 
     assertThat(result)
         .hasSize(1)
-        .extractingByKey(LicencePositionChangeOperation.LICENCE_ADMINISTRATOR)
+        .extractingByKey(LicenceOperation.LICENCE_ADMINISTRATOR)
         .isInstanceOf(AdministratorChangeView.class)
         .extracting(
             licencePositionChangeView -> ((AdministratorChangeView) licencePositionChangeView).withdrawingOrganisationName(),

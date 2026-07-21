@@ -1,24 +1,26 @@
 <#include '../../layout/layout.ftl'>
 <#import '_positionChanges.ftl' as positionChanges>
 
-<#macro details licencePositionState licencePositionChanges canEdit=false>
+<#macro details licencePositionChanges actions={} licencePositionState={} canEdit=false>
     <#if canEdit>
       <@fdsAction.buttonGroup>
-          <@fdsAction.link
-            linkText="Edit"
-            linkUrl="#"
-            linkClass="govuk-button govuk-button--secondary"
-          />
-          <@fdsAction.link
-            linkText="Delete"
-            linkUrl="#"
-            linkClass="govuk-button govuk-button--warning"
-          />
+          <@fdsActionDropdown.actionDropdown dropdownButtonText="Add change">
+            <#if !licencePositionChanges["licence-administrator"]??>
+              <@fdsActionDropdown.actionDropdownItem
+                actionText="Administrator change"
+                linkAction=true
+                linkActionUrl=springUrl(actions.addAdministratorChangeUrl())
+              />
+            </#if>
+          </@fdsActionDropdown.actionDropdown>
       </@fdsAction.buttonGroup>
     </#if>
-    <@fdsDataItems.dataItem>
-        <@fdsDataItems.dataValues key="Licence administrator" value=licencePositionState.administratorStateView().organisationName()/>
-    </@fdsDataItems.dataItem>
+<#--     TODO LMS2-79: this check (along with default value above) will be removed when we add state to added licence positions-->
+    <#if licencePositionState?has_content>
+        <@fdsDataItems.dataItem>
+            <@fdsDataItems.dataValues key="Licence administrator" value=licencePositionState.administratorStateView().organisationName()/>
+        </@fdsDataItems.dataItem>
+    </#if>
     <#if licencePositionChanges["licence-administrator"]??>
         <@positionChanges.administratorChange change=licencePositionChanges["licence-administrator"]/>
     </#if>

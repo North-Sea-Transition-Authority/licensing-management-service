@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionAdministratorChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 
 public final class LicencePositionChangeUtil {
 
@@ -15,10 +15,10 @@ public final class LicencePositionChangeUtil {
   public static Map<UUID, Integer> administratorIdChangeByPositionId(List<LicencePositionChange> licencePositionChanges) {
     return licencePositionChanges.stream()
         .flatMap(licencePositionChange -> licencePositionChange.getOperations().stream()
-        .filter(LicencePositionAdministratorChange.class::isInstance)
+        .filter(AdministratorOperation.class::isInstance)
         .map(adminChange -> Map.entry(
             licencePositionChange.getLicencePosition().getId(),
-            ((LicencePositionAdministratorChange) adminChange).operatorId()
+            ((AdministratorOperation) adminChange).operatorId()
         ))
     )
     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

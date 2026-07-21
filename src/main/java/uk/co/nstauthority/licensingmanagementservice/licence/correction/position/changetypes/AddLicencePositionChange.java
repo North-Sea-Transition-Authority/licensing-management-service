@@ -1,7 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes;
 
 import java.util.List;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionChangeOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 
 
 public record AddLicencePositionChange(

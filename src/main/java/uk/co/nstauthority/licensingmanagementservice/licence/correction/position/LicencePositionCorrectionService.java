@@ -1,25 +1,35 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddLicencePositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
 
 @Service
 public class LicencePositionCorrectionService {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(LicencePositionCorrectionService.class);
   private final LicencePositionCorrectionRepository licencePositionCorrectionRepository;
   private final LicencePositionRepository licencePositionRepository;
 
@@ -73,6 +83,14 @@ public class LicencePositionCorrectionService {
               .formatted(licencePosition.getId(), licenceCorrection.getId()));
     }
 
+    licencePositionCorrectionRepository
+        .findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+            licenceCorrection,
+            licencePosition,
+            LicencePositionCorrectionChangeType.UPDATE_POSITION
+        )
+        .ifPresent(licencePositionCorrectionRepository::delete);
+
     var licencePositionCorrection = new LicencePositionCorrection();
     licencePositionCorrection.setLicenceCorrection(licenceCorrection);
     licencePositionCorrection.setChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION);
@@ -98,14 +116,17 @@ public class LicencePositionCorrectionService {
               .formatted(licencePosition.getId(), licenceCorrection.getId()));
     }
 
-    var removePositionCorrections = licencePositionCorrectionRepository
+    var removePositionCorrection = licencePositionCorrectionRepository
         .findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
             licenceCorrection,
             licencePosition,
             LicencePositionCorrectionChangeType.REMOVE_POSITION
-        );
+        )
+        .orElseThrow(() -> new IllegalStateException(
+            "No REMOVE_POSITION correction found for licence position %s in correction %s"
+                .formatted(licencePosition.getId(), licenceCorrection.getId())));
 
-    licencePositionCorrectionRepository.deleteAll(removePositionCorrections);
+    licencePositionCorrectionRepository.delete(removePositionCorrection);
   }
 
   public boolean canReinstateDeletedPositionCorrection(
@@ -177,29 +198,155 @@ public class LicencePositionCorrectionService {
       LicencePosition licencePosition,
       LocalDate correctPositionDate
   ) {
-    var payload = LicencePositionPayload.newUpdateLicencePositionPayload()
-        .withEffectiveDate(correctPositionDate)
-        .withEffectiveDateOrder(determineEffectiveDateOrder(licenceCorrection, correctPositionDate))
-        .withChanges(List.of())
-        .build();
-
-    var positionCorrection = licencePositionCorrectionRepository
+    var existingPositionCorrection = licencePositionCorrectionRepository
         .findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
-            licenceCorrection, licencePosition, LicencePositionCorrectionChangeType.UPDATE_POSITION)
-        .stream()
-        .findFirst()
-        .orElseGet(() -> {
-          var newPositionCorrection = new LicencePositionCorrection();
-          newPositionCorrection.setLicenceCorrection(licenceCorrection);
-          newPositionCorrection.setTargetLicencePosition(licencePosition);
-          newPositionCorrection.setChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION);
-          return newPositionCorrection;
-        });
+            licenceCorrection, licencePosition, LicencePositionCorrectionChangeType.UPDATE_POSITION
+        );
+
+    var effectiveDateOrder = determineEffectiveDateOrder(licenceCorrection, correctPositionDate);
+
+    LicencePositionCorrection positionCorrection;
+    UpdateLicencePositionPayload payload;
+
+    if (existingPositionCorrection.isPresent()) {
+      positionCorrection = existingPositionCorrection.get();
+      var existingPayload = (UpdateLicencePositionPayload) positionCorrection.getPayload();
+
+      payload = LicencePositionPayload.newUpdateLicencePositionPayload()
+          .withEffectiveDate(correctPositionDate)
+          .withEffectiveDateOrder(effectiveDateOrder)
+          .withCorrectionReference(existingPayload.correctionReference())
+          .withChanges(existingPayload.changes())
+          .build();
+    } else {
+      positionCorrection = new LicencePositionCorrection();
+      positionCorrection.setLicenceCorrection(licenceCorrection);
+      positionCorrection.setTargetLicencePosition(licencePosition);
+      positionCorrection.setChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION);
+
+      payload = LicencePositionPayload.newUpdateLicencePositionPayload()
+          .withEffectiveDate(correctPositionDate)
+          .withEffectiveDateOrder(effectiveDateOrder)
+          .withCorrectionReference(licenceCorrection.getCorrectionReference())
+          .withChanges(List.of())
+          .build();
+    }
 
     positionCorrection.setPayload(payload);
 
     return licencePositionCorrectionRepository.save(positionCorrection);
   }
+
+  @Transactional
+  public void addAdministratorChangeForAddedLicencePosition(
+      LicencePositionCorrection licencePositionCorrection,
+      Integer administratorId
+  ) {
+    var payload = (CreateLicencePositionPayload) licencePositionCorrection.getPayload();
+
+    if (adminChangeExists(payload.changes())) { //TODO LMS2-83: update change added in this correction
+      LOGGER.warn("adminChange not applied for added licence position {} - already on payload", payload.licencePositionId());
+      return;
+    }
+
+    var changes = new ArrayList<>(payload.changes());
+    changes.add(buildAdminChange(administratorId, changes.size() + 1));
+
+    var updatedPayload = LicencePositionPayload.newCreateLicencePositionPayload()
+        .withLicencePositionId(payload.licencePositionId())
+        .withLicenceTransactionId(payload.licenceTransactionId())
+        .withEffectiveDate(payload.effectiveDate())
+        .withEffectiveDateOrder(payload.effectiveDateOrder())
+        .withCorrectionReference(payload.correctionReference())
+        .withChanges(changes)
+        .build();
+
+    licencePositionCorrection.setPayload(updatedPayload);
+    licencePositionCorrectionRepository.save(licencePositionCorrection);
+  }
+
+  @Transactional
+  public void addAdministratorChangeForExistingLicencePosition(
+      LicencePosition licencePosition,
+      LicenceCorrection licenceCorrection,
+      Integer administratorId
+  ) {
+    var existingPositionCorrection = licencePositionCorrectionRepository
+        .findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+            licenceCorrection,
+            licencePosition,
+            LicencePositionCorrectionChangeType.UPDATE_POSITION
+        );
+
+    LicencePositionCorrection positionCorrection;
+
+    if (existingPositionCorrection.isPresent()) {
+      positionCorrection = existingPositionCorrection.get();
+      var payload = (UpdateLicencePositionPayload) positionCorrection.getPayload();
+
+      if (adminChangeExists(payload.changes())) { //TODO LMS2-83: update change added in this correction
+        LOGGER.warn("adminChange not applied for licence position {} - already on payload", licencePosition.getId());
+        return;
+      }
+
+      var changes = new ArrayList<>(payload.changes());
+      changes.add(buildAdminChange(administratorId, changes.size() + 1));
+
+      var updatedPayload = LicencePositionPayload.newUpdateLicencePositionPayload()
+          .withEffectiveDate(payload.effectiveDate())
+          .withEffectiveDateOrder(payload.effectiveDateOrder())
+          .withCorrectionReference(payload.correctionReference())
+          .withChanges(changes)
+          .build();
+
+      positionCorrection.setPayload(updatedPayload);
+
+    } else {
+      positionCorrection = new LicencePositionCorrection();
+      var payload = LicencePositionPayload.newUpdateLicencePositionPayload()
+          .withCorrectionReference(licenceCorrection.getCorrectionReference())
+          .withChanges(List.of(buildAdminChange(administratorId, 1)))
+          .build();
+
+      positionCorrection.setLicenceCorrection(licenceCorrection);
+      positionCorrection.setChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION);
+      positionCorrection.setTargetLicencePosition(licencePosition);
+      positionCorrection.setPayload(payload);
+
+    }
+
+    licencePositionCorrectionRepository.save(positionCorrection);
+  }
+
+  public boolean adminChangeExists(List<LicencePositionChangeType> changes) {
+    return changes.stream()
+        //TODO - LMS2-82: Handle other change types (update change operations)
+        .filter(AddLicencePositionChange.class::isInstance)
+        .map(AddLicencePositionChange.class::cast)
+        .flatMap(change -> change.operations().stream())
+        .filter(LicencePositionAddOperation.class::isInstance)
+        .map(LicencePositionAddOperation.class::cast)
+        .map(LicencePositionAddOperation::operation)
+        .anyMatch(AdministratorOperation.class::isInstance);
+  }
+
+  private AddLicencePositionChange buildAdminChange(Integer administratorId, int changeOrder) {
+    var administratorOperation = LicenceOperation.newAdministratorChange()
+        .withOperator(administratorId)
+        .build();
+
+    var changeOperation = LicencePositionChangeOperation.newLicencePositionAddOperation()
+        .withOperationId(administratorOperation.id())
+        .withOperation(administratorOperation)
+        .build();
+
+    return LicencePositionChangeType.addLicencePositionChange()
+        .withChangeId(UUID.randomUUID().toString())
+        .withChangeOrder(changeOrder)
+        .withOperations(List.of(changeOperation))
+        .build();
+  }
+
 
   //TODO - Effective date order is auto-assigned for now. When multiple
   // positions share the same effective date the user should be able to select the order themselves.

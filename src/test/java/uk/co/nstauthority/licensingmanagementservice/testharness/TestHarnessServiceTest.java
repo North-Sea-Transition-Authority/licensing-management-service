@@ -31,8 +31,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionAdministratorChange;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionChangeOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransaction;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionService;
@@ -78,7 +78,7 @@ class TestHarnessServiceTest {
   private ArgumentCaptor<LicencePosition> positionCaptor;
 
   @Captor
-  private ArgumentCaptor<List<LicencePositionChangeOperation>> operationsCaptor;
+  private ArgumentCaptor<List<LicenceOperation>> operationsCaptor;
 
   @BeforeEach
   void setUp() {
@@ -136,7 +136,7 @@ class TestHarnessServiceTest {
     // first = index 0 (Shell); non-final = index size - 3 = 2 (BP)
     assertThat(positionCaptor.getAllValues()).containsExactly(positions.get(0), positions.get(2));
     assertThat(operationsCaptor.getAllValues())
-        .extracting(operations -> ((LicencePositionAdministratorChange) operations.getFirst()).operatorId())
+        .extracting(operations -> ((AdministratorOperation) operations.getFirst()).operatorId())
         .containsExactly(SHELL_PLC_ID, BP_EXPLORATION_ALPHA_LTD_ID);
   }
 
@@ -153,7 +153,7 @@ class TestHarnessServiceTest {
         positionCaptor.capture(), operationsCaptor.capture(), eq(1L), eq(LicencePositionChangeStatus.CONSENTED));
 
     assertThat(positionCaptor.getValue()).isEqualTo(secondaryPositions.getFirst());
-    assertThat(((LicencePositionAdministratorChange) operationsCaptor.getValue().getFirst()).operatorId())
+    assertThat(((AdministratorOperation) operationsCaptor.getValue().getFirst()).operatorId())
         .isEqualTo(SHELL_PLC_ID);
   }
 

@@ -29,7 +29,8 @@ class LicencePositionPageViewTest {
   @Test
   void hasPositions_whenTimelineHasEntries_returnsTrue() {
     var pageView = new LicencePositionPageView(
-        List.of(timelineView()), null, "REF-1" ,Map.of(), null, false, null, false);
+        List.of(timelineView()), null, "REF-1" ,Map.of(), null, false, null, false,
+        LicencePositionPageView.Actions.none());
 
     assertThat(pageView.hasPositions()).isTrue();
   }
@@ -55,7 +56,8 @@ class LicencePositionPageViewTest {
   @Test
   void fromExecutedPosition_isEditableAndNotAdded() {
     var pageView = LicencePositionPageView.fromExecutedPosition(
-        List.of(), "1 Jan 2026", "REF-1", Map.of(), null, UUID.randomUUID());
+        List.of(), "1 Jan 2026", "REF-1", Map.of(), null, UUID.randomUUID(),
+        LicencePositionPageView.Actions.none());
 
     assertThat(pageView.canEdit()).isTrue();
     assertThat(pageView.isAddedPosition()).isFalse();
@@ -64,11 +66,17 @@ class LicencePositionPageViewTest {
   @Test
   void fromNonExecutedPosition_isEditableAddedWithNoChangeOrStateViews() {
     var pageView = LicencePositionPageView.fromNonExecutedPosition(
-        List.of(), "1 Jan 2026", "REF-1", UUID.randomUUID());
+        List.of(), "1 Jan 2026", "REF-1", UUID.randomUUID(),
+        LicencePositionPageView.Actions.none());
 
     assertThat(pageView.canEdit()).isTrue();
     assertThat(pageView.isAddedPosition()).isTrue();
     assertThat(pageView.changeViewByType()).isEmpty();
     assertThat(pageView.stateView()).isNull();
+  }
+
+  @Test
+  void actions_none_hasNullUrl() {
+    assertThat(LicencePositionPageView.Actions.none().addAdministratorChangeUrl()).isNull();
   }
 }

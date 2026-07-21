@@ -2,6 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 public enum LicencePositionCorrectionChangeType {
   ADD_POSITION,
-  REMOVE_POSITION,
-  UPDATE_POSITION
+  UPDATE_POSITION,
+  REMOVE_POSITION
 }

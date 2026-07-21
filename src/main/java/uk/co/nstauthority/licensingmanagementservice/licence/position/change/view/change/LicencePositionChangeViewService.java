@@ -5,11 +5,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionAdministratorChange;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations.LicencePositionChangeOperation;
 
 @Service
 public class LicencePositionChangeViewService {
@@ -27,13 +27,16 @@ public class LicencePositionChangeViewService {
       List<LicencePosition> chronologicalLicencePositions,
       List<LicencePositionChange> licencePositionChanges
   ) {
+
+    //TODO: When different change types are added this will need to be adapted,
+    // as toMap will key by operation type, and we will soon have lists of operationType
     return licencePositionChanges.stream()
         .filter(
             licencePositionChange -> licencePositionChange.getLicencePosition().getId().equals(currentLicencePosition.getId())
         )
         .flatMap(licencePositionChange -> licencePositionChange.getOperations().stream())
         .collect(Collectors.toMap(
-            LicencePositionChangeOperation::type,
+            LicenceOperation::type,
             operation -> toView(
                 operation,
                 currentLicencePosition,
@@ -44,13 +47,13 @@ public class LicencePositionChangeViewService {
   }
 
   private LicencePositionChangeView toView(
-      LicencePositionChangeOperation operation,
+      LicenceOperation operation,
       LicencePosition currentLicencePosition,
       List<LicencePosition> chronologicalLicencePositions,
       List<LicencePositionChange> licencePositionChanges
   ) {
     return switch (operation) {
-      case LicencePositionAdministratorChange administratorChange ->
+      case AdministratorOperation administratorChange ->
           buildAdministratorChange(
               administratorChange,
               currentLicencePosition,
@@ -61,7 +64,7 @@ public class LicencePositionChangeViewService {
   }
 
   private AdministratorChangeView buildAdministratorChange(
-      LicencePositionAdministratorChange operation,
+      AdministratorOperation operation,
       LicencePosition currentLicencePosition,
       List<LicencePosition> chronologicalLicencePositions,
       List<LicencePositionChange> licencePositionChanges

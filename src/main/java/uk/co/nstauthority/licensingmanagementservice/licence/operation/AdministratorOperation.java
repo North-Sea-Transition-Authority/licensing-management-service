@@ -1,12 +1,13 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.position.change.operations;
+package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import java.util.Objects;
 
-public record LicencePositionAdministratorChange(
+public record AdministratorOperation(
+    Integer id,
     Integer operatorId
-) implements LicencePositionChangeOperation {
+) implements LicenceOperation {
 
-  public LicencePositionAdministratorChange {
+  public AdministratorOperation {
     Objects.requireNonNull(operatorId, "operatorId must not be null");
   }
 
@@ -24,8 +25,8 @@ public record LicencePositionAdministratorChange(
       return this;
     }
 
-    public LicencePositionAdministratorChange build() {
-      return new LicencePositionAdministratorChange(operatorId);
+    public AdministratorOperation build() {
+      return new AdministratorOperation(1, operatorId);
     }
   }
 }

@@ -99,7 +99,8 @@ class LicencePositionControllerTest extends AbstractControllerTest {
         ),
         false,
         POSITION_ID,
-        false
+        false,
+        LicencePositionPageView.Actions.none()
     );
 
     when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(PAGE_CAPTION);

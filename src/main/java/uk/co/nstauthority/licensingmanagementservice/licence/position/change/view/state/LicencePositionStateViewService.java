@@ -28,12 +28,11 @@ public class LicencePositionStateViewService {
     );
   }
 
-  private AdministratorStateView buildAdministratorState(
+  public Integer resolveCurrentAdministratorId(
       LicencePosition currentLicencePosition,
       List<LicencePosition> chronologicalLicencePositions,
       List<LicencePositionChange> licencePositionChanges
   ) {
-
     var administratorIdChangeByPositionId = LicencePositionChangeUtil.administratorIdChangeByPositionId(licencePositionChanges);
 
     Integer currentAdminId = null;
@@ -46,6 +45,18 @@ public class LicencePositionStateViewService {
         break;
       }
     }
+
+    return currentAdminId;
+  }
+
+  private AdministratorStateView buildAdministratorState(
+      LicencePosition currentLicencePosition,
+      List<LicencePosition> chronologicalLicencePositions,
+      List<LicencePositionChange> licencePositionChanges
+  ) {
+
+    var currentAdminId = resolveCurrentAdministratorId(
+        currentLicencePosition, chronologicalLicencePositions, licencePositionChanges);
 
     if (currentAdminId == null) {
       throw new IllegalStateException(

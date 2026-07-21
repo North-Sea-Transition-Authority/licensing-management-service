@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.common;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
@@ -97,6 +99,7 @@ class LicenceScheduleRelativeOptionsServiceTest {
     var secondTerm = new LicenceScheduleTerm();
     secondTerm.setId(UUID.randomUUID());
     secondTerm.setTermType(TermType.SECOND);
+    secondTerm.setStartDate(LocalDate.of(2024, 1, 1));
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(secondTerm, initialTerm));
@@ -104,10 +107,12 @@ class LicenceScheduleRelativeOptionsServiceTest {
     var phaseA = new LicenceSchedulePhase();
     phaseA.setId(UUID.randomUUID());
     phaseA.setPhaseType(PhaseType.PHASE_A);
+    phaseA.setStartDate(LocalDate.of(2024, 6, 1));
 
     var phaseB = new LicenceSchedulePhase();
     phaseB.setId(UUID.randomUUID());
     phaseB.setPhaseType(PhaseType.PHASE_B);
+    phaseB.setStartDate(LocalDate.of(2024, 12, 1));
 
     when(licenceSchedulePhaseService.getPhasesByTerm(initialTerm)).thenReturn(List.of(phaseB, phaseA));
 
@@ -117,6 +122,19 @@ class LicenceScheduleRelativeOptionsServiceTest {
         phaseA.getId().toString(),
         phaseB.getId().toString(),
         secondTerm.getId().toString()
+    );
+
+    assertThat(result).containsEntry(
+        phaseA.getId().toString(),
+        "Start of %s (%s)".formatted(phaseA.getPhaseType().getDisplayName(), DateFormatUtil.convertToDisplayText(phaseA.getStartDate()))
+    );
+    assertThat(result).containsEntry(
+        phaseB.getId().toString(),
+        "Start of %s (%s)".formatted(phaseB.getPhaseType().getDisplayName(), DateFormatUtil.convertToDisplayText(phaseB.getStartDate()))
+    );
+    assertThat(result).containsEntry(
+        secondTerm.getId().toString(),
+        "Start of %s (%s)".formatted(secondTerm.getTermType().getDisplayName(), DateFormatUtil.convertToDisplayText(secondTerm.getStartDate()))
     );
   }
 

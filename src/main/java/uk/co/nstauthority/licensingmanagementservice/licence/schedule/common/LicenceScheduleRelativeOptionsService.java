@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -56,7 +57,10 @@ public class LicenceScheduleRelativeOptionsService {
       if (phases.isEmpty()) {
         combinedOptions.put(
             termPhase.getKey().getId().toString(),
-            "Start of %s".formatted(termPhase.getKey().getTermType().getDisplayName())
+            "Start of %s (%s)".formatted(
+                termPhase.getKey().getTermType().getDisplayName(),
+                DateFormatUtil.convertToDisplayText(termPhase.getKey().getStartDate())
+            )
         );
       } else {
         combinedOptions.putAll(phases);
@@ -71,7 +75,10 @@ public class LicenceScheduleRelativeOptionsService {
         .sorted(Comparator.comparingInt(phase -> phase.getPhaseType().getDisplayOrder()))
         .collect(StreamUtil.toLinkedHashMap(
             phase -> phase.getId().toString(),
-            phase -> "Start of %s".formatted(phase.getPhaseType().getDisplayName()))
+            phase -> "Start of %s (%s)".formatted(
+                phase.getPhaseType().getDisplayName(),
+                DateFormatUtil.convertToDisplayText(phase.getStartDate()))
+            )
         );
   }
 }

@@ -51,6 +51,7 @@ CVE-2025-14813
 
 org.postgresql:postgresql
 CVE-2026-42198
+CVE-2026-54291
 
 # commons-io:commons-io
 CVE-2024-47554
@@ -60,6 +61,7 @@ CVE-2025-48734
 
 # com.fasterxml.jackson.core:jackson-core
 GHSA-72hv-8253-57qq
+GHSA-r7wm-3cxj-wff9
 CVE-2026-54512
 CVE-2026-54513
 CVE-2026-54514
@@ -76,6 +78,9 @@ CVE-2026-54515
 CVE-2026-54516
 CVE-2026-54517
 CVE-2026-54518
+CVE-2026-59888
+CVE-2026-59889
+GHSA-mhm7-754m-9p8w
 
 # org.apache.tomcat.embed:tomcat-embed-core
 CVE-2025-66614

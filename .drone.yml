@@ -173,7 +173,7 @@ steps:
   - name: publish-gis-node-app
     image: plugins/ecr:21
     settings:
-      repo: digital/licensing-management-service
+      repo: digital/licensing-management-service-gis-node-app
       registry: 847993322739.dkr.ecr.eu-west-2.amazonaws.com
       access_key: AKIA4K4CXHTZ7KAUZJWL
       secret_key:
@@ -182,7 +182,7 @@ steps:
         from_secret: docker_config
       region: eu-west-2
       tags:
-        - ${DRONE_BRANCH//\//-}-node-app-${DRONE_BUILD_NUMBER}
+        - ${DRONE_BRANCH//\//-}-${DRONE_BUILD_NUMBER}
       dockerfile: ./gis-framework/arcgis-node/Dockerfile
     when:
       branch:

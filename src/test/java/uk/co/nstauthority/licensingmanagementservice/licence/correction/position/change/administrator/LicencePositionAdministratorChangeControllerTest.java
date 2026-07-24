@@ -1,7 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -33,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -79,11 +82,11 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
 
   @Test
   void renderForExecutedPosition_whenAllocatedToUser() throws Exception {
-    givenCorrectionAllocatedToUser();
+    var correction = givenCorrectionAllocatedToUser();
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
 
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
-    when(licencePositionService.getCurrentAdministratorId(position)).thenReturn(ADMINISTRATOR_ID);
+    when(licencePositionService.getCurrentAdministratorIdForCorrection(correction, position.getId())).thenReturn(ADMINISTRATOR_ID);
     when(organisationUnitQueryService.getOrganisationUnitNameById(ADMINISTRATOR_ID))
         .thenReturn(Optional.of("Current Admin Org"));
 
@@ -110,7 +113,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
     form.getAdminId().setInputValue(ADMINISTRATOR_ID.toString());
 
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
-    when(licencePositionService.getCurrentAdministratorId(position)).thenReturn(1);
+    when(licencePositionService.getCurrentAdministratorIdForCorrection(correction, position.getId())).thenReturn(1);
     when(administratorChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(1))).thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
@@ -132,13 +135,13 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
 
   @Test
   void submitForExecutedPosition_whenInvalid() throws Exception {
-    givenCorrectionAllocatedToUser();
+    var correction = givenCorrectionAllocatedToUser();
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
 
     var form = new AdministratorChangeForm();
 
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
-    when(licencePositionService.getCurrentAdministratorId(position)).thenReturn(1);
+    when(licencePositionService.getCurrentAdministratorIdForCorrection(correction, position.getId())).thenReturn(1);
     when(administratorChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(1))).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
@@ -158,7 +161,13 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
 
   @Test
   void renderForAddedPosition_whenAllocatedToUser() throws Exception {
-    givenCorrectionAllocatedToUser();
+    var correction = givenCorrectionAllocatedToUser();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().build())
+        .build();
+
+    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
+        .thenReturn(positionCorrection);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
             .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null)))
@@ -177,7 +186,9 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
   @Test
   void submitForAddedPosition_whenValid() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().build())
+        .build();
 
     var form = new AdministratorChangeForm();
     form.getAdminId().setInputValue(ADMINISTRATOR_ID.toString());
@@ -205,10 +216,15 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
 
   @Test
   void submitForAddedPosition_whenInvalid() throws Exception {
-    givenCorrectionAllocatedToUser();
+    var correction = givenCorrectionAllocatedToUser();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().build())
+        .build();
 
     var form = new AdministratorChangeForm();
 
+    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
+        .thenReturn(positionCorrection);
     when(administratorChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), any())).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
@@ -223,7 +239,8 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
             model().attribute("backLinkUrl", addedBackLinkUrl)
         );
 
-    verifyNoInteractions(licencePositionCorrectionService);
+    verify(licencePositionCorrectionService, never())
+        .addAdministratorChangeForAddedLicencePosition(any(), anyInt());
   }
 
   private LicenceCorrection givenCorrectionAllocatedToUser() {

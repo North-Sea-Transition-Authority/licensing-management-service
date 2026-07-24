@@ -2,14 +2,15 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.vi
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 
 @Service
 public class LicencePositionChangeViewService {
@@ -23,62 +24,52 @@ public class LicencePositionChangeViewService {
   }
 
   public Map<String, LicencePositionChangeView> getChangeViews(
-      LicencePosition currentLicencePosition,
-      List<LicencePosition> chronologicalLicencePositions,
-      List<LicencePositionChange> licencePositionChanges
+      UUID currentPositionId,
+      List<ChronologicalPosition> chronologicalPositions
   ) {
-
-    //TODO: When different change types are added this will need to be adapted,
-    // as toMap will key by operation type, and we will soon have lists of operationType
-    return licencePositionChanges.stream()
-        .filter(
-            licencePositionChange -> licencePositionChange.getLicencePosition().getId().equals(currentLicencePosition.getId())
-        )
-        .flatMap(licencePositionChange -> licencePositionChange.getOperations().stream())
-        .collect(Collectors.toMap(
-            LicenceOperation::type,
-            operation -> toView(
-                operation,
-                currentLicencePosition,
-                chronologicalLicencePositions,
-                licencePositionChanges
-            )
-        ));
+    return chronologicalPositions.stream()
+        .filter(chronologicalPosition -> chronologicalPosition.id().equals(currentPositionId))
+        .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
+        .flatMap(change -> change.operations().stream()
+            .map(operation -> Map.entry(
+                operation.type(),
+                toView(operation, change, currentPositionId, chronologicalPositions))))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   private LicencePositionChangeView toView(
       LicenceOperation operation,
-      LicencePosition currentLicencePosition,
-      List<LicencePosition> chronologicalLicencePositions,
-      List<LicencePositionChange> licencePositionChanges
+      PositionChange change,
+      UUID currentLicencePositionId,
+      List<ChronologicalPosition> chronologicalPositions
   ) {
     return switch (operation) {
       case AdministratorOperation administratorChange ->
           buildAdministratorChange(
               administratorChange,
-              currentLicencePosition,
-              chronologicalLicencePositions,
-              licencePositionChanges
+              change,
+              currentLicencePositionId,
+              chronologicalPositions
           );
     };
   }
 
   private AdministratorChangeView buildAdministratorChange(
       AdministratorOperation operation,
-      LicencePosition currentLicencePosition,
-      List<LicencePosition> chronologicalLicencePositions,
-      List<LicencePositionChange> licencePositionChanges
+      PositionChange change,
+      UUID currentLicencePositionId,
+      List<ChronologicalPosition> chronologicalPositions
   ) {
     var joiningId = operation.operatorId();
 
-    var administratorIdChangeByPositionId = LicencePositionChangeUtil.administratorIdChangeByPositionId(licencePositionChanges);
+    var administratorIdChangeByPositionId = LicencePositionChangeUtil.administratorIdChangeByPositionId(chronologicalPositions);
 
     Integer withdrawingId = null;
-    for (var licencePosition : chronologicalLicencePositions) {
-      if (licencePosition.getId().equals(currentLicencePosition.getId())) {
+    for (var chronologicalPosition : chronologicalPositions) {
+      if (chronologicalPosition.id().equals(currentLicencePositionId)) {
         break;
       }
-      var operatorId = administratorIdChangeByPositionId.get(licencePosition.getId());
+      var operatorId = administratorIdChangeByPositionId.get(chronologicalPosition.id());
       if (operatorId != null) {
         withdrawingId = operatorId;
       }
@@ -90,6 +81,7 @@ public class LicencePositionChangeViewService {
 
     var withdrawingName = (withdrawingId == null) ? null : organisationNames.get(withdrawingId);
 
-    return new AdministratorChangeView(withdrawingName, organisationNames.get(joiningId));
+    return new AdministratorChangeView(
+        withdrawingName, organisationNames.get(joiningId), change.changeId(), change.changeType());
   }
 }

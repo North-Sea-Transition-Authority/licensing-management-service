@@ -34,15 +34,14 @@ public class LicencePositionController {
   public ModelAndView renderLicencePositionTimeline(
       Licence licence
   ) {
-    //TODO: we may need a method to directly fetch first (last chronologically) licence position
-    var chronologicalLicencePositions = licencePositionService.getChronologicalLicencePositions(licence);
+    var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
 
-    if (chronologicalLicencePositions.isEmpty()) {
+    if (executedChronologicalLicencePositions.isEmpty()) {
       return licencePositionsModelAndView(licence, LicencePositionPageView.empty());
     }
 
     return ReverseRouter.redirect(on(this.getClass()).renderLicencePosition(
-        licence, chronologicalLicencePositions.getLast().getId())
+        licence, executedChronologicalLicencePositions.getLast().getId())
     );
   }
 

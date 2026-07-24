@@ -184,8 +184,14 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         .buildJson();
     var position = LicencePositionTestUtil.newBuilder().build();
     var pageView = LicencePositionPageView.fromExecutedPosition(
-        List.of(), "1 Jan 2026", "REF-1", Map.of(), null, position.getId(),
-        LicencePositionPageView.Actions.none());
+        List.of(),
+        "1 Jan 2026",
+        "REF-1",
+        Map.of(),
+        null,
+        position.getId(),
+        LicencePositionPageView.Actions.none()
+    );
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
@@ -230,9 +236,15 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         .withSurname("Doe")
         .buildJson();
     var positionCorrection = new LicencePositionCorrection();
-    var pageView = LicencePositionPageView.fromNonExecutedPosition(
-        List.of(), "1 Jan 2026", "REF-1", POSITION_CORRECTION_ID,
-        LicencePositionPageView.Actions.none());
+    var pageView = LicencePositionPageView.fromAddedPosition(
+        List.of(),
+        "1 Jan 2026",
+        "REF-1",
+        Map.of(),
+        null,
+        POSITION_CORRECTION_ID,
+        LicencePositionPageView.Actions.none()
+    );
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));

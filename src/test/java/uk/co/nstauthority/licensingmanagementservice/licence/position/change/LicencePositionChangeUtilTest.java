@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
 
 class LicencePositionChangeUtilTest {
 
@@ -16,18 +17,16 @@ class LicencePositionChangeUtilTest {
     var positionOne = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
     var positionTwo = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
 
-    var changeOne = LicencePositionChangeTestUtil.newBuilder()
-        .withLicencePosition(positionOne)
-        .withOperations(List.of(
-            LicenceOperation.newAdministratorChange().withOperator(1).build()))
-        .build();
-    var changeTwo = LicencePositionChangeTestUtil.newBuilder()
-        .withLicencePosition(positionTwo)
-        .withOperations(List.of(
-            LicenceOperation.newAdministratorChange().withOperator(2).build()))
-        .build();
+    var chronologicalPositionOne = ChronologicalPositionTestUtil.live(
+        positionOne,
+        LicenceOperation.newAdministratorChange().withOperator(1).build()
+    );
+    var chronologicalPositionTwo = ChronologicalPositionTestUtil.live(
+        positionTwo,
+        LicenceOperation.newAdministratorChange().withOperator(2).build()
+    );
 
-    var result = LicencePositionChangeUtil.administratorIdChangeByPositionId(List.of(changeOne, changeTwo));
+    var result = LicencePositionChangeUtil.administratorIdChangeByPositionId(List.of(chronologicalPositionOne, chronologicalPositionTwo));
 
     assertThat(result)
         .containsOnly(

@@ -78,6 +78,7 @@ CVE-2026-54515
 CVE-2026-54516
 CVE-2026-54517
 CVE-2026-54518
+GHSA-r7wm-3cxj-wff9
 
 # com.fasterxml.jackson.core:jackson-databind
 CVE-2026-54512

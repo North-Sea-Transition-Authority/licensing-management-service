@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceReferenceComparator;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -47,6 +48,7 @@ public class LicenceInternalApiService {
     return licenceService.searchLicencesByReferenceAndTypes(searchTerm, types)
         .stream()
         .map(this::toLicenceJson)
+        .sorted(Comparator.comparing(LicenceJson::licenceReference, new LicenceReferenceComparator()))
         .toList();
   }
 

@@ -64,9 +64,9 @@ class LicencePositionPageViewTest {
   }
 
   @Test
-  void fromNonExecutedPosition_isEditableAddedWithNoChangeOrStateViews() {
-    var pageView = LicencePositionPageView.fromNonExecutedPosition(
-        List.of(), "1 Jan 2026", "REF-1", UUID.randomUUID(),
+  void fromAddedPosition_isEditableAddedWithNoChangeOrStateViews() {
+    var pageView = LicencePositionPageView.fromAddedPosition(
+        List.of(), "1 Jan 2026", "REF-1", Map.of(), null, UUID.randomUUID(),
         LicencePositionPageView.Actions.none());
 
     assertThat(pageView.canEdit()).isTrue();

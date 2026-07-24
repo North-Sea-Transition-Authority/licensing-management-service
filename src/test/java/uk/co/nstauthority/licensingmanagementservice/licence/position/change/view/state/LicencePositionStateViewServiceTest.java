@@ -12,9 +12,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 class LicencePositionStateViewServiceTest {
@@ -35,19 +35,17 @@ class LicencePositionStateViewServiceTest {
   void buildAdministratorState_changeOnCurrentPosition() {
     var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
 
-    var currentChange = LicencePositionChangeTestUtil.newBuilder()
-        .withLicencePosition(currentLicencePosition)
-        .withOperations(List.of(
-            LicenceOperation.newAdministratorChange().withOperator(CURRENT_ADMIN_ID).build()))
-        .build();
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        LicenceOperation.newAdministratorChange().withOperator(CURRENT_ADMIN_ID).build()
+    );
 
     when(organisationUnitQueryService.getOrganisationUnitNameById(CURRENT_ADMIN_ID))
         .thenReturn(Optional.of(CURRENT_ADMIN_NAME));
 
     var result = licencePositionStateViewService.getStateView(
-        currentLicencePosition,
-        List.of(currentLicencePosition),
-        List.of(currentChange)
+        currentLicencePosition.getId(),
+        List.of(currentChronologicalPosition)
     );
 
     assertThat(result.administratorStateView().organisationName()).isEqualTo(CURRENT_ADMIN_NAME);
@@ -56,29 +54,32 @@ class LicencePositionStateViewServiceTest {
   @Test
   void buildAdministratorState_changeBeforeCurrentPosition() {
     var oldestLicencePosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
-    var gapAfterMiddleLicencePosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
     var middleLicencePosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
+    var gapAfterMiddleLicencePosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
     var currentLicencePosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
 
-    var oldestChange = LicencePositionChangeTestUtil.newBuilder()
-        .withLicencePosition(oldestLicencePosition)
-        .withOperations(List.of(
-            LicenceOperation.newAdministratorChange().withOperator(OLDER_ADMIN_ID).build()))
-        .build();
-
-    var middleChange = LicencePositionChangeTestUtil.newBuilder()
-        .withLicencePosition(middleLicencePosition)
-        .withOperations(List.of(
-            LicenceOperation.newAdministratorChange().withOperator(MOST_RECENT_ADMIN_ID).build()))
-        .build();
+    var oldestChronologicalPosition = ChronologicalPositionTestUtil.live(
+        oldestLicencePosition,
+        LicenceOperation.newAdministratorChange().withOperator(OLDER_ADMIN_ID).build()
+    );
+    var middleChronologicalPosition = ChronologicalPositionTestUtil.live(
+        middleLicencePosition,
+        LicenceOperation.newAdministratorChange().withOperator(MOST_RECENT_ADMIN_ID).build()
+    );
+    var gapAfterMiddleChronologicalPosition = ChronologicalPositionTestUtil.live(gapAfterMiddleLicencePosition);
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(currentLicencePosition);
 
     when(organisationUnitQueryService.getOrganisationUnitNameById(MOST_RECENT_ADMIN_ID))
         .thenReturn(Optional.of(MOST_RECENT_ADMIN_NAME));
 
     var result = licencePositionStateViewService.getStateView(
-        currentLicencePosition,
-        List.of(oldestLicencePosition, middleLicencePosition, gapAfterMiddleLicencePosition, currentLicencePosition),
-        List.of(oldestChange, middleChange)
+        currentLicencePosition.getId(),
+        List.of(
+            oldestChronologicalPosition,
+            middleChronologicalPosition,
+            gapAfterMiddleChronologicalPosition,
+            currentChronologicalPosition
+        )
     );
 
     assertThat(result.administratorStateView().organisationName()).isEqualTo(MOST_RECENT_ADMIN_NAME);
@@ -91,29 +92,29 @@ class LicencePositionStateViewServiceTest {
     var currentLicencePosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
     var laterLicencePosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
 
-    var oldestChange = LicencePositionChangeTestUtil.newBuilder()
-        .withLicencePosition(oldestLicencePosition)
-        .withOperations(List.of(
-            LicenceOperation.newAdministratorChange().withOperator(OLDER_ADMIN_ID).build()))
-        .build();
-
-    var middleChange = LicencePositionChangeTestUtil.newBuilder()
-        .withLicencePosition(middleLicencePosition)
-        .withOperations(List.of(
-            LicenceOperation.newAdministratorChange().withOperator(CURRENT_ADMIN_ID).build()))
-        .build();
-
+    var oldestChronologicalPosition = ChronologicalPositionTestUtil.live(
+        oldestLicencePosition,
+        LicenceOperation.newAdministratorChange().withOperator(OLDER_ADMIN_ID).build()
+    );
+    var middleChronologicalPosition = ChronologicalPositionTestUtil.live(
+        middleLicencePosition,
+        LicenceOperation.newAdministratorChange().withOperator(CURRENT_ADMIN_ID).build()
+    );
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(currentLicencePosition);
     // a change on a position after the current one must be ignored
-    var laterChange = LicencePositionChangeTestUtil.newBuilder()
-        .withLicencePosition(laterLicencePosition)
-        .withOperations(List.of(
-            LicenceOperation.newAdministratorChange().withOperator(MOST_RECENT_ADMIN_ID).build()))
-        .build();
+    var laterChronologicalPosition = ChronologicalPositionTestUtil.live(
+        laterLicencePosition,
+        LicenceOperation.newAdministratorChange().withOperator(MOST_RECENT_ADMIN_ID).build()
+    );
 
     var result = licencePositionStateViewService.resolveCurrentAdministratorId(
-        currentLicencePosition,
-        List.of(oldestLicencePosition, middleLicencePosition, currentLicencePosition, laterLicencePosition),
-        List.of(oldestChange, middleChange, laterChange)
+        currentLicencePosition.getId(),
+        List.of(
+            oldestChronologicalPosition,
+            middleChronologicalPosition,
+            currentChronologicalPosition,
+            laterChronologicalPosition
+        )
     );
 
     assertThat(result).isEqualTo(CURRENT_ADMIN_ID);
@@ -122,11 +123,11 @@ class LicencePositionStateViewServiceTest {
   @Test
   void resolveCurrentAdministratorId_whenNoAdminChange_returnsNull() {
     var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(currentLicencePosition);
 
     var result = licencePositionStateViewService.resolveCurrentAdministratorId(
-        currentLicencePosition,
-        List.of(currentLicencePosition),
-        List.of()
+        currentLicencePosition.getId(),
+        List.of(currentChronologicalPosition)
     );
 
     assertThat(result).isNull();
@@ -136,19 +137,17 @@ class LicencePositionStateViewServiceTest {
   void buildAdministratorState_adminIdNotFound() {
     var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
 
-    var currentChange = LicencePositionChangeTestUtil.newBuilder()
-        .withLicencePosition(currentLicencePosition)
-        .withOperations(List.of(
-            LicenceOperation.newAdministratorChange().withOperator(CURRENT_ADMIN_ID).build()))
-        .build();
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        LicenceOperation.newAdministratorChange().withOperator(CURRENT_ADMIN_ID).build()
+    );
 
     when(organisationUnitQueryService.getOrganisationUnitNameById(CURRENT_ADMIN_ID))
         .thenReturn(Optional.empty());
 
     var result = licencePositionStateViewService.getStateView(
-        currentLicencePosition,
-        List.of(currentLicencePosition),
-        List.of(currentChange)
+        currentLicencePosition.getId(),
+        List.of(currentChronologicalPosition)
     );
 
     assertThat(result.administratorStateView().organisationName()).isEmpty();

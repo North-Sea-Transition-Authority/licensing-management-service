@@ -1,11 +1,11 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state;
 
 import java.util.List;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 
 @Service
 public class LicencePositionStateViewService {
@@ -19,29 +19,32 @@ public class LicencePositionStateViewService {
   }
 
   public LicencePositionStateView getStateView(
-      LicencePosition currentLicencePosition,
-      List<LicencePosition> chronologicalLicencePositions,
-      List<LicencePositionChange> licencePositionChanges
+      UUID currentLicencePositionId,
+      List<ChronologicalPosition> chronologicalPositions
   ) {
     return new LicencePositionStateView(
-        buildAdministratorState(currentLicencePosition, chronologicalLicencePositions, licencePositionChanges)
+        buildAdministratorState(currentLicencePositionId, chronologicalPositions)
     );
   }
 
+  /**
+   * Resolves the administrator of the given position by walking the chronological positions and applying each
+   * administrator change up to and including the current position. As the changes are folded into the
+   * {@link ChronologicalPosition}s, any in-progress correction is taken into account.
+   */
   public Integer resolveCurrentAdministratorId(
-      LicencePosition currentLicencePosition,
-      List<LicencePosition> chronologicalLicencePositions,
-      List<LicencePositionChange> licencePositionChanges
+      UUID currentLicencePositionId,
+      List<ChronologicalPosition> chronologicalPositions
   ) {
-    var administratorIdChangeByPositionId = LicencePositionChangeUtil.administratorIdChangeByPositionId(licencePositionChanges);
+    var administratorIdChangeByPositionId = LicencePositionChangeUtil.administratorIdChangeByPositionId(chronologicalPositions);
 
     Integer currentAdminId = null;
-    for (var licencePosition : chronologicalLicencePositions) {
-      var administratorId = administratorIdChangeByPositionId.get(licencePosition.getId());
+    for (var chronologicalPosition : chronologicalPositions) {
+      var administratorId = administratorIdChangeByPositionId.get(chronologicalPosition.id());
       if (administratorId != null) {
         currentAdminId = administratorId;
       }
-      if (licencePosition.getId().equals(currentLicencePosition.getId())) {
+      if (chronologicalPosition.id().equals(currentLicencePositionId)) {
         break;
       }
     }
@@ -50,19 +53,13 @@ public class LicencePositionStateViewService {
   }
 
   private AdministratorStateView buildAdministratorState(
-      LicencePosition currentLicencePosition,
-      List<LicencePosition> chronologicalLicencePositions,
-      List<LicencePositionChange> licencePositionChanges
+      UUID currentLicencePositionId,
+      List<ChronologicalPosition> chronologicalPositions
   ) {
-
-    var currentAdminId = resolveCurrentAdministratorId(
-        currentLicencePosition, chronologicalLicencePositions, licencePositionChanges);
+    var currentAdminId = resolveCurrentAdministratorId(currentLicencePositionId, chronologicalPositions);
 
     if (currentAdminId == null) {
-      throw new IllegalStateException(
-          "No administrator for current position {%s}, expected an administrator change on the earliest position"
-              .formatted(currentLicencePosition.getId())
-      );
+      return new AdministratorStateView("");
     }
 
     var administratorName = organisationUnitQueryService.getOrganisationUnitNameById(currentAdminId).orElse("");

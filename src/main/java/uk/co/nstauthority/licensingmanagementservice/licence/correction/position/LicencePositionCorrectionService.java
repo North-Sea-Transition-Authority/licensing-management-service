@@ -192,6 +192,11 @@ public class LicencePositionCorrectionService {
         ));
   }
 
+  public List<LicencePositionCorrection> getUpdatedLicencePositionCorrections(LicenceCorrection licenceCorrection) {
+    return licencePositionCorrectionRepository
+        .findByLicenceCorrectionAndChangeType(licenceCorrection, LicencePositionCorrectionChangeType.UPDATE_POSITION);
+  }
+
   @Transactional
   public LicencePositionCorrection correctPositionDate(
       LicenceCorrection licenceCorrection,

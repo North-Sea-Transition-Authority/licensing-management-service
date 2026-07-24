@@ -94,7 +94,7 @@ class TestHarnessServiceTest {
 
     when(licenceTransactionService.createLicenceTransaction(anyString()))
         .thenReturn(TRANSACTION_1, TRANSACTION_2, SAME_TRANSACTION, CROSS_TRANSACTION);
-    when(licencePositionService.getChronologicalLicencePositions(licence)).thenReturn(buildPositions(5));
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(buildPositions(5));
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -126,7 +126,7 @@ class TestHarnessServiceTest {
     var licence = production(1);
     var secondaryLicence = carbonStorage(2);
     var positions = buildPositions(5);
-    when(licencePositionService.getChronologicalLicencePositions(licence)).thenReturn(positions);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -145,7 +145,7 @@ class TestHarnessServiceTest {
     var licence = carbonStorage(1);
     var secondaryLicence = production(2);
     var secondaryPositions = buildPositions(1);
-    when(licencePositionService.getChronologicalLicencePositions(secondaryLicence)).thenReturn(secondaryPositions);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(secondaryLicence)).thenReturn(secondaryPositions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -164,7 +164,7 @@ class TestHarnessServiceTest {
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionService, never()).getChronologicalLicencePositions(any());
+    verify(licencePositionService, never()).getExecutedChronologicalLicencePositions(any());
     verify(licencePositionChangeService, never())
         .createLicencePositionChange(any(), any(), anyLong(), any());
   }

@@ -12,9 +12,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 
 @ExtendWith(MockitoExtension.class)
 class LicencePositionChangeViewServiceTest {
@@ -33,15 +36,18 @@ class LicencePositionChangeViewServiceTest {
   @Test
   void getChangeViews_filtersChangesNotOnCurrentPosition() {
     var currentLicencePosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
-    var otherLicencePosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
+    var previousLicencePosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
 
-    var otherChange = LicencePositionChangeTestUtil.newBuilder()
-        .withLicencePosition(otherLicencePosition)
-        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build()))
-        .build();
+    var previousChronologicalPosition = ChronologicalPositionTestUtil.live(
+        previousLicencePosition,
+        LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build()
+    );
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(currentLicencePosition);
+
 
     var result = licencePositionChangeViewService.getChangeViews(
-        currentLicencePosition, List.of(otherLicencePosition, currentLicencePosition), List.of(otherChange));
+        currentLicencePosition.getId(), List.of(previousChronologicalPosition, currentChronologicalPosition)
+    );
 
     assertThat(result).isEmpty();
   }
@@ -51,23 +57,21 @@ class LicencePositionChangeViewServiceTest {
     var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
     var previousLicencePosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
 
-    var currentChange = LicencePositionChangeTestUtil.newBuilder()
-        .withLicencePosition(currentLicencePosition)
-        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build()))
-        .build();
-
-    var previousChange = LicencePositionChangeTestUtil.newBuilder()
-        .withLicencePosition(previousLicencePosition)
-        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(WITHDRAWING_ID).build()))
-        .build();
+    var previousChronologicalPosition = ChronologicalPositionTestUtil.live(
+        previousLicencePosition,
+        LicenceOperation.newAdministratorChange().withOperator(WITHDRAWING_ID).build()
+    );
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build()
+    );
 
     when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(JOINING_ID, WITHDRAWING_ID)))
         .thenReturn(Map.of(JOINING_ID, JOINING_NAME, WITHDRAWING_ID, WITHDRAWING_NAME));
 
     var result = licencePositionChangeViewService.getChangeViews(
-        currentLicencePosition,
-        List.of(previousLicencePosition, currentLicencePosition),
-        List.of(previousChange, currentChange)
+        currentLicencePosition.getId(),
+        List.of(previousChronologicalPosition, currentChronologicalPosition)
     );
 
     assertThat(result)
@@ -85,15 +89,15 @@ class LicencePositionChangeViewServiceTest {
   void buildAdministratorChange_noPriorChange() {
     var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
 
-    var currentChange = LicencePositionChangeTestUtil.newBuilder()
-        .withLicencePosition(currentLicencePosition)
-        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build()))
-        .build();
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build()
+    );
 
     when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(JOINING_ID)))
         .thenReturn(Map.of(JOINING_ID, JOINING_NAME));
 
-    var result = licencePositionChangeViewService.getChangeViews(currentLicencePosition, List.of(currentLicencePosition), List.of(currentChange));
+    var result = licencePositionChangeViewService.getChangeViews(currentLicencePosition.getId(), List.of(currentChronologicalPosition));
 
     assertThat(result)
         .hasSize(1)
@@ -104,5 +108,31 @@ class LicencePositionChangeViewServiceTest {
             licencePositionChangeView -> ((AdministratorChangeView) licencePositionChangeView).joiningOrganisationName()
         )
         .containsExactly(null, JOINING_NAME);
+  }
+
+  @Test
+  void buildAdministratorChange_carriesChangeTypeFromCorrectionChange() {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
+
+    var correctionChange = new PositionChange(
+        UUID.randomUUID().toString(),
+        1L,
+        LicencePositionChangeType.ADD_CHANGE,
+        List.of(LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build())
+    );
+    var currentChronologicalPosition = ChronologicalPosition.fromLicencePosition(
+        currentLicencePosition, List.of(correctionChange));
+
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(JOINING_ID)))
+        .thenReturn(Map.of(JOINING_ID, JOINING_NAME));
+
+    var result = licencePositionChangeViewService.getChangeViews(
+        currentLicencePosition.getId(), List.of(currentChronologicalPosition));
+
+    assertThat(result)
+        .extractingByKey(LicenceOperation.LICENCE_ADMINISTRATOR)
+        .isInstanceOf(AdministratorChangeView.class)
+        .extracting(LicencePositionChangeView::changeType)
+        .isEqualTo(LicencePositionChangeType.ADD_CHANGE);
   }
 }

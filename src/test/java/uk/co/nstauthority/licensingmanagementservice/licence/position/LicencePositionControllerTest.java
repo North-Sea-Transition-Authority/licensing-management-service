@@ -54,7 +54,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
     var older  = LicencePositionTestUtil.newBuilder().withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).build();
     var latest = LicencePositionTestUtil.newBuilder().withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).build();
 
-    when(licencePositionService.getChronologicalLicencePositions(LICENCE))
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
         .thenReturn(List.of(older, latest));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class).renderLicencePositionTimeline(LICENCE)))
@@ -67,7 +67,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
   @Test
   void renderLicencePositionTimeline_whenNoPositions() throws Exception {
     when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(PAGE_CAPTION);
-    when(licencePositionService.getChronologicalLicencePositions(LICENCE)).thenReturn(List.of());
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of());
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class)
             .renderLicencePositionTimeline(LICENCE)))

@@ -61,19 +61,19 @@ public class TestHarnessService {
   }
 
   private void generateAdministratorPositionChange(Licence licence) {
-    var chronologicalLicencePositions = licencePositionService.getChronologicalLicencePositions(licence);
+    var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
 
-    var firstPosition = chronologicalLicencePositions.getFirst();
-    var nonFinalPosition = chronologicalLicencePositions.get(chronologicalLicencePositions.size() - 3);
+    var firstPosition = executedChronologicalLicencePositions.getFirst();
+    var nonFinalPosition = executedChronologicalLicencePositions.get(executedChronologicalLicencePositions.size() - 3);
 
     createAdministratorChange(firstPosition, SHELL_PLC_ID);
     createAdministratorChange(nonFinalPosition, BP_EXPLORATION_ALPHA_LTD_ID);
   }
 
   private void generateInitialAdministrator(Licence licence) {
-    var chronologicalLicencePositions = licencePositionService.getChronologicalLicencePositions(licence);
+    var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
 
-    var firstPosition = chronologicalLicencePositions.getFirst();
+    var firstPosition = executedChronologicalLicencePositions.getFirst();
 
     createAdministratorChange(firstPosition, SHELL_PLC_ID);
   }

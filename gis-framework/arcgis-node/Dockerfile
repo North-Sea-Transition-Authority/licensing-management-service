@@ -13,4 +13,4 @@ RUN npm run copy:core && npm run proto-gen
 
 EXPOSE 8082 3000
 
-ENTRYPOINT exec npx tsx grpc-server.ts
+ENTRYPOINT ["npx", "tsx", "src/grpc-server.ts"]

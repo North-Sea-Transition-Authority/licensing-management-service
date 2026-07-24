@@ -1,5 +1,4 @@
 import path from "node:path";
-import process from "node:process";
 import grpc from "@grpc/grpc-js";
 import protoLoader from "@grpc/proto-loader";
 import express from "express";
@@ -78,7 +77,7 @@ describe("main()", () => {
     it("should serve assets on the expected route", () => {
       main();
 
-      const expectedAssetFolder = path.resolve(process.cwd(), "../public/assets");
+      const expectedAssetFolder = path.resolve(MOCK_DIRNAME, "../public/assets");
       const app = getExpressApp();
       expect(app.use).toHaveBeenCalledWith("/assets", undefined);
       expect(express.static).toHaveBeenCalledWith(expectedAssetFolder);

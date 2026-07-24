@@ -31,12 +31,12 @@ const PROTO_PATH = path.resolve(__dirname, "../../src/main/proto", "ArcGisJs.pro
 
 /**
  * By default, the ArcGIS SDK operators call out to js.arcgis.com to fetch a WASM from their CDN. So that we don't have to rely on
- * their CDN always being up or compromised, we our hosting a local server which will give us the assets we need.
+ * their CDN always being up or compromised, we are hosting a local server which will give us the assets we need.
  */
 function startAssetServer() {
   const assetApp = express();
   assetApp.disable("x-powered-by");
-  const assetFolder = path.resolve(process.cwd(), "../public/assets");
+  const assetFolder = path.resolve(__dirname, "../public/assets");
   logger.info(`[Asset Server] serving files in: ${assetFolder}`);
   assetApp.use("/assets", express.static(assetFolder));
   assetApp.listen(ASSET_PORT, () => {

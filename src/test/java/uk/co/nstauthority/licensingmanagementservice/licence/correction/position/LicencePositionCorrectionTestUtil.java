@@ -29,7 +29,7 @@ public class LicencePositionCorrectionTestUtil {
     return this;
   }
 
-  LicencePositionCorrectionTestUtil withChangeType(LicencePositionCorrectionChangeType changeType) {
+  public LicencePositionCorrectionTestUtil withChangeType(LicencePositionCorrectionChangeType changeType) {
     this.changeType = changeType;
     return this;
   }

@@ -105,7 +105,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
 
     when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(PAGE_CAPTION);
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
-    when(licencePositionService.getPositionPageView(position)).thenReturn(pageView);
+    when(licencePositionViewService.getPositionPageView(position)).thenReturn(pageView);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class)
             .renderLicencePosition(LICENCE, POSITION_ID)))

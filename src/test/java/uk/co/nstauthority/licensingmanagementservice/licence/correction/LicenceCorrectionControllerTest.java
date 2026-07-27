@@ -197,7 +197,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.of(correction));
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(licencePositionService.getPositionForLicence(licence, position.getId())).thenReturn(position);
-    when(licencePositionService.getCorrectionPositionPageView(correction, position)).thenReturn(pageView);
+    when(licencePositionViewService.getCorrectionPositionPageView(correction, position)).thenReturn(pageView);
     when(energyPortalUserService.getByWuaId(WebUserAccountId.from(ALLOCATED_TO_WUA_ID), USER_LOOKUP_PURPOSE))
         .thenReturn(allocatedToUser);
 
@@ -251,7 +251,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
     when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
         .thenReturn(positionCorrection);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
-    when(licencePositionService.getCorrectionAddedPositionPageView(correction, positionCorrection)).thenReturn(pageView);
+    when(licencePositionViewService.getCorrectionAddedPositionPageView(correction, positionCorrection)).thenReturn(pageView);
     when(energyPortalUserService.getByWuaId(WebUserAccountId.from(ALLOCATED_TO_WUA_ID), USER_LOOKUP_PURPOSE))
         .thenReturn(allocatedToUser);
 

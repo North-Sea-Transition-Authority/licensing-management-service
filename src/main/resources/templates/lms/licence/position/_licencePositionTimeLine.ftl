@@ -61,12 +61,12 @@
         </#if>
         <#if licencePositionTimelineViewEntry.removedInThisCorrection()>
           <p class="govuk-body">
-            <@fdsTag.tag tagClass="govuk-tag--red">Removed position</@fdsTag.tag>
+            <@fdsTag.tag tagClass="govuk-tag--red">Removed</@fdsTag.tag>
           </p>
         </#if>
         <#if licencePositionTimelineViewEntry.correctedInThisCorrection()>
           <p class="govuk-body">
-            <@fdsTag.tag tagClass="govuk-tag--blue">Corrected position</@fdsTag.tag>
+            <@fdsTag.tag tagClass="govuk-tag--yellow">Corrected</@fdsTag.tag>
           </p>
         </#if>
           </@fdsTimeline.timelineTimeStamp>

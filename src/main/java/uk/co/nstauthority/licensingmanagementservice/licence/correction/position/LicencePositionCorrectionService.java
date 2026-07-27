@@ -3,11 +3,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -155,15 +152,9 @@ public class LicencePositionCorrectionService {
     licencePositionCorrectionRepository.delete(licencePositionCorrection);
   }
 
-  public Set<UUID> getRemovedLicencePositionIds(LicenceCorrection licenceCorrection) {
-    return licencePositionCorrectionRepository
-        .findByLicenceCorrectionAndChangeType(licenceCorrection, LicencePositionCorrectionChangeType.REMOVE_POSITION)
-        .stream()
-        .map(LicencePositionCorrection::getTargetLicencePosition)
-        .map(LicencePosition::getId)
-        .collect(Collectors.toSet());
+  public List<LicencePositionCorrection> getPositionCorrections(LicenceCorrection licenceCorrection) {
+    return licencePositionCorrectionRepository.findByLicenceCorrection(licenceCorrection);
   }
-
 
   public List<LicencePositionCorrection> getAddedLicencePositionCorrections(LicenceCorrection licenceCorrection) {
     return licencePositionCorrectionRepository
@@ -178,23 +169,6 @@ public class LicencePositionCorrectionService {
         .map(CreateLicencePositionPayload.class::cast)
         .map(CreateLicencePositionPayload::correctionReference)
         .anyMatch(existingReference -> existingReference.equalsIgnoreCase(correctionReference));
-  }
-
-  public Map<UUID, UpdateLicencePositionPayload> getUpdatedPositionPayloadsByTargetId(
-      LicenceCorrection licenceCorrection
-  ) {
-    return licencePositionCorrectionRepository
-        .findByLicenceCorrectionAndChangeType(licenceCorrection, LicencePositionCorrectionChangeType.UPDATE_POSITION)
-        .stream()
-        .collect(Collectors.toMap(
-            positionCorrection -> positionCorrection.getTargetLicencePosition().getId(),
-            positionCorrection -> (UpdateLicencePositionPayload) positionCorrection.getPayload()
-        ));
-  }
-
-  public List<LicencePositionCorrection> getUpdatedLicencePositionCorrections(LicenceCorrection licenceCorrection) {
-    return licencePositionCorrectionRepository
-        .findByLicenceCorrectionAndChangeType(licenceCorrection, LicencePositionCorrectionChangeType.UPDATE_POSITION);
   }
 
   @Transactional

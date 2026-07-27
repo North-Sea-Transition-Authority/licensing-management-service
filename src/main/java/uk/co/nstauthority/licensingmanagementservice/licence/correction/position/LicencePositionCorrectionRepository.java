@@ -13,6 +13,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 public interface LicencePositionCorrectionRepository
     extends JpaRepository<LicencePositionCorrection, UUID>, NotDuplicationSource {
 
+  List<LicencePositionCorrection> findByLicenceCorrection(LicenceCorrection licenceCorrection);
+
   List<LicencePositionCorrection> findByLicenceCorrectionAndChangeType(
       LicenceCorrection licenceCorrection,
       LicencePositionCorrectionChangeType changeType

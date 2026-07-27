@@ -1,7 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator;
 
 import java.util.Objects;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import uk.co.fivium.formlibrary.validator.string.StringInputValidator;
@@ -36,7 +35,17 @@ public class AdministratorChangeFormValidator {
       return true;
     }
 
-    var newAdministratorId = NumberUtils.toInt(form.getAdminId().getInputValue());
+    int newAdministratorId;
+    try {
+      newAdministratorId = Integer.parseInt(form.getAdminId().getInputValue());
+    } catch (NumberFormatException e) {
+      errors.rejectValue(
+          ADMIN_ID_FIELD,
+          "adminId.invalid",
+          "Select a valid licence administrator"
+      );
+      return true;
+    }
 
     if (organisationUnitQueryService.getOrganisationUnit(newAdministratorId).isEmpty()) {
       errors.rejectValue(

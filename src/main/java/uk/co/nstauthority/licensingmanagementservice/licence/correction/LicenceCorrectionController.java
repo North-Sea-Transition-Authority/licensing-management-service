@@ -18,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionPageView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -27,17 +28,20 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 public class LicenceCorrectionController {
 
   private final LicencePositionService licencePositionService;
+  private final LicencePositionViewService licencePositionViewService;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final LicenceService licenceService;
   private final EnergyPortalUserService energyPortalUserService;
 
   public LicenceCorrectionController(
       LicencePositionService licencePositionService,
+      LicencePositionViewService licencePositionViewService,
       LicencePositionCorrectionService licencePositionCorrectionService,
       LicenceService licenceService,
       EnergyPortalUserService energyPortalUserService
   ) {
     this.licencePositionService = licencePositionService;
+    this.licencePositionViewService = licencePositionViewService;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.licenceService = licenceService;
     this.energyPortalUserService = energyPortalUserService;
@@ -73,7 +77,7 @@ public class LicenceCorrectionController {
   ) {
     var licence = licenceCorrection.getLicence();
     var licencePosition = licencePositionService.getPositionForLicence(licence, licencePositionId);
-    var licencePositionPageView = licencePositionService.getCorrectionPositionPageView(licenceCorrection, licencePosition);
+    var licencePositionPageView = licencePositionViewService.getCorrectionPositionPageView(licenceCorrection, licencePosition);
 
     return licencePositionsModelAndView(licenceCorrection, licencePositionPageView);
   }
@@ -86,7 +90,7 @@ public class LicenceCorrectionController {
   ) {
     var positionCorrection = licencePositionCorrectionService
         .getPositionCorrectionForCorrection(licencePositionCorrectionId, licenceCorrection);
-    var licencePositionPageView = licencePositionService
+    var licencePositionPageView = licencePositionViewService
         .getCorrectionAddedPositionPageView(licenceCorrection, positionCorrection);
 
     return licencePositionsModelAndView(licenceCorrection, licencePositionPageView);

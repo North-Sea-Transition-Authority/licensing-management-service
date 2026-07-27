@@ -20,13 +20,16 @@ public class LicencePositionController {
 
   //TODO LMS2-52: Access to timeline, licence position and schedule information for a licence
   private final LicencePositionService licencePositionService;
+  private final LicencePositionViewService licencePositionViewService;
   private final LicenceService licenceService;
 
   public LicencePositionController(
       LicencePositionService licencePositionService,
+      LicencePositionViewService licencePositionViewService,
       LicenceService licenceService
   ) {
     this.licencePositionService = licencePositionService;
+    this.licencePositionViewService = licencePositionViewService;
     this.licenceService = licenceService;
   }
 
@@ -51,7 +54,7 @@ public class LicencePositionController {
       @PathVariable UUID licencePositionId
   ) {
     var licencePosition = licencePositionService.getPositionForLicence(licence, licencePositionId);
-    var licencePositionPageView = licencePositionService.getPositionPageView(licencePosition);
+    var licencePositionPageView = licencePositionViewService.getPositionPageView(licencePosition);
 
     return licencePositionsModelAndView(licence, licencePositionPageView);
   }

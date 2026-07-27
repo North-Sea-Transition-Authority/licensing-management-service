@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -13,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 @Repository
 public interface LicencePositionRepository extends JpaRepository<LicencePosition, UUID>, NotDuplicationSource {
 
+  @EntityGraph("licencePosition")
   List<LicencePosition> findByLicence(Licence licence);
 
   @Query("""
@@ -22,5 +24,6 @@ public interface LicencePositionRepository extends JpaRepository<LicencePosition
       """)
   Integer findMaxPositionDateOrder(Licence licence, LocalDate positionDate);
 
+  @EntityGraph("licencePosition")
   Optional<LicencePosition> findByIdAndLicence(UUID id, Licence licence);
 }

@@ -57,7 +57,7 @@ public class LicencePositionCorrection {
     this.licenceCorrection = licenceCorrection;
   }
 
-  LicencePositionCorrectionChangeType getChangeType() {
+  public LicencePositionCorrectionChangeType getChangeType() {
     return changeType;
   }
 

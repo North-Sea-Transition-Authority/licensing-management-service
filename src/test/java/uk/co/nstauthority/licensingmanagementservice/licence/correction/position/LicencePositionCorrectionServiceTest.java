@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -173,6 +172,22 @@ class LicencePositionCorrectionServiceTest {
   }
 
   @Test
+  void getPositionCorrections_returnsAllCorrectionsForLicenceCorrectionInSingleQuery() {
+    var addedCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION).build();
+    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION).build();
+    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION).build();
+
+    when(licencePositionCorrectionRepository.findByLicenceCorrection(LICENCE_CORRECTION))
+        .thenReturn(List.of(addedCorrection, updateCorrection, removeCorrection));
+
+    assertThat(licencePositionCorrectionService.getPositionCorrections(LICENCE_CORRECTION))
+        .containsExactly(addedCorrection, updateCorrection, removeCorrection);
+  }
+
+  @Test
   void getAddedLicencePositionCorrections_returnsAddPositionCorrectionsFromRepository() {
     var addedCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
 
@@ -286,22 +301,6 @@ class LicencePositionCorrectionServiceTest {
         .build();
 
     assertThat(licencePositionCorrectionService.canRemovePosition(LICENCE_CORRECTION, nonExecutedPosition)).isFalse();
-  }
-
-  @Test
-  void getRemovedLicencePositionIds_returnsTargetPositionIdsOfRemoveCorrections() {
-    var removedPosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
-    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
-        .withTargetLicencePosition(removedPosition)
-        .build();
-
-    when(licencePositionCorrectionRepository
-        .findByLicenceCorrectionAndChangeType(LICENCE_CORRECTION, LicencePositionCorrectionChangeType.REMOVE_POSITION))
-        .thenReturn(List.of(removeCorrection));
-
-    assertThat(licencePositionCorrectionService.getRemovedLicencePositionIds(LICENCE_CORRECTION))
-        .containsExactlyInAnyOrder(removedPosition.getId());
   }
 
   @Test
@@ -468,27 +467,6 @@ class LicencePositionCorrectionServiceTest {
   }
 
   @Test
-  void getUpdatedPositionPayloadsByTargetId_mapsTargetPositionIdToUpdatePayload() {
-    var targetPosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
-    var updatePayload = UpdateLicencePositionPayloadTestUtil.newBuilder()
-        .withEffectiveDate(POSITION_DATE)
-        .withEffectiveDateOrder(2)
-        .build();
-    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
-        .withTargetLicencePosition(targetPosition)
-        .withPayload(updatePayload)
-        .build();
-
-    when(licencePositionCorrectionRepository
-        .findByLicenceCorrectionAndChangeType(LICENCE_CORRECTION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
-        .thenReturn(List.of(updateCorrection));
-
-    assertThat(licencePositionCorrectionService.getUpdatedPositionPayloadsByTargetId(LICENCE_CORRECTION))
-        .containsExactly(entry(targetPosition.getId(), updatePayload));
-  }
-
-  @Test
   void addAdministratorChangeForAddedLicencePosition_whenNoAdminChangeYet_appendsAdminChange() {
     var licencePositionId = UUID.randomUUID();
     var correction = addPositionCorrectionFor(licencePositionId, List.of());
@@ -545,18 +523,6 @@ class LicencePositionCorrectionServiceTest {
     var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
     assertThat(payload.changes()).hasSize(1);
     assertThat(operatorIdOf(payload.changes().getFirst())).isEqualTo(ADMINISTRATOR_ID);
-  }
-
-  @Test
-  void getUpdatedLicencePositionCorrections_returnsUpdatePositionCorrectionsFromRepository() {
-    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
-
-    when(licencePositionCorrectionRepository
-        .findByLicenceCorrectionAndChangeType(LICENCE_CORRECTION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
-        .thenReturn(List.of(updateCorrection));
-
-    assertThat(licencePositionCorrectionService.getUpdatedLicencePositionCorrections(LICENCE_CORRECTION))
-        .containsExactly(updateCorrection);
   }
 
   @Test

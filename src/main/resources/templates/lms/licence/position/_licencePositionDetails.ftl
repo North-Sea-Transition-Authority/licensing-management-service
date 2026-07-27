@@ -9,7 +9,7 @@
           <@fdsActionDropdown.actionDropdownItem
             actionText="Administrator change"
             linkAction=true
-            linkActionUrl=springUrl(actions.addAdministratorChangeUrl())
+            linkActionUrl=springUrl(actions.administratorChangeUrl())
           />
         </#if>
       </@fdsActionDropdown.actionDropdown>
@@ -19,13 +19,17 @@
       <#if licencePositionState.administratorStateView().organisationName()?has_content>
         ${licencePositionState.administratorStateView().organisationName()}
       <#else>
-          None
+        None
       </#if>
     </#assign>
     <@fdsDataItems.dataItem>
         <@fdsDataItems.dataValues key="Licence administrator" value=adminName/>
     </@fdsDataItems.dataItem>
   <#if licencePositionChanges["licence-administrator"]??>
-    <@positionChanges.administratorChange change=licencePositionChanges["licence-administrator"]/>
+    <#assign correctUrl = "">
+    <#if canEdit && actions.administratorChangeUrl()??>
+      <#assign correctUrl = actions.administratorChangeUrl()>
+    </#if>
+    <@positionChanges.administratorChange change=licencePositionChanges["licence-administrator"] correctUrl=correctUrl/>
   </#if>
 </#macro>

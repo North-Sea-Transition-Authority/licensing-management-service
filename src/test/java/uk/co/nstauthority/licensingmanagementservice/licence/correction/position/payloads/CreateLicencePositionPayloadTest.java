@@ -13,7 +13,7 @@ class CreateLicencePositionPayloadTest {
   @Test
   void builder() {
     List<LicencePositionChangeType> changes = List.of(
-        LicencePositionChangeType.addLicencePositionChange().withChangeId("change-id").build());
+        LicencePositionChangeType.addChange().withChangeId("change-id").build());
 
     var payload = LicencePositionPayload.newCreateLicencePositionPayload()
         .withLicencePositionId("position-id")

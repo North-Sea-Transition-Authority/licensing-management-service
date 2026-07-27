@@ -92,6 +92,22 @@ class AdministratorChangeFormValidatorTest {
   }
 
   @Test
+  void hasErrors_whenAdminIdIsSameAsPreviousAdministrator_thenErrorWithMessage() {
+    form.getAdminId().setInputValue(OrganisationUnitTestUtil.ORG_UNIT_ID_1.toString());
+    when(organisationUnitQueryService.getOrganisationUnit(OrganisationUnitTestUtil.ORG_UNIT_ID_1))
+        .thenReturn(Optional.of(OrganisationUnitTestUtil.ORG_UNIT_1));
+
+    var result = administratorChangeFormValidator.hasErrors(form, errors, OrganisationUnitTestUtil.ORG_UNIT_ID_2, OrganisationUnitTestUtil.ORG_UNIT_ID_1);
+
+    assertThat(result).isTrue();
+    assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
+        .containsOnly(
+            entry("adminId.inputValue",
+                Collections.singletonList("The new licence administrator must be different to the previous administrator"))
+        );
+  }
+
+  @Test
   void hasErrors_whenAdminIdDiffersFromCurrentAdministrator_thenNoErrors() {
     form.getAdminId().setInputValue(OrganisationUnitTestUtil.ORG_UNIT_ID_2.toString());
     when(organisationUnitQueryService.getOrganisationUnit(OrganisationUnitTestUtil.ORG_UNIT_ID_2))

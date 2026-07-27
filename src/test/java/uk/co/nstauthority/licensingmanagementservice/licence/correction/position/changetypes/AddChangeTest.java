@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 
-class AddLicencePositionChangeTest {
+class AddChangeTest {
 
   @Test
   void builder() {
@@ -22,7 +22,7 @@ class AddLicencePositionChangeTest {
 
     List<LicencePositionChangeOperation> changes = List.of(operation);
 
-    var addChanges = LicencePositionChangeType.addLicencePositionChange()
+    var addChanges = LicencePositionChangeType.addChange()
         .withChangeId("123")
         .withChangeOrder(123)
         .withOperations(changes)

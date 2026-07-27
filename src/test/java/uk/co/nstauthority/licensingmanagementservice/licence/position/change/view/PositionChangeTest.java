@@ -17,7 +17,7 @@ class PositionChangeTest {
     var operation = LicenceOperation.newAdministratorChange().withOperator(100).build();
     var licencePositionChange = LicencePositionChangeTestUtil.newBuilder()
         .withId(UUID.randomUUID())
-        .withChangeOrder(3L)
+        .withChangeOrder(3)
         .withOperations(List.of(operation))
         .build();
 
@@ -27,7 +27,7 @@ class PositionChangeTest {
         .singleElement()
         .satisfies(positionChange -> {
           assertThat(positionChange.changeId()).isEqualTo(licencePositionChange.getId().toString());
-          assertThat(positionChange.changeOrder()).isEqualTo(3L);
+          assertThat(positionChange.changeOrder()).isEqualTo(3);
           assertThat(positionChange.changeType()).isNull();
           assertThat(positionChange.operations()).containsExactly(operation);
         });
@@ -40,7 +40,7 @@ class PositionChangeTest {
         .withOperationId(operation.id())
         .withOperation(operation)
         .build();
-    var addChange = LicencePositionChangeType.addLicencePositionChange()
+    var addChange = LicencePositionChangeType.addChange()
         .withChangeId("change-1")
         .withChangeOrder(1)
         .withOperations(List.of(addOperation))
@@ -52,7 +52,7 @@ class PositionChangeTest {
         .singleElement()
         .satisfies(positionChange -> {
           assertThat(positionChange.changeId()).isEqualTo("change-1");
-          assertThat(positionChange.changeOrder()).isEqualTo(1L);
+          assertThat(positionChange.changeOrder()).isEqualTo(1);
           assertThat(positionChange.changeType()).isEqualTo(LicencePositionChangeType.ADD_CHANGE);
           assertThat(positionChange.operations()).containsExactly(operation);
         });

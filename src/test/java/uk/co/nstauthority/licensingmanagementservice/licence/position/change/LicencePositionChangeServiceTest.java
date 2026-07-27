@@ -6,6 +6,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -39,12 +41,31 @@ class LicencePositionChangeServiceTest {
   }
 
   @Test
+  void findById_whenFound() {
+    var id = UUID.randomUUID();
+    var change = LicencePositionChangeTestUtil.newBuilder().withId(id).build();
+
+    when(licencePositionChangeRepository.findById(id)).thenReturn(Optional.of(change));
+
+    assertThat(licencePositionChangeService.findById(id)).contains(change);
+  }
+
+  @Test
+  void findById_whenNotFound() {
+    var id = UUID.randomUUID();
+
+    when(licencePositionChangeRepository.findById(id)).thenReturn(Optional.empty());
+
+    assertThat(licencePositionChangeService.findById(id)).isEmpty();
+  }
+
+  @Test
   void createLicencePositionChange() {
     var position = LicencePositionTestUtil.newBuilder().build();
     var administratorChange = LicenceOperation.newAdministratorChange().withOperator(1).build();
 
     licencePositionChangeService.createLicencePositionChange(
-        position, List.of(administratorChange), 1L, LicencePositionChangeStatus.CONSENTED);
+        position, List.of(administratorChange), 1, LicencePositionChangeStatus.CONSENTED);
 
     verify(licencePositionChangeRepository).save(changeCaptor.capture());
 

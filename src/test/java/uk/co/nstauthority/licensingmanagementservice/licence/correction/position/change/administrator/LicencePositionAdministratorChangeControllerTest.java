@@ -54,6 +54,8 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
   private static final Integer ADMINISTRATOR_ID = 123;
+  private static final Integer PREVIOUS_ADMINISTRATOR_ID = 456;
+  private static final Integer CURRENT_ADMINISTRATOR_ID = 789;
   private static final String PAGE_TITLE = "Change licence administrator";
   private static final String VIEW_NAME = "lms/licence/correction/change/administratorChange";
 
@@ -112,6 +114,9 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
     var form = new AdministratorChangeForm();
     form.getAdminId().setInputValue(ADMINISTRATOR_ID.toString());
 
+    when(licencePositionService.getCurrentAdministratorIdForCorrection(correction, POSITION_ID))
+        .thenReturn(CURRENT_ADMINISTRATOR_ID);
+    when(administratorChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(CURRENT_ADMINISTRATOR_ID))).thenReturn(false);
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionService.getCurrentAdministratorIdForCorrection(correction, position.getId())).thenReturn(1);
     when(administratorChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(1))).thenReturn(false);
@@ -140,9 +145,10 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
 
     var form = new AdministratorChangeForm();
 
+    when(licencePositionService.getCurrentAdministratorIdForCorrection(correction, POSITION_ID))
+        .thenReturn(CURRENT_ADMINISTRATOR_ID);
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
-    when(licencePositionService.getCurrentAdministratorIdForCorrection(correction, position.getId())).thenReturn(1);
-    when(administratorChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(1))).thenReturn(true);
+    when(administratorChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(CURRENT_ADMINISTRATOR_ID))).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
             .submitForExecutedPosition(CORRECTION_ID, POSITION_ID, null, null, null, null)))
@@ -187,13 +193,18 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
   void submitForAddedPosition_whenValid() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().build())
+        .withLicenceCorrection(correction)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withLicencePositionId(POSITION_ID.toString())
+            .build())
         .build();
 
     var form = new AdministratorChangeForm();
     form.getAdminId().setInputValue(ADMINISTRATOR_ID.toString());
 
-    when(administratorChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), any())).thenReturn(false);
+    when(licencePositionService.getCurrentAdministratorIdForCorrection(correction, POSITION_ID))
+        .thenReturn(CURRENT_ADMINISTRATOR_ID);
+    when(administratorChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(CURRENT_ADMINISTRATOR_ID))).thenReturn(false);
     when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
         .thenReturn(positionCorrection);
 
@@ -218,14 +229,19 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
   void submitForAddedPosition_whenInvalid() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().build())
+        .withLicenceCorrection(correction)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withLicencePositionId(POSITION_ID.toString())
+            .build())
         .build();
 
     var form = new AdministratorChangeForm();
 
+    when(licencePositionService.getCurrentAdministratorIdForCorrection(correction, POSITION_ID))
+        .thenReturn(CURRENT_ADMINISTRATOR_ID);
     when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
         .thenReturn(positionCorrection);
-    when(administratorChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), any())).thenReturn(true);
+    when(administratorChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(CURRENT_ADMINISTRATOR_ID))).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
             .submitForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null, null, null, null)))
@@ -241,6 +257,98 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
 
     verify(licencePositionCorrectionService, never())
         .addAdministratorChangeForAddedLicencePosition(any(), anyInt());
+  }
+
+  @Test
+  void renderForCorrectingChange_whenAllocatedToUser() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var changeId = UUID.randomUUID().toString();
+
+    when(licencePositionService.getCurrentAdministratorIdForCorrection(correction, POSITION_ID))
+        .thenReturn(ADMINISTRATOR_ID);
+    when(licencePositionService.getPreviousAdministratorIdForCorrection(correction, POSITION_ID))
+        .thenReturn(PREVIOUS_ADMINISTRATOR_ID);
+    when(organisationUnitQueryService.getOrganisationUnitNameById(PREVIOUS_ADMINISTRATOR_ID))
+        .thenReturn(Optional.of("Previous Admin Org"));
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
+            .renderForCorrectingChange(CORRECTION_ID, POSITION_ID, changeId, null)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("pageTitle", PAGE_TITLE),
+            model().attributeExists("form"),
+            model().attribute("backLinkUrl", executedBackLinkUrl),
+            model().attribute("previousLicenceAdministratorName", "Previous Admin Org"),
+            model().attributeExists("organisationUnitsUrl")
+        );
+  }
+
+  @Test
+  void submitForCorrectingChange_whenValid() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var changeId = UUID.randomUUID().toString();
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+
+    var form = new AdministratorChangeForm();
+    form.getAdminId().setInputValue(ADMINISTRATOR_ID.toString());
+
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+    when(licencePositionService.getCurrentAdministratorIdForCorrection(correction, POSITION_ID))
+        .thenReturn(CURRENT_ADMINISTRATOR_ID);
+    when(licencePositionService.getPreviousAdministratorIdForCorrection(correction, POSITION_ID))
+        .thenReturn(PREVIOUS_ADMINISTRATOR_ID);
+    when(administratorChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(CURRENT_ADMINISTRATOR_ID), eq(PREVIOUS_ADMINISTRATOR_ID)))
+        .thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
+            .submitForCorrectingChange(CORRECTION_ID, POSITION_ID, changeId, null, null, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf())
+            .flashAttr("form", form))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(executedBackLinkUrl),
+            notificationBanner(NotificationBanner.newSuccessBanner()
+                .withHeadingContent("Licence administrator change corrected")
+                .build())
+        );
+
+    verify(licencePositionCorrectionService)
+        .correctExistingAdministratorChange(position, correction, changeId, ADMINISTRATOR_ID);
+  }
+
+  @Test
+  void submitForCorrectingChange_whenInvalid() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var changeId = UUID.randomUUID().toString();
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+
+    var form = new AdministratorChangeForm();
+
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+    when(licencePositionService.getCurrentAdministratorIdForCorrection(correction, POSITION_ID))
+        .thenReturn(CURRENT_ADMINISTRATOR_ID);
+    when(licencePositionService.getPreviousAdministratorIdForCorrection(correction, POSITION_ID))
+        .thenReturn(PREVIOUS_ADMINISTRATOR_ID);
+    when(administratorChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(CURRENT_ADMINISTRATOR_ID), eq(PREVIOUS_ADMINISTRATOR_ID))).thenReturn(true);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
+            .submitForCorrectingChange(CORRECTION_ID, POSITION_ID, changeId, null, null, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf())
+            .flashAttr("form", form))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("form", form),
+            model().attribute("backLinkUrl", executedBackLinkUrl)
+        );
+
+    verify(licencePositionCorrectionService, never())
+        .correctExistingAdministratorChange(any(), any(), any(), anyInt());
   }
 
   private LicenceCorrection givenCorrectionAllocatedToUser() {

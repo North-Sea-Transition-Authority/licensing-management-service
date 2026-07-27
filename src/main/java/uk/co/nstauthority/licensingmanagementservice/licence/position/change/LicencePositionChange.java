@@ -28,7 +28,7 @@ public class LicencePositionChange {
   @JdbcTypeCode(SqlTypes.JSON)
   private List<LicenceOperation> operations;
 
-  private long changeOrder;
+  private int changeOrder;
 
   @Enumerated(EnumType.STRING)
   private LicencePositionChangeStatus status;
@@ -61,11 +61,11 @@ public class LicencePositionChange {
     this.operations = operations;
   }
 
-  public long getChangeOrder() {
+  public int getChangeOrder() {
     return changeOrder;
   }
 
-  public void setChangeOrder(long changeOrder) {
+  public void setChangeOrder(int changeOrder) {
     this.changeOrder = changeOrder;
   }
 

@@ -1,10 +1,12 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes;
 
 import java.util.List;
+import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 
 
-public record AddLicencePositionChange(
+public record AddChange(
     String changeId,
     Integer changeOrder,
     List<LicencePositionChangeOperation> operations
@@ -13,6 +15,23 @@ public record AddLicencePositionChange(
   @Override
   public String type() {
     return ADD_CHANGE;
+  }
+
+  public static AddChange buildAddAdminChange(Integer administratorId, int changeOrder) {
+    var administratorOperation = LicenceOperation.newAdministratorChange()
+        .withOperator(administratorId)
+        .build();
+
+    var changeOperation = LicencePositionChangeOperation.newLicencePositionAddOperation()
+        .withOperationId(administratorOperation.id())
+        .withOperation(administratorOperation)
+        .build();
+
+    return LicencePositionChangeType.addChange()
+        .withChangeId(UUID.randomUUID().toString())
+        .withChangeOrder(changeOrder)
+        .withOperations(List.of(changeOperation))
+        .build();
   }
 
   public static class Builder {
@@ -37,8 +56,8 @@ public record AddLicencePositionChange(
       return this;
     }
 
-    public AddLicencePositionChange build() {
-      return new AddLicencePositionChange(
+    public AddChange build() {
+      return new AddChange(
           changeId,
           changeOrder,
           operations

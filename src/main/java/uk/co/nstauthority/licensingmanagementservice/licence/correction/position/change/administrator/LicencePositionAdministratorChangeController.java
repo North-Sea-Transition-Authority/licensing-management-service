@@ -2,7 +2,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.util.Map;
 import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
@@ -15,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.ValidLicencePositionAdministratorChange;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
@@ -93,7 +97,7 @@ public class LicencePositionAdministratorChangeController {
     licencePositionCorrectionService.addAdministratorChangeForExistingLicencePosition(
         licencePosition, correction, Integer.parseInt(form.getAdminId().getInputValue()));
 
-    generateSuccessBanner(redirectAttributes);
+    NotificationBanner.newSuccessBannerWithHeader("Licence administrator change added", redirectAttributes);
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
         .renderLicencePosition(correctionId, licencePositionId, null));
   }
@@ -139,9 +143,61 @@ public class LicencePositionAdministratorChangeController {
     licencePositionCorrectionService.addAdministratorChangeForAddedLicencePosition(
         licencePositionCorrection, Integer.parseInt(form.getAdminId().getInputValue()));
 
-    generateSuccessBanner(redirectAttributes);
+    NotificationBanner.newSuccessBannerWithHeader("Licence administrator change added", redirectAttributes);
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
         .renderAddedPosition(correctionId, licencePositionCorrectionId, null));
+  }
+
+  @GetMapping("/position/{licencePositionId}/change/{changeId}/correct-administrator-change")
+  @LicencePositionChangeBelongsToPosition
+  @ValidLicencePositionAdministratorChange
+  public ModelAndView renderForCorrectingChange(
+      @PathVariable UUID correctionId,
+      @PathVariable UUID licencePositionId,
+      @PathVariable String changeId,
+      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+  ) {
+    var currentAdministratorId = licencePositionService.getCurrentAdministratorIdForCorrection(correction, licencePositionId);
+    var form = new AdministratorChangeForm();
+    if (currentAdministratorId != null) {
+      form.getAdminId().setInputValue(String.valueOf(currentAdministratorId));
+    }
+    var previousAdministratorId = licencePositionService.getPreviousAdministratorIdForCorrection(correction, licencePositionId);
+    return getAdministratorChangeModelAndView(form, executedBackUrl(correctionId, licencePositionId),
+        // Correcting an existing change, so the administrator being replaced is the previous one this change
+        // superseded, not the current administrator the change installed.
+        previousAdministratorName(previousAdministratorId));
+  }
+
+  @PostMapping("/position/{licencePositionId}/change/{changeId}/correct-administrator-change")
+  @LicencePositionChangeBelongsToPosition
+  @ValidLicencePositionAdministratorChange
+  public ModelAndView submitForCorrectingChange(
+      @PathVariable UUID correctionId,
+      @PathVariable UUID licencePositionId,
+      @PathVariable String changeId,
+      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      @ModelAttribute("form") AdministratorChangeForm form,
+      BindingResult bindingResult,
+      RedirectAttributes redirectAttributes
+  ) {
+    var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
+    var currentAdministratorId = licencePositionService.getCurrentAdministratorIdForCorrection(correction, licencePositionId);
+    var previousAdministratorId = licencePositionService.getPreviousAdministratorIdForCorrection(correction, licencePositionId);
+
+    if (administratorChangeFormValidator.hasErrors(form, bindingResult, currentAdministratorId, previousAdministratorId)) {
+      return getAdministratorChangeModelAndView(form, executedBackUrl(correctionId, licencePositionId),
+          // Correcting an existing change, so the administrator being replaced is the previous one this change
+          // superseded, not the current administrator the change installed.
+          previousAdministratorName(previousAdministratorId));
+    }
+
+    licencePositionCorrectionService.correctExistingAdministratorChange(
+        licencePosition, correction, changeId, Integer.parseInt(form.getAdminId().getInputValue()));
+
+    NotificationBanner.newSuccessBannerWithHeader("Licence administrator change corrected", redirectAttributes);
+    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
+        .renderLicencePosition(correctionId, licencePositionId, null));
   }
 
   private Integer getAddedPositionCurrentAdministratorId(
@@ -162,17 +218,26 @@ public class LicencePositionAdministratorChangeController {
         .renderAddedPosition(correctionId, licencePositionCorrectionId, null));
   }
 
-  private void generateSuccessBanner(RedirectAttributes redirectAttributes) {
-    NotificationBanner.newSuccessBanner()
-        .withHeadingContent("Licence administrator change added")
-        .applyTo(redirectAttributes);
-  }
-
   private String previousAdministratorName(Integer administratorId) {
     if (administratorId == null) {
       return "";
     }
     return organisationUnitQueryService.getOrganisationUnitNameById(administratorId).orElse("");
+  }
+
+  private Map<String, String> preselectedAdministrator(AdministratorChangeForm form) {
+    var inputValue = form.getAdminId().getInputValue();
+    if (StringUtils.isBlank(inputValue)) {
+      return Map.of();
+    }
+    try {
+      var administratorId = Integer.parseInt(inputValue);
+      return organisationUnitQueryService.getOrganisationUnitNameById(administratorId)
+          .map(name -> Map.of(inputValue, name))
+          .orElse(Map.of());
+    } catch (NumberFormatException ex) {
+      return Map.of();
+    }
   }
 
   private ModelAndView getAdministratorChangeModelAndView(
@@ -185,6 +250,7 @@ public class LicencePositionAdministratorChangeController {
         .addObject("form", form)
         .addObject("backLinkUrl", backLinkUrl)
         .addObject("previousLicenceAdministratorName", previousAdministratorName)
+        .addObject("preselectedAdministrator", preselectedAdministrator(form))
         .addObject("organisationUnitsUrl",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)));
   }

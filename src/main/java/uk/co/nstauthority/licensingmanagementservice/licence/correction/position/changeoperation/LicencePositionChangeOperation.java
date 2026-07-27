@@ -10,11 +10,16 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
     @JsonSubTypes.Type(
         value = LicencePositionAddOperation.class,
         name = LicencePositionChangeOperation.ADD_OPERATION
+    ),
+    @JsonSubTypes.Type(
+        value = LicencePositionUpdateOperation.class,
+        name = LicencePositionChangeOperation.UPDATE_OPERATION
     )
 })
-public sealed interface LicencePositionChangeOperation permits LicencePositionAddOperation {
+public sealed interface LicencePositionChangeOperation permits LicencePositionAddOperation, LicencePositionUpdateOperation {
 
   String ADD_OPERATION = "add-operation";
+  String UPDATE_OPERATION = "update-operation";
 
   String type();
 
@@ -22,6 +27,10 @@ public sealed interface LicencePositionChangeOperation permits LicencePositionAd
 
   static LicencePositionAddOperation.Builder newLicencePositionAddOperation() {
     return new LicencePositionAddOperation.Builder();
+  }
+
+  static LicencePositionUpdateOperation.Builder newLicencePositionUpdateOperation() {
+    return new LicencePositionUpdateOperation.Builder();
   }
 
 }

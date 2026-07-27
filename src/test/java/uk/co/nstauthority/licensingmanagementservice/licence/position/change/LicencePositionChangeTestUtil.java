@@ -11,7 +11,7 @@ public class LicencePositionChangeTestUtil {
   private LicencePosition licencePosition = LicencePositionTestUtil.newBuilder().build();
   private List<LicenceOperation> operations =
       List.of(LicenceOperation.newAdministratorChange().withOperator(1).build());
-  private long changeOrder = 1L;
+  private int changeOrder = 1;
   private LicencePositionChangeStatus status = LicencePositionChangeStatus.CONSENTED;
 
 
@@ -34,7 +34,7 @@ public class LicencePositionChangeTestUtil {
     return this;
   }
 
-  public LicencePositionChangeTestUtil withChangeOrder(long changeOrder) {
+  public LicencePositionChangeTestUtil withChangeOrder(int changeOrder) {
     this.changeOrder = changeOrder;
     return this;
   }

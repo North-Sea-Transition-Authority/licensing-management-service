@@ -134,6 +134,45 @@ class LicencePositionStateViewServiceTest {
   }
 
   @Test
+  void resolvePreviousAdministratorId_returnsMostRecentChangeBeforeCurrentPosition() {
+    var oldestLicencePosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
+
+    var oldestChronologicalPosition = ChronologicalPositionTestUtil.live(
+        oldestLicencePosition,
+        LicenceOperation.newAdministratorChange().withOperator(OLDER_ADMIN_ID).build()
+    );
+    // the change on the current position itself must be excluded
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        LicenceOperation.newAdministratorChange().withOperator(CURRENT_ADMIN_ID).build()
+    );
+
+    var result = licencePositionStateViewService.resolvePreviousAdministratorId(
+        currentLicencePosition.getId(),
+        List.of(oldestChronologicalPosition, currentChronologicalPosition)
+    );
+
+    assertThat(result).isEqualTo(OLDER_ADMIN_ID);
+  }
+
+  @Test
+  void resolvePreviousAdministratorId_whenNoEarlierAdminChange_returnsNull() {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        LicenceOperation.newAdministratorChange().withOperator(CURRENT_ADMIN_ID).build()
+    );
+
+    var result = licencePositionStateViewService.resolvePreviousAdministratorId(
+        currentLicencePosition.getId(),
+        List.of(currentChronologicalPosition)
+    );
+
+    assertThat(result).isNull();
+  }
+
+  @Test
   void buildAdministratorState_adminIdNotFound() {
     var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
 

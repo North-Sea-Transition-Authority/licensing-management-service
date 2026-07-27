@@ -5,15 +5,17 @@ import java.util.Comparator;
 import java.util.List;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddLicencePositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionUpdateOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 
 public record PositionChange(
     String changeId,
-    long changeOrder,
+    Integer changeOrder,
     @Nullable String changeType,
     List<LicenceOperation> operations
 ) {
@@ -43,11 +45,18 @@ public record PositionChange(
 
   private static PositionChange fromCorrectionChange(LicencePositionChangeType change) {
     return switch (change) {
-      case AddLicencePositionChange addChange -> new PositionChange(
+      case AddChange addChange -> new PositionChange(
           addChange.changeId(),
           addChange.changeOrder(),
           addChange.type(),
           toOperations(addChange.operations())
+      );
+      case UpdateChangeOperations updateChangeOperations -> new PositionChange(
+          updateChangeOperations.changeId(),
+          // as this is an update change, this will be overwritten with the changeOrder of the existing change
+          Integer.MAX_VALUE,
+          updateChangeOperations.type(),
+          toOperations(updateChangeOperations.operations())
       );
     };
   }
@@ -62,6 +71,7 @@ public record PositionChange(
     // TODO: update to handle other operation types
     return switch (changeOperation) {
       case LicencePositionAddOperation addOperation -> addOperation.operation();
+      case LicencePositionUpdateOperation updateOperation -> updateOperation.operation();
     };
   }
 }

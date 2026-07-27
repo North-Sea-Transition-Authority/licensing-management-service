@@ -36,20 +36,42 @@ public class LicencePositionStateViewService {
       UUID currentLicencePositionId,
       List<ChronologicalPosition> chronologicalPositions
   ) {
+    return resolveAdministratorId(currentLicencePositionId, chronologicalPositions, true);
+  }
+
+  /**
+   * Resolves the administrator entering the given position, i.e. the administrator in place immediately before the
+   * position's own change is applied (the administrator being replaced when correcting that position's change).
+   */
+  public Integer resolvePreviousAdministratorId(
+      UUID currentLicencePositionId,
+      List<ChronologicalPosition> chronologicalPositions
+  ) {
+    return resolveAdministratorId(currentLicencePositionId, chronologicalPositions, false);
+  }
+
+  private Integer resolveAdministratorId(
+      UUID currentLicencePositionId,
+      List<ChronologicalPosition> chronologicalPositions,
+      boolean inclusive
+  ) {
     var administratorIdChangeByPositionId = LicencePositionChangeUtil.administratorIdChangeByPositionId(chronologicalPositions);
 
-    Integer currentAdminId = null;
+    Integer administratorId = null;
     for (var chronologicalPosition : chronologicalPositions) {
-      var administratorId = administratorIdChangeByPositionId.get(chronologicalPosition.id());
-      if (administratorId != null) {
-        currentAdminId = administratorId;
+      var isCurrentPosition = chronologicalPosition.id().equals(currentLicencePositionId);
+      if (inclusive || !isCurrentPosition) {
+        var operatorId = administratorIdChangeByPositionId.get(chronologicalPosition.id());
+        if (operatorId != null) {
+          administratorId = operatorId;
+        }
       }
-      if (chronologicalPosition.id().equals(currentLicencePositionId)) {
+      if (isCurrentPosition) {
         break;
       }
     }
 
-    return currentAdminId;
+    return administratorId;
   }
 
   private AdministratorStateView buildAdministratorState(

@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanRemoveLicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCanBeReinstantiated;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.ValidLicencePositionAdministratorChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -96,5 +98,23 @@ public class InterceptorRuleTestEndpoints {
   @InvokingUserCanViewCorrection
   public ResponseEntity<String> invokingUserCanViewCorrection(@PathVariable UUID correctionId) {
     return ResponseEntity.ok("can view correction test endpoint");
+  }
+
+  @GetMapping("position/{licencePositionId}/change/{changeId}/belongs-to-position")
+  @LicencePositionChangeBelongsToPosition
+  public ResponseEntity<String> licencePositionChangeBelongsToPosition(
+      @PathVariable UUID licencePositionId,
+      @PathVariable UUID changeId
+  ) {
+    return ResponseEntity.ok("licence position change belongs to position test endpoint");
+  }
+
+  @GetMapping("position/{licencePositionId}/change/{changeId}/valid-administrator-change")
+  @ValidLicencePositionAdministratorChange
+  public ResponseEntity<String> validLicencePositionAdministratorChange(
+      @PathVariable UUID licencePositionId,
+      @PathVariable UUID changeId
+  ) {
+    return ResponseEntity.ok("valid licence position administrator change test endpoint");
   }
 }

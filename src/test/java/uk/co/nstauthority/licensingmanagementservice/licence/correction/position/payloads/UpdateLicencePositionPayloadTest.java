@@ -12,12 +12,8 @@ class UpdateLicencePositionPayloadTest {
 
   @Test
   void builder() {
-    LicencePositionChangeType change = LicencePositionChangeType.addLicencePositionChange()
-        .withChangeId("change-1")
-        .withChangeOrder(1)
-        .withOperations(List.of())
-        .build();
-    var changes = List.of(change);
+    List<LicencePositionChangeType> changes = List.of(
+        LicencePositionChangeType.addChange().withChangeId("change-id").build());
 
     var payload = LicencePositionPayload.newUpdateLicencePositionPayload()
         .withEffectiveDate(LocalDate.of(2026, Month.JUNE, 5))
@@ -26,14 +22,10 @@ class UpdateLicencePositionPayloadTest {
         .withChanges(changes)
         .build();
 
-    var expected = new UpdateLicencePositionPayload(
-        LocalDate.of(2026, Month.JUNE, 5),
-        2,
-        "CORRECTION-REF",
-        changes
-    );
-
-    assertThat(payload).usingRecursiveComparison().isEqualTo(expected);
+    assertThat(payload.effectiveDate()).isEqualTo(LocalDate.of(2026, Month.JUNE, 5));
+    assertThat(payload.effectiveDateOrder()).isEqualTo(2);
+    assertThat(payload.correctionReference()).isEqualTo("CORRECTION-REF");
+    assertThat(payload.changes()).isEqualTo(changes);
     assertThat(payload.type()).isEqualTo(LicencePositionPayload.UPDATE_POSITION);
   }
 

@@ -86,7 +86,7 @@ public class TestHarnessService {
     licencePositionChangeService.createLicencePositionChange(
         licencePosition,
         List.of(administratorChange),
-        1L,
+        1,
         LicencePositionChangeStatus.CONSENTED
     );
   }

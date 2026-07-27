@@ -19,6 +19,7 @@ backLinkUrl=springUrl(backLinkUrl)
         path="form.adminId.inputValue"
         restUrl=springUrl(organisationUnitsUrl)
         labelText="Select a licence administrator"
+        preselectedItems=preselectedAdministrator!{}
       />
       <@fdsDetails.summaryDetails
         summaryTitle="The licence administrator I want to select is not in the list"

@@ -2,6 +2,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -20,11 +22,15 @@ public class LicencePositionChangeService {
     return licencePositionChangeRepository.findByLicencePositionIn(licencePositions);
   }
 
+  public Optional<LicencePositionChange> findById(UUID id) {
+    return licencePositionChangeRepository.findById(id);
+  }
+
   @Transactional
   public LicencePositionChange createLicencePositionChange(
       LicencePosition licencePosition,
       List<LicenceOperation> operations,
-      long changeOrder,
+      int changeOrder,
       LicencePositionChangeStatus status
   ) {
     var licencePositionChange = new LicencePositionChange();

@@ -116,7 +116,7 @@ class LicencePositionChangeViewServiceTest {
 
     var correctionChange = new PositionChange(
         UUID.randomUUID().toString(),
-        1L,
+        1,
         LicencePositionChangeType.ADD_CHANGE,
         List.of(LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build())
     );

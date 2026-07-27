@@ -29,13 +29,13 @@ public record LicencePositionPageView(
   /**
    * Actions the current user can take from the position page.
    *
-   * @param addAdministratorChangeUrl URL of the change-licence-administrator journey; null when the action is not
+   * @param administratorChangeUrl URL of the change-licence-administrator journey; null when the action is not
    *                                  offered. It is only populated for the correction
    *                                  views ({@link #fromExecutedPosition} and {@link #fromAddedPosition}), where
    *                                  a regulator is editing a correction and may change the administrator.
    */
   //TODO LMS2-86: We can use ActionItemView when more actions are added instead
-  public record Actions(@Nullable String addAdministratorChangeUrl) {
+  public record Actions(@Nullable String administratorChangeUrl) {
 
     public static Actions none() {
       return new Actions(null);

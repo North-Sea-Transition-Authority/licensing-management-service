@@ -13,7 +13,7 @@ public class ChronologicalPositionTestUtil {
   public static ChronologicalPosition live(LicencePosition position, LicenceOperation... operations) {
     var changes = (operations.length == 0)
         ? List.<PositionChange>of()
-        : List.of(new PositionChange(UUID.randomUUID().toString(), 1L, null, List.of(operations)));
+        : List.of(new PositionChange(UUID.randomUUID().toString(), 1, null, List.of(operations)));
     return ChronologicalPosition.fromLicencePosition(position, changes);
   }
 }

@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator;
 
+import java.util.Objects;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
@@ -9,6 +10,8 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 @Component
 public class AdministratorChangeFormValidator {
 
+  private static final String ADMIN_ID_FIELD = "adminId.inputValue";
+
   private final OrganisationUnitQueryService organisationUnitQueryService;
 
   public AdministratorChangeFormValidator(OrganisationUnitQueryService organisationUnitQueryService) {
@@ -16,6 +19,15 @@ public class AdministratorChangeFormValidator {
   }
 
   public boolean hasErrors(AdministratorChangeForm form, Errors errors, Integer currentAdministratorId) {
+    return hasErrors(form, errors, currentAdministratorId, null);
+  }
+
+  public boolean hasErrors(
+      AdministratorChangeForm form,
+      Errors errors,
+      Integer currentAdministratorId,
+      Integer previousAdministratorId
+  ) {
     StringInputValidator.builder()
         .emptyInputErrorMessage("Select a licence administrator")
         .validate(form.getAdminId(), errors);
@@ -28,18 +40,26 @@ public class AdministratorChangeFormValidator {
 
     if (organisationUnitQueryService.getOrganisationUnit(newAdministratorId).isEmpty()) {
       errors.rejectValue(
-          "adminId.inputValue",
+          ADMIN_ID_FIELD,
           "adminId.invalid",
           "Select a valid licence administrator"
       );
       return true;
     }
 
-    if (currentAdministratorId != null && newAdministratorId == currentAdministratorId) {
+    if (Objects.equals(currentAdministratorId, newAdministratorId)) {
       errors.rejectValue(
-          "adminId.inputValue",
+          ADMIN_ID_FIELD,
           "adminId.sameAsCurrent",
           "The new licence administrator must be different to the current administrator"
+      );
+    }
+
+    if (Objects.equals(previousAdministratorId, newAdministratorId)) {
+      errors.rejectValue(
+          ADMIN_ID_FIELD,
+          "adminId.sameAsPrevious",
+          "The new licence administrator must be different to the previous administrator"
       );
     }
 

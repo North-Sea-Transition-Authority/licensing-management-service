@@ -2,7 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.testharness;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -131,7 +131,7 @@ class TestHarnessServiceTest {
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
     verify(licencePositionChangeService, times(2)).createLicencePositionChange(
-        positionCaptor.capture(), operationsCaptor.capture(), eq(1L), eq(LicencePositionChangeStatus.CONSENTED));
+        positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
 
     // first = index 0 (Shell); non-final = index size - 3 = 2 (BP)
     assertThat(positionCaptor.getAllValues()).containsExactly(positions.get(0), positions.get(2));
@@ -150,7 +150,7 @@ class TestHarnessServiceTest {
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
     verify(licencePositionChangeService).createLicencePositionChange(
-        positionCaptor.capture(), operationsCaptor.capture(), eq(1L), eq(LicencePositionChangeStatus.CONSENTED));
+        positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
 
     assertThat(positionCaptor.getValue()).isEqualTo(secondaryPositions.getFirst());
     assertThat(((AdministratorOperation) operationsCaptor.getValue().getFirst()).operatorId())
@@ -166,7 +166,7 @@ class TestHarnessServiceTest {
 
     verify(licencePositionService, never()).getExecutedChronologicalLicencePositions(any());
     verify(licencePositionChangeService, never())
-        .createLicencePositionChange(any(), any(), anyLong(), any());
+        .createLicencePositionChange(any(), any(), anyInt(), any());
   }
 
   private static Licence production(int id) {

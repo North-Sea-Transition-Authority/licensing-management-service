@@ -1,5 +1,7 @@
 package uk.co.fivium.gisframework.migration.oracle;
 
+import uk.co.fivium.gisframework.feature.Layer;
+
 public class OracleLayerTestUtil {
 
   public static Builder newBuilder() {

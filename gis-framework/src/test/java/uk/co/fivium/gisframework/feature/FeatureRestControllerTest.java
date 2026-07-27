@@ -28,6 +28,9 @@ class FeatureRestControllerTest extends AbstractControllerTest {
   @MockitoBean
   private LineService lineService;
 
+  @MockitoBean
+  private TextualDescriptionService textualDescriptionService;
+
   //TODO EPGF-153 add auth to rest endpoints and add tests
 
   @Test
@@ -101,6 +104,35 @@ class FeatureRestControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(get("/api/gis-framework/outline-nodes")
             .param("featureIds", feature1.getId().toString(), feature2.getId().toString()))
+        .andExpect(status().isOk())
+        .andExpect(content().json(objectMapper.writeValueAsString(expected), JsonCompareMode.STRICT));
+  }
+
+  @Test
+  void getTextualDescription() throws Exception {
+    var feature1 = FeatureTestUtil.newBuilder().build();
+    var feature2 = FeatureTestUtil.newBuilder().build();
+
+    var description = String.join("\n",
+        "<div class=\"gis-textual-description\">",
+        "<div class=\"gis-textual-description__feature\">",
+        "<p>Subarea 30/1a is bounded by the following coordinates:</p>",
+        "<table class=\"gis-textual-description__coordinates\"><tbody>",
+        "<tr><td class=\"gis-textual-description__label\">(1)</td>" +
+            "<td class=\"gis-textual-description__ordinate\">1E</td>" +
+            "<td class=\"gis-textual-description__ordinate\">1N</td></tr>",
+        "</tbody></table>",
+        "<p>The above coordinates were specified using \"British National Grid\".</p>",
+        "</div>",
+        "</div>");
+    var expected = new JsonTextualDescription(description);
+
+    when(featureService.getFeaturesByIds(List.of(feature1.getId(), feature2.getId())))
+        .thenReturn(List.of(feature1, feature2));
+    when(textualDescriptionService.getTextualDescription(List.of(feature1, feature2))).thenReturn(description);
+
+    mockMvc.perform(get("/api/gis-framework/textual-description")
+            .param("featureId", feature1.getId().toString(), feature2.getId().toString()))
         .andExpect(status().isOk())
         .andExpect(content().json(objectMapper.writeValueAsString(expected), JsonCompareMode.STRICT));
   }

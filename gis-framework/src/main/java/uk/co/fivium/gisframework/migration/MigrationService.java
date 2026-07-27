@@ -1,6 +1,6 @@
 package uk.co.fivium.gisframework.migration;
 
-import static uk.co.fivium.gisframework.migration.oracle.Layer.REFERENCE_BLOCK_LAYERS;
+import static uk.co.fivium.gisframework.feature.Layer.REFERENCE_BLOCK_LAYERS;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;

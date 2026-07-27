@@ -26,4 +26,21 @@ class CoordinateSystemUtilsTest {
     assertThatThrownBy(() -> CoordinateSystemUtils.getWkid(coordinateSystem))
         .isInstanceOf(IllegalArgumentException.class);
   }
+
+  @Test
+  void getDisplayName_validValues() {
+    assertThat(CoordinateSystemUtils.getDisplayName(CoordinateSystem.ED50)).isEqualTo("European Datum 1950");
+    assertThat(CoordinateSystemUtils.getDisplayName(CoordinateSystem.BRITISH_NATIONAL_GRID))
+        .isEqualTo("British National Grid");
+    assertThat(CoordinateSystemUtils.getDisplayName(CoordinateSystem.WGS84)).isEqualTo("WGS 84");
+    assertThat(CoordinateSystemUtils.getDisplayName(CoordinateSystem.ETRS89))
+        .isEqualTo("European Terrestrial Reference System 1989");
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = CoordinateSystem.class, mode = EXCLUDE, names = {"ED50", "BRITISH_NATIONAL_GRID", "WGS84", "ETRS89"})
+  void getDisplayName_invalidValues_throwException(CoordinateSystem coordinateSystem) {
+    assertThatThrownBy(() -> CoordinateSystemUtils.getDisplayName(coordinateSystem))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
 }

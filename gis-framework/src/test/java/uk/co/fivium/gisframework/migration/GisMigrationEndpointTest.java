@@ -12,10 +12,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.feature.FeatureService;
+import uk.co.fivium.gisframework.feature.Layer;
 import uk.co.fivium.gisframework.feature.LineService;
 import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.migration.oracle.EntityBackedOracleShape;
-import uk.co.fivium.gisframework.migration.oracle.Layer;
 import uk.co.fivium.gisframework.migration.oracle.OracleService;
 import uk.co.fivium.gisframework.migration.oracle.OracleShapeTestUtil;
 

@@ -17,7 +17,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
-import uk.co.fivium.gisframework.migration.oracle.Layer;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 
 @ExtendWith(MockitoExtension.class)

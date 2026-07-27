@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
-import uk.co.fivium.gisframework.migration.oracle.Layer;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 
 @Service

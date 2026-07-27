@@ -1,6 +1,6 @@
 package uk.co.fivium.gisframework.migration;
 
-import static uk.co.fivium.gisframework.migration.oracle.Layer.REFERENCE_BLOCK_LAYERS;
+import static uk.co.fivium.gisframework.feature.Layer.REFERENCE_BLOCK_LAYERS;
 
 import java.util.List;
 import java.util.Map;
@@ -14,9 +14,9 @@ import org.springframework.stereotype.Service;
 import uk.co.fivium.gisframework.feature.EntityBackedFeature;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
+import uk.co.fivium.gisframework.feature.Layer;
 import uk.co.fivium.gisframework.feature.Line;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
-import uk.co.fivium.gisframework.migration.oracle.Layer;
 import uk.co.fivium.gisframework.migration.oracle.OracleService;
 import uk.co.fivium.gisframework.migration.oracle.OracleShapeLink;
 

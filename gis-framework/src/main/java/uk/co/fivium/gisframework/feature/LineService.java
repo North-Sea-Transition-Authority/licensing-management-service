@@ -63,8 +63,24 @@ public class LineService {
   }
 
   public List<JsonFeatureOutlineNodes> getOutlineNodes(Collection<Feature> features) {
-    Map<UUID, List<LineWithStartEndPoints>> featureToOrderedLines =
-        grpcClientService.getLineStartAndEndPoints(lineRepository.findAllByPolygon_FeatureIn(features), true)
+    return getOrderedLinesByFeatureId(features, true).entrySet()
+        .stream()
+        .map(entry -> new JsonFeatureOutlineNodes(
+            entry.getKey().toString(),
+            buildJsonOutlineNodes(entry.getValue())))
+        .toList();
+  }
+
+  /**
+   * Fetches the lines of the given features (with their start/end points) grouped by feature id and ordered
+   * within each feature by display order. Shared by outline-node labelling and textual descriptions so both use
+   * an identical ordering; {@code projectToWgs84} selects WGS84 map coordinates or the feature's native coordinates.
+   */
+  Map<UUID, List<LineWithStartEndPoints>> getOrderedLinesByFeatureId(
+      Collection<Feature> features,
+      boolean projectToWgs84
+  ) {
+    return grpcClientService.getLineStartAndEndPoints(lineRepository.findAllByPolygon_FeatureIn(features), projectToWgs84)
         .stream()
         .collect(Collectors.groupingBy(
             wrapper -> wrapper.line().getPolygon().getFeature().getId(),
@@ -73,17 +89,15 @@ public class LineService {
                 wrappers -> wrappers.stream()
                     .sorted(Comparator.comparing(wrapper -> wrapper.line().getDisplayOrder()))
                     .toList())));
-
-    return featureToOrderedLines.entrySet()
-        .stream()
-        .map(entry -> new JsonFeatureOutlineNodes(
-            entry.getKey().toString(),
-            buildOutlineNodes(entry.getValue())))
-        .toList();
   }
 
-  private List<JsonOutlineNode> buildOutlineNodes(List<LineWithStartEndPoints> orderedLines) {
-    var allNodes = new ArrayList<JsonOutlineNode>();
+  /**
+   * Assigns each ring's coordinates a continuous display number across the feature. Each line contributes its
+   * start node; the closing line of a ring additionally contributes the ring's coincident end node (which is why
+   * the running number is offset by the number of rings already closed).
+   */
+  List<NumberedNode> getOutlineNumberedNodes(List<LineWithStartEndPoints> orderedLines) {
+    var nodes = new ArrayList<NumberedNode>();
     int ringCounter = 0;
 
     for (int i = 0; i < orderedLines.size(); i++) {
@@ -91,14 +105,28 @@ public class LineService {
       var line = lineWrapper.line();
       int startDisplayOrder = line.getDisplayOrder() + ringCounter;
 
-      allNodes.add(new JsonOutlineNode(line, startDisplayOrder, lineWrapper.start()));
+      nodes.add(new NumberedNode(line, startDisplayOrder, lineWrapper.start().getX(), lineWrapper.start().getY(), false));
 
       if (isRingBoundary(i, orderedLines)) {
-        int endDisplayOrder = startDisplayOrder + 1;
-        allNodes.add(new JsonOutlineNode(line, endDisplayOrder, lineWrapper.end()));
+        nodes.add(new NumberedNode(line, startDisplayOrder + 1, lineWrapper.end().getX(), lineWrapper.end().getY(), true));
         ringCounter++;
       }
     }
+
+    return nodes;
+  }
+
+  private List<JsonOutlineNode> buildJsonOutlineNodes(List<LineWithStartEndPoints> orderedLines) {
+    var allNodes = getOutlineNumberedNodes(orderedLines).stream()
+        .map(node -> new JsonOutlineNode(
+            node.line(),
+            node.displayOrder(),
+            node.x(),
+            node.y(),
+            "(%s)".formatted(node.displayOrder())
+            )
+        )
+        .toList();
 
     var ringCoordinateToNodes = new LinkedHashMap<String, List<JsonOutlineNode>>();
     for (var node : allNodes) {

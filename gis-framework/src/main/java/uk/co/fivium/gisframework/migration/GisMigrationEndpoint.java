@@ -8,9 +8,9 @@ import org.springframework.boot.actuate.endpoint.annotation.WriteOperation;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import uk.co.fivium.gisframework.feature.FeatureService;
+import uk.co.fivium.gisframework.feature.Layer;
 import uk.co.fivium.gisframework.feature.LineService;
 import uk.co.fivium.gisframework.feature.PolygonService;
-import uk.co.fivium.gisframework.migration.oracle.Layer;
 import uk.co.fivium.gisframework.migration.oracle.OracleService;
 
 @Profile("gis-migration")

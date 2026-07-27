@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Immutable;
 import org.springframework.context.annotation.Profile;
+import uk.co.fivium.gisframework.feature.Layer;
 
 @Profile("gis-migration")
 @Entity

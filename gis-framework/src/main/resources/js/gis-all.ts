@@ -1,6 +1,7 @@
 import { createApp } from "vue";
 import OpenLayersMap from "vue3-openlayers";
 import BaseMap from "./components/baseMap/BaseMap.vue";
+import TextualDescription from "./components/textualDescription/TextualDescription.vue";
 import "ol/ol.css";
 import "vue3-openlayers/vue3-openlayers.css";
 
@@ -14,5 +15,12 @@ for (const element of document.querySelectorAll<HTMLElement>("[data-gis-componen
     srsWkid: Number(element.dataset.gisSrsWkid),
   })
     .use(OpenLayersMap)
+    .mount(element);
+}
+
+for (const element of document.querySelectorAll<HTMLElement>("[data-gis-component='gis-textual-description']")) {
+  createApp(TextualDescription, {
+    textualDescriptionUrl: element.dataset.gisTextualDescriptionUrl,
+  })
     .mount(element);
 }

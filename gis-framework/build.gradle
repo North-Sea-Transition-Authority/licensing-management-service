@@ -55,6 +55,10 @@ dependencies {
   implementation 'org.flywaydb:flyway-database-oracle'
   implementation "org.springframework.data:spring-data-envers"
 
+  // Apache SIS AngleFormat for degrees/minutes/seconds formatting; Dstl osgb for OS grid references
+  implementation 'org.apache.sis.core:sis-utility:1.4'
+  implementation 'uk.gov.dstl.geo:osgb:1.0.3'
+
   runtimeOnly 'com.oracle.database.jdbc:ojdbc11:23.3.0.23.09'
 
   // The Spring Boot Starter for gRPC Client

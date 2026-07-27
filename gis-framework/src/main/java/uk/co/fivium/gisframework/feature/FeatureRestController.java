@@ -22,17 +22,20 @@ class FeatureRestController {
   private final PolygonService polygonService;
   private final ObjectMapper objectMapper;
   private final LineService lineService;
+  private final TextualDescriptionService textualDescriptionService;
 
   FeatureRestController(
       FeatureService featureService,
       PolygonService polygonService,
       ObjectMapper objectMapper,
-      LineService lineService
+      LineService lineService,
+      TextualDescriptionService textualDescriptionService
   ) {
     this.featureService = featureService;
     this.polygonService = polygonService;
     this.objectMapper = objectMapper;
     this.lineService = lineService;
+    this.textualDescriptionService = textualDescriptionService;
   }
 
   @GetMapping("/features")
@@ -62,5 +65,14 @@ class FeatureRestController {
   ResponseEntity<JsonFeatureOutlineNodesResponse> getOutlineNodes(@RequestParam("featureIds") List<UUID> featureIds) {
     var features = featureService.getFeaturesByIds(featureIds);
     return ResponseEntity.ok(new JsonFeatureOutlineNodesResponse(lineService.getOutlineNodes(features)));
+  }
+
+  @GetMapping("/textual-description")
+  ResponseEntity<JsonTextualDescription> getTextualDescription(
+      @RequestParam("featureId") List<UUID> featureIds
+  ) {
+    var features = featureService.getFeaturesByIds(featureIds);
+    return ResponseEntity.ok(
+        new JsonTextualDescription(textualDescriptionService.getTextualDescription(features)));
   }
 }

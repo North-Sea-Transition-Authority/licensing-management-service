@@ -18,4 +18,15 @@ public class CoordinateSystemUtils {
           throw new IllegalArgumentException("Unknown coordinate system '" + coordinateSystem + "'");
     };
   }
+
+  public static String getDisplayName(CoordinateSystem coordinateSystem) {
+    return switch (coordinateSystem) {
+      case ED50 -> "European Datum 1950";
+      case BRITISH_NATIONAL_GRID -> "British National Grid";
+      case WGS84 -> "WGS 84";
+      case ETRS89 -> "European Terrestrial Reference System 1989";
+      case COORDINATE_SYSTEM_UNSPECIFIED, UNRECOGNIZED ->
+          throw new IllegalArgumentException("Unknown coordinate system %s".formatted(coordinateSystem));
+    };
+  }
 }

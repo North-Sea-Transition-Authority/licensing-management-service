@@ -47,11 +47,15 @@ public class LicenceScheduleTermFormValidator {
         .toList();
 
     doValidation(form, errors, existingTermTypes);
-    scheduleRelativeDateValidationService.validateTermLengthUpdate(
-        licenceScheduleTerm,
-        form.getTermDuration(),
-        errors
-    );
+
+    if (!errors.hasErrors()) {
+      scheduleRelativeDateValidationService.validateTermLengthUpdate(
+          licenceScheduleTerm,
+          form.getTermDuration(),
+          errors
+      );
+    }
+
     return !errors.hasErrors();
   }
 

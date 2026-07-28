@@ -98,7 +98,10 @@ public class LicenceSchedulePhaseFormValidator {
     }
 
     ThreeFieldDurationValidationUtil.validate(form.getPhaseDuration(), errors);
-    scheduleRelativeDateValidationService.validatePhaseLengthUpdate(licenceScheduleDetail, form, errors);
+
+    if (!errors.hasErrors()) {
+      scheduleRelativeDateValidationService.validatePhaseLengthUpdate(licenceScheduleDetail, form, errors);
+    }
 
     return !errors.hasErrors();
   }

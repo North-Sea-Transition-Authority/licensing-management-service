@@ -1,0 +1,33 @@
+.lms-sticky-filters {
+  // Floated grid columns are only as tall as their own content, so the filter
+  // column never gets taller than the filters panel itself - without this,
+  // position: sticky below has no extra room to move within its container.
+  .govuk-grid-row {
+    @include govuk-media-query($from: tablet) {
+      display: flex;
+    }
+  }
+
+  // The <form> wrapping the filters is still a plain block box sized to its
+  // own content, so it needs to stretch to fill the now-tall column too -
+  // otherwise it's the sticky element's containing block and is exactly as
+  // tall as the sticky element itself, leaving no room to move.
+  .govuk-grid-column-one-quarter form {
+    @include govuk-media-query($from: tablet) {
+      height: 100%;
+    }
+  }
+
+  .fds-search-filters {
+    @include govuk-media-query($from: tablet) {
+      position: sticky;
+      top: govuk-spacing(3);
+      // Cap the height to what's left of the viewport below the top offset,
+      // and let the panel scroll internally - otherwise a tall, fully-expanded
+      // filter list (and the "Filter results" button below it) can run off
+      // the bottom of the screen with no way to reach it.
+      max-height: calc(100vh - #{govuk-spacing(3)});
+      overflow-y: scroll;
+    }
+  }
+}

@@ -73,7 +73,7 @@ public class LicenceScheduleSupportingInformationController {
       BindingResult bindingResult
   ) {
 
-    if (!licenceScheduleSupportingInformationFormValidator.isValid(bindingResult, scheduleWorkProgrammeApplicationDetail)) {
+    if (!licenceScheduleSupportingInformationFormValidator.isValid(form, bindingResult, scheduleWorkProgrammeApplicationDetail)) {
       return getModelAndView(form, scheduleWorkProgrammeApplicationDetail);
     }
 

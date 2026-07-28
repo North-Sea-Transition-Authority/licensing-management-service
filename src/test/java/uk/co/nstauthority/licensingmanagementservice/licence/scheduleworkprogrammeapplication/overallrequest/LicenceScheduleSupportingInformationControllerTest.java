@@ -178,7 +178,7 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
 
   @Test
   void submitValidForm() throws Exception {
-    when(licenceScheduleSupportingInformationFormValidator.isValid(any(), any())).thenReturn(true);
+    when(licenceScheduleSupportingInformationFormValidator.isValid(any(), any(), any())).thenReturn(true);
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(

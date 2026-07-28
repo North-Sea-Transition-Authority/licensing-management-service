@@ -66,6 +66,7 @@ errorSummaryItems=errorSummaryItems>
             <@fdsFileUpload.fileUpload
             path=fileUploadAttributes.path()
             allowedExtensions=fileUploadAttributes.allowedExtensions()
+            showAllowedExtensions=true
             uploadUrl=fileUploadAttributes.uploadUrl()
             downloadUrl=fileUploadAttributes.downloadUrl()
             deleteUrl=fileUploadAttributes.deleteUrl()

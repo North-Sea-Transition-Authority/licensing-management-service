@@ -22,6 +22,6 @@ public class LicenceScheduleSupportingInformationSubmissionService {
     var form = licenceScheduleSupportingInformationService.getLicenceScheduleRequestForm(
         scheduleWorkProgrammeApplicationDetail);
     BindingResult bindingResult = new BeanPropertyBindingResult(form, "form");
-    return licenceScheduleSupportingInformationFormValidator.isValid(bindingResult, scheduleWorkProgrammeApplicationDetail);
+    return licenceScheduleSupportingInformationFormValidator.isValid(form, bindingResult, scheduleWorkProgrammeApplicationDetail);
   }
 }

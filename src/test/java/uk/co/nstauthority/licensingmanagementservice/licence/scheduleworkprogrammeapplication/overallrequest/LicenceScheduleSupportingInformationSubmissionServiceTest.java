@@ -32,6 +32,7 @@ class LicenceScheduleSupportingInformationSubmissionServiceTest {
           .thenReturn(new LicenceScheduleSupportingInformationForm());
 
       when(licenceScheduleSupportingInformationFormValidator.isValid(
+          any(LicenceScheduleSupportingInformationForm.class),
           any(BindingResult.class),
           any(ScheduleWorkProgrammeApplicationDetail.class)
       )).thenReturn(true);
@@ -48,6 +49,7 @@ class LicenceScheduleSupportingInformationSubmissionServiceTest {
         .thenReturn(new LicenceScheduleSupportingInformationForm());
 
     when(licenceScheduleSupportingInformationFormValidator.isValid(
+        any(LicenceScheduleSupportingInformationForm.class),
         any(BindingResult.class),
         any(ScheduleWorkProgrammeApplicationDetail.class)
     )).thenReturn(false);

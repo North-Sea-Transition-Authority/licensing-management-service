@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
-import uk.co.fivium.fileuploadlibrary.fds.UploadedFileForm;
+import uk.co.nstauthority.licensingmanagementservice.file.FileUploadTestUtil;
 
 class LicenceContinuationSupportingInformationValidatorTest {
 
@@ -41,17 +41,33 @@ class LicenceContinuationSupportingInformationValidatorTest {
     assertThat(errors.getFieldError("documents"))
         .isNotNull()
         .extracting(DefaultMessageSourceResolvable::getCode)
-        .isEqualTo("documents.required");
+        .isEqualTo("documents.belowThreshold");
   }
 
   @Test
   void isValid_whenYesAndDocumentsUploaded_hasNoErrors() {
     var form = new LicenceContinuationSupportingInformationForm();
     form.setHasAdditionalSupportingInformation(true);
-    form.setDocuments(List.of(new UploadedFileForm()));
+    form.setDocuments(List.of(
+        FileUploadTestUtil.getUploadedFileFormWithDescription(
+            FileUploadTestUtil.FILE_NAME_1, FileUploadTestUtil.FILE_DESCRIPTION_1)));
     Errors errors = new BeanPropertyBindingResult(form, "form");
 
     assertThat(validator.isValid(form, errors)).isTrue();
+  }
+
+  @Test
+  void isValid_whenDocumentUploadedWithoutDescription_rejectsDescriptionAsRequired() {
+    var form = new LicenceContinuationSupportingInformationForm();
+    form.setHasAdditionalSupportingInformation(true);
+    form.setDocuments(List.of(FileUploadTestUtil.getUploadedFileWithFileName(FileUploadTestUtil.FILE_NAME_1)));
+    Errors errors = new BeanPropertyBindingResult(form, "form");
+
+    assertThat(validator.isValid(form, errors)).isFalse();
+    assertThat(errors.getFieldError("documents[0].uploadedFileDescription"))
+        .isNotNull()
+        .extracting(DefaultMessageSourceResolvable::getCode)
+        .isEqualTo("mandatory");
   }
 
   @Test

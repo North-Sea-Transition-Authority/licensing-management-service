@@ -4,6 +4,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
+import uk.co.nstauthority.licensingmanagementservice.file.FileValidationUtil;
 
 @Service
 public class LicenceContinuationOtherRequirementValidator {
@@ -67,6 +68,11 @@ public class LicenceContinuationOtherRequirementValidator {
         );
       }
     }
+
+    FileValidationUtil.validator()
+        .withMandatoryDescriptions(true)
+        .withMinimumNumberOfFiles(0, "")
+        .validate(errors, form.getDocuments(), "documents");
 
     return !errors.hasErrors();
   }

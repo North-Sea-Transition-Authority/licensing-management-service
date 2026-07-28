@@ -44,7 +44,7 @@ class LicenceScheduleSupportingInformationFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(licenceScheduleSupportingInformationFormValidator.isValid(bindingResult, scheduleWorkProgrammeApplicationDetail)).isTrue();
+    assertThat(licenceScheduleSupportingInformationFormValidator.isValid(form, bindingResult, scheduleWorkProgrammeApplicationDetail)).isTrue();
   }
 
   @Test
@@ -60,7 +60,7 @@ class LicenceScheduleSupportingInformationFormValidatorTest {
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
     assertThat(
-        licenceScheduleSupportingInformationFormValidator.isValid(bindingResult, scheduleWorkProgrammeApplicationDetail)).isTrue();
+        licenceScheduleSupportingInformationFormValidator.isValid(form, bindingResult, scheduleWorkProgrammeApplicationDetail)).isTrue();
   }
 
 
@@ -73,7 +73,7 @@ class LicenceScheduleSupportingInformationFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(licenceScheduleSupportingInformationFormValidator.isValid(bindingResult, scheduleWorkProgrammeApplicationDetail)).isFalse();
+    assertThat(licenceScheduleSupportingInformationFormValidator.isValid(form, bindingResult, scheduleWorkProgrammeApplicationDetail)).isFalse();
     assertTrue(bindingResult.hasFieldErrors("licenceProgress"));
     assertThat(bindingResult.getErrorCount()).isEqualTo(1);
   }
@@ -89,7 +89,7 @@ class LicenceScheduleSupportingInformationFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(licenceScheduleSupportingInformationFormValidator.isValid(bindingResult, scheduleWorkProgrammeApplicationDetail)).isFalse();
+    assertThat(licenceScheduleSupportingInformationFormValidator.isValid(form, bindingResult, scheduleWorkProgrammeApplicationDetail)).isFalse();
     assertTrue(bindingResult.hasFieldErrors("planDuringExtension"));
     assertThat(bindingResult.getErrorCount()).isEqualTo(1);
   }
@@ -100,7 +100,7 @@ class LicenceScheduleSupportingInformationFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(licenceScheduleSupportingInformationFormValidator.isValid(bindingResult, scheduleWorkProgrammeApplicationDetail)).isFalse();
+    assertThat(licenceScheduleSupportingInformationFormValidator.isValid(form, bindingResult, scheduleWorkProgrammeApplicationDetail)).isFalse();
     assertTrue(bindingResult.hasFieldErrors("licenceProgress"));
     assertTrue(bindingResult.hasFieldErrors("planDuringExtension"));
     assertTrue(bindingResult.hasFieldErrors("reasonForAmendment"));

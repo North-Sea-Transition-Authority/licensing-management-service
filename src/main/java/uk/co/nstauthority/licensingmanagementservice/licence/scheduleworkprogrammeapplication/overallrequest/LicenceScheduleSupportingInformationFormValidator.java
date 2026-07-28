@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ValidationUtils;
+import uk.co.nstauthority.licensingmanagementservice.file.FileValidationUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Service
@@ -17,6 +18,7 @@ public class LicenceScheduleSupportingInformationFormValidator {
   }
 
   public boolean isValid(
+      LicenceScheduleSupportingInformationForm form,
       BindingResult bindingResult,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
@@ -47,6 +49,11 @@ public class LicenceScheduleSupportingInformationFormValidator {
         "impactOnDeliverables",
         "impactOnDeliverables.empty",
         "Enter how the requested changes impact current or future deliverables");
+
+    FileValidationUtil.validator()
+        .withMandatoryDescriptions(true)
+        .withMinimumNumberOfFiles(0, "")
+        .validate(bindingResult, form.getDocuments(), "documents");
 
     return !bindingResult.hasErrors();
   }

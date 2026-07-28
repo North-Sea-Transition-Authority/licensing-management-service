@@ -95,7 +95,7 @@
     <div style="page-break-after: always;"></div>
   </#if>
 
-  <table>
+  <table style="width: 100%;">
     <tbody>
     <tr>
       <td style="vertical-align: top;">
@@ -103,7 +103,7 @@
           ${sectionNumber}
         </#if>
       </td>
-      <td style="vertical-align: top;">
+      <td style="vertical-align: top; width: 100%;">
         ${content?no_esc}
       </td>
     </tr>

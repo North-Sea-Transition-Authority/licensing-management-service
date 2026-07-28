@@ -17,6 +17,13 @@ errorSummaryItems=errorSummaryItems>
             labelHeadingClass="govuk-label--m"
         />
 
+        <@fdsDetails.summaryDetails summaryTitle="My licence is not listed">
+            <p class="govuk-body">
+                You must be a licensee on the licence your application is for. If you are a licensee and your licence is
+                not listed, contact <@fdsAction.link linkText=customerBranding.approvalsContactEmail() linkUrl="mailto:${customerBranding.approvalsContactEmail()}"/>.
+            </p>
+        </@fdsDetails.summaryDetails>
+
         <@fdsAction.submitButtons primaryButtonText="Continue" secondaryLinkText="Back" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(backUrl)/>
     </@fdsForm.htmlForm>
 

@@ -34,7 +34,7 @@ class EmailServiceTest {
 
   private static final CustomerConfigurationProperties CUSTOMER_CONFIGURATION_PROPERTIES
       = new CustomerConfigurationProperties(
-      "name", "mnemonic", "contactEmail"
+      "name", "mnemonic", "contactEmail", "approvals@nstauthority.co.uk"
   );
 
   private static NotificationLibraryClient notificationLibraryClient;

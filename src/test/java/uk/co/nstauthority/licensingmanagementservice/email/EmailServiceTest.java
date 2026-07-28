@@ -9,8 +9,13 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
 
 import java.util.Set;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.DomainReference;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.MailMergeField;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.MergedTemplate;
@@ -20,6 +25,7 @@ import uk.co.fivium.digitalnotificationlibrary.core.notification.TemplateType;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailRecipient;
 import uk.co.nstauthority.licensingmanagementservice.branding.CustomerConfigurationProperties;
 import uk.co.nstauthority.licensingmanagementservice.correlationid.CorrelationIdUtil;
+import uk.co.nstauthority.licensingmanagementservice.mvc.LmsAbsoluteUrlUtil;
 
 class EmailServiceTest {
 
@@ -50,6 +56,16 @@ class EmailServiceTest {
     );
   }
 
+  @BeforeEach
+  void setUpRequestContext() {
+    RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
+  }
+
+  @AfterEach
+  void tearDownRequestContext() {
+    RequestContextHolder.resetRequestAttributes();
+  }
+
   @Test
   void getTemplate_WhenInTestMode() {
     given(notificationLibraryClient.getTemplate(GOVUK_NOTIFY_TEMPLATE.getTemplateId()))
@@ -67,8 +83,9 @@ class EmailServiceTest {
             tuple("SUBJECT_PREFIX", "***TEST***"),
             tuple("SALUTATION", "Dear"),
             tuple("VALEDICTION", "Kind regards"),
-            tuple("REGULATOR_MNEMONIC", CUSTOMER_CONFIGURATION_PROPERTIES.mnemonic())
-        );
+            tuple("REGULATOR_MNEMONIC", CUSTOMER_CONFIGURATION_PROPERTIES.mnemonic()),
+            tuple("SERVICE_NAME", CUSTOMER_CONFIGURATION_PROPERTIES.name()),
+            tuple("DEFAULT_SERVICE_LINK", LmsAbsoluteUrlUtil.getWorkAreaUrl()));
   }
 
   @Test
@@ -88,8 +105,9 @@ class EmailServiceTest {
             tuple("SUBJECT_PREFIX", ""),
             tuple("REGULATOR_MNEMONIC", CUSTOMER_CONFIGURATION_PROPERTIES.mnemonic()),
             tuple("SALUTATION", "Dear"),
-            tuple("VALEDICTION", "Kind regards")
-        );
+            tuple("VALEDICTION", "Kind regards"),
+            tuple("SERVICE_NAME", CUSTOMER_CONFIGURATION_PROPERTIES.name()),
+            tuple("DEFAULT_SERVICE_LINK", LmsAbsoluteUrlUtil.getWorkAreaUrl()));
   }
 
   @Test

@@ -36,19 +36,22 @@ public class LicenceContactService {
   private final LicenceOrganisationService licenceOrganisationService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final OrganisationGroupQueryService organisationGroupQueryService;
+  private final LicenceContactEmailService licenceContactEmailService;
 
   public LicenceContactService(
       LicenceContactRepository licenceContactRepository,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
       LicenceOrganisationService licenceOrganisationService,
       OrganisationUnitQueryService organisationUnitQueryService,
-      OrganisationGroupQueryService organisationGroupQueryService
+      OrganisationGroupQueryService organisationGroupQueryService,
+      LicenceContactEmailService licenceContactEmailService
   ) {
     this.licenceContactRepository = licenceContactRepository;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.licenceOrganisationService = licenceOrganisationService;
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.organisationGroupQueryService = organisationGroupQueryService;
+    this.licenceContactEmailService = licenceContactEmailService;
   }
 
   public LicenceContactsTableView getIndustryContactsTable(
@@ -248,8 +251,9 @@ public class LicenceContactService {
       String contactEmail,
       Collection<Integer> licenceIds
   ) {
-    licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, organisationId);
+    var licenseeName = licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, organisationId);
 
+    var licenceReferences = new ArrayList<String>();
     licenceIds.forEach(licenceId -> {
       var licensee = licenceResponsibleOrganisationService
           .getByLicenceIdAndResponsibleOrganisationIdOrThrow(licenceId, organisationId);
@@ -257,6 +261,9 @@ public class LicenceContactService {
       contact.setLicensee(licensee);
       contact.setContactEmail(contactEmail);
       licenceContactRepository.save(contact);
+      licenceReferences.add(licensee.getLicence().getLicenceReference());
     });
+
+    licenceContactEmailService.sendContactUpdatedEmail(contactEmail, licenseeName, licenceReferences, organisationId);
   }
 }

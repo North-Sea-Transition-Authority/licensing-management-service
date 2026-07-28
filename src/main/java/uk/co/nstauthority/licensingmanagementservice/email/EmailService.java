@@ -9,6 +9,7 @@ import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailNoti
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailRecipient;
 import uk.co.nstauthority.licensingmanagementservice.branding.CustomerConfigurationProperties;
 import uk.co.nstauthority.licensingmanagementservice.correlationid.CorrelationIdUtil;
+import uk.co.nstauthority.licensingmanagementservice.mvc.LmsAbsoluteUrlUtil;
 
 @Service
 public class EmailService {
@@ -31,7 +32,9 @@ public class EmailService {
         .withMailMergeField("SUBJECT_PREFIX", subjectPrefix)
         .withMailMergeField("SALUTATION", "Dear")
         .withMailMergeField("VALEDICTION", "Kind regards")
-        .withMailMergeField("REGULATOR_MNEMONIC", customerConfigurationProperties.mnemonic());
+        .withMailMergeField("REGULATOR_MNEMONIC", customerConfigurationProperties.mnemonic())
+        .withMailMergeField("SERVICE_NAME", customerConfigurationProperties.name())
+        .withMailMergeField("DEFAULT_SERVICE_LINK", LmsAbsoluteUrlUtil.getWorkAreaUrl());
   }
 
   public EmailNotification sendEmail(MergedTemplate mergedTemplate,

@@ -62,6 +62,9 @@ class LicenceContactServiceTest {
   @Mock
   private OrganisationGroupQueryService organisationGroupQueryService;
 
+  @Mock
+  private LicenceContactEmailService licenceContactEmailService;
+
   @InjectMocks
   private LicenceContactService licenceContactService;
 
@@ -434,6 +437,29 @@ class LicenceContactServiceTest {
     assertThat(contactCaptor.getAllValues())
         .extracting(LicenceContact::getContactEmail)
         .containsExactly("new@example.com", "new@example.com");
+  }
+
+  @Test
+  void applyContactToLicences_sendsContactUpdatedEmail() {
+    var licensee1 = licensee();
+    var licensee2 = licenseeOnLicence(otherLicence());
+
+    when(licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, ORG_ID)).thenReturn(SHELL_U_K_LIMITED);
+    when(licenceResponsibleOrganisationService.getByLicenceIdAndResponsibleOrganisationIdOrThrow(LICENCE_ID, ORG_ID))
+        .thenReturn(licensee1);
+    when(licenceResponsibleOrganisationService.getByLicenceIdAndResponsibleOrganisationIdOrThrow(2, ORG_ID))
+        .thenReturn(licensee2);
+    when(licenceContactRepository.findByLicensee(licensee1)).thenReturn(Optional.empty());
+    when(licenceContactRepository.findByLicensee(licensee2)).thenReturn(Optional.empty());
+
+    licenceContactService.applyContactToLicences(user, ORG_ID, "new@example.com", List.of(LICENCE_ID, 2));
+
+    verify(licenceContactEmailService).sendContactUpdatedEmail(
+        "new@example.com",
+        SHELL_U_K_LIMITED,
+        List.of("P 123", "P 456"),
+        ORG_ID
+    );
   }
 
   private static Licence otherLicence() {

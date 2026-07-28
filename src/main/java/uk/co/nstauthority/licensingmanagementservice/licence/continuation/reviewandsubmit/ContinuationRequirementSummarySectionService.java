@@ -28,7 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.summary.SummarySectionServi
 @Service
 public class ContinuationRequirementSummarySectionService implements SummarySectionService<LicenceContinuationApplicationDetail> {
 
-  public static final String SECTION_NAME = "Other requirement";
+  public static final String SECTION_NAME = "Other requirements";
   public static final int SECTION_DISPLAY_ORDER = 30;
   private final LicenceContinuationOtherRequirementService licenceContinuationOtherRequirementService;
   private final OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService;

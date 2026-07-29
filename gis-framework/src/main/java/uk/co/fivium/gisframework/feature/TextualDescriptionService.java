@@ -26,11 +26,8 @@ public class TextualDescriptionService {
    */
   private static final String STYLE = """
       <style>
-      .gis-textual-description { font-family: "GDS Transport", arial, sans-serif; }
+      .gis-textual-description { font-family: "GDS Transport"; font-size: 16px }
       .gis-textual-description p { margin: 0 0 1em; }
-      .gis-textual-description__coordinates { border-collapse: collapse; margin: 0 0 1em; }
-      .gis-textual-description__label { text-align: left; padding: 0 1em 0 0; white-space: nowrap; }
-      .gis-textual-description__ordinate { text-align: right; padding: 0 0 0 1em; white-space: nowrap; }
       </style>""";
 
   private final LineService lineService;
@@ -89,7 +86,7 @@ public class TextualDescriptionService {
     var excludeClause = innerRegionCount > 0
         ? ", excluding %d inner %s".formatted(innerRegionCount, pluralise("region", innerRegionCount))
         : "";
-    return "<p>%s is defined as %d %s%s:</p>".formatted(
+    return "<p class=\"govuk-body\">%s is defined as %d %s%s:</p>".formatted(
         fullShapeName, regionCount, pluralise("region", regionCount), excludeClause);
   }
 
@@ -101,7 +98,7 @@ public class TextualDescriptionService {
    * @param rings         A list of records which group all the lines per region together
    * @param regionCount   The number of regions (polygons)
    * @return List of HTML blocks for each region. Each block is a "bounded by" paragraph followed by a
-   *     table of the region's coordinates, and any legal boundary text. If one of the lines follows a
+   *     numbered list of the region's coordinates, and any legal boundary text. If one of the lines follows a
    *     treaty boundary, that is noted between the relevant coordinate rows.
    */
   private List<String> buildRegionBlocks(
@@ -135,7 +132,7 @@ public class TextualDescriptionService {
       }
 
       var block = new StringBuilder()
-          .append("<p>").append(boundedByClause).append("</p>\n")
+          .append("<p class=\"govuk-body\">").append(boundedByClause).append("</p>\n")
           .append(buildCoordinateBlock(feature.getCoordinateSystem(), ring.nodes()));
 
       var legalText = buildLegalText(ring.nodes());
@@ -156,11 +153,12 @@ public class TextualDescriptionService {
    *
    * @param coordinateSystem The coordinate system of the feature.
    * @param nodes            A list of the key outline nodes that define the region.
-   * @return One or more coordinate tables, separated by any treaty boundary notes.
+   * @return One or more coordinate lists, separated by any treaty boundary notes.
    */
   private String buildCoordinateBlock(CoordinateSystem coordinateSystem, List<NumberedNode> nodes) {
     var parts = new ArrayList<String>();
     var rows = new ArrayList<String>();
+    var startNumber = nodes.getFirst().displayOrder();
 
     for (var i = 0; i < nodes.size(); i++) {
       var node = nodes.get(i);
@@ -171,22 +169,27 @@ public class TextualDescriptionService {
         continue;
       }
 
-      // The described boundary runs from this node to the next. Close the current table, emit the note as
-      // its own paragraph, then start a new table for the following coordinate so the note text does not
-      // stretch the coordinate columns.
-      parts.add(coordinateTable(rows));
+      // The described boundary runs from this node to the next. Close the current list, emit the note as
+      // its own paragraph, then start a new list for the following coordinate so the note text does not
+      // interrupt the numbering.
+      parts.add(coordinateList(rows, startNumber));
       rows = new ArrayList<>();
+      startNumber = nodes.get(i + 1).displayOrder();
       parts.add("<p class=\"gis-textual-description__note\">thence following %s until coordinate:</p>"
           .formatted(escape(boundaryLineDescription)));
     }
 
-    parts.add(coordinateTable(rows));
+    parts.add(coordinateList(rows, startNumber));
     return String.join("\n", parts);
   }
 
-  private String coordinateTable(List<String> rows) {
-    return "<table class=\"gis-textual-description__coordinates\"><tbody>\n%s\n</tbody></table>"
-        .formatted(String.join("\n", rows));
+  /**
+   * Renders the coordinate rows as an ordered list, numbered from {@code startNumber} so the numbers shown
+   * continue across regions and boundary notes, matching the node numbers labelled on the map.
+   */
+  private String coordinateList(List<String> rows, int startNumber) {
+    return "<ol class=\"govuk-list govuk-list--number\" start=\"%d\">%s</ol>"
+        .formatted(startNumber, String.join("\n", rows));
   }
 
   private String buildFooter(CoordinateSystem coordinateSystem, List<NumberedNode> nodes) {
@@ -194,7 +197,7 @@ public class TextualDescriptionService {
     lines.add("The above coordinates were specified using \"%s\"."
         .formatted(CoordinateSystemUtils.getDisplayName(coordinateSystem)));
     lines.addAll(buildNavigationClauses(nodes));
-    return "<p>%s</p>".formatted(String.join("<br>\n", lines));
+    return "<p class=\"govuk-body\">%s</p>".formatted(String.join("<br>\n", lines));
   }
 
   /**
@@ -321,17 +324,8 @@ public class TextualDescriptionService {
   }
 
   private String formatCoordinateRow(CoordinateSystem coordinateSystem, NumberedNode node) {
-    // A grid reference is a single value, so it spans both ordinate columns; a lat/long pair keeps the
-    // latitude and longitude in their own aligned columns.
-    var ordinates = switch (CoordinateFormatter.formatCoordinate(coordinateSystem, node.x(), node.y())) {
-      case CoordinateFormatter.FormattedCoordinate.GridReference(var reference) ->
-          "<td class=\"gis-textual-description__ordinate\" colspan=\"2\">%s</td>".formatted(reference);
-      case CoordinateFormatter.FormattedCoordinate.LatLong(var latitude, var longitude) ->
-          "<td class=\"gis-textual-description__ordinate\">%s</td><td class=\"gis-textual-description__ordinate\">%s</td>"
-              .formatted(latitude, longitude);
-    };
-    return "<tr><td class=\"gis-textual-description__label\">(%d)</td>%s</tr>"
-        .formatted(node.displayOrder(), ordinates);
+    return "<li class=\"govuk-!-font-tabular-numbers\">%s</li>"
+        .formatted(CoordinateFormatter.formatCoordinate(coordinateSystem, node.x(), node.y()));
   }
 
   /**

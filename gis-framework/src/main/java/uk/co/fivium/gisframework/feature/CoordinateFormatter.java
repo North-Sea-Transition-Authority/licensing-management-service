@@ -27,34 +27,20 @@ public class CoordinateFormatter {
   }
 
   /**
-   * A feature coordinate formatted for display. Either a single OS grid reference (British National
-   * Grid) or a latitude/longitude pair (geographic datums), so callers can render each shape correctly.
-   */
-  public sealed interface FormattedCoordinate {
-
-    record GridReference(String reference) implements FormattedCoordinate {
-    }
-
-    record LatLong(String latitude, String longitude) implements FormattedCoordinate {
-    }
-  }
-
-  /**
-   * Formats a coordinate for display. British National Grid coordinates become a single
-   * {@link FormattedCoordinate.GridReference}; geographic datums become a
-   * {@link FormattedCoordinate.LatLong} pair so callers can align each ordinate in its own column.
+   * Formats a coordinate for display. British National Grid coordinates become a single OS grid
+   * reference; geographic datums become the latitude followed by the longitude, separated by a space.
    *
    * @param coordinateSystem the feature's coordinate system, determining the output style
    * @param x                the native x ordinate (longitude for geographic datums, easting for British National Grid)
    * @param y                the native y ordinate (latitude for geographic datums, northing for British National Grid)
    * @return the formatted coordinate
    */
-  public static FormattedCoordinate formatCoordinate(CoordinateSystem coordinateSystem, double x, double y) {
+  public static String formatCoordinate(CoordinateSystem coordinateSystem, double x, double y) {
     return switch (coordinateSystem) {
-      case BRITISH_NATIONAL_GRID -> new FormattedCoordinate.GridReference(toGridReference(x, y));
+      case BRITISH_NATIONAL_GRID -> toGridReference(x, y);
       case ED50, WGS84, ETRS89 -> {
         var format = new AngleFormat(DMS_PATTERN, Locale.ROOT);
-        yield new FormattedCoordinate.LatLong(format.format(new Latitude(y)), format.format(new Longitude(x)));
+        yield "%s %s".formatted(format.format(new Latitude(y)), format.format(new Longitude(x)));
       }
       case COORDINATE_SYSTEM_UNSPECIFIED, UNRECOGNIZED ->
           throw new IllegalArgumentException("Unknown coordinate system '" + coordinateSystem + "'");

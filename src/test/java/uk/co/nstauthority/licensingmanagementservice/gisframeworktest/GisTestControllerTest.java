@@ -81,6 +81,31 @@ class GisTestControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("precision", 4));
   }
 
+  @Test
+  void renderMapWithTextualDescription_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(get(ReverseRouter.route(
+            on(GisTestController.class).renderMapWithTextualDescription(UUID.randomUUID()))))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void renderMapWithTextualDescription_assertModelProperties() throws Exception {
+    UUID featureId = UUID.randomUUID();
+    var feature = getMockFeature(featureId);
+    when(feature.getCoordinateSystem()).thenReturn(CoordinateSystem.ED50);
+
+    when(featureService.getFeatureOrThrow(featureId)).thenReturn(feature);
+
+    mockMvc.perform(get(ReverseRouter.route(
+                on(GisTestController.class).renderMapWithTextualDescription(featureId)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/mockups/gis/mapWithTextualDescriptionTester"))
+        .andExpect(model().attribute("featureIds", List.of(featureId.toString())))
+        .andExpect(model().attribute("srsWkid", 4230));
+  }
+
   private Feature getMockFeature(UUID featureId) {
     var mock = mock(Feature.class);
     when(mock.getId()).thenReturn(featureId);

@@ -14,13 +14,14 @@ class CoordinateFormatterTest {
   @Test
   void formatCoordinate_whenBritishNationalGrid_thenSingleOsGridReference() {
     assertThat(CoordinateFormatter.formatCoordinate(CoordinateSystem.BRITISH_NATIONAL_GRID, 651409.4, 313177.6))
-        .isEqualTo(new CoordinateFormatter.FormattedCoordinate.GridReference("TG 5140 1317"));
+        .isEqualTo("TG 5140 1317");
   }
 
-  @Test
-  void formatCoordinate_whenGeographicDatum_thenLatitudeThenLongitude() {
-    assertThat(CoordinateFormatter.formatCoordinate(CoordinateSystem.ED50, 2.5, 53.5))
-        .isEqualTo(new CoordinateFormatter.FormattedCoordinate.LatLong("53°30′00.000″N", "2°30′00.000″E"));
+  @ParameterizedTest
+  @EnumSource(value = CoordinateSystem.class, names = {"ED50", "WGS84", "ETRS89"})
+  void formatCoordinate_whenGeographicDatum_thenLatitudeThenLongitude(CoordinateSystem coordinateSystem) {
+    assertThat(CoordinateFormatter.formatCoordinate(coordinateSystem, 2.5, 53.5))
+        .isEqualTo("53°30′00.000″N 2°30′00.000″E");
   }
 
   @ParameterizedTest

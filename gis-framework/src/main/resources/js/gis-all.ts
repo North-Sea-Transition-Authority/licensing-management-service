@@ -3,6 +3,7 @@ import OpenLayersMap from "vue3-openlayers";
 import BaseMap from "./components/baseMap/BaseMap.vue";
 import TextualDescription from "./components/textualDescription/TextualDescription.vue";
 import SplitByCoordinateEntryPage from "./components/coordinateInput/SplitByCoordinateEntryPage.vue";
+import MapWithTextualDescription from "./components/textualDescription/MapWithTextualDescription.vue";
 import "ol/ol.css";
 import "vue3-openlayers/vue3-openlayers.css";
 
@@ -23,6 +24,20 @@ for (const element of document.querySelectorAll<HTMLElement>("[data-gis-componen
   createApp(TextualDescription, {
     textualDescriptionUrl: element.dataset.gisTextualDescriptionUrl,
   })
+    .mount(element);
+}
+
+for (const element of document.querySelectorAll<HTMLElement>("[data-gis-component='gis-map-with-textual-description']")) {
+  createApp(MapWithTextualDescription, {
+    layout: element.dataset.gisLayout === "vertical" ? "vertical" : "horizontal",
+    featuresUrl: element.dataset.gisFeaturesUrl,
+    outlineNodesUrl: element.dataset.gisOutlineNodesUrl,
+    textualDescriptionUrl: element.dataset.gisTextualDescriptionUrl,
+    srsWkid: Number(element.dataset.gisSrsWkid),
+    includeNstaQuadrants: element.dataset.gisIncludeNstaQuadrants === "true",
+    includeNstaBlocks: element.dataset.gisIncludeNstaBlocks === "true",
+  })
+    .use(OpenLayersMap)
     .mount(element);
 }
 

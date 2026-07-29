@@ -25,11 +25,8 @@ class TextualDescriptionServiceTest {
 
   private static final String STYLE = """
       <style>
-      .gis-textual-description { font-family: "GDS Transport", arial, sans-serif; }
+      .gis-textual-description { font-family: "GDS Transport"; font-size: 16px }
       .gis-textual-description p { margin: 0 0 1em; }
-      .gis-textual-description__coordinates { border-collapse: collapse; margin: 0 0 1em; }
-      .gis-textual-description__label { text-align: left; padding: 0 1em 0 0; white-space: nowrap; }
-      .gis-textual-description__ordinate { text-align: right; padding: 0 0 0 1em; white-space: nowrap; }
       </style>""";
 
   @Mock
@@ -80,12 +77,12 @@ class TextualDescriptionServiceTest {
     var expected = document(String.join("\n",
         para("Subarea 30/1a is a strata ranging from 0m from mean sea level to 100m from mean sea level " +
             "and is bounded by the following coordinates:"),
-        table(
-            coord(1, "53°00′00.000″N", "2°00′00.000″E"),
-            coord(2, "53°00′00.000″N", "2°30′00.000″E"),
-            coord(3, "53°30′00.000″N", "2°30′00.000″E"),
-            coord(4, "53°30′00.000″N", "2°00′00.000″E"),
-            coord(5, "53°00′00.000″N", "2°00′00.000″E")
+        coordinateList(1,
+            latLong("53°00′00.000″N", "2°00′00.000″E"),
+            latLong("53°00′00.000″N", "2°30′00.000″E"),
+            latLong("53°30′00.000″N", "2°30′00.000″E"),
+            latLong("53°30′00.000″N", "2°00′00.000″E"),
+            latLong("53°00′00.000″N", "2°00′00.000″E")
         ),
         footer("European Datum 1950", "The lines joining coordinates (1) to (5) are navigated as loxodromes.")
     ));
@@ -129,13 +126,13 @@ class TextualDescriptionServiceTest {
         para("Subarea 30/1a is defined as 2 regions, excluding 1 inner region:"),
         para("Region 1 of subarea 30/1a is a strata ranging from 0m from mean sea level to 100m from mean sea level " +
             "and is bounded by the following coordinates:"),
-        table(coord(1, bngRef(1)), coord(2, bngRef(2)), coord(3, bngRef(1))),
+        coordinateList(1, gridReference(bngRef(1)), gridReference(bngRef(2)), gridReference(bngRef(1))),
         para("Excluded region 1 of subarea 30/1a is a strata ranging from 0m from mean sea level to 100m from mean " +
             "sea level and is bounded by the following coordinates:"),
-        table(coord(4, bngRef(4)), coord(5, bngRef(5)), coord(6, bngRef(4))),
+        coordinateList(4, gridReference(bngRef(4)), gridReference(bngRef(5)), gridReference(bngRef(4))),
         para("Region 2 of subarea 30/1a is a strata ranging from 0m from mean sea level to 100m from mean sea level " +
             "and is bounded by the following coordinates:"),
-        table(coord(7, bngRef(7)), coord(8, bngRef(8)), coord(9, bngRef(7))),
+        coordinateList(7, gridReference(bngRef(7)), gridReference(bngRef(8)), gridReference(bngRef(7))),
         footer("British National Grid",
             "The lines joining coordinates (1) to (3) are navigated as loxodromes.",
             "The lines joining coordinates (4) to (6) are navigated as loxodromes.",
@@ -175,12 +172,12 @@ class TextualDescriptionServiceTest {
     var expected = document(String.join("\n",
         para("Subarea 30/1a is a strata ranging from 0m from mean sea level to 100m from mean sea level " +
             "and is bounded by the following coordinates:"),
-        table(
-            coord(1, bngRef(1)),
-            coord(2, bngRef(2)),
-            coord(3, bngRef(3)),
-            coord(4, bngRef(4)),
-            coord(5, bngRef(1))
+        coordinateList(1,
+            gridReference(bngRef(1)),
+            gridReference(bngRef(2)),
+            gridReference(bngRef(3)),
+            gridReference(bngRef(4)),
+            gridReference(bngRef(1))
         ),
         footer("British National Grid",
             "The lines joining coordinates (1) to (3) are navigated as loxodromes.",
@@ -220,7 +217,7 @@ class TextualDescriptionServiceTest {
 
     var expected = document(String.join("\n",
         para("Subarea 30/1a is bounded by the following coordinates:"),
-        table(coord(1, bngRef(1)), coord(2, bngRef(2)), coord(3, bngRef(1))),
+        coordinateList(1, gridReference(bngRef(1)), gridReference(bngRef(2)), gridReference(bngRef(1))),
         "<p class=\"gis-textual-description__legal\">Boundary follows the median line</p>",
         footer("British National Grid", "The lines joining coordinates (1) to (3) are navigated as loxodromes.")
     ));
@@ -258,9 +255,9 @@ class TextualDescriptionServiceTest {
 
     var expected = document(String.join("\n",
         para("Subarea 30/1a is bounded by the following coordinates:"),
-        table(coord(1, bngRef(1))),
+        coordinateList(1, gridReference(bngRef(1))),
         note("thence following the mean high water mark until coordinate:"),
-        table(coord(2, bngRef(2)), coord(3, bngRef(1))),
+        coordinateList(2, gridReference(bngRef(2)), gridReference(bngRef(1))),
         footer("British National Grid", "The lines joining coordinates (1) to (3) are navigated as loxodromes.")
     ));
 
@@ -293,7 +290,7 @@ class TextualDescriptionServiceTest {
     var expected = document(String.join("\n",
         para("Subarea Subarea A (SHAPE 4) is a strata ranging from 0m from mean sea level to 100m from " +
             "mean sea level and is bounded by the following coordinates:"),
-        table(coord(1, bngRef(1)), coord(2, bngRef(2)), coord(3, bngRef(1))),
+        coordinateList(1, gridReference(bngRef(1)), gridReference(bngRef(2)), gridReference(bngRef(1))),
         footer("British National Grid", "The lines joining coordinates (1) to (3) are navigated as loxodromes.")
     ));
 
@@ -326,7 +323,7 @@ class TextualDescriptionServiceTest {
     var expected = document(String.join("\n",
         para("30/1a is a strata ranging from 0m from mean sea level to 100m from mean sea level " +
             "and is bounded by the following coordinates:"),
-        table(coord(1, bngRef(1)), coord(2, bngRef(2)), coord(3, bngRef(1))),
+        coordinateList(1, gridReference(bngRef(1)), gridReference(bngRef(2)), gridReference(bngRef(1))),
         footer("British National Grid", "The lines joining coordinates (1) to (3) are navigated as loxodromes.")
     ));
 
@@ -359,7 +356,7 @@ class TextualDescriptionServiceTest {
     var expected = document(String.join("\n",
         para("30/1a is a strata ranging from 0m from mean sea level to 100m from mean sea level " +
             "and is bounded by the following coordinates:"),
-        table(coord(1, bngRef(1)), coord(2, bngRef(2)), coord(3, bngRef(1))),
+        coordinateList(1, gridReference(bngRef(1)), gridReference(bngRef(2)), gridReference(bngRef(1))),
         footer("British National Grid", "The lines joining coordinates (1) to (3) are navigated as loxodromes.")
     ));
 
@@ -400,7 +397,7 @@ class TextualDescriptionServiceTest {
 
     var expected = document(String.join("\n",
         para(expectedBoundedByLine),
-        table(coord(1, bngRef(1)), coord(2, bngRef(2)), coord(3, bngRef(1))),
+        coordinateList(1, gridReference(bngRef(1)), gridReference(bngRef(2)), gridReference(bngRef(1))),
         footer("British National Grid", "The lines joining coordinates (1) to (3) are navigated as loxodromes.")
     ));
 
@@ -438,9 +435,9 @@ class TextualDescriptionServiceTest {
     var expected = document(String.join("\n",
         para("Subarea 30/1a is defined as 2 regions:"),
         para("Region 1 of subarea 30/1a is bounded by the following coordinates:"),
-        table(coord(1, bngRef(1)), coord(2, bngRef(2)), coord(3, bngRef(1))),
+        coordinateList(1, gridReference(bngRef(1)), gridReference(bngRef(2)), gridReference(bngRef(1))),
         para("Region 2 of subarea 30/1a is bounded by the following coordinates:"),
-        table(coord(4, bngRef(4)), coord(5, bngRef(5)), coord(6, bngRef(4))),
+        coordinateList(4, gridReference(bngRef(4)), gridReference(bngRef(5)), gridReference(bngRef(4))),
         footer("British National Grid",
             "The lines joining coordinates (1) to (3) are navigated as loxodromes.",
             "The lines joining coordinates (4) to (6) are navigated as loxodromes.")
@@ -475,7 +472,7 @@ class TextualDescriptionServiceTest {
     var expected = document(String.join("\n",
         para("Subarea A (SHAPE 4) is a strata ranging from 0m from mean sea level to 100m from " +
             "mean sea level and is bounded by the following coordinates:"),
-        table(coord(1, bngRef(1)), coord(2, bngRef(2)), coord(3, bngRef(1))),
+        coordinateList(1, gridReference(bngRef(1)), gridReference(bngRef(2)), gridReference(bngRef(1))),
         footer("British National Grid", "The lines joining coordinates (1) to (3) are navigated as loxodromes.")
     ));
 
@@ -508,23 +505,20 @@ class TextualDescriptionServiceTest {
   }
 
   private static String para(String text) {
-    return "<p>%s</p>".formatted(text);
+    return "<p class=\"govuk-body\">%s</p>".formatted(text);
   }
 
-  private static String table(String... rows) {
-    return "<table class=\"gis-textual-description__coordinates\"><tbody>\n%s\n</tbody></table>"
-        .formatted(String.join("\n", rows));
+  private static String coordinateList(int startNumber, String... items) {
+    return "<ol class=\"govuk-list govuk-list--number\" start=\"%d\">%s</ol>"
+        .formatted(startNumber, String.join("\n", items));
   }
 
-  private static String coord(int number, String first, String second) {
-    return ("<tr><td class=\"gis-textual-description__label\">(%d)</td>" +
-        "<td class=\"gis-textual-description__ordinate\">%s</td>" +
-        "<td class=\"gis-textual-description__ordinate\">%s</td></tr>").formatted(number, first, second);
+  private static String latLong(String latitude, String longitude) {
+    return "<li class=\"govuk-!-font-tabular-numbers\">%s %s</li>".formatted(latitude, longitude);
   }
 
-  private static String coord(int number, String gridReference) {
-    return ("<tr><td class=\"gis-textual-description__label\">(%d)</td>" +
-        "<td class=\"gis-textual-description__ordinate\" colspan=\"2\">%s</td></tr>").formatted(number, gridReference);
+  private static String gridReference(String reference) {
+    return "<li class=\"govuk-!-font-tabular-numbers\">%s</li>".formatted(reference);
   }
 
   private static String note(String text) {
@@ -536,7 +530,7 @@ class TextualDescriptionServiceTest {
     for (var clause : navigationClauses) {
       footer.append("<br>\n").append(clause);
     }
-    return "<p>%s</p>".formatted(footer);
+    return para(footer.toString());
   }
 
   private static Line line(

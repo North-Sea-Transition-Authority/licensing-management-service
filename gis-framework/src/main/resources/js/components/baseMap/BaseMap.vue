@@ -1,5 +1,10 @@
 <template>
-  <ol-map ref="mapRef" :style="mapStyle" tabindex="0">
+  <ol-map
+    ref="mapRef"
+    :style="mapStyle"
+    tabindex="0"
+    aria-label="A map displaying TODO: EPGF-78 insert displayed shape names here"
+  >
     <ol-view :center="[0, 0]" :zoom="2" :max-zoom="15"/>
     <ol-tile-layer>
       <ol-source-osm/>
@@ -46,9 +51,12 @@ interface BaseMapProps {
   includeSnapPoints?: boolean,
   includeDrawLine?: boolean,
   selectedPoints?: LinePoint[],
+  // Optional override for the map's inline style. When omitted the map uses its default sizing;
+  // wrappers can pass e.g. a full-height style to make the map fill a fixed-aspect container.
+  mapStyleOverride?: CSSProperties,
 }
 
-withDefaults(defineProps<BaseMapProps>(), {
+const props = withDefaults(defineProps<BaseMapProps>(), {
   includeNstaQuadrants: true,
   includeNstaBlocks: true,
   includeSnapPoints: true,
@@ -59,7 +67,7 @@ withDefaults(defineProps<BaseMapProps>(), {
 useGeographic();
 const mapRef = ref<InstanceType<typeof OlMap> | null>(null);
 const hoveredSnapPoint = ref<SnapPoint | undefined>(undefined);
-const mapStyle = computed<CSSProperties>(() => ({
+const mapStyle = computed<CSSProperties>(() => props.mapStyleOverride ?? ({
   width: "100%",
   maxWidth: "1000px",
   height: "clamp(18.75rem, 60vh, 31.25rem)",

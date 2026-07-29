@@ -162,10 +162,11 @@ public class CarbonStorageLicenceMigrationService {
             Collectors.toMap(LicenceScheduleTerm::getTermType, t -> t)
         ));
 
-    var activitiesData = buildWorkProgrammeActivities(detailsResult.detailsByCaseDate(), termsByDetailAndType);
-    workProgrammeActivityService.saveWorkProgrammeActivities(activitiesData.activities());
-    workProgrammeActivityStatusRepository.saveAll(buildWorkProgrammeActivityStatuses(activitiesData.activityStatusData()));
-    eventCommentRepository.saveAll(buildWorkProgrammeActivityComments(activitiesData.activityCommentData()));
+    var migratedActivities = buildWorkProgrammeActivities(detailsResult.detailsByCaseDate(), termsByDetailAndType);
+    workProgrammeActivityService.saveWorkProgrammeActivities(
+        migratedActivities.stream().map(MigratedActivity::activity).toList());
+    workProgrammeActivityStatusRepository.saveAll(buildWorkProgrammeActivityStatuses(migratedActivities));
+    eventCommentRepository.saveAll(buildWorkProgrammeActivityComments(migratedActivities));
 
     licenceStartDates.stream()
         .map(LicenceStartDate::getLicenceScheduleDetail)
@@ -191,7 +192,7 @@ public class CarbonStorageLicenceMigrationService {
         carbonStorageTermMigrationRepository.findDistinctCases().stream(),
         carbonStorageWorkProgrammeMigrationRepository.findDistinctCases().stream()
     ).collect(Collectors.toMap(
-        c -> c.getLicenceRef() + "|" + c.getCaseDate(),
+        c -> caseKey(c.getLicenceRef(), c.getCaseDate()),
         c -> c,
         (a, b) -> a
     )).values();
@@ -236,7 +237,7 @@ public class CarbonStorageLicenceMigrationService {
           detail.setCreatedInstant(LocalDate.parse(c.getCaseDate(), CASE_DATE_FORMAT)
               .atStartOfDay(ZoneOffset.UTC).toInstant());
           licenceScheduleDetails.add(detail);
-          detailsByCaseDate.put(licenceRef + "|" + c.getCaseDate(), detail);
+          detailsByCaseDate.put(caseKey(licenceRef, c.getCaseDate()), detail);
         }
       }
     }
@@ -270,10 +271,7 @@ public class CarbonStorageLicenceMigrationService {
       Map<String, List<CsLicenceCase>> casesByLicence,
       Map<String, LicenceScheduleDetail> detailsByCaseDate
   ) {
-    var migrationTermsList = new ArrayList<CarbonStorageTermMigrationExtract>();
-    carbonStorageTermMigrationRepository.findAll().forEach(migrationTermsList::add);
-
-    var termsByLicenceAndCase = migrationTermsList.stream()
+    var termsByLicenceAndCase = carbonStorageTermMigrationRepository.findAll().stream()
         .collect(Collectors.groupingBy(
             CarbonStorageTermMigrationExtract::getLicenceRef,
             Collectors.groupingBy(CarbonStorageTermMigrationExtract::getCaseDate)
@@ -292,7 +290,7 @@ public class CarbonStorageLicenceMigrationService {
         if (!termsForCase.isEmpty()) {
           previousTerms = termsForCase;
         }
-        var detail = detailsByCaseDate.get(licenceRef + "|" + c.getCaseDate());
+        var detail = detailsByCaseDate.get(caseKey(licenceRef, c.getCaseDate()));
         for (var migrationTerm : previousTerms) {
           var term = new LicenceScheduleTerm();
           term.setLicenceScheduleDetail(detail);
@@ -311,26 +309,22 @@ public class CarbonStorageLicenceMigrationService {
     return terms;
   }
 
-  private WorkProgrammeActivityMigrationData buildWorkProgrammeActivities(
+  private List<MigratedActivity> buildWorkProgrammeActivities(
       Map<String, LicenceScheduleDetail> detailsByCaseDate,
       Map<LicenceScheduleDetail, Map<TermType, LicenceScheduleTerm>> termsByDetailAndType
   ) {
-    var wpRowsList = new ArrayList<CarbonStorageWorkProgrammeMigrationExtract>();
-    carbonStorageWorkProgrammeMigrationRepository.findAll().forEach(wpRowsList::add);
-    var wpByLicenceAndCase = wpRowsList.stream()
+    var wpByLicenceAndCase = carbonStorageWorkProgrammeMigrationRepository.findAll().stream()
         .collect(Collectors.groupingBy(
             CarbonStorageWorkProgrammeMigrationExtract::getLicenceRef,
             Collectors.groupingBy(CarbonStorageWorkProgrammeMigrationExtract::getCaseDate)
         ));
 
-    var activities = new ArrayList<WorkProgrammeActivity>();
-    var activityStatusData = new HashMap<WorkProgrammeActivity, ActivityStatusData>();
-    var activityCommentData = new HashMap<WorkProgrammeActivity, ActivityCommentData>();
+    var migratedActivities = new ArrayList<MigratedActivity>();
 
     for (var entry : wpByLicenceAndCase.entrySet()) {
       var licenceRef = entry.getKey();
       for (var caseEntry : entry.getValue().entrySet()) {
-        var detail = detailsByCaseDate.get(licenceRef + "|" + caseEntry.getKey());
+        var detail = detailsByCaseDate.get(caseKey(licenceRef, caseEntry.getKey()));
         if (detail == null) {
           continue;
         }
@@ -338,14 +332,12 @@ public class CarbonStorageLicenceMigrationService {
             .atStartOfDay(ZoneOffset.UTC).toInstant();
         for (var wpRow : caseEntry.getValue()) {
           var activity = buildWorkProgrammeActivity(wpRow, detail, termsByDetailAndType);
-          activities.add(activity);
-          activityStatusData.put(activity, new ActivityStatusData(wpRow.getStatus(), caseInstant));
-          activityCommentData.put(activity, new ActivityCommentData(wpRow.getComments(), caseInstant));
+          migratedActivities.add(new MigratedActivity(activity, wpRow.getStatus(), wpRow.getComments(), caseInstant));
         }
       }
     }
 
-    return new WorkProgrammeActivityMigrationData(activities, activityStatusData, activityCommentData);
+    return migratedActivities;
   }
 
   private WorkProgrammeActivity buildWorkProgrammeActivity(
@@ -380,17 +372,16 @@ public class CarbonStorageLicenceMigrationService {
   }
 
   private List<WorkProgrammeActivityStatus> buildWorkProgrammeActivityStatuses(
-      Map<WorkProgrammeActivity, ActivityStatusData> activityStatusData
+      List<MigratedActivity> migratedActivities
   ) {
     var activityStatuses = new ArrayList<WorkProgrammeActivityStatus>();
-    for (var entry : activityStatusData.entrySet()) {
-      var data = entry.getValue();
-      WorkProgrammeStatus.fromDisplayName(data.statusDisplayName())
+    for (var migratedActivity : migratedActivities) {
+      WorkProgrammeStatus.fromDisplayName(migratedActivity.statusDisplayName())
           .ifPresent(workProgrammeStatus -> {
             var activityStatus = new WorkProgrammeActivityStatus();
-            activityStatus.setScheduleEvent(entry.getKey());
+            activityStatus.setScheduleEvent(migratedActivity.activity());
             activityStatus.setStatus(workProgrammeStatus);
-            activityStatus.setAppliedDatetime(data.caseInstant());
+            activityStatus.setAppliedDatetime(migratedActivity.caseInstant());
             activityStatuses.add(activityStatus);
           });
     }
@@ -398,22 +389,25 @@ public class CarbonStorageLicenceMigrationService {
   }
 
   private List<EventComment> buildWorkProgrammeActivityComments(
-      Map<WorkProgrammeActivity, ActivityCommentData> activityCommentData
+      List<MigratedActivity> migratedActivities
   ) {
     var eventComments = new ArrayList<EventComment>();
-    for (var entry : activityCommentData.entrySet()) {
-      var data = entry.getValue();
-      if (data.comment() == null) {
+    for (var migratedActivity : migratedActivities) {
+      if (migratedActivity.comment() == null) {
         continue;
       }
       var eventComment = new EventComment();
-      eventComment.setScheduleEvent(entry.getKey());
-      eventComment.setComment(data.comment());
+      eventComment.setScheduleEvent(migratedActivity.activity());
+      eventComment.setComment(migratedActivity.comment());
       eventComment.setStatus(EventCommentStatus.PUBLISHED);
-      eventComment.setTimestamp(data.caseInstant());
+      eventComment.setTimestamp(migratedActivity.caseInstant());
       eventComments.add(eventComment);
     }
     return eventComments;
+  }
+
+  private static String caseKey(String licenceRef, String caseDate) {
+    return licenceRef + "|" + caseDate;
   }
 
   private LicenceStatus getLicenceStatusFromString(String status) {

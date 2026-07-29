@@ -1,11 +1,15 @@
 # Investigation: CS Migration — LicenceScheduleDetail per Case Date
 
+> **Status: Implemented.** Shipped in `0ac86df7` ("Add ability to create schedule history for
+> term extensions and add WP activity migration"). This document now describes the delivered
+> design in `CarbonStorageLicenceMigrationService.migrateSchedules()` rather than a proposal.
+
 ## Problem
 
-The current `CarbonStorageLicenceMigrationService.migrateSchedules()` creates exactly one
+The original `CarbonStorageLicenceMigrationService.migrateSchedules()` created exactly one
 `LicenceScheduleDetail` (status ACTIVE) per carbon storage licence. Both
 `cs_term_migration_extract` and `cs_work_programme_migration_extract` contain `case_id` and
-`case_date` columns representing distinct amendment cases. The migration needs to:
+`case_date` columns representing distinct amendment cases. The migration needed to:
 
 - Create one `LicenceScheduleDetail` per unique `case_date` across both tables, with
   `createdInstant` sourced from `case_date`.
@@ -13,14 +17,22 @@ The current `CarbonStorageLicenceMigrationService.migrateSchedules()` creates ex
   a case has no terms of its own (i.e. the case_date appears only in the work programme extract),
   inherit the terms from the previous case.
 - Attach work programme activities to the schedule detail whose `case_date` matches the
-  activity's `case_date`.
+  activity's `case_date`, along with their status history and comments.
 
-## Proposed Approach
+## Delivered Design
+
+### Composite case key
+
+Schedule details are indexed by a **`licenceRef + "|" + caseDate`** composite key
+(`caseKey(licenceRef, caseDate)` helper), not by `case_date` alone. Two licences can share a
+`case_date`, so a `case_date`-only key would collide across licences and attach terms/activities
+to the wrong detail. Every `detailsByCaseDate` put/get and the cross-table dedup key go through
+`caseKey(...)`.
 
 ### Step 1 — Repositories for distinct cases
 
-Because neither table has a primary key, use native-query projections rather than full JPA
-entities. A typed projection interface is preferable to raw `Object[]`:
+Neither extract table has a primary key, so distinct cases are read via native-query projections
+onto the `CsLicenceCase` interface rather than full JPA entities:
 
 ```java
 public interface CsLicenceCase {
@@ -29,191 +41,125 @@ public interface CsLicenceCase {
 }
 ```
 
-Add a query to each repository that returns distinct `(licence_ref, case_date)`:
+Both repositories extend `ListCrudRepository` (so `findAll()` returns a `List` that can be
+streamed directly) and expose a distinct-cases query:
 
 ```java
-// CarbonStorageTermMigrationRepository
+// CarbonStorageTermMigrationRepository / CarbonStorageWorkProgrammeMigrationRepository
 @Query(value = """
     SELECT DISTINCT licence_ref AS licenceRef, case_date AS caseDate
-    FROM lms.cs_term_migration_extract
-    """, nativeQuery = true)
-List<CsLicenceCase> findDistinctCases();
-
-// CarbonStorageWorkProgrammeMigrationRepository (new)
-@Query(value = """
-    SELECT DISTINCT licence_ref AS licenceRef, case_date AS caseDate
-    FROM lms.cs_work_programme_migration_extract
+    FROM lms.cs_term_migration_extract        -- (…_work_programme_migration_extract)
     """, nativeQuery = true)
 List<CsLicenceCase> findDistinctCases();
 ```
 
-### Step 2 — Build a unified, ordered case list per licence
+### Step 2 — Build a unified, ordered case list per licence (`buildCasesByLicence`)
 
-Merge the distinct cases from both tables, deduplicate by `case_date`, and sort by `case_date`
-ascending. The latest case becomes ACTIVE; all earlier ones become REPLACED.
+Distinct cases from both tables are merged, deduplicated by `caseKey`, grouped by `licenceRef`,
+and sorted by `case_date` ascending. The latest case becomes ACTIVE; earlier ones become REPLACED.
 
 ```java
-// Merge and deduplicate cases from both tables
 var allCases = Stream.concat(
-    termMigrationRepository.findDistinctCases().stream(),
-    workProgrammeMigrationRepository.findDistinctCases().stream()
-)
-.collect(Collectors.toMap(
-    c -> c.getLicenceRef() + "|" + c.getCaseDate(),
+    carbonStorageTermMigrationRepository.findDistinctCases().stream(),
+    carbonStorageWorkProgrammeMigrationRepository.findDistinctCases().stream()
+).collect(Collectors.toMap(
+    c -> caseKey(c.getLicenceRef(), c.getCaseDate()),
     c -> c,
-    (a, b) -> a  // deduplicate — same case_date, keep either
-))
-.values();
+    (a, b) -> a  // deduplicate — same case, keep either
+)).values();
 
-// Group by licenceRef, sorted by case_date ascending
 var casesByLicence = allCases.stream()
     .collect(Collectors.groupingBy(
         CsLicenceCase::getLicenceRef,
         Collectors.collectingAndThen(
             Collectors.toList(),
             list -> list.stream()
-                .sorted(Comparator.comparing(c ->
-                    LocalDate.parse(c.getCaseDate(), DateTimeFormatter.ofPattern("dd/MM/yyyy"))))
-                .toList()
-        )
-    ));
+                .sorted(Comparator.comparing(c -> LocalDate.parse(c.getCaseDate(), CASE_DATE_FORMAT)))
+                .toList())));
 ```
 
-### Step 3 — Create one LicenceScheduleDetail per case
+### Step 3 — Create one LicenceScheduleDetail per case (`buildScheduleDetails`)
+
+Returns a `ScheduleDetailsResult(details, detailsByCaseDate)`. Licences with **no** cases in
+either table fall back to a single ACTIVE detail with `createdInstant = Instant.now()`
+(preserving the original behaviour — see Resolved Question 1). Otherwise, one detail per case:
+the last case ACTIVE, the rest REPLACED, `createdInstant` sourced from the case date.
 
 ```java
-// caseDate → LicenceScheduleDetail, needed when attaching terms and activities below
-var detailsByCaseDate = new LinkedHashMap<String, LicenceScheduleDetail>();
-var licenceScheduleDetails = new ArrayList<LicenceScheduleDetail>();
+detail.setStatus(i == cases.size() - 1
+    ? LicenceScheduleDetailStatus.ACTIVE
+    : LicenceScheduleDetailStatus.REPLACED);
+detail.setCreatedInstant(LocalDate.parse(c.getCaseDate(), CASE_DATE_FORMAT)
+    .atStartOfDay(ZoneOffset.UTC).toInstant());
+detailsByCaseDate.put(caseKey(licenceRef, c.getCaseDate()), detail);
+```
 
-for (var savedSchedule : savedLicenceSchedules) {
-  var licenceRef = savedSchedule.getLicence().getLicenceReference();
-  var cases = casesByLicence.getOrDefault(licenceRef, List.of());
+Start dates (`buildStartDates`) attach to the ACTIVE detail per licence.
 
-  for (int i = 0; i < cases.size(); i++) {
-    var c = cases.get(i);
-    var caseDate = LocalDate.parse(c.getCaseDate(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+### Step 4 — Apply terms, inheriting when a case has none (`buildTerms`)
 
-    var detail = new LicenceScheduleDetail();
-    detail.setLicenceSchedule(savedSchedule);
-    detail.setStatus(i == cases.size() - 1
-        ? LicenceScheduleDetailStatus.ACTIVE
-        : LicenceScheduleDetailStatus.REPLACED);
-    detail.setCreatedInstant(caseDate.atStartOfDay(ZoneOffset.UTC).toInstant());
-    licenceScheduleDetails.add(detail);
-    detailsByCaseDate.put(c.getCaseDate(), detail);
+Migration terms are grouped by `(licenceRef, caseDate)`. Iterating each licence's cases in order,
+a case with its own terms uses them; otherwise `previousTerms` carries forward from the last case
+that had terms. Each term is linked to both its detail and its schedule.
+
+```java
+for (var c : cases) {
+  var termsForCase = termsByCase.getOrDefault(c.getCaseDate(), List.of());
+  if (!termsForCase.isEmpty()) {
+    previousTerms = termsForCase;  // carry-forward source
+  }
+  var detail = detailsByCaseDate.get(caseKey(licenceRef, c.getCaseDate()));
+  for (var migrationTerm : previousTerms) {
+    var term = new LicenceScheduleTerm();
+    term.setLicenceScheduleDetail(detail);
+    term.setLicenceSchedule(detail.getLicenceSchedule());
+    term.setTermType(migrationTerm.getTerm().equals("Initial")
+        ? TermType.INITIAL_CS
+        : EnumUtils.getEnum(TermType.class, migrationTerm.getTerm().toUpperCase()));
+    term.setTermDuration(new ThreeFieldDuration(
+        migrationTerm.getYears(), migrationTerm.getMonths(), migrationTerm.getDays()));
+    terms.add(term);
   }
 }
-
-licenceScheduleDetailService.saveLicenceScheduleDetails(licenceScheduleDetails);
 ```
 
-### Step 4 — Apply terms, inheriting when a case has none
+After saving, schedule dates are recalculated once per detail (driven off the saved start dates,
+`distinct()` by detail).
 
-Group migration terms by `(licenceRef, caseDate)`. Then iterate over each licence's cases in
-order: if a case has its own terms use them, otherwise carry forward the terms from the
-previous case.
+### Step 5 — Attach work programme activities, statuses and comments
+
+`buildWorkProgrammeActivities` groups WP rows by `(licenceRef, caseDate)`, resolves the detail via
+`caseKey`, and returns a single `List<MigratedActivity>` — each bundling the built
+`WorkProgrammeActivity` with its raw status display name, comment, and the case instant:
 
 ```java
-// Group migration terms by licenceRef then caseDate
-var termsByLicenceAndCase = migrationTerms.stream()
-    .collect(Collectors.groupingBy(
-        CarbonStorageTermMigrationExtract::getLicenceRef,
-        Collectors.groupingBy(CarbonStorageTermMigrationExtract::getCaseDate)
-    ));
-
-var terms = new ArrayList<LicenceScheduleTerm>();
-
-for (var savedSchedule : savedLicenceSchedules) {
-  var licenceRef = savedSchedule.getLicence().getLicenceReference();
-  var cases = casesByLicence.getOrDefault(licenceRef, List.of());
-  var termsByCase = termsByLicenceAndCase.getOrDefault(licenceRef, Map.of());
-
-  List<CarbonStorageTermMigrationExtract> previousTerms = List.of();
-
-  for (var c : cases) {
-    var termsForCase = termsByCase.getOrDefault(c.getCaseDate(), List.of());
-    if (!termsForCase.isEmpty()) {
-      previousTerms = termsForCase;
-    }
-    // If termsForCase is empty, previousTerms carries forward from the last case that had terms
-
-    var detail = detailsByCaseDate.get(c.getCaseDate());
-    for (var migrationTerm : previousTerms) {
-      var term = new LicenceScheduleTerm();
-      term.setLicenceScheduleDetail(detail);
-      var termType = migrationTerm.getTerm().equals("Initial")
-          ? TermType.INITIAL_CS
-          : EnumUtils.getEnum(TermType.class, migrationTerm.getTerm().toUpperCase());
-      term.setTermType(termType);
-      term.setTermDuration(
-          new ThreeFieldDuration(migrationTerm.getYears(), migrationTerm.getMonths(), migrationTerm.getDays())
-      );
-      terms.add(term);
-    }
-  }
-}
-
-licenceScheduleTermService.saveTerms(terms);
+record MigratedActivity(
+    WorkProgrammeActivity activity, String statusDisplayName, String comment, Instant caseInstant) {}
 ```
 
-After saving, recalculate schedule dates once per detail (not once per term):
+A single bundle list (rather than the activity list plus two maps keyed by the unsaved activity)
+keeps the case instant in one place and avoids using not-yet-persisted entities as map keys. The
+activities are saved first, then `buildWorkProgrammeActivityStatuses` and
+`buildWorkProgrammeActivityComments` iterate the same list to build the
+`WorkProgrammeActivityStatus` and `EventComment` rows (comments with a `null` body are skipped).
 
-```java
-detailsByCaseDate.values().stream()
-    .distinct()
-    .forEach(licenceScheduleCalculationService::calculateAndSaveLicenceScheduleDates);
-```
+Field mapping performed in `buildWorkProgrammeActivity`: `category` (with `otherCategoryName` when
+`OTHER_ACTIVITY`), `description`, `originalEventId` from `uniqueEventId`, `commitment`, the linked
+`LicenceScheduleTerm` (matched by term type within the detail), `dateOption`, and
+`relativeDuration` when `dateOption == RELATIVE_DATE`.
 
-### Step 5 — Attach work programme activities
+## Resolved Questions
 
-Group work programme rows by `(licenceRef, caseDate)` and attach each to the matching detail
-via `detailsByCaseDate`.
-
-```java
-// Group work programme rows by licenceRef then caseDate
-var wpByLicenceAndCase = workProgrammeMigrationRepository.findAll().stream()
-    .collect(Collectors.groupingBy(
-        CarbonStorageWorkProgrammeMigrationExtract::getLicenceRef,
-        Collectors.groupingBy(CarbonStorageWorkProgrammeMigrationExtract::getCaseDate)
-    ));
-
-var activities = new ArrayList<WorkProgrammeActivity>();
-
-for (var entry : wpByLicenceAndCase.entrySet()) {
-  for (var caseEntry : entry.getValue().entrySet()) {
-    var detail = detailsByCaseDate.get(caseEntry.getKey()); // look up by caseDate
-    if (detail == null) continue;
-
-    for (var wpRow : caseEntry.getValue()) {
-      var activity = new WorkProgrammeActivity();
-      activity.setLicenceScheduleDetail(detail);
-      // map remaining fields from wpRow...
-      activities.add(activity);
-    }
-  }
-}
-
-workProgrammeActivityService.saveAll(activities);
-```
-
-## Open Questions
-
-1. **Licences with no cases in either table** — decide whether to skip those licences or fall
-   back to creating a single ACTIVE detail (as the current code does).
-
-2. **`case_date` format** — both columns are TEXT. Confirm the format is `dd/MM/yyyy`
-   (matching `cs_start_date_migration_extract`) before parsing.
-
-3. **Work programme activity fields** — `cs_work_programme_migration_extract` has `category`,
-   `description`, `commitment`, `status`, `term`, and `comments` columns. Confirm the mapping
-   to `WorkProgrammeActivity` fields before implementing Step 5.
+1. **Licences with no cases in either table** — fall back to a single ACTIVE detail with
+   `createdInstant = Instant.now()`, matching the original behaviour.
+2. **`case_date` format** — TEXT in `dd/MM/yyyy` (the shared `CASE_DATE_FORMAT`).
+3. **Work programme activity field mapping** — resolved as described in Step 5.
 
 ## Affected Files
 
-- `CarbonStorageLicenceMigrationService` — `migrateSchedules()`
-- `CarbonStorageTermMigrationExtract` — add `caseDate` field
-- `CarbonStorageTermMigrationRepository` — add `findDistinctCases()` projection query
-- New: `CarbonStorageWorkProgrammeMigrationExtract` entity
-- New: `CarbonStorageWorkProgrammeMigrationRepository`
-- New: work programme activity entity/service wiring (Step 5)
+- `CarbonStorageLicenceMigrationService` — `migrateSchedules()` and its `build*` helpers
+- `CarbonStorageTermMigrationExtract` / `CarbonStorageTermMigrationRepository` — `caseDate` field,
+  `findDistinctCases()`, `ListCrudRepository`
+- `CarbonStorageWorkProgrammeMigrationExtract` / `CarbonStorageWorkProgrammeMigrationRepository`
+- `CsLicenceCase` — projection interface
+- `ScheduleDetailsResult`, `MigratedActivity` — internal carrier records

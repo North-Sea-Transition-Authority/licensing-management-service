@@ -1,9 +1,8 @@
 import {
-  bngToWgs84,
-  ed50ToWgs84,
+  fromWgs84,
+  isOffshore,
   SupportedWkid,
-  wgs84ToBng,
-  wgs84ToEd50,
+  toWgs84,
 } from "./coordinate-system-utils";
 import OsGridRef from "geodesy/osgridref.js";
 import Dms from "geodesy/dms.js";
@@ -26,6 +25,12 @@ interface SrsGridConfig {
 
 const GRID_CONFIGS: Record<SupportedWkid, SrsGridConfig> = {
   [SupportedWkid.ED50_WKID]: {
+    coordUnitFactor: 3600, // 1 degree = 3600 arc-second
+    minSnapZoom: 11,
+    zoomTiers: [[15, 5], [14, 10], [13, 15], [12, 30], [11, 60]],
+    idResolution: 1, // 1 arc-second, finest possible resolution
+  },
+  [SupportedWkid.ETRS89_WKID]: {
     coordUnitFactor: 3600, // 1 degree = 3600 arc-second
     minSnapZoom: 11,
     zoomTiers: [[15, 5], [14, 10], [13, 15], [12, 30], [11, 60]],
@@ -70,6 +75,14 @@ export function getMinSnapZoom(srsWkid: SupportedWkid): number {
 }
 
 /**
+ * Return the hard coordinate bounds (in SRS units) for the given CRS, or undefined if unbounded.
+ * Used to validate coordinate entry against the valid range of a projected grid (e.g. BNG).
+ */
+export function getValidBounds(srsWkid: SupportedWkid): SrsGridConfig["validBounds"] {
+  return GRID_CONFIGS[srsWkid].validBounds;
+}
+
+/**
  * Generate snap points for a given WGS84 map extent and spatial reference.
  * @param {number} wgs84MinLon - West bound of the map extent.
  * @param {number} wgs84MinLat - South bound of the map extent.
@@ -90,20 +103,8 @@ export function generateSnapPoints(
   if (snapPointSpacing <= 0) {
     throw new Error(`Grid spacing must be greater than zero: ${snapPointSpacing}`);
   }
-  let srsMin: [number, number];
-  let srsMax: [number, number];
-  switch (srsWkid) {
-    case SupportedWkid.ED50_WKID:
-      srsMin = wgs84ToEd50(wgs84MinLon, wgs84MinLat);
-      srsMax = wgs84ToEd50(wgs84MaxLon, wgs84MaxLat);
-      break;
-    case SupportedWkid.BNG_WKID:
-      srsMin = wgs84ToBng(wgs84MinLon, wgs84MinLat);
-      srsMax = wgs84ToBng(wgs84MaxLon, wgs84MaxLat);
-      break;
-    default:
-      throw new Error(`Unsupported SRS WKID: ${srsWkid}`);
-  }
+  const srsMin: [number, number] = fromWgs84(srsWkid, wgs84MinLon, wgs84MinLat);
+  const srsMax: [number, number] = fromWgs84(srsWkid, wgs84MaxLon, wgs84MaxLat);
 
 
   const { validBounds } = GRID_CONFIGS[srsWkid];
@@ -130,9 +131,7 @@ export function generateSnapPoints(
       const srsLon = gridIndexToCoord(indexX, srsWkid, snapPointSpacing);
       const srsLat = gridIndexToCoord(indexY, srsWkid, snapPointSpacing);
 
-      const wgs84Coordinates = srsWkid === SupportedWkid.ED50_WKID
-          ? ed50ToWgs84(srsLon, srsLat)
-          : bngToWgs84(srsLon, srsLat);
+      const wgs84Coordinates = toWgs84(srsWkid, srsLon, srsLat);
 
       points.push({
         id: createGridPointId(srsLon, srsLat, srsWkid),
@@ -165,11 +164,11 @@ function createGridPointId(srsX: number, srsY: number, srsWkid: SupportedWkid): 
 }
 
 function getCoordinateDisplayName(lon: number, lat: number, srsWkid: SupportedWkid): string {
-  if (srsWkid === SupportedWkid.BNG_WKID) {
-    // BNG snap points use lon=easting, lat=northing (metres)
-    return convertBngToGridReference(lon, lat);
-  } else {
+  if (isOffshore(srsWkid)) {
     return convertLatLonToDms(lat, lon);
+  } else {
+    // Onshore (BNG) snap points use lon=easting, lat=northing (metres)
+    return convertBngToGridReference(lon, lat);
   }
 }
 

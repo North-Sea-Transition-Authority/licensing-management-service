@@ -56,6 +56,31 @@ class GisTestControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("featureIdsBng", List.of(bngId.toString())));
   }
 
+  @Test
+  void renderSplitByCoordinateEntry_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(get(ReverseRouter.route(
+            on(GisTestController.class).renderSplitByCoordinateEntry(CoordinateSystem.ED50, 4))))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void renderSplitByCoordinateEntry_assertModelProperties() throws Exception {
+    UUID ed50Id = UUID.randomUUID();
+    var ed50Feature = getMockFeature(ed50Id);
+
+    when(featureService.findFeatureOrThrow(CoordinateSystem.ED50)).thenReturn(ed50Feature);
+
+    mockMvc.perform(get(ReverseRouter.route(
+                on(GisTestController.class).renderSplitByCoordinateEntry(CoordinateSystem.ED50, 4)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/mockups/gis/splitByCoordinateEntryTester"))
+        .andExpect(model().attribute("featureIds", List.of(ed50Id.toString())))
+        .andExpect(model().attribute("srsWkid", 4230))
+        .andExpect(model().attribute("precision", 4));
+  }
+
   private Feature getMockFeature(UUID featureId) {
     var mock = mock(Feature.class);
     when(mock.getId()).thenReturn(featureId);

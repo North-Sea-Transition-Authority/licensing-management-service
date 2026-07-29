@@ -15,6 +15,9 @@ interface DrawLineLayerProps {
   olMap: { map?: Map },
   hoveredSnapPoint?: LinePoint,
   requireOrthogonal?: boolean,
+  // When provided, the line is drawn from these points (controlled mode, e.g. coordinate entry)
+  // instead of from points selected by clicking snap points on the map.
+  points?: LinePoint[],
 }
 
 const props = withDefaults(defineProps<DrawLineLayerProps>(), {
@@ -102,7 +105,10 @@ onUnmounted(() => {
 });
 
 watchEffect(() => {
-  const coords = selectedPoints.value.map(p => p.coordinates);
+  const activePoints = props.points ?? selectedPoints.value;
+  const coords = activePoints
+    .map(p => p.coordinates)
+    .filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y));
   (lineFeature.getGeometry() as LineString).setCoordinates(coords.length >= 2 ? coords : []);
   (markersFeature.getGeometry() as MultiPoint).setCoordinates(coords.slice(0, -1));
   (lastMarkerFeature.getGeometry() as MultiPoint).setCoordinates(coords.length > 0 ? [coords[coords.length - 1]] : []);

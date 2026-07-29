@@ -17,6 +17,7 @@
       :ol-map="mapRef"
       :hovered-snap-point="hoveredSnapPoint"
       :require-orthogonal="true"
+      :points="selectedPoints"
     />
     <feature-layer v-if="mapRef" :features-url="featuresUrl" :ol-map="mapRef"/>
     <node-numbering-layer :outline-nodes-url="outlineNodesUrl"/>
@@ -26,7 +27,7 @@
 <script setup lang="ts">
 import type OlMap from "vue3-openlayers/map/OlMap";
 import type { SupportedWkid } from "../../coordinate-system-utils";
-import type { SnapPoint } from "../../grid-utils";
+import type { LinePoint, SnapPoint } from "../../grid-utils";
 import { useGeographic } from "ol/proj";
 import { computed, CSSProperties, ref } from "vue";
 import DrawLineLayer from "./DrawLineLayer.vue";
@@ -44,6 +45,7 @@ interface BaseMapProps {
   srsWkid: SupportedWkid,
   includeSnapPoints?: boolean,
   includeDrawLine?: boolean,
+  selectedPoints?: LinePoint[],
 }
 
 withDefaults(defineProps<BaseMapProps>(), {

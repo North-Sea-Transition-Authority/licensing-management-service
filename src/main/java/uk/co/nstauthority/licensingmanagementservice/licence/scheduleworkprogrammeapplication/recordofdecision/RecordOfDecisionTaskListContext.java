@@ -1,0 +1,6 @@
+package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision;
+
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+
+public record RecordOfDecisionTaskListContext(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
+}

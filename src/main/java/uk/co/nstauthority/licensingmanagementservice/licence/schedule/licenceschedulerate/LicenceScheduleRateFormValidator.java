@@ -88,7 +88,7 @@ public class LicenceScheduleRateFormValidator {
           if (form.getRateRelativeDateOption().equals(RateRelativeDateOption.RELATIVE_TO_START_DATE)) {
             ThreeFieldDurationValidationUtil.validate(form.getRelativeDuration(), errors);
 
-            if (form.getRelativeEventId() != null) {
+            if (!errors.hasErrors() && form.getRelativeEventId() != null) {
               scheduleRelativeDateValidationService.validateRelativeDateBeforeEndOfSchedule(
                   licenceScheduleDetail,
                   form.getRelativeDuration(),

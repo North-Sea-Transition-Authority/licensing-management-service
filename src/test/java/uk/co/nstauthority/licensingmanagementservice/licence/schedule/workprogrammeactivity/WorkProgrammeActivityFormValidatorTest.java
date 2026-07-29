@@ -1,6 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -34,6 +37,8 @@ class WorkProgrammeActivityFormValidatorTest {
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
     assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isTrue();
+    verify(scheduleRelativeDateValidationService).validateRelativeDateBeforeEndOfSchedule(
+        licenceScheduleDetail, form.getRelativeDuration(), UUID.fromString(form.getRelativeEventId()), bindingResult);
   }
 
   @Test
@@ -126,6 +131,21 @@ class WorkProgrammeActivityFormValidatorTest {
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
     assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
+    verify(scheduleRelativeDateValidationService, never()).validateRelativeDateBeforeEndOfSchedule(any(), any(), any(), any());
+  }
+
+  @Test
+  void isValid_invalidForm_relativeDateOption_priorFieldError_doesNotCallRelativeDateValidation() {
+    var form = createValidForm();
+    form.setDescription(null);
+    form.setWorkProgrammeActivityDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
+    form.setRelativeEventId(UUID.randomUUID().toString());
+    form.getRelativeDuration().setFromThreeFieldDuration(new ThreeFieldDuration(1, 0, 0));
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
+    verify(scheduleRelativeDateValidationService, never()).validateRelativeDateBeforeEndOfSchedule(any(), any(), any(), any());
   }
 
   @Test

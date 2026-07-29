@@ -135,6 +135,8 @@ class LicenceScheduleRateFormValidatorTest {
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
     assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail, null)).isFalse();
+    verify(scheduleRelativeDateValidationService, never()).validateRelativeDateBeforeEndOfSchedule(any(), any(), any(), any());
+    verify(scheduleRelativeDateValidationService, never()).validateRelativeRateOverlap(any(), any(), any(), any());
   }
 
   @Test
@@ -268,6 +270,8 @@ class LicenceScheduleRateFormValidatorTest {
 
     validator.isValid(form, bindingResult, licenceScheduleDetail, null);
 
+    verify(scheduleRelativeDateValidationService).validateRelativeDateBeforeEndOfSchedule(
+        licenceScheduleDetail, form.getRelativeDuration(), UUID.fromString(form.getRelativeEventId()), bindingResult);
     verify(scheduleRelativeDateValidationService).validateRelativeRateOverlap(
         null, licenceScheduleDetail, form, bindingResult);
   }

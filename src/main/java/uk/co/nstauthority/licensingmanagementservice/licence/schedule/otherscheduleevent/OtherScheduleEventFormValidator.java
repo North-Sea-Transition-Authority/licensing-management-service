@@ -82,7 +82,7 @@ public class OtherScheduleEventFormValidator {
 
         ThreeFieldDurationValidationUtil.validate(form.getRelativeDuration(), errors);
 
-        if (form.getRelativeEventId() != null) {
+        if (!errors.hasErrors() && form.getRelativeEventId() != null) {
           scheduleRelativeDateValidationService.validateRelativeDateBeforeEndOfSchedule(
               licenceScheduleDetail,
               form.getRelativeDuration(),

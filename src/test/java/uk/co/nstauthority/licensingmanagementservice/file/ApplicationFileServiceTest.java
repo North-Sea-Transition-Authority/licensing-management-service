@@ -9,7 +9,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static uk.co.nstauthority.licensingmanagementservice.file.XyzApplicationFileTestUtil.createdUploadedFile;
+import static uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileTestUtil.createdUploadedFile;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -87,7 +87,7 @@ class ApplicationFileServiceTest {
       verify(fileService).updateUsageAndDescription(
           eq(uploadedFile),
           fileUsageFunctionCaptor.capture(),
-          eq(XyzApplicationFileTestUtil.FILE_DESCRIPTION)
+          eq(ApplicationFileTestUtil.FILE_DESCRIPTION)
       );
       assertThat(fileUsageFunctionCaptor.getValue().apply(uk.co.fivium.fileuploadlibrary.core.FileUsage.newBuilder()))
           .extracting(

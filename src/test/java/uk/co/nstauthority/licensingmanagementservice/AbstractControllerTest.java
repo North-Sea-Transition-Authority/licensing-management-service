@@ -33,6 +33,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.Licence
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemViewInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatusInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplicationInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanRemoveLicencePositionInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsTypeRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanRemoveLicencePositionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
@@ -86,8 +88,6 @@ import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManage
 import uk.co.nstauthority.licensingmanagementservice.teams.management.access.TeamManagementHandlerInterceptor;
 import uk.co.nstauthority.licensingmanagementservice.topnavigation.TopNavigationService;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemViewService;
-import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationArgumentResolver;
-import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationService;
 
 @WebMvcTest
 @AutoConfigureMockMvc
@@ -98,7 +98,6 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     ErrorService.class,
     ServiceUserDetailArgumentResolver.class,
     WorkProgrammeActivityArgumentResolver.class,
-    XyzApplicationArgumentResolver.class,
     WebSecurityConfiguration.class,
     WebMvcConfiguration.class,
     UserDetailService.class,
@@ -110,7 +109,6 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     PostAuthenticationRequestMdcFilter.class,
     HasRolesInTeamTypeInterceptorRule.class,
     ScheduleAmendmentApplicationHasStatusInterceptorRule.class,
-    XyzApplicationArgumentResolver.class,
     AnalyticsConfiguration.class,
     LicenceArgumentResolver.class,
     ScheduleWorkProgrammeApplicationDetailArgumentResolver.class,
@@ -157,9 +155,6 @@ public abstract class AbstractControllerTest {
 
   @MockitoBean
   protected TeamQueryService teamQueryService;
-
-  @MockitoBean
-  protected XyzApplicationService xyzApplicationService;
 
   @MockitoBean
   protected WorkProgrammeActivityService workProgrammeActivityService;

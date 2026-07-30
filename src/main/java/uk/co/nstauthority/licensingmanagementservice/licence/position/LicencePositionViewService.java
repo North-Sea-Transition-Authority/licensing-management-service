@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -26,11 +27,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.ReinstateLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.RemoveExecutedLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.UndoLicencePositionCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionAdministratorChangeUtil;
@@ -88,7 +92,7 @@ public class LicencePositionViewService {
         LicencePositionAdministratorChangeUtil.resolveCurrentAdministratorId(licencePositionId, chronologicalPositions);
     var previousAdministratorId =
         LicencePositionAdministratorChangeUtil.resolvePreviousAdministratorId(licencePositionId, chronologicalPositions);
-    var administratorNames = resolveAdministratorNames(chronologicalPositions);
+    var administratorNames = resolveOrganisationNames(chronologicalPositions);
 
     return new AdministratorChangeContext(
         currentAdministratorId,
@@ -102,7 +106,7 @@ public class LicencePositionViewService {
     var licence = licencePosition.getLicence();
     var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
     var liveChronologicalPositions = getLiveChronologicalPositions(executedChronologicalLicencePositions);
-    var administratorNames = resolveAdministratorNames(liveChronologicalPositions);
+    var administratorNames = resolveOrganisationNames(liveChronologicalPositions);
 
     return LicencePositionPageView.readOnly(
         getReadOnlyTimelineView(executedChronologicalLicencePositions),
@@ -132,7 +136,7 @@ public class LicencePositionViewService {
         addedPositionCorrections,
         licencePosition.getId()
     );
-    var administratorNames = resolveAdministratorNames(allChronologicalPositions);
+    var administratorNames = resolveOrganisationNames(allChronologicalPositions);
 
     var changeViews = licencePositionChangeViewService.getChangeViews(
         licencePosition.getId(), allChronologicalPositions, administratorNames);
@@ -181,17 +185,14 @@ public class LicencePositionViewService {
         addedPositionCorrections,
         addedPositionId
     );
-    var administratorNames = resolveAdministratorNames(allChronologicalPositions);
+    var administratorNames = resolveOrganisationNames(allChronologicalPositions);
 
     var changeViews = licencePositionChangeViewService.getChangeViews(
         addedPositionId, allChronologicalPositions, administratorNames);
-    var adminChange = (AdministratorChangeView) changeViews.get(LicenceOperation.LICENCE_ADMINISTRATOR);
-    var addUrl = ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
+    var addChangeUrl = ReverseRouter.route(on(LicencePositionAddChangeController.class)
         .renderForAddedPosition(licenceCorrection.getId(), positionCorrection.getId(), null));
 
-    var actions = new LicencePositionPageView.Actions(
-        getAdministratorChangeUrl(licenceCorrection, addedPositionId, adminChange, addUrl)
-    );
+    var actions = new LicencePositionPageView.Actions(addChangeUrl);
 
     return LicencePositionPageView.fromAddedPosition(
         getCorrectionTimelineView(
@@ -279,18 +280,27 @@ public class LicencePositionViewService {
     return chronologicalPositions;
   }
 
-  private Map<Integer, String> resolveAdministratorNames(List<ChronologicalPosition> chronologicalPositions) {
-    var administratorIds = LicencePositionAdministratorChangeUtil.administratorIdChangeByPositionId(chronologicalPositions)
-        .values()
-        .stream()
+  private Map<Integer, String> resolveOrganisationNames(List<ChronologicalPosition> chronologicalPositions) {
+    var organisationIds = chronologicalPositions.stream()
+        .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
+        .flatMap(change -> change.operations().stream())
+        .map(LicencePositionViewService::organisationId)
+        .filter(Objects::nonNull)
         .distinct()
         .toList();
 
-    if  (administratorIds.isEmpty()) {
+    if (organisationIds.isEmpty()) {
       return Collections.emptyMap();
     }
 
-    return organisationUnitQueryService.getOrganisationUnitNamesByIds(administratorIds);
+    return organisationUnitQueryService.getOrganisationUnitNamesByIds(organisationIds);
+  }
+
+  private static Integer organisationId(LicenceOperation operation) {
+    return switch (operation) {
+      case AdministratorOperation administratorOperation -> administratorOperation.operatorId();
+      case SetEquityOperation setEquityOperation -> setEquityOperation.transferTo();
+    };
   }
 
   private static Set<UUID> removedPositionIds(List<LicencePositionCorrection> positionCorrections) {
@@ -383,7 +393,8 @@ public class LicencePositionViewService {
 
     var livePositions =
         getLivePositionEntries(
-            licencePositions, licenceCorrection, removedPositionIds, correctedPayloadsByPositionId, sameDateCount
+            licencePositions, licenceCorrection, removedPositionIds, correctedPayloadsByPositionId,
+            sameDateCount
         );
     var addedPositions = getAddedPositionEntries(licenceCorrection, addedCorrections, sameDateCount);
 

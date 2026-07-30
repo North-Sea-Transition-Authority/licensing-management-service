@@ -22,6 +22,10 @@ public class LicencePositionChangeService {
     return licencePositionChangeRepository.findByLicencePositionIn(licencePositions);
   }
 
+  public List<LicencePositionChange> findByLicencePositionId(UUID licencePositionId) {
+    return licencePositionChangeRepository.findByLicencePosition_Id(licencePositionId);
+  }
+
   public Optional<LicencePositionChange> findById(UUID id) {
     return licencePositionChangeRepository.findById(id);
   }

@@ -87,4 +87,18 @@ class LicencePositionStateViewServiceTest {
 
     assertThat(result.administratorStateView().organisationName()).isEmpty();
   }
+
+  @Test
+  void getStateView_whenNoAdminChange_returnsEmptyAdministratorStateWithoutFailing() {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(currentLicencePosition);
+
+    var result = licencePositionStateViewService.getStateView(
+        currentLicencePosition.getId(),
+        List.of(currentChronologicalPosition),
+        Map.of()
+    );
+
+    assertThat(result.administratorStateView().organisationName()).isEmpty();
+  }
 }

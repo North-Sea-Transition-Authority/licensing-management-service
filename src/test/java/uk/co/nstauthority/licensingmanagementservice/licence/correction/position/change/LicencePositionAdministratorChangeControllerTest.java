@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator;
+package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -35,6 +35,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.AdministratorChangeForm;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.AdministratorChangeFormValidator;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.AdministratorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;

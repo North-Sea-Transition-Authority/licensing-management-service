@@ -41,6 +41,17 @@ class LicencePositionChangeServiceTest {
   }
 
   @Test
+  void findByLicencePositionId() {
+    var licencePositionId = UUID.randomUUID();
+    var position = LicencePositionTestUtil.newBuilder().withId(licencePositionId).build();
+    var changes = List.of(LicencePositionChangeTestUtil.newBuilder().withLicencePosition(position).build());
+
+    when(licencePositionChangeRepository.findByLicencePosition_Id(licencePositionId)).thenReturn(changes);
+
+    assertThat(licencePositionChangeService.findByLicencePositionId(licencePositionId)).isEqualTo(changes);
+  }
+
+  @Test
   void findById_whenFound() {
     var id = UUID.randomUUID();
     var change = LicencePositionChangeTestUtil.newBuilder().withId(id).build();

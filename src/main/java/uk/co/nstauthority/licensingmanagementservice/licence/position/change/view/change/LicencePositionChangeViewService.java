@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionAdministratorChangeUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
@@ -28,7 +29,10 @@ public class LicencePositionChangeViewService {
             .map(operation -> Map.entry(
                 operation.type(),
                 toView(operation, change, currentPositionId, chronologicalPositions, organisationNames))))
-        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            Map.Entry::getValue,
+            LicencePositionChangeView::merge));
   }
 
   private LicencePositionChangeView toView(
@@ -46,6 +50,11 @@ public class LicencePositionChangeViewService {
               currentLicencePositionId,
               chronologicalPositions,
               organisationNames
+          );
+      case SetEquityOperation(var transferTo, var equity) ->
+          new SetEquityChangeView(
+              List.of(new SetEquityRow(organisationNames.getOrDefault(transferTo, ""), equity)),
+              change.changeType()
           );
     };
   }

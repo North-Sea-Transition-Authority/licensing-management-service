@@ -33,7 +33,6 @@ public record LicencePositionPageView(
    *                     not offered. Populated for added correction positions ({@link #fromAddedPosition}), where
    *                     the change type is chosen before routing to the relevant journey.
    */
-  //TODO LMS2-86: We can use ActionItemView when more actions are added instead
   public record Actions(@Nullable String addChangeUrl) {
 
     public static Actions none() {

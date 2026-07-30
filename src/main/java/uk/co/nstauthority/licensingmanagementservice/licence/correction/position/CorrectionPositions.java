@@ -5,7 +5,7 @@ import java.util.Set;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 
-record CorrectionPositions(
+public record CorrectionPositions(
     List<LicencePosition> executedPositions,
     List<LicencePositionCorrection> addCorrections,
     List<LicencePositionCorrection> updateCorrections,

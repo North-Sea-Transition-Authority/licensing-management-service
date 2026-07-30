@@ -9,11 +9,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanRemoveLicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCanBeReinstantiated;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.ValidLicencePositionAdministratorChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -116,5 +118,23 @@ public class InterceptorRuleTestEndpoints {
       @PathVariable UUID changeId
   ) {
     return ResponseEntity.ok("valid licence position administrator change test endpoint");
+  }
+
+  @GetMapping("correction-licence-is-type")
+  @CorrectionLicenceIsType(LicenceType.CARBON_STORAGE)
+  public ResponseEntity<String> correctionLicenceIsType() {
+    return ResponseEntity.ok("correction licence is type test endpoint");
+  }
+
+  @GetMapping("correction-licence-is-type-multiple-types")
+  @CorrectionLicenceIsType({LicenceType.GAS_STORAGE, LicenceType.CARBON_STORAGE})
+  public ResponseEntity<String> correctionLicenceIsType_multipleTypes() {
+    return ResponseEntity.ok("correction licence is type multiple types test endpoint");
+  }
+
+  @GetMapping("correction-licence-is-type-no-types")
+  @CorrectionLicenceIsType({})
+  public ResponseEntity<String> correctionLicenceIsType_noProvidedTypes() {
+    return ResponseEntity.ok("correction licence is type no provided types test endpoint");
   }
 }

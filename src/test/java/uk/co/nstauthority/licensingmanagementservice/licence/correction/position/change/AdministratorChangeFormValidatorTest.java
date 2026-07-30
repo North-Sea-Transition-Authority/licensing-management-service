@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator;
+package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
@@ -16,6 +16,8 @@ import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.AdministratorChangeForm;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.AdministratorChangeFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 
 @ExtendWith(MockitoExtension.class)

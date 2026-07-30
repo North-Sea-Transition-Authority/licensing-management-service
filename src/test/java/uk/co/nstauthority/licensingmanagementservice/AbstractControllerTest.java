@@ -28,13 +28,14 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.saml.SamlRes
 import uk.co.nstauthority.licensingmanagementservice.authorisation.AccessHandlerInterceptor;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasAnyRoleInTeamTypeInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasRolesInTeamTypeInterceptorRule;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanRemoveLicencePositionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InvokingUserCanStartApplicationInterceptorRule;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LicenceActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemViewInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatusInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplicationInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsTypeRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanRemoveLicencePositionInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCanBeReinstantiatedRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplicationInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatusInterceptorRule;
@@ -130,7 +131,8 @@ import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicati
     EnergyPortalAccountsControllerAdvice.class,
     InvokingUserCanViewCorrectionInterceptorRule.class,
     InvokingUserCanRemoveLicencePositionInterceptorRule.class,
-    LicencePositionCanBeReinstantiatedRule.class
+    LicencePositionCanBeReinstantiatedRule.class,
+    CorrectionLicenceIsTypeRule.class
 })
 @EnableConfigurationProperties({
     SamlProperties.class,

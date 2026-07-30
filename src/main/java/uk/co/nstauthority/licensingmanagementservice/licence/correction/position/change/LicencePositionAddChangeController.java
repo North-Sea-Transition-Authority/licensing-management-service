@@ -1,0 +1,105 @@
+package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change;
+
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
+
+@Controller
+@RequestMapping("/licence-corrections/{correctionId}/added-position/{licencePositionCorrectionId}/add-change")
+@Profile("enable-lms2")
+@InvokingUserCanViewCorrection
+public class LicencePositionAddChangeController {
+
+  private static final String PAGE_TITLE = "Add change";
+
+  private final AddPositionChangeFormValidator addPositionChangeFormValidator;
+  private final LicenceService licenceService;
+  private final LicencePositionCorrectionService licencePositionCorrectionService;
+
+  public LicencePositionAddChangeController(
+      AddPositionChangeFormValidator addPositionChangeFormValidator,
+      LicenceService licenceService,
+      LicencePositionCorrectionService licencePositionCorrectionService
+  ) {
+    this.addPositionChangeFormValidator = addPositionChangeFormValidator;
+    this.licenceService = licenceService;
+    this.licencePositionCorrectionService = licencePositionCorrectionService;
+  }
+
+  @GetMapping
+  public ModelAndView renderForAddedPosition(
+      @PathVariable UUID correctionId,
+      @PathVariable UUID licencePositionCorrectionId,
+      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+  ) {
+    return addChangeModelAndView(correctionId, licencePositionCorrectionId, correction, new AddPositionChangeForm());
+  }
+
+  @PostMapping
+  public ModelAndView submitForAddedPosition(
+      @PathVariable UUID correctionId,
+      @PathVariable UUID licencePositionCorrectionId,
+      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      @ModelAttribute("form") AddPositionChangeForm form,
+      BindingResult bindingResult
+  ) {
+    var positionCorrection = licencePositionCorrectionService
+        .getPositionCorrectionForCorrection(licencePositionCorrectionId, correction);
+
+    if (addPositionChangeFormValidator.hasErrors(form, bindingResult, correction, positionCorrection)) {
+      return addChangeModelAndView(correctionId, licencePositionCorrectionId, correction, form);
+    }
+
+    return switch (AddPositionChangeType.valueOf(form.getChangeType())) {
+      case ADMINISTRATOR_CHANGE -> ReverseRouter.redirect(on(LicencePositionAdministratorChangeController.class)
+          .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
+      case SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSetEquityController.class)
+          .showLicencePositionSetEquity(correctionId, licencePositionCorrectionId, null));
+    };
+  }
+
+  private ModelAndView addChangeModelAndView(
+      UUID correctionId,
+      UUID licencePositionCorrectionId,
+      LicenceCorrection correction,
+      AddPositionChangeForm form
+  ) {
+    return new ModelAndView("lms/licence/correction/change/addChange")
+        .addObject("pageTitle", PAGE_TITLE)
+        .addObject("pageCaption", correction.getLicence().getLicenceReference())
+        .addObject("form", form)
+        .addObject("changeTypeOptions", availableChangeTypeOptions(correction))
+        .addObject("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
+            .renderAddedPosition(correctionId, licencePositionCorrectionId, null)));
+  }
+
+  private Map<String, String> availableChangeTypeOptions(LicenceCorrection correction) {
+    var availableChangeTypes = Arrays.stream(AddPositionChangeType.values())
+        .filter(changeType -> changeType != AddPositionChangeType.SET_EQUITY
+            || licenceService.isCarbonStorageLicence(correction.getLicence()))
+        .toList();
+
+    return DisplayableEnumOptionUtil.getDisplayableOptions(availableChangeTypes);
+  }
+}

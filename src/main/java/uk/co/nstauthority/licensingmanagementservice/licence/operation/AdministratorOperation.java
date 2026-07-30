@@ -1,11 +1,14 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import java.util.Objects;
+import java.util.UUID;
 
 public record AdministratorOperation(
-    Integer id,
+    UUID id,
     Integer operatorId
 ) implements LicenceOperation {
+
+  public static final UUID ADMINISTRATOR_OPERATION_ID = new UUID(0L, 0L);
 
   public AdministratorOperation {
     Objects.requireNonNull(operatorId, "operatorId must not be null");
@@ -26,7 +29,7 @@ public record AdministratorOperation(
     }
 
     public AdministratorOperation build() {
-      return new AdministratorOperation(1, operatorId);
+      return new AdministratorOperation(ADMINISTRATOR_OPERATION_ID, operatorId);
     }
   }
 }

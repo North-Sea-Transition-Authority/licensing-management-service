@@ -1,13 +1,16 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
@@ -118,5 +121,49 @@ class LicencePositionChangeViewServiceTest {
         .isInstanceOf(AdministratorChangeView.class)
         .extracting(LicencePositionChangeView::changeType)
         .isEqualTo(LicencePositionChangeType.ADD_CHANGE);
+  }
+
+  @Test
+  void getChangeViews_buildsSetEquityChangeView() {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
+
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        new SetEquityOperation(300, BigDecimal.valueOf(75))
+    );
+
+    var result = licencePositionChangeViewService.getChangeViews(
+        currentLicencePosition.getId(), List.of(currentChronologicalPosition), Map.of(300, "Org"));
+
+    assertThat(result)
+        .extractingByKey(LicenceOperation.SET_EQUITY)
+        .isInstanceOf(SetEquityChangeView.class);
+
+    var setEquityChangeView = (SetEquityChangeView) result.get(LicenceOperation.SET_EQUITY);
+    assertThat(setEquityChangeView.rows())
+        .extracting(SetEquityRow::organisationName, SetEquityRow::equity)
+        .containsExactly(tuple("Org", BigDecimal.valueOf(75)));
+  }
+
+  @Test
+  void getChangeViews_whenChangeHasMultipleSetEquityOperations_mergesRowsIntoOneView() {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
+
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        new SetEquityOperation(300, BigDecimal.valueOf(40)),
+        new SetEquityOperation(400, BigDecimal.valueOf(60))
+    );
+
+    var result = licencePositionChangeViewService.getChangeViews(
+        currentLicencePosition.getId(), List.of(currentChronologicalPosition),
+        Map.of(300, "Org", 400, "Org2"));
+
+    var setEquityChangeView = (SetEquityChangeView) result.get(LicenceOperation.SET_EQUITY);
+    assertThat(setEquityChangeView.rows())
+        .extracting(SetEquityRow::organisationName, SetEquityRow::equity)
+        .containsExactly(
+            tuple("Org", BigDecimal.valueOf(40)),
+            tuple("Org2", BigDecimal.valueOf(60)));
   }
 }

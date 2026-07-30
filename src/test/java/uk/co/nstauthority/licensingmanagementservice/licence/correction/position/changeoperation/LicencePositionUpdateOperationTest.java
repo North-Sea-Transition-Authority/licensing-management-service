@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 
@@ -32,7 +33,7 @@ class LicencePositionUpdateOperationTest {
 
   @Test
   void nullOperation_assertThrows() {
-    assertThatThrownBy(() -> new LicencePositionUpdateOperation(1, null))
+    assertThatThrownBy(() -> new LicencePositionUpdateOperation(UUID.randomUUID(), null))
         .isInstanceOf(NullPointerException.class)
         .hasMessageContaining("operation must not be null");
   }

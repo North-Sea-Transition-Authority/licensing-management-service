@@ -61,7 +61,7 @@ public class LicencePositionCorrection {
     return changeType;
   }
 
-  void setChangeType(LicencePositionCorrectionChangeType changeType) {
+  public void setChangeType(LicencePositionCorrectionChangeType changeType) {
     this.changeType = changeType;
   }
 

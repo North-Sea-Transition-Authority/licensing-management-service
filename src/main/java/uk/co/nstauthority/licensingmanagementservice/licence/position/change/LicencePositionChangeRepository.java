@@ -12,4 +12,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 public interface LicencePositionChangeRepository extends JpaRepository<LicencePositionChange, UUID>, NotDuplicationSource {
 
   List<LicencePositionChange> findByLicencePositionIn(Collection<LicencePosition> licencePositions);
+
+  List<LicencePositionChange> findByLicencePosition_Id(UUID licencePositionId);
 }

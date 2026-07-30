@@ -2,12 +2,14 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
@@ -24,6 +26,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -42,9 +45,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityRow;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 
 @ExtendWith(MockitoExtension.class)
@@ -67,6 +74,12 @@ class LicencePositionCorrectionServiceTest {
 
   @Mock
   private LicencePositionRepository licencePositionRepository;
+
+  @Mock
+  private OrganisationUnitQueryService organisationUnitQueryService;
+
+  @Mock
+  private LicencePositionChangeService licencePositionChangeService;
 
   @InjectMocks
   private LicencePositionCorrectionService licencePositionCorrectionService;
@@ -274,6 +287,21 @@ class LicencePositionCorrectionServiceTest {
     assertThatThrownBy(() ->
         licencePositionCorrectionService.removeExecutedPosition(LICENCE_CORRECTION, LICENCE_POSITION))
         .isInstanceOf(IllegalStateException.class);
+
+    verify(licencePositionCorrectionRepository, never()).save(any());
+  }
+
+  @Test
+  void removeExecutedPosition_whenPositionNotExecuted_throwsAndDoesNotSave() {
+    var nonExecutedPosition = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withIsExecuted(false)
+        .build();
+
+    assertThatThrownBy(() ->
+        licencePositionCorrectionService.removeExecutedPosition(LICENCE_CORRECTION, nonExecutedPosition))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("is not executed");
 
     verify(licencePositionCorrectionRepository, never()).save(any());
   }
@@ -622,6 +650,38 @@ class LicencePositionCorrectionServiceTest {
         .build();
 
     assertThat(licencePositionCorrectionService.adminChangeExists(List.of(updateChange))).isTrue();
+  }
+
+  @Test
+  void setEquityChangeExists_whenLivePositionHasSetEquityChange_returnsTrue() {
+    var positionId = UUID.randomUUID();
+    var positionCorrection = addPositionCorrectionFor(positionId, List.of());
+    when(licencePositionChangeService.findByLicencePositionId(positionId))
+        .thenReturn(List.of(liveChangeWith(setEquityOp(1, 40))));
+
+    assertThat(licencePositionCorrectionService.setEquityChangeExists(positionCorrection)).isTrue();
+  }
+
+  @Test
+  void setEquityChangeExists_whenLivePositionHasNoSetEquityChange_returnsFalse() {
+    var positionId = UUID.randomUUID();
+    var positionCorrection = addPositionCorrectionFor(positionId, List.of());
+    when(licencePositionChangeService.findByLicencePositionId(positionId)).thenReturn(List.of());
+
+    assertThat(licencePositionCorrectionService.setEquityChangeExists(positionCorrection)).isFalse();
+  }
+
+  @Test
+  void setEquityChangeExists_whenOnlyDraftHasSetEquityChange_returnsFalse() {
+    var positionCorrection = positionCorrectionWithSetEquity(List.of(setEquityOp(1, 40)));
+
+    assertThat(licencePositionCorrectionService.setEquityChangeExists(positionCorrection)).isFalse();
+  }
+
+  private static LicencePositionChange liveChangeWith(LicenceOperation... operations) {
+    var change = new LicencePositionChange();
+    change.setOperations(List.of(operations));
+    return change;
   }
 
   @Test
@@ -974,12 +1034,112 @@ class LicencePositionCorrectionServiceTest {
         .withLicencePositionId(positionId.toString())
         .withChanges(changes)
         .build();
-    return LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
+    return LicencePositionCorrectionTestUtil.newBuilder()
+        .withTargetLicencePosition(null)
+        .withPayload(payload)
+        .build();
   }
 
   private Integer operatorIdOf(LicencePositionChangeType change) {
     var op = (LicencePositionAddOperation) ((AddChange) change).operations().getFirst();
     return ((AdministratorOperation) op.operation()).operatorId();
+  }
+
+  @Test
+  void getCommittedSetEquityOperations_whenNoSetEquityChange_returnsEmpty() {
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(List.of()).build())
+        .build();
+
+    assertThat(licencePositionCorrectionService.getCommittedSetEquityOperations(positionCorrection)).isEmpty();
+  }
+
+  @Test
+  void getCommittedSetEquityOperations_returnsTheOperationsFromTheSetEquityChange() {
+    var positionCorrection = positionCorrectionWithSetEquity(List.of(setEquityOp(1, 40), setEquityOp(2, 60)));
+
+    assertThat(licencePositionCorrectionService.getCommittedSetEquityOperations(positionCorrection))
+        .extracting(SetEquityOperation::transferTo)
+        .containsExactly(1, 2);
+  }
+
+  @Test
+  void getSetEquityViews_mapsOperationsToViewsWithResolvedNames() {
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1, 2)))
+        .thenReturn(Map.of(1, "Org One", 2, "Org Two"));
+
+    var views = licencePositionCorrectionService.getSetEquityViews(List.of(setEquityOp(1, 40), setEquityOp(2, 60)));
+
+    assertThat(views)
+        .extracting(SetEquityRow::organisationName, SetEquityRow::equity)
+        .containsExactly(
+            tuple("Org One", BigDecimal.valueOf(40)),
+            tuple("Org Two", BigDecimal.valueOf(60))
+        );
+  }
+
+  @Test
+  void getSetEquityViews_whenNameUnknown_usesEmptyString() {
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1))).thenReturn(Map.of());
+
+    var views = licencePositionCorrectionService.getSetEquityViews(List.of(setEquityOp(1, 40)));
+
+    assertThat(views).singleElement().extracting(SetEquityRow::organisationName).isEqualTo("");
+  }
+
+  @Test
+  void commitSetEquity_whenNoExistingChange_createsOneWithTheOperations() {
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(List.of()).build())
+        .build();
+
+    licencePositionCorrectionService.commitSetEquity(positionCorrection, List.of(setEquityOp(1, 100)));
+
+    verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
+    var payload = (CreateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+    assertThat(payload.changes()).hasSize(1);
+  }
+
+  @Test
+  void commitSetEquity_whenExistingChange_replacesItsOperations() {
+    var positionCorrection = positionCorrectionWithSetEquity(List.of(setEquityOp(1, 40)));
+
+    licencePositionCorrectionService.commitSetEquity(positionCorrection, List.of(setEquityOp(1, 40), setEquityOp(2, 60)));
+
+    verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
+    var payload = (CreateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+    var change = (AddChange) payload.changes().getFirst();
+    assertThat(payload.changes()).hasSize(1);
+    assertThat(change.operations()).hasSize(2);
+  }
+
+  @Test
+  void commitSetEquity_whenNoOperations_dropsTheChange() {
+    var positionCorrection = positionCorrectionWithSetEquity(List.of(setEquityOp(1, 40)));
+
+    licencePositionCorrectionService.commitSetEquity(positionCorrection, List.of());
+
+    verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
+    var payload = (CreateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+    assertThat(payload.changes()).isEmpty();
+  }
+
+  @Test
+  void commitSetEquity_retainsOtherChangeTypes() {
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(List.of()).build())
+        .build();
+
+    // seed an unrelated change type (administrator change) on the same position
+    licencePositionCorrectionService.addAdministratorChangeForAddedLicencePosition(positionCorrection, ADMINISTRATOR_ID);
+
+    licencePositionCorrectionService.commitSetEquity(positionCorrection, List.of(setEquityOp(1, 100)));
+
+    var payload = (CreateLicencePositionPayload) positionCorrection.getPayload();
+    assertThat(payload.changes()).hasSize(2);
+    assertThat(licencePositionCorrectionService.getCommittedSetEquityOperations(positionCorrection))
+        .extracting(SetEquityOperation::transferTo)
+        .containsExactly(1);
   }
 
   private CreateLicencePositionPayload captureSavedPayload() {
@@ -1009,4 +1169,31 @@ class LicencePositionCorrectionServiceTest {
         .withPayload(payload)
         .build();
   }
+
+  private static SetEquityOperation setEquityOp(int transferTo, int equity) {
+    return new SetEquityOperation(transferTo, BigDecimal.valueOf(equity));
+  }
+
+  private static LicencePositionCorrection positionCorrectionWithSetEquity(
+      List<SetEquityOperation> operations) {
+    var changeOperations = operations.stream()
+        .map(operation -> (LicencePositionChangeOperation) LicencePositionChangeOperation.newLicencePositionAddOperation()
+            .withOperationId(operation.id())
+            .withOperation(operation)
+            .build())
+        .toList();
+    var change = LicencePositionChangeType.addChange()
+        .withChangeId(UUID.randomUUID().toString())
+        .withChangeOrder(1)
+        .withOperations(changeOperations)
+        .build();
+    var payload = CreateLicencePositionPayloadTestUtil.newBuilder()
+        .withChanges(List.of(change))
+        .build();
+    return LicencePositionCorrectionTestUtil.newBuilder()
+        .withTargetLicencePosition(null)
+        .withPayload(payload)
+        .build();
+  }
+
 }

@@ -1,10 +1,11 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation;
 
 import java.util.Objects;
+import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 
 public record LicencePositionAddOperation(
-    Integer operationId,
+    UUID operationId,
     LicenceOperation operation
 ) implements LicencePositionChangeOperation {
 
@@ -20,10 +21,10 @@ public record LicencePositionAddOperation(
 
   public static class Builder {
 
-    private Integer operationId = null;
+    private UUID operationId = null;
     private LicenceOperation operation = null;
 
-    public LicencePositionAddOperation.Builder withOperationId(Integer operationId) {
+    public LicencePositionAddOperation.Builder withOperationId(UUID operationId) {
       this.operationId = operationId;
       return this;
     }

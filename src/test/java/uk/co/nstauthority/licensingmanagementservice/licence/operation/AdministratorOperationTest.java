@@ -13,14 +13,14 @@ class AdministratorOperationTest {
         .withOperator(116)
         .build();
 
-    assertThat(change.id()).isEqualTo(1);
+    assertThat(change.id()).isEqualTo(AdministratorOperation.ADMINISTRATOR_OPERATION_ID);
     assertThat(change.operatorId()).isEqualTo(116);
     assertThat(change.type()).isEqualTo(LicenceOperation.LICENCE_ADMINISTRATOR);
   }
 
   @Test
   void nullOperatorId_assertThrows() {
-    assertThatThrownBy(() -> new AdministratorOperation(1, null))
+    assertThatThrownBy(() -> new AdministratorOperation(AdministratorOperation.ADMINISTRATOR_OPERATION_ID, null))
         .isInstanceOf(NullPointerException.class)
         .hasMessageContaining("operatorId must not be null");
   }

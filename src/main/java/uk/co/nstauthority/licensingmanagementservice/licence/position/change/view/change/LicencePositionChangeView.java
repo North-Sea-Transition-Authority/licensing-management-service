@@ -2,9 +2,13 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.vi
 
 import jakarta.annotation.Nullable;
 
-public sealed interface LicencePositionChangeView permits AdministratorChangeView {
+public sealed interface LicencePositionChangeView permits AdministratorChangeView, SetEquityChangeView {
 
   @Nullable
   String changeType();
 
+  default LicencePositionChangeView merge(LicencePositionChangeView other) {
+    throw new UnsupportedOperationException(
+        "merge is not supported for %s".formatted(getClass().getSimpleName()));
+  }
 }

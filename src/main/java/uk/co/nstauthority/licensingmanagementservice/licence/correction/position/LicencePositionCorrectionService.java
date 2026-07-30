@@ -3,17 +3,24 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionUpdateOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
@@ -22,8 +29,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityRow;
 
 @Service
 public class LicencePositionCorrectionService {
@@ -31,13 +41,22 @@ public class LicencePositionCorrectionService {
   private static final Logger LOGGER = LoggerFactory.getLogger(LicencePositionCorrectionService.class);
   private final LicencePositionCorrectionRepository licencePositionCorrectionRepository;
   private final LicencePositionRepository licencePositionRepository;
+  private final OrganisationUnitQueryService organisationUnitQueryService;
+  private final SearchSelectorService searchSelectorService;
+  private final LicencePositionChangeService licencePositionChangeService;
 
   public LicencePositionCorrectionService(
       LicencePositionCorrectionRepository licencePositionCorrectionRepository,
-      LicencePositionRepository licencePositionRepository
+      LicencePositionRepository licencePositionRepository,
+      OrganisationUnitQueryService organisationUnitQueryService,
+      SearchSelectorService searchSelectorService,
+      LicencePositionChangeService licencePositionChangeService
   ) {
     this.licencePositionCorrectionRepository = licencePositionCorrectionRepository;
     this.licencePositionRepository = licencePositionRepository;
+    this.organisationUnitQueryService = organisationUnitQueryService;
+    this.searchSelectorService = searchSelectorService;
+    this.licencePositionChangeService = licencePositionChangeService;
   }
 
   @Transactional
@@ -299,6 +318,163 @@ public class LicencePositionCorrectionService {
     licencePositionCorrectionRepository.save(positionCorrection);
   }
 
+  public boolean setEquityChangeExists(LicencePositionCorrection licencePositionCorrection) {
+    var livePositionId = livePositionId(licencePositionCorrection);
+    if (livePositionId == null) {
+      return false;
+    }
+
+    return licencePositionChangeService.findByLicencePositionId(livePositionId).stream()
+        .filter(change -> change.getOperations() != null)
+        .flatMap(change -> change.getOperations().stream())
+        .anyMatch(SetEquityOperation.class::isInstance);
+  }
+
+  private UUID livePositionId(LicencePositionCorrection licencePositionCorrection) {
+    if (licencePositionCorrection.getTargetLicencePosition() != null) {
+      return licencePositionCorrection.getTargetLicencePosition().getId();
+    }
+
+    if (licencePositionCorrection.getPayload() instanceof CreateLicencePositionPayload create
+        && create.licencePositionId() != null) {
+      return UUID.fromString(create.licencePositionId());
+    }
+
+    return null;
+  }
+
+  public List<SetEquityOperation> getCommittedSetEquityOperations(
+      LicencePositionCorrection licencePositionCorrection
+  ) {
+    return setEquityOperations(licencePositionCorrection.getPayload().changes());
+  }
+
+  public List<SetEquityRow> getSetEquityViews(List<SetEquityOperation> operations) {
+    var organisationIds = operations.stream()
+        .map(SetEquityOperation::transferTo)
+        .toList();
+
+    var organisationNames = organisationUnitQueryService.getOrganisationUnitNamesByIds(organisationIds);
+
+    return operations.stream()
+        .map(operation -> new SetEquityRow(
+            organisationNames.getOrDefault(operation.transferTo(), ""),
+            operation.equity()
+        ))
+        .toList();
+  }
+
+  @Transactional
+  public void commitSetEquity(
+      LicencePositionCorrection licencePositionCorrection,
+      List<SetEquityOperation> operations
+  ) {
+    applySetEquity(licencePositionCorrection, operations);
+  }
+
+  private void applySetEquity(
+      LicencePositionCorrection licencePositionCorrection,
+      List<SetEquityOperation> operations
+  ) {
+    var payload = licencePositionCorrection.getPayload();
+
+    var changes = payload.changes().stream()
+        .filter(change -> !isSetEquityChange(change))
+        .collect(Collectors.toCollection(ArrayList::new));
+
+    if (!CollectionUtils.isEmpty(operations)) {
+      changes.add(buildSetEquityChange(operations, nextChangeOrder(changes)));
+    }
+
+    licencePositionCorrection.setPayload(withChanges(payload, changes));
+    licencePositionCorrectionRepository.save(licencePositionCorrection);
+  }
+
+  private int nextChangeOrder(List<LicencePositionChangeType> changes) {
+    return changes.stream()
+        .filter(AddChange.class::isInstance)
+        .map(AddChange.class::cast)
+        .map(AddChange::changeOrder)
+        .filter(Objects::nonNull)
+        .max(Integer::compareTo)
+        .orElse(0) + 1;
+  }
+
+  private LicencePositionPayload withChanges(
+      LicencePositionPayload payload,
+      List<LicencePositionChangeType> changes
+  ) {
+    return switch (payload) {
+      case CreateLicencePositionPayload create -> LicencePositionPayload.newCreateLicencePositionPayload()
+          .withLicencePositionId(create.licencePositionId())
+          .withLicenceTransactionId(create.licenceTransactionId())
+          .withEffectiveDate(create.effectiveDate())
+          .withEffectiveDateOrder(create.effectiveDateOrder())
+          .withCorrectionReference(create.correctionReference())
+          .withChanges(changes)
+          .build();
+      case UpdateLicencePositionPayload update -> LicencePositionPayload.newUpdateLicencePositionPayload()
+          .withEffectiveDate(update.effectiveDate())
+          .withEffectiveDateOrder(update.effectiveDateOrder())
+          .withCorrectionReference(update.correctionReference())
+          .withChanges(changes)
+          .build();
+    };
+  }
+
+  private List<SetEquityOperation> setEquityOperations(List<LicencePositionChangeType> changes) {
+    return changes.stream()
+        .filter(AddChange.class::isInstance)
+        .map(AddChange.class::cast)
+        .flatMap(change -> change.operations().stream())
+        .filter(LicencePositionAddOperation.class::isInstance)
+        .map(LicencePositionAddOperation.class::cast)
+        .map(LicencePositionAddOperation::operation)
+        .filter(SetEquityOperation.class::isInstance)
+        .map(SetEquityOperation.class::cast)
+        .toList();
+  }
+
+  private boolean isSetEquityChange(LicencePositionChangeType change) {
+    return !setEquityOperations(List.of(change)).isEmpty();
+  }
+
+  private AddChange buildSetEquityChange(
+      List<SetEquityOperation> operations,
+      int changeOrder
+  ) {
+    var changeOperations = operations.stream()
+        .map(operation -> (LicencePositionChangeOperation) LicencePositionChangeOperation.newLicencePositionAddOperation()
+            .withOperationId(operation.id())
+            .withOperation(operation)
+            .build())
+        .toList();
+
+    return LicencePositionChangeType.addChange()
+        .withChangeId(UUID.randomUUID().toString())
+        .withChangeOrder(changeOrder)
+        .withOperations(changeOperations)
+        .build();
+  }
+
+  public Map<String, String> getPreselectedTransferTo(String organisationId) {
+    if (StringUtils.isBlank(organisationId)) {
+      return Map.of();
+    }
+
+    try {
+      int parsedId = Integer.parseInt(organisationId);
+      return organisationUnitQueryService.getOrganisationUnitNameById(parsedId)
+          .map(organisationName -> searchSelectorService.buildPrePopulatedSelections(
+              List.of(organisationId),
+              Map.of(organisationId, organisationName)))
+          .orElseGet(Map::of);
+
+    } catch (NumberFormatException e) {
+      return Map.of();
+    }
+  }
+
   @Transactional
   public void correctExistingAdministratorChange(
       LicencePosition licencePosition,
@@ -308,10 +484,10 @@ public class LicencePositionCorrectionService {
   ) {
     var existingPositionCorrection =
         licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
-          licenceCorrection,
-          licencePosition,
-          LicencePositionCorrectionChangeType.UPDATE_POSITION
-    );
+            licenceCorrection,
+            licencePosition,
+            LicencePositionCorrectionChangeType.UPDATE_POSITION
+        );
 
     LicencePositionCorrection positionCorrection;
 

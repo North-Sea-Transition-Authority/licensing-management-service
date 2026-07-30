@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import java.util.UUID;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -23,7 +24,7 @@ public sealed interface LicencePositionChangeOperation permits LicencePositionAd
 
   String type();
 
-  Integer operationId();
+  UUID operationId();
 
   static LicencePositionAddOperation.Builder newLicencePositionAddOperation() {
     return new LicencePositionAddOperation.Builder();

@@ -27,6 +27,7 @@ class TextualDescriptionServiceTest {
       <style>
       .gis-textual-description { font-family: "GDS Transport"; font-size: 16px }
       .gis-textual-description p { margin: 0 0 1em; }
+      .gis-textual-description .govuk-list--number { list-style-position: inside; }
       </style>""";
 
   @Mock
@@ -218,7 +219,7 @@ class TextualDescriptionServiceTest {
     var expected = document(String.join("\n",
         para("Subarea 30/1a is bounded by the following coordinates:"),
         coordinateList(1, gridReference(bngRef(1)), gridReference(bngRef(2)), gridReference(bngRef(1))),
-        "<p class=\"gis-textual-description__legal\">Boundary follows the median line</p>",
+        "<p class=\"govuk-body\">Boundary follows the median line</p>",
         footer("British National Grid", "The lines joining coordinates (1) to (3) are navigated as loxodromes.")
     ));
 
@@ -522,7 +523,7 @@ class TextualDescriptionServiceTest {
   }
 
   private static String note(String text) {
-    return "<p class=\"gis-textual-description__note\">%s</p>".formatted(text);
+    return "<p class=\"govuk-body\">%s</p>".formatted(text);
   }
 
   private static String footer(String datum, String... navigationClauses) {

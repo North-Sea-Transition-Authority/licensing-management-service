@@ -88,6 +88,50 @@ describe("coordinateDmsInput", () => {
     expect(errorText("lon-error-0")).toContain("between 0 and 180");
   });
 
+  it("shows an error when latitude degrees is not a whole number", async () => {
+    const { latField, errorText, leaveLatGroup } = renderInput();
+
+    await fireEvent.update(latField("Degrees"), "53.5");
+    await fireEvent.update(latField("Minutes"), "0");
+    await fireEvent.update(latField("Seconds"), "0");
+    await leaveLatGroup();
+
+    expect(errorText("lat-error-0")).toContain("Degrees must be a whole number");
+  });
+
+  it("shows an error when latitude minutes is not a whole number", async () => {
+    const { latField, errorText, leaveLatGroup } = renderInput();
+
+    await fireEvent.update(latField("Degrees"), "53");
+    await fireEvent.update(latField("Minutes"), "30.5");
+    await fireEvent.update(latField("Seconds"), "0");
+    await leaveLatGroup();
+
+    expect(errorText("lat-error-0")).toContain("Minutes must be a whole number");
+  });
+
+  it("shows an error when latitude minutes are out of range", async () => {
+    const { latField, errorText, leaveLatGroup } = renderInput();
+
+    await fireEvent.update(latField("Degrees"), "53");
+    await fireEvent.update(latField("Minutes"), "60");
+    await fireEvent.update(latField("Seconds"), "0");
+    await leaveLatGroup();
+
+    expect(errorText("lat-error-0")).toContain("Minutes must be between 0 and 59");
+  });
+
+  it("shows an error when latitude seconds are out of range", async () => {
+    const { latField, errorText, leaveLatGroup } = renderInput();
+
+    await fireEvent.update(latField("Degrees"), "53");
+    await fireEvent.update(latField("Minutes"), "0");
+    await fireEvent.update(latField("Seconds"), "60");
+    await leaveLatGroup();
+
+    expect(errorText("lat-error-0")).toContain("Seconds must be between 0 and 59");
+  });
+
   it("shows no error while a partly entered latitude is still being typed", async () => {
     const { latField, errorText } = renderInput();
 

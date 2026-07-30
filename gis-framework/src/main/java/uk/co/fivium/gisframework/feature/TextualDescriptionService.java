@@ -28,6 +28,7 @@ public class TextualDescriptionService {
       <style>
       .gis-textual-description { font-family: "GDS Transport"; font-size: 16px }
       .gis-textual-description p { margin: 0 0 1em; }
+      .gis-textual-description .govuk-list--number { list-style-position: inside; }
       </style>""";
 
   private final LineService lineService;
@@ -175,7 +176,7 @@ public class TextualDescriptionService {
       parts.add(coordinateList(rows, startNumber));
       rows = new ArrayList<>();
       startNumber = nodes.get(i + 1).displayOrder();
-      parts.add("<p class=\"gis-textual-description__note\">thence following %s until coordinate:</p>"
+      parts.add("<p class=\"govuk-body\">thence following %s until coordinate:</p>"
           .formatted(escape(boundaryLineDescription)));
     }
 
@@ -341,7 +342,7 @@ public class TextualDescriptionService {
         .distinct()
         .map(this::escape)
         .collect(Collectors.joining("<br>\n"));
-    return legalText.isBlank() ? null : "<p class=\"gis-textual-description__legal\">%s</p>".formatted(legalText);
+    return legalText.isBlank() ? null : "<p class=\"govuk-body\">%s</p>".formatted(legalText);
   }
 
   /**

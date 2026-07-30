@@ -187,7 +187,7 @@ function validate(fields: DmsFields, maxDegrees: number): string {
     return "Minutes must be between 0 and 59";
   }
   if (seconds < 0 || seconds >= 60) {
-    return "Seconds must be between 0 and less than 60";
+    return "Seconds must be between 0 and 59";
   }
   return "";
 }

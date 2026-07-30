@@ -69,6 +69,13 @@
             <@fdsTag.tag tagClass="govuk-tag--yellow">Corrected</@fdsTag.tag>
           </p>
         </#if>
+        <#if licencePositionTimelineViewEntry.correctOrderUrl()??>
+            <@fdsAction.link
+            linkText="Change&nbsp;order"?no_esc
+            linkUrl=springUrl(licencePositionTimelineViewEntry.correctOrderUrl())
+            linkScreenReaderText=licencePositionTimelineViewEntry.formattedPositionDate()
+            />
+        </#if>
           </@fdsTimeline.timelineTimeStamp>
         </#list>
       </@fdsTimeline.timelineSection>

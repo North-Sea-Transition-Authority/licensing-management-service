@@ -105,7 +105,10 @@ class LicencePositionChangeViewServiceTest {
         List.of(LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build())
     );
     var currentChronologicalPosition = ChronologicalPosition.fromLicencePosition(
-        currentLicencePosition, List.of(correctionChange));
+        currentLicencePosition,
+        currentLicencePosition.getPositionDate(),
+        currentLicencePosition.getPositionDateOrder(),
+        List.of(correctionChange));
 
     var result = licencePositionChangeViewService.getChangeViews(
         currentLicencePosition.getId(), List.of(currentChronologicalPosition), Map.of(JOINING_ID, JOINING_NAME));

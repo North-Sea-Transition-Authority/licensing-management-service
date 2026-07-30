@@ -48,6 +48,11 @@ class TestHarnessServiceTest {
 
   private static final LicenceTransaction TRANSACTION_1 = LicenceTransactionTestUtil.newBuilder().build();
   private static final LicenceTransaction TRANSACTION_2 = LicenceTransactionTestUtil.newBuilder().build();
+  private static final LicenceTransaction TRANSACTION_3 = LicenceTransactionTestUtil.newBuilder().build();
+  private static final LicenceTransaction TRANSACTION_4 = LicenceTransactionTestUtil.newBuilder().build();
+  private static final LicenceTransaction TRANSACTION_5 = LicenceTransactionTestUtil.newBuilder().build();
+  private static final LicenceTransaction PAIR_TRANSACTION_1 = LicenceTransactionTestUtil.newBuilder().build();
+  private static final LicenceTransaction PAIR_TRANSACTION_2 = LicenceTransactionTestUtil.newBuilder().build();
   private static final LicenceTransaction SAME_TRANSACTION = LicenceTransactionTestUtil.newBuilder().build();
   private static final LicenceTransaction CROSS_TRANSACTION = LicenceTransactionTestUtil.newBuilder().build();
 
@@ -88,12 +93,13 @@ class TestHarnessServiceTest {
   }
 
   @Test
-  void generateLicencePositions_clearsBothLicencesAndCreatesSixPositions() {
+  void generateLicencePositions_clearsBothLicencesAndCreatesElevenPositions() {
     var licence = production(1);
     var secondaryLicence = carbonStorage(2);
 
     when(licenceTransactionService.createLicenceTransaction(anyString()))
-        .thenReturn(TRANSACTION_1, TRANSACTION_2, SAME_TRANSACTION, CROSS_TRANSACTION);
+        .thenReturn(TRANSACTION_1, TRANSACTION_2, TRANSACTION_3, TRANSACTION_4, TRANSACTION_5,
+            PAIR_TRANSACTION_1, PAIR_TRANSACTION_2, SAME_TRANSACTION, CROSS_TRANSACTION);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(buildPositions(5));
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
@@ -101,22 +107,25 @@ class TestHarnessServiceTest {
     verify(licencePositionTestHarnessService).clearPositionsForLicence(licence);
     verify(licencePositionTestHarnessService).clearPositionsForLicence(secondaryLicence);
 
-    verify(licenceTransactionService, times(4)).createLicenceTransaction(anyString());
-    verify(licencePositionService, times(6))
+    verify(licenceTransactionService, times(9)).createLicenceTransaction(anyString());
+    verify(licencePositionService, times(11))
         .createLicencePosition(licenceCaptor.capture(), transactionCaptor.capture(), dateCaptor.capture());
 
     assertThat(licenceCaptor.getAllValues()).containsExactly(
-        licence, licence,            // 1. Same date pair on primary licence
-        licence, licence,            // 2. Same transaction pair on primary licence
-        licence, secondaryLicence);  // 3. Cross licence reuse
+        licence, licence, licence, licence, licence,  // 1. Five same date positions on primary licence
+        licence, licence,                             // 2. Same date pair on primary licence
+        licence, licence,                             // 3. Same transaction pair on primary licence
+        licence, secondaryLicence);                   // 4. Cross licence reuse
 
     assertThat(transactionCaptor.getAllValues()).containsExactly(
-        TRANSACTION_1, TRANSACTION_2,
+        TRANSACTION_1, TRANSACTION_2, TRANSACTION_3, TRANSACTION_4, TRANSACTION_5,
+        PAIR_TRANSACTION_1, PAIR_TRANSACTION_2,
         SAME_TRANSACTION, SAME_TRANSACTION,
         CROSS_TRANSACTION, CROSS_TRANSACTION);
 
     assertThat(dateCaptor.getAllValues()).containsExactly(
-        TODAY.minusWeeks(7), TODAY.minusWeeks(7),
+        TODAY.minusWeeks(7), TODAY.minusWeeks(7), TODAY.minusWeeks(7), TODAY.minusWeeks(7), TODAY.minusWeeks(7),
+        TODAY.minusWeeks(4), TODAY.minusWeeks(4),
         TODAY.minusWeeks(5), TODAY.minusWeeks(3),
         TODAY.minusWeeks(2), TODAY.minusWeeks(1));
   }

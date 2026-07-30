@@ -15,12 +15,14 @@ public record ChronologicalPosition(
 
   public static ChronologicalPosition fromLicencePosition(
       LicencePosition position,
+      LocalDate date,
+      int order,
       List<PositionChange> changes
   ) {
     return new ChronologicalPosition(
         position.getId(),
-        position.getPositionDate(),
-        position.getPositionDateOrder(),
+        date,
+        order,
         changes
     );
   }

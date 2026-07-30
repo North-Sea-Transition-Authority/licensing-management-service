@@ -45,7 +45,8 @@ public record LicencePositionTimelineView(
     @Nullable String removeUrl,
     @Nullable String reinstateUrl,
     boolean correctedInThisCorrection,
-    @Nullable String correctDateUrl
+    @Nullable String correctDateUrl,
+    @Nullable String correctOrderUrl
 ) {
 
   public static Builder builder() {
@@ -64,6 +65,7 @@ public record LicencePositionTimelineView(
     @Nullable private String reinstateUrl;
     private boolean correctedInThisCorrection;
     @Nullable private String correctDateUrl;
+    @Nullable private String correctOrderUrl;
 
     public Builder withPositionId(UUID positionId) {
       this.positionId = positionId;
@@ -120,6 +122,11 @@ public record LicencePositionTimelineView(
       return this;
     }
 
+    public Builder withCorrectOrderUrl(String correctOrderUrl) {
+      this.correctOrderUrl = correctOrderUrl;
+      return this;
+    }
+
     public LicencePositionTimelineView build() {
       return new LicencePositionTimelineView(
           positionId,
@@ -132,7 +139,8 @@ public record LicencePositionTimelineView(
           removeUrl,
           reinstateUrl,
           correctedInThisCorrection,
-          correctDateUrl
+          correctDateUrl,
+          correctOrderUrl
       );
     }
   }

@@ -1,21 +1,25 @@
 <#include '../../layout/layout.ftl'>
 <#import '_positionChanges.ftl' as positionChanges>
 
-<#macro details licencePositionChanges licencePositionState actions={}  canEdit=false>
+<#macro details licencePositionChanges licencePositionState actions={} canEdit=false>
   <#if canEdit>
     <@fdsAction.buttonGroup>
+    <#if actions.addChangeUrl()??>
+      <@fdsAction.link linkText="Add change" linkUrl=springUrl(actions.addChangeUrl()) linkClass="govuk-button"/>
+    <#else>
       <@fdsActionDropdown.actionDropdown dropdownButtonText="Add change">
         <#if !licencePositionChanges["licence-administrator"]??>
           <@fdsActionDropdown.actionDropdownItem
             actionText="Administrator change"
             linkAction=true
-            linkActionUrl=springUrl(actions.administratorChangeUrl())
+            linkActionUrl=springUrl(actions.addAdministratorChangeUrl())
           />
         </#if>
       </@fdsActionDropdown.actionDropdown>
+  </#if>
     </@fdsAction.buttonGroup>
   </#if>
-    <#assign adminName>
+<#assign adminName>
       <#if licencePositionState.administratorStateView().organisationName()?has_content>
         ${licencePositionState.administratorStateView().organisationName()}
       <#else>
@@ -26,10 +30,6 @@
         <@fdsDataItems.dataValues key="Licence administrator" value=adminName/>
     </@fdsDataItems.dataItem>
   <#if licencePositionChanges["licence-administrator"]??>
-    <#assign correctUrl = "">
-    <#if canEdit && actions.administratorChangeUrl()??>
-      <#assign correctUrl = actions.administratorChangeUrl()>
-    </#if>
-    <@positionChanges.administratorChange change=licencePositionChanges["licence-administrator"] correctUrl=correctUrl/>
+    <@positionChanges.administratorChange change=licencePositionChanges["licence-administrator"]/>
   </#if>
 </#macro>

@@ -120,3 +120,12 @@ CVE-2026-22735
 # gis-framework
 # net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE
 CVE-2025-55163
+
+#com.fasterxml.jackson.core:jackson-core
+GHSA-r7wm-3cxj-wff9
+#com.fasterxml.jackson.core:jackson-databind (app.jar)
+CVE-2026-59888
+CVE-2026-59889
+GHSA-mhm7-754m-9p8w
+#org.postgresql:postgresql
+CVE-2026-54291

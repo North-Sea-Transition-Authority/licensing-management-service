@@ -117,6 +117,8 @@ class LicencePositionViewServiceTest {
     var change = LicencePositionChangeTestUtil.newBuilder().withLicencePosition(position).build();
     var chronologicalPositions = List.of(ChronologicalPosition.fromLicencePosition(
         position,
+        position.getPositionDate(),
+        position.getPositionDateOrder(),
         PositionChange.fromLicencePositionChanges(List.of(change))
     ));
     var administratorNames = Map.<Integer, String>of();
@@ -151,6 +153,8 @@ class LicencePositionViewServiceTest {
     var change = LicencePositionChangeTestUtil.newBuilder().withLicencePosition(older).build();
     var chronologicalPositions = List.of(ChronologicalPosition.fromLicencePosition(
         older,
+        older.getPositionDate(),
+        older.getPositionDateOrder(),
         PositionChange.fromLicencePositionChanges(List.of(change))
     ));
     var administratorNames = Map.<Integer, String>of();
@@ -213,7 +217,7 @@ class LicencePositionViewServiceTest {
 
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
 
-    assertThat(result.actions().administratorChangeUrl())
+    assertThat(result.actions().addChangeUrl())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
             .renderForExecutedPosition(correction.getId(), executed.getId(), null)));
     assertThat(result.canEdit()).isTrue();
@@ -260,7 +264,7 @@ class LicencePositionViewServiceTest {
 
     var result = licencePositionViewService.getCorrectionAddedPositionPageView(correction, positionCorrection);
 
-    assertThat(result.actions().administratorChangeUrl())
+    assertThat(result.actions().addChangeUrl())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
             .renderForAddedPosition(correction.getId(), positionCorrection.getId(), null)));
     assertThat(result.changeViewByType()).isEmpty();
@@ -398,7 +402,8 @@ class LicencePositionViewServiceTest {
         .withPayload(correctedPayload)
         .build();
 
-    var recalculatedPositions = List.of(noChangeChronologicalPosition(current));
+    var recalculatedPositions = List.of(ChronologicalPosition.fromLicencePosition(
+        current, LocalDate.of(2026, Month.AUGUST, 15), 3, List.of()));
     var administratorNames = Map.<Integer, String>of();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(current));
@@ -422,6 +427,60 @@ class LicencePositionViewServiceTest {
             LicencePositionTimelineView::correctDateUrl)
         .containsExactly(
             tuple("CORR-REF", "15 August 2026", true, expectedCorrectDateUrl));
+  }
+
+  @Test
+  void getCorrectionPositionPageView_whenSameDateOrderCorrected_recalculatesStateInCorrectedOrder() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+
+    var sameDate = LocalDate.of(2026, Month.JUNE, 1);
+    var moved = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("MOVED").build())
+        .withPositionDate(sameDate).withPositionOrder(1).withIsExecuted(true).build();
+    var other = LicencePositionTestUtil.newBuilder()
+        .withId(UUID.randomUUID())
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("OTHER").build())
+        .withPositionDate(sameDate).withPositionOrder(2).withIsExecuted(true).build();
+
+    var movedUpdate = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(moved)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withEffectiveDate(sameDate).withEffectiveDateOrder(2).build())
+        .build();
+    var otherUpdate = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(other)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withEffectiveDate(sameDate).withEffectiveDateOrder(1).build())
+        .build();
+
+    var recalculatedPositions = List.of(
+        ChronologicalPosition.fromLicencePosition(other, sameDate, 1, List.of()),
+        ChronologicalPosition.fromLicencePosition(moved, sameDate, 2, List.of())
+    );
+    var administratorNames = Map.<Integer, String>of();
+    var stateView = new LicencePositionStateView(null);
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
+        .thenReturn(List.of(moved, other));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(moved, other))).thenReturn(List.of());
+    when(licencePositionCorrectionService.getPositionCorrections(correction))
+        .thenReturn(List.of(movedUpdate, otherUpdate));
+    when(licencePositionChangeViewService.getChangeViews(moved.getId(), recalculatedPositions, administratorNames))
+        .thenReturn(Map.of());
+    when(licencePositionStateViewService.getStateView(moved.getId(), recalculatedPositions, administratorNames))
+        .thenReturn(stateView);
+
+    var result = licencePositionViewService.getCorrectionPositionPageView(correction, moved);
+
+    assertThat(result.stateView()).isEqualTo(stateView);
+    verify(licencePositionStateViewService).getStateView(moved.getId(), recalculatedPositions, administratorNames);
   }
 
   @Test
@@ -449,7 +508,8 @@ class LicencePositionViewServiceTest {
   }
 
   private static ChronologicalPosition noChangeChronologicalPosition(LicencePosition position) {
-    return ChronologicalPosition.fromLicencePosition(position, List.of());
+    return ChronologicalPosition.fromLicencePosition(
+        position, position.getPositionDate(), position.getPositionDateOrder(), List.of());
   }
 
   private static LicencePosition executedPosition(String regulatorReference, LocalDate positionDate, int positionOrder) {

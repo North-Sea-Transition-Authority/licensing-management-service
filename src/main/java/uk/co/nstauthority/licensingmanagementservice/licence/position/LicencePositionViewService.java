@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import jakarta.annotation.Nullable;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -20,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectPositionDateController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionOrderChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.ReinstateLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.RemoveExecutedLicencePositionCorrectionController;
@@ -214,6 +216,8 @@ public class LicencePositionViewService {
     return executedChronologicalLicencePositions.stream()
         .map(licencePosition -> ChronologicalPosition.fromLicencePosition(
             licencePosition,
+            licencePosition.getPositionDate(),
+            licencePosition.getPositionDateOrder(),
             foldChanges(liveChangesByPositionId.getOrDefault(licencePosition.getId(), List.of()), List.of()))
         ).sorted(CHRONOLOGICAL_POSITION_COMPARATOR)
         .toList();
@@ -244,12 +248,7 @@ public class LicencePositionViewService {
   ) {
     var liveChangesByPositionId = getLiveChangesByPositionId(executedChronologicalLicencePositions);
 
-    var correctionChangesByPositionId = updatedCorrections
-        .stream()
-        .collect(Collectors.toMap(
-            licencePositionCorrection -> licencePositionCorrection.getTargetLicencePosition().getId(),
-            licencePositionCorrection -> licencePositionCorrection.getPayload().changes()
-        ));
+    var correctedPayloadsByPositionId = updatedPositionPayloadsByTargetId(updatedCorrections);
 
     var chronologicalPositions = new ArrayList<ChronologicalPosition>();
 
@@ -259,11 +258,17 @@ public class LicencePositionViewService {
         .filter(position -> position.getId().equals(currentLicencePositionId)
             || !removedPositionIds.contains(position.getId()))
         .forEach(position -> {
+          var correctedPayload = correctedPayloadsByPositionId.get(position.getId());
           var changes = foldChanges(
               liveChangesByPositionId.getOrDefault(position.getId(), List.of()),
-              correctionChangesByPositionId.getOrDefault(position.getId(), List.of())
+              correctedPayload != null ? correctedPayload.changes() : List.of()
           );
-          chronologicalPositions.add(ChronologicalPosition.fromLicencePosition(position, changes));
+          chronologicalPositions.add(ChronologicalPosition.fromLicencePosition(
+              position,
+              effectiveDate(position, correctedPayloadsByPositionId),
+              effectiveDateOrder(position, correctedPayloadsByPositionId),
+              changes
+          ));
         });
 
     addedCorrections.forEach(addedPosition ->
@@ -372,9 +377,15 @@ public class LicencePositionViewService {
       Map<UUID, UpdateLicencePositionPayload> correctedPayloadsByPositionId,
       List<LicencePositionCorrection> addedCorrections
   ) {
+
+    var sameDateCount = sameDateCountByEffectiveDate(
+        licencePositions, removedPositionIds, correctedPayloadsByPositionId, addedCorrections);
+
     var livePositions =
-        getLivePositionEntries(licencePositions, licenceCorrection, removedPositionIds, correctedPayloadsByPositionId);
-    var addedPositions = getAddedPositionEntries(licenceCorrection, addedCorrections);
+        getLivePositionEntries(
+            licencePositions, licenceCorrection, removedPositionIds, correctedPayloadsByPositionId, sameDateCount
+        );
+    var addedPositions = getAddedPositionEntries(licenceCorrection, addedCorrections, sameDateCount);
 
     return Stream.concat(livePositions.stream(), addedPositions.stream())
         .sorted(TIMELINE_ORDER_COMPARATOR)
@@ -382,22 +393,41 @@ public class LicencePositionViewService {
         .toList();
   }
 
+  private Map<LocalDate, Long> sameDateCountByEffectiveDate(
+      List<LicencePosition> licencePositions,
+      Set<UUID> removedPositionIds,
+      Map<UUID, UpdateLicencePositionPayload> correctedPayloadsByPositionId,
+      List<LicencePositionCorrection> addedCorrections
+  ) {
+    var counts = licencePositions.stream()
+        .filter(LicencePosition::isExecuted)
+        .filter(position -> !removedPositionIds.contains(position.getId()))
+        .map(position -> effectiveDate(position, correctedPayloadsByPositionId))
+        .collect(Collectors.groupingBy(date -> date, Collectors.counting()));
+
+    addedCorrections.stream()
+        .map(correction -> (CreateLicencePositionPayload) correction.getPayload())
+        .forEach(payload -> counts.merge(payload.effectiveDate(), 1L, Long::sum));
+
+    return counts;
+  }
+
   private List<TimelineEntry> getLivePositionEntries(
       List<LicencePosition> licencePositions,
       LicenceCorrection licenceCorrection,
       Set<UUID> removedPositionIds,
-      Map<UUID, UpdateLicencePositionPayload> correctedPayloadsByPositionId
+      Map<UUID, UpdateLicencePositionPayload> correctedPayloadsByPositionId,
+      Map<LocalDate, Long> sameDateCount
   ) {
     return licencePositions.stream()
         .filter(LicencePosition::isExecuted)
         .map(licencePosition -> {
           var removed = removedPositionIds.contains(licencePosition.getId());
           var correctedPayload = correctedPayloadsByPositionId.get(licencePosition.getId());
-          var dateCorrected = correctedPayload != null && correctedPayload.effectiveDate() != null;
-          var effectiveDate = dateCorrected
-              ? correctedPayload.effectiveDate() : licencePosition.getPositionDate();
-          var effectiveDateOrder = correctedPayload != null && correctedPayload.effectiveDateOrder() != null
-              ? correctedPayload.effectiveDateOrder() : licencePosition.getPositionDateOrder();
+          var effectiveDate = effectiveDate(licencePosition, correctedPayloadsByPositionId);
+          var effectiveDateOrder = effectiveDateOrder(licencePosition, correctedPayloadsByPositionId);
+
+          var correctionReference = correctedPayload != null ? correctedPayload.correctionReference() : null;
 
           var timelineViewBuilder = baseTimelineViewBuilder(
               licencePosition, getCorrectionPositionUrl(licenceCorrection, licencePosition))
@@ -405,8 +435,8 @@ public class LicencePositionViewService {
               .withCorrectedInThisCorrection(correctedPayload != null)
               .withRemovedInThisCorrection(removed);
 
-          if (correctedPayload != null) {
-            timelineViewBuilder.withRegulatorReference(correctedPayload.correctionReference());
+          if (correctionReference != null) {
+            timelineViewBuilder.withRegulatorReference(correctionReference);
           }
 
           if (removed) {
@@ -414,6 +444,9 @@ public class LicencePositionViewService {
           } else {
             timelineViewBuilder.withRemoveUrl(getRemovePositionUrl(licenceCorrection, licencePosition));
             timelineViewBuilder.withCorrectDateUrl(getCorrectDatePositionUrl(licenceCorrection, licencePosition));
+            if (sameDateCount.getOrDefault(effectiveDate, 0L) > 1) {
+              timelineViewBuilder.withCorrectOrderUrl(getCorrectOrderPositionUrl(licenceCorrection, licencePosition));
+            }
           }
 
           return new TimelineEntry(effectiveDate, effectiveDateOrder, timelineViewBuilder.build());
@@ -423,27 +456,31 @@ public class LicencePositionViewService {
 
   private List<TimelineEntry> getAddedPositionEntries(
       LicenceCorrection licenceCorrection,
-      List<LicencePositionCorrection> addedCorrections
+      List<LicencePositionCorrection> addedCorrections,
+      Map<LocalDate, Long> sameDateCount
   ) {
     return addedCorrections
         .stream()
         .map(licencePositionCorrection -> {
           var payload = (CreateLicencePositionPayload) licencePositionCorrection.getPayload();
           var effectiveDate = payload.effectiveDate();
-          return new TimelineEntry(
-              effectiveDate,
-              payload.effectiveDateOrder(),
-              LicencePositionTimelineView.builder()
-                  .withPositionId(UUID.fromString(payload.licencePositionId()))
-                  .withUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-                      .renderAddedPosition(licenceCorrection.getId(), licencePositionCorrection.getId(), null)))
-                  .withRegulatorReference(payload.correctionReference())
-                  .withFormattedPositionDate(DateUtil.formatLongDate(effectiveDate))
-                  .withAddedInThisCorrection(true)
-                  .withUndoUrl(ReverseRouter.route(on(UndoLicencePositionCorrectionController.class)
-                      .renderUndoPosition(licenceCorrection.getId(), licencePositionCorrection.getId(), null)))
-                  .build()
-          );
+          var addedPositionId = UUID.fromString(payload.licencePositionId());
+
+          var timelineViewBuilder = LicencePositionTimelineView.builder()
+              .withPositionId(addedPositionId)
+              .withUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
+                  .renderAddedPosition(licenceCorrection.getId(), licencePositionCorrection.getId(), null)))
+              .withRegulatorReference(payload.correctionReference())
+              .withFormattedPositionDate(DateUtil.formatLongDate(effectiveDate))
+              .withAddedInThisCorrection(true)
+              .withUndoUrl(ReverseRouter.route(on(UndoLicencePositionCorrectionController.class)
+                  .renderUndoPosition(licenceCorrection.getId(), licencePositionCorrection.getId(), null)));
+
+          if (sameDateCount.getOrDefault(effectiveDate, 0L) > 1) {
+            timelineViewBuilder.withCorrectOrderUrl(getCorrectOrderPositionUrl(licenceCorrection, addedPositionId));
+          }
+
+          return new TimelineEntry(effectiveDate, payload.effectiveDateOrder(), timelineViewBuilder.build());
         })
         .toList();
   }
@@ -473,6 +510,15 @@ public class LicencePositionViewService {
         .renderCorrectLicencePositionCorrectionDate(correction.getId(), position.getId(), null));
   }
 
+  public String getCorrectOrderPositionUrl(LicenceCorrection correction, LicencePosition position) {
+    return getCorrectOrderPositionUrl(correction, position.getId());
+  }
+
+  public String getCorrectOrderPositionUrl(LicenceCorrection correction, UUID positionId) {
+    return ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
+        .renderCorrectionLicencePositionOrder(correction.getId(), positionId, null));
+  }
+
   private String getAdministratorChangeUrl(
       LicenceCorrection licenceCorrection, UUID licencePositionId, AdministratorChangeView adminChange, String addUrl
   ) {
@@ -485,6 +531,24 @@ public class LicencePositionViewService {
     }
     // TODO LMS2-83: Modify an added or corrected admin change
     return null;
+  }
+
+  private LocalDate effectiveDate(
+      LicencePosition position,
+      Map<UUID, UpdateLicencePositionPayload> correctedPayloadsByPositionId
+  ) {
+    var correctedPayload = correctedPayloadsByPositionId.get(position.getId());
+    return correctedPayload != null && correctedPayload.effectiveDate() != null
+        ? correctedPayload.effectiveDate() : position.getPositionDate();
+  }
+
+  private int effectiveDateOrder(
+      LicencePosition position,
+      Map<UUID, UpdateLicencePositionPayload> correctedPayloadsByPositionId
+  ) {
+    var correctedPayload = correctedPayloadsByPositionId.get(position.getId());
+    return correctedPayload != null && correctedPayload.effectiveDateOrder() != null
+        ? correctedPayload.effectiveDateOrder() : position.getPositionDateOrder();
   }
 
   private LicencePositionTimelineView.Builder baseTimelineViewBuilder(LicencePosition position, String url) {

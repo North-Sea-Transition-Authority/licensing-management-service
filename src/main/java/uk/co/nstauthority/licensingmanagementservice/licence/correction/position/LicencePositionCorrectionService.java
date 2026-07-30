@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -362,6 +364,161 @@ public class LicencePositionCorrectionService {
           case LicencePositionUpdateOperation updateOperation -> updateOperation.operation();
         })
         .anyMatch(AdministratorOperation.class::isInstance);
+  }
+
+
+  public List<OrderablePosition> getOrderableSameDatePositions(
+      LicenceCorrection licenceCorrection,
+      UUID positionId
+  ) {
+    var allOrderablePositions = OrderablePositionUtil.toOrderablePositions(loadCorrectionPositions(licenceCorrection));
+    return OrderablePositionUtil.sameDatePositions(allOrderablePositions, positionId);
+  }
+
+  private CorrectionPositions loadCorrectionPositions(LicenceCorrection licenceCorrection) {
+    var correctionsByChangeType = licencePositionCorrectionRepository.findByLicenceCorrection(licenceCorrection)
+        .stream()
+        .collect(Collectors.groupingBy(LicencePositionCorrection::getChangeType));
+
+    var removedPositionIds = correctionsByChangeType
+        .getOrDefault(LicencePositionCorrectionChangeType.REMOVE_POSITION, List.of())
+        .stream()
+        .map(LicencePositionCorrection::getTargetLicencePosition)
+        .map(LicencePosition::getId)
+        .collect(Collectors.toSet());
+
+    var executedPositions = licencePositionRepository.findByLicence(licenceCorrection.getLicence())
+        .stream()
+        .filter(LicencePosition::isExecuted)
+        .toList();
+
+    return new CorrectionPositions(
+        executedPositions,
+        correctionsByChangeType.getOrDefault(LicencePositionCorrectionChangeType.ADD_POSITION, List.of()),
+        correctionsByChangeType.getOrDefault(LicencePositionCorrectionChangeType.UPDATE_POSITION, List.of()),
+        removedPositionIds
+    );
+  }
+
+  @Transactional
+  public void correctPositionOrder(
+      LicenceCorrection licenceCorrection,
+      UUID movedPositionId,
+      UUID targetPositionId,
+      PositionMoveDirection direction
+  ) {
+    var correctionPositions = loadCorrectionPositions(licenceCorrection);
+
+    var positionIds = OrderablePositionUtil.sameDatePositions(
+            OrderablePositionUtil.toOrderablePositions(correctionPositions), movedPositionId)
+        .stream().map(OrderablePosition::id).toList();
+
+    if (!positionIds.contains(movedPositionId)) {
+      throw new IllegalArgumentException(
+          "Cannot move position %s as it is not orderable on the same date".formatted(movedPositionId));
+    }
+    if (movedPositionId.equals(targetPositionId) || !positionIds.contains(targetPositionId)) {
+      throw new IllegalArgumentException(
+          "Cannot move position %s relative to position %s as they are not orderable on the same date"
+              .formatted(movedPositionId, targetPositionId));
+    }
+
+    var reorderedIds = PositionOrderingUtil.moveRelativeTo(positionIds, movedPositionId, targetPositionId, direction);
+
+    var executedPositionsById = correctionPositions.executedPositions()
+        .stream()
+        .collect(Collectors.toMap(LicencePosition::getId, Function.identity()));
+    var addedCorrectionsByPositionId = correctionPositions.addCorrections()
+        .stream()
+        .collect(Collectors.toMap(
+            correction -> UUID.fromString(((CreateLicencePositionPayload) correction.getPayload()).licencePositionId()),
+            Function.identity()));
+    var updateCorrectionsByPositionId = correctionPositions.updateCorrections()
+        .stream()
+        .collect(Collectors.toMap(
+            correction -> correction.getTargetLicencePosition().getId(),
+            Function.identity()));
+
+    for (var index = 0; index < reorderedIds.size(); index++) {
+      var positionId = reorderedIds.get(index);
+      var newOrder = index + 1;
+      var executedPosition = executedPositionsById.get(positionId);
+      if (executedPosition != null) {
+        upsertPositionOrder(
+            licenceCorrection, executedPosition, updateCorrectionsByPositionId.get(positionId), newOrder);
+      } else {
+        updateAddedPositionOrder(addedCorrectionsByPositionId.get(positionId), newOrder);
+      }
+    }
+  }
+
+  private void updateAddedPositionOrder(LicencePositionCorrection addedCorrection, int newOrder) {
+    var payload = (CreateLicencePositionPayload) addedCorrection.getPayload();
+    if (payload.effectiveDateOrder() == newOrder) {
+      return;
+    }
+    addedCorrection.setPayload(LicencePositionPayload.newCreateLicencePositionPayload()
+        .withLicencePositionId(payload.licencePositionId())
+        .withLicenceTransactionId(payload.licenceTransactionId())
+        .withEffectiveDate(payload.effectiveDate())
+        .withEffectiveDateOrder(newOrder)
+        .withCorrectionReference(payload.correctionReference())
+        .withChanges(payload.changes())
+        .build());
+    licencePositionCorrectionRepository.save(addedCorrection);
+  }
+
+  private void upsertPositionOrder(
+      LicenceCorrection licenceCorrection,
+      LicencePosition licencePosition,
+      LicencePositionCorrection existingUpdateCorrection,
+      int newOrder
+  ) {
+    var orderMatchesLive = newOrder == licencePosition.getPositionDateOrder();
+
+    if (existingUpdateCorrection != null) {
+      var existingPayload = (UpdateLicencePositionPayload) existingUpdateCorrection.getPayload();
+      var effectiveDate = existingPayload.effectiveDate() != null
+          ? existingPayload.effectiveDate() : licencePosition.getPositionDate();
+      var dateMatchesLive = effectiveDate.equals(licencePosition.getPositionDate());
+      var carriesOtherCorrections =
+          existingPayload.correctionReference() != null || !existingPayload.changes().isEmpty();
+
+      if (orderMatchesLive && dateMatchesLive && !carriesOtherCorrections) {
+        licencePositionCorrectionRepository.delete(existingUpdateCorrection);
+      } else {
+        existingUpdateCorrection.setPayload(withUpdatedOrder(existingPayload, effectiveDate, newOrder));
+        licencePositionCorrectionRepository.save(existingUpdateCorrection);
+      }
+    } else if (!orderMatchesLive) {
+      var positionCorrection = new LicencePositionCorrection();
+      positionCorrection.setLicenceCorrection(licenceCorrection);
+      positionCorrection.setTargetLicencePosition(licencePosition);
+      positionCorrection.setChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION);
+      positionCorrection.setPayload(buildUpdatePayload(licencePosition.getPositionDate(), newOrder));
+      licencePositionCorrectionRepository.save(positionCorrection);
+    }
+  }
+
+  private UpdateLicencePositionPayload buildUpdatePayload(LocalDate effectiveDate, int effectiveDateOrder) {
+    return LicencePositionPayload.newUpdateLicencePositionPayload()
+        .withEffectiveDate(effectiveDate)
+        .withEffectiveDateOrder(effectiveDateOrder)
+        .withChanges(List.of())
+        .build();
+  }
+
+  private UpdateLicencePositionPayload withUpdatedOrder(
+      UpdateLicencePositionPayload existingPayload,
+      LocalDate effectiveDate,
+      int effectiveDateOrder
+  ) {
+    return LicencePositionPayload.newUpdateLicencePositionPayload()
+        .withEffectiveDate(effectiveDate)
+        .withEffectiveDateOrder(effectiveDateOrder)
+        .withCorrectionReference(existingPayload.correctionReference())
+        .withChanges(existingPayload.changes())
+        .build();
   }
 
   //TODO - Effective date order is auto-assigned for now. When multiple

@@ -40,6 +40,14 @@ public class TestHarnessService {
     this.clock = clock;
   }
 
+  private void generateTwoSameDateLicencePositions(Licence licence, LocalDate now) {
+    var transaction1 = licenceTransactionService.createLicenceTransaction(randomRegulatorReference());
+    var transaction2 = licenceTransactionService.createLicenceTransaction(randomRegulatorReference());
+
+    licencePositionService.createLicencePosition(licence, transaction1, now.minusWeeks(4));
+    licencePositionService.createLicencePosition(licence, transaction2, now.minusWeeks(4));
+  }
+
   @Transactional
   public void generateLicencePositions(Licence licence, Licence secondaryLicence) {
     // clear any existing positions and changes
@@ -47,7 +55,8 @@ public class TestHarnessService {
     licencePositionTestHarnessService.clearPositionsForLicence(secondaryLicence);
 
     var now = LocalDate.now(clock);
-    generateSameDateLicencePositions(licence, now);
+    generateMultipleSameDateLicencePositions(licence, now);
+    generateTwoSameDateLicencePositions(licence, now);
     generateSameTransactionLicencePositions(licence, now);
     generateSameTransactionDifferentLicencePositions(licence, secondaryLicence, now);
 
@@ -91,12 +100,19 @@ public class TestHarnessService {
     );
   }
 
-  private void generateSameDateLicencePositions(Licence licence, LocalDate now) {
+  private void generateMultipleSameDateLicencePositions(Licence licence, LocalDate now) {
     var transaction1 = licenceTransactionService.createLicenceTransaction(randomRegulatorReference());
     var transaction2 = licenceTransactionService.createLicenceTransaction(randomRegulatorReference());
+    var transaction3 = licenceTransactionService.createLicenceTransaction(randomRegulatorReference());
+    var transaction4 = licenceTransactionService.createLicenceTransaction(randomRegulatorReference());
+    var transaction5 = licenceTransactionService.createLicenceTransaction(randomRegulatorReference());
 
     licencePositionService.createLicencePosition(licence, transaction1, now.minusWeeks(7));
     licencePositionService.createLicencePosition(licence, transaction2, now.minusWeeks(7));
+    licencePositionService.createLicencePosition(licence, transaction3, now.minusWeeks(7));
+
+    licencePositionService.createLicencePosition(licence, transaction4, now.minusWeeks(7));
+    licencePositionService.createLicencePosition(licence, transaction5, now.minusWeeks(7));
   }
 
   private void generateSameTransactionLicencePositions(Licence licence, LocalDate now) {

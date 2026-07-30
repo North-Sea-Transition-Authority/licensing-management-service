@@ -14,6 +14,7 @@ public class ChronologicalPositionTestUtil {
     var changes = (operations.length == 0)
         ? List.<PositionChange>of()
         : List.of(new PositionChange(UUID.randomUUID().toString(), 1, null, List.of(operations)));
-    return ChronologicalPosition.fromLicencePosition(position, changes);
+    return ChronologicalPosition.fromLicencePosition(
+        position, position.getPositionDate(), position.getPositionDateOrder(), changes);
   }
 }

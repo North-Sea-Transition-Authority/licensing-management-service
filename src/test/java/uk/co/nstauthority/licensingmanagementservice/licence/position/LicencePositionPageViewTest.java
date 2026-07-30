@@ -77,6 +77,6 @@ class LicencePositionPageViewTest {
 
   @Test
   void actions_none_hasNullUrl() {
-    assertThat(LicencePositionPageView.Actions.none().administratorChangeUrl()).isNull();
+    assertThat(LicencePositionPageView.Actions.none().addChangeUrl()).isNull();
   }
 }

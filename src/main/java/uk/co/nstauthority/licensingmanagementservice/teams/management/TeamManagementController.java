@@ -27,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPor
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.externalcontributorjourney.LicenceContinuationExternalContributorController;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.externalcontributorjourney.ScheduleWorkProgrammeExternalContributorController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
@@ -241,7 +242,7 @@ public class TeamManagementController {
     return ReverseRouter.redirect(on(TeamManagementController.class).renderTeamMemberList(team.getId(), null));
   }
 
-  @GetMapping("/externalContributors/{teamId}")
+  @GetMapping("/external-contributors/{teamId}")
   @InvokingUserCanViewTeam
   public ModelAndView renderExternalContributorsTeamList(
       @PathVariable UUID teamId,
@@ -250,7 +251,7 @@ public class TeamManagementController {
     return buildTeamListView(teamManagementService.getTeam(teamId), user.wuaId());
   }
 
-  @GetMapping("/externalContributors/{teamId}/add-member")
+  @GetMapping("/external-contributors/{teamId}/add-member")
   @InvokingUserCanManageTeam
   public ModelAndView renderAddMemberToScheduleExternalContributorsTeam(
       @PathVariable UUID teamId,
@@ -259,7 +260,7 @@ public class TeamManagementController {
     return buildAddMemberView(teamManagementService.getTeam(teamId));
   }
 
-  @PostMapping("/externalContributors/{teamId}/add-member")
+  @PostMapping("/external-contributors/{teamId}/add-member")
   @InvokingUserCanManageTeam
   public ModelAndView handleAddMemberToScheduleExternalContributorsTeam(
       @PathVariable UUID teamId,
@@ -274,7 +275,7 @@ public class TeamManagementController {
         .renderUserScheduleExternalContributorsTeamRoles(teamId, wuaId, null));
   }
 
-  @GetMapping("/externalContributors/{teamId}/member/{wuaId}/")
+  @GetMapping("/external-contributors/{teamId}/member/{wuaId}/")
   @InvokingUserCanManageTeam
   public ModelAndView renderUserScheduleExternalContributorsTeamRoles(
       @PathVariable UUID teamId,
@@ -284,7 +285,7 @@ public class TeamManagementController {
     return buildEditRolesView(teamManagementService.getTeam(teamId), wuaId, form);
   }
 
-  @PostMapping("/externalContributors/{teamId}/member/{wuaId}/")
+  @PostMapping("/external-contributors/{teamId}/member/{wuaId}/")
   @InvokingUserCanManageTeam
   public ModelAndView updateUserScheduleExternalContributorsTeamRoles(
       @PathVariable UUID teamId,
@@ -305,7 +306,7 @@ public class TeamManagementController {
         .renderExternalContributorsTeamList(team.getId(), null));
   }
 
-  @GetMapping("/externalContributors/{teamId}/member/{wuaId}/remove")
+  @GetMapping("/external-contributors/{teamId}/member/{wuaId}/remove")
   @InvokingUserCanManageTeam
   public ModelAndView renderRemoveScheduleExternalContributorsTeamMember(
       @PathVariable UUID teamId,
@@ -314,7 +315,7 @@ public class TeamManagementController {
     return buildRemoveView(teamManagementService.getTeam(teamId), wuaId);
   }
 
-  @PostMapping("/externalContributors/{teamId}/member/{wuaId}/remove")
+  @PostMapping("/external-contributors/{teamId}/member/{wuaId}/remove")
   @InvokingUserCanManageTeam
   public ModelAndView handleRemoveScheduleExternalContributorsTeamMember(
       @PathVariable UUID teamId,
@@ -331,20 +332,20 @@ public class TeamManagementController {
         .addObject("teamName", team.getName())
         .addObject("rolesInTeam", team.getTeamType().getAllowedRoles())
         .addObject("canManageTeam", teamManagementService.canManageTeam(team, wuaId))
-        .addObject("backUrl", getBackUrl(team.getScopeId(), team))
         .addObject("teamMemberViews", teamManagementService.getTeamMemberViewsForTeam(team));
 
     if (team.getTeamType().isApplicationScoped()) {
+      var navigation = getExternalContributorFormNavigation(team);
       modelAndView
-          .addObject(
-              "currentEndPoint",
-              ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
-                  .getTaskList(null, null, null)))
+          .addObject("saveAndCompleteUrl", navigation.saveAndCompleteUrl())
+          .addObject("cancelUrl", navigation.cancelUrl())
+          .addObject("currentEndPoint", getCurrentEndPoint(team))
           .addObject("addMemberUrl",
               ReverseRouter.route(on(TeamManagementController.class)
                   .renderAddMemberToScheduleExternalContributorsTeam(team.getId(), null)));
     } else {
       modelAndView
+          .addObject("backUrl", ReverseRouter.route(on(TeamManagementController.class).renderTeamTypeList(null)))
           .addObject("addMemberUrl",
               ReverseRouter.route(on(TeamManagementController.class).renderAddMemberToTeam(team.getId(), null)));
     }
@@ -399,9 +400,7 @@ public class TeamManagementController {
 
     if (team.getTeamType().isApplicationScoped()) {
       modelAndView
-          .addObject(
-              "currentEndPoint",
-              ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(null, null, null)))
+          .addObject("currentEndPoint", getCurrentEndPoint(team))
           .addObject(
               "cancelUrl",
               ReverseRouter.route(on(TeamManagementController.class)
@@ -415,28 +414,45 @@ public class TeamManagementController {
     return modelAndView;
   }
 
-  private String getBackUrl(String scopeId, Team team) {
-    if (!team.getTeamType().isApplicationScoped()) {
-      return ReverseRouter.route(on(TeamManagementController.class).renderTeamTypeList(null));
-    }
+  private ExternalContributorFormNavigation getExternalContributorFormNavigation(Team team) {
+    return switch (ApplicationType.valueOf(team.getScopeType())) {
+      case SCHEDULE_AMENDMENT_APPLICATION -> {
+        var scheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationService
+            .getScheduleWorkProgrammeApplicationById(UUID.fromString(team.getScopeId()));
 
-    if (team.getScopeType().equals(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name())) {
-      var scheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationService
-          .getScheduleWorkProgrammeApplicationById(UUID.fromString(scopeId));
+        var applicationDetailId = scheduleWorkProgrammeApplicationService
+            .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication)
+            .getId();
 
-      var scheduleWorkProgrammeApplicationDetail = scheduleWorkProgrammeApplicationService
-          .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication);
+        yield new ExternalContributorFormNavigation(
+            ReverseRouter.route(on(ScheduleWorkProgrammeExternalContributorController.class)
+                .renderForm(applicationDetailId, null)),
+            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+                .getTaskList(applicationDetailId, null, null))
+        );
+      }
+      case CONTINUATION_APPLICATION -> {
+        var applicationDetailId = licenceContinuationService
+            .getDetailByIdOrThrow(UUID.fromString(team.getScopeId()))
+            .getId();
 
-      return ReverseRouter.route(on(ScheduleWorkProgrammeExternalContributorController.class).renderForm(
-          scheduleWorkProgrammeApplicationDetail.getId(), null));
+        yield new ExternalContributorFormNavigation(
+            ReverseRouter.route(on(LicenceContinuationExternalContributorController.class)
+                .renderForm(applicationDetailId, null)),
+            ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
+                .getTaskList(applicationDetailId, null, null))
+        );
+      }
+    };
+  }
 
-    } else {
-      var detailByIdOrThrow = licenceContinuationService
-          .getDetailByIdOrThrow(UUID.fromString(scopeId));
-
-      return ReverseRouter.route(on(LicenceContinuationExternalContributorController.class).renderForm(
-          detailByIdOrThrow.getId(), null));
-    }
+  private String getCurrentEndPoint(Team team) {
+    return switch (ApplicationType.valueOf(team.getScopeType())) {
+      case SCHEDULE_AMENDMENT_APPLICATION -> ReverseRouter.route(
+          on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(null, null, null));
+      case CONTINUATION_APPLICATION -> ReverseRouter.route(
+          on(LicenceContinuationApplicationTaskListController.class).getTaskList(null, null, null));
+    };
   }
 
   private Long findUserOrThrow(String email) {

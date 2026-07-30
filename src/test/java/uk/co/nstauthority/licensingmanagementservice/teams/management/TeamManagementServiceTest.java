@@ -612,6 +612,45 @@ class TeamManagementServiceTest {
   }
 
   @Test
+  void removeAllUsersFromTeam_removesEachDistinctMember() {
+    var externalTeam1User1Role = new TeamRole();
+    externalTeam1User1Role.setTeam(externalTeam1);
+    externalTeam1User1Role.setWuaId(USER_1_WUA_ID);
+    externalTeam1User1Role.setRole(Role.EXTERNAL_APPLICATION_EDITOR);
+
+    var externalTeam1User2Role = new TeamRole();
+    externalTeam1User2Role.setTeam(externalTeam1);
+    externalTeam1User2Role.setWuaId(USER_2_WUA_ID);
+    externalTeam1User2Role.setRole(Role.EXTERNAL_APPLICATION_VIEWER);
+
+    when(teamRoleRepository.findByTeam(externalTeam1))
+        .thenReturn(List.of(externalTeam1User1Role, externalTeam1User2Role));
+    when(teamRoleRepository.findAllByWuaId(USER_1_WUA_ID)).thenReturn(Collections.emptyList());
+    when(teamRoleRepository.findAllByWuaId(USER_2_WUA_ID)).thenReturn(Collections.emptyList());
+
+    teamManagementService.removeAllUsersFromTeam(externalTeam1);
+
+    verify(teamRoleRepository).deleteByWuaIdAndTeam(USER_1_WUA_ID, externalTeam1);
+    verify(teamRoleRepository).deleteByWuaIdAndTeam(USER_2_WUA_ID, externalTeam1);
+    verify(energyPortalAccountsMessagePublishingService)
+        .publishRemoveUserFromTeam(USER_1_WUA_ID, externalTeam1.getId().toString());
+    verify(energyPortalAccountsMessagePublishingService)
+        .publishRemoveUserFromTeam(USER_2_WUA_ID, externalTeam1.getId().toString());
+    verify(energyPortalServiceAccessService).removeUser(USER_1_WUA_ID);
+    verify(energyPortalServiceAccessService).removeUser(USER_2_WUA_ID);
+  }
+
+  @Test
+  void removeAllUsersFromTeam_whenNoMembers_doesNothing() {
+    when(teamRoleRepository.findByTeam(externalTeam2)).thenReturn(Collections.emptyList());
+
+    teamManagementService.removeAllUsersFromTeam(externalTeam2);
+
+    verify(teamRoleRepository, never()).deleteByWuaIdAndTeam(anyLong(), any());
+    verify(energyPortalAccountsMessagePublishingService, never()).publishRemoveUserFromTeam(anyLong(), any());
+  }
+
+  @Test
   void onUserCancelledEvent() {
     when(teamRoleRepository.findAllByWuaId(USER_2_WUA_ID))
         .thenReturn(List.of(regTeamUser2RoleOrgAdmin), List.of());

@@ -88,5 +88,22 @@
             ${teamName} has no members.
         </@fdsInsetText.insetText>
     </#if>
-    <@fdsBackLink.backLink backLinkUrl=springUrl(backUrl)/>
+    <#if saveAndCompleteUrl??>
+        <@fdsAction.buttonGroup>
+            <@fdsAction.link
+                linkText="Save and complete"
+                linkUrl=springUrl(saveAndCompleteUrl)
+                linkClass="govuk-button"
+                role=true
+            />
+            <@fdsAction.link
+                linkText="Cancel"
+                linkUrl=springUrl(cancelUrl)
+                linkClass="govuk-button govuk-button--secondary"
+                role=true
+            />
+        </@fdsAction.buttonGroup>
+    <#else>
+        <@fdsBackLink.backLink backLinkUrl=springUrl(backUrl)/>
+    </#if>
 </@defaultPage>

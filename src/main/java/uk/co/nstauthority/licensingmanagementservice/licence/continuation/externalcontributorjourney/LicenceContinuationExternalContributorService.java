@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation.externalcontributorjourney;
 
 import java.util.Optional;
+import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
@@ -37,6 +38,10 @@ public class LicenceContinuationExternalContributorService {
     request.setAddExternalContributors(form.getAddExternalContributors());
 
     licenceContinuationExternalContributorRepository.save(request);
+
+    if (BooleanUtils.isFalse(form.getAddExternalContributors())) {
+      externalContributorService.clearExternalContributors(scopeReference(applicationDetail));
+    }
   }
 
   public ExternalContributorForm getExternalContributorForm(

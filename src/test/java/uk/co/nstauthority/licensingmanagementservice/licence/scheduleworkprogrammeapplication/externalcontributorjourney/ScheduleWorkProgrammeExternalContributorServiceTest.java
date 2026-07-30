@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -66,6 +67,21 @@ class ScheduleWorkProgrammeExternalContributorServiceTest {
     var savedRequest = requestArgumentCaptor.getValue();
     assertThat(savedRequest.getAddExternalContributors()).isTrue();
     assertThat(savedRequest.getScheduleWorkProgrammeApplication()).isEqualTo(application);
+
+    verify(externalContributorService, never()).clearExternalContributors(any(TeamScopeReference.class));
+  }
+
+  @Test
+  void saveExternalContributorForm_whenAnswerIsNo_clearsExistingContributors() {
+    var form = new ExternalContributorForm();
+    form.setAddExternalContributors(false);
+
+    when(repository.findByScheduleWorkProgrammeApplication(application))
+        .thenReturn(Optional.of(new ScheduleWorkProgrammeExternalContributorRequest()));
+
+    scheduleWorkProgrammeExternalContributorService.saveExternalContributorForm(form, applicationDetail);
+
+    verify(externalContributorService).clearExternalContributors(any(TeamScopeReference.class));
   }
 
   @Test

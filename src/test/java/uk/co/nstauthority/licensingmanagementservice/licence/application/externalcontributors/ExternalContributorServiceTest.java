@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -78,5 +79,16 @@ class ExternalContributorServiceTest {
     when(teamManagementService.teamHasMembers(team)).thenReturn(false);
 
     assertThat(externalContributorService.isSectionComplete(true, SCOPE_REF)).isFalse();
+  }
+
+  @Test
+  void clearExternalContributors_removesAllTeamMembers() {
+    var team = new Team(UUID.randomUUID());
+    when(teamManagementService.getScopedTeam(eq(TeamType.EXTERNAL_CONTRIBUTORS), any(TeamScopeReference.class)))
+        .thenReturn(Optional.of(team));
+
+    externalContributorService.clearExternalContributors(SCOPE_REF);
+
+    verify(teamManagementService).removeAllUsersFromTeam(team);
   }
 }

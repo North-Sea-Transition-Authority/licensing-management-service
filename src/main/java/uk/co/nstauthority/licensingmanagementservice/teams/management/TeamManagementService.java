@@ -295,6 +295,14 @@ public class TeamManagementService {
   }
 
   @Transactional
+  public void removeAllUsersFromTeam(Team team) {
+    teamRoleRepository.findByTeam(team).stream()
+        .map(TeamRole::getWuaId)
+        .distinct()
+        .forEach(wuaId -> handleUserRemovalFromTeam(wuaId, team));
+  }
+
+  @Transactional
   @EventListener(UserCancelledEvent.class)
   void onUserCancelledEvent(UserCancelledEvent event) {
     var wuaId = event.wuaId();

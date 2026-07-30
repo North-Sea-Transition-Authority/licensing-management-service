@@ -46,6 +46,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.externalcontributorjourney.LicenceContinuationExternalContributorController;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailRepository;
@@ -121,6 +122,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
     externalContributors.setTeamType(TeamType.EXTERNAL_CONTRIBUTORS);
     externalContributors.setName("EXTERNAL CONTRIBUTORS");
     externalContributors.setScopeId(UUID.randomUUID().toString());
+    externalContributors.setScopeType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name());
 
     applicationScopedTeamMemberView = new TeamMemberView(
         1L,
@@ -906,9 +908,13 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("teamName", externalContributors.getName()))
         .andExpect(model().attribute("teamMemberViews", List.of(applicationScopedTeamMemberView)))
         .andExpect(model().attribute("canManageTeam", false))
-        .andExpect(model().attribute("backUrl",
+        .andExpect(model().attribute("cancelUrl",
             ReverseRouter.route(on(ScheduleWorkProgrammeExternalContributorController.class).renderForm(
                 scheduleWorkProgrammeApplicationDetail.getId(), null))
+        ))
+        .andExpect(model().attribute("saveAndCompleteUrl",
+            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
+                scheduleWorkProgrammeApplicationDetail.getId(), null, null))
         ))
         .andExpect(model().attribute("currentEndPoint",
             ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(null, null, null))
@@ -953,12 +959,16 @@ class TeamManagementControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("teamName", externalContributors.getName()))
         .andExpect(model().attribute("teamMemberViews", List.of(applicationScopedTeamMemberView)))
         .andExpect(model().attribute("canManageTeam", false))
-        .andExpect(model().attribute("backUrl",
+        .andExpect(model().attribute("cancelUrl",
                                      ReverseRouter.route(on(LicenceContinuationExternalContributorController.class).renderForm(
                                          licenceContinuationApplicationDetail.getId(), null))
         ))
+        .andExpect(model().attribute("saveAndCompleteUrl",
+                                     ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(
+                                         licenceContinuationApplicationDetail.getId(), null, null))
+        ))
         .andExpect(model().attribute("currentEndPoint",
-                                     ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(null, null, null))
+                                     ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(null, null, null))
         ))
         .andExpect(model().attribute("addMemberUrl",
                                      ReverseRouter.route(on(TeamManagementController.class).renderAddMemberToScheduleExternalContributorsTeam(

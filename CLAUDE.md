@@ -141,3 +141,4 @@ Templates live under `src/main/resources/templates/`. The `lms/` subtree holds a
 - **Integration tests** are annotated with `@IntegrationTest` (a meta-annotation that sets up `@SpringBootTest` with `development` + `integration-test` profiles and a Testcontainers PostgreSQL instance).
 - **Architecture tests** use ArchUnit in the `architecture` package.
 - Test method naming convention: `methodName_whenCondition_assertExpectedBehaviour`.
+- checkstyleTest Gradle task is not required

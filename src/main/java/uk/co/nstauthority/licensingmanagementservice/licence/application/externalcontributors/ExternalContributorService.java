@@ -26,6 +26,10 @@ public class ExternalContributorService {
         )));
   }
 
+  public void clearExternalContributors(TeamScopeReference scopeRef) {
+    teamManagementService.removeAllUsersFromTeam(getExternalContributorsTeam(scopeRef));
+  }
+
   public boolean isSectionComplete(Boolean addExternalContributors, TeamScopeReference scopeRef) {
     if (addExternalContributors == null) {
       return false;

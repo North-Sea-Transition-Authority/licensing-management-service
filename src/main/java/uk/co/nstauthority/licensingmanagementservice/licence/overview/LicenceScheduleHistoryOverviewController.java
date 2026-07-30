@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.overview;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
@@ -15,10 +14,9 @@ import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.TimelineFilterForm;
@@ -26,15 +24,15 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.T
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
-@RequestMapping("licences/{licenceId}/overview")
+@RequestMapping("/licence/schedule/{licenceScheduleDetailId}/overview")
 @SessionAttributes("timelineSession")
-public class LicenceOverviewController {
+public class LicenceScheduleHistoryOverviewController {
 
   private final LicenceActionService licenceActionService;
   private final LicenceScheduleDetailService licenceScheduleDetailService;
   private final LicenceScheduleTimelineService licenceScheduleTimelineService;
 
-  public LicenceOverviewController(
+  public LicenceScheduleHistoryOverviewController(
       LicenceActionService licenceActionService,
       LicenceScheduleDetailService licenceScheduleDetailService,
       LicenceScheduleTimelineService licenceScheduleTimelineService
@@ -46,9 +44,9 @@ public class LicenceOverviewController {
 
   @GetMapping
   public ModelAndView renderLicenceOverview(
-      @PathVariable Integer licenceId,
+      @PathVariable UUID licenceScheduleDetailId,
+      LicenceScheduleDetail licenceScheduleDetail,
       @ModelAttribute("timelineSession") TimelineSession filterSession,
-      Licence licence,
       ServiceUserDetail user
   ) {
     var form = filterSession.getTimelineFilterForm();
@@ -57,78 +55,58 @@ public class LicenceOverviewController {
       form.clearFilter();
     }
 
-    var modelAndView = new ModelAndView("lms/licence/licenceOverview")
+    var licence = licenceScheduleDetail.getLicenceSchedule().getLicence();
+
+    return new ModelAndView("lms/licence/licenceOverview")
         .addObject("form", form)
         .addObject("licenceReference", licence.getLicenceReference())
         .addObject("caption", licence.getType().getDisplayName())
         .addObject("licenceActions", licenceActionService.getAvailableUserActionItems(licence, user))
         .addObject("historyForm", new LicenceScheduleHistoryForm())
         .addObject("scheduleHistoryOptions", licenceScheduleDetailService.getScheduleDetailHistoryOptions(licence))
-        .addObject("viewScheduleHistoryUrl", ReverseRouter.route(on(LicenceOverviewController.class)
-            .viewScheduleHistory(licenceId, null))
-        );
-
-    var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(
-        licence,
-        LicenceScheduleDetailStatus.ACTIVE
-    );
-
-    licenceScheduleDetail.ifPresent(scheduleDetail -> modelAndView
-        .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(scheduleDetail))
+        .addObject("viewScheduleHistoryUrl", ReverseRouter.route(on(LicenceScheduleHistoryOverviewController.class)
+            .viewScheduleHistory(licenceScheduleDetailId, null))
+        )
+        .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .addObject("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions())
         .addObject("scheduleEventViews",
-            licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(scheduleDetail, form, user)
+            licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(licenceScheduleDetail, form, user)
         )
-        .addObject("clearFilterUrl", ReverseRouter.route(on(LicenceOverviewController.class)
-            .clearFilters(licenceId, null, null))
-        )
-    );
-
-    return modelAndView;
+        .addObject("clearFilterUrl", ReverseRouter.route(on(LicenceScheduleHistoryOverviewController.class)
+            .clearFilters(licenceScheduleDetailId, null, null))
+        );
   }
 
   @PostMapping
   public ModelAndView filterTimeline(
-      @PathVariable Integer licenceId,
+      @PathVariable UUID licenceScheduleDetailId,
       @ModelAttribute("form") TimelineFilterForm form,
       @ModelAttribute("timelineSession") TimelineSession filterSession
   ) {
     filterSession.update(form);
-    return ReverseRouter.redirect(on(LicenceOverviewController.class)
-        .renderLicenceOverview(licenceId, null, null, null));
+    return ReverseRouter.redirect(on(LicenceScheduleHistoryOverviewController.class)
+        .renderLicenceOverview(licenceScheduleDetailId, null, null, null));
   }
 
   @GetMapping("/clear-filters")
   public ModelAndView clearFilters(
-      @PathVariable Integer licenceId,
+      @PathVariable UUID licenceScheduleDetailId,
       @ModelAttribute("timelineSession") TimelineSession filterSession,
       SessionStatus sessionStatus
   ) {
     sessionStatus.setComplete();
-    return ReverseRouter.redirect(on(LicenceOverviewController.class)
-        .renderLicenceOverview(licenceId, null, null, null));
-  }
-
-  @GetMapping("/work-programmes-only")
-  public ModelAndView renderWorkProgrammesOnlyTimeline(
-      @PathVariable Integer licenceId,
-      @ModelAttribute("timelineSession") TimelineSession filterSession
-  ) {
-    var form = new TimelineFilterForm();
-    form.setEventTypes(List.of(ScheduleEventType.WORK_PROGRAMME_ACTIVITY.name()));
-    filterSession.update(form);
-    return ReverseRouter.redirect(on(LicenceOverviewController.class)
-        .renderLicenceOverview(licenceId, null, null, null));
+    return ReverseRouter.redirect(on(LicenceScheduleHistoryOverviewController.class)
+        .renderLicenceOverview(licenceScheduleDetailId, null, null, null));
   }
 
   @PostMapping("/schedule-history")
   public ModelAndView viewScheduleHistory(
-      @PathVariable Integer licenceId,
+      @PathVariable UUID licenceScheduleDetailId,
       @ModelAttribute("historyForm") LicenceScheduleHistoryForm form
   ) {
     if (!StringUtils.hasText(form.getLicenceScheduleDetailId())) {
-      return ReverseRouter.redirect(on(LicenceOverviewController.class)
-          .renderLicenceOverview(licenceId, null, null, null));
+      return ReverseRouter.redirect(on(LicenceScheduleHistoryOverviewController.class)
+          .renderLicenceOverview(licenceScheduleDetailId, null, null, null));
     }
 
     return ReverseRouter.redirect(on(LicenceScheduleHistoryOverviewController.class)

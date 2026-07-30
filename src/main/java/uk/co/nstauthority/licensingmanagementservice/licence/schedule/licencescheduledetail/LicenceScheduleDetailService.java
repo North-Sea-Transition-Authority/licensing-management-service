@@ -2,19 +2,23 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesc
 
 import jakarta.transaction.Transactional;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
+import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 @Service
 public class LicenceScheduleDetailService {
@@ -137,5 +141,15 @@ public class LicenceScheduleDetailService {
 
     licenceScheduleDetail.setStatus(LicenceScheduleDetailStatus.DELETED);
     licenceScheduleDetailRepository.save(licenceScheduleDetail);
+  }
+
+  public Map<String, String> getScheduleDetailHistoryOptions(Licence licence) {
+    return licenceScheduleDetailRepository.findAllByLicenceSchedule_Licence(licence).stream()
+        .sorted(Comparator.comparing(LicenceScheduleDetail::getCreatedInstant).reversed())
+        .collect(StreamUtil.toLinkedHashMap(
+            licenceScheduleDetail -> licenceScheduleDetail.getId().toString(),
+            licenceScheduleDetail -> "Applied date: %s"
+                .formatted(DateFormatUtil.convertToDisplayTextWithTime(licenceScheduleDetail.getCreatedInstant())))
+        );
   }
 }

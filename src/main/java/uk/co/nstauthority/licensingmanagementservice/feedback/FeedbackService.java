@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import uk.co.fivium.feedbackmanagementservice.client.CannotSendFeedbackException;
 import uk.co.fivium.feedbackmanagementservice.client.FeedbackClientService;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplication;
 
 @Service
 class FeedbackService {
@@ -27,22 +26,6 @@ class FeedbackService {
                     String feedbackText,
                     ServiceUserDetail userDetail) {
     var feedback = new Feedback();
-    feedback.setServiceRating(serviceRating);
-    feedback.setComment(feedbackText);
-    feedback.setGivenDatetime(clock.instant());
-    feedback.setSubmitterEmail(userDetail.emailAddress());
-    feedback.setSubmitterName(userDetail.displayNameIncludingAnyProxyUser());
-    sendFeedback(feedback);
-  }
-
-  void saveFeedback(XyzApplication xyzApplication,
-                    String serviceRating,
-                    String feedbackText,
-                    ServiceUserDetail userDetail) {
-    var feedback = new Feedback();
-    feedback.setTransactionId(xyzApplication.getId().toString());
-    // XYZ Mocked up reference
-    feedback.setTransactionReference(xyzApplication.getReference());
     feedback.setServiceRating(serviceRating);
     feedback.setComment(feedbackText);
     feedback.setGivenDatetime(clock.instant());

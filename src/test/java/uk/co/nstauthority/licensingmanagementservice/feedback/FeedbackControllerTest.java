@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -17,8 +16,6 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
-import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
@@ -31,8 +28,6 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
-import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplication;
-import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationStatus;
 
 @ContextConfiguration(classes = FeedbackController.class)
 class FeedbackControllerTest extends AbstractControllerTest {
@@ -47,21 +42,8 @@ class FeedbackControllerTest extends AbstractControllerTest {
 
   private ServiceUserDetail organisationUser;
 
-  private XyzApplication xyzApplication;
-
   @BeforeEach
   void setup() {
-    xyzApplication = new XyzApplication(
-        UUID.randomUUID(),
-        "testref",
-        "type",
-        XyzApplicationStatus.DRAFT
-    );
-
-    when(xyzApplicationService.getXyzApplicationById(xyzApplication.getId()))
-        .thenReturn(xyzApplication);
-    when(xyzApplicationService.findXyzApplicationById(xyzApplication.getId()))
-        .thenReturn(Optional.ofNullable(xyzApplication));
     organisationUser = ServiceUserDetailTestUtil.newBuilder()
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
@@ -129,74 +111,6 @@ class FeedbackControllerTest extends AbstractControllerTest {
             .with(csrf()))
         .andExpect(status().isOk())
         .andExpect(view().name("lms/feedback/feedback"));
-
-    verify(feedbackService, never()).saveFeedback(any(), any(), any());
-  }
-
-  @Test
-  void getApplicationFeedback_whenNotLoggedIn() throws Exception {
-    mockMvc.perform(get(ReverseRouter.route(on(FeedbackController.class)
-            .getApplicationFeedback(xyzApplication, null))))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectionToLoginUrl());
-  }
-
-  @Test
-  void getApplicationFeedback_assertModelProperties() throws Exception {
-    mockMvc.perform(get(ReverseRouter.route(on(FeedbackController.class)
-            .getApplicationFeedback(xyzApplication, null)))
-            .with(user(organisationUser)))
-        .andExpect(status().isOk())
-        .andExpect(view().name("lms/feedback/feedback"))
-        .andExpect(model().attributeExists("form"))
-        .andExpect(model().attribute("pageName", FeedbackController.PAGE_NAME))
-        .andExpect(model().attribute(
-            "actionUrl",
-            ReverseRouter.route(on(FeedbackController.class).submitApplicationFeedback(xyzApplication, null, null, null))
-        ))
-        .andExpect(model().attribute(
-            "serviceRatings",
-            DisplayableEnumOptionUtil.getDisplayableOptions(ServiceFeedbackRating.class)
-        ));
-  }
-
-  @Test
-  void submitApplicationFeedback_whenNotLoggedIn() throws Exception {
-    mockMvc.perform(post(ReverseRouter.route(on(FeedbackController.class)
-            .submitFeedback(null, null, null)))
-            .with(csrf()))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectionToLoginUrl());
-  }
-
-  @Test
-  void submitApplicationFeedback_assertRedirect() throws Exception {
-    mockMvc.perform(post(ReverseRouter.route(on(FeedbackController.class)
-            .submitApplicationFeedback(xyzApplication, null, null, null)))
-            .with(user(organisationUser))
-            .with(csrf()))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(
-            ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))
-        ));
-
-    verify(feedbackService).saveFeedback(eq(xyzApplication), any(), any(), eq(organisationUser));
-  }
-
-  @Test
-  void submitApplicationFeedback_whenHasErrors_assertOk() throws Exception {
-    doAnswer(invocation -> {
-      var bindingResult = (BindingResult) invocation.getArgument(1);
-      bindingResult.addError(new ObjectError("error", "error"));
-
-      return invocation;
-    }).when(feedbackFormValidator).validate(any(), any());
-
-    mockMvc.perform(post(ReverseRouter.route(on(FeedbackController.class)
-            .submitApplicationFeedback(xyzApplication, null, null, null)))
-            .with(user(organisationUser))
-            .with(csrf()))
-        .andExpect(status().isOk());
 
     verify(feedbackService, never()).saveFeedback(any(), any(), any());
   }

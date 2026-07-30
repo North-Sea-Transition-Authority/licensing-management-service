@@ -4,7 +4,7 @@ import java.util.UUID;
 import uk.co.fivium.fileuploadlibrary.core.UploadedFile;
 import uk.co.fivium.fileuploadlibrary.core.UploadedFileTestUtil;
 
-public class XyzApplicationFileTestUtil {
+public class ApplicationFileTestUtil {
 
   static final String FILE_DESCRIPTION = "file description";
 

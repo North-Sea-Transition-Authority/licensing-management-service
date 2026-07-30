@@ -15,7 +15,6 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
-import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplication;
 
 @Controller
 @RequestMapping
@@ -59,46 +58,12 @@ public class FeedbackController {
     return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
   }
 
-  @GetMapping("/application/{applicationId}/feedback")
-  public ModelAndView getApplicationFeedback(XyzApplication xyzApplication,
-                                             @ModelAttribute("form") FeedbackForm form) {
-    return getApplicationFeedbackModelAndView(form, xyzApplication);
-  }
-
-  @PostMapping("/application/{applicationId}/feedback")
-  public ModelAndView submitApplicationFeedback(XyzApplication xyzApplication,
-                                                @ModelAttribute("form") FeedbackForm form,
-                                                BindingResult bindingResult,
-                                                RedirectAttributes redirectAttributes) {
-    feedbackFormValidator.validate(form, bindingResult);
-
-    if (bindingResult.hasErrors()) {
-      return getApplicationFeedbackModelAndView(form, xyzApplication);
-    }
-
-    feedbackService.saveFeedback(
-        xyzApplication,
-        form.getServiceRating(),
-        form.getFeedback().getInputValue(),
-        userDetailService.getUserDetail());
-
-    NotificationBanner.newSuccessBannerWithHeader("Your feedback has been submitted", redirectAttributes);
-
-    return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
-  }
-
   private ModelAndView getBaseModelAndView(FeedbackForm feedbackForm) {
     return new ModelAndView("lms/feedback/feedback")
         .addObject("form", feedbackForm)
         .addObject("pageName", PAGE_NAME)
         .addObject("serviceRatings",
             DisplayableEnumOptionUtil.getDisplayableOptions(ServiceFeedbackRating.class));
-  }
-
-  private ModelAndView getApplicationFeedbackModelAndView(FeedbackForm feedbackForm, XyzApplication xyzApplication) {
-    return getBaseModelAndView(feedbackForm)
-        .addObject("actionUrl", ReverseRouter.route(on(FeedbackController.class)
-            .submitApplicationFeedback(xyzApplication, null, null, null)));
   }
 
   private ModelAndView getFeedbackModelAndView(FeedbackForm feedbackForm) {

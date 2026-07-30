@@ -8,7 +8,6 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
@@ -29,9 +28,6 @@ import uk.co.fivium.feedbackmanagementservice.client.CannotSendFeedbackException
 import uk.co.fivium.feedbackmanagementservice.client.FeedbackClientService;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplication;
-import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationService;
-import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationStatus;
 
 @ExtendWith(MockitoExtension.class)
 class FeedbackServiceTest {
@@ -53,9 +49,6 @@ class FeedbackServiceTest {
   @Mock
   private FeedbackClientService feedbackClientService;
 
-  @Mock
-  private XyzApplicationService xyzApplicationService;
-
   @InjectMocks
   private FeedbackService feedbackService;
 
@@ -63,8 +56,6 @@ class FeedbackServiceTest {
   private ArgumentCaptor<Feedback> feedbackArgumentCaptor;
 
   private FeedbackForm form;
-
-  private XyzApplication xyzApplication;
 
   @BeforeAll
   static void setUp() {
@@ -78,13 +69,6 @@ class FeedbackServiceTest {
     form = new FeedbackForm();
     form.setServiceRating(ServiceFeedbackRating.SATISFIED.name());
     form.getFeedback().setInputValue("feedback test");
-
-    xyzApplication = new XyzApplication(
-        UUID.randomUUID(),
-        "testreference",
-        null,
-        XyzApplicationStatus.DRAFT
-    );
 
     when(clock.instant()).thenReturn(CURRENT_INSTANT);
   }
@@ -149,71 +133,6 @@ class FeedbackServiceTest {
         null,
         null,
         null
-    );
-  }
-
-  @ParameterizedTest
-  @MethodSource("getFeedbackUsers")
-  void saveFeedback_withApplicationVersion(ServiceUserDetail feedbackUser) throws CannotSendFeedbackException {
-    assertDoesNotThrow(() -> feedbackService.saveFeedback(
-        xyzApplication,
-        form.getServiceRating(),
-        form.getFeedback().getInputValue(),
-        feedbackUser)
-    );
-
-    verify(feedbackClientService).saveFeedback(feedbackArgumentCaptor.capture());
-
-    assertThat(feedbackArgumentCaptor.getValue()).extracting(
-        Feedback::getSubmitterName,
-        Feedback::getSubmitterEmail,
-        Feedback::getServiceRating,
-        Feedback::getComment,
-        Feedback::getGivenDatetime,
-        Feedback::getTransactionId,
-        Feedback::getTransactionReference
-    ).containsExactly(
-        feedbackUser.displayNameIncludingAnyProxyUser(),
-        feedbackUser.emailAddress(),
-        form.getServiceRating(),
-        form.getFeedback().getInputValue(),
-        CURRENT_INSTANT,
-        xyzApplication.getId().toString(),
-        xyzApplication.getReference()
-    );
-  }
-
-  @ParameterizedTest
-  @MethodSource("getFeedbackUsers")
-  void saveFeedback_withApplicationVersion_cannotSendFeedbackException(ServiceUserDetail feedbackUser) throws CannotSendFeedbackException {
-    when(feedbackClientService.saveFeedback(any(Feedback.class)))
-        .thenThrow(new CannotSendFeedbackException("test exception"));
-
-    feedbackService.saveFeedback(
-        xyzApplication,
-        form.getServiceRating(),
-        form.getFeedback().getInputValue(),
-        feedbackUser
-    );
-
-    verify(feedbackClientService).saveFeedback(feedbackArgumentCaptor.capture());
-
-    assertThat(feedbackArgumentCaptor.getValue()).extracting(
-        Feedback::getSubmitterName,
-        Feedback::getSubmitterEmail,
-        Feedback::getServiceRating,
-        Feedback::getComment,
-        Feedback::getGivenDatetime,
-        Feedback::getTransactionId,
-        Feedback::getTransactionReference
-    ).containsExactly(
-        feedbackUser.displayNameIncludingAnyProxyUser(),
-        feedbackUser.emailAddress(),
-        form.getServiceRating(),
-        form.getFeedback().getInputValue(),
-        CURRENT_INSTANT,
-        xyzApplication.getId().toString(),
-        xyzApplication.getReference()
     );
   }
 

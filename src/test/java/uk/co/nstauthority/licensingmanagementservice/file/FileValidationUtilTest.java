@@ -3,18 +3,32 @@ package uk.co.nstauthority.licensingmanagementservice.file;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.validation.BeanPropertyBindingResult;
+import uk.co.fivium.fileuploadlibrary.fds.UploadedFileForm;
 import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
-import uk.co.nstauthority.licensingmanagementservice.xyzapplication.form.XyzApplicationForm;
 
 class FileValidationUtilTest {
+
+  static class TestForm {
+    private List<UploadedFileForm> documents = new ArrayList<>();
+
+    public List<UploadedFileForm> getDocuments() {
+      return documents;
+    }
+
+    public void setDocuments(List<UploadedFileForm> documents) {
+      this.documents = documents;
+    }
+  }
 
   @Test
   void validateFilesHaveDescriptions_validForms() {
     var uploadedFileForms = FileUploadTestUtil.validDocumentForms;
-    var form = new XyzApplicationForm();
+    var form = new TestForm();
     form.setDocuments(uploadedFileForms);
 
     var errors = new BeanPropertyBindingResult(form, "form");
@@ -27,7 +41,7 @@ class FileValidationUtilTest {
   @Test
   void validateFilesHaveDescriptions_noDescription() {
     var uploadedFileForms = FileUploadTestUtil.documentFormsWithMissingDescription;
-    var form = new XyzApplicationForm();
+    var form = new TestForm();
     form.setDocuments(uploadedFileForms);
 
     var errors = new BeanPropertyBindingResult(form, "form");
@@ -44,7 +58,7 @@ class FileValidationUtilTest {
   @Test
   void validateFiles_withNotEnoughFiles() {
     var uploadedFileForms = FileUploadTestUtil.validDocumentForms;
-    var form = new XyzApplicationForm();
+    var form = new TestForm();
     form.setDocuments(uploadedFileForms);
 
     var errors = new BeanPropertyBindingResult(form, "form");
@@ -63,7 +77,7 @@ class FileValidationUtilTest {
   @Test
   void validateFiles_withTooManyFiles() {
     var uploadedFileForms = FileUploadTestUtil.validDocumentForms;
-    var form = new XyzApplicationForm();
+    var form = new TestForm();
     form.setDocuments(uploadedFileForms);
 
     var errors = new BeanPropertyBindingResult(form, "form");

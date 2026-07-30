@@ -1,8 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.authorisation.rules;
 
 
-import static uk.co.nstauthority.licensingmanagementservice.xyzapplication.processing.action.CaseProcessingActionItem.PROGRESS_APPLICATION;
-
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -58,12 +56,6 @@ public class InterceptorRuleTestEndpoints {
   @HasRoleInStaticTeamInterceptorRule.HasRoleInStaticTeam(@HasRoleInStaticTeamInterceptorRule.TeamRoles(teamType = TeamType.LICENCE_MANAGEMENT, roles = {}))
   public ResponseEntity<String> hasRoleInStaticTeam_noProvidedRoles() {
     return ResponseEntity.ok("has role in static team no provided roles test endpoint");
-  }
-
-  @GetMapping("/test-with-action")
-  @ActionEndPointInterceptorRule.ActionEndPoint(PROGRESS_APPLICATION)
-  String getAction() {
-    return "some data action";
   }
 
   @GetMapping("/test-with-licence-action")

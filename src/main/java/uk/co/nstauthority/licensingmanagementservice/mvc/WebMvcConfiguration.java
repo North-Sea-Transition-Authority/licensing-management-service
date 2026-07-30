@@ -22,7 +22,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.mvc.error.ErrorSummaryItemsHandlerInterceptor;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.access.TeamManagementHandlerInterceptor;
-import uk.co.nstauthority.licensingmanagementservice.xyzapplication.XyzApplicationArgumentResolver;
 
 @Configuration
 public class WebMvcConfiguration implements WebMvcConfigurer {
@@ -30,7 +29,6 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
   private static final String STATIC_ASSETS_PATH = "/assets/**";
 
   private final ServiceUserDetailArgumentResolver serviceUserDetailArgumentResolver;
-  private final XyzApplicationArgumentResolver xyzApplicationArgumentResolver;
   private final TeamManagementHandlerInterceptor teamManagementHandlerInterceptor;
   private final AccessHandlerInterceptor accessHandlerInterceptor;
   private final ErrorSummaryItemsHandlerInterceptor errorSummaryItemsHandlerInterceptor;
@@ -44,7 +42,6 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
 
   public WebMvcConfiguration(
       ServiceUserDetailArgumentResolver serviceUserDetailArgumentResolver,
-      XyzApplicationArgumentResolver xyzApplicationArgumentResolver,
       TeamManagementHandlerInterceptor teamManagementHandlerInterceptor,
       AccessHandlerInterceptor accessHandlerInterceptor,
       ErrorSummaryItemsHandlerInterceptor errorSummaryItemsHandlerInterceptor,
@@ -57,7 +54,6 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
       ApplicationTypeArgumentResolver applicationTypeArgumentResolver
   ) {
     this.serviceUserDetailArgumentResolver = serviceUserDetailArgumentResolver;
-    this.xyzApplicationArgumentResolver = xyzApplicationArgumentResolver;
     this.teamManagementHandlerInterceptor = teamManagementHandlerInterceptor;
     this.accessHandlerInterceptor = accessHandlerInterceptor;
     this.errorSummaryItemsHandlerInterceptor = errorSummaryItemsHandlerInterceptor;
@@ -100,7 +96,6 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
   @Override
   public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
     resolvers.add(serviceUserDetailArgumentResolver);
-    resolvers.add(xyzApplicationArgumentResolver);
     resolvers.add(licenceArgumentResolver);
     resolvers.add(scheduleWorkProgrammeApplicationDetailArgumentResolver);
     resolvers.add(licenceScheduleDetailArgumentResolver);

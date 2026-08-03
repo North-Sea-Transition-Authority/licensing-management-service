@@ -1,6 +1,6 @@
 <#include '../../layout/layout.ftl'>
 
-<#macro administratorChange change correctUrl="">
+<#macro administratorChange change>
     <#assign removed>
         <@fdsTag.tag tagClass="govuk-tag--red">Removed</@fdsTag.tag>
     </#assign>
@@ -24,10 +24,10 @@
     </#assign>
 
     <#assign cardActions>
-      <#if correctUrl?has_content>
+      <#if change.url()?has_content>
         <@fdsSummaryList.summaryListCardActionList>
           <@fdsSummaryList.summaryListCardActionItem
-            itemUrl=springUrl(correctUrl)
+            itemUrl=springUrl(change.url())
             itemText="Correct"
             itemScreenReaderText="licence administrator change"
           />

@@ -36,6 +36,7 @@ CVE-2026-47244
 CVE-2026-48043
 CVE-2026-50560
 CVE-2026-59900
+CVE-2026-56819
 
 # io.netty:netty-handler
 CVE-2026-44249
@@ -144,3 +145,6 @@ CVE-2026-41843
 CVE-2026-41844
 CVE-2026-41846
 CVE-2026-41853
+
+# org.springframework.data:spring-data-commons (app.jar)
+CVE-2026-41695

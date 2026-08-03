@@ -17,8 +17,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,7 +30,7 @@ class AddPositionChangeFormValidatorTest {
   private LicenceService licenceService;
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionChangeService licencePositionChangeService;
 
   @InjectMocks
   private AddPositionChangeFormValidator addPositionChangeFormValidator;
@@ -82,7 +84,8 @@ class AddPositionChangeFormValidatorTest {
   void hasErrors_whenSetEquityAlreadyExistsForPosition_thenErrorWithMessage() {
     form.setChangeType(AddPositionChangeType.SET_EQUITY.name());
     when(licenceService.isCarbonStorageLicence(correction.getLicence())).thenReturn(true);
-    when(licencePositionCorrectionService.setEquityChangeExists(positionCorrection)).thenReturn(true);
+    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), SetEquityOperation.class))
+        .thenReturn(true);
 
     var result = addPositionChangeFormValidator.hasErrors(form, errors, correction, positionCorrection);
 
@@ -96,7 +99,8 @@ class AddPositionChangeFormValidatorTest {
   void hasErrors_whenSetEquityDoesNotExistForPosition_thenNoErrors() {
     form.setChangeType(AddPositionChangeType.SET_EQUITY.name());
     when(licenceService.isCarbonStorageLicence(correction.getLicence())).thenReturn(true);
-    when(licencePositionCorrectionService.setEquityChangeExists(positionCorrection)).thenReturn(false);
+    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), SetEquityOperation.class))
+        .thenReturn(false);
 
     var result = addPositionChangeFormValidator.hasErrors(form, errors, correction, positionCorrection);
 
@@ -105,12 +109,28 @@ class AddPositionChangeFormValidatorTest {
   }
 
   @Test
-  void hasErrors_whenAdministratorChange_thenNoDuplicateCheckAndNoErrors() {
+  void hasErrors_whenAdministratorChangeAndNoneExistsForPosition_thenNoErrors() {
     form.setChangeType(AddPositionChangeType.ADMINISTRATOR_CHANGE.name());
+    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), AdministratorOperation.class))
+        .thenReturn(false);
 
     var result = addPositionChangeFormValidator.hasErrors(form, errors, correction, positionCorrection);
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void hasErrors_whenAdministratorChangeAlreadyExistsForPosition_thenErrorWithMessage() {
+    form.setChangeType(AddPositionChangeType.ADMINISTRATOR_CHANGE.name());
+    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), AdministratorOperation.class))
+        .thenReturn(true);
+
+    var result = addPositionChangeFormValidator.hasErrors(form, errors, correction, positionCorrection);
+
+    assertThat(result).isTrue();
+    assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
+        .containsOnly(entry("changeType",
+            Collections.singletonList("Administrator change has already been added to this position")));
   }
 }

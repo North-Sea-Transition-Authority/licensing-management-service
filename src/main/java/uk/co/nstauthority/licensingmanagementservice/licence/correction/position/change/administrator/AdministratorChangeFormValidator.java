@@ -17,14 +17,9 @@ public class AdministratorChangeFormValidator {
     this.organisationUnitQueryService = organisationUnitQueryService;
   }
 
-  public boolean hasErrors(AdministratorChangeForm form, Errors errors, Integer currentAdministratorId) {
-    return hasErrors(form, errors, currentAdministratorId, null);
-  }
-
   public boolean hasErrors(
       AdministratorChangeForm form,
       Errors errors,
-      Integer currentAdministratorId,
       Integer previousAdministratorId
   ) {
     StringInputValidator.builder()
@@ -54,14 +49,6 @@ public class AdministratorChangeFormValidator {
           "Select a valid licence administrator"
       );
       return true;
-    }
-
-    if (Objects.equals(currentAdministratorId, newAdministratorId)) {
-      errors.rejectValue(
-          ADMIN_ID_FIELD,
-          "adminId.sameAsCurrent",
-          "The new licence administrator must be different to the current administrator"
-      );
     }
 
     if (Objects.equals(previousAdministratorId, newAdministratorId)) {

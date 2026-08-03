@@ -6,20 +6,22 @@ import org.springframework.validation.ValidationUtils;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 
 @Component
 public class AddPositionChangeFormValidator {
 
   private final LicenceService licenceService;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionChangeService licencePositionChangeService;
 
   public AddPositionChangeFormValidator(
       LicenceService licenceService,
-      LicencePositionCorrectionService licencePositionCorrectionService
+      LicencePositionChangeService licencePositionChangeService
   ) {
     this.licenceService = licenceService;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionChangeService = licencePositionChangeService;
   }
 
   public boolean hasErrors(
@@ -63,10 +65,12 @@ public class AddPositionChangeFormValidator {
   }
 
   private boolean changeAlreadyExists(AddPositionChangeType selected, LicencePositionCorrection positionCorrection) {
-    //todo check admin change exists for a live position
+    var livePositionId = positionCorrection.getTargetLicencePosition() != null
+        ? positionCorrection.getTargetLicencePosition().getId()
+        : null;
     return switch (selected) {
-      case ADMINISTRATOR_CHANGE -> false;
-      case SET_EQUITY -> licencePositionCorrectionService.setEquityChangeExists(positionCorrection);
+      case ADMINISTRATOR_CHANGE -> licencePositionChangeService.changeExists(livePositionId, AdministratorOperation.class);
+      case SET_EQUITY -> licencePositionChangeService.changeExists(livePositionId, SetEquityOperation.class);
     };
   }
 }

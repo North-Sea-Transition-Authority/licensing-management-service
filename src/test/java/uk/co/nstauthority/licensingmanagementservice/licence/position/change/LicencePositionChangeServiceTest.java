@@ -1,10 +1,12 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,8 +17,11 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 class LicencePositionChangeServiceTest {
@@ -68,6 +73,68 @@ class LicencePositionChangeServiceTest {
     when(licencePositionChangeRepository.findById(id)).thenReturn(Optional.empty());
 
     assertThat(licencePositionChangeService.findById(id)).isEmpty();
+  }
+
+  @Test
+  void getByIdOrThrow() {
+    var licencePositionChangeId = UUID.randomUUID();
+
+    var licencePositionChange = new LicencePositionChange();
+
+    when(licencePositionChangeRepository.findById(licencePositionChangeId)).thenReturn(Optional.of(licencePositionChange));
+
+    assertThat(licencePositionChangeService.getByIdOrThrow(licencePositionChangeId)).isEqualTo(licencePositionChange);
+  }
+
+  @Test
+  void getByIdOrThrow_licencePositionChangeNotFound() {
+    var licencePositionChangeId = UUID.randomUUID();
+
+    when(licencePositionChangeRepository.findById(licencePositionChangeId)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> licencePositionChangeService.getByIdOrThrow(licencePositionChangeId)).isInstanceOf(
+        LmsEntityNotFoundException.class);
+  }
+
+  @Test
+  void changeExists_whenPositionHasMatchingOperation_returnsTrue() {
+    var licencePositionId = UUID.randomUUID();
+    var change = LicencePositionChangeTestUtil.newBuilder()
+        .withOperations(List.of(new SetEquityOperation(1, BigDecimal.valueOf(40))))
+        .build();
+
+    when(licencePositionChangeRepository.findByLicencePosition_Id(licencePositionId)).thenReturn(List.of(change));
+
+    assertThat(licencePositionChangeService.changeExists(licencePositionId, SetEquityOperation.class)).isTrue();
+  }
+
+  @Test
+  void changeExists_whenPositionHasOnlyOtherOperationType_returnsFalse() {
+    var licencePositionId = UUID.randomUUID();
+    var change = LicencePositionChangeTestUtil.newBuilder()
+        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(1).build()))
+        .build();
+
+    when(licencePositionChangeRepository.findByLicencePosition_Id(licencePositionId)).thenReturn(List.of(change));
+
+    assertThat(licencePositionChangeService.changeExists(licencePositionId, SetEquityOperation.class)).isFalse();
+    assertThat(licencePositionChangeService.changeExists(licencePositionId, AdministratorOperation.class)).isTrue();
+  }
+
+  @Test
+  void changeExists_whenPositionHasNoChanges_returnsFalse() {
+    var licencePositionId = UUID.randomUUID();
+
+    when(licencePositionChangeRepository.findByLicencePosition_Id(licencePositionId)).thenReturn(List.of());
+
+    assertThat(licencePositionChangeService.changeExists(licencePositionId, SetEquityOperation.class)).isFalse();
+  }
+
+  @Test
+  void changeExists_whenLicencePositionIdNull_returnsFalseWithoutQuery() {
+    assertThat(licencePositionChangeService.changeExists(null, SetEquityOperation.class)).isFalse();
+
+    verifyNoInteractions(licencePositionChangeRepository);
   }
 
   @Test

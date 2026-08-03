@@ -166,4 +166,23 @@ class LicencePositionChangeViewServiceTest {
             tuple("Org", BigDecimal.valueOf(40)),
             tuple("Org2", BigDecimal.valueOf(60)));
   }
+
+  @Test
+  void getChangeViews_whenSetEquityOrganisationNameNotFound_usesEmptyName() {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
+
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        new SetEquityOperation(300, BigDecimal.valueOf(75))
+    );
+
+    var result = licencePositionChangeViewService.getChangeViews(
+        currentLicencePosition.getId(), List.of(currentChronologicalPosition), Map.of());
+
+    var setEquityChangeView = (SetEquityChangeView) result.get(LicenceOperation.SET_EQUITY);
+    assertThat(setEquityChangeView.rows())
+        .singleElement()
+        .extracting(SetEquityRow::organisationName)
+        .isEqualTo("");
+  }
 }

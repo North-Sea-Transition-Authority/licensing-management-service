@@ -50,3 +50,27 @@
         </@fdsSummaryList.summaryListRowNoAction>
     </@fdsSummaryList.summaryListCard>
 </#macro>
+
+<#macro setEquityChange change>
+    <#assign headingText>
+      <div style="display: flex; gap: 1rem">
+        Set equity
+          <#switch change.changeType()!>
+              <#case "add-change">
+                  <@fdsTag.tag tagClass="govuk-tag--green">Added change</@fdsTag.tag>
+                  <#break>
+              <#case "update-change-operations">
+                  <@fdsTag.tag tagClass="govuk-tag--blue">Corrected change</@fdsTag.tag>
+                  <#break>
+          </#switch>
+      </div>
+    </#assign>
+
+    <@fdsSummaryList.summaryListCard headingText=headingText summaryListId="set-equity">
+        <#list change.rows() as row>
+            <@fdsSummaryList.summaryListRowNoAction keyText=row.organisationName()>
+                ${row.equity()}%
+            </@fdsSummaryList.summaryListRowNoAction>
+        </#list>
+    </@fdsSummaryList.summaryListCard>
+</#macro>

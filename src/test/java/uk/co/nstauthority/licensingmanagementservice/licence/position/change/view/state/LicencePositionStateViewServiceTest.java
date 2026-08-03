@@ -101,4 +101,6 @@ class LicencePositionStateViewServiceTest {
 
     assertThat(result.administratorStateView().organisationName()).isEmpty();
   }
+
+
 }

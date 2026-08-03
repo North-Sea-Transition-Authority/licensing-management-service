@@ -26,4 +26,7 @@
     </#if>
     <@positionChanges.administratorChange change=licencePositionChanges["licence-administrator"] correctUrl=correctUrl/>
   </#if>
+  <#if licencePositionChanges["set-equity"]??>
+      <@positionChanges.setEquityChange change=licencePositionChanges["set-equity"]/>
+  </#if>
 </#macro>

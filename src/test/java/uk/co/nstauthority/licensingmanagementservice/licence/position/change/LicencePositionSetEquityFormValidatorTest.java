@@ -104,4 +104,5 @@ class LicencePositionSetEquityFormValidatorTest {
         .containsExactly(tuple("transferTo.invalid", "Select the organisation equity is being allocated to"));
     assertThat(hasErrors).isTrue();
   }
+
 }

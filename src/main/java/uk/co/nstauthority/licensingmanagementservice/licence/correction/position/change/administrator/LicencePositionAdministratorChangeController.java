@@ -27,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.AdministratorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
@@ -216,13 +217,13 @@ public class LicencePositionAdministratorChangeController {
   }
 
   private String executedBackUrl(UUID correctionId, UUID licencePositionId) {
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correctionId, licencePositionId, null));
+    return ReverseRouter.route(on(LicencePositionAddChangeController.class)
+        .renderForExecutedPosition(correctionId, licencePositionId, null));
   }
 
   private String addedBackUrl(UUID correctionId, UUID licencePositionCorrectionId) {
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correctionId, licencePositionCorrectionId, null));
+    return ReverseRouter.route(on(LicencePositionAddChangeController.class)
+        .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
   }
 
   private Map<String, String> preselectedAdministrator(AdministratorChangeForm form) {

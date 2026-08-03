@@ -63,10 +63,16 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
   private static final String PAGE_TITLE = "Change licence administrator";
   private static final String VIEW_NAME = "lms/licence/correction/change/administratorChange";
 
-  private final String executedBackLinkUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
+  private final String executedBackLinkUrl = ReverseRouter.route(on(LicencePositionAddChangeController.class)
+      .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null));
+
+  private final String addedBackLinkUrl = ReverseRouter.route(on(LicencePositionAddChangeController.class)
+      .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null));
+
+  private final String executedPositionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
       .renderLicencePosition(CORRECTION_ID, POSITION_ID, null));
 
-  private final String addedBackLinkUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
+  private final String addedPositionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
       .renderAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null));
 
   @Test
@@ -129,7 +135,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
             .flashAttr("form", form))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(executedBackLinkUrl),
+            redirectedUrl(executedPositionUrl),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence administrator change added")
                 .build())
@@ -218,7 +224,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
             .flashAttr("form", form))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(addedBackLinkUrl),
+            redirectedUrl(addedPositionUrl),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence administrator change added")
                 .build())
@@ -309,7 +315,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
             .flashAttr("form", form))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(executedBackLinkUrl),
+            redirectedUrl(executedPositionUrl),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence administrator change corrected")
                 .build())

@@ -28,7 +28,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.RemoveExecutedLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.UndoLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
@@ -40,7 +39,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionAdministratorChangeUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateViewService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -140,13 +138,10 @@ public class LicencePositionViewService {
 
     var changeViews = licencePositionChangeViewService.getChangeViews(
         licencePosition.getId(), allChronologicalPositions, administratorNames);
-    var adminChange = (AdministratorChangeView) changeViews.get(LicenceOperation.LICENCE_ADMINISTRATOR);
-    var addUrl = ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
+    var addUrl = ReverseRouter.route(on(LicencePositionAddChangeController.class)
         .renderForExecutedPosition(licenceCorrection.getId(), licencePosition.getId(), null));
+    var actions = new LicencePositionPageView.Actions(addUrl);
 
-    var actions = new LicencePositionPageView.Actions(
-        getAdministratorChangeUrl(licenceCorrection, licencePosition.getId(), adminChange, addUrl)
-    );
 
     return LicencePositionPageView.fromExecutedPosition(
         getCorrectionTimelineView(
@@ -393,7 +388,10 @@ public class LicencePositionViewService {
 
     var livePositions =
         getLivePositionEntries(
-            licencePositions, licenceCorrection, removedPositionIds, correctedPayloadsByPositionId,
+            licencePositions,
+            licenceCorrection,
+            removedPositionIds,
+            correctedPayloadsByPositionId,
             sameDateCount
         );
     var addedPositions = getAddedPositionEntries(licenceCorrection, addedCorrections, sameDateCount);
@@ -528,20 +526,6 @@ public class LicencePositionViewService {
   public String getCorrectOrderPositionUrl(LicenceCorrection correction, UUID positionId) {
     return ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
         .renderCorrectionLicencePositionOrder(correction.getId(), positionId, null));
-  }
-
-  private String getAdministratorChangeUrl(
-      LicenceCorrection licenceCorrection, UUID licencePositionId, AdministratorChangeView adminChange, String addUrl
-  ) {
-    if (adminChange == null) {
-      return addUrl;
-    }
-    if (adminChange.changeType() == null) {
-      return ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
-          .renderForCorrectingChange(licenceCorrection.getId(), licencePositionId, adminChange.changeId(), null));
-    }
-    // TODO LMS2-83: Modify an added or corrected admin change
-    return null;
   }
 
   private LocalDate effectiveDate(

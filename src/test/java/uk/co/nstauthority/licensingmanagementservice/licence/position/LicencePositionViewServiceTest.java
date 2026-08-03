@@ -26,7 +26,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
@@ -219,7 +218,7 @@ class LicencePositionViewServiceTest {
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
 
     assertThat(result.actions().addChangeUrl())
-        .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
+        .isEqualTo(ReverseRouter.route(on(LicencePositionAddChangeController.class)
             .renderForExecutedPosition(correction.getId(), executed.getId(), null)));
     assertThat(result.canEdit()).isTrue();
     assertThat(result.timelineViews())

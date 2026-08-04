@@ -14,12 +14,17 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
     @JsonSubTypes.Type(
         value = UpdateChangeOperations.class,
         name = LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS
+    ),
+    @JsonSubTypes.Type(
+        value = RemoveChange.class,
+        name = LicencePositionChangeType.REMOVE_CHANGE
     )
 })
-public sealed interface LicencePositionChangeType permits AddChange, UpdateChangeOperations {
+public sealed interface LicencePositionChangeType permits AddChange, UpdateChangeOperations, RemoveChange {
 
   String ADD_CHANGE = "add-change";
   String UPDATE_CHANGE_OPERATIONS = "update-change-operations";
+  String REMOVE_CHANGE = "remove-change";
 
   String type();
 
@@ -29,5 +34,9 @@ public sealed interface LicencePositionChangeType permits AddChange, UpdateChang
 
   static UpdateChangeOperations.Builder updateChangeOperations() {
     return new UpdateChangeOperations.Builder();
+  }
+
+  static RemoveChange.Builder removeChange() {
+    return new RemoveChange.Builder();
   }
 }

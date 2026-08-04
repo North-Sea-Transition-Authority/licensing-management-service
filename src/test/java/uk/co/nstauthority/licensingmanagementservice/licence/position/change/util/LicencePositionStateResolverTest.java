@@ -3,10 +3,14 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.ut
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 
 class LicencePositionStateResolverTest {
 
@@ -53,6 +57,33 @@ class LicencePositionStateResolverTest {
 
     // current has no change of its own, so it carries the administrator forward from the middle position
     assertThat(result.get(current.getId()).administratorId()).isEqualTo(2);
+  }
+
+  @Test
+  void resolveStates_whenRemoveChange_skipsItAndCarriesPreviousAdministratorForward() {
+    var earlier = LicencePositionTestUtil.newBuilder().build();
+    var current = LicencePositionTestUtil.newBuilder().build();
+    var later = LicencePositionTestUtil.newBuilder().build();
+
+    var earlierChronological = ChronologicalPositionTestUtil.live(
+        earlier, LicenceOperation.newAdministratorChange().withOperator(1).build());
+
+    var removeChange = new PositionChange(
+        UUID.randomUUID().toString(),
+        1,
+        LicencePositionChangeType.REMOVE_CHANGE,
+        List.of(LicenceOperation.newAdministratorChange().withOperator(2).build())
+    );
+    var currentChronological = ChronologicalPosition.fromLicencePosition(
+        current, current.getPositionDate(), current.getPositionDateOrder(), List.of(removeChange));
+
+    var laterChronological = ChronologicalPositionTestUtil.live(later);
+
+    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(
+        List.of(earlierChronological, currentChronological, laterChronological));
+
+    assertThat(result.get(current.getId()).administratorId()).isEqualTo(1);
+    assertThat(result.get(later.getId()).administratorId()).isEqualTo(1);
   }
 
   @Test

@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change;
+package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,35 +13,28 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 
 @Component
 @Order(10)
-public class ValidLicencePositionAdministratorChangeRule implements AccessInterceptorRule {
+public class LicencePositionHasNoLiveAdministratorChangeRule implements AccessInterceptorRule {
 
   private final LicencePositionChangeService licencePositionChangeService;
 
-  public ValidLicencePositionAdministratorChangeRule(LicencePositionChangeService licencePositionChangeService) {
+  public LicencePositionHasNoLiveAdministratorChangeRule(LicencePositionChangeService licencePositionChangeService) {
     this.licencePositionChangeService = licencePositionChangeService;
   }
 
   @Override
   public Class<? extends Annotation> supports() {
-    return ValidLicencePositionAdministratorChange.class;
+    return LicencePositionHasNoLiveAdministratorChange.class;
   }
 
   @Override
   public SecurityRuleResult check(Object annotation, HttpServletRequest request, HttpServletResponse response) {
-    var changeId = getPathVariableEntityIdFromRequest(request, "changeId");
+    var licencePositionId = getPathVariableEntityIdFromRequest(request, "licencePositionId");
 
-    var change = licencePositionChangeService.findById(changeId).orElse(null);
-
-    if (change == null) {
+    var hasLiveAdminChange = licencePositionChangeService.changeExists(licencePositionId, AdministratorOperation.class);
+    if (hasLiveAdminChange) {
       return SecurityRuleResult.checkFailedWithStatusAndMessage(
-          HttpStatus.NOT_FOUND, "No licence position change %s".formatted(changeId)
-      );
-    }
-
-    var isAdminChange = change.getOperations().stream().anyMatch(AdministratorOperation.class::isInstance);
-    if (!isAdminChange) {
-      return SecurityRuleResult.checkFailedWithStatusAndMessage(HttpStatus.NOT_FOUND,
-          "Change %s is not an administrator change".formatted(changeId)
+          HttpStatus.CONFLICT,
+          "Licence position %s already has a live administrator change".formatted(licencePositionId)
       );
     }
 

@@ -8,6 +8,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionUpdateOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -57,6 +58,13 @@ public record PositionChange(
           Integer.MAX_VALUE,
           updateChangeOperations.type(),
           toOperations(updateChangeOperations.operations())
+      );
+      case RemoveChange removeChange -> new PositionChange(
+          removeChange.changeId(),
+          // as this is a remove change, this will be overwritten with the changeOrder of the existing change for display
+          Integer.MAX_VALUE,
+          removeChange.type(),
+          List.of()
       );
     };
   }

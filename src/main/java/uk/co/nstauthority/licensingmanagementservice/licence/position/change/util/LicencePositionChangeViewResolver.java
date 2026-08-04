@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -88,12 +89,14 @@ public final class LicencePositionChangeViewResolver {
         organisationNames.get(joiningId),
         change.changeId(),
         change.changeType(),
-        administratorChangeUrl(urlContext, change)
+        correctChangeUrl(urlContext, change),
+        removeChangeUrl(urlContext, change)
     );
   }
 
   @Nullable
-  private static String administratorChangeUrl(@Nullable PositionChangeUrlContext urlContext, PositionChange change) {
+  //TODO: When other change types are added, we should adapt how the correct / remove urls for change views are built
+  private static String correctChangeUrl(@Nullable PositionChangeUrlContext urlContext, PositionChange change) {
     if (urlContext == null) {
       return null;
     }
@@ -108,5 +111,20 @@ public final class LicencePositionChangeViewResolver {
     }
     return ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
         .renderForCorrectingChange(urlContext.correctionId(), urlContext.routingId(), change.changeId(), null));
+  }
+
+  @Nullable
+  //TODO: When other change types are added, we should adapt how the correct / remove urls for change views are built
+  private static String removeChangeUrl(@Nullable PositionChangeUrlContext urlContext, PositionChange change) {
+    if (urlContext == null || urlContext.addedPosition()) {
+      return null;
+    }
+    var changeType = change.changeType();
+    if (LicencePositionChangeType.ADD_CHANGE.equals(changeType)
+        || LicencePositionChangeType.REMOVE_CHANGE.equals(changeType)) {
+      return null;
+    }
+    return ReverseRouter.route(on(RemoveAdministratorChangeController.class)
+        .renderRemoveExecutedAdminChange(urlContext.correctionId(), urlContext.routingId(), change.changeId(), null));
   }
 }

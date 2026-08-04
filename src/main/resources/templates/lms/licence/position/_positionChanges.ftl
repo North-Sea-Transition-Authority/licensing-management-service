@@ -9,6 +9,8 @@
         <@fdsTag.tag tagClass="govuk-tag--green">Added</@fdsTag.tag>
     </#assign>
 
+    <#assign isRemoved = (change.changeType()!) == "remove-change">
+
     <#assign headingText>
       <div style="display: flex; gap: 1rem">
         Licence administrator change
@@ -19,20 +21,30 @@
           <#case "update-change-operations">
             <@fdsTag.tag tagClass="govuk-tag--blue">Corrected change</@fdsTag.tag>
           <#break>
+          <#case "remove-change">
+            <@fdsTag.tag tagClass="govuk-tag--red">Removed</@fdsTag.tag>
+          <#break>
         </#switch>
       </div>
     </#assign>
 
     <#assign cardActions>
-      <#if change.url()?has_content>
-        <@fdsSummaryList.summaryListCardActionList>
+      <@fdsSummaryList.summaryListCardActionList>
+        <#if change.correctUrl()?has_content>
           <@fdsSummaryList.summaryListCardActionItem
-            itemUrl=springUrl(change.url())
+            itemUrl=springUrl(change.correctUrl())
             itemText="Correct"
             itemScreenReaderText="licence administrator change"
           />
-        </@fdsSummaryList.summaryListCardActionList>
-      </#if>
+        </#if>
+        <#if change.removeUrl()?has_content>
+          <@fdsSummaryList.summaryListCardActionItem
+            itemUrl=springUrl(change.removeUrl())
+            itemText="Remove"
+            itemScreenReaderText="licence administrator change"
+          />
+        </#if>
+      </@fdsSummaryList.summaryListCardActionList>
     </#assign>
 
     <@fdsSummaryList.summaryListCard

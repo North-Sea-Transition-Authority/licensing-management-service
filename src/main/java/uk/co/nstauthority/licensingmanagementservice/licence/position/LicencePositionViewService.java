@@ -160,6 +160,7 @@ public class LicencePositionViewService {
 
     var addUrl = ReverseRouter.route(on(LicencePositionAddChangeController.class)
         .renderForExecutedPosition(licenceCorrection.getId(), licencePosition.getId(), null));
+
     var actions = new LicencePositionPageView.Actions(addUrl);
 
     return LicencePositionPageView.fromExecutedPosition(
@@ -364,8 +365,6 @@ public class LicencePositionViewService {
       List<LicencePositionChange> liveChanges,
       List<LicencePositionChangeType> correctionChanges
   ) {
-    //TODO - LMS2-84: remove executed operations
-
     var changesById = new HashMap<String, PositionChange>();
 
     PositionChange.fromLicencePositionChanges(liveChanges).forEach(positionChange ->
@@ -377,13 +376,14 @@ public class LicencePositionViewService {
       if (liveChange == null) {
         changesById.put(positionChange.changeId(), positionChange);
       } else {
+        var isRemove = Objects.equals(positionChange.changeType(), LicencePositionChangeType.REMOVE_CHANGE);
         changesById.put(positionChange.changeId(),
             new PositionChange(
-                //TODO - will need to consider these when new change types are added
+                //TODO - will need to consider these when new change types are added (update change order)
                 liveChange.changeId(),
                 liveChange.changeOrder(),
                 positionChange.changeType(),
-                positionChange.operations()
+                isRemove ? liveChange.operations() : positionChange.operations()
             ));
       }
     });

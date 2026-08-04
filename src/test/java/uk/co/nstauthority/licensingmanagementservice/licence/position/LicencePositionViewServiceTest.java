@@ -28,13 +28,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
@@ -247,7 +248,7 @@ class LicencePositionViewServiceTest {
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
 
     var adminChange = (AdministratorChangeView) result.changeViewByType().get(LicenceOperation.LICENCE_ADMINISTRATOR);
-    assertThat(adminChange.url())
+    assertThat(adminChange.correctUrl())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
             .renderForExecutedPosition(correctionId, POSITION_ID, null)));
     // The page-level "Add change" action stays available even when an administrator change is present.
@@ -279,9 +280,47 @@ class LicencePositionViewServiceTest {
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
 
     var adminChange = (AdministratorChangeView) result.changeViewByType().get(LicenceOperation.LICENCE_ADMINISTRATOR);
-    assertThat(adminChange.url())
+    assertThat(adminChange.correctUrl())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
             .renderForCorrectingChange(correctionId, POSITION_ID, changeId.toString(), null)));
+  }
+
+  @Test
+  void getCorrectionPositionPageView_whenAdminChangeRemoved_rendersExecutedAdminWithRemoveTypeAndRevertsState() {
+    var correctionId = UUID.randomUUID();
+    var changeId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().withId(correctionId).withLicence(LICENCE).build();
+
+    var executed = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
+
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withId(changeId).withLicencePosition(executed)
+        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(5).build()))
+        .build();
+
+    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(executed)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withChanges(List.of(LicencePositionChangeType.removeChange().withChangeId(changeId.toString()).build()))
+            .build())
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of(liveChange));
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(removeCorrection));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(any())).thenReturn(Map.of(5, "Executed Admin Org"));
+
+    var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
+
+    var adminChange = (AdministratorChangeView) result.changeViewByType().get(LicenceOperation.LICENCE_ADMINISTRATOR);
+    assertThat(adminChange.joiningOrganisationName()).isEqualTo("Executed Admin Org");
+    assertThat(adminChange.changeType()).isEqualTo(LicencePositionChangeType.REMOVE_CHANGE);
+    assertThat(adminChange.removeUrl()).isNull();
+    assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView("")));
   }
 
   @Test
@@ -306,7 +345,7 @@ class LicencePositionViewServiceTest {
     var result = licencePositionViewService.getCorrectionAddedPositionPageView(correction, positionCorrection);
 
     var adminChange = (AdministratorChangeView) result.changeViewByType().get(LicenceOperation.LICENCE_ADMINISTRATOR);
-    assertThat(adminChange.url())
+    assertThat(adminChange.correctUrl())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
             .renderForAddedPosition(correctionId, positionCorrection.getId(), null)));
   }

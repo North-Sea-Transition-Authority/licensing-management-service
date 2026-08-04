@@ -3,7 +3,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.ut
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
@@ -61,6 +63,10 @@ public final class LicencePositionStateResolver {
   }
 
   private static LicencePositionState applyChange(LicencePositionState state, PositionChange change) {
+    if (Objects.equals(change.changeType(), LicencePositionChangeType.REMOVE_CHANGE)) {
+      return state;
+    }
+
     var currentState = state;
     for (var operation : change.operations()) {
       currentState = applyOperation(currentState, operation);

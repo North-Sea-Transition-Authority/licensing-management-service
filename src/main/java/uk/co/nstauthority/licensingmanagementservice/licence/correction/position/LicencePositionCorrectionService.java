@@ -480,6 +480,54 @@ public class LicencePositionCorrectionService {
     licencePositionCorrectionRepository.save(positionCorrection);
   }
 
+  @Transactional
+  public void removeExistingAdministratorChange(
+      LicencePosition licencePosition,
+      LicenceCorrection licenceCorrection,
+      String originalChangeId
+  ) {
+    var existingPositionCorrection =
+        licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+            licenceCorrection,
+            licencePosition,
+            LicencePositionCorrectionChangeType.UPDATE_POSITION
+        );
+
+    LicencePositionCorrection positionCorrection;
+
+    if (existingPositionCorrection.isPresent()) {
+      positionCorrection = existingPositionCorrection.get();
+      var payload = (UpdateLicencePositionPayload) positionCorrection.getPayload();
+
+      var changes = new ArrayList<>(LicencePositionAdministratorChangeUtil.removeAdminChange(payload.changes()));
+      changes.add(LicencePositionChangeType.removeChange().withChangeId(originalChangeId).build());
+
+      var updatedPayload = LicencePositionPayload.newUpdateLicencePositionPayload()
+          .withEffectiveDate(payload.effectiveDate())
+          .withEffectiveDateOrder(payload.effectiveDateOrder())
+          .withCorrectionReference(payload.correctionReference())
+          .withChanges(changes)
+          .build();
+
+      positionCorrection.setPayload(updatedPayload);
+
+    } else {
+      positionCorrection = new LicencePositionCorrection();
+      var payload = LicencePositionPayload.newUpdateLicencePositionPayload()
+          .withCorrectionReference(licenceCorrection.getCorrectionReference())
+          .withChanges(List.of(LicencePositionChangeType.removeChange().withChangeId(originalChangeId).build()))
+          .build();
+
+      positionCorrection.setLicenceCorrection(licenceCorrection);
+      positionCorrection.setChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION);
+      positionCorrection.setTargetLicencePosition(licencePosition);
+      positionCorrection.setPayload(payload);
+
+    }
+
+    licencePositionCorrectionRepository.save(positionCorrection);
+  }
+
   public boolean hasPendingAdministratorChange(LicencePosition licencePosition, LicenceCorrection licenceCorrection) {
     return licencePositionCorrectionRepository
         .findByLicenceCorrectionAndTargetLicencePositionAndChangeType(

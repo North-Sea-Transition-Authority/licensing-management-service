@@ -7,6 +7,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionUpdateOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
@@ -40,6 +41,12 @@ public final class LicencePositionAdministratorChangeUtil {
         .toList();
   }
 
+  public static List<LicencePositionChangeType> removeAdminChange(List<LicencePositionChangeType> changes) {
+    return changes.stream()
+        .filter(change -> !containsAdminOperation(change))
+        .toList();
+  }
+
   public static boolean adminIdNotChanged(LicencePositionChange change, Integer administratorId) {
     return change.getOperations().stream()
         .filter(AdministratorOperation.class::isInstance)
@@ -63,6 +70,7 @@ public final class LicencePositionAdministratorChangeUtil {
           updateChange.changeId(),
           administratorId
       );
+      case RemoveChange ignored -> change;
     };
   }
 
@@ -70,6 +78,7 @@ public final class LicencePositionAdministratorChangeUtil {
     return switch (change) {
       case AddChange addChange -> addChange.operations();
       case UpdateChangeOperations updateChangeOperations -> updateChangeOperations.operations();
+      case RemoveChange ignored -> List.of();
     };
   }
 }

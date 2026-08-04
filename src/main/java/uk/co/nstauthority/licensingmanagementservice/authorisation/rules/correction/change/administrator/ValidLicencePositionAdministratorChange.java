@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change;
+package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

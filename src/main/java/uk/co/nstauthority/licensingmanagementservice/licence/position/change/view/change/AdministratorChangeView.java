@@ -7,6 +7,7 @@ public record AdministratorChangeView(
     String joiningOrganisationName,
     String changeId,
     String changeType,
-    @Nullable String url
+    @Nullable String correctUrl,
+    @Nullable String removeUrl
 ) implements LicencePositionChangeView {
 }

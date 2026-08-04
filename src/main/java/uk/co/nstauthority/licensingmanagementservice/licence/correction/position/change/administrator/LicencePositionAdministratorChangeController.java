@@ -18,7 +18,8 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.ValidLicencePositionAdministratorChange;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.LicencePositionHasNoLiveAdministratorChange;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.ValidLicencePositionAdministratorChange;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
@@ -64,6 +65,7 @@ public class LicencePositionAdministratorChangeController {
   }
 
   @GetMapping("/position/{licencePositionId}/add-administrator-change")
+  @LicencePositionHasNoLiveAdministratorChange
   public ModelAndView renderForExecutedPosition(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
@@ -90,6 +92,7 @@ public class LicencePositionAdministratorChangeController {
   }
 
   @PostMapping("/position/{licencePositionId}/add-administrator-change")
+  @LicencePositionHasNoLiveAdministratorChange
   public ModelAndView submitForExecutedPosition(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,

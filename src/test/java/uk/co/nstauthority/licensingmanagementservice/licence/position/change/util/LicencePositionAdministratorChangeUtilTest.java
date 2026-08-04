@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.ut
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 
 class LicencePositionAdministratorChangeUtilTest {
@@ -64,6 +66,25 @@ class LicencePositionAdministratorChangeUtilTest {
   }
 
   @Test
+  void removeAdminChange_dropsChangesContainingAdministratorOperation() {
+    var adminChange = adminUpdateChange(UUID.randomUUID().toString(), ADMINISTRATOR_ID);
+
+    var result = LicencePositionAdministratorChangeUtil.removeAdminChange(List.of(adminChange));
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  void removeAdminChange_keepsChangesWithoutAdministratorOperation() {
+    var adminChange = adminAddChange(ADMINISTRATOR_ID);
+    var setEquityChange = setEquityAddChange();
+
+    var result = LicencePositionAdministratorChangeUtil.removeAdminChange(List.of(adminChange, setEquityChange));
+
+    assertThat(result).containsExactly(setEquityChange);
+  }
+
+  @Test
   void adminIdNotChanged_whenLiveAdminMatches_returnsTrue() {
     var change = liveAdminChange(ADMINISTRATOR_ID);
 
@@ -92,6 +113,19 @@ class LicencePositionAdministratorChangeUtilTest {
     return LicencePositionChangeType.addChange()
         .withChangeId(UUID.randomUUID().toString())
         .withChangeOrder(1)
+        .withOperations(List.of(operation))
+        .build();
+  }
+
+  private LicencePositionChangeType setEquityAddChange() {
+    var setEquityOperation = new SetEquityOperation(300, BigDecimal.valueOf(50));
+    var operation = LicencePositionChangeOperation.newLicencePositionAddOperation()
+        .withOperationId(setEquityOperation.id())
+        .withOperation(setEquityOperation)
+        .build();
+    return LicencePositionChangeType.addChange()
+        .withChangeId(UUID.randomUUID().toString())
+        .withChangeOrder(2)
         .withOperations(List.of(operation))
         .build();
   }

@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change;
+package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verifyNoInteractions;

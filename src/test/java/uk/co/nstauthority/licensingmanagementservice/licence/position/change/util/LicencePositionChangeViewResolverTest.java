@@ -142,6 +142,78 @@ class LicencePositionChangeViewResolverTest {
   }
 
   @Test
+  void buildAdministratorChange_whenExecutedUpdateChange_populatesCorrectAndRemoveUrls() {
+    var view = adminChangeView(
+        LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS,
+        PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID()));
+
+    assertThat(view.correctUrl()).contains("correct-administrator-change");
+    assertThat(view.removeUrl()).contains("remove-administrator-change");
+  }
+
+  @Test
+  void buildAdministratorChange_whenAddChange_hasNoRemoveUrl() {
+    var view = adminChangeView(
+        LicencePositionChangeType.ADD_CHANGE,
+        PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID()));
+
+    assertThat(view.correctUrl()).contains("add-administrator-change");
+    assertThat(view.removeUrl()).isNull();
+  }
+
+  @Test
+  void buildAdministratorChange_whenRemoveChange_hasNoRemoveUrl() {
+    var view = adminChangeView(
+        LicencePositionChangeType.REMOVE_CHANGE,
+        PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID()));
+
+    assertThat(view.removeUrl()).isNull();
+  }
+
+  @Test
+  void buildAdministratorChange_whenAddedPosition_hasNoRemoveUrl() {
+    var view = adminChangeView(
+        LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS,
+        PositionChangeUrlContext.forAddedPosition(UUID.randomUUID(), UUID.randomUUID()));
+
+    assertThat(view.removeUrl()).isNull();
+  }
+
+  @Test
+  void buildAdministratorChange_whenNoUrlContext_hasNoUrls() {
+    var view = adminChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, null);
+
+    assertThat(view.correctUrl()).isNull();
+    assertThat(view.removeUrl()).isNull();
+  }
+
+  private AdministratorChangeView adminChangeView(String changeType, PositionChangeUrlContext urlContext) {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
+
+    var change = new PositionChange(
+        UUID.randomUUID().toString(),
+        1,
+        changeType,
+        List.of(LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build())
+    );
+    var currentChronologicalPosition = ChronologicalPosition.fromLicencePosition(
+        currentLicencePosition,
+        currentLicencePosition.getPositionDate(),
+        currentLicencePosition.getPositionDateOrder(),
+        List.of(change));
+
+    var chronologicalPositions = List.of(currentChronologicalPosition);
+    var result = LicencePositionChangeViewResolver.getChangeViews(
+        currentLicencePosition.getId(),
+        chronologicalPositions,
+        LicencePositionStateResolver.resolveStatesByChronologicalPositionId(chronologicalPositions),
+        Map.of(JOINING_ID, JOINING_NAME),
+        urlContext);
+
+    return (AdministratorChangeView) result.get(LicenceOperation.LICENCE_ADMINISTRATOR);
+  }
+
+  @Test
   void getChangeViews_buildsSetEquityChangeView() {
     var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
 

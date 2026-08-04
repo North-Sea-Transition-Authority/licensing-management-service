@@ -15,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceReferenceComparator;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
@@ -47,6 +48,7 @@ public class LicenceSearchService {
     var filteredLicenses = licenceService.getAllLicences().stream()
         .filter(licence -> FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference()))
         .filter(licence -> FilterUtil.matchesEnum(LicenceType.class, licence.getType(), filterForm.getLicenceTypes()))
+        .filter(licence -> FilterUtil.matchesEnum(LicenceStatus.class, licence.getStatus(), filterForm.getLicenceStatuses()))
         .toList();
 
     var licenceResponsibleOrganisations = licenceResponsibleOrganisationService.getAllByLicenceIn(filteredLicenses);

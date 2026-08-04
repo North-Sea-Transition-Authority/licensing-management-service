@@ -117,6 +117,25 @@ class LicenceSearchServiceTest {
   }
 
   @Test
+  void getSearchResultItems_FilterByLicenceStatus_ReturnsFilteredResults() {
+    when(licenceService.getAllLicences())
+        .thenReturn(List.of(SEAWARD_PRODUCTION_LICENCE, GAS_STORAGE_LICENCE, LANDWARD_PRODUCTION_LICENCE));
+
+    var filterForm = new LicenceSearchFilterForm();
+    filterForm.setLicenceStatuses(List.of(LicenceStatus.EXPIRED.name(), LicenceStatus.SURRENDERED.name()));
+
+    var result = licenceSearchService.getSearchResultItems(filterForm);
+
+    assertThat(result)
+        .usingRecursiveComparison()
+        .ignoringCollectionOrder()
+        .isEqualTo(List.of(
+            buildSearchResultItem(GAS_STORAGE_LICENCE, List.of()),
+            buildSearchResultItem(LANDWARD_PRODUCTION_LICENCE, List.of())
+        ));
+  }
+
+  @Test
   void getSearchResultItems_FilterByLicensee_ReturnsFilteredResults() {
     var licences = List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE, GAS_STORAGE_LICENCE, LANDWARD_PRODUCTION_LICENCE);
 

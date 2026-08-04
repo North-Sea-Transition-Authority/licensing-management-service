@@ -11,6 +11,7 @@ public class LicenceSearchFilterForm implements Serializable {
 
   private String licenceReference;
   private List<String> licenceTypes;
+  private List<String> licenceStatuses;
   private Integer licenseeOrgGroupId;
   private Integer licenseeOrgUnitId;
 
@@ -28,6 +29,14 @@ public class LicenceSearchFilterForm implements Serializable {
 
   public void setLicenceTypes(List<String> licenceTypes) {
     this.licenceTypes = licenceTypes;
+  }
+
+  public List<String> getLicenceStatuses() {
+    return licenceStatuses;
+  }
+
+  public void setLicenceStatuses(List<String> licenceStatuses) {
+    this.licenceStatuses = licenceStatuses;
   }
 
   public Integer getLicenseeOrgGroupId() {

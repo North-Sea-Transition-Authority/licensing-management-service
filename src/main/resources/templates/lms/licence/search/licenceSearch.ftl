@@ -23,6 +23,12 @@ extendContainerWidth=true
             form=form
             licenceTypes=licenceTypes
             />
+            <#if isRegulatorUser>
+                <@dataItemFilter.licenceStatusFilter
+                form=form
+                licenceStatuses=licenceStatuses
+                />
+            </#if>
             <@dataItemFilter.referenceFilter
             form=form
             />

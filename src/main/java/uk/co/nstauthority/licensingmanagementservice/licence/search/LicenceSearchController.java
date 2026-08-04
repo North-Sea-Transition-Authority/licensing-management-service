@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.search;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.springframework.stereotype.Controller;
@@ -18,6 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
@@ -54,6 +56,7 @@ public class LicenceSearchController {
     boolean hasSearchBeenInvoked = searchSession.hasSearchBeenInvoked();
     if (!hasSearchBeenInvoked) {
       form.setLicenceTypes(LicenceType.getDisplayableLicenceTypesNames());
+      form.setLicenceStatuses(Arrays.stream(LicenceStatus.values()).map(Enum::name).toList());
       licenceSearchItems = Collections.emptyList();
     } else {
       licenceSearchItems = licenceSearchService.getSearchResultItems(form);
@@ -90,6 +93,7 @@ public class LicenceSearchController {
         .addObject("form", form)
         .addObject("clearFilterUrl", ReverseRouter.route(on(LicenceSearchController.class).clearSearchFilters(null, null)))
         .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
+        .addObject("licenceStatuses", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatus.class))
         .addObject("licenseeGroupOrgUnitUrl",
             SearchSelectorService.route(on(OrganisationGroupRestController.class).getOrganisationGroupSearchResults(null)))
         .addObject("preSelectedLicenseeGroupOrgUnit",

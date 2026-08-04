@@ -12,6 +12,12 @@
     </@fdsSearch.searchFilterItem>
 </#macro>
 
+<#macro licenceStatusFilter form licenceStatuses>
+    <@fdsSearch.searchFilterItem itemName="Licence status" expanded=form.licenceStatuses?has_content>
+        <@fdsSearch.searchCheckboxes path="form.licenceStatuses" checkboxes=licenceStatuses/>
+    </@fdsSearch.searchFilterItem>
+</#macro>
+
 <#macro applicationReferenceFilter form>
     <@fdsSearch.searchFilterItem itemName="Application reference" expanded=form.applicationReference?has_content>
         <@fdsSearch.searchTextInput path="form.applicationReference" labelText="Application reference" labelClass="govuk-visually-hidden"/>

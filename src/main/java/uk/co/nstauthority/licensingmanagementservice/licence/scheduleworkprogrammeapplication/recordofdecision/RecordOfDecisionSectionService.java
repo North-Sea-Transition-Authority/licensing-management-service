@@ -1,9 +1,12 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import java.util.ArrayList;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
@@ -37,9 +40,10 @@ public class RecordOfDecisionSectionService implements TaskListSectionService<Re
             recordOfDecision.getExtensionDecision() != null && recordOfDecision.getWorkProgrammeDecision() != null)
         .orElse(false);
 
-    // TODO LMS1-542: step records the decision and sets this task's completion
     items.add(new TaskListItem(
-        WHAT_IS_THE_DECISION, TaskListLabel.notStartedOrComplete(whatIsTheDecisionComplete), URL));
+        WHAT_IS_THE_DECISION,
+        TaskListLabel.notStartedOrComplete(whatIsTheDecisionComplete),
+        ReverseRouter.route(on(RecordDecisionController.class).renderForm(applicationDetail.getId(), null))));
 
     if (recordOfDecisionService.isExtensionApproved(applicationDetail)) {
       // TODO LMS1-543: extension details step sets visibility and completion

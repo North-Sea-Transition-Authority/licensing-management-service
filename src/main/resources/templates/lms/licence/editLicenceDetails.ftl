@@ -7,6 +7,12 @@ caption=pageCaption
 pageSize=PageSize.TWO_THIRDS_COLUMN
 errorSummaryItems=errorSummaryItems>
     <@fdsForm.htmlForm>
+        <@fdsRadio.radio
+            path="form.licenceStatus"
+            labelText="What is the status of the licence?"
+            radioItems=licenceStatusOptions
+        />
+
         <@fdsAddToList.addToList
             pathForList="form.organisationUnitIds"
             pathForSelector="form.organisationUnitSelector"

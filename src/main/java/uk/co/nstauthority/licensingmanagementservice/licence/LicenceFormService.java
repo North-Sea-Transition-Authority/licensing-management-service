@@ -64,4 +64,10 @@ public class LicenceFormService {
         .toList();
     return getPreselectedOrganisationUnits(orgUnitIds);
   }
+
+  public EditLicenceDetailsForm getEditLicenceDetailsForm(Licence licence) {
+    var form = new EditLicenceDetailsForm();
+    form.setLicenceStatus(licence.getStatus());
+    return form;
+  }
 }

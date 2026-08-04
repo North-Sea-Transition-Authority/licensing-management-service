@@ -30,6 +30,13 @@ public class NewLicenceValidator {
         "Enter the licence number"
     );
 
+    ValidationUtils.rejectIfEmptyOrWhitespace(
+        errors,
+        "licenceStatus",
+        "licenceStatus.required",
+        "Select the status of the licence"
+    );
+
     if (StringUtils.isNotBlank(form.getLicenceNumber())
         && !form.getLicenceNumber().matches("^\\d.*")) {
       errors.rejectValue("licenceNumber", "licenceNumber.invalid", "The licence number must start with a digit");

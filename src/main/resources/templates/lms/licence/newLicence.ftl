@@ -25,6 +25,12 @@ errorSummaryItems=errorSummaryItems>
             inputClass="govuk-!-width-one-third"
         />
 
+        <@fdsRadio.radio
+            path="form.licenceStatus"
+            labelText="What is the status of the licence?"
+            radioItems=licenceStatusOptions
+        />
+
         <@fdsFieldset.fieldset legendHeading="Add licensees" showHeadingOnly=true legendHeadingSize="h2">
             <@fdsAddToList.addToList
                 pathForList="form.organisationUnitIds"

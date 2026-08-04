@@ -77,6 +77,8 @@ public class LicenceController {
         .addObject("form", form)
         .addObject("licenceTypeOptions",
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getLicenceTypesManagedByLms()))
+        .addObject("licenceStatusOptions",
+            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatus.class))
         .addObject("preselectedOrgUnits",
             licenceFormService.getPreselectedOrganisationUnits(form.getOrganisationUnitIds()))
         .addObject("organisationUnitSearchEndpoint",
@@ -98,7 +100,7 @@ public class LicenceController {
     }
 
     return getEditLicenceDetailsModelAndView(
-        new EditLicenceDetailsForm(),
+        licenceFormService.getEditLicenceDetailsForm(licence),
         licence,
         licenceFormService.getSavedOrganisationUnits(licence)
     );
@@ -139,6 +141,9 @@ public class LicenceController {
         .addObject("pageTitle", licence.getLicenceReference())
         .addObject("pageCaption", "%s licence".formatted(licence.getType().getDisplayName()))
         .addObject("form", form)
+        .addObject("licenceStatusOptions",
+            DisplayableEnumOptionUtil.getDisplayableOptions(
+                LicenceStatus.getApplicableStatusesForLicenceType(licence.getType())))
         .addObject("preselectedOrgUnits", organisationUnits)
         .addObject("organisationUnitSearchEndpoint",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))

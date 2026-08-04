@@ -9,6 +9,8 @@ public class NewLicenceForm {
 
   private String licenceNumber;
 
+  private LicenceStatus licenceStatus;
+
   private List<String> organisationUnitIds;
 
   private String organisationUnitSelector;
@@ -19,6 +21,14 @@ public class NewLicenceForm {
 
   public void setLicenceType(LicenceType licenceType) {
     this.licenceType = licenceType;
+  }
+
+  public LicenceStatus getLicenceStatus() {
+    return licenceStatus;
+  }
+
+  public void setLicenceStatus(LicenceStatus licenceStatus) {
+    this.licenceStatus = licenceStatus;
   }
 
   public String getLicenceNumber() {

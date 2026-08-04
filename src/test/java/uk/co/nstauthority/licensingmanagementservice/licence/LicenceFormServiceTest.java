@@ -121,4 +121,14 @@ class LicenceFormServiceTest {
 
     assertThat(licenceFormService.getSavedOrganisationUnits(licence)).isEqualTo(List.of(orgUnitJson, orgUnitJson2));
   }
+
+  @Test
+  void getEditLicenceDetailsForm() {
+    var licence = new Licence();
+    licence.setStatus(LicenceStatus.EXTANT);
+
+    var form = licenceFormService.getEditLicenceDetailsForm(licence);
+
+    assertThat(form.getLicenceStatus()).isEqualTo(LicenceStatus.EXTANT);
+  }
 }

@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -70,6 +71,7 @@ class LicenceControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/newLicence"))
         .andExpect(model().attribute("licenceTypeOptions", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getLicenceTypesManagedByLms())))
+        .andExpect(model().attribute("licenceStatusOptions", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatus.class)))
         .andExpect(model().attribute("preselectedOrgUnits", List.of()))
         .andExpect(model().attribute("organisationUnitSearchEndpoint",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))))
@@ -117,6 +119,7 @@ class LicenceControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/newLicence"))
         .andExpect(model().attribute("licenceTypeOptions", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getLicenceTypesManagedByLms())))
+        .andExpect(model().attribute("licenceStatusOptions", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatus.class)))
         .andExpect(model().attribute("preselectedOrgUnits", List.of()))
         .andExpect(model().attribute("organisationUnitSearchEndpoint",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))));
@@ -128,10 +131,15 @@ class LicenceControllerTest extends AbstractControllerTest {
     var licence = new Licence();
     licence.setType(LicenceType.CARBON_STORAGE);
     licence.setLicenceReference("CS1");
+    licence.setStatus(LicenceStatus.EXTANT);
 
     var selectedOrgUnits = List.of(new OrganisationUnitJson(1, "org name"));
 
+    var editLicenceDetailsForm = new EditLicenceDetailsForm();
+    editLicenceDetailsForm.setLicenceStatus(LicenceStatus.EXTANT);
+
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
+    when(licenceFormService.getEditLicenceDetailsForm(licence)).thenReturn(editLicenceDetailsForm);
     when(licenceFormService.getSavedOrganisationUnits(licence)).thenReturn(selectedOrgUnits);
     when(teamQueryService.userHasRoleInTeamType(
         organisationUser.wuaId(),
@@ -139,15 +147,22 @@ class LicenceControllerTest extends AbstractControllerTest {
         Set.of(Role.OFFLINE_LICENCE_ADMINISTRATOR))
     ).thenReturn(true);
 
-    mockMvc.perform(
+    var result = mockMvc.perform(
             get(ReverseRouter.route(on(LicenceController.class).renderEditLicenceDetailsPage(1, null)))
                 .with(user(organisationUser))
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/editLicenceDetails"))
+        .andExpect(model().attribute("licenceStatusOptions",
+            DisplayableEnumOptionUtil.getDisplayableOptions(
+                LicenceStatus.getApplicableStatusesForLicenceType(LicenceType.CARBON_STORAGE))))
         .andExpect(model().attribute("preselectedOrgUnits", selectedOrgUnits))
         .andExpect(model().attribute("organisationUnitSearchEndpoint",
-            SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))));
+            SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))))
+        .andReturn();
+
+    var form = (EditLicenceDetailsForm) result.getModelAndView().getModel().get("form");
+    assertThat(form.getLicenceStatus()).isEqualTo(LicenceStatus.EXTANT);
   }
 
   @Test
@@ -214,6 +229,9 @@ class LicenceControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/editLicenceDetails"))
+        .andExpect(model().attribute("licenceStatusOptions",
+            DisplayableEnumOptionUtil.getDisplayableOptions(
+                LicenceStatus.getApplicableStatusesForLicenceType(LicenceType.CARBON_STORAGE))))
         .andExpect(model().attribute("preselectedOrgUnits", List.of()))
         .andExpect(model().attribute("organisationUnitSearchEndpoint",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))));

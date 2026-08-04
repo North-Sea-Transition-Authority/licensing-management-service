@@ -27,6 +27,7 @@ class NewLicenceValidatorTest {
     var form = new NewLicenceForm();
     form.setLicenceType(LicenceType.CARBON_STORAGE);
     form.setLicenceNumber("001");
+    form.setLicenceStatus(LicenceStatus.EXTANT);
     form.setOrganisationUnitIds(List.of("1"));
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
@@ -38,6 +39,7 @@ class NewLicenceValidatorTest {
   void isValid_invalidForm_noLicenceType() {
     var form = new NewLicenceForm();
     form.setLicenceNumber("001");
+    form.setLicenceStatus(LicenceStatus.EXTANT);
     form.setOrganisationUnitIds(List.of("1"));
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
@@ -52,6 +54,7 @@ class NewLicenceValidatorTest {
   void isValid_invalidForm_noLicenceNumber() {
     var form = new NewLicenceForm();
     form.setLicenceType(LicenceType.CARBON_STORAGE);
+    form.setLicenceStatus(LicenceStatus.EXTANT);
     form.setOrganisationUnitIds(List.of("1"));
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
@@ -67,6 +70,7 @@ class NewLicenceValidatorTest {
     var form = new NewLicenceForm();
     form.setLicenceType(LicenceType.CARBON_STORAGE);
     form.setLicenceNumber("CS001");
+    form.setLicenceStatus(LicenceStatus.EXTANT);
     form.setOrganisationUnitIds(List.of("1"));
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
@@ -82,6 +86,7 @@ class NewLicenceValidatorTest {
     var form = new NewLicenceForm();
     form.setLicenceType(LicenceType.CARBON_STORAGE);
     form.setLicenceNumber("001");
+    form.setLicenceStatus(LicenceStatus.EXTANT);
     form.setOrganisationUnitIds(List.of("1"));
 
     when(licenceService.licenceNumberExistsForType(LicenceType.CARBON_STORAGE, "001")).thenReturn(true);
@@ -95,10 +100,26 @@ class NewLicenceValidatorTest {
   }
 
   @Test
+  void isValid_invalidForm_noLicenceStatus() {
+    var form = new NewLicenceForm();
+    form.setLicenceType(LicenceType.CARBON_STORAGE);
+    form.setLicenceNumber("001");
+    form.setOrganisationUnitIds(List.of("1"));
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(newLicenceValidator.isValid(form, bindingResult)).isFalse();
+
+    assertThat(ValidatorTestingUtil.extractErrors(bindingResult))
+        .containsExactly(entry("licenceStatus", Set.of("licenceStatus.required")));
+  }
+
+  @Test
   void isValid_invalidForm_noLicensees() {
     var form = new NewLicenceForm();
     form.setLicenceType(LicenceType.CARBON_STORAGE);
     form.setLicenceNumber("001");
+    form.setLicenceStatus(LicenceStatus.EXTANT);
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 

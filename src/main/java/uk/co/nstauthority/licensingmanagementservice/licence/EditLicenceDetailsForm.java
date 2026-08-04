@@ -4,9 +4,19 @@ import java.util.List;
 
 public class EditLicenceDetailsForm {
 
+  private LicenceStatus licenceStatus;
+
   private List<String> organisationUnitIds;
 
   private String organisationUnitSelector;
+
+  public LicenceStatus getLicenceStatus() {
+    return licenceStatus;
+  }
+
+  public void setLicenceStatus(LicenceStatus licenceStatus) {
+    this.licenceStatus = licenceStatus;
+  }
 
   public List<String> getOrganisationUnitIds() {
     return organisationUnitIds;

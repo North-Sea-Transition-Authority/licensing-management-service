@@ -21,6 +21,7 @@ class EditLicenceDetailsValidatorTest {
   void isValid() {
     var form = new EditLicenceDetailsForm();
 
+    form.setLicenceStatus(LicenceStatus.EXTANT);
     form.setOrganisationUnitIds(List.of("1"));
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
@@ -29,8 +30,24 @@ class EditLicenceDetailsValidatorTest {
   }
 
   @Test
+  void isValid_invalidForm_noLicenceStatus() {
+    var form = new EditLicenceDetailsForm();
+
+    form.setOrganisationUnitIds(List.of("1"));
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(editLicenceDetailsValidator.isValid(form, bindingResult)).isFalse();
+
+    assertThat(ValidatorTestingUtil.extractErrors(bindingResult))
+        .containsExactly(entry("licenceStatus", Set.of("licenceStatus.required")));
+  }
+
+  @Test
   void isValid_invalidForm_noLicensees() {
     var form = new EditLicenceDetailsForm();
+
+    form.setLicenceStatus(LicenceStatus.EXTANT);
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 

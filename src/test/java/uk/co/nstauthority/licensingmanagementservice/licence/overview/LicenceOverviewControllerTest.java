@@ -14,6 +14,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -76,9 +77,12 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
     when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(licence, LicenceScheduleDetailStatus.ACTIVE)).thenReturn(Optional.of(licenceScheduleDetail));
 
-    var actions = List.of(LicenceActionItem.MANAGE_LICENSEES.toActionItemView(licence));
+    var actions = List.of(LicenceActionItem.EDIT_LICENCE_DETAILS.toActionItemView(licence));
 
     when(licenceActionService.getAvailableUserActionItems(licence, USER)).thenReturn(actions);
+
+    var scheduleHistoryOptions = Map.of(licenceScheduleDetail.getId().toString(), "1 January 2024 10:00am");
+    when(licenceScheduleDetailService.getScheduleDetailHistoryOptions(licence)).thenReturn(scheduleHistoryOptions);
 
     var timelineSummaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatus.EXTANT.getDisplayName(), "", "");
     var scheduleEventViews = List.of(new TimelineTermView(List.of(), List.of(), TermType.INITIAL, "", "", "", "", "", true, List.of(), true, true));
@@ -95,6 +99,11 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("licenceReference", licence.getLicenceReference()))
         .andExpect(model().attribute("caption", licence.getType().getDisplayName()))
         .andExpect(model().attribute("licenceActions", actions))
+        .andExpect(model().attributeExists("historyForm"))
+        .andExpect(model().attribute("scheduleHistoryOptions", scheduleHistoryOptions))
+        .andExpect(model().attribute("viewScheduleHistoryUrl", ReverseRouter.route(on(LicenceOverviewController.class)
+            .viewScheduleHistory(licence.getId(), null)))
+        )
         .andExpect(model().attribute("timelineSummaryCardView", timelineSummaryCardView))
         .andExpect(model().attribute("scheduleEventViews", scheduleEventViews))
         .andExpect(model().attribute("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions()))
@@ -108,7 +117,7 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
     when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(licence, LicenceScheduleDetailStatus.ACTIVE)).thenReturn(Optional.empty());
 
-    var actions = List.of(LicenceActionItem.MANAGE_LICENSEES.toActionItemView(licence));
+    var actions = List.of(LicenceActionItem.EDIT_LICENCE_DETAILS.toActionItemView(licence));
 
     when(licenceActionService.getAvailableUserActionItems(licence, USER)).thenReturn(actions);
 
@@ -159,6 +168,38 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceOverviewController.class)
                 .renderWorkProgrammesOnlyTimeline(licence.getId(), null)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(viewOverviewUrl));
+  }
+
+  @Test
+  void viewScheduleHistory_whenLicenceScheduleDetailIdProvided_redirectsToScheduleHistoryOverview() throws Exception {
+    var viewScheduleHistoryUrl = ReverseRouter.route(on(LicenceOverviewController.class)
+        .viewScheduleHistory(licence.getId(), null));
+
+    var expectedRedirectUrl = ReverseRouter.route(on(LicenceScheduleHistoryOverviewController.class)
+        .renderLicenceOverview(licenceScheduleDetail.getId(), null, null, null));
+
+    mockMvc.perform(
+            post(viewScheduleHistoryUrl)
+                .param("licenceScheduleDetailId", licenceScheduleDetail.getId().toString())
+                .with(csrf())
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(expectedRedirectUrl));
+  }
+
+  @Test
+  void viewScheduleHistory_whenLicenceScheduleDetailIdNotProvided_redirectsToOverview() throws Exception {
+    var viewScheduleHistoryUrl = ReverseRouter.route(on(LicenceOverviewController.class)
+        .viewScheduleHistory(licence.getId(), null));
+
+    mockMvc.perform(
+            post(viewScheduleHistoryUrl)
+                .with(csrf())
                 .with(user(regulatorUser))
         )
         .andExpect(status().is3xxRedirection())

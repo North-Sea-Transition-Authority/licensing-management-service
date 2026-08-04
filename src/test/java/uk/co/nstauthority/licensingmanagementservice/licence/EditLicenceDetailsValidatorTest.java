@@ -12,29 +12,46 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 
 @ExtendWith(MockitoExtension.class)
-class ManageLicenseesValidatorTest {
+class EditLicenceDetailsValidatorTest {
 
   @InjectMocks
-  private ManageLicenseesValidator manageLicenseesValidator;
+  private EditLicenceDetailsValidator editLicenceDetailsValidator;
 
   @Test
   void isValid() {
-    var form = new ManageLicenseesForm();
+    var form = new EditLicenceDetailsForm();
+
+    form.setLicenceStatus(LicenceStatus.EXTANT);
+    form.setOrganisationUnitIds(List.of("1"));
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(editLicenceDetailsValidator.isValid(form, bindingResult)).isTrue();
+  }
+
+  @Test
+  void isValid_invalidForm_noLicenceStatus() {
+    var form = new EditLicenceDetailsForm();
 
     form.setOrganisationUnitIds(List.of("1"));
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(manageLicenseesValidator.isValid(form, bindingResult)).isTrue();
+    assertThat(editLicenceDetailsValidator.isValid(form, bindingResult)).isFalse();
+
+    assertThat(ValidatorTestingUtil.extractErrors(bindingResult))
+        .containsExactly(entry("licenceStatus", Set.of("licenceStatus.required")));
   }
 
   @Test
   void isValid_invalidForm_noLicensees() {
-    var form = new ManageLicenseesForm();
+    var form = new EditLicenceDetailsForm();
+
+    form.setLicenceStatus(LicenceStatus.EXTANT);
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(manageLicenseesValidator.isValid(form, bindingResult)).isFalse();
+    assertThat(editLicenceDetailsValidator.isValid(form, bindingResult)).isFalse();
 
     assertThat(ValidatorTestingUtil.extractErrors(bindingResult))
         .containsExactly(entry("organisationUnitSelector", Set.of("organisationUnitSelector.notEmpty")));

@@ -2,15 +2,14 @@ package uk.co.nstauthority.licensingmanagementservice.licence;
 
 
 import java.util.List;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceTeam;
 
 public class NewLicenceForm {
 
   private LicenceType licenceType;
 
-  private LicenceTeam responsibleTeam;
-
   private String licenceNumber;
+
+  private LicenceStatus licenceStatus;
 
   private List<String> organisationUnitIds;
 
@@ -24,13 +23,12 @@ public class NewLicenceForm {
     this.licenceType = licenceType;
   }
 
-  public LicenceTeam getResponsibleTeam() {
-    return responsibleTeam;
+  public LicenceStatus getLicenceStatus() {
+    return licenceStatus;
   }
 
-  public void setResponsibleTeam(
-      LicenceTeam responsibleTeam) {
-    this.responsibleTeam = responsibleTeam;
+  public void setLicenceStatus(LicenceStatus licenceStatus) {
+    this.licenceStatus = licenceStatus;
   }
 
   public String getLicenceNumber() {

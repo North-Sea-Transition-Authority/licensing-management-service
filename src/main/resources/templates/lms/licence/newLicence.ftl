@@ -13,16 +13,7 @@ errorSummaryItems=errorSummaryItems>
             hiddenContent=true>
             <#assign firstItem=true/>
             <#list licenceTypeOptions as key, value>
-                <@fdsRadio.radioItem path="form.licenceType" itemMap={key : value} isFirstItem=firstItem>
-                    <#if key = "CARBON_STORAGE">
-                        <@fdsSelect.select
-                            path="form.responsibleTeam"
-                            options=csResponsibleTeamOptions
-                            labelText="Who is the licence allocated to?"
-                            nestingPath="form.licenceType"
-                        />
-                    </#if>
-                </@fdsRadio.radioItem>
+                <@fdsRadio.radioItem path="form.licenceType" itemMap={key : value} isFirstItem=firstItem/>
                 <#assign firstItem=false/>
             </#list>
         </@fdsRadio.radioGroup>
@@ -32,6 +23,12 @@ errorSummaryItems=errorSummaryItems>
             labelText="What is the licence number?"
             hintText="For example, 100 or 100a. The prefix will be applied automatically based on the licence type."
             inputClass="govuk-!-width-one-third"
+        />
+
+        <@fdsRadio.radio
+            path="form.licenceStatus"
+            labelText="What is the status of the licence?"
+            radioItems=licenceStatusOptions
         />
 
         <@fdsFieldset.fieldset legendHeading="Add licensees" showHeadingOnly=true legendHeadingSize="h2">

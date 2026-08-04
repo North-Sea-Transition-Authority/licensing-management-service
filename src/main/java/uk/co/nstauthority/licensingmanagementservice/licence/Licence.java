@@ -8,7 +8,6 @@ import java.time.LocalDate;
 import java.util.Objects;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEntity;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceTeam;
 
 @Audited
 @Entity(name = "licences")
@@ -34,9 +33,6 @@ public class Licence {
 
   @Enumerated(EnumType.STRING)
   private LicenceStatus status;
-
-  @Enumerated(EnumType.STRING)
-  private LicenceTeam responsibleTeam;
 
   private LocalDate endDate;
 
@@ -111,14 +107,6 @@ public class Licence {
     this.status = status;
   }
 
-  public LicenceTeam getResponsibleTeam() {
-    return responsibleTeam;
-  }
-
-  public void setResponsibleTeam(LicenceTeam responsibleTeam) {
-    this.responsibleTeam = responsibleTeam;
-  }
-
   public LocalDate getEndDate() {
     return endDate;
   }
@@ -140,12 +128,11 @@ public class Licence {
         && Objects.equals(licenceNumber, licence.licenceNumber)
         && Objects.equals(licenceReference, licence.licenceReference)
         && Objects.equals(roundIssuedOn, licence.roundIssuedOn)
-        && Objects.equals(responsibleTeam, licence.responsibleTeam)
         && Objects.equals(endDate, licence.endDate);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, type, subtype, prefix, licenceNumber, licenceReference, roundIssuedOn, responsibleTeam, endDate);
+    return Objects.hash(id, type, subtype, prefix, licenceNumber, licenceReference, roundIssuedOn, endDate);
   }
 }

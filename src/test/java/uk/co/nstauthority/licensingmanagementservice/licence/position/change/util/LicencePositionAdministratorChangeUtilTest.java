@@ -1,113 +1,149 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 
 class LicencePositionAdministratorChangeUtilTest {
 
+  private static final Integer ADMINISTRATOR_ID = 116;
+  private static final Integer UPDATED_ADMINISTRATOR_ID = 999;
+
   @Test
-  void administratorIdChangeByPositionId() {
-    var positionOne = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
-    var positionTwo = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
-
-    var chronologicalPositionOne = ChronologicalPositionTestUtil.live(
-        positionOne,
-        LicenceOperation.newAdministratorChange().withOperator(1).build()
-    );
-    var chronologicalPositionTwo = ChronologicalPositionTestUtil.live(
-        positionTwo,
-        LicenceOperation.newAdministratorChange().withOperator(2).build()
-    );
-
-    var result = LicencePositionAdministratorChangeUtil.administratorIdChangeByPositionId(List.of(chronologicalPositionOne, chronologicalPositionTwo));
-
-    assertThat(result)
-        .containsOnly(
-            entry(positionOne.getId(), 1),
-            entry(positionTwo.getId(), 2));
+  void adminChangeExists_whenNoChanges_returnsFalse() {
+    assertThat(LicencePositionAdministratorChangeUtil.adminChangeExists(List.of())).isFalse();
   }
 
   @Test
-  void resolveCurrentAdministratorId_appliesCurrentPositionsOwnChange() {
-    var earlier = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
-    var current = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
-
-    var earlierChronological = ChronologicalPositionTestUtil.live(
-        earlier, LicenceOperation.newAdministratorChange().withOperator(1).build());
-    var currentChronological = ChronologicalPositionTestUtil.live(
-        current, LicenceOperation.newAdministratorChange().withOperator(2).build());
-
-    var result = LicencePositionAdministratorChangeUtil.resolveCurrentAdministratorId(
-        current.getId(), List.of(earlierChronological, currentChronological));
-
-    assertThat(result).isEqualTo(2);
+  void adminChangeExists_whenAddChangeContainsAdministratorOperation_returnsTrue() {
+    assertThat(LicencePositionAdministratorChangeUtil.adminChangeExists(List.of(adminAddChange(ADMINISTRATOR_ID)))).isTrue();
   }
 
   @Test
-  void resolvePreviousAdministratorId_returnsAdministratorBeforeCurrentPositionsChange() {
-    var earlier = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
-    var current = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
+  void adminChangeExists_whenUpdateChangeContainsAdministratorOperation_returnsTrue() {
+    var updateChange = adminUpdateChange(UUID.randomUUID().toString(), ADMINISTRATOR_ID);
 
-    var earlierChronological = ChronologicalPositionTestUtil.live(
-        earlier, LicenceOperation.newAdministratorChange().withOperator(1).build());
-    var currentChronological = ChronologicalPositionTestUtil.live(
-        current, LicenceOperation.newAdministratorChange().withOperator(2).build());
-
-    var result = LicencePositionAdministratorChangeUtil.resolvePreviousAdministratorId(
-        current.getId(), List.of(earlierChronological, currentChronological));
-
-    assertThat(result).isEqualTo(1);
+    assertThat(LicencePositionAdministratorChangeUtil.adminChangeExists(List.of(updateChange))).isTrue();
   }
 
   @Test
-  void resolveCurrentAdministratorId_ignoresChangesOnLaterPositions() {
-    var oldest = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
-    var middle = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
-    var current = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
-    var later = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
+  void upsertAddAdminChange_whenNoAdminChangeExists_appendsAddChange() {
+    var result = LicencePositionAdministratorChangeUtil.upsertAddAdminChange(List.of(), ADMINISTRATOR_ID);
 
-    var oldestChronological = ChronologicalPositionTestUtil.live(
-        oldest, LicenceOperation.newAdministratorChange().withOperator(1).build());
-    var middleChronological = ChronologicalPositionTestUtil.live(
-        middle, LicenceOperation.newAdministratorChange().withOperator(2).build());
-    var currentChronological = ChronologicalPositionTestUtil.live(current);
-    var laterChronological = ChronologicalPositionTestUtil.live(
-        later, LicenceOperation.newAdministratorChange().withOperator(3).build());
-
-    var result = LicencePositionAdministratorChangeUtil.resolveCurrentAdministratorId(
-        current.getId(), List.of(oldestChronological, middleChronological, currentChronological, laterChronological));
-
-    assertThat(result).isEqualTo(2);
+    assertThat(result).hasSize(1);
+    assertThat(operatorIdOf(result.getFirst())).isEqualTo(ADMINISTRATOR_ID);
   }
 
   @Test
-  void resolveCurrentAdministratorId_whenNoChangeInScope_returnsNull() {
-    var current = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
-    var currentChronological = ChronologicalPositionTestUtil.live(current);
+  void upsertAddAdminChange_whenAdminChangeExists_replacesOperatorInPlace() {
+    var existing = adminAddChange(ADMINISTRATOR_ID);
 
-    var result = LicencePositionAdministratorChangeUtil.resolveCurrentAdministratorId(
-        current.getId(), List.of(currentChronological));
+    var result = LicencePositionAdministratorChangeUtil.upsertAddAdminChange(List.of(existing), UPDATED_ADMINISTRATOR_ID);
 
-    assertThat(result).isNull();
+    assertThat(result).hasSize(1);
+    assertThat(operatorIdOf(result.getFirst())).isEqualTo(UPDATED_ADMINISTRATOR_ID);
   }
 
   @Test
-  void resolvePreviousAdministratorId_whenNoEarlierAdminChange_returnsNull() {
-    var current = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
-    var currentChronological = ChronologicalPositionTestUtil.live(
-        current, LicenceOperation.newAdministratorChange().withOperator(2).build());
+  void replaceAdminChange_replacesOperatorInMatchingChange() {
+    var existing = adminAddChange(ADMINISTRATOR_ID);
 
-    var result = LicencePositionAdministratorChangeUtil.resolvePreviousAdministratorId(
-        current.getId(), List.of(currentChronological));
+    var result = LicencePositionAdministratorChangeUtil.replaceAdminChange(List.of(existing), UPDATED_ADMINISTRATOR_ID);
 
-    assertThat(result).isNull();
+    assertThat(result).hasSize(1);
+    assertThat(operatorIdOf(result.getFirst())).isEqualTo(UPDATED_ADMINISTRATOR_ID);
   }
 
+  @Test
+  void removeAdminChange_dropsChangesContainingAdministratorOperation() {
+    var adminChange = adminUpdateChange(UUID.randomUUID().toString(), ADMINISTRATOR_ID);
+
+    var result = LicencePositionAdministratorChangeUtil.removeAdminChange(List.of(adminChange));
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  void removeAdminChange_keepsChangesWithoutAdministratorOperation() {
+    var adminChange = adminAddChange(ADMINISTRATOR_ID);
+    var setEquityChange = setEquityAddChange();
+
+    var result = LicencePositionAdministratorChangeUtil.removeAdminChange(List.of(adminChange, setEquityChange));
+
+    assertThat(result).containsExactly(setEquityChange);
+  }
+
+  @Test
+  void adminIdNotChanged_whenLiveAdminMatches_returnsTrue() {
+    var change = liveAdminChange(ADMINISTRATOR_ID);
+
+    assertThat(LicencePositionAdministratorChangeUtil.adminIdNotChanged(change, ADMINISTRATOR_ID)).isTrue();
+  }
+
+  @Test
+  void adminIdNotChanged_whenLiveAdminDiffers_returnsFalse() {
+    var change = liveAdminChange(ADMINISTRATOR_ID);
+
+    assertThat(LicencePositionAdministratorChangeUtil.adminIdNotChanged(change, UPDATED_ADMINISTRATOR_ID)).isFalse();
+  }
+
+  private LicencePositionChange liveAdminChange(Integer administratorId) {
+    var change = new LicencePositionChange();
+    change.setOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(administratorId).build()));
+    return change;
+  }
+
+  private LicencePositionChangeType adminAddChange(Integer administratorId) {
+    var administratorOperation = LicenceOperation.newAdministratorChange().withOperator(administratorId).build();
+    var operation = LicencePositionChangeOperation.newLicencePositionAddOperation()
+        .withOperationId(administratorOperation.id())
+        .withOperation(administratorOperation)
+        .build();
+    return LicencePositionChangeType.addChange()
+        .withChangeId(UUID.randomUUID().toString())
+        .withChangeOrder(1)
+        .withOperations(List.of(operation))
+        .build();
+  }
+
+  private LicencePositionChangeType setEquityAddChange() {
+    var setEquityOperation = new SetEquityOperation(300, BigDecimal.valueOf(50));
+    var operation = LicencePositionChangeOperation.newLicencePositionAddOperation()
+        .withOperationId(setEquityOperation.id())
+        .withOperation(setEquityOperation)
+        .build();
+    return LicencePositionChangeType.addChange()
+        .withChangeId(UUID.randomUUID().toString())
+        .withChangeOrder(2)
+        .withOperations(List.of(operation))
+        .build();
+  }
+
+  private LicencePositionChangeType adminUpdateChange(String changeId, Integer administratorId) {
+    var administratorOperation = LicenceOperation.newAdministratorChange().withOperator(administratorId).build();
+    var operation = LicencePositionChangeOperation.newLicencePositionUpdateOperation()
+        .withOperationId(administratorOperation.id())
+        .withOperation(administratorOperation)
+        .build();
+    return LicencePositionChangeType.updateChangeOperations()
+        .withChangeId(changeId)
+        .withOperations(List.of(operation))
+        .build();
+  }
+
+  private Integer operatorIdOf(LicencePositionChangeType change) {
+    var addOperation = (LicencePositionAddOperation) ((AddChange) change).operations().getFirst();
+    return ((AdministratorOperation) addOperation.operation()).operatorId();
+  }
 }

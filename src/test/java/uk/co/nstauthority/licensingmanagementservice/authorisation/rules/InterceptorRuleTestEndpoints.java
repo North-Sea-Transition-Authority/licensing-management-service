@@ -12,7 +12,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCanBeReinstantiated;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.ValidLicencePositionAdministratorChange;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.LicencePositionHasNoLiveAdministratorChange;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.ValidLicencePositionAdministratorChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -110,6 +111,12 @@ public class InterceptorRuleTestEndpoints {
       @PathVariable UUID changeId
   ) {
     return ResponseEntity.ok("valid licence position administrator change test endpoint");
+  }
+
+  @GetMapping("position/{licencePositionId}/has-no-live-change")
+  @LicencePositionHasNoLiveAdministratorChange
+  public ResponseEntity<String> licencePositionHasNoLiveChange(@PathVariable UUID licencePositionId) {
+    return ResponseEntity.ok("licence position has no live change test endpoint");
   }
 
   @GetMapping("correction-licence-is-type")

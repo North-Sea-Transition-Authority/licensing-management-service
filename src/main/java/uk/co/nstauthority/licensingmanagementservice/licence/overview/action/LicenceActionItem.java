@@ -7,7 +7,6 @@ import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionIt
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.start.StartLicenceCorrectionController;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceResponsibleTeamController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailDuplicationController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.StartLicenceScheduleJourneyController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -26,21 +25,15 @@ public enum LicenceActionItem implements Displayable {
           licence -> ReverseRouter.route(on(LicenceScheduleDetailDuplicationController.class)
           .renderCreateDraftScheduleUpdatePage(licence.getId(), null))
   ),
-  MANAGE_LICENSEES(
-      "Manage licensees",
+  EDIT_LICENCE_DETAILS(
+      "Edit licence details",
           3,
           licence -> ReverseRouter.route(on(LicenceController.class)
-              .renderManageLicenseesPage(licence.getId(), null))
-  ),
-  MANAGE_RESPONSIBLE_TEAM(
-      "Manage responsible team",
-      4,
-          licence -> ReverseRouter.route(on(LicenceResponsibleTeamController.class)
-          .render(licence.getId(), null))
+              .renderEditLicenceDetailsPage(licence.getId(), null))
   ),
   START_CORRECTION(
       "Start licence correction",
-      5,
+      4,
           licence -> ReverseRouter.route(on(StartLicenceCorrectionController.class).renderStartLicenceCorrection(licence))
   )
   ;

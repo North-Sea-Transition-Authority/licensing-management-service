@@ -28,7 +28,6 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemView;
@@ -39,7 +38,6 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
 
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final ApplicationAccessService applicationAccessService;
-  private final TeamQueryService teamQueryService;
   private final WorkAreaItemViewService workAreaItemViewService;
   private final RegulatorRoleService regulatorRoleService;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
@@ -47,14 +45,12 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
   public ScheduleAndWorkProgrammeApplicationWorkAreaService(
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
       ApplicationAccessService applicationAccessService,
-      TeamQueryService teamQueryService,
       WorkAreaItemViewService workAreaItemViewService,
       RegulatorRoleService regulatorRoleService,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService
   ) {
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.applicationAccessService = applicationAccessService;
-    this.teamQueryService = teamQueryService;
     this.workAreaItemViewService = workAreaItemViewService;
     this.regulatorRoleService = regulatorRoleService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
@@ -184,20 +180,6 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
     return builder.build();
   }
 
-  private boolean isCaseManager(ServiceUserDetail userDetail, Licence licence) {
-    var responsibleTeam = licence.getResponsibleTeam();
-
-    if (responsibleTeam == null) {
-      return false;
-    }
-
-    return teamQueryService.userHasStaticRole(
-        userDetail.wuaId(),
-        responsibleTeam.getTeamType(),
-        responsibleTeam.getCaseManagerRole()
-    );
-  }
-
   private boolean matchesFilterAndHasAccess(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
       Licence licence,
@@ -251,6 +233,6 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       return hasApplicationAccess && !isRegulator;
     }
 
-    return hasApplicationAccess || isCaseManager(userDetail, licence);
+    return hasApplicationAccess;
   }
 }

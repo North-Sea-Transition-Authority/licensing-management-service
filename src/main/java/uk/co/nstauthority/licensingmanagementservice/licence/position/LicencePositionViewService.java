@@ -28,7 +28,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.RemoveExecutedLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.UndoLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
@@ -37,12 +36,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionAdministratorChangeUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeViewResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateViewResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.PositionChangeUrlContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeViewService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateViewService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
@@ -57,23 +57,17 @@ public class LicencePositionViewService {
 
   private final LicencePositionService licencePositionService;
   private final LicencePositionChangeService licencePositionChangeService;
-  private final LicencePositionChangeViewService licencePositionChangeViewService;
-  private final LicencePositionStateViewService licencePositionStateViewService;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
 
   public LicencePositionViewService(
       LicencePositionService licencePositionService,
       LicencePositionChangeService licencePositionChangeService,
-      LicencePositionChangeViewService licencePositionChangeViewService,
-      LicencePositionStateViewService licencePositionStateViewService,
       LicencePositionCorrectionService licencePositionCorrectionService,
       OrganisationUnitQueryService organisationUnitQueryService
   ) {
     this.licencePositionService = licencePositionService;
     this.licencePositionChangeService = licencePositionChangeService;
-    this.licencePositionChangeViewService = licencePositionChangeViewService;
-    this.licencePositionStateViewService = licencePositionStateViewService;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.organisationUnitQueryService = organisationUnitQueryService;
   }
@@ -88,17 +82,21 @@ public class LicencePositionViewService {
       UUID licencePositionId
   ) {
     var chronologicalPositions = getCorrectedChronologicalPositions(licenceCorrection, licencePositionId);
-    var currentAdministratorId =
-        LicencePositionAdministratorChangeUtil.resolveCurrentAdministratorId(licencePositionId, chronologicalPositions);
-    var previousAdministratorId =
-        LicencePositionAdministratorChangeUtil.resolvePreviousAdministratorId(licencePositionId, chronologicalPositions);
-    var administratorNames = resolveOrganisationNames(chronologicalPositions);
+    var statesByChronologicalPositionId =
+        LicencePositionStateResolver.resolveStatesByChronologicalPositionId(chronologicalPositions);
+    var currentState = statesByChronologicalPositionId.getOrDefault(licencePositionId, LicencePositionState.EMPTY);
+    var previousState = LicencePositionStateResolver.previousState(
+        licencePositionId,
+        chronologicalPositions,
+        statesByChronologicalPositionId
+    );
+    var organisationNames = resolveOrganisationNames(chronologicalPositions);
 
     return new AdministratorChangeContext(
-        currentAdministratorId,
-        previousAdministratorId,
-        nameOrEmpty(administratorNames, currentAdministratorId),
-        nameOrEmpty(administratorNames, previousAdministratorId)
+        currentState.administratorId(),
+        previousState.administratorId(),
+        nameOrEmpty(organisationNames, currentState.administratorId()),
+        nameOrEmpty(organisationNames, previousState.administratorId())
     );
   }
 
@@ -106,14 +104,26 @@ public class LicencePositionViewService {
     var licence = licencePosition.getLicence();
     var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
     var liveChronologicalPositions = getLiveChronologicalPositions(executedChronologicalLicencePositions);
-    var administratorNames = resolveOrganisationNames(liveChronologicalPositions);
+    var statesByChronologicalPositionId =
+        LicencePositionStateResolver.resolveStatesByChronologicalPositionId(liveChronologicalPositions);
+    var organisationNames = resolveOrganisationNames(liveChronologicalPositions);
 
     return LicencePositionPageView.readOnly(
         getReadOnlyTimelineView(executedChronologicalLicencePositions),
         licencePosition.getFormattedPositionDate(),
         licencePosition.getLicenceTransaction().getRegulatorReference(),
-        licencePositionChangeViewService.getChangeViews(licencePosition.getId(), liveChronologicalPositions, administratorNames),
-        licencePositionStateViewService.getStateView(licencePosition.getId(), liveChronologicalPositions, administratorNames),
+        LicencePositionChangeViewResolver.getChangeViews(
+            licencePosition.getId(),
+            liveChronologicalPositions,
+            statesByChronologicalPositionId,
+            organisationNames,
+            null
+        ),
+        LicencePositionStateViewResolver.getStateView(
+            licencePosition.getId(),
+            statesByChronologicalPositionId,
+            organisationNames
+        ),
         licencePosition.getId()
     );
   }
@@ -136,17 +146,22 @@ public class LicencePositionViewService {
         addedPositionCorrections,
         licencePosition.getId()
     );
-    var administratorNames = resolveOrganisationNames(allChronologicalPositions);
+    var statesByChronologicalPositionId =
+        LicencePositionStateResolver.resolveStatesByChronologicalPositionId(allChronologicalPositions);
+    var organisationNames = resolveOrganisationNames(allChronologicalPositions);
 
-    var changeViews = licencePositionChangeViewService.getChangeViews(
-        licencePosition.getId(), allChronologicalPositions, administratorNames);
-    var adminChange = (AdministratorChangeView) changeViews.get(LicenceOperation.LICENCE_ADMINISTRATOR);
-    var addUrl = ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
+    var changeViews = LicencePositionChangeViewResolver.getChangeViews(
+        licencePosition.getId(),
+        allChronologicalPositions,
+        statesByChronologicalPositionId,
+        organisationNames,
+        PositionChangeUrlContext.forExecutedPosition(licenceCorrection.getId(), licencePosition.getId())
+    );
+
+    var addUrl = ReverseRouter.route(on(LicencePositionAddChangeController.class)
         .renderForExecutedPosition(licenceCorrection.getId(), licencePosition.getId(), null));
 
-    var actions = new LicencePositionPageView.Actions(
-        getAdministratorChangeUrl(licenceCorrection, licencePosition.getId(), adminChange, addUrl)
-    );
+    var actions = new LicencePositionPageView.Actions(addUrl);
 
     return LicencePositionPageView.fromExecutedPosition(
         getCorrectionTimelineView(
@@ -159,7 +174,11 @@ public class LicencePositionViewService {
         licencePosition.getFormattedPositionDate(),
         licencePosition.getLicenceTransaction().getRegulatorReference(),
         changeViews,
-        licencePositionStateViewService.getStateView(licencePosition.getId(), allChronologicalPositions, administratorNames),
+        LicencePositionStateViewResolver.getStateView(
+            licencePosition.getId(),
+            statesByChronologicalPositionId,
+            organisationNames
+        ),
         licencePosition.getId(),
         actions
     );
@@ -185,10 +204,18 @@ public class LicencePositionViewService {
         addedPositionCorrections,
         addedPositionId
     );
-    var administratorNames = resolveOrganisationNames(allChronologicalPositions);
+    var statesByChronologicalPositionId =
+        LicencePositionStateResolver.resolveStatesByChronologicalPositionId(allChronologicalPositions);
+    var organisationNames = resolveOrganisationNames(allChronologicalPositions);
 
-    var changeViews = licencePositionChangeViewService.getChangeViews(
-        addedPositionId, allChronologicalPositions, administratorNames);
+    var changeViews = LicencePositionChangeViewResolver.getChangeViews(
+        addedPositionId,
+        allChronologicalPositions,
+        statesByChronologicalPositionId,
+        organisationNames,
+        PositionChangeUrlContext.forAddedPosition(licenceCorrection.getId(), positionCorrection.getId())
+    );
+
     var addChangeUrl = ReverseRouter.route(on(LicencePositionAddChangeController.class)
         .renderForAddedPosition(licenceCorrection.getId(), positionCorrection.getId(), null));
 
@@ -205,7 +232,7 @@ public class LicencePositionViewService {
         DateUtil.formatLongDate(payload.effectiveDate()),
         payload.correctionReference(),
         changeViews,
-        licencePositionStateViewService.getStateView(addedPositionId, allChronologicalPositions, administratorNames),
+        LicencePositionStateViewResolver.getStateView(addedPositionId, statesByChronologicalPositionId, organisationNames),
         addedPositionId,
         actions
     );
@@ -338,8 +365,6 @@ public class LicencePositionViewService {
       List<LicencePositionChange> liveChanges,
       List<LicencePositionChangeType> correctionChanges
   ) {
-    //TODO - LMS2-84: remove executed operations
-
     var changesById = new HashMap<String, PositionChange>();
 
     PositionChange.fromLicencePositionChanges(liveChanges).forEach(positionChange ->
@@ -351,13 +376,14 @@ public class LicencePositionViewService {
       if (liveChange == null) {
         changesById.put(positionChange.changeId(), positionChange);
       } else {
+        var isRemove = Objects.equals(positionChange.changeType(), LicencePositionChangeType.REMOVE_CHANGE);
         changesById.put(positionChange.changeId(),
             new PositionChange(
-                //TODO - will need to consider these when new change types are added
+                //TODO - will need to consider these when new change types are added (update change order)
                 liveChange.changeId(),
                 liveChange.changeOrder(),
                 positionChange.changeType(),
-                positionChange.operations()
+                isRemove ? liveChange.operations() : positionChange.operations()
             ));
       }
     });
@@ -393,7 +419,10 @@ public class LicencePositionViewService {
 
     var livePositions =
         getLivePositionEntries(
-            licencePositions, licenceCorrection, removedPositionIds, correctedPayloadsByPositionId,
+            licencePositions,
+            licenceCorrection,
+            removedPositionIds,
+            correctedPayloadsByPositionId,
             sameDateCount
         );
     var addedPositions = getAddedPositionEntries(licenceCorrection, addedCorrections, sameDateCount);
@@ -528,20 +557,6 @@ public class LicencePositionViewService {
   public String getCorrectOrderPositionUrl(LicenceCorrection correction, UUID positionId) {
     return ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
         .renderCorrectionLicencePositionOrder(correction.getId(), positionId, null));
-  }
-
-  private String getAdministratorChangeUrl(
-      LicenceCorrection licenceCorrection, UUID licencePositionId, AdministratorChangeView adminChange, String addUrl
-  ) {
-    if (adminChange == null) {
-      return addUrl;
-    }
-    if (adminChange.changeType() == null) {
-      return ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
-          .renderForCorrectingChange(licenceCorrection.getId(), licencePositionId, adminChange.changeId(), null));
-    }
-    // TODO LMS2-83: Modify an added or corrected admin change
-    return null;
   }
 
   private LocalDate effectiveDate(

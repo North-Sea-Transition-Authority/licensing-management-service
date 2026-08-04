@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -25,7 +26,6 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceTeam;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -42,7 +42,7 @@ class LicenceControllerTest extends AbstractControllerTest {
   private NewLicenceValidator newLicenceValidator;
 
   @MockitoBean
-  private ManageLicenseesValidator manageLicenseesValidator;
+  private EditLicenceDetailsValidator editLicenceDetailsValidator;
 
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
@@ -71,11 +71,10 @@ class LicenceControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/newLicence"))
         .andExpect(model().attribute("licenceTypeOptions", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getLicenceTypesManagedByLms())))
+        .andExpect(model().attribute("licenceStatusOptions", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatus.class)))
         .andExpect(model().attribute("preselectedOrgUnits", List.of()))
         .andExpect(model().attribute("organisationUnitSearchEndpoint",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))))
-        .andExpect(model().attribute("csResponsibleTeamOptions",
-            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceTeam.fromTeamType(LicenceType.CARBON_STORAGE))))
         .andExpect(model().attribute("backUrl", ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null, null))));
   }
 
@@ -120,23 +119,27 @@ class LicenceControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/newLicence"))
         .andExpect(model().attribute("licenceTypeOptions", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getLicenceTypesManagedByLms())))
+        .andExpect(model().attribute("licenceStatusOptions", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatus.class)))
         .andExpect(model().attribute("preselectedOrgUnits", List.of()))
         .andExpect(model().attribute("organisationUnitSearchEndpoint",
-            SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))))
-        .andExpect(model().attribute("csResponsibleTeamOptions",
-            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceTeam.fromTeamType(LicenceType.CARBON_STORAGE))));
+            SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))));
   }
 
 
   @Test
-  void renderManageLicenseesPage() throws Exception {
+  void renderEditLicenceDetailsPage() throws Exception {
     var licence = new Licence();
     licence.setType(LicenceType.CARBON_STORAGE);
     licence.setLicenceReference("CS1");
+    licence.setStatus(LicenceStatus.EXTANT);
 
     var selectedOrgUnits = List.of(new OrganisationUnitJson(1, "org name"));
 
+    var editLicenceDetailsForm = new EditLicenceDetailsForm();
+    editLicenceDetailsForm.setLicenceStatus(LicenceStatus.EXTANT);
+
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
+    when(licenceFormService.getEditLicenceDetailsForm(licence)).thenReturn(editLicenceDetailsForm);
     when(licenceFormService.getSavedOrganisationUnits(licence)).thenReturn(selectedOrgUnits);
     when(teamQueryService.userHasRoleInTeamType(
         organisationUser.wuaId(),
@@ -144,19 +147,26 @@ class LicenceControllerTest extends AbstractControllerTest {
         Set.of(Role.OFFLINE_LICENCE_ADMINISTRATOR))
     ).thenReturn(true);
 
-    mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceController.class).renderManageLicenseesPage(1, null)))
+    var result = mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceController.class).renderEditLicenceDetailsPage(1, null)))
                 .with(user(organisationUser))
         )
         .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/manageLicensees"))
+        .andExpect(view().name("lms/licence/editLicenceDetails"))
+        .andExpect(model().attribute("licenceStatusOptions",
+            DisplayableEnumOptionUtil.getDisplayableOptions(
+                LicenceStatus.getApplicableStatusesForLicenceType(LicenceType.CARBON_STORAGE))))
         .andExpect(model().attribute("preselectedOrgUnits", selectedOrgUnits))
         .andExpect(model().attribute("organisationUnitSearchEndpoint",
-            SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))));
+            SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))))
+        .andReturn();
+
+    var form = (EditLicenceDetailsForm) result.getModelAndView().getModel().get("form");
+    assertThat(form.getLicenceStatus()).isEqualTo(LicenceStatus.EXTANT);
   }
 
   @Test
-  void renderManageLicenseesPage_licenceNotManagedByLms() throws Exception {
+  void renderEditLicenceDetailsPage_licenceNotManagedByLms() throws Exception {
     var licence = new Licence();
     licence.setType(LicenceType.SEAWARD_PRODUCTION);
 
@@ -168,19 +178,19 @@ class LicenceControllerTest extends AbstractControllerTest {
     ).thenReturn(true);
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceController.class).renderManageLicenseesPage(1, null)))
+            get(ReverseRouter.route(on(LicenceController.class).renderEditLicenceDetailsPage(1, null)))
                 .with(user(organisationUser))
         )
         .andExpect(status().isForbidden());
   }
 
   @Test
-  void saveManageLicenseesPage_formIsValid() throws Exception {
+  void saveEditLicenceDetailsPage_formIsValid() throws Exception {
     var licence = new Licence();
     licence.setType(LicenceType.CARBON_STORAGE);
 
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
-    when(manageLicenseesValidator.isValid(any(), any())).thenReturn(true);
+    when(editLicenceDetailsValidator.isValid(any(), any())).thenReturn(true);
     when(teamQueryService.userHasRoleInTeamType(
         organisationUser.wuaId(),
         TeamType.LICENCE_MANAGEMENT,
@@ -188,7 +198,7 @@ class LicenceControllerTest extends AbstractControllerTest {
     ).thenReturn(true);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceController.class).saveManageLicenseesPage(1, null, null, null)))
+            post(ReverseRouter.route(on(LicenceController.class).saveEditLicenceDetailsPage(1, null, null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
@@ -198,13 +208,13 @@ class LicenceControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void saveManageLicenseesPage_formIsNotValid() throws Exception {
+  void saveEditLicenceDetailsPage_formIsNotValid() throws Exception {
     var licence = new Licence();
     licence.setType(LicenceType.CARBON_STORAGE);
     licence.setLicenceReference("CS1");
 
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
-    when(manageLicenseesValidator.isValid(any(), any())).thenReturn(false);
+    when(editLicenceDetailsValidator.isValid(any(), any())).thenReturn(false);
     when(licenceFormService.getPreselectedOrganisationUnits(List.of())).thenReturn(List.of());
     when(teamQueryService.userHasRoleInTeamType(
         organisationUser.wuaId(),
@@ -213,12 +223,15 @@ class LicenceControllerTest extends AbstractControllerTest {
     ).thenReturn(true);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceController.class).saveManageLicenseesPage(1, null, null, null)))
+            post(ReverseRouter.route(on(LicenceController.class).saveEditLicenceDetailsPage(1, null, null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
         .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/manageLicensees"))
+        .andExpect(view().name("lms/licence/editLicenceDetails"))
+        .andExpect(model().attribute("licenceStatusOptions",
+            DisplayableEnumOptionUtil.getDisplayableOptions(
+                LicenceStatus.getApplicableStatusesForLicenceType(LicenceType.CARBON_STORAGE))))
         .andExpect(model().attribute("preselectedOrgUnits", List.of()))
         .andExpect(model().attribute("organisationUnitSearchEndpoint",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))));
@@ -227,7 +240,7 @@ class LicenceControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void saveManageLicenseesPage_licenceNotManagedByLms() throws Exception {
+  void saveEditLicenceDetailsPage_licenceNotManagedByLms() throws Exception {
     var licence = new Licence();
     licence.setType(LicenceType.LANDWARD_PRODUCTION);
 
@@ -239,7 +252,7 @@ class LicenceControllerTest extends AbstractControllerTest {
     ).thenReturn(true);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(LicenceController.class).saveManageLicenseesPage(1, null, null, null)))
+            post(ReverseRouter.route(on(LicenceController.class).saveEditLicenceDetailsPage(1, null, null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )

@@ -3,7 +3,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.overview;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.List;
+import java.util.UUID;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -59,7 +61,12 @@ public class LicenceOverviewController {
         .addObject("form", form)
         .addObject("licenceReference", licence.getLicenceReference())
         .addObject("caption", licence.getType().getDisplayName())
-        .addObject("licenceActions", licenceActionService.getAvailableUserActionItems(licence, user));
+        .addObject("licenceActions", licenceActionService.getAvailableUserActionItems(licence, user))
+        .addObject("historyForm", new LicenceScheduleHistoryForm())
+        .addObject("scheduleHistoryOptions", licenceScheduleDetailService.getScheduleDetailHistoryOptions(licence))
+        .addObject("viewScheduleHistoryUrl", ReverseRouter.route(on(LicenceOverviewController.class)
+            .viewScheduleHistory(licenceId, null))
+        );
 
     var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(
         licence,
@@ -112,6 +119,20 @@ public class LicenceOverviewController {
     filterSession.update(form);
     return ReverseRouter.redirect(on(LicenceOverviewController.class)
         .renderLicenceOverview(licenceId, null, null, null));
+  }
+
+  @PostMapping("/schedule-history")
+  public ModelAndView viewScheduleHistory(
+      @PathVariable Integer licenceId,
+      @ModelAttribute("historyForm") LicenceScheduleHistoryForm form
+  ) {
+    if (!StringUtils.hasText(form.getLicenceScheduleDetailId())) {
+      return ReverseRouter.redirect(on(LicenceOverviewController.class)
+          .renderLicenceOverview(licenceId, null, null, null));
+    }
+
+    return ReverseRouter.redirect(on(LicenceScheduleHistoryOverviewController.class)
+        .renderLicenceOverview(UUID.fromString(form.getLicenceScheduleDetailId()), null, null, null));
   }
 
   @ModelAttribute("timelineSession")

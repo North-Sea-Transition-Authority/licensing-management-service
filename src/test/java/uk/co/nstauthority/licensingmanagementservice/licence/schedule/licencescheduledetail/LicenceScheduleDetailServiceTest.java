@@ -7,7 +7,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -20,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -228,5 +231,50 @@ class LicenceScheduleDetailServiceTest {
     detail.setStatus(LicenceScheduleDetailStatus.ACTIVE);
 
     assertThatThrownBy(() -> licenceScheduleDetailService.deleteDraftScheduleDetail(detail)).isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void getScheduleDetailHistoryOptions() {
+    var licence = LicenceTestUtil.builder().build();
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
+
+    var olderDetail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule)
+        .withId(UUID.randomUUID())
+        .withStatus(LicenceScheduleDetailStatus.REPLACED)
+        .withCreatedInstant(Instant.parse("2024-01-01T09:00:00Z"))
+        .build();
+
+    var newerDetail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule)
+        .withId(UUID.randomUUID())
+        .withStatus(LicenceScheduleDetailStatus.ACTIVE)
+        .withCreatedInstant(Instant.parse("2024-06-01T09:00:00Z"))
+        .build();
+
+    when(licenceScheduleDetailRepository.findAllByLicenceSchedule_Licence(licence))
+        .thenReturn(List.of(olderDetail, newerDetail));
+
+    var result = licenceScheduleDetailService.getScheduleDetailHistoryOptions(licence);
+
+    assertThat(result).containsExactly(
+        Map.entry(
+            newerDetail.getId().toString(),
+            "Applied date: %s".formatted(DateFormatUtil.convertToDisplayTextWithTime(newerDetail.getCreatedInstant()))
+        ),
+        Map.entry(
+            olderDetail.getId().toString(),
+            "Applied date: %s".formatted(DateFormatUtil.convertToDisplayTextWithTime(olderDetail.getCreatedInstant()))
+        )
+    );
+  }
+
+  @Test
+  void getScheduleDetailHistoryOptions_noScheduleDetails() {
+    var licence = LicenceTestUtil.builder().build();
+
+    when(licenceScheduleDetailRepository.findAllByLicenceSchedule_Licence(licence)).thenReturn(List.of());
+
+    var result = licenceScheduleDetailService.getScheduleDetailHistoryOptions(licence);
+
+    assertThat(result).isEmpty();
   }
 }

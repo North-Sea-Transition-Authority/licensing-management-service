@@ -36,7 +36,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.Applica
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterController;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceTeam;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
@@ -47,7 +46,6 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemView;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemViewService;
@@ -63,9 +61,6 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
 
   @Mock
   private ApplicationAccessService applicationAccessService;
-
-  @Mock
-  private TeamQueryService teamQueryService;
 
   @Mock
   private WorkAreaItemViewService workAreaItemViewService;
@@ -97,7 +92,6 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
         .withId(2)
         .withLicenceType(LicenceType.CARBON_STORAGE)
         .withLicenceReference("CS002")
-        .withResponsibleTeam(LicenceTeam.CS_CARBON_TRANSPORT_AND_STORAGE)
         .build();
     scheduleWorkProgrammeApplicationDetail2 = createScheduleWorkProgrammeApplicationDetail(licence2, testInstant.minus(1, ChronoUnit.HOURS), "LMS/EEA/002");
 
@@ -604,56 +598,6 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
                 String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant)),
                 List.of(summaryDataView),
                 testInstant
-            )
-        );
-  }
-
-  @Test
-  void getWorkAreaItems_filteredByUser_isCaseManager() {
-    scheduleWorkProgrammeApplicationDetail2.setStatus(ApplicationStatus.SUBMITTED);
-    scheduleWorkProgrammeApplicationDetail2.setSubmittedDatetime(testInstant.minus(1, ChronoUnit.HOURS));
-
-    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
-        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
-
-    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, false);
-    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail2, false);
-    when(teamQueryService.userHasStaticRole(
-        serviceUserDetail.wuaId(),
-        LicenceTeam.CS_CARBON_TRANSPORT_AND_STORAGE.getTeamType(),
-        LicenceTeam.CS_CARBON_TRANSPORT_AND_STORAGE.getCaseManagerRole()
-    )).thenReturn(true);
-
-    var org1 = "Org 1";
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, org1))));
-
-    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
-
-    var summaryDataView = SummaryDataView.newBuilder()
-        .addStringValue("Licence", licence2.getLicenceReference())
-        .addStringValue("Licensees", org1)
-        .addStringValue("Status", scheduleWorkProgrammeApplicationDetail2.getStatus().getDisplayName())
-        .build();
-
-    assertThat(workAreaItems)
-        .extracting(
-            SearchResultItem::id,
-            SearchResultItem::linkHeadingText,
-            SearchResultItem::linkHeadingUrl,
-            SearchResultItem::captionText,
-            SearchResultItem::dataItemRows,
-            SearchResultItem::transactionDatetime
-        )
-        .containsExactly(
-            tuple(
-                scheduleWorkProgrammeApplicationDetail2.getId().toString(),
-                String.format("%s - %s", "LMS/EEA/002", ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.getDisplayName().toLowerCase()),
-                ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-                    .renderOverview(scheduleWorkProgrammeApplicationDetail2.getId(), null, null)),
-                String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant.minus(1, ChronoUnit.HOURS))),
-                List.of(summaryDataView),
-                testInstant.minus(1, ChronoUnit.HOURS)
             )
         );
   }

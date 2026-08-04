@@ -20,7 +20,6 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.responsibleteam.LicenceTeam;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -38,18 +37,18 @@ public class LicenceController {
 
   private final LicenceFormService licenceFormService;
   private final NewLicenceValidator newLicenceValidator;
-  private final ManageLicenseesValidator manageLicenseesValidator;
+  private final EditLicenceDetailsValidator editLicenceDetailsValidator;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
 
   public LicenceController(
       LicenceFormService licenceFormService,
       NewLicenceValidator newLicenceValidator,
-      ManageLicenseesValidator manageLicenseesValidator,
+      EditLicenceDetailsValidator editLicenceDetailsValidator,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService
   ) {
     this.licenceFormService = licenceFormService;
     this.newLicenceValidator = newLicenceValidator;
-    this.manageLicenseesValidator = manageLicenseesValidator;
+    this.editLicenceDetailsValidator = editLicenceDetailsValidator;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
   }
 
@@ -78,8 +77,8 @@ public class LicenceController {
         .addObject("form", form)
         .addObject("licenceTypeOptions",
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getLicenceTypesManagedByLms()))
-        .addObject("csResponsibleTeamOptions",
-            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceTeam.fromTeamType(LicenceType.CARBON_STORAGE)))
+        .addObject("licenceStatusOptions",
+            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatus.class))
         .addObject("preselectedOrgUnits",
             licenceFormService.getPreselectedOrganisationUnits(form.getOrganisationUnitIds()))
         .addObject("organisationUnitSearchEndpoint",
@@ -88,8 +87,8 @@ public class LicenceController {
             ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null, null)));
   }
 
-  @GetMapping("/{licenceId}/manage-licensees")
-  public ModelAndView renderManageLicenseesPage(
+  @GetMapping("/{licenceId}/edit-licence-details")
+  public ModelAndView renderEditLicenceDetailsPage(
       @PathVariable Integer licenceId,
       Licence licence
   ) {
@@ -100,18 +99,18 @@ public class LicenceController {
       );
     }
 
-    return getManageLicenseesModelAndView(
-        new ManageLicenseesForm(),
+    return getEditLicenceDetailsModelAndView(
+        licenceFormService.getEditLicenceDetailsForm(licence),
         licence,
         licenceFormService.getSavedOrganisationUnits(licence)
     );
   }
 
-  @PostMapping("/{licenceId}/manage-licensees")
-  ModelAndView saveManageLicenseesPage(
+  @PostMapping("/{licenceId}/edit-licence-details")
+  ModelAndView saveEditLicenceDetailsPage(
       @PathVariable Integer licenceId,
       Licence licence,
-      @ModelAttribute("form") ManageLicenseesForm form,
+      @ModelAttribute("form") EditLicenceDetailsForm form,
       BindingResult bindingResult
   ) {
     if (!licence.getType().isManagedByLms()) {
@@ -121,8 +120,8 @@ public class LicenceController {
       );
     }
 
-    if (!manageLicenseesValidator.isValid(form, bindingResult)) {
-      return getManageLicenseesModelAndView(
+    if (!editLicenceDetailsValidator.isValid(form, bindingResult)) {
+      return getEditLicenceDetailsModelAndView(
           form,
           licence,
           licenceFormService.getPreselectedOrganisationUnits(form.getOrganisationUnitIds())
@@ -133,15 +132,18 @@ public class LicenceController {
     return ReverseRouter.redirect(on(LicenceOverviewController.class).renderLicenceOverview(licenceId, null, null, null));
   }
 
-  private ModelAndView getManageLicenseesModelAndView(
-      ManageLicenseesForm form,
+  private ModelAndView getEditLicenceDetailsModelAndView(
+      EditLicenceDetailsForm form,
       Licence licence,
       List<OrganisationUnitJson> organisationUnits
   ) {
-    return new ModelAndView("lms/licence/manageLicensees")
+    return new ModelAndView("lms/licence/editLicenceDetails")
         .addObject("pageTitle", licence.getLicenceReference())
         .addObject("pageCaption", "%s licence".formatted(licence.getType().getDisplayName()))
         .addObject("form", form)
+        .addObject("licenceStatusOptions",
+            DisplayableEnumOptionUtil.getDisplayableOptions(
+                LicenceStatus.getApplicableStatusesForLicenceType(licence.getType())))
         .addObject("preselectedOrgUnits", organisationUnits)
         .addObject("organisationUnitSearchEndpoint",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))

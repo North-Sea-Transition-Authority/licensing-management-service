@@ -78,7 +78,7 @@ class LicenceActionServiceTest {
     when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(teamRoles);
 
     assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
-        .contains(LicenceActionItem.MANAGE_LICENSEES.toActionItemView(licence));
+        .contains(LicenceActionItem.EDIT_LICENCE_DETAILS.toActionItemView(licence));
   }
 
   @Test
@@ -90,7 +90,7 @@ class LicenceActionServiceTest {
         .build();
 
     assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
-        .doesNotContain(LicenceActionItem.MANAGE_LICENSEES.toActionItemView(licence));
+        .doesNotContain(LicenceActionItem.EDIT_LICENCE_DETAILS.toActionItemView(licence));
   }
 
   @Test
@@ -198,7 +198,7 @@ class LicenceActionServiceTest {
     when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(teamRoles);
 
     assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
-        .contains(LicenceActionItem.MANAGE_LICENSEES.toActionItemView(licence));
+        .contains(LicenceActionItem.EDIT_LICENCE_DETAILS.toActionItemView(licence));
   }
 
   @Test

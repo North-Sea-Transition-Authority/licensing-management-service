@@ -75,7 +75,7 @@ class LicenceScheduleHistoryOverviewControllerTest extends AbstractControllerTes
   void renderLicenceOverview() throws Exception {
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
 
-    var actions = List.of(LicenceActionItem.MANAGE_LICENSEES.toActionItemView(licence));
+    var actions = List.of(LicenceActionItem.EDIT_LICENCE_DETAILS.toActionItemView(licence));
 
     when(licenceActionService.getAvailableUserActionItems(licence, USER)).thenReturn(actions);
 

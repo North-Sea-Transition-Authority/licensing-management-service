@@ -13,16 +13,7 @@ errorSummaryItems=errorSummaryItems>
             hiddenContent=true>
             <#assign firstItem=true/>
             <#list licenceTypeOptions as key, value>
-                <@fdsRadio.radioItem path="form.licenceType" itemMap={key : value} isFirstItem=firstItem>
-                    <#if key = "CARBON_STORAGE">
-                        <@fdsSelect.select
-                            path="form.responsibleTeam"
-                            options=csResponsibleTeamOptions
-                            labelText="Who is the licence allocated to?"
-                            nestingPath="form.licenceType"
-                        />
-                    </#if>
-                </@fdsRadio.radioItem>
+                <@fdsRadio.radioItem path="form.licenceType" itemMap={key : value} isFirstItem=firstItem/>
                 <#assign firstItem=false/>
             </#list>
         </@fdsRadio.radioGroup>

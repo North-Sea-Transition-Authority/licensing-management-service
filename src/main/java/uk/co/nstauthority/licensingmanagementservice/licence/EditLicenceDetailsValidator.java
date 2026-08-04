@@ -5,9 +5,9 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.validation.Errors;
 
 @Service
-public class ManageLicenseesValidator {
+public class EditLicenceDetailsValidator {
 
-  boolean isValid(ManageLicenseesForm form, Errors errors) {
+  boolean isValid(EditLicenceDetailsForm form, Errors errors) {
 
     if (CollectionUtils.isEmpty(form.getOrganisationUnitIds())) {
       errors.rejectValue("organisationUnitSelector", "organisationUnitSelector.notEmpty",

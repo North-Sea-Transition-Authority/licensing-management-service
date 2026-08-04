@@ -77,7 +77,7 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
     when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(licence, LicenceScheduleDetailStatus.ACTIVE)).thenReturn(Optional.of(licenceScheduleDetail));
 
-    var actions = List.of(LicenceActionItem.MANAGE_LICENSEES.toActionItemView(licence));
+    var actions = List.of(LicenceActionItem.EDIT_LICENCE_DETAILS.toActionItemView(licence));
 
     when(licenceActionService.getAvailableUserActionItems(licence, USER)).thenReturn(actions);
 
@@ -117,7 +117,7 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
     when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(licence, LicenceScheduleDetailStatus.ACTIVE)).thenReturn(Optional.empty());
 
-    var actions = List.of(LicenceActionItem.MANAGE_LICENSEES.toActionItemView(licence));
+    var actions = List.of(LicenceActionItem.EDIT_LICENCE_DETAILS.toActionItemView(licence));
 
     when(licenceActionService.getAvailableUserActionItems(licence, USER)).thenReturn(actions);
 

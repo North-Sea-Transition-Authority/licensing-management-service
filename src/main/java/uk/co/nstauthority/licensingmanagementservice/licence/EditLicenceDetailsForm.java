@@ -2,7 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence;
 
 import java.util.List;
 
-public class ManageLicenseesForm {
+public class EditLicenceDetailsForm {
 
   private List<String> organisationUnitIds;
 

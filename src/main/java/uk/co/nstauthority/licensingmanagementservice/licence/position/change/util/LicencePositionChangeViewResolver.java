@@ -90,12 +90,13 @@ public final class LicencePositionChangeViewResolver {
         change.changeId(),
         change.changeType(),
         correctChangeUrl(urlContext, change),
-        removeChangeUrl(urlContext, change)
+        removeChangeUrl(urlContext, change),
+        undoChangeUrl(urlContext, change)
     );
   }
 
   @Nullable
-  //TODO: When other change types are added, we should adapt how the correct / remove urls for change views are built
+  //TODO LMS2-132: When other change types are added, we should adapt how the correct urls for change views are built
   private static String correctChangeUrl(@Nullable PositionChangeUrlContext urlContext, PositionChange change) {
     if (urlContext == null) {
       return null;
@@ -109,22 +110,34 @@ public final class LicencePositionChangeViewResolver {
       return ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
           .renderForExecutedPosition(urlContext.correctionId(), urlContext.routingId(), null));
     }
+    if (LicencePositionChangeType.REMOVE_CHANGE.equals(change.changeType())) {
+      return null;
+    }
     return ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
         .renderForCorrectingChange(urlContext.correctionId(), urlContext.routingId(), change.changeId(), null));
   }
 
   @Nullable
-  //TODO: When other change types are added, we should adapt how the correct / remove urls for change views are built
+  //TODO LMS2-133: When other change types are added, we should adapt how the remove urls for change views are built
   private static String removeChangeUrl(@Nullable PositionChangeUrlContext urlContext, PositionChange change) {
     if (urlContext == null || urlContext.addedPosition()) {
       return null;
     }
-    var changeType = change.changeType();
-    if (LicencePositionChangeType.ADD_CHANGE.equals(changeType)
-        || LicencePositionChangeType.REMOVE_CHANGE.equals(changeType)) {
+
+    if (change.changeType() != null) {
       return null;
     }
     return ReverseRouter.route(on(RemoveAdministratorChangeController.class)
         .renderRemoveExecutedAdminChange(urlContext.correctionId(), urlContext.routingId(), change.changeId(), null));
+  }
+
+  @Nullable
+  //TODO LMS2-134: When other change types are added, we should adapt how the undo urls for change  views are built
+  private static String undoChangeUrl(@Nullable PositionChangeUrlContext urlContext, PositionChange change) {
+    if (urlContext == null || change.changeType() == null) {
+      return null;
+    }
+    return ReverseRouter.route(on(RemoveAdministratorChangeController.class)
+        .renderUndoAdminChange(urlContext.correctionId(), change.changeId(), null));
   }
 }

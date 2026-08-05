@@ -22,6 +22,11 @@ public final class LicencePositionAdministratorChangeUtil {
     return changes.stream().anyMatch(LicencePositionAdministratorChangeUtil::containsAdminOperation);
   }
 
+  public static boolean containsAdminOperation(LicencePositionChange liveChange) {
+    return liveChange.getOperations() != null
+        && liveChange.getOperations().stream().anyMatch(AdministratorOperation.class::isInstance);
+  }
+
   public static List<LicencePositionChangeType> upsertAddAdminChange(
       List<LicencePositionChangeType> changes, Integer administratorId
   ) {
@@ -54,7 +59,14 @@ public final class LicencePositionAdministratorChangeUtil {
         .anyMatch(operatorId -> operatorId.equals(administratorId));
   }
 
-  private static boolean containsAdminOperation(LicencePositionChangeType change) {
+  //TODO LMS2-133 / LMS2-134: this could be moved to a more generic util when new change types are added
+  public static List<LicencePositionChangeType> removeChangeById(List<LicencePositionChangeType> changes, String changeId) {
+    return changes.stream()
+        .filter(c -> !changeId.equals(c.changeId()))
+        .toList();
+  }
+
+  public static boolean containsAdminOperation(LicencePositionChangeType change) {
     return operationsOf(change).stream()
         .map(changeOperation -> switch (changeOperation) {
           case LicencePositionAddOperation addOperation -> addOperation.operation();

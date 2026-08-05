@@ -85,6 +85,24 @@ class LicencePositionAdministratorChangeUtilTest {
   }
 
   @Test
+  void containsAdminOperation_whenLiveChangeHasAdministratorOperation_returnsTrue() {
+    assertThat(LicencePositionAdministratorChangeUtil.containsAdminOperation(liveAdminChange(ADMINISTRATOR_ID))).isTrue();
+  }
+
+  @Test
+  void containsAdminOperation_whenLiveChangeHasOnlyNonAdminOperation_returnsFalse() {
+    var change = new LicencePositionChange();
+    change.setOperations(List.of(new SetEquityOperation(300, BigDecimal.valueOf(50))));
+
+    assertThat(LicencePositionAdministratorChangeUtil.containsAdminOperation(change)).isFalse();
+  }
+
+  @Test
+  void containsAdminOperation_whenLiveChangeHasNullOperations_returnsFalse() {
+    assertThat(LicencePositionAdministratorChangeUtil.containsAdminOperation(new LicencePositionChange())).isFalse();
+  }
+
+  @Test
   void adminIdNotChanged_whenLiveAdminMatches_returnsTrue() {
     var change = liveAdminChange(ADMINISTRATOR_ID);
 
@@ -96,6 +114,27 @@ class LicencePositionAdministratorChangeUtilTest {
     var change = liveAdminChange(ADMINISTRATOR_ID);
 
     assertThat(LicencePositionAdministratorChangeUtil.adminIdNotChanged(change, UPDATED_ADMINISTRATOR_ID)).isFalse();
+  }
+
+  @Test
+  void removeChangeById_dropsMatchingChangeKeepsOthers() {
+    var keptId = UUID.randomUUID().toString();
+    var removedId = UUID.randomUUID().toString();
+    var kept = adminUpdateChange(keptId, ADMINISTRATOR_ID);
+    var removed = adminUpdateChange(removedId, UPDATED_ADMINISTRATOR_ID);
+
+    var result = LicencePositionAdministratorChangeUtil.removeChangeById(List.of(kept, removed), removedId);
+
+    assertThat(result).containsExactly(kept);
+  }
+
+  @Test
+  void removeChangeById_whenNoMatch_returnsUnchanged() {
+    var change = adminUpdateChange(UUID.randomUUID().toString(), ADMINISTRATOR_ID);
+
+    var result = LicencePositionAdministratorChangeUtil.removeChangeById(List.of(change), UUID.randomUUID().toString());
+
+    assertThat(result).containsExactly(change);
   }
 
   private LicencePositionChange liveAdminChange(Integer administratorId) {

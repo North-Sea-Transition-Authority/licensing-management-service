@@ -113,9 +113,9 @@ public class InterceptorRuleTestEndpoints {
     return ResponseEntity.ok("valid licence position administrator change test endpoint");
   }
 
-  @GetMapping("position/{licencePositionId}/has-no-live-change")
+  @GetMapping("position/{licencePositionId}/has-no-live-administrator-change")
   @LicencePositionHasNoLiveAdministratorChange
-  public ResponseEntity<String> licencePositionHasNoLiveChange(@PathVariable UUID licencePositionId) {
+  public ResponseEntity<String> licencePositionHasNoLiveAdministratorChange(@PathVariable UUID licencePositionId) {
     return ResponseEntity.ok("licence position has no live change test endpoint");
   }
 

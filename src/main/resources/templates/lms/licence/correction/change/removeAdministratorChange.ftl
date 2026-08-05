@@ -18,7 +18,7 @@ pageSize=PageSize.TWO_THIRDS_COLUMN
     </@fdsSummaryList.summaryList>
 
     <@fdsAction.submitButtons
-      primaryButtonText="Remove administrator change"
+      primaryButtonText=primaryButtonText
       secondaryLinkText="Cancel"
       linkSecondaryAction=true
       linkSecondaryActionUrl=springUrl(cancelUrl)

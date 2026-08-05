@@ -80,7 +80,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("createLicenceUrl", CREATE_LICENCE_ROUTE))
         .andReturn();
 
-    verify(licenceSearchService, never()).getSearchResultItems(form);
+    verify(licenceSearchService, never()).getSearchResultItems(form, organisationUser);
 
     var renderedForm = (LicenceSearchFilterForm) result.getModelAndView().getModel().get("form");
     assertThat(renderedForm.getLicenceTypes()).containsExactlyElementsOf(LicenceType.getDisplayableLicenceTypesNames());
@@ -111,7 +111,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatus.class)))
         .andExpect(model().attribute("canCreateLicence", true))
         .andExpect(model().attribute("createLicenceUrl", CREATE_LICENCE_ROUTE));
-    verify(licenceSearchService).getSearchResultItems(form);
+    verify(licenceSearchService).getSearchResultItems(form, organisationUser);
   }
 
   @Test

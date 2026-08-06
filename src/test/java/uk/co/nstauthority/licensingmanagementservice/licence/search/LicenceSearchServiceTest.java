@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.search;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
@@ -9,11 +10,16 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupDto;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
@@ -29,6 +35,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOve
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
+import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamRoleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceSearchServiceTest {
@@ -38,12 +49,17 @@ class LicenceSearchServiceTest {
   private static final String ORG_UNIT_NAME_ALPHA = "Org Alpha";
   private static final String ORG_UNIT_NAME_BETA = "Org Beta";
   private static final int ORG_GROUP_ID = 5;
+  private static final long USER_WUA_ID = 999L;
 
   private static final Licence SEAWARD_PRODUCTION_LICENCE = buildLicence(1, LicenceType.SEAWARD_PRODUCTION, "P1", LicenceStatus.EXTANT);
   private static final Licence CARBON_STORAGE_LICENCE = buildLicence(2, LicenceType.CARBON_STORAGE, "CS1", LicenceStatus.EXTANT);
   private static final Licence CARBON_STORAGE_LICENCE_2 = buildLicence(5, LicenceType.CARBON_STORAGE, "CS2", LicenceStatus.EXTANT);
   private static final Licence GAS_STORAGE_LICENCE = buildLicence(3, LicenceType.GAS_STORAGE, "GS1", LicenceStatus.EXPIRED);
   private static final Licence LANDWARD_PRODUCTION_LICENCE = buildLicence(4, LicenceType.LANDWARD_PRODUCTION, "PEDL1", LicenceStatus.SURRENDERED);
+
+  private static final ServiceUserDetail serviceUserDetail = ServiceUserDetailTestUtil.newBuilder()
+      .withWuaId(USER_WUA_ID)
+      .build();
 
   @Mock
   private LicenceService licenceService;
@@ -57,8 +73,16 @@ class LicenceSearchServiceTest {
   @Mock
   private OrganisationGroupQueryService organisationGroupQueryService;
 
+  @Mock
+  private TeamQueryService teamQueryService;
+
   @InjectMocks
   private LicenceSearchService licenceSearchService;
+
+  @BeforeEach
+  void setUp() {
+    lenient().when(teamQueryService.userIsInRegulatorTeam(USER_WUA_ID)).thenReturn(true);
+  }
 
   @Test
   void getSearchResultItems_NoFilters_ReturnsAllResults() {
@@ -66,7 +90,7 @@ class LicenceSearchServiceTest {
     when(licenceResponsibleOrganisationService.getAllByLicenceIn(List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE)))
         .thenReturn(List.of());
 
-    var result = licenceSearchService.getSearchResultItems(new LicenceSearchFilterForm());
+    var result = licenceSearchService.getSearchResultItems(new LicenceSearchFilterForm(), serviceUserDetail);
 
     assertThat(result)
         .usingRecursiveComparison()
@@ -85,7 +109,7 @@ class LicenceSearchServiceTest {
     var filterForm = new LicenceSearchFilterForm();
     filterForm.setLicenceReference("s");
 
-    var result = licenceSearchService.getSearchResultItems(filterForm);
+    var result = licenceSearchService.getSearchResultItems(filterForm, serviceUserDetail);
 
     assertThat(result)
         .usingRecursiveComparison()
@@ -104,7 +128,7 @@ class LicenceSearchServiceTest {
     var filterForm = new LicenceSearchFilterForm();
     filterForm.setLicenceTypes(List.of(LicenceType.CARBON_STORAGE.name(), LicenceType.LANDWARD_PRODUCTION.name()));
 
-    var result = licenceSearchService.getSearchResultItems(filterForm);
+    var result = licenceSearchService.getSearchResultItems(filterForm, serviceUserDetail);
 
     assertThat(result)
         .usingRecursiveComparison()
@@ -124,7 +148,7 @@ class LicenceSearchServiceTest {
     var filterForm = new LicenceSearchFilterForm();
     filterForm.setLicenceStatuses(List.of(LicenceStatus.EXPIRED.name(), LicenceStatus.SURRENDERED.name()));
 
-    var result = licenceSearchService.getSearchResultItems(filterForm);
+    var result = licenceSearchService.getSearchResultItems(filterForm, serviceUserDetail);
 
     assertThat(result)
         .usingRecursiveComparison()
@@ -150,7 +174,7 @@ class LicenceSearchServiceTest {
     var filterForm = new LicenceSearchFilterForm();
     filterForm.setLicenseeOrgUnitId(ORG_UNIT_ID_ALPHA);
 
-    var result = licenceSearchService.getSearchResultItems(filterForm);
+    var result = licenceSearchService.getSearchResultItems(filterForm, serviceUserDetail);
 
     assertThat(result)
         .usingRecursiveComparison()
@@ -177,7 +201,7 @@ class LicenceSearchServiceTest {
     var filterForm = new LicenceSearchFilterForm();
     filterForm.setLicenseeOrgGroupId(ORG_GROUP_ID);
 
-    var result = licenceSearchService.getSearchResultItems(filterForm);
+    var result = licenceSearchService.getSearchResultItems(filterForm, serviceUserDetail);
 
     assertThat(result)
         .usingRecursiveComparison()
@@ -185,6 +209,59 @@ class LicenceSearchServiceTest {
         .isEqualTo(List.of(
             buildSearchResultItem(SEAWARD_PRODUCTION_LICENCE, List.of(ORG_UNIT_NAME_ALPHA))
         ));
+  }
+
+  @Test
+  void getSearchResultItems_whenNonRegulatorUserWithOrganisationAccess_returnsOnlyLicencesForUsersOrgUnits() {
+    var licences = List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE);
+
+    when(teamQueryService.userIsInRegulatorTeam(USER_WUA_ID)).thenReturn(false);
+    when(licenceService.getAllLicences()).thenReturn(licences);
+    var lro1 = buildLicenceResponsibleOrganisation(SEAWARD_PRODUCTION_LICENCE, ORG_UNIT_ID_ALPHA);
+    var lro2 = buildLicenceResponsibleOrganisation(CARBON_STORAGE_LICENCE, ORG_UNIT_ID_BETA);
+    when(licenceResponsibleOrganisationService.getAllByLicenceIn(licences))
+        .thenReturn(List.of(lro1, lro2));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(ORG_UNIT_ID_ALPHA, ORG_UNIT_ID_BETA)))
+        .thenReturn(Map.of(ORG_UNIT_ID_ALPHA, ORG_UNIT_NAME_ALPHA, ORG_UNIT_ID_BETA, ORG_UNIT_NAME_BETA));
+
+    var team = TeamTestUtil.newBuilder()
+        .withTeamType(TeamType.ORGANISATION)
+        .withScopeType(ScopeType.ORGANISATION_GROUP.name())
+        .withScopeId(String.valueOf(ORG_GROUP_ID))
+        .build();
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withWuaId(USER_WUA_ID)
+        .withTeam(team)
+        .withRole(Role.VIEW_ORGANISATION_LICENCES)
+        .build();
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+    when(organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(List.of(ORG_GROUP_ID)))
+        .thenReturn(List.of(new OrganisationUnitJson(ORG_UNIT_ID_ALPHA, ORG_UNIT_NAME_ALPHA)));
+
+    var result = licenceSearchService.getSearchResultItems(new LicenceSearchFilterForm(), serviceUserDetail);
+
+    assertThat(result)
+        .usingRecursiveComparison()
+        .ignoringCollectionOrder()
+        .isEqualTo(List.of(
+            buildSearchResultItem(SEAWARD_PRODUCTION_LICENCE, List.of(ORG_UNIT_NAME_ALPHA))
+        ));
+  }
+
+  @Test
+  void getSearchResultItems_whenNonRegulatorUserWithNoOrganisationAccess_returnsNoResults() {
+    var licences = List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE);
+
+    when(teamQueryService.userIsInRegulatorTeam(USER_WUA_ID)).thenReturn(false);
+    when(licenceService.getAllLicences()).thenReturn(licences);
+    when(licenceResponsibleOrganisationService.getAllByLicenceIn(licences))
+        .thenReturn(List.of());
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of());
+
+    var result = licenceSearchService.getSearchResultItems(new LicenceSearchFilterForm(), serviceUserDetail);
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(organisationGroupQueryService);
   }
 
   @Test

@@ -34,4 +34,23 @@ public sealed interface LicencePositionPayload permits CreateLicencePositionPayl
   static UpdateLicencePositionPayload.Builder newUpdateLicencePositionPayload() {
     return new UpdateLicencePositionPayload.Builder();
   }
+
+  static LicencePositionPayload withChanges(LicencePositionPayload payload, List<LicencePositionChangeType> changes) {
+    return switch (payload) {
+      case CreateLicencePositionPayload create -> newCreateLicencePositionPayload()
+          .withLicencePositionId(create.licencePositionId())
+          .withLicenceTransactionId(create.licenceTransactionId())
+          .withEffectiveDate(create.effectiveDate())
+          .withEffectiveDateOrder(create.effectiveDateOrder())
+          .withCorrectionReference(create.correctionReference())
+          .withChanges(changes)
+          .build();
+      case UpdateLicencePositionPayload update -> newUpdateLicencePositionPayload()
+          .withEffectiveDate(update.effectiveDate())
+          .withEffectiveDateOrder(update.effectiveDateOrder())
+          .withCorrectionReference(update.correctionReference())
+          .withChanges(changes)
+          .build();
+    };
+  }
 }

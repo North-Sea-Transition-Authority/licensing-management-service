@@ -20,6 +20,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
@@ -27,6 +28,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.AdministratorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -35,11 +38,15 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @ActiveProfiles({"test", "enable-lms2"})
 class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
 
+  @MockitoBean
+  private AdministratorChangeService administratorChangeService;
+
   private static final Licence LICENCE = LicenceTestUtil.builder().build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final String CHANGE_ID = UUID.randomUUID().toString();
   private static final String PAGE_TITLE = "Are you sure you want to remove this licence administrator change?";
+  private static final String UNDO_PAGE_TITLE = "Are you sure you want to undo this licence administrator change?";
   private static final String VIEW_NAME = "lms/licence/correction/change/removeAdministratorChange";
 
   private final String positionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
@@ -111,7 +118,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
                 .build())
         );
 
-    verify(licencePositionCorrectionService).removeExistingAdministratorChange(position, correction, CHANGE_ID);
+    verify(administratorChangeService).removeExistingAdministratorChange(position, correction, CHANGE_ID);
   }
 
   @Test
@@ -124,7 +131,80 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
             .with(csrf()))
         .andExpect(status().isForbidden());
 
-    verifyNoInteractions(licencePositionCorrectionService);
+    verifyNoInteractions(administratorChangeService);
+  }
+
+  @Test
+  void renderUndoAdminChange_whenNotAllocatedToUser() throws Exception {
+    givenCorrectionNotAllocatedToUser();
+
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
+            .renderUndoAdminChange(CORRECTION_ID, CHANGE_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderUndoAdminChange_whenAllocatedToUser() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(position)
+        .build();
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+    when(licencePositionViewService.getAdministratorChangeContext(correction, POSITION_ID))
+        .thenReturn(new AdministratorChangeContext(789, 456, "Joining Admin Org", "Withdrawing Admin Org"));
+
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
+            .renderUndoAdminChange(CORRECTION_ID, CHANGE_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("pageTitle", UNDO_PAGE_TITLE),
+            model().attribute("primaryButtonText", "Undo administrator change"),
+            model().attribute("withdrawingAdministratorName", "Withdrawing Admin Org"),
+            model().attribute("joiningAdministratorName", "Joining Admin Org"),
+            model().attribute("cancelUrl", positionUrl)
+        );
+  }
+
+  @Test
+  void undoAdminChange_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
+            .undoAdminChange(CORRECTION_ID, CHANGE_ID, null, null)))
+            .with(csrf()))
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void undoAdminChange() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(position)
+        .build();
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
+            .undoAdminChange(CORRECTION_ID, CHANGE_ID, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(positionUrl),
+            notificationBanner(NotificationBanner.newSuccessBanner()
+                .withHeadingContent("Licence administrator change undone")
+                .build())
+        );
+
+    verify(administratorChangeService).undoAdministratorChange(correction, CHANGE_ID);
   }
 
   private LicenceCorrection givenCorrectionAllocatedToUser() {

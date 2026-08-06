@@ -2,7 +2,7 @@
 
 <@defaultPage
 htmlTitle="Change licence administrator"
-backLinkUrl=springUrl(backLinkUrl)
+backLinkEnabled=true
 >
     <@fdsSummaryList.summaryList>
         <@fdsSummaryList.summaryListRowNoAction keyText="Previous licence administrator">
@@ -32,7 +32,7 @@ backLinkUrl=springUrl(backLinkUrl)
         primaryButtonText="Add"
         secondaryLinkText="Cancel"
         linkSecondaryAction=true
-        linkSecondaryActionUrl=springUrl(backLinkUrl)
+        linkSecondaryActionUrl=springUrl(cancelUrl)
       />
     </@fdsForm.htmlForm>
 </@defaultPage>

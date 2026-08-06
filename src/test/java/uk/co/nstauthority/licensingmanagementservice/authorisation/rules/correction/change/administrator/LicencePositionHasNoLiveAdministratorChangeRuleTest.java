@@ -73,7 +73,7 @@ class LicencePositionHasNoLiveAdministratorChangeRuleTest extends AbstractInterc
 
   private LicencePositionHasNoLiveAdministratorChange annotation() throws NoSuchMethodException {
     return getAnnotation(
-        InterceptorRuleTestEndpoints.class.getDeclaredMethod("licencePositionHasNoLiveChange", UUID.class),
+        InterceptorRuleTestEndpoints.class.getDeclaredMethod("licencePositionHasNoLiveAdministratorChange", UUID.class),
         LicencePositionHasNoLiveAdministratorChange.class
     );
   }

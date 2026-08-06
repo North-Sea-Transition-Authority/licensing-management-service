@@ -28,6 +28,8 @@ public sealed interface LicencePositionChangeType permits AddChange, UpdateChang
 
   String type();
 
+  String changeId();
+
   static AddChange.Builder addChange() {
     return new AddChange.Builder();
   }

@@ -59,7 +59,7 @@ public class LicenceSearchController {
       form.setLicenceStatuses(Arrays.stream(LicenceStatus.values()).map(Enum::name).toList());
       licenceSearchItems = Collections.emptyList();
     } else {
-      licenceSearchItems = licenceSearchService.getSearchResultItems(form);
+      licenceSearchItems = licenceSearchService.getSearchResultItems(form, serviceUserDetail);
     }
 
     return getLicenceSearchModelAndView(form, licenceSearchItems, hasSearchBeenInvoked, serviceUserDetail);

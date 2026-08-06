@@ -142,41 +142,62 @@ class LicencePositionChangeViewResolverTest {
   }
 
   @Test
-  void buildAdministratorChange_whenExecutedUpdateChange_populatesCorrectAndRemoveUrls() {
+  void buildAdministratorChange_whenUntouchedExecutedChange_populatesRemoveNotUndo() {
     var view = adminChangeView(
-        LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS,
-        PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID()));
+        null,
+        PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID())
+    );
 
     assertThat(view.correctUrl()).contains("correct-administrator-change");
     assertThat(view.removeUrl()).contains("remove-administrator-change");
+    assertThat(view.undoUrl()).isNull();
   }
 
   @Test
-  void buildAdministratorChange_whenAddChange_hasNoRemoveUrl() {
+  void buildAdministratorChange_whenExecutedUpdateChange_populatesCorrectAndUndoNotRemove() {
+    var view = adminChangeView(
+        LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS,
+        PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID())
+    );
+
+    assertThat(view.correctUrl()).contains("correct-administrator-change");
+    assertThat(view.removeUrl()).isNull();
+    assertThat(view.undoUrl()).contains("undo-administrator-change");
+  }
+
+  @Test
+  void buildAdministratorChange_whenAddChange_populatesUndoNotRemove() {
     var view = adminChangeView(
         LicencePositionChangeType.ADD_CHANGE,
-        PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID()));
+        PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID())
+    );
 
     assertThat(view.correctUrl()).contains("add-administrator-change");
     assertThat(view.removeUrl()).isNull();
+    assertThat(view.undoUrl()).contains("undo-administrator-change");
   }
 
   @Test
-  void buildAdministratorChange_whenRemoveChange_hasNoRemoveUrl() {
+  void buildAdministratorChange_whenRemoveChange_populatesUndoOnly() {
     var view = adminChangeView(
         LicencePositionChangeType.REMOVE_CHANGE,
-        PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID()));
+        PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID())
+    );
 
+    assertThat(view.correctUrl()).isNull();
     assertThat(view.removeUrl()).isNull();
+    assertThat(view.undoUrl()).contains("undo-administrator-change");
   }
 
   @Test
-  void buildAdministratorChange_whenAddedPosition_hasNoRemoveUrl() {
+  void buildAdministratorChange_whenAddedPosition_populatesUndoNotRemove() {
     var view = adminChangeView(
-        LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS,
-        PositionChangeUrlContext.forAddedPosition(UUID.randomUUID(), UUID.randomUUID()));
+        LicencePositionChangeType.ADD_CHANGE,
+        PositionChangeUrlContext.forAddedPosition(UUID.randomUUID(), UUID.randomUUID())
+    );
 
     assertThat(view.removeUrl()).isNull();
+    assertThat(view.undoUrl()).contains("undo-administrator-change");
   }
 
   @Test
@@ -185,6 +206,7 @@ class LicencePositionChangeViewResolverTest {
 
     assertThat(view.correctUrl()).isNull();
     assertThat(view.removeUrl()).isNull();
+    assertThat(view.undoUrl()).isNull();
   }
 
   private AdministratorChangeView adminChangeView(String changeType, PositionChangeUrlContext urlContext) {

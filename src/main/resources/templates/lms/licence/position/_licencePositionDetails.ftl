@@ -23,6 +23,6 @@
     <@positionChanges.administratorChange change=licencePositionChanges["licence-administrator"]/>
   </#if>
   <#if licencePositionChanges["set-equity"]??>
-      <@positionChanges.setEquityChange change=licencePositionChanges["set-equity"]/>
+    <@positionChanges.setEquityChange change=licencePositionChanges["set-equity"]/>
   </#if>
 </#macro>

@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
@@ -23,6 +25,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOve
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
 
 @Service
@@ -32,18 +36,25 @@ public class LicenceSearchService {
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final OrganisationGroupQueryService organisationGroupQueryService;
+  private final TeamQueryService teamQueryService;
 
   public LicenceSearchService(LicenceService licenceService,
                               LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
                               OrganisationUnitQueryService organisationUnitQueryService,
-                              OrganisationGroupQueryService organisationGroupQueryService) {
+                              OrganisationGroupQueryService organisationGroupQueryService,
+                              TeamQueryService teamQueryService
+  ) {
     this.licenceService = licenceService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.organisationGroupQueryService = organisationGroupQueryService;
+    this.teamQueryService = teamQueryService;
   }
 
-  public List<SearchResultItem> getSearchResultItems(LicenceSearchFilterForm filterForm) {
+  public List<SearchResultItem> getSearchResultItems(
+      LicenceSearchFilterForm filterForm,
+      ServiceUserDetail serviceUserDetail
+  ) {
     // get all licenses and apply simple filtering
     var filteredLicenses = licenceService.getAllLicences().stream()
         .filter(licence -> FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference()))
@@ -63,10 +74,35 @@ public class LicenceSearchService {
               && FilterUtil.listMatchesIdList(orgUnitIds, groupOrgUnitIds);
         });
 
+    if (!teamQueryService.userIsInRegulatorTeam(serviceUserDetail.wuaId())) {
+      var userOrgUnitIds = getUserOrgUnitIds(serviceUserDetail.wuaId());
+      batchFilteredLicences = batchFilteredLicences
+          .filter(licence -> {
+            var orgUnitIds = responsibleOrganisationIds.getOrDefault(licence, List.of());
+            return FilterUtil.listMatchesIdList(orgUnitIds, userOrgUnitIds);
+          });
+    }
+
     var responsibleOrganisationNames = getResponsibleOrganisationNamesByLicences(licenceResponsibleOrganisations);
     return batchFilteredLicences
         .map(licence -> toSearchResultItem(licence, responsibleOrganisationNames.getOrDefault(licence, List.of())))
         .sorted(Comparator.comparing(SearchResultItem::linkHeadingText, new LicenceReferenceComparator()))
+        .toList();
+  }
+
+  private List<Integer> getUserOrgUnitIds(Long wuaId) {
+    var organisationGroupIds = teamQueryService.getTeamRolesForUser(wuaId).stream()
+        .filter(teamRole -> teamRole.getTeam().getTeamType().equals(TeamType.ORGANISATION))
+        .filter(teamRole -> teamRole.getTeam().getScopeType().equals(ScopeType.ORGANISATION_GROUP.name()))
+        .map(teamRole -> Integer.valueOf(teamRole.getTeam().getScopeId()))
+        .toList();
+
+    if (organisationGroupIds.isEmpty()) {
+      return List.of();
+    }
+
+    return organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(organisationGroupIds).stream()
+        .map(OrganisationUnitJson::organisationUnitId)
         .toList();
   }
 

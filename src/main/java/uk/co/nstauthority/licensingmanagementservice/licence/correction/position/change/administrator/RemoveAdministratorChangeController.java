@@ -18,36 +18,44 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
-@RequestMapping("/licence-corrections/{correctionId}/position/{licencePositionId}/change/{changeId}/remove-administrator-change")
+@RequestMapping("/licence-corrections/{correctionId}")
 @Profile("enable-lms2")
 @InvokingUserCanViewCorrection
-@LicencePositionChangeBelongsToPosition
-@ValidLicencePositionAdministratorChange
 public class RemoveAdministratorChangeController {
 
-  private static final String PAGE_TITLE = "Are you sure you want to remove this licence administrator change?";
+  private static final String REMOVE_PAGE_TITLE = "Are you sure you want to remove this licence administrator change?";
+  private static final String UNDO_PAGE_TITLE = "Are you sure you want to undo this licence administrator change?";
+  private static final String CONFIRMATION_TEMPLATE = "lms/licence/correction/change/removeAdministratorChange";
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final AdministratorChangeService administratorChangeService;
   private final LicencePositionService licencePositionService;
   private final LicencePositionViewService licencePositionViewService;
 
   public RemoveAdministratorChangeController(
       LicencePositionCorrectionService licencePositionCorrectionService,
+      AdministratorChangeService administratorChangeService,
       LicencePositionService licencePositionService,
       LicencePositionViewService licencePositionViewService
   ) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.administratorChangeService = administratorChangeService;
     this.licencePositionService = licencePositionService;
     this.licencePositionViewService = licencePositionViewService;
   }
 
-  @GetMapping
+  @GetMapping("/position/{licencePositionId}/change/{changeId}/remove-administrator-change")
+  @LicencePositionChangeBelongsToPosition
+  @ValidLicencePositionAdministratorChange
   public ModelAndView renderRemoveExecutedAdminChange(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
@@ -60,7 +68,9 @@ public class RemoveAdministratorChangeController {
     return removeAdministratorChangeModelAndView(correction, licencePosition.getId());
   }
 
-  @PostMapping
+  @PostMapping("/position/{licencePositionId}/change/{changeId}/remove-administrator-change")
+  @LicencePositionChangeBelongsToPosition
+  @ValidLicencePositionAdministratorChange
   public ModelAndView removeAdministratorChange(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
@@ -71,12 +81,46 @@ public class RemoveAdministratorChangeController {
     var licencePosition = licencePositionService
         .getPositionForLicence(correction.getLicence(), licencePositionId);
 
-    licencePositionCorrectionService.removeExistingAdministratorChange(licencePosition, correction, changeId);
+    administratorChangeService.removeExistingAdministratorChange(licencePosition, correction, changeId);
 
     NotificationBanner.newSuccessBannerWithHeader("Licence administrator change removed", redirectAttributes);
 
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
         .renderLicencePosition(correction.getId(), licencePositionId, null));
+  }
+
+  @GetMapping("/change/{changeId}/undo-administrator-change")
+  public ModelAndView renderUndoAdminChange(
+      @PathVariable UUID correctionId,
+      @PathVariable String changeId,
+      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+  ) {
+    var positionCorrection = licencePositionCorrectionService
+        .getPositionCorrectionContainingChange(correction, changeId);
+
+    return undoAdministratorChangeModelAndView(correction, positionCorrection);
+  }
+
+  @PostMapping("/change/{changeId}/undo-administrator-change")
+  public ModelAndView undoAdminChange(
+      @PathVariable UUID correctionId,
+      @PathVariable String changeId,
+      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      RedirectAttributes redirectAttributes
+  ) {
+    var positionCorrection = licencePositionCorrectionService
+        .getPositionCorrectionContainingChange(correction, changeId);
+
+    administratorChangeService.undoAdministratorChange(correction, changeId);
+
+    NotificationBanner.newSuccessBannerWithHeader("Licence administrator change undone", redirectAttributes);
+
+    if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
+      return ReverseRouter.redirect(on(LicenceCorrectionController.class)
+          .renderAddedPosition(correction.getId(), positionCorrection.getId(), null));
+    }
+    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
+        .renderLicencePosition(correction.getId(), positionCorrection.getTargetLicencePosition().getId(), null));
   }
 
   private ModelAndView removeAdministratorChangeModelAndView(
@@ -86,12 +130,45 @@ public class RemoveAdministratorChangeController {
     var administratorChangeContext =
         licencePositionViewService.getAdministratorChangeContext(correction, licencePositionId);
 
-    return new ModelAndView("lms/licence/correction/change/removeAdministratorChange")
-        .addObject("pageTitle", PAGE_TITLE)
+    return new ModelAndView(CONFIRMATION_TEMPLATE)
+        .addObject("pageTitle", REMOVE_PAGE_TITLE)
+        .addObject("primaryButtonText", "Remove administrator change")
         .addObject("withdrawingAdministratorName", administratorChangeContext.previousAdministratorName())
         .addObject("joiningAdministratorName", administratorChangeContext.currentAdministratorName())
         .addObject("cancelUrl",
             ReverseRouter.route(on(LicenceCorrectionController.class)
                 .renderLicencePosition(correction.getId(), licencePositionId, null)));
+  }
+
+  private ModelAndView undoAdministratorChangeModelAndView(
+      LicenceCorrection correction,
+      LicencePositionCorrection positionCorrection
+  ) {
+    var administratorChangeContext =
+        licencePositionViewService.getAdministratorChangeContext(correction, getPositionId(positionCorrection));
+
+    return new ModelAndView(CONFIRMATION_TEMPLATE)
+        .addObject("pageTitle", UNDO_PAGE_TITLE)
+        .addObject("primaryButtonText", "Undo administrator change")
+        .addObject("withdrawingAdministratorName", administratorChangeContext.previousAdministratorName())
+        .addObject("joiningAdministratorName", administratorChangeContext.currentAdministratorName())
+        .addObject("cancelUrl", positionPageRoute(correction, positionCorrection));
+  }
+
+  private String positionPageRoute(LicenceCorrection correction, LicencePositionCorrection positionCorrection) {
+    if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
+      return ReverseRouter.route(on(LicenceCorrectionController.class)
+          .renderAddedPosition(correction.getId(), positionCorrection.getId(), null));
+    }
+    return ReverseRouter.route(on(LicenceCorrectionController.class)
+        .renderLicencePosition(correction.getId(), positionCorrection.getTargetLicencePosition().getId(), null));
+  }
+
+  private UUID getPositionId(LicencePositionCorrection positionCorrection) {
+    if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
+      var payload = (CreateLicencePositionPayload) positionCorrection.getPayload();
+      return UUID.fromString(payload.licencePositionId());
+    }
+    return positionCorrection.getTargetLicencePosition().getId();
   }
 }

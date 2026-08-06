@@ -1,10 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -36,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.AdministratorChangeForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.AdministratorChangeFormValidator;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.AdministratorChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.AdministratorChangeContext;
@@ -52,6 +52,9 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
   @MockitoBean
   private OrganisationUnitQueryService organisationUnitQueryService;
 
+  @MockitoBean
+  private AdministratorChangeService administratorChangeService;
+
   private static final Licence LICENCE = LicenceTestUtil.builder().build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
@@ -62,16 +65,16 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
   private static final String PAGE_TITLE = "Change licence administrator";
   private static final String VIEW_NAME = "lms/licence/correction/change/administratorChange";
 
-  private final String executedBackLinkUrl = ReverseRouter.route(on(LicencePositionAddChangeController.class)
-      .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null));
-
-  private final String addedBackLinkUrl = ReverseRouter.route(on(LicencePositionAddChangeController.class)
-      .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null));
-
-  private final String executedPositionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
+  private final String executedCancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
       .renderLicencePosition(CORRECTION_ID, POSITION_ID, null));
 
-  private final String addedPositionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
+  private final String addedCancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
+      .renderAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null));
+
+  private final String executedRedirectUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
+      .renderLicencePosition(CORRECTION_ID, POSITION_ID, null));
+
+  private final String addedRedirectUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
       .renderAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null));
 
   @Test
@@ -109,7 +112,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
             view().name(VIEW_NAME),
             model().attribute("pageTitle", PAGE_TITLE),
             model().attributeExists("form"),
-            model().attribute("backLinkUrl", executedBackLinkUrl),
+            model().attribute("cancelUrl", executedCancelUrl),
             model().attribute("previousLicenceAdministratorName", "Previous Admin Org"),
             model().attributeExists("organisationUnitsUrl")
         );
@@ -138,14 +141,13 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
             .flashAttr("form", form))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(executedPositionUrl),
+            redirectedUrl(executedRedirectUrl),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence administrator change added")
                 .build())
         );
 
-    verify(licencePositionCorrectionService)
-        .addAdministratorChangeForExistingLicencePosition(position, correction, ADMINISTRATOR_ID);
+    verify(administratorChangeService).addAdministratorChangeForExistingLicencePosition(position, correction, ADMINISTRATOR_ID);
   }
 
   @Test
@@ -171,11 +173,10 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("form", form),
-            model().attribute("backLinkUrl", executedBackLinkUrl)
+            model().attribute("cancelUrl", executedCancelUrl)
         );
 
-    verify(licencePositionCorrectionService, never())
-        .addAdministratorChangeForExistingLicencePosition(any(), any(), anyInt());
+    verifyNoInteractions(administratorChangeService);
   }
 
   @Test
@@ -198,7 +199,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
             view().name(VIEW_NAME),
             model().attribute("pageTitle", PAGE_TITLE),
             model().attributeExists("form"),
-            model().attribute("backLinkUrl", addedBackLinkUrl),
+            model().attribute("cancelUrl", addedCancelUrl),
             model().attribute("previousLicenceAdministratorName", ""),
             model().attributeExists("organisationUnitsUrl")
         );
@@ -232,14 +233,13 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
             .flashAttr("form", form))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(addedPositionUrl),
+            redirectedUrl(addedRedirectUrl),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence administrator change added")
                 .build())
         );
 
-    verify(licencePositionCorrectionService)
-        .addAdministratorChangeForAddedLicencePosition(positionCorrection, ADMINISTRATOR_ID);
+    verify(administratorChangeService).addAdministratorChangeForAddedLicencePosition(positionCorrection, ADMINISTRATOR_ID);
   }
 
   @Test
@@ -271,11 +271,10 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("form", form),
-            model().attribute("backLinkUrl", addedBackLinkUrl)
+            model().attribute("cancelUrl", addedCancelUrl)
         );
 
-    verify(licencePositionCorrectionService, never())
-        .addAdministratorChangeForAddedLicencePosition(any(), anyInt());
+    verifyNoInteractions(administratorChangeService);
   }
 
   @Test
@@ -295,7 +294,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
             view().name(VIEW_NAME),
             model().attribute("pageTitle", PAGE_TITLE),
             model().attributeExists("form"),
-            model().attribute("backLinkUrl", executedBackLinkUrl),
+            model().attribute("cancelUrl", executedCancelUrl),
             model().attribute("previousLicenceAdministratorName", "Previous Admin Org"),
             model().attributeExists("organisationUnitsUrl")
         );
@@ -324,14 +323,13 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
             .flashAttr("form", form))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(executedPositionUrl),
+            redirectedUrl(executedRedirectUrl),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence administrator change corrected")
                 .build())
         );
 
-    verify(licencePositionCorrectionService)
-        .correctExistingAdministratorChange(position, correction, changeId, ADMINISTRATOR_ID);
+    verify(administratorChangeService).correctExistingAdministratorChange(position, correction, changeId, ADMINISTRATOR_ID);
   }
 
   @Test
@@ -356,11 +354,10 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("form", form),
-            model().attribute("backLinkUrl", executedBackLinkUrl)
+            model().attribute("cancelUrl", executedCancelUrl)
         );
 
-    verify(licencePositionCorrectionService, never())
-        .correctExistingAdministratorChange(any(), any(), any(), anyInt());
+    verifyNoInteractions(administratorChangeService);
   }
 
   private LicenceCorrection givenCorrectionAllocatedToUser() {

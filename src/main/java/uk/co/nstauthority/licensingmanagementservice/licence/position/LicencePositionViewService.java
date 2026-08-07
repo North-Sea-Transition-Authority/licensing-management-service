@@ -34,6 +34,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeViewResolver;
@@ -251,7 +252,7 @@ public class LicencePositionViewService {
         .toList();
   }
 
-  private List<ChronologicalPosition> getCorrectedChronologicalPositions(
+  public List<ChronologicalPosition> getCorrectedChronologicalPositions(
       LicenceCorrection licenceCorrection,
       UUID currentLicencePositionId
   ) {
@@ -311,7 +312,8 @@ public class LicencePositionViewService {
     var organisationIds = chronologicalPositions.stream()
         .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
         .flatMap(change -> change.operations().stream())
-        .map(LicencePositionViewService::organisationId)
+        .map(LicencePositionViewService::organisationIds)
+        .flatMap(List::stream)
         .filter(Objects::nonNull)
         .distinct()
         .toList();
@@ -323,10 +325,11 @@ public class LicencePositionViewService {
     return organisationUnitQueryService.getOrganisationUnitNamesByIds(organisationIds);
   }
 
-  private static Integer organisationId(LicenceOperation operation) {
+  private static List<Integer> organisationIds(LicenceOperation operation) {
     return switch (operation) {
-      case AdministratorOperation administratorOperation -> administratorOperation.operatorId();
-      case SetEquityOperation setEquityOperation -> setEquityOperation.transferTo();
+      case AdministratorOperation administratorOperation -> List.of(administratorOperation.operatorId());
+      case SetEquityOperation setEquityOperation -> List.of(setEquityOperation.transferTo());
+      case TransferEquityOperation transfer -> List.of(transfer.transferFrom(), transfer.transferTo());
     };
   }
 
@@ -550,11 +553,11 @@ public class LicencePositionViewService {
         .renderCorrectLicencePositionCorrectionDate(correction.getId(), position.getId(), null));
   }
 
-  public String getCorrectOrderPositionUrl(LicenceCorrection correction, LicencePosition position) {
+  private String getCorrectOrderPositionUrl(LicenceCorrection correction, LicencePosition position) {
     return getCorrectOrderPositionUrl(correction, position.getId());
   }
 
-  public String getCorrectOrderPositionUrl(LicenceCorrection correction, UUID positionId) {
+  private String getCorrectOrderPositionUrl(LicenceCorrection correction, UUID positionId) {
     return ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
         .renderCorrectionLicencePositionOrder(correction.getId(), positionId, null));
   }

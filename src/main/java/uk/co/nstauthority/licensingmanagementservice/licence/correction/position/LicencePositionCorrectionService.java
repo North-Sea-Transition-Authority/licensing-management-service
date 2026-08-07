@@ -296,7 +296,7 @@ public class LicencePositionCorrectionService {
     applySetEquity(positionCorrection, operations);
   }
 
-  private LicencePositionCorrection newUpdatePositionCorrection(
+  public LicencePositionCorrection newUpdatePositionCorrection(
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition
   ) {
@@ -384,6 +384,38 @@ public class LicencePositionCorrectionService {
     }
   }
 
+  public LicencePositionPayload withChanges(
+      LicencePositionPayload payload,
+      List<LicencePositionChangeType> changes
+  ) {
+    return switch (payload) {
+      case CreateLicencePositionPayload create -> LicencePositionPayload.newCreateLicencePositionPayload()
+          .withLicencePositionId(create.licencePositionId())
+          .withLicenceTransactionId(create.licenceTransactionId())
+          .withEffectiveDate(create.effectiveDate())
+          .withEffectiveDateOrder(create.effectiveDateOrder())
+          .withCorrectionReference(create.correctionReference())
+          .withChanges(changes)
+          .build();
+      case UpdateLicencePositionPayload update -> LicencePositionPayload.newUpdateLicencePositionPayload()
+          .withEffectiveDate(update.effectiveDate())
+          .withEffectiveDateOrder(update.effectiveDateOrder())
+          .withCorrectionReference(update.correctionReference())
+          .withChanges(changes)
+          .build();
+    };
+  }
+
+  public int nextChangeOrder(List<LicencePositionChangeType> changes) {
+    return changes.stream()
+        .filter(AddChange.class::isInstance)
+        .map(AddChange.class::cast)
+        .map(AddChange::changeOrder)
+        .filter(Objects::nonNull)
+        .max(Integer::compareTo)
+        .orElse(0) + 1;
+  }
+
   private void applySetEquity(
       LicencePositionCorrection licencePositionCorrection,
       List<SetEquityOperation> operations
@@ -398,18 +430,8 @@ public class LicencePositionCorrectionService {
       changes.add(buildSetEquityChange(operations, nextChangeOrder(changes)));
     }
 
-    licencePositionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionCorrection.setPayload(withChanges(payload, changes));
     licencePositionCorrectionRepository.save(licencePositionCorrection);
-  }
-
-  private int nextChangeOrder(List<LicencePositionChangeType> changes) {
-    return changes.stream()
-        .filter(AddChange.class::isInstance)
-        .map(AddChange.class::cast)
-        .map(AddChange::changeOrder)
-        .filter(Objects::nonNull)
-        .max(Integer::compareTo)
-        .orElse(0) + 1;
   }
 
   private List<SetEquityOperation> setEquityOperations(List<LicencePositionChangeType> changes) {

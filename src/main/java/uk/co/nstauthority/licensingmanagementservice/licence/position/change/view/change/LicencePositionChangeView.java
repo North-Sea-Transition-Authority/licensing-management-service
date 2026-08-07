@@ -2,7 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.vi
 
 import jakarta.annotation.Nullable;
 
-public sealed interface LicencePositionChangeView permits AdministratorChangeView, SetEquityChangeView {
+public sealed interface LicencePositionChangeView permits AdministratorChangeView, SetEquityChangeView, TransferEquityChangeView {
 
   @Nullable
   String changeType();

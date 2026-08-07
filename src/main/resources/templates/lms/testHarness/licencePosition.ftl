@@ -26,6 +26,15 @@ pageSize=PageSize.TWO_THIRDS_COLUMN
         </ul>
       </li>
     </ul>
+    <p>If a carbon storage licence is selected, beneficial interest position changes will be generated for:</p>
+    <ul class="govuk-list govuk-list--bullet">
+      <li>The first position, setting the initial equity holdings (Shell 60%, BP 40%, PPRS 0%)</li>
+      <li>
+        Another licence position other than the final position, transferring equity from Shell
+        (10% to BP and 15% to PPRS)
+      </li>
+    </ul>
+    <p>If the second licence is a production licence, an administrator position change will be generated for its first position.</p>
   </@fdsInsetText.insetText>
 
   <@fdsForm.htmlForm>

@@ -9,6 +9,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
@@ -79,7 +80,9 @@ public final class LicencePositionStateResolver {
     return switch (operation) {
       case AdministratorOperation administratorOperation ->
           state.withAdministratorId(administratorOperation.operatorId());
+      //todo add set and transfer operations in LMS2-129
       case SetEquityOperation setEquityOperation -> state;
+      case TransferEquityOperation transferEquityOperation -> state;
     };
   }
 }

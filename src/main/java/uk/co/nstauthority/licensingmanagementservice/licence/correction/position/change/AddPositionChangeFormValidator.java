@@ -8,6 +8,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 
 @Component
@@ -60,7 +61,7 @@ public class AddPositionChangeFormValidator {
   private boolean isAvailable(AddPositionChangeType selected, LicenceCorrection correction) {
     return switch (selected) {
       case ADMINISTRATOR_CHANGE -> true;
-      case SET_EQUITY -> licenceService.isCarbonStorageLicence(correction.getLicence());
+      case SET_EQUITY, TRANSFER_EQUITY -> licenceService.isCarbonStorageLicence(correction.getLicence());
     };
   }
 
@@ -69,8 +70,10 @@ public class AddPositionChangeFormValidator {
         ? positionCorrection.getTargetLicencePosition().getId()
         : null;
     return switch (selected) {
-      case ADMINISTRATOR_CHANGE -> licencePositionChangeService.changeExists(livePositionId, AdministratorOperation.class);
+      case ADMINISTRATOR_CHANGE ->
+          licencePositionChangeService.changeExists(livePositionId, AdministratorOperation.class);
       case SET_EQUITY -> licencePositionChangeService.changeExists(livePositionId, SetEquityOperation.class);
+      case TRANSFER_EQUITY -> licencePositionChangeService.changeExists(livePositionId, TransferEquityOperation.class);
     };
   }
 }

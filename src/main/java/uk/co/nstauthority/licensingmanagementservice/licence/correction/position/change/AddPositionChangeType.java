@@ -4,7 +4,8 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
 public enum AddPositionChangeType implements Displayable {
   ADMINISTRATOR_CHANGE(10, "Administrator change"),
-  SET_EQUITY(20, "Set equity");
+  SET_EQUITY(20, "Set equity"),
+  TRANSFER_EQUITY(30, "Transfer equity");
 
   private final int displayOrder;
   private final String displayName;

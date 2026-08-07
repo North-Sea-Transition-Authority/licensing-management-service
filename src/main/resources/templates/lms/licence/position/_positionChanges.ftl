@@ -93,3 +93,40 @@
         </#list>
     </@fdsSummaryList.summaryListCard>
 </#macro>
+
+<#macro transferEquityChange change>
+    <#assign headingText>
+      <div style="display: flex; gap: 1rem">
+        Transfer equity
+          <#switch change.changeType()!>
+              <#case "add-change">
+                  <@fdsTag.tag tagClass="govuk-tag--green">Added change</@fdsTag.tag>
+                  <#break>
+              <#case "update-change-operations">
+                  <@fdsTag.tag tagClass="govuk-tag--blue">Corrected change</@fdsTag.tag>
+                  <#break>
+          </#switch>
+      </div>
+    </#assign>
+
+    <@fdsSummaryList.summaryListCard headingText=headingText summaryListId="transfer-equity">
+      <table class="govuk-table govuk-!-margin-top-2 govuk-!-margin-bottom-0">
+        <thead class="govuk-table__head">
+        <tr class="govuk-table__row">
+          <th scope="col" class="govuk-table__header">Transfer from</th>
+          <th scope="col" class="govuk-table__header">Transfer to</th>
+          <th scope="col" class="govuk-table__header govuk-table__header--numeric">Amount</th>
+        </tr>
+        </thead>
+        <tbody class="govuk-table__body">
+        <#list change.holdings() as holding>
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell">${holding.transferFromOrganisationName()}</td>
+            <td class="govuk-table__cell">${holding.transferToOrganisationName()}</td>
+            <td class="govuk-table__cell govuk-table__cell--numeric">${holding.equity()}%</td>
+          </tr>
+        </#list>
+        </tbody>
+      </table>
+    </@fdsSummaryList.summaryListCard>
+</#macro>

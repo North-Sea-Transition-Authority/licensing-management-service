@@ -1,8 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.testharness;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -10,6 +9,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.Month;
@@ -26,13 +26,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransaction;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionService;
@@ -42,6 +44,7 @@ class TestHarnessServiceTest {
 
   private static final int BP_EXPLORATION_ALPHA_LTD_ID = 304;
   private static final int SHELL_PLC_ID = 9205;
+  private static final int PPRS_TRAINING_ORG = 12845;
 
   private static final LocalDate TODAY = LocalDate.of(2026, Month.JUNE, 10);
   private static final Clock CLOCK = Clock.fixed(TODAY.atStartOfDay(ZoneOffset.UTC).toInstant(), ZoneOffset.UTC);
@@ -151,7 +154,8 @@ class TestHarnessServiceTest {
 
   @Test
   void generateLicencePositions_whenSecondaryIsProduction_addsInitialAdministratorOnFirstPosition() {
-    var licence = carbonStorage(1);
+    // primary is gas storage so that only the secondary production licence produces a change
+    var licence = gasStorage(1);
     var secondaryLicence = production(2);
     var secondaryPositions = buildPositions(1);
     when(licencePositionService.getExecutedChronologicalLicencePositions(secondaryLicence)).thenReturn(secondaryPositions);
@@ -167,15 +171,45 @@ class TestHarnessServiceTest {
   }
 
   @Test
-  void generateLicencePositions_whenBothCarbonStorage_addsNoAdministratorChanges() {
+  void generateLicencePositions_whenPrimaryIsCarbonStorage_addsSetOnFirstAndTransferOnNonFinalPosition() {
     var licence = carbonStorage(1);
     var secondaryLicence = carbonStorage(2);
+    var positions = buildPositions(5);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionService, never()).getExecutedChronologicalLicencePositions(any());
-    verify(licencePositionChangeService, never())
-        .createLicencePositionChange(any(), any(), anyInt(), any());
+    // the secondary carbon storage licence is not enriched (it only has a single position)
+    verify(licencePositionService, never()).getExecutedChronologicalLicencePositions(secondaryLicence);
+
+    verify(licencePositionChangeService, times(2)).createLicencePositionChange(
+        positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
+
+    // set on the first position (index 0), transfer on a non-final position (index size - 3 = 2)
+    assertThat(positionCaptor.getAllValues()).containsExactly(positions.get(0), positions.get(2));
+
+    var setOperations = operationsCaptor.getAllValues().get(0);
+    assertThat(setOperations)
+        .extracting(
+            operation -> ((SetEquityOperation) operation).transferTo(),
+            operation -> ((SetEquityOperation) operation).equity())
+        .containsExactly(
+            tuple(SHELL_PLC_ID, BigDecimal.valueOf(60)),
+            tuple(BP_EXPLORATION_ALPHA_LTD_ID, BigDecimal.valueOf(40)),
+            tuple(PPRS_TRAINING_ORG, BigDecimal.ZERO));
+
+    var transferOperations = operationsCaptor.getAllValues().get(1);
+    assertThat(transferOperations)
+        .extracting(
+            operation -> ((TransferEquityOperation) operation).transferFrom(),
+            operation -> ((TransferEquityOperation) operation).transferTo(),
+            operation -> ((TransferEquityOperation) operation).equity())
+        .containsExactly(
+            tuple(SHELL_PLC_ID, BP_EXPLORATION_ALPHA_LTD_ID, BigDecimal.valueOf(10)),
+            tuple(SHELL_PLC_ID, PPRS_TRAINING_ORG, BigDecimal.valueOf(15)));
+
+    assertThat(operationsCaptor.getAllValues().stream().flatMap(List::stream))
+        .noneMatch(AdministratorOperation.class::isInstance);
   }
 
   private static Licence production(int id) {
@@ -184,6 +218,10 @@ class TestHarnessServiceTest {
 
   private static Licence carbonStorage(int id) {
     return LicenceTestUtil.builder().withId(id).withLicenceType(LicenceType.CARBON_STORAGE).build();
+  }
+
+  private static Licence gasStorage(int id) {
+    return LicenceTestUtil.builder().withId(id).withLicenceType(LicenceType.GAS_STORAGE).build();
   }
 
   private static List<LicencePosition> buildPositions(int count) {

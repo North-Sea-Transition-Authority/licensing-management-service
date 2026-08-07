@@ -25,4 +25,7 @@
   <#if licencePositionChanges["set-equity"]??>
     <@positionChanges.setEquityChange change=licencePositionChanges["set-equity"]/>
   </#if>
+  <#if licencePositionChanges["transfer-equity"]??>
+      <@positionChanges.transferEquityChange change=licencePositionChanges["transfer-equity"]/>
+  </#if>
 </#macro>

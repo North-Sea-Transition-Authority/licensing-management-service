@@ -15,14 +15,20 @@ import java.util.UUID;
     @JsonSubTypes.Type(
         value = SetEquityOperation.class,
         name = LicenceOperation.SET_EQUITY
+    ),
+    @JsonSubTypes.Type(
+        value = TransferEquityOperation.class,
+        name = LicenceOperation.TRANSFER_EQUITY
     )
 })
 public sealed interface LicenceOperation permits
     AdministratorOperation,
-    SetEquityOperation {
+    SetEquityOperation,
+    TransferEquityOperation  {
 
   String LICENCE_ADMINISTRATOR = "licence-administrator";
   String SET_EQUITY = "set-equity";
+  String TRANSFER_EQUITY = "transfer-equity";
 
   String type();
 
@@ -34,5 +40,9 @@ public sealed interface LicenceOperation permits
 
   static SetEquityOperation.Builder newSetEquityOperation() {
     return new SetEquityOperation.Builder();
+  }
+
+  static TransferEquityOperation.Builder newTransferEquityOperation() {
+    return new TransferEquityOperation.Builder();
   }
 }

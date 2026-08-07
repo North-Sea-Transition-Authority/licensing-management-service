@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.testharness;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
@@ -7,6 +8,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
@@ -19,6 +21,13 @@ public class TestHarnessService {
 
   private static final int BP_EXPLORATION_ALPHA_LTD_ID = 304;
   private static final int SHELL_PLC_ID = 9205;
+  private static final int PPRS_TRAINING_ORG = 12845;
+
+  private static final BigDecimal SHELL_INITIAL_EQUITY = BigDecimal.valueOf(60);
+  private static final BigDecimal BP_INITIAL_EQUITY = BigDecimal.valueOf(40);
+  private static final BigDecimal ZERO_EQUITY = BigDecimal.ZERO;
+  private static final BigDecimal SHELL_TO_BP_TRANSFER = BigDecimal.valueOf(10);
+  private static final BigDecimal SHELL_TO_PPRS_TRANSFER = BigDecimal.valueOf(15);
 
   private final LicenceTransactionService licenceTransactionService;
   private final LicencePositionService licencePositionService;
@@ -40,14 +49,6 @@ public class TestHarnessService {
     this.clock = clock;
   }
 
-  private void generateTwoSameDateLicencePositions(Licence licence, LocalDate now) {
-    var transaction1 = licenceTransactionService.createLicenceTransaction(randomRegulatorReference());
-    var transaction2 = licenceTransactionService.createLicenceTransaction(randomRegulatorReference());
-
-    licencePositionService.createLicencePosition(licence, transaction1, now.minusWeeks(4));
-    licencePositionService.createLicencePosition(licence, transaction2, now.minusWeeks(4));
-  }
-
   @Transactional
   public void generateLicencePositions(Licence licence, Licence secondaryLicence) {
     // clear any existing positions and changes
@@ -55,18 +56,73 @@ public class TestHarnessService {
     licencePositionTestHarnessService.clearPositionsForLicence(secondaryLicence);
 
     var now = LocalDate.now(clock);
-    generateMultipleSameDateLicencePositions(licence, now);
-    generateTwoSameDateLicencePositions(licence, now);
+    generateSameDateLicencePositions(licence, now);
     generateSameTransactionLicencePositions(licence, now);
     generateSameTransactionDifferentLicencePositions(licence, secondaryLicence, now);
 
-    if (Boolean.TRUE.equals(licence.getType().isProduction())) {
+    if (licence.getType().isProduction()) {
       generateAdministratorPositionChange(licence);
+    } else if (LicenceType.CARBON_STORAGE.equals(licence.getType())) {
+      generateCarbonStorageBeneficialInterestPositionChanges(licence);
     }
 
-    if (Boolean.TRUE.equals(secondaryLicence.getType().isProduction())) {
+    if (secondaryLicence.getType().isProduction()) {
       generateInitialAdministrator(secondaryLicence);
     }
+  }
+
+  private void generateCarbonStorageBeneficialInterestPositionChanges(Licence licence) {
+    var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
+
+    var firstPosition = executedChronologicalLicencePositions.getFirst();
+    var nonFinalPosition = executedChronologicalLicencePositions.get(executedChronologicalLicencePositions.size() - 3);
+
+    createSetBeneficialInterestChange(firstPosition);
+    createTransferBeneficialInterestChange(nonFinalPosition);
+  }
+
+  private void createSetBeneficialInterestChange(LicencePosition licencePosition) {
+    var operations = List.of(
+        setEquityOperation(SHELL_PLC_ID, SHELL_INITIAL_EQUITY),
+        setEquityOperation(BP_EXPLORATION_ALPHA_LTD_ID, BP_INITIAL_EQUITY),
+        setEquityOperation(PPRS_TRAINING_ORG, ZERO_EQUITY)
+    );
+
+    licencePositionChangeService.createLicencePositionChange(
+        licencePosition,
+        operations,
+        1,
+        LicencePositionChangeStatus.CONSENTED
+    );
+  }
+
+  private void createTransferBeneficialInterestChange(LicencePosition licencePosition) {
+    var operations = List.of(
+        transferEquityOperation(SHELL_PLC_ID, BP_EXPLORATION_ALPHA_LTD_ID, SHELL_TO_BP_TRANSFER),
+        transferEquityOperation(SHELL_PLC_ID, PPRS_TRAINING_ORG, SHELL_TO_PPRS_TRANSFER)
+    );
+
+    licencePositionChangeService.createLicencePositionChange(
+        licencePosition,
+        operations,
+        1,
+        LicencePositionChangeStatus.CONSENTED
+    );
+  }
+
+  private LicenceOperation setEquityOperation(int organisationUnitId, BigDecimal equity) {
+    return LicenceOperation.newSetEquityOperation()
+        .withTransferTo(organisationUnitId)
+        .withEquity(equity)
+        .build();
+  }
+
+  private LicenceOperation transferEquityOperation(int transferFrom, int transferTo, BigDecimal equity) {
+    return LicenceOperation.newTransferEquityOperation()
+        .withTransferFrom(transferFrom)
+        .withTransferTo(transferTo)
+        .withEquity(equity)
+        .build();
   }
 
   private void generateAdministratorPositionChange(Licence licence) {
@@ -100,7 +156,7 @@ public class TestHarnessService {
     );
   }
 
-  private void generateMultipleSameDateLicencePositions(Licence licence, LocalDate now) {
+  private void generateSameDateLicencePositions(Licence licence, LocalDate now) {
     var transaction1 = licenceTransactionService.createLicenceTransaction(randomRegulatorReference());
     var transaction2 = licenceTransactionService.createLicenceTransaction(randomRegulatorReference());
     var transaction3 = licenceTransactionService.createLicenceTransaction(randomRegulatorReference());
@@ -110,9 +166,13 @@ public class TestHarnessService {
     licencePositionService.createLicencePosition(licence, transaction1, now.minusWeeks(7));
     licencePositionService.createLicencePosition(licence, transaction2, now.minusWeeks(7));
     licencePositionService.createLicencePosition(licence, transaction3, now.minusWeeks(7));
-
     licencePositionService.createLicencePosition(licence, transaction4, now.minusWeeks(7));
     licencePositionService.createLicencePosition(licence, transaction5, now.minusWeeks(7));
+    var pairTransaction1 = licenceTransactionService.createLicenceTransaction(randomRegulatorReference());
+    var pairTransaction2 = licenceTransactionService.createLicenceTransaction(randomRegulatorReference());
+
+    licencePositionService.createLicencePosition(licence, pairTransaction1, now.minusWeeks(4));
+    licencePositionService.createLicencePosition(licence, pairTransaction2, now.minusWeeks(4));
   }
 
   private void generateSameTransactionLicencePositions(Licence licence, LocalDate now) {

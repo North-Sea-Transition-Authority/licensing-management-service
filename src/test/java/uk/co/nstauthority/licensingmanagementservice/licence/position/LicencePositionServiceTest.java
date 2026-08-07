@@ -110,4 +110,35 @@ class LicencePositionServiceTest {
 
     assertThat(result).containsExactly(earlierExecuted);
   }
+
+  @Test
+  void getExecutedChronologicalLicencePositions_sortsByDateThenOrder() {
+    var licence = LicenceTestUtil.builder().build();
+
+    var pos1 = LicencePositionTestUtil.newBuilder()
+        .withId(UUID.randomUUID())
+        .withPositionDate(LocalDate.of(2026, Month.FEBRUARY, 1))
+        .withPositionOrder(1)
+        .withIsExecuted(true)
+        .build();
+    var pos2 = LicencePositionTestUtil.newBuilder()
+        .withId(UUID.randomUUID())
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1))
+        .withPositionOrder(2)
+        .withIsExecuted(true)
+        .build();
+    var pos3 = LicencePositionTestUtil.newBuilder()
+        .withId(UUID.randomUUID())
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1))
+        .withPositionOrder(1)
+        .withIsExecuted(true)
+        .build();
+
+    when(licencePositionRepository.findByLicence(licence)).thenReturn(List.of(pos1, pos2, pos3));
+
+    var result = licencePositionService.getExecutedChronologicalLicencePositions(licence);
+
+    assertThat(result).containsExactly(pos3, pos2, pos1);
+  }
+
 }

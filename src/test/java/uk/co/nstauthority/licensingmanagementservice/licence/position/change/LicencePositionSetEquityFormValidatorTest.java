@@ -52,6 +52,24 @@ class LicencePositionSetEquityFormValidatorTest {
 
     assertThat(validator.hasErrors(form, bindingResult, List.of())).isFalse();
   }
+
+  @Test
+  void hasErrors_negativeEquity_rejected() {
+    form.setTransferTo("123");
+    form.getEquity().setInputValue("-1");
+
+    validator.hasErrors(form, bindingResult, List.of());
+    assertThat(bindingResult.hasFieldErrors("equity.inputValue")).isTrue();
+  }
+
+  @Test
+  void hasErrors_equityOverOneHundred_rejected() {
+    form.setTransferTo("123");
+    form.getEquity().setInputValue("100.01");
+
+    validator.hasErrors(form, bindingResult, List.of());
+    assertThat(bindingResult.hasFieldErrors("equity.inputValue")).isTrue();
+  }
   @ParameterizedTest
   @CsvSource({
       "-1, Equity amount must be 0% or more",

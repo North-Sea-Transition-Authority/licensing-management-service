@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
@@ -82,6 +83,8 @@ public class LicencePositionAddChangeController {
           .renderForExecutedPosition(correctionId, licencePositionId, null));
       case SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSetEquityController.class)
           .renderForExecutedPosition(correctionId, licencePositionId, null));
+      case TRANSFER_EQUITY -> ReverseRouter.redirect(on(LicencePositionTransferEquityController.class)
+          .renderForExecutedPosition(correctionId, licencePositionId, null));
     };
   }
 
@@ -115,6 +118,8 @@ public class LicencePositionAddChangeController {
           .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
       case SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSetEquityController.class)
           .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
+      case TRANSFER_EQUITY -> ReverseRouter.redirect(on(LicencePositionTransferEquityController.class)
+          .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
     };
   }
 
@@ -142,9 +147,10 @@ public class LicencePositionAddChangeController {
   }
 
   private Map<String, String> availableChangeTypeOptions(LicenceCorrection correction) {
+    var carbonStorageLicence = licenceService.isCarbonStorageLicence(correction.getLicence());
+
     var availableChangeTypes = Arrays.stream(AddPositionChangeType.values())
-        .filter(changeType -> changeType != AddPositionChangeType.SET_EQUITY
-            || licenceService.isCarbonStorageLicence(correction.getLicence()))
+        .filter(changeType -> changeType == AddPositionChangeType.ADMINISTRATOR_CHANGE || carbonStorageLicence)
         .toList();
 
     return DisplayableEnumOptionUtil.getDisplayableOptions(availableChangeTypes);

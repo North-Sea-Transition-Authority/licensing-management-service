@@ -5,9 +5,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
@@ -247,7 +245,7 @@ public class LicencePositionSetEquityController {
 
   private SetEquityOperation toOperation(LicencePositionSetEquityForm form) {
     return LicenceOperation.newSetEquityOperation()
-        .withTransferTo(Integer.valueOf(form.getTransferTo()))
+        .withTransferTo(Integer.parseInt(form.getTransferTo()))
         .withEquity(form.getEquity().getAsBigDecimal().orElseThrow())
         .build();
   }
@@ -272,7 +270,7 @@ public class LicencePositionSetEquityController {
         .addObject("form", form)
         .addObject("licenseeOrgUnitUrl",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
-        .addObject("preselectedTransferTo", preselectedOrganisation(form))
+        .addObject("preselectedTransferTo", organisationUnitQueryService.getOrganisationUnitSelectOption(form.getTransferTo()))
         .addObject("backLinkUrl", backLinkUrl);
   }
 
@@ -318,21 +316,6 @@ public class LicencePositionSetEquityController {
   private String addedChangeChooserUrl(UUID correctionId, UUID licencePositionCorrectionId) {
     return ReverseRouter.route(on(LicencePositionAddChangeController.class)
         .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
-  }
-
-  private Map<String, String> preselectedOrganisation(LicencePositionSetEquityForm form) {
-    var inputValue = form.getTransferTo();
-    if (StringUtils.isBlank(inputValue)) {
-      return Map.of();
-    }
-    try {
-      var organisationId = Integer.parseInt(inputValue);
-      return organisationUnitQueryService.getOrganisationUnitNameById(organisationId)
-          .map(name -> Map.of(inputValue, name))
-          .orElse(Map.of());
-    } catch (NumberFormatException ex) {
-      return Map.of();
-    }
   }
 
 }

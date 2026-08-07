@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.energyportalapi.client.RequestPurpose;
 import uk.co.fivium.energyportalapi.client.organisation.OrganisationApi;
@@ -50,6 +51,20 @@ public class OrganisationUnitQueryService {
   public Optional<String> getOrganisationUnitNameById(Integer responsibleOrganisationUnitId) {
     return getOrganisationUnit(responsibleOrganisationUnitId)
         .map(OrganisationUnit::getName);
+  }
+
+  public Map<String, String> getOrganisationUnitSelectOption(String organisationUnitId) {
+    if (StringUtils.isBlank(organisationUnitId)) {
+      return Map.of();
+    }
+    try {
+      var organisationId = Integer.parseInt(organisationUnitId);
+      return getOrganisationUnitNameById(organisationId)
+          .map(name -> Map.of(organisationUnitId, name))
+          .orElseGet(Map::of);
+    } catch (NumberFormatException ex) {
+      return Map.of();
+    }
   }
 
   public Optional<Address> getOrganisationUnitAddressById(Integer responsibleOrganisationUnitId) {

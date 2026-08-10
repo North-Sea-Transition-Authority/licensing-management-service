@@ -7,7 +7,7 @@ import SplitByCoordinateEntryPage from "../../../../main/resources/js/components
 import { SupportedWkid } from "../../../../main/resources/js/coordinate-system-utils";
 import singleBlockEd50 from "../fixtures/singleBlockEd50.esriJson.json";
 import { worker } from "./setup";
-import { waitForMapFullyLoaded } from "./visual-test-util";
+import { settleForScreenshot, waitForMapFullyLoaded } from "./visual-test-util";
 
 /**
  * Enters a full DMS latitude and longitude for the point card at the given index. The Nth
@@ -66,7 +66,7 @@ describe("coordinate entry page", () => {
     clickAddAfter(0);
     await settle();
     await enterDmsPoint(1, [53, 48, 0], [3, 26, 0]);
-    await settle();
+    await settleForScreenshot();
 
     await expect(screen.locator).toMatchScreenshot("coordinate-entry-line-drawn");
   });

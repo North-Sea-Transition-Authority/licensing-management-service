@@ -1,8 +1,7 @@
 import { cleanup } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 import { setupWorker } from "msw/browser";
-import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
-import { page } from "vitest/browser";
+import { afterAll, afterEach, beforeAll } from "vitest";
 
 /**
  * Mocks the map OSM tile layer.
@@ -34,17 +33,11 @@ beforeAll(async () => {
   await worker.start({ onUnhandledRequest: "bypass", quiet: true });
 });
 
-beforeEach(async () => {
-  await page.viewport(1280, 800);
-});
-
 afterEach(async () => {
-  // Explicitly unmount before resetting handlers so OL's rAF completes
-  // while MSW is still intercepting tile requests.
+  // Unmount before resetting handlers so OL's rAF completes while MSW still intercepts tiles.
   cleanup();
   await new Promise(resolve => requestAnimationFrame(resolve));
 
-  document.getElementById("vitest-map-height-override")?.remove();
   worker.resetHandlers();
 });
 

@@ -33,6 +33,33 @@ We also mock http requests that would be made to the spring app using MSW to ser
 
 Following the [Vitest recommendation](https://vitest.dev/guide/browser/visual-regression-testing.html#organizing-your-tests), functional browser tests and visual regression tests are kept in separate files and run with separate configs so that we only run visual tests on the CI pipeline to have the same environment across tests.
 
+## Styling in the browser tests
+
+The tests can't build the host app's `main.css`, so they load GOV.UK Frontend's prebuilt CSS from a devDependency in
+`src/test/resources/js/visual-regression-tests/visual-styles.ts` (the first `setupFiles` entry):
+
+```ts
+import "govuk-frontend/dist/govuk/govuk-frontend.min.css";
+import "ol/ol.css";
+import "vue3-openlayers/vue3-openlayers.css";
+```
+
+- Pin `govuk-frontend` to match the version `fivium-design-system-core` uses; keep the two in step or baselines drift.
+- Keep it a devDependency out of `src/main` so `vite build` can't pull it into `gis-framework.css`.
+- The `gis-visual-tests-govuk-assets` plugin in `vitest.browser.visual.config.ts` serves the GDS Transport fonts from
+  `node_modules`, and `visual-styles.ts` awaits `document.fonts.load` so screenshots use the real typeface.
+- Components must not use FDS-only (`fds-*`) classes. For styling GOV.UK Frontend lacks (e.g. a link-styled button), use a
+  `<style scoped>` block.
+
+## Viewport and scaling
+
+Vitest scales the tester iframe to fit the browser window, so the Playwright window and `test.browser.viewport` must be the same
+size — they share one `viewport` const in `vitest.browser.visual.config.ts`. If they differ, screenshots are silently downscaled
+and clipped past the shorter dimension.
+
+Keep the height **at or above 834px** so `BaseMap`'s `clamp(18.75rem, 60vh, 31.25rem)` pins to its 500px maximum, above which the
+map's size no longer depends on the viewport.
+
 ## Visual regression testing
 
 The screenshot test uses Vitest's built-in `toMatchScreenshot` assertion backed by `pixelmatch` for pixel-level diffing. On the first run (or after `--update`), Vitest writes a baseline PNG to:

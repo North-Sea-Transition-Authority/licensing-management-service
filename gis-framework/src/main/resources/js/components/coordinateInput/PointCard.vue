@@ -6,22 +6,22 @@
       </h3>
       <ul class="govuk-summary-card__actions">
         <li v-if="index === 0" class="govuk-summary-card__action">
-          <button class="fds-link-button" type="button" @click="$emit('add-before')">
+          <button class="govuk-link link-button" type="button" @click="$emit('add-before')">
             Add before
           </button>
         </li>
         <li class="govuk-summary-card__action govuk-!-padding-left-2">
-          <button class="fds-link-button" type="button" @click="$emit('add-after')">
+          <button class="govuk-link link-button" type="button" @click="$emit('add-after')">
             Add after
           </button>
         </li>
         <li v-if="index === 0" class="govuk-summary-card__action">
-          <button class="fds-link-button" type="button" @click="$emit('clear')">
+          <button class="govuk-link link-button" type="button" @click="$emit('clear')">
             Clear
           </button>
         </li>
         <li v-else class="govuk-summary-card__action">
-          <button class="fds-link-button" type="button" @click="$emit('remove')">
+          <button class="govuk-link link-button" type="button" @click="$emit('remove')">
             Remove
           </button>
         </li>
@@ -78,3 +78,29 @@ defineEmits<{
   "remove": [],
 }>();
 </script>
+
+<style scoped>
+/* GOV.UK Frontend has no button-as-link class, so style a <button> to match govuk-link. */
+.link-button {
+  padding: 0;
+  border: 0;
+  background-color: transparent;
+  cursor: pointer;
+  color: #1d70b8;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+@media (min-width: 40.0625em) {
+  .link-button {
+    font-size: 1.1875rem;
+    line-height: 1.3157894737;
+  }
+}
+.link-button:hover {
+  color: #003078;
+}
+.link-button:active,
+.link-button:focus {
+  color: #0b0c0c;
+}
+</style>

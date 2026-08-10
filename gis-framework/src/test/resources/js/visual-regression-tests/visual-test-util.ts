@@ -19,6 +19,16 @@ export async function waitForZoomToSettle() {
   await new Promise(resolve => requestAnimationFrame(resolve));
 }
 
+/** Blur focus and let Vue/OpenLayers settle so no focus highlight bakes into the screenshot. */
+export async function settleForScreenshot(): Promise<void> {
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
+  await new Promise(resolve => setTimeout(resolve, 100));
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => requestAnimationFrame(resolve));
+}
+
 export async function pressKeyOnMap(key: string) {
   const viewport = document.querySelector<HTMLElement>(".ol-viewport")!;
   await userEvent.click(viewport);

@@ -2,10 +2,16 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.ut
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.BeneficialInterestView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 
 class LicencePositionStateViewResolverTest {
 
@@ -13,20 +19,42 @@ class LicencePositionStateViewResolverTest {
   private static final String CURRENT_ADMIN_NAME = "Current Admin Ltd";
 
   @Test
-  void getStateView_resolvesAdministratorNameFromState() {
+  void getStateView_resolvesAdministratorAndBeneficialInterests() {
     var currentPositionId = UUID.randomUUID();
+
+    var equityByOrganisationId = new LinkedHashMap<Integer, BigDecimal>();
+    equityByOrganisationId.put(1, new BigDecimal("40"));
+    equityByOrganisationId.put(2, new BigDecimal("35"));
+    equityByOrganisationId.put(3, new BigDecimal("25"));
+
+    var state = new LicencePositionState(CURRENT_ADMIN_ID, equityByOrganisationId);
+
+    var organisationNames = Map.of(
+        CURRENT_ADMIN_ID, CURRENT_ADMIN_NAME,
+        1, "charlie oil",
+        2, "alpha energy",
+        3, "Bravo gas"
+    );
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
-        Map.of(currentPositionId, new LicencePositionState(CURRENT_ADMIN_ID)),
-        Map.of(CURRENT_ADMIN_ID, CURRENT_ADMIN_NAME)
+        Map.of(currentPositionId, state),
+        organisationNames
     );
 
-    assertThat(result.administratorStateView().organisationName()).isEqualTo(CURRENT_ADMIN_NAME);
+    assertThat(result)
+        .isEqualTo(new LicencePositionStateView(
+            new AdministratorStateView(CURRENT_ADMIN_NAME),
+            List.of(
+                new BeneficialInterestView("alpha energy", new BigDecimal("35")),
+                new BeneficialInterestView("Bravo gas", new BigDecimal("25")),
+                new BeneficialInterestView("charlie oil", new BigDecimal("40"))
+            )
+        ));
   }
 
   @Test
-  void getStateView_whenNoStateForPosition_returnsEmptyName() {
+  void getStateView_whenNoStateForPosition_returnsEmptyAdministratorAndNoBeneficialInterests() {
     var currentPositionId = UUID.randomUUID();
 
     var result = LicencePositionStateViewResolver.getStateView(
@@ -35,7 +63,8 @@ class LicencePositionStateViewResolverTest {
         Map.of(CURRENT_ADMIN_ID, CURRENT_ADMIN_NAME)
     );
 
-    assertThat(result.administratorStateView().organisationName()).isEmpty();
+    assertThat(result)
+        .isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of()));
   }
 
   @Test
@@ -44,7 +73,23 @@ class LicencePositionStateViewResolverTest {
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
-        Map.of(currentPositionId, new LicencePositionState(CURRENT_ADMIN_ID)),
+        Map.of(currentPositionId, LicencePositionState.EMPTY.withAdministratorId(CURRENT_ADMIN_ID)),
+        Map.of()
+    );
+
+    assertThat(result.administratorStateView())
+        .isEqualTo(new AdministratorStateView(""));
+  }
+
+  @Test
+  void getStateView_whenBeneficialInterestNameNotFound_usesEmptyName() {
+    var currentPositionId = UUID.randomUUID();
+
+    var state = LicencePositionState.EMPTY.withEquityByOrganisationId(Map.of(5, new BigDecimal("100")));
+
+    var result = LicencePositionStateViewResolver.getStateView(
+        currentPositionId,
+        Map.of(currentPositionId, state),
         Map.of()
     );
 

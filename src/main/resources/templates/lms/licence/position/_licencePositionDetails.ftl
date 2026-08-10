@@ -19,6 +19,15 @@
     <@fdsDataItems.dataItem>
         <@fdsDataItems.dataValues key="Licence administrator" value=adminName/>
     </@fdsDataItems.dataItem>
+  <#if licencePositionState.beneficialInterests()?has_content>
+    <@fdsSummaryList.summaryListCard headingText="Beneficial interests" summaryListId="beneficial-interests">
+      <#list licencePositionState.beneficialInterests() as beneficialInterest>
+        <@fdsSummaryList.summaryListRowNoAction keyText=beneficialInterest.organisationName()>
+          ${beneficialInterest.equity()}%
+        </@fdsSummaryList.summaryListRowNoAction>
+      </#list>
+    </@fdsSummaryList.summaryListCard>
+  </#if>
   <#if licencePositionChanges["licence-administrator"]??>
     <@positionChanges.administratorChange change=licencePositionChanges["licence-administrator"]/>
   </#if>

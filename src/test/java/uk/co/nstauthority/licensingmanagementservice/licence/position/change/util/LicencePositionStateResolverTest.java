@@ -2,7 +2,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.ut
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
@@ -116,6 +118,180 @@ class LicencePositionStateResolverTest {
     var previousState = LicencePositionStateResolver.previousState(current.getId(), chronologicalPositions, states);
 
     assertThat(previousState.administratorId()).isEqualTo(1);
+  }
+
+  @Test
+  void resolveStates_setEquityChange_replacesHoldersDroppingThoseNotInTheSet() {
+    var first = LicencePositionTestUtil.newBuilder().build();
+    var second = LicencePositionTestUtil.newBuilder().build();
+
+    var firstChronological = ChronologicalPositionTestUtil.live(
+        first,
+        LicenceOperation.newSetEquityOperation().withTransferTo(1).withEquity(new BigDecimal("50")).build(),
+        LicenceOperation.newSetEquityOperation().withTransferTo(2).withEquity(new BigDecimal("50")).build()
+    );
+    var secondChronological = ChronologicalPositionTestUtil.live(
+        second,
+        LicenceOperation.newSetEquityOperation().withTransferTo(1).withEquity(new BigDecimal("30")).build(),
+        LicenceOperation.newSetEquityOperation().withTransferTo(3).withEquity(new BigDecimal("70")).build()
+    );
+
+    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(
+        List.of(firstChronological, secondChronological));
+
+    assertThat(result.get(first.getId()).equityByOrganisationId())
+        .isEqualTo(Map.of(1, new BigDecimal("50"), 2, new BigDecimal("50")));
+    assertThat(result.get(second.getId()).equityByOrganisationId())
+        .isEqualTo(Map.of(1, new BigDecimal("30"), 3, new BigDecimal("70")));
+  }
+
+  @Test
+  void resolveStates_carriesEquityForwardToLaterPositionWithoutChange() {
+    var withChange = LicencePositionTestUtil.newBuilder().build();
+    var withoutChange = LicencePositionTestUtil.newBuilder().build();
+
+    var withChangeChronological = ChronologicalPositionTestUtil.live(
+        withChange,
+        LicenceOperation.newSetEquityOperation().withTransferTo(1).withEquity(new BigDecimal("100")).build()
+    );
+    var withoutChangeChronological = ChronologicalPositionTestUtil.live(withoutChange);
+
+    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(
+        List.of(withChangeChronological, withoutChangeChronological));
+
+    assertThat(result.get(withoutChange.getId()).equityByOrganisationId())
+        .isEqualTo(Map.of(1, new BigDecimal("100")));
+  }
+
+  @Test
+  void resolveStates_transfer_movesEquityToExistingRecipient() {
+    var setPosition = LicencePositionTestUtil.newBuilder().build();
+    var transferPosition = LicencePositionTestUtil.newBuilder().build();
+
+    var setChronological = ChronologicalPositionTestUtil.live(
+        setPosition,
+        LicenceOperation.newSetEquityOperation().withTransferTo(1).withEquity(new BigDecimal("60")).build(),
+        LicenceOperation.newSetEquityOperation().withTransferTo(2).withEquity(new BigDecimal("40")).build()
+    );
+    var transferChronological = ChronologicalPositionTestUtil.live(
+        transferPosition,
+        LicenceOperation.newTransferEquityOperation()
+            .withTransferFrom(1)
+            .withTransferTo(2)
+            .withEquity(new BigDecimal("10"))
+            .build()
+    );
+
+    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(
+        List.of(setChronological, transferChronological));
+
+    assertThat(result.get(transferPosition.getId()).equityByOrganisationId())
+        .isEqualTo(Map.of(1, new BigDecimal("50"), 2, new BigDecimal("50")));
+  }
+
+  @Test
+  void resolveStates_transfer_addsNewRecipientNotAlreadyHoldingEquity() {
+    var setPosition = LicencePositionTestUtil.newBuilder().build();
+    var transferPosition = LicencePositionTestUtil.newBuilder().build();
+
+    var setChronological = ChronologicalPositionTestUtil.live(
+        setPosition,
+        LicenceOperation.newSetEquityOperation().withTransferTo(1).withEquity(new BigDecimal("100")).build()
+    );
+    var transferChronological = ChronologicalPositionTestUtil.live(
+        transferPosition,
+        LicenceOperation.newTransferEquityOperation()
+            .withTransferFrom(1)
+            .withTransferTo(3)
+            .withEquity(new BigDecimal("30"))
+            .build()
+    );
+
+    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(
+        List.of(setChronological, transferChronological));
+
+    assertThat(result.get(transferPosition.getId()).equityByOrganisationId())
+        .isEqualTo(Map.of(1, new BigDecimal("70"), 3, new BigDecimal("30")));
+  }
+
+  @Test
+  void resolveStates_transfer_removesTransferOrLeftWithNoEquity() {
+    var setPosition = LicencePositionTestUtil.newBuilder().build();
+    var transferPosition = LicencePositionTestUtil.newBuilder().build();
+
+    var setChronological = ChronologicalPositionTestUtil.live(
+        setPosition,
+        LicenceOperation.newSetEquityOperation().withTransferTo(1).withEquity(new BigDecimal("30")).build(),
+        LicenceOperation.newSetEquityOperation().withTransferTo(2).withEquity(new BigDecimal("70")).build()
+    );
+    var transferChronological = ChronologicalPositionTestUtil.live(
+        transferPosition,
+        LicenceOperation.newTransferEquityOperation()
+            .withTransferFrom(1)
+            .withTransferTo(2)
+            .withEquity(new BigDecimal("30"))
+            .build()
+    );
+
+    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(
+        List.of(setChronological, transferChronological));
+
+    assertThat(result.get(transferPosition.getId()).equityByOrganisationId())
+        .isEqualTo(Map.of(2, new BigDecimal("100")));
+  }
+
+  @Test
+  void resolveStates_transfer_keepsTransferorWithZeroEquityWhenRetainingBeneficialInterest() {
+    var setPosition = LicencePositionTestUtil.newBuilder().build();
+    var transferPosition = LicencePositionTestUtil.newBuilder().build();
+
+    var setChronological = ChronologicalPositionTestUtil.live(
+        setPosition,
+        LicenceOperation.newSetEquityOperation().withTransferTo(1).withEquity(new BigDecimal("30")).build(),
+        LicenceOperation.newSetEquityOperation().withTransferTo(2).withEquity(new BigDecimal("70")).build()
+    );
+    var transferChronological = ChronologicalPositionTestUtil.live(
+        transferPosition,
+        LicenceOperation.newTransferEquityOperation()
+            .withTransferFrom(1)
+            .withTransferTo(2)
+            .withEquity(new BigDecimal("30"))
+            .withRetainBeneficialInterest(true)
+            .build()
+    );
+
+    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(
+        List.of(setChronological, transferChronological));
+
+    assertThat(result.get(transferPosition.getId()).equityByOrganisationId())
+        .isEqualTo(Map.of(1, new BigDecimal("0"), 2, new BigDecimal("100")));
+  }
+
+  @Test
+  void resolveStates_whenRemoveChange_leavesEquityUntouchedAndCarriesItForward() {
+    var setPosition = LicencePositionTestUtil.newBuilder().build();
+    var removePosition = LicencePositionTestUtil.newBuilder().build();
+
+    var setChronological = ChronologicalPositionTestUtil.live(
+        setPosition,
+        LicenceOperation.newSetEquityOperation().withTransferTo(1).withEquity(new BigDecimal("50")).build(),
+        LicenceOperation.newSetEquityOperation().withTransferTo(2).withEquity(new BigDecimal("50")).build()
+    );
+
+    var removeChange = new PositionChange(
+        UUID.randomUUID().toString(),
+        1,
+        LicencePositionChangeType.REMOVE_CHANGE,
+        List.of(LicenceOperation.newSetEquityOperation().withTransferTo(3).withEquity(new BigDecimal("100")).build())
+    );
+    var removeChronological = ChronologicalPosition.fromLicencePosition(
+        removePosition, removePosition.getPositionDate(), removePosition.getPositionDateOrder(), List.of(removeChange));
+
+    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(
+        List.of(setChronological, removeChronological));
+
+    assertThat(result.get(removePosition.getId()).equityByOrganisationId())
+        .isEqualTo(Map.of(1, new BigDecimal("50"), 2, new BigDecimal("50")));
   }
 
   @Test

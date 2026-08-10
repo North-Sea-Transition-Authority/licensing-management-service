@@ -149,7 +149,7 @@ class LicencePositionViewServiceTest {
         .containsExactly("REF-1");
     // the queried position has no change of its own, so its resolved change/state are empty
     assertThat(result.changeViewByType()).isEmpty();
-    assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView("")));
+    assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of()));
   }
 
   @Test
@@ -218,7 +218,7 @@ class LicencePositionViewServiceTest {
         .isEqualTo(ReverseRouter.route(on(LicencePositionAddChangeController.class)
             .renderForAddedPosition(correction.getId(), positionCorrection.getId(), null)));
     assertThat(result.changeViewByType()).isEmpty();
-    assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView("")));
+    assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of()));
     assertThat(result.canEdit()).isTrue();
     assertThat(result.selectedPositionId()).isEqualTo(addedPositionId);
     assertThat(result.timelineViews())
@@ -324,7 +324,7 @@ class LicencePositionViewServiceTest {
     assertThat(adminChange.joiningOrganisationName()).isEqualTo("Executed Admin Org");
     assertThat(adminChange.changeType()).isEqualTo(LicencePositionChangeType.REMOVE_CHANGE);
     assertThat(adminChange.removeUrl()).isNull();
-    assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView("")));
+    assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of()));
   }
 
   @Test
@@ -387,7 +387,7 @@ class LicencePositionViewServiceTest {
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, current);
 
     // the removed position is excluded from recalculation, and the current position carries no administrator
-    assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView("")));
+    assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of()));
     assertThat(result.timelineViews())
         .extracting(
             LicencePositionTimelineView::regulatorReference,
@@ -515,7 +515,7 @@ class LicencePositionViewServiceTest {
             .withEffectiveDate(sameDate).withEffectiveDateOrder(1).build())
         .build();
 
-    var stateView = new LicencePositionStateView(new AdministratorStateView(""));
+    var stateView = new LicencePositionStateView(new AdministratorStateView(""), List.of());
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
         .thenReturn(List.of(moved, other));

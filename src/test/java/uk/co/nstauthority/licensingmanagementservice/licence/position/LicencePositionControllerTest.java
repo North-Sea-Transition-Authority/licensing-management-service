@@ -95,7 +95,8 @@ class LicencePositionControllerTest extends AbstractControllerTest {
         position.getLicence().getLicenceReference(),
         Map.of(),
         new LicencePositionStateView(
-            new AdministratorStateView("admin organisation")
+            new AdministratorStateView("admin organisation"),
+            List.of()
         ),
         false,
         POSITION_ID,

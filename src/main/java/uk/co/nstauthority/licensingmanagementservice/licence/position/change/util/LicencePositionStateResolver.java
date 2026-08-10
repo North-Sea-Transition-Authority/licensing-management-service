@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.util;
 
-import java.util.LinkedHashMap;
+import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -23,7 +24,7 @@ public final class LicencePositionStateResolver {
   public static Map<UUID, LicencePositionState> resolveStatesByChronologicalPositionId(
       List<ChronologicalPosition> chronologicalPositions
   ) {
-    var statesByChronologicalPositionId = new LinkedHashMap<UUID, LicencePositionState>();
+    var statesByChronologicalPositionId = new HashMap<UUID, LicencePositionState>();
 
     var currentState = LicencePositionState.EMPTY;
     for (var chronologicalPosition : chronologicalPositions) {
@@ -68,8 +69,23 @@ public final class LicencePositionStateResolver {
       return state;
     }
 
+    var setEquityOperations = change.operations().stream()
+        .filter(SetEquityOperation.class::isInstance)
+        .map(SetEquityOperation.class::cast)
+        .toList();
+
     var currentState = state;
+
+    // Set equity operations defines the equity holdings for each organisation
+    // which is then used to transfer equity between organisations
+    if (!setEquityOperations.isEmpty()) {
+      currentState = applySetEquityChange(currentState, setEquityOperations);
+    }
+
     for (var operation : change.operations()) {
+      if (operation instanceof SetEquityOperation) {
+        continue;
+      }
       currentState = applyOperation(currentState, operation);
     }
     return currentState;
@@ -80,9 +96,51 @@ public final class LicencePositionStateResolver {
     return switch (operation) {
       case AdministratorOperation administratorOperation ->
           state.withAdministratorId(administratorOperation.operatorId());
-      //todo add set and transfer operations in LMS2-129
+      case TransferEquityOperation transferEquityOperation ->
+          applyTransferEquity(state, transferEquityOperation);
       case SetEquityOperation setEquityOperation -> state;
-      case TransferEquityOperation transferEquityOperation -> state;
     };
+  }
+
+  private static LicencePositionState applySetEquityChange(
+      LicencePositionState state,
+      List<SetEquityOperation> setEquityOperations
+  ) {
+    var equityByOrganisationId = new HashMap<Integer, BigDecimal>();
+    for (var setEquityOperation : setEquityOperations) {
+      equityByOrganisationId.put(setEquityOperation.transferTo(), setEquityOperation.equity());
+    }
+    return state.withEquityByOrganisationId(equityByOrganisationId);
+  }
+
+  private static LicencePositionState applyTransferEquity(
+      LicencePositionState state,
+      TransferEquityOperation transferEquityOperation
+  ) {
+    var equityByOrganisationId = new HashMap<>(state.equityByOrganisationId());
+
+    var transferFrom = transferEquityOperation.transferFrom();
+    var transferTo = transferEquityOperation.transferTo();
+    var requestedEquity = transferEquityOperation.equity();
+
+    var isAddingEquity = requestedEquity.signum() > 0;
+    if (!isAddingEquity) {
+      return state.withEquityByOrganisationId(equityByOrganisationId);
+    }
+    var availableEquity = equityByOrganisationId.getOrDefault(transferFrom, BigDecimal.ZERO).max(BigDecimal.ZERO);
+    var transferEquity = requestedEquity.min(availableEquity);
+    var remainingEquity = availableEquity.subtract(transferEquity);
+
+    var retainsInterest = Boolean.TRUE.equals(transferEquityOperation.retainBeneficialInterest());
+
+    if (remainingEquity.signum() <= 0 && !retainsInterest) {
+      equityByOrganisationId.remove(transferFrom);
+    } else {
+      equityByOrganisationId.put(transferFrom, remainingEquity);
+    }
+
+    equityByOrganisationId.merge(transferTo, transferEquity, BigDecimal::add);
+
+    return state.withEquityByOrganisationId(equityByOrganisationId);
   }
 }

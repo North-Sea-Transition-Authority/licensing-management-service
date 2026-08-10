@@ -29,8 +29,8 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void getChangeViews_filtersChangesNotOnCurrentPosition() {
-    var currentLicencePosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
-    var previousLicencePosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
+    var previousLicencePosition = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
 
     var previousChronologicalPosition = ChronologicalPositionTestUtil.live(
         previousLicencePosition,
@@ -42,7 +42,7 @@ class LicencePositionChangeViewResolverTest {
     var result = LicencePositionChangeViewResolver.getChangeViews(
         currentLicencePosition.getId(),
         chronologicalPositions,
-        LicencePositionStateResolver.resolveStatesByChronologicalPositionId(chronologicalPositions),
+        LicencePositionStateResolver.resolve(chronologicalPositions),
         Map.of(),
         null
     );
@@ -52,8 +52,8 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void buildAdministratorChange() {
-    var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
-    var previousLicencePosition = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
+    var previousLicencePosition = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
 
     var previousChronologicalPosition = ChronologicalPositionTestUtil.live(
         previousLicencePosition,
@@ -68,7 +68,7 @@ class LicencePositionChangeViewResolverTest {
     var result = LicencePositionChangeViewResolver.getChangeViews(
         currentLicencePosition.getId(),
         chronologicalPositions,
-        LicencePositionStateResolver.resolveStatesByChronologicalPositionId(chronologicalPositions),
+        LicencePositionStateResolver.resolve(chronologicalPositions),
         Map.of(JOINING_ID, JOINING_NAME, WITHDRAWING_ID, WITHDRAWING_NAME),
         null
     );
@@ -97,8 +97,10 @@ class LicencePositionChangeViewResolverTest {
     var result = LicencePositionChangeViewResolver.getChangeViews(
         currentLicencePosition.getId(),
         chronologicalPositions,
-        LicencePositionStateResolver.resolveStatesByChronologicalPositionId(chronologicalPositions),
-        Map.of(JOINING_ID, JOINING_NAME), null);
+        LicencePositionStateResolver.resolve(chronologicalPositions),
+        Map.of(JOINING_ID, JOINING_NAME),
+        null
+    );
 
     assertThat(result)
         .hasSize(1)
@@ -131,8 +133,10 @@ class LicencePositionChangeViewResolverTest {
     var result = LicencePositionChangeViewResolver.getChangeViews(
         currentLicencePosition.getId(),
         chronologicalPositions,
-        LicencePositionStateResolver.resolveStatesByChronologicalPositionId(chronologicalPositions),
-        Map.of(JOINING_ID, JOINING_NAME), null);
+        LicencePositionStateResolver.resolve(chronologicalPositions),
+        Map.of(JOINING_ID, JOINING_NAME),
+        null
+    );
 
     assertThat(result)
         .extractingByKey(LicenceOperation.LICENCE_ADMINISTRATOR)
@@ -228,9 +232,10 @@ class LicencePositionChangeViewResolverTest {
     var result = LicencePositionChangeViewResolver.getChangeViews(
         currentLicencePosition.getId(),
         chronologicalPositions,
-        LicencePositionStateResolver.resolveStatesByChronologicalPositionId(chronologicalPositions),
+        LicencePositionStateResolver.resolve(chronologicalPositions),
         Map.of(JOINING_ID, JOINING_NAME),
-        urlContext);
+        urlContext
+    );
 
     return (AdministratorChangeView) result.get(LicenceOperation.LICENCE_ADMINISTRATOR);
   }
@@ -248,8 +253,10 @@ class LicencePositionChangeViewResolverTest {
     var result = LicencePositionChangeViewResolver.getChangeViews(
         currentLicencePosition.getId(),
         chronologicalPositions,
-        LicencePositionStateResolver.resolveStatesByChronologicalPositionId(chronologicalPositions),
-        Map.of(300, "Org"), null);
+        LicencePositionStateResolver.resolve(chronologicalPositions),
+        Map.of(300, "Org"),
+        null
+    );
 
     assertThat(result)
         .extractingByKey(LicenceOperation.SET_EQUITY)
@@ -275,8 +282,10 @@ class LicencePositionChangeViewResolverTest {
     var result = LicencePositionChangeViewResolver.getChangeViews(
         currentLicencePosition.getId(),
         chronologicalPositions,
-        LicencePositionStateResolver.resolveStatesByChronologicalPositionId(chronologicalPositions),
-        Map.of(300, "Org", 400, "Org2"), null);
+        LicencePositionStateResolver.resolve(chronologicalPositions),
+        Map.of(300, "Org", 400, "Org2"),
+        null
+    );
 
     var setEquityChangeView = (SetEquityChangeView) result.get(LicenceOperation.SET_EQUITY);
     assertThat(setEquityChangeView.rows())
@@ -299,8 +308,10 @@ class LicencePositionChangeViewResolverTest {
     var result = LicencePositionChangeViewResolver.getChangeViews(
         currentLicencePosition.getId(),
         chronologicalPositions,
-        LicencePositionStateResolver.resolveStatesByChronologicalPositionId(chronologicalPositions),
-        Map.of(), null);
+        LicencePositionStateResolver.resolve(chronologicalPositions),
+        Map.of(),
+        null
+    );
 
     var setEquityChangeView = (SetEquityChangeView) result.get(LicenceOperation.SET_EQUITY);
     assertThat(setEquityChangeView.rows())

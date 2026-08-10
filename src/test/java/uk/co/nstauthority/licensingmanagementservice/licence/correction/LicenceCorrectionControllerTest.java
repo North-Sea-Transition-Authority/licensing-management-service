@@ -190,7 +190,8 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         Map.of(),
         null,
         position.getId(),
-        LicencePositionPageView.Actions.none()
+        LicencePositionPageView.Actions.none(),
+        List.of()
     );
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
@@ -243,7 +244,8 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         Map.of(),
         null,
         POSITION_CORRECTION_ID,
-        LicencePositionPageView.Actions.none()
+        LicencePositionPageView.Actions.none(),
+        List.of()
     );
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))

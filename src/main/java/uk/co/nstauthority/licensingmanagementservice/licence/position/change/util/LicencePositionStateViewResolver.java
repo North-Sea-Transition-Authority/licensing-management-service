@@ -6,7 +6,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.BeneficialInterestView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
@@ -19,14 +19,14 @@ public final class LicencePositionStateViewResolver {
 
   public static LicencePositionStateView getStateView(
       UUID currentLicencePositionId,
-      Map<UUID, LicencePositionState> statesByChronologicalPositionId,
+      ResolvedStates resolvedStates,
       Map<Integer, String> organisationNames
   ) {
-    var state = statesByChronologicalPositionId.getOrDefault(currentLicencePositionId, LicencePositionState.EMPTY);
+    var currentState = resolvedStates.currentState(currentLicencePositionId);
 
     return new LicencePositionStateView(
-        buildAdministratorState(state.administratorId(), organisationNames),
-        buildBeneficialInterests(state.equityByOrganisationId(), organisationNames)
+        buildAdministratorState(currentState.administratorId(), organisationNames),
+        buildBeneficialInterests(currentState.equityByOrganisationId(), organisationNames)
     );
   }
 

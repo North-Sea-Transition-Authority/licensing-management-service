@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position;
 
+import jakarta.annotation.Nullable;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -205,7 +206,7 @@ public class LicencePositionCorrectionService {
             licenceCorrection, licencePosition, LicencePositionCorrectionChangeType.UPDATE_POSITION
         );
 
-    var effectiveDateOrder = determineEffectiveDateOrder(licenceCorrection, correctPositionDate);
+    var effectiveDateOrder = determineEffectiveDateOrder(licenceCorrection, correctPositionDate, licencePosition.getId());
 
     LicencePositionCorrection positionCorrection;
     UpdateLicencePositionPayload payload;
@@ -538,25 +539,23 @@ public class LicencePositionCorrectionService {
         .build();
   }
 
-  //TODO - Effective date order is auto-assigned for now. When multiple
-  // positions share the same effective date the user should be able to select the order themselves.
   private int determineEffectiveDateOrder(LicenceCorrection licenceCorrection, LocalDate positionDate) {
-    var liveMaxOrder = Optional.ofNullable(
-        licencePositionRepository.findMaxPositionDateOrder(licenceCorrection.getLicence(), positionDate)
-    ).orElse(0);
+    return determineEffectiveDateOrder(licenceCorrection, positionDate, null);
+  }
 
-    var draftMaxOrder = licencePositionCorrectionRepository
-        .findByLicenceCorrectionAndChangeType(licenceCorrection, LicencePositionCorrectionChangeType.ADD_POSITION)
-        .stream()
-        .map(LicencePositionCorrection::getPayload)
-        .filter(CreateLicencePositionPayload.class::isInstance)
-        .map(CreateLicencePositionPayload.class::cast)
-        .filter(payload -> positionDate.equals(payload.effectiveDate()))
-        .map(CreateLicencePositionPayload::effectiveDateOrder)
-        .max(Integer::compareTo)
+  private int determineEffectiveDateOrder(
+      LicenceCorrection licenceCorrection,
+      LocalDate positionDate,
+      @Nullable UUID excludePositionId
+  ) {
+    var maxOrder = OrderablePositionUtil.toOrderablePositions(loadCorrectionPositions(licenceCorrection)).stream()
+        .filter(position -> !position.id().equals(excludePositionId))
+        .filter(position -> positionDate.equals(position.effectiveDate()))
+        .mapToInt(OrderablePosition::effectiveDateOrder)
+        .max()
         .orElse(0);
 
-    return Math.max(liveMaxOrder, draftMaxOrder) + 1;
+    return maxOrder + 1;
   }
 
   private CorrectionPositions loadCorrectionPositions(LicenceCorrection licenceCorrection) {

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -18,26 +19,26 @@ class LicencePositionStateResolverTest {
 
   @Test
   void resolveStates_snapshotsAdministratorPerPosition() {
-    var positionOne = LicencePositionTestUtil.newBuilder().build();
-    var positionTwo = LicencePositionTestUtil.newBuilder().build();
+    var positionOne = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
+    var positionTwo = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
 
     var chronologicalOne = ChronologicalPositionTestUtil.live(
         positionOne, LicenceOperation.newAdministratorChange().withOperator(1).build());
     var chronologicalTwo = ChronologicalPositionTestUtil.live(
         positionTwo, LicenceOperation.newAdministratorChange().withOperator(2).build());
 
-    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(List.of(chronologicalOne, chronologicalTwo));
+    var result = LicencePositionStateResolver.resolve(List.of(chronologicalOne, chronologicalTwo));
 
-    assertThat(result.get(positionOne.getId()).administratorId()).isEqualTo(1);
-    assertThat(result.get(positionTwo.getId()).administratorId()).isEqualTo(2);
+    assertThat(result.currentState(positionOne.getId()).administratorId()).isEqualTo(1);
+    assertThat(result.currentState(positionTwo.getId()).administratorId()).isEqualTo(2);
   }
 
   @Test
   void resolveStates_carriesAdministratorForwardWhenPositionHasNoChange() {
-    var oldest = LicencePositionTestUtil.newBuilder().build();
-    var middle = LicencePositionTestUtil.newBuilder().build();
-    var current = LicencePositionTestUtil.newBuilder().build();
-    var later = LicencePositionTestUtil.newBuilder().build();
+    var oldest = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
+    var middle = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
+    var current = LicencePositionTestUtil.newBuilder().withPositionOrder(3).build();
+    var later = LicencePositionTestUtil.newBuilder().withPositionOrder(4).build();
 
     var oldestChronological = ChronologicalPositionTestUtil.live(
         oldest,
@@ -53,19 +54,19 @@ class LicencePositionStateResolverTest {
         LicenceOperation.newAdministratorChange().withOperator(3).build()
     );
 
-    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(
+    var result = LicencePositionStateResolver.resolve(
         List.of(oldestChronological, middleChronological, currentChronological, laterChronological)
     );
 
     // current has no change of its own, so it carries the administrator forward from the middle position
-    assertThat(result.get(current.getId()).administratorId()).isEqualTo(2);
+    assertThat(result.currentState(current.getId()).administratorId()).isEqualTo(2);
   }
 
   @Test
   void resolveStates_whenRemoveChange_skipsItAndCarriesPreviousAdministratorForward() {
-    var earlier = LicencePositionTestUtil.newBuilder().build();
-    var current = LicencePositionTestUtil.newBuilder().build();
-    var later = LicencePositionTestUtil.newBuilder().build();
+    var earlier = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
+    var current = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
+    var later = LicencePositionTestUtil.newBuilder().withPositionOrder(3).build();
 
     var earlierChronological = ChronologicalPositionTestUtil.live(
         earlier, LicenceOperation.newAdministratorChange().withOperator(1).build());
@@ -81,11 +82,34 @@ class LicencePositionStateResolverTest {
 
     var laterChronological = ChronologicalPositionTestUtil.live(later);
 
-    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(
-        List.of(earlierChronological, currentChronological, laterChronological));
+    var result = LicencePositionStateResolver.resolve(
+        List.of(earlierChronological, currentChronological, laterChronological)
+    );
 
-    assertThat(result.get(current.getId()).administratorId()).isEqualTo(1);
-    assertThat(result.get(later.getId()).administratorId()).isEqualTo(1);
+    assertThat(result.currentState(current.getId()).administratorId()).isEqualTo(1);
+    assertThat(result.currentState(later.getId()).administratorId()).isEqualTo(1);
+  }
+
+  @Test
+  void resolveStates_whenPositionExcludedFromState_getsEntryButDoesNotContributeToFold() {
+    var earlier = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
+    var excluded = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
+    var later = LicencePositionTestUtil.newBuilder().withPositionOrder(3).build();
+
+    var earlierChronological = ChronologicalPositionTestUtil.live(
+        earlier, LicenceOperation.newAdministratorChange().withOperator(1).build());
+    var excludedChronological = ChronologicalPositionTestUtil.live(
+        excluded, LicenceOperation.newAdministratorChange().withOperator(2).build());
+    var laterChronological = ChronologicalPositionTestUtil.live(later);
+
+    var result = LicencePositionStateResolver.resolve(
+        List.of(earlierChronological, excludedChronological, laterChronological),
+        Set.of(excluded.getId())
+    );
+
+    assertThat(result.currentState(excluded.getId()).administratorId()).isEqualTo(1);
+    assertThat(result.previousState(excluded.getId()).administratorId()).isEqualTo(1);
+    assertThat(result.currentState(later.getId()).administratorId()).isEqualTo(1);
   }
 
   @Test
@@ -93,15 +117,15 @@ class LicencePositionStateResolverTest {
     var current = LicencePositionTestUtil.newBuilder().build();
     var currentChronological = ChronologicalPositionTestUtil.live(current);
 
-    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(List.of(currentChronological));
+    var result = LicencePositionStateResolver.resolve(List.of(currentChronological));
 
-    assertThat(result.get(current.getId()).administratorId()).isNull();
+    assertThat(result.currentState(current.getId()).administratorId()).isNull();
   }
 
   @Test
   void previousState_returnsStateCarriedInBeforeTheGivenPosition() {
-    var earlier = LicencePositionTestUtil.newBuilder().build();
-    var current = LicencePositionTestUtil.newBuilder().build();
+    var earlier = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
+    var current = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
 
     var earlierChronological = ChronologicalPositionTestUtil.live(
         earlier,
@@ -113,17 +137,17 @@ class LicencePositionStateResolverTest {
     );
 
     var chronologicalPositions = List.of(earlierChronological, currentChronological);
-    var states = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(chronologicalPositions);
+    var result = LicencePositionStateResolver.resolve(chronologicalPositions);
 
-    var previousState = LicencePositionStateResolver.previousState(current.getId(), chronologicalPositions, states);
+    var previousState = result.previousState(current.getId());
 
     assertThat(previousState.administratorId()).isEqualTo(1);
   }
 
   @Test
   void resolveStates_setEquityChange_replacesHoldersDroppingThoseNotInTheSet() {
-    var first = LicencePositionTestUtil.newBuilder().build();
-    var second = LicencePositionTestUtil.newBuilder().build();
+    var first = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
+    var second = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
 
     var firstChronological = ChronologicalPositionTestUtil.live(
         first,
@@ -136,12 +160,12 @@ class LicencePositionStateResolverTest {
         LicenceOperation.newSetEquityOperation().withTransferTo(3).withEquity(new BigDecimal("70")).build()
     );
 
-    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(
+    var result = LicencePositionStateResolver.resolve(
         List.of(firstChronological, secondChronological));
 
-    assertThat(result.get(first.getId()).equityByOrganisationId())
+    assertThat(result.currentState(first.getId()).equityByOrganisationId())
         .isEqualTo(Map.of(1, new BigDecimal("50"), 2, new BigDecimal("50")));
-    assertThat(result.get(second.getId()).equityByOrganisationId())
+    assertThat(result.currentState(second.getId()).equityByOrganisationId())
         .isEqualTo(Map.of(1, new BigDecimal("30"), 3, new BigDecimal("70")));
   }
 
@@ -156,10 +180,10 @@ class LicencePositionStateResolverTest {
     );
     var withoutChangeChronological = ChronologicalPositionTestUtil.live(withoutChange);
 
-    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(
+    var result = LicencePositionStateResolver.resolve(
         List.of(withChangeChronological, withoutChangeChronological));
 
-    assertThat(result.get(withoutChange.getId()).equityByOrganisationId())
+    assertThat(result.currentState(withoutChange.getId()).equityByOrganisationId())
         .isEqualTo(Map.of(1, new BigDecimal("100")));
   }
 
@@ -182,10 +206,10 @@ class LicencePositionStateResolverTest {
             .build()
     );
 
-    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(
+    var result = LicencePositionStateResolver.resolve(
         List.of(setChronological, transferChronological));
 
-    assertThat(result.get(transferPosition.getId()).equityByOrganisationId())
+    assertThat(result.currentState(transferPosition.getId()).equityByOrganisationId())
         .isEqualTo(Map.of(1, new BigDecimal("50"), 2, new BigDecimal("50")));
   }
 
@@ -207,10 +231,10 @@ class LicencePositionStateResolverTest {
             .build()
     );
 
-    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(
+    var result = LicencePositionStateResolver.resolve(
         List.of(setChronological, transferChronological));
 
-    assertThat(result.get(transferPosition.getId()).equityByOrganisationId())
+    assertThat(result.currentState(transferPosition.getId()).equityByOrganisationId())
         .isEqualTo(Map.of(1, new BigDecimal("70"), 3, new BigDecimal("30")));
   }
 
@@ -233,10 +257,10 @@ class LicencePositionStateResolverTest {
             .build()
     );
 
-    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(
+    var result = LicencePositionStateResolver.resolve(
         List.of(setChronological, transferChronological));
 
-    assertThat(result.get(transferPosition.getId()).equityByOrganisationId())
+    assertThat(result.currentState(transferPosition.getId()).equityByOrganisationId())
         .isEqualTo(Map.of(2, new BigDecimal("100")));
   }
 
@@ -260,10 +284,10 @@ class LicencePositionStateResolverTest {
             .build()
     );
 
-    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(
+    var result = LicencePositionStateResolver.resolve(
         List.of(setChronological, transferChronological));
 
-    assertThat(result.get(transferPosition.getId()).equityByOrganisationId())
+    assertThat(result.currentState(transferPosition.getId()).equityByOrganisationId())
         .isEqualTo(Map.of(1, new BigDecimal("0"), 2, new BigDecimal("100")));
   }
 
@@ -287,10 +311,10 @@ class LicencePositionStateResolverTest {
     var removeChronological = ChronologicalPosition.fromLicencePosition(
         removePosition, removePosition.getPositionDate(), removePosition.getPositionDateOrder(), List.of(removeChange));
 
-    var result = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(
+    var result = LicencePositionStateResolver.resolve(
         List.of(setChronological, removeChronological));
 
-    assertThat(result.get(removePosition.getId()).equityByOrganisationId())
+    assertThat(result.currentState(removePosition.getId()).equityByOrganisationId())
         .isEqualTo(Map.of(1, new BigDecimal("50"), 2, new BigDecimal("50")));
   }
 
@@ -301,9 +325,9 @@ class LicencePositionStateResolverTest {
         current, LicenceOperation.newAdministratorChange().withOperator(2).build());
 
     var chronologicalPositions = List.of(currentChronological);
-    var states = LicencePositionStateResolver.resolveStatesByChronologicalPositionId(chronologicalPositions);
+    var result = LicencePositionStateResolver.resolve(chronologicalPositions);
 
-    var previousState = LicencePositionStateResolver.previousState(current.getId(), chronologicalPositions, states);
+    var previousState = result.previousState(current.getId());
 
     assertThat(previousState.administratorId()).isNull();
   }

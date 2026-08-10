@@ -2,13 +2,18 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.ut
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.LocalDate;
+import java.time.Month;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionKey;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.BeneficialInterestView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
@@ -38,7 +43,7 @@ class LicencePositionStateViewResolverTest {
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
-        Map.of(currentPositionId, state),
+        resolvedStatesFor(currentPositionId, state),
         organisationNames
     );
 
@@ -59,7 +64,7 @@ class LicencePositionStateViewResolverTest {
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
-        Map.of(),
+        new ResolvedStates(new TreeMap<>(), Map.of()),
         Map.of(CURRENT_ADMIN_ID, CURRENT_ADMIN_NAME)
     );
 
@@ -73,7 +78,7 @@ class LicencePositionStateViewResolverTest {
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
-        Map.of(currentPositionId, LicencePositionState.EMPTY.withAdministratorId(CURRENT_ADMIN_ID)),
+        resolvedStatesFor(currentPositionId, LicencePositionState.EMPTY.withAdministratorId(CURRENT_ADMIN_ID)),
         Map.of()
     );
 
@@ -89,10 +94,17 @@ class LicencePositionStateViewResolverTest {
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
-        Map.of(currentPositionId, state),
+        resolvedStatesFor(currentPositionId, state),
         Map.of()
     );
 
     assertThat(result.administratorStateView().organisationName()).isEmpty();
+  }
+
+  private static ResolvedStates resolvedStatesFor(UUID positionId, LicencePositionState state) {
+    var key = new PositionKey(LocalDate.of(2024, Month.JANUARY, 1), 0);
+    var statesByKey = new TreeMap<PositionKey, LicencePositionState>();
+    statesByKey.put(key, state);
+    return new ResolvedStates(statesByKey, Map.of(positionId, key));
   }
 }

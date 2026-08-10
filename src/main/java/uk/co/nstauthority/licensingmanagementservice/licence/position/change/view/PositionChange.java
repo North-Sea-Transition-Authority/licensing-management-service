@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.vi
 import jakarta.annotation.Nullable;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionUpdateOperation;
@@ -11,6 +12,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 
@@ -41,6 +44,14 @@ public record PositionChange(
     return changes.stream()
         .map(PositionChange::fromCorrectionChange)
         .sorted(Comparator.comparingLong(PositionChange::changeOrder))
+        .toList();
+  }
+
+  public List<PositionValidationError> validate(PositionValidationContext positionValidationContext) {
+    return operations.stream()
+        .map(licenceOperation -> licenceOperation.validate(positionValidationContext))
+        .filter(Objects::nonNull)
+        .map(positionValidationError -> positionValidationError.withChangeId(changeId))
         .toList();
   }
 

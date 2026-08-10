@@ -90,7 +90,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
   void renderLicencePosition() throws Exception {
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var pageView = new LicencePositionPageView(
-        List.of(new LicencePositionTimelineView(POSITION_ID, "url1", "REF-2", "5 June 2026", false, null, false, null, null, false, null, null)),
+        List.of(new LicencePositionTimelineView(POSITION_ID, "url1", "REF-2", "5 June 2026", false, null, false, null, null, false, null, null, false)),
         position.getFormattedPositionDate(),
         position.getLicence().getLicenceReference(),
         Map.of(),
@@ -101,7 +101,8 @@ class LicencePositionControllerTest extends AbstractControllerTest {
         false,
         POSITION_ID,
         false,
-        LicencePositionPageView.Actions.none()
+        LicencePositionPageView.Actions.none(),
+        List.of()
     );
 
     when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(PAGE_CAPTION);

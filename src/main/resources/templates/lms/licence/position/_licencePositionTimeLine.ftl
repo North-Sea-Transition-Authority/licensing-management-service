@@ -5,11 +5,13 @@
     <@fdsTimeline.timelineSection>
       <#list licencePositionTimelineViews as licencePositionTimelineViewEntry>
         <#assign positionUrl>
-          <@fdsAction.link
-            linkText=licencePositionTimelineViewEntry.formattedPositionDate()
-            linkUrl=springUrl(licencePositionTimelineViewEntry.url())
-            linkClass="govuk-link govuk-link--no-visited-state"
-          />
+          <span id="${licencePositionTimelineViewEntry.positionId()}" tabindex="-1">
+            <@fdsAction.link
+              linkText=licencePositionTimelineViewEntry.formattedPositionDate()
+              linkUrl=springUrl(licencePositionTimelineViewEntry.url())
+              linkClass="govuk-link govuk-link--no-visited-state"
+            />
+          </span>
         </#assign>
         <#assign timeStampClasses = []/>
         <#if licencePositionTimelineViewEntry?is_last>
@@ -17,6 +19,9 @@
         </#if>
         <#if licencePositionTimelineViewEntry.positionId() == selectedPositionId>
           <#assign timeStampClasses += ["fds-timeline__time-stamp--selected"]/>
+        </#if>
+        <#if licencePositionTimelineViewEntry.hasError()>
+          <#assign timeStampClasses += ["fds-timeline__time-stamp--error"]/>
         </#if>
         <#assign positionActions>
         <#if licencePositionTimelineViewEntry.addedInThisCorrection()>

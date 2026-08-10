@@ -44,4 +44,14 @@
       background: govuk-colour("mid-grey");
     }
   }
+
+  &__time-stamp--error {
+    .fds-timeline__node-number {
+      border-color: govuk-colour("red");
+    }
+
+    &:not(.fds-timeline__time-stamp--no-border) {
+      border-left-color: govuk-colour("red");
+    }
+  }
 }

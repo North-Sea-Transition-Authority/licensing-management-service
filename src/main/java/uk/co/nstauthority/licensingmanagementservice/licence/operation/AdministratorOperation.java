@@ -2,6 +2,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import java.util.Objects;
 import java.util.UUID;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 
 public record AdministratorOperation(
     UUID id,
@@ -17,6 +19,21 @@ public record AdministratorOperation(
   @Override
   public String type() {
     return LICENCE_ADMINISTRATOR;
+  }
+
+  @Override
+  public PositionValidationError validate(PositionValidationContext positionValidationContext) {
+    var previousAdministratorId = positionValidationContext.previousState().administratorId();
+
+    if (Objects.equals(previousAdministratorId, operatorId)) {
+      return PositionValidationError.forOperation(
+          positionValidationContext,
+          type(),
+          "The joining administrator cannot be the same as the withdrawing administrator"
+      );
+    }
+
+    return null;
   }
 
   public static class Builder {

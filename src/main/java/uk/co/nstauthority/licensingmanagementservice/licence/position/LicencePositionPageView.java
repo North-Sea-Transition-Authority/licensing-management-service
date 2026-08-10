@@ -4,6 +4,7 @@ import jakarta.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 
@@ -23,7 +24,8 @@ public record LicencePositionPageView(
     boolean canEdit,
     UUID selectedPositionId,
     boolean isAddedPosition,
-    Actions actions
+    Actions actions,
+    List<ErrorSummaryItem> errorSummaryItems
 ) {
 
   /**
@@ -50,7 +52,8 @@ public record LicencePositionPageView(
         false,
         null,
         false,
-        Actions.none()
+        Actions.none(),
+        List.of()
     );
   }
 
@@ -71,7 +74,8 @@ public record LicencePositionPageView(
         false,
         selectedPositionId,
         false,
-        Actions.none()
+        Actions.none(),
+        List.of()
     );
   }
 
@@ -82,7 +86,8 @@ public record LicencePositionPageView(
       Map<String, LicencePositionChangeView> changeViewByType,
       LicencePositionStateView stateView,
       UUID selectedPositionId,
-      Actions actions
+      Actions actions,
+      List<ErrorSummaryItem> errorSummaryItems
   ) {
     return new LicencePositionPageView(
         timelineViews,
@@ -93,7 +98,8 @@ public record LicencePositionPageView(
         true,
         selectedPositionId,
         false,
-        actions
+        actions,
+        errorSummaryItems
     );
   }
 
@@ -104,7 +110,8 @@ public record LicencePositionPageView(
       Map<String, LicencePositionChangeView> changeViewByType,
       LicencePositionStateView stateView,
       UUID selectedPositionId,
-      Actions actions
+      Actions actions,
+      List<ErrorSummaryItem> errorSummaryItems
   ) {
     return new LicencePositionPageView(
         timelineViews,
@@ -115,7 +122,8 @@ public record LicencePositionPageView(
         true,
         selectedPositionId,
         true,
-        actions
+        actions,
+        errorSummaryItems
     );
   }
 

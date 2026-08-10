@@ -16,8 +16,11 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
@@ -34,11 +37,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicencePositionValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
@@ -63,8 +69,17 @@ class LicencePositionViewServiceTest {
   @Mock
   private OrganisationUnitQueryService organisationUnitQueryService;
 
+  @Spy
+  private LicencePositionValidationService licencePositionValidationService = new LicencePositionValidationService();
+
   @InjectMocks
   private LicencePositionViewService licencePositionViewService;
+
+  @Captor
+  private ArgumentCaptor<List<ChronologicalPosition>> validationPositionsCaptor;
+
+  @Captor
+  private ArgumentCaptor<ResolvedStates> validationStatesCaptor;
 
   @Test
   void getAdministratorChangeContext() {
@@ -440,6 +455,46 @@ class LicencePositionViewServiceTest {
   }
 
   @Test
+  void getCorrectionPositionPageView_whenViewingRemovedPosition_excludedFromValidationAndValidationStates() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+
+    var removed = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withLicence(LICENCE)
+        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+    var following = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withPositionDate(LocalDate.of(2026, Month.JULY, 1)).withPositionOrder(1).withIsExecuted(true).build();
+
+    var removedAdminChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(removed)
+        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(7).build()))
+        .build();
+
+    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+        .withTargetLicencePosition(removed)
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
+        .thenReturn(List.of(removed, following));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(removed, following)))
+        .thenReturn(List.of(removedAdminChange));
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(removeCorrection));
+
+    licencePositionViewService.getCorrectionPositionPageView(correction, removed);
+
+    verify(licencePositionValidationService).validate(validationPositionsCaptor.capture(), validationStatesCaptor.capture());
+
+    assertThat(validationPositionsCaptor.getValue())
+        .extracting(ChronologicalPosition::id)
+        .containsExactly(following.getId());
+
+    assertThat(validationStatesCaptor.getValue().currentState(following.getId()).administratorId()).isNull();
+  }
+
+  @Test
   void getCorrectionPositionPageView_whenPositionDateCorrected_usesCorrectedDateAndSetsCorrectDateUrl() {
     var correctionId = UUID.randomUUID();
     var correction = LicenceCorrectionTestUtil.newBuilder()
@@ -481,7 +536,7 @@ class LicencePositionViewServiceTest {
             LicencePositionTimelineView::correctedInThisCorrection,
             LicencePositionTimelineView::correctDateUrl)
         .containsExactly(
-            tuple("CORR-REF", "15 August 2026", true, expectedCorrectDateUrl));
+            tuple("CORR-REF", "15 August 2026 (3)", true, expectedCorrectDateUrl));
   }
 
   @Test

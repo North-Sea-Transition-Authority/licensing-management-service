@@ -1,10 +1,13 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.util;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
@@ -14,6 +17,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferE
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionKey;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 
 public final class LicencePositionStateResolver {
 
@@ -21,40 +26,35 @@ public final class LicencePositionStateResolver {
     throw new IllegalStateException("Utility class should not be instantiated.");
   }
 
-  public static Map<UUID, LicencePositionState> resolveStatesByChronologicalPositionId(
-      List<ChronologicalPosition> chronologicalPositions
+  public static ResolvedStates resolve(List<ChronologicalPosition> chronologicalPositions) {
+    return resolve(chronologicalPositions, Set.of());
+  }
+
+  public static ResolvedStates resolve(
+      List<ChronologicalPosition> chronologicalPositions,
+      Collection<UUID> positionIdsExcludedFromState
   ) {
-    var statesByChronologicalPositionId = new HashMap<UUID, LicencePositionState>();
+    var statesByKey = new TreeMap<PositionKey, LicencePositionState>();
+    var keyByPositionId = new LinkedHashMap<UUID, PositionKey>();
 
     var currentState = LicencePositionState.EMPTY;
     for (var chronologicalPosition : chronologicalPositions) {
-      currentState = applyChanges(currentState, chronologicalPosition);
-      statesByChronologicalPositionId.put(chronologicalPosition.id(), currentState);
-    }
-
-    return statesByChronologicalPositionId;
-  }
-
-  public static LicencePositionState previousState(
-      UUID currentLicencePositionId,
-      List<ChronologicalPosition> chronologicalPositions,
-      Map<UUID, LicencePositionState> statesByChronologicalPositionId
-  ) {
-    var previousState = LicencePositionState.EMPTY;
-    for (var chronologicalPosition : chronologicalPositions) {
-      if (chronologicalPosition.id().equals(currentLicencePositionId)) {
-        return previousState;
+      if (!positionIdsExcludedFromState.contains(chronologicalPosition.id())) {
+        currentState = applyChanges(currentState, chronologicalPosition);
       }
-      previousState = statesByChronologicalPositionId.getOrDefault(chronologicalPosition.id(), LicencePositionState.EMPTY);
+      var key = PositionKey.from(chronologicalPosition);
+      statesByKey.put(key, currentState);
+      keyByPositionId.put(chronologicalPosition.id(), key);
     }
-    return previousState;
+
+    return new ResolvedStates(statesByKey, keyByPositionId);
   }
 
   private static LicencePositionState applyChanges(
-      LicencePositionState licencePositionState,
+      LicencePositionState positionState,
       ChronologicalPosition chronologicalPosition
   ) {
-    var currentState = licencePositionState;
+    var currentState = positionState;
     var changes = chronologicalPosition.changes();
 
     for (var change : changes) {

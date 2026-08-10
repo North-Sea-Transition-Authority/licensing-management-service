@@ -34,6 +34,12 @@ public final class DateUtil {
     return format(temporal, LONG_DATE_FORMATTER);
   }
 
+  public static String formatLongDateWithOrder(LocalDate date, int order) {
+    return order > 1
+        ? "%s (%s)".formatted(formatLongDate(date), order)
+        : formatLongDate(date);
+  }
+
   private static String format(Temporal temporal, DateTimeFormatter dateTimeFormatter) {
     if (temporal instanceof Instant instant) {
       temporal = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());

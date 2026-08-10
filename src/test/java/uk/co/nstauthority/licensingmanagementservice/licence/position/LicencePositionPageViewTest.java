@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
 
 class LicencePositionPageViewTest {
 
@@ -30,7 +31,7 @@ class LicencePositionPageViewTest {
   void hasPositions_whenTimelineHasEntries_returnsTrue() {
     var pageView = new LicencePositionPageView(
         List.of(timelineView()), null, "REF-1" ,Map.of(), null, false, null, false,
-        LicencePositionPageView.Actions.none());
+        LicencePositionPageView.Actions.none(), List.of());
 
     assertThat(pageView.hasPositions()).isTrue();
   }
@@ -55,24 +56,30 @@ class LicencePositionPageViewTest {
 
   @Test
   void fromExecutedPosition_isEditableAndNotAdded() {
+    var errorSummaryItems = List.of(new ErrorSummaryItem(0, "field", "message"));
+
     var pageView = LicencePositionPageView.fromExecutedPosition(
         List.of(), "1 Jan 2026", "REF-1", Map.of(), null, UUID.randomUUID(),
-        LicencePositionPageView.Actions.none());
+        LicencePositionPageView.Actions.none(), errorSummaryItems);
 
     assertThat(pageView.canEdit()).isTrue();
     assertThat(pageView.isAddedPosition()).isFalse();
+    assertThat(pageView.errorSummaryItems()).isEqualTo(errorSummaryItems);
   }
 
   @Test
   void fromAddedPosition_isEditableAddedWithNoChangeOrStateViews() {
+    var errorSummaryItems = List.of(new ErrorSummaryItem(0, "field", "message"));
+
     var pageView = LicencePositionPageView.fromAddedPosition(
         List.of(), "1 Jan 2026", "REF-1", Map.of(), null, UUID.randomUUID(),
-        LicencePositionPageView.Actions.none());
+        LicencePositionPageView.Actions.none(), errorSummaryItems);
 
     assertThat(pageView.canEdit()).isTrue();
     assertThat(pageView.isAddedPosition()).isTrue();
     assertThat(pageView.changeViewByType()).isEmpty();
     assertThat(pageView.stateView()).isNull();
+    assertThat(pageView.errorSummaryItems()).isEqualTo(errorSummaryItems);
   }
 
   @Test

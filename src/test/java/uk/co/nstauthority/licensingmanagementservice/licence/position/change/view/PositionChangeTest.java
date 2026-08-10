@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContextTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 
@@ -56,5 +57,36 @@ class PositionChangeTest {
           assertThat(positionChange.changeType()).isEqualTo(LicencePositionChangeType.ADD_CHANGE);
           assertThat(positionChange.operations()).containsExactly(operation);
         });
+  }
+
+  @Test
+  void validate_whenOperationInvalid_attachesChangeIdToError() {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withChangeId("change-1")
+        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(5).build()))
+        .build();
+
+    var errors = change.validate(PositionValidationContextTestUtil.newBuilder()
+        .withPreviousState(PositionStateTestUtil.newBuilder().withAdministratorId(5).build())
+        .build());
+
+    assertThat(errors).singleElement().satisfies(error -> {
+      assertThat(error.changeId()).isEqualTo("change-1");
+      assertThat(error.operationType()).isEqualTo(LicenceOperation.LICENCE_ADMINISTRATOR);
+    });
+  }
+
+  @Test
+  void validate_whenOperationsValid_returnsEmpty() {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withChangeId("change-1")
+        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(5).build()))
+        .build();
+
+    var errors = change.validate(PositionValidationContextTestUtil.newBuilder()
+        .withPreviousState(PositionStateTestUtil.newBuilder().withAdministratorId(6).build())
+        .build());
+
+    assertThat(errors).isEmpty();
   }
 }

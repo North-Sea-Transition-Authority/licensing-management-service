@@ -17,6 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferE
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityChangeView;
@@ -34,15 +35,11 @@ public final class LicencePositionChangeViewResolver {
   public static Map<String, LicencePositionChangeView> getChangeViews(
       UUID currentPositionId,
       List<ChronologicalPosition> chronologicalPositions,
-      Map<UUID, LicencePositionState> statesByChronologicalPositionId,
+      ResolvedStates resolvedStates,
       Map<Integer, String> organisationNames,
       @Nullable PositionChangeUrlContext urlContext
   ) {
-    var previousState = LicencePositionStateResolver.previousState(
-        currentPositionId,
-        chronologicalPositions,
-        statesByChronologicalPositionId
-    );
+    var previousState = resolvedStates.previousState(currentPositionId);
 
     return chronologicalPositions.stream()
         .filter(chronologicalPosition -> chronologicalPosition.id().equals(currentPositionId))

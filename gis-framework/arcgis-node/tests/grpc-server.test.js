@@ -2,23 +2,24 @@ import path from "node:path";
 import grpc from "@grpc/grpc-js";
 import protoLoader from "@grpc/proto-loader";
 import express from "express";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { main } from "../src/grpc-server";
-import { buildPolygonHandler } from "../src/handlers/build-polygon-handler.ts";
-import { calculateAreaHandler } from "../src/handlers/calculate-area-operator-handler.ts";
-import { explodePolygonHandler } from "../src/handlers/explode-polygon-handler.ts";
-import { findNorthwestMostLineHandler } from "../src/handlers/find-northwest-most-line-handler.ts";
-import { findParentLinesHandler } from "../src/handlers/find-parent-lines-handler.ts";
-import { getLineStartAndEndPointsHandler } from "../src/handlers/get-line-start-and-end-points-handler.ts";
-import { splitPolygonHandler } from "../src/handlers/split-polygon-handler.ts";
+import {beforeEach, describe, expect, it, vi} from "vitest";
+import {main} from "../src/grpc-server";
+import {buildPolygonHandler} from "../src/handlers/build-polygon-handler.ts";
+import {calculateAreaHandler} from "../src/handlers/calculate-area-operator-handler.ts";
+import {coordinatesToPolylineHandler} from "../src/handlers/coordinates-to-polyline-handler.ts";
+import {explodePolygonHandler} from "../src/handlers/explode-polygon-handler.ts";
+import {findNorthwestMostLineHandler} from "../src/handlers/find-northwest-most-line-handler.ts";
+import {findParentLinesHandler} from "../src/handlers/find-parent-lines-handler.ts";
+import {getLineStartAndEndPointsHandler} from "../src/handlers/get-line-start-and-end-points-handler.ts";
+import {splitPolygonHandler} from "../src/handlers/split-polygon-handler.ts";
 import {
   validatePolygonReconstructionFromPolylinesHandler,
 } from "../src/handlers/validate-polygon-reconstruction-from-polylines-handler.ts";
-import { migrateBlockOrSubarea } from "../src/migration/handlers/migrate-block-or-sub-area";
-import { migrateReferenceBlockHandler } from "../src/migration/handlers/migrate-reference-block.ts";
-import { validateBlockAndSubarea } from "../src/migration/handlers/validate-block-and-subarea.ts";
-import { validateReferenceBlock } from "../src/migration/handlers/validate-reference-block.ts";
-import { validateTopologicallyEqual } from "../src/migration/handlers/validate-topologically-equal.ts";
+import {migrateBlockOrSubarea} from "../src/migration/handlers/migrate-block-or-sub-area";
+import {migrateReferenceBlockHandler} from "../src/migration/handlers/migrate-reference-block.ts";
+import {validateBlockAndSubarea} from "../src/migration/handlers/validate-block-and-subarea.ts";
+import {validateReferenceBlock} from "../src/migration/handlers/validate-reference-block.ts";
+import {validateTopologicallyEqual} from "../src/migration/handlers/validate-topologically-equal.ts";
 
 const MOCK_DIRNAME = "/mock/arcgis-node/src";
 
@@ -120,6 +121,7 @@ describe("main()", () => {
         findNorthwestMostLine: findNorthwestMostLineHandler,
         validatePolygonReconstructionFromPolylines: validatePolygonReconstructionFromPolylinesHandler,
         calculateArea: calculateAreaHandler,
+        coordinatesToPolyline: coordinatesToPolylineHandler,
         migrateBlockOrSubarea,
         validateBlockAndSubarea,
         validateTopologicallyEqual,

@@ -1,5 +1,5 @@
 syntax = "proto3";
-import "getLineStartAndEndPoints/Coordinate.proto";
+import "utils/Coordinate.proto";
 
 package uk.co.fivium.grpc.gis;
 

@@ -2,6 +2,7 @@ package uk.co.fivium.gisframework.grpc;
 
 import com.esri.core.geometry.Point;
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,7 @@ import uk.co.fivium.grpc.gis.CalculateAreaRequest;
 import uk.co.fivium.grpc.gis.ChildLineMatch;
 import uk.co.fivium.grpc.gis.Coordinate;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
+import uk.co.fivium.grpc.gis.CoordinatesToPolylineRequest;
 import uk.co.fivium.grpc.gis.EsriJsonLineWithNavigationAndId;
 import uk.co.fivium.grpc.gis.EsriJsonPolygonLineWrappers;
 import uk.co.fivium.grpc.gis.EsriJsonPolygonLines;
@@ -416,6 +418,31 @@ public class GrpcClientService {
 
     var response = arcgisClient.calculateArea(request);
     return BigDecimal.valueOf(response.getArea());
+  }
+
+  /**
+   * Builds an EsriJSON polyline from an ordered line of coordinate segments.
+   *
+   * @param lineCoordinates A list of 2-point segments, each an [x, y] coordinate pair, in the given coordinate system.
+   * @param srsWkid         The coordinate system the coordinates are expressed in.
+   * @return EsriJSON of the built polyline as a string.
+   */
+  public String convertPointsToPolyline(List<List<List<BigDecimal>>> lineCoordinates, int srsWkid) {
+    var coordinates = lineCoordinates.stream()
+        .flatMap(Collection::stream)
+        .map(coordinatePair -> Coordinate.newBuilder()
+            .setX(coordinatePair.getFirst().doubleValue())
+            .setY(coordinatePair.getLast().doubleValue())
+            .build())
+        .toList();
+
+    var request = CoordinatesToPolylineRequest.newBuilder()
+        .addAllCoordinates(coordinates)
+        .setSrsWkid(srsWkid)
+        .build();
+
+    var response = arcgisClient.coordinatesToPolyline(request);
+    return response.getPolylineEsriJson();
   }
 
   private Point getEsriPoint(Coordinate grpcPoint) {

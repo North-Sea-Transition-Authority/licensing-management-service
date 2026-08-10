@@ -28,6 +28,8 @@ import "migration/referenceblock/MigrateReferenceBlockRequest.proto";
 import "migration/referenceblock/MigrateReferenceBlockResponse.proto";
 import "calculateArea/CalculateAreaRequest.proto";
 import "calculateArea/CalculateAreaResponse.proto";
+import "coordinatesToPolyline/CoordinatesToPolylineRequest.proto";
+import "coordinatesToPolyline/CoordinatesToPolylineResponse.proto";
 
 option java_multiple_files = true;
 option java_outer_classname = "ArcGisServiceProto";
@@ -46,4 +48,5 @@ service ArcGisService {
   rpc validateTopologicallyEqual (TopologicallyEqualValidationRequest) returns (ValidationResponse) {};
   rpc migrateReferenceBlock (MigrateReferenceBlockRequest) returns (MigrateReferenceBlockResponse) {};
   rpc validateReferenceBlock (ReferenceBlockValidationRequest) returns (ValidationResponse) {};
+  rpc coordinatesToPolyline (CoordinatesToPolylineRequest) returns (CoordinatesToPolylineResponse) {};
 }

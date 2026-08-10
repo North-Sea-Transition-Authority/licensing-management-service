@@ -38,6 +38,8 @@ import uk.co.fivium.grpc.gis.CalculateAreaResponse;
 import uk.co.fivium.grpc.gis.ChildLineMatch;
 import uk.co.fivium.grpc.gis.Coordinate;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
+import uk.co.fivium.grpc.gis.CoordinatesToPolylineRequest;
+import uk.co.fivium.grpc.gis.CoordinatesToPolylineResponse;
 import uk.co.fivium.grpc.gis.EsriJsonLineWithNavigationAndId;
 import uk.co.fivium.grpc.gis.EsriJsonPolygonLineWrappers;
 import uk.co.fivium.grpc.gis.EsriJsonPolygonLines;
@@ -657,5 +659,34 @@ class GrpcClientServiceTest {
     assertThat(grpcClientService.validateReferenceBlock(refBlockFeature, List.of(licenceBlockFeature))).isEqualTo(response);
 
     verify(arcgisClient).validateReferenceBlock(expectedRequest.build());
+  }
+
+  @Test
+  void convertPointsToPolyline_verifyServiceClientCall() {
+    var lineCoordinates = List.of(
+        List.of(
+            List.of(BigDecimal.valueOf(1.1), BigDecimal.valueOf(2.2)),
+            List.of(BigDecimal.valueOf(3.3), BigDecimal.valueOf(4.4))
+        ),
+        List.of(
+            List.of(BigDecimal.valueOf(3.3), BigDecimal.valueOf(4.4)),
+            List.of(BigDecimal.valueOf(5.5), BigDecimal.valueOf(6.6))
+        )
+    );
+    var srsWkid = 4230;
+
+    var expectedRequest = CoordinatesToPolylineRequest.newBuilder()
+        .addCoordinates(Coordinate.newBuilder().setX(1.1).setY(2.2).build())
+        .addCoordinates(Coordinate.newBuilder().setX(3.3).setY(4.4).build())
+        .addCoordinates(Coordinate.newBuilder().setX(3.3).setY(4.4).build())
+        .addCoordinates(Coordinate.newBuilder().setX(5.5).setY(6.6).build())
+        .setSrsWkid(srsWkid)
+        .build();
+    var expectedResponse = CoordinatesToPolylineResponse.newBuilder()
+        .setPolylineEsriJson("dummy esriJson polyline")
+        .build();
+
+    when(arcgisClient.coordinatesToPolyline(expectedRequest)).thenReturn(expectedResponse);
+    assertThat(grpcClientService.convertPointsToPolyline(lineCoordinates, srsWkid)).isEqualTo("dummy esriJson polyline");
   }
 }

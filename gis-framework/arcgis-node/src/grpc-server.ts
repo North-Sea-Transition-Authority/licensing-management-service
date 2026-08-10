@@ -9,6 +9,7 @@ import express from "express";
 import { logger } from "./config/logger";
 import { buildPolygonHandler } from "./handlers/build-polygon-handler";
 import { calculateAreaHandler } from "./handlers/calculate-area-operator-handler";
+import { coordinatesToPolylineHandler } from "./handlers/coordinates-to-polyline-handler";
 import { explodePolygonHandler } from "./handlers/explode-polygon-handler";
 import { findNorthwestMostLineHandler } from "./handlers/find-northwest-most-line-handler";
 import { findParentLinesHandler } from "./handlers/find-parent-lines-handler";
@@ -75,6 +76,7 @@ function startGrpcServer(arcGisJsProto: ProtoGrpcType["uk"]["co"]["fivium"]["grp
     findNorthwestMostLine: findNorthwestMostLineHandler,
     validatePolygonReconstructionFromPolylines: validatePolygonReconstructionFromPolylinesHandler,
     calculateArea: calculateAreaHandler,
+    coordinatesToPolyline: coordinatesToPolylineHandler,
     migrateBlockOrSubarea,
     validateBlockAndSubarea,
     validateTopologicallyEqual,

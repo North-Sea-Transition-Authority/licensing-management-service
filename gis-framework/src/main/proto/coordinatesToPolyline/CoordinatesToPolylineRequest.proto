@@ -1,0 +1,12 @@
+syntax = "proto3";
+import "utils/Coordinate.proto";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "CoordinatesToPolylineRequestProto";
+
+message CoordinatesToPolylineRequest {
+  repeated Coordinate coordinates = 1;
+  int32 srsWkid = 2;
+}

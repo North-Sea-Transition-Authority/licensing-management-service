@@ -16,7 +16,7 @@ public enum Role {
   ),
   VIEW_ORGANISATION_LICENCES(
       "Licence viewer",
-      "Can view licences and applications this organisation has access to"
+      "Can view licences this organisation is an active licensee on"
   ),
   APPLICATION_EDITOR(
       "Application editor",

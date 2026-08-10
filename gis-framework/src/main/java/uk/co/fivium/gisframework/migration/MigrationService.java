@@ -157,7 +157,7 @@ public class MigrationService {
     );
     newFeature.getAttributes().put(
         "LAYER",
-        entityBackedShape.shape().getOracleLayer().getLayer()
+        entityBackedShape.shape().getOracleLayer().getLayer().name()
     );
 
     if (!REFERENCE_BLOCK_LAYERS.contains(oracleShape.getOracleLayer().getLayer())) {

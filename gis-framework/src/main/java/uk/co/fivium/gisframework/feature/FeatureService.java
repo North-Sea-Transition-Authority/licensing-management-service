@@ -32,7 +32,7 @@ public class FeatureService {
     featureRepository.save(feature);
   }
 
-  public List<Feature> getFeaturesByIds(List<UUID> ids) {
+  public List<Feature> getFeaturesByIds(Collection<UUID> ids) {
     return featureRepository.findAllById(ids);
   }
 

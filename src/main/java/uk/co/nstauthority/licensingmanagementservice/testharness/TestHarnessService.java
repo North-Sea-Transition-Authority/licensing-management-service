@@ -5,6 +5,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
@@ -17,7 +18,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionService;
 
 @Service
-public class TestHarnessService {
+@Profile("test-harness")
+class TestHarnessService {
 
   private static final int BP_EXPLORATION_ALPHA_LTD_ID = 304;
   private static final int SHELL_PLC_ID = 9205;
@@ -33,19 +35,22 @@ public class TestHarnessService {
   private final LicencePositionService licencePositionService;
   private final LicencePositionTestHarnessService licencePositionTestHarnessService;
   private final LicencePositionChangeService licencePositionChangeService;
+  private final LicencePositionFeatureTestHarnessService licencePositionFeatureTestHarnessService;
   private final Clock clock;
 
-  public TestHarnessService(
+  TestHarnessService(
       LicenceTransactionService licenceTransactionService,
       LicencePositionService licencePositionService,
       LicencePositionTestHarnessService licencePositionTestHarnessService,
       LicencePositionChangeService licencePositionChangeService,
+      LicencePositionFeatureTestHarnessService licencePositionFeatureTestHarnessService,
       Clock clock
   ) {
     this.licenceTransactionService = licenceTransactionService;
     this.licencePositionService = licencePositionService;
     this.licencePositionTestHarnessService = licencePositionTestHarnessService;
     this.licencePositionChangeService = licencePositionChangeService;
+    this.licencePositionFeatureTestHarnessService = licencePositionFeatureTestHarnessService;
     this.clock = clock;
   }
 
@@ -69,6 +74,10 @@ public class TestHarnessService {
     if (secondaryLicence.getType().isProduction()) {
       generateInitialAdministrator(secondaryLicence);
     }
+
+    // the positions were cleared above, so each licence is given a fresh set of blocks and subareas
+    licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence);
+    licencePositionFeatureTestHarnessService.createAndLinkFeatures(secondaryLicence);
   }
 
   private void generateCarbonStorageBeneficialInterestPositionChanges(Licence licence) {

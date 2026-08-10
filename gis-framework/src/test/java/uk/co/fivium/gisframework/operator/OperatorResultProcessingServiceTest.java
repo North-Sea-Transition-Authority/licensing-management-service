@@ -65,7 +65,7 @@ class OperatorResultProcessingServiceTest {
   private OperatorResultProcessingService operatorResultProcessingService;
 
   private static final LocalDate START_DATE = LocalDate.of(2026, 1, 1);
-  private static final Map<String, Object> FEATURE_ATTRIBUTES = Map.of("KEY", "VALUE");
+  private static final Map<String, String> FEATURE_ATTRIBUTES = Map.of("KEY", "VALUE");
   private static final Feature FEATURE = FeatureTestUtil.newBuilder()
       .withFeatureName("Test Feature")
       .withCoordinateSystem(CoordinateSystem.ED50)

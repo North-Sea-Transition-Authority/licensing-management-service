@@ -112,7 +112,7 @@ public class OracleService {
     return shapeLinkRepository.findAllByChildShapeIdIn(shapeSiIds);
   }
 
-  public Map<String, Object> getAttributeMapForSiIdAndLevel(Integer siId, AttributeLevel level) {
+  public Map<String, String> getAttributeMapForSiIdAndLevel(Integer siId, AttributeLevel level) {
     return attributeRepository.findAllByAssociatedSiIdAndAttributeLevel(siId, level)
         .stream()
         .filter(attribute -> attribute.getAttributeName() != null && attribute.getAttributeValue() != null)

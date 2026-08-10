@@ -7,9 +7,12 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.NamedAttributeNode;
 import jakarta.persistence.NamedEntityGraph;
 import java.time.LocalDate;
+import java.util.Set;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
+import org.hibernate.type.SqlTypes;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransaction;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
@@ -41,6 +44,14 @@ public class LicencePosition {
   private int positionDateOrder;
 
   private boolean isExecuted;
+
+  /**
+   * The gis framework features (blocks, subareas) this position holds. Held as ids rather than as a
+   * relationship to {@code Feature}: those tables belong to the gis framework's own flyway instance,
+   * which runs after this application's, so this schema cannot reference them.
+   */
+  @JdbcTypeCode(SqlTypes.JSON)
+  private Set<UUID> featureIds;
 
   public LicencePosition() {
 
@@ -96,5 +107,13 @@ public class LicencePosition {
 
   public void setExecuted(boolean executed) {
     isExecuted = executed;
+  }
+
+  public Set<UUID> getFeatureIds() {
+    return featureIds;
+  }
+
+  public void setFeatureIds(Set<UUID> featureIds) {
+    this.featureIds = featureIds;
   }
 }

@@ -32,7 +32,7 @@ public class Feature {
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(columnDefinition = "jsonb")
-  private Map<String, Object> attributes;
+  private Map<String, String> attributes;
 
   @Enumerated(EnumType.STRING)
   private CoordinateSystem coordinateSystem;
@@ -69,11 +69,11 @@ public class Feature {
     this.featureName = featureName;
   }
 
-  public Map<String, Object> getAttributes() {
+  public Map<String, String> getAttributes() {
     return attributes;
   }
 
-  public void setAttributes(Map<String, Object> attributes) {
+  public void setAttributes(Map<String, String> attributes) {
     this.attributes = attributes;
   }
 

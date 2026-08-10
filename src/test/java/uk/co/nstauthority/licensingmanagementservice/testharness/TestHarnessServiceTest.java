@@ -71,6 +71,9 @@ class TestHarnessServiceTest {
   @Mock
   private LicencePositionChangeService licencePositionChangeService;
 
+  @Mock
+  private LicencePositionFeatureTestHarnessService licencePositionFeatureTestHarnessService;
+
   private TestHarnessService testHarnessService;
 
   @Captor
@@ -92,7 +95,19 @@ class TestHarnessServiceTest {
   void setUp() {
     testHarnessService = new TestHarnessService(
         licenceTransactionService, licencePositionService, licencePositionTestHarnessService,
-        licencePositionChangeService, CLOCK);
+        licencePositionChangeService, licencePositionFeatureTestHarnessService, CLOCK);
+  }
+
+  @Test
+  void generateLicencePositions_createsFeaturesOnBothLicences() {
+    var licence = carbonStorage(1);
+    var secondaryLicence = carbonStorage(2);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(buildPositions(5));
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    verify(licencePositionFeatureTestHarnessService).createAndLinkFeatures(licence);
+    verify(licencePositionFeatureTestHarnessService).createAndLinkFeatures(secondaryLicence);
   }
 
   @Test

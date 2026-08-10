@@ -349,7 +349,7 @@ public class TextualDescriptionService {
    * Returns the given attribute as a string, or null when the attribute map is null or the attribute is
    * absent or blank.
    */
-  private String getStringAttribute(Map<String, Object> attributes, String key) {
+  private String getStringAttribute(Map<String, ?> attributes, String key) {
     if (attributes == null) {
       return null;
     }

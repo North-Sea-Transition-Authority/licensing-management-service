@@ -116,7 +116,7 @@ CVE-2026-47838
 # org.springframework:spring-webmvc
 CVE-2026-22737
 CVE-2026-22735
-
+CVE-2026-41854
 
 # gis-framework
 # net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE
@@ -148,3 +148,10 @@ CVE-2026-41853
 
 # org.springframework.data:spring-data-commons (app.jar)
 CVE-2026-41695
+
+# io.micrometer:micrometer-core
+CVE-2026-40983
+CVE-2026-40984
+
+# org.jsoup:jsoup
+CVE-2026-71497

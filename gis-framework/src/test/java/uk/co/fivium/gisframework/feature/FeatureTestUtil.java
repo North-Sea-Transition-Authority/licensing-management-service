@@ -20,7 +20,7 @@ public class FeatureTestUtil {
     private CoordinateSystem coordinateSystem = CoordinateSystem.ED50;
     private BigDecimal featureArea = BigDecimal.valueOf(100.0);
     private Feature parentFeature = null;
-    private Map<String, Object> attributes = Map.of();
+    private Map<String, String> attributes = Map.of();
     private LocalDate startDate = LocalDate.of(2020, 1, 1);
     private LocalDate endDate = LocalDate.of(2021, 1, 1);
 
@@ -54,7 +54,7 @@ public class FeatureTestUtil {
       return this;
     }
 
-    public Builder withAttributes(Map<String, Object> attributes) {
+    public Builder withAttributes(Map<String, String> attributes) {
       this.attributes = attributes;
       return this;
     }

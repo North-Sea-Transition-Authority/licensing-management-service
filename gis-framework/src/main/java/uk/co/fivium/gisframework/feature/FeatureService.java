@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.fivium.gisframework.command.CommandJourney;
 import uk.co.fivium.gisframework.migration.configuration.BrokenBlockConfigurationProperties;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 
@@ -32,8 +33,17 @@ public class FeatureService {
     featureRepository.save(feature);
   }
 
+  @Transactional
+  public void saveFeatures(List<Feature> features) {
+    featureRepository.saveAll(features);
+  }
+
   public List<Feature> getFeaturesByIds(Collection<UUID> ids) {
     return featureRepository.findAllById(ids);
+  }
+
+  public List<Feature> findAllByCommandJourney(CommandJourney commandJourney) {
+    return featureRepository.findAllByCommandJourney(commandJourney);
   }
 
   public List<Feature> findAllByParentFeature(Feature parentFeature) {

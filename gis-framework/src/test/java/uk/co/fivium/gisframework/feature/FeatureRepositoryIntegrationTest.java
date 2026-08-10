@@ -14,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ActiveProfiles;
+import uk.co.fivium.gisframework.command.CommandJourney;
 
 @DataJpaTest
 @ActiveProfiles("integration-test")
@@ -35,6 +36,8 @@ class FeatureRepositoryIntegrationTest {
         .withAttributes(Map.of(
             "some_attribute_1", "some_value_1"
         ))
+        .withCommandJourney(null)
+        .withCreatedByCommand(null)
         .build();
     feature2 = FeatureTestUtil.newBuilder()
         .withId(null)
@@ -43,6 +46,8 @@ class FeatureRepositoryIntegrationTest {
         .withAttributes(Map.of(
             "some_attribute_1", "some_value_2"
         ))
+        .withCommandJourney(null)
+        .withCreatedByCommand(null)
         .build();
     var feature3 = FeatureTestUtil.newBuilder()
         .withId(null)
@@ -51,6 +56,8 @@ class FeatureRepositoryIntegrationTest {
         .withAttributes(Map.of(
             "some_attribute_2", "some_value_1"
         ))
+        .withCommandJourney(null)
+        .withCreatedByCommand(null)
         .build();
 
     featureRepository.saveAll(
@@ -98,7 +105,7 @@ class FeatureRepositoryIntegrationTest {
 
   @SpringBootConfiguration
   @EnableAutoConfiguration
-  @EntityScan(basePackageClasses = Feature.class)
+  @EntityScan(basePackageClasses = {Feature.class, CommandJourney.class})
   @EnableJpaRepositories(basePackageClasses = FeatureRepository.class)
   static class TestApplication {
   }

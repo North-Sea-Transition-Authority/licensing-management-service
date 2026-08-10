@@ -203,6 +203,9 @@ class MigrationServiceTest {
         .withFeatureArea(BigDecimal.ZERO)
         .withStartDate(oracleShape.getShapeStartDate())
         .withEndDate(oracleShape.getShapeEndDate())
+        .withActive(false)
+        .withCreatedByCommand(null)
+        .withCommandJourney(null)
         .build();
 
     assertThat(result).usingRecursiveComparison().ignoringFields("id").isEqualTo(expected);
@@ -239,6 +242,9 @@ class MigrationServiceTest {
         .withFeatureArea(BigDecimal.ZERO)
         .withStartDate(oracleShape.getShapeStartDate())
         .withEndDate(oracleShape.getShapeEndDate())
+        .withActive(false)
+        .withCreatedByCommand(null)
+        .withCommandJourney(null)
         .build();
 
     assertThat(result).usingRecursiveComparison().ignoringFields("id").isEqualTo(expected);
@@ -271,6 +277,9 @@ class MigrationServiceTest {
         .withFeatureArea(BigDecimal.ZERO)
         .withStartDate(oracleShape.getShapeStartDate())
         .withEndDate(oracleShape.getShapeEndDate())
+        .withActive(false)
+        .withCreatedByCommand(null)
+        .withCommandJourney(null)
         .build();
 
     assertThat(result).usingRecursiveComparison().isEqualTo(expected);
@@ -305,6 +314,9 @@ class MigrationServiceTest {
         .withFeatureArea(BigDecimal.ZERO)
         .withStartDate(oracleShape.getShapeStartDate())
         .withEndDate(oracleShape.getShapeEndDate())
+        .withActive(false)
+        .withCreatedByCommand(null)
+        .withCommandJourney(null)
         .build();
 
     assertThat(result).usingRecursiveComparison().isEqualTo(expected);

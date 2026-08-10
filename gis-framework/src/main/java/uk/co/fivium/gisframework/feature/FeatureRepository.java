@@ -7,12 +7,15 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.ListCrudRepository;
 import org.springframework.stereotype.Repository;
+import uk.co.fivium.gisframework.command.CommandJourney;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 
 @Repository
 interface FeatureRepository extends ListCrudRepository<Feature, UUID> {
 
   List<Feature> findAllByParentFeatureId(UUID parentFeatureId);
+
+  List<Feature> findAllByCommandJourney(CommandJourney commandJourney);
 
   Optional<Feature> findByLegacyId(Integer legacyId);
 

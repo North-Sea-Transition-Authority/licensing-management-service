@@ -4,6 +4,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
+import uk.co.fivium.gisframework.command.CommandJourney;
+import uk.co.fivium.gisframework.command.CommandJourneyTestUtil;
+import uk.co.fivium.gisframework.command.OperatorCommand;
+import uk.co.fivium.gisframework.command.OperatorCommandTestUtil;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 
 public class FeatureTestUtil {
@@ -23,6 +27,9 @@ public class FeatureTestUtil {
     private Map<String, String> attributes = Map.of();
     private LocalDate startDate = LocalDate.of(2020, 1, 1);
     private LocalDate endDate = LocalDate.of(2021, 1, 1);
+    private CommandJourney commandJourney = CommandJourneyTestUtil.newBuilder().build();
+    private OperatorCommand createdByCommand = OperatorCommandTestUtil.newBuilder().build();
+    private Boolean active = true;
 
     public Builder withId(UUID id) {
       this.id = id;
@@ -69,6 +76,21 @@ public class FeatureTestUtil {
       return this;
     }
 
+    public Builder withCommandJourney(CommandJourney commandJourney) {
+      this.commandJourney = commandJourney;
+      return this;
+    }
+
+    public Builder withCreatedByCommand(OperatorCommand createdByCommand) {
+      this.createdByCommand = createdByCommand;
+      return this;
+    }
+
+    public Builder withActive(Boolean isActive) {
+      this.active = isActive;
+      return this;
+    }
+
     public Feature build() {
       var feature = new Feature(id);
       feature.setLegacyId(legacyId);
@@ -79,6 +101,9 @@ public class FeatureTestUtil {
       feature.setAttributes(attributes);
       feature.setStartDate(startDate);
       feature.setEndDate(endDate);
+      feature.setCommandJourney(commandJourney);
+      feature.setCreatedByCommand(createdByCommand);
+      feature.setActive(active);
       return feature;
     }
   }

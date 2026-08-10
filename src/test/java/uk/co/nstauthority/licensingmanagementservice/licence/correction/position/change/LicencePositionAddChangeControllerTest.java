@@ -74,7 +74,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForExecutedPosition_whenCarbonStorage_offersAdministratorSetEquityAndTransferEquity() throws Exception {
+  void renderForExecutedPosition_whenCarbonStorage_offersSetEquityAndTransferEquity() throws Exception {
     givenCorrectionAllocatedToUser();
     when(licenceService.isCarbonStorageLicence(LICENCE)).thenReturn(true);
 
@@ -88,7 +88,6 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             model().attribute("pageTitle", "Add change"),
             model().attribute("pageCaption", LICENCE.getLicenceReference()),
             model().attribute("changeTypeOptions", Map.of(
-                "ADMINISTRATOR_CHANGE", "Administrator change",
                 "SET_EQUITY", "Set equity",
                 "TRANSFER_EQUITY", "Transfer equity")),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
@@ -219,7 +218,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForAddedPosition_whenCarbonStorage_offersAdministratorAndSetEquity() throws Exception {
+  void renderForAddedPosition_whenCarbonStorage_offersSetEquityAndTransferEquity() throws Exception {
     givenCorrectionAllocatedToUser();
     when(licenceService.isCarbonStorageLicence(LICENCE)).thenReturn(true);
 
@@ -233,7 +232,6 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             model().attribute("pageTitle", "Add change"),
             model().attribute("pageCaption", LICENCE.getLicenceReference()),
             model().attribute("changeTypeOptions", Map.of(
-                "ADMINISTRATOR_CHANGE", "Administrator change",
                 "SET_EQUITY", "Set equity",
                 "TRANSFER_EQUITY", "Transfer equity")),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)

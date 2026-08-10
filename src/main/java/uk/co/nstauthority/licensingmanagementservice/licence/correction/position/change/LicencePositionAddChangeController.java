@@ -147,12 +147,11 @@ public class LicencePositionAddChangeController {
   }
 
   private Map<String, String> availableChangeTypeOptions(LicenceCorrection correction) {
-    var carbonStorageLicence = licenceService.isCarbonStorageLicence(correction.getLicence());
-
+    var isCarbonStorage = licenceService.isCarbonStorageLicence(correction.getLicence());
     var availableChangeTypes = Arrays.stream(AddPositionChangeType.values())
-        .filter(changeType -> changeType == AddPositionChangeType.ADMINISTRATOR_CHANGE || carbonStorageLicence)
+        .filter(changeType -> changeType == AddPositionChangeType.ADMINISTRATOR_CHANGE || isCarbonStorage)
+        .filter(changeType -> changeType != AddPositionChangeType.ADMINISTRATOR_CHANGE || !isCarbonStorage)
         .toList();
-
     return DisplayableEnumOptionUtil.getDisplayableOptions(availableChangeTypes);
   }
 }

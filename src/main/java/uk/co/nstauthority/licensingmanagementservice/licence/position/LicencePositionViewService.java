@@ -123,7 +123,8 @@ public class LicencePositionViewService {
             resolvedStates,
             organisationNames
         ),
-        licencePosition.getId()
+        licencePosition.getId(),
+        licence.getType()
     );
   }
 
@@ -196,6 +197,7 @@ public class LicencePositionViewService {
         ),
         licencePosition.getId(),
         actions,
+        licence.getType(),
         errorSummaryItems
     );
   }
@@ -257,6 +259,7 @@ public class LicencePositionViewService {
         LicencePositionStateViewResolver.getStateView(addedPositionId, resolvedStates, organisationNames),
         addedPositionId,
         actions,
+        licenceCorrection.getLicence().getType(),
         errorSummaryItems
     );
   }

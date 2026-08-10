@@ -29,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
@@ -55,7 +56,8 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
   @MockitoBean
   private AdministratorChangeService administratorChangeService;
 
-  private static final Licence LICENCE = LicenceTestUtil.builder().build();
+  private static final Licence LICENCE = LicenceTestUtil.builder()
+      .withLicenceType(LicenceType.SEAWARD_PRODUCTION).build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
@@ -87,6 +89,22 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
   @Test
   void renderForExecutedPosition_whenNotAllocatedToUser() throws Exception {
     givenCorrectionNotAllocatedToUser();
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
+            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderForExecutedPosition_whenCarbonStorageLicence_forbidden() throws Exception {
+    var carbonStorageLicence = LicenceTestUtil.builder().withLicenceType(LicenceType.CARBON_STORAGE).build();
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withLicence(carbonStorageLicence)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
             .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
@@ -177,6 +195,23 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
         );
 
     verifyNoInteractions(administratorChangeService);
+  }
+
+  @Test
+  void renderForAddedPosition_whenCarbonStorageLicence_forbidden() throws Exception {
+    var carbonStorageLicence = LicenceTestUtil.builder().withLicenceType(LicenceType.CARBON_STORAGE).build();
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withLicence(carbonStorageLicence)
+        .build();
+
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
+            .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden());
   }
 
   @Test

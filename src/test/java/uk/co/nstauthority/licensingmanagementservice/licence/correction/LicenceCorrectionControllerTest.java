@@ -191,6 +191,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         null,
         position.getId(),
         LicencePositionPageView.Actions.none(),
+        LICENCE_TYPE,
         List.of()
     );
 
@@ -245,6 +246,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         null,
         POSITION_CORRECTION_ID,
         LicencePositionPageView.Actions.none(),
+        LICENCE_TYPE,
         List.of()
     );
 

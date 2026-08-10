@@ -121,6 +121,18 @@ class AddPositionChangeFormValidatorTest {
   }
 
   @Test
+  void hasErrors_whenAdministratorChangeAndLicenceIsCarbonStorage_thenErrorWithMessage() {
+    form.setChangeType(AddPositionChangeType.ADMINISTRATOR_CHANGE.name());
+    when(licenceService.isCarbonStorageLicence(correction.getLicence())).thenReturn(true);
+
+    var result = addPositionChangeFormValidator.hasErrors(form, errors, correction, positionCorrection);
+
+    assertThat(result).isTrue();
+    assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
+        .containsOnly(entry("changeType", Collections.singletonList("Select the type of change to add")));
+  }
+
+  @Test
   void hasErrors_whenAdministratorChangeAlreadyExistsForPosition_thenErrorWithMessage() {
     form.setChangeType(AddPositionChangeType.ADMINISTRATOR_CHANGE.name());
     when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), AdministratorOperation.class))

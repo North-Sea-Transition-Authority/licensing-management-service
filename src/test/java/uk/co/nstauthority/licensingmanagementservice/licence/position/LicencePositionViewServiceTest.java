@@ -165,6 +165,7 @@ class LicencePositionViewServiceTest {
     // the queried position has no change of its own, so its resolved change/state are empty
     assertThat(result.changeViewByType()).isEmpty();
     assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of()));
+    assertThat(result.licenceType()).isEqualTo(LICENCE.getType());
   }
 
   @Test

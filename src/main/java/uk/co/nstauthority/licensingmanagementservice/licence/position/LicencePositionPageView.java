@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 
@@ -14,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
  * @param stateView the state view for the selected position
  * @param isAddedPosition true when the view represents a new position being added as part of a correction (which
  *                        has therefore not been executed), as opposed to an existing executed position or the read-only view
+ * @param licenceType the type of the licence the position belongs to; null only for the empty view
  */
 public record LicencePositionPageView(
     List<LicencePositionTimelineView> timelineViews,
@@ -25,6 +27,7 @@ public record LicencePositionPageView(
     UUID selectedPositionId,
     boolean isAddedPosition,
     Actions actions,
+    @Nullable LicenceType licenceType,
     List<ErrorSummaryItem> errorSummaryItems
 ) {
 
@@ -53,6 +56,7 @@ public record LicencePositionPageView(
         null,
         false,
         Actions.none(),
+        null,
         List.of()
     );
   }
@@ -63,7 +67,8 @@ public record LicencePositionPageView(
       String regulatorReference,
       Map<String, LicencePositionChangeView> changeViewByType,
       LicencePositionStateView stateView,
-      UUID selectedPositionId
+      UUID selectedPositionId,
+      LicenceType licenceType
   ) {
     return new LicencePositionPageView(
         timelineViews,
@@ -75,6 +80,7 @@ public record LicencePositionPageView(
         selectedPositionId,
         false,
         Actions.none(),
+        licenceType,
         List.of()
     );
   }
@@ -87,6 +93,7 @@ public record LicencePositionPageView(
       LicencePositionStateView stateView,
       UUID selectedPositionId,
       Actions actions,
+      LicenceType licenceType,
       List<ErrorSummaryItem> errorSummaryItems
   ) {
     return new LicencePositionPageView(
@@ -99,6 +106,7 @@ public record LicencePositionPageView(
         selectedPositionId,
         false,
         actions,
+        licenceType,
         errorSummaryItems
     );
   }
@@ -111,6 +119,7 @@ public record LicencePositionPageView(
       LicencePositionStateView stateView,
       UUID selectedPositionId,
       Actions actions,
+      LicenceType licenceType,
       List<ErrorSummaryItem> errorSummaryItems
   ) {
     return new LicencePositionPageView(
@@ -123,6 +132,7 @@ public record LicencePositionPageView(
         selectedPositionId,
         true,
         actions,
+        licenceType,
         errorSummaryItems
     );
   }
@@ -130,4 +140,9 @@ public record LicencePositionPageView(
   public boolean hasPositions() {
     return !timelineViews.isEmpty();
   }
+
+  public boolean isCarbonStorage() {
+    return licenceType == LicenceType.CARBON_STORAGE;
+  }
+
 }

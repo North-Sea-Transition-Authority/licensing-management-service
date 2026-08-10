@@ -1,7 +1,7 @@
 <#include '../../layout/layout.ftl'>
 <#import '_positionChanges.ftl' as positionChanges>
 
-<#macro details licencePositionChanges licencePositionState actions={} canEdit=false>
+<#macro details licencePositionChanges licencePositionState actions={} canEdit=false isCarbonStorage=false>
     <#if canEdit>
         <@fdsAction.buttonGroup>
             <#if actions.addChangeUrl()??>
@@ -9,16 +9,18 @@
             </#if>
         </@fdsAction.buttonGroup>
     </#if>
-<#assign adminName>
-      <#if licencePositionState.administratorStateView().organisationName()?has_content>
-        ${licencePositionState.administratorStateView().organisationName()}
-      <#else>
-        None
-      </#if>
-    </#assign>
-    <@fdsDataItems.dataItem>
-        <@fdsDataItems.dataValues key="Licence administrator" value=adminName/>
-    </@fdsDataItems.dataItem>
+    <#if !isCarbonStorage>
+      <#assign adminName>
+        <#if licencePositionState.administratorStateView().organisationName()?has_content>
+          ${licencePositionState.administratorStateView().organisationName()}
+        <#else>
+          None
+        </#if>
+      </#assign>
+      <@fdsDataItems.dataItem>
+          <@fdsDataItems.dataValues key="Licence administrator" value=adminName/>
+      </@fdsDataItems.dataItem>
+    </#if>
   <#if licencePositionState.beneficialInterests()?has_content>
     <@fdsSummaryList.summaryListCard headingText="Beneficial interests" summaryListId="beneficial-interests">
       <#list licencePositionState.beneficialInterests() as beneficialInterest>
@@ -28,7 +30,7 @@
       </#list>
     </@fdsSummaryList.summaryListCard>
   </#if>
-  <#if licencePositionChanges["licence-administrator"]??>
+  <#if !isCarbonStorage && licencePositionChanges["licence-administrator"]??>
     <@positionChanges.administratorChange change=licencePositionChanges["licence-administrator"]/>
   </#if>
   <#if licencePositionChanges["set-equity"]??>

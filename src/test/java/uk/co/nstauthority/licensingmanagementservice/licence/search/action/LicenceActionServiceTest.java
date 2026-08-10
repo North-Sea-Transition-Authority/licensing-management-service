@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.search.action;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -270,6 +271,49 @@ class LicenceActionServiceTest {
     var licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withStatus(LicenceStatus.EXTANT)
+        .build();
+
+    var teamRole = TeamRoleTestUtil
+        .newBuilder()
+        .withRole(Role.APPLICATION_SUBMITTER) //TODO - LMS2-55: Define who can carry out corrections on a licence
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
+    when(licenceCorrectionService.hasOpenCorrection(licence)).thenReturn(false);
+
+    assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
+        .contains(LicenceActionItem.START_CORRECTION.toActionItemView(licence));
+  }
+
+  @Test
+  void getAvailableUserActionItems_whenLicenceTypeNotCorrectable_excludesStartCorrection() {
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.SEAWARD_EXPLORATION)
+        .withStatus(LicenceStatus.EXTANT)
+        .build();
+
+    var teamRole = TeamRoleTestUtil
+        .newBuilder()
+        .withRole(Role.APPLICATION_SUBMITTER) //TODO - LMS2-55: Define who can carry out corrections on a licence
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
+    lenient().when(environment.acceptsProfiles(Profiles.of("enable-lms2"))).thenReturn(true);
+    lenient().when(licenceCorrectionService.hasOpenCorrection(licence)).thenReturn(false);
+
+    assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
+        .doesNotContain(LicenceActionItem.START_CORRECTION.toActionItemView(licence));
+  }
+
+  @Test
+  void getAvailableUserActionItems_whenLicenceTypeCarbonStorage_includesStartCorrection() {
+    when(environment.acceptsProfiles(Profiles.of("enable-lms2"))).thenReturn(true);
+
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
         .withStatus(LicenceStatus.EXTANT)
         .build();
 

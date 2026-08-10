@@ -77,7 +77,7 @@ public class LicenceActionService {
         .registerAction(LicenceActionItem.START_CORRECTION)
           .requiresAnyRole()//TODO - LMS2-55: Define who can carry out corrections on a licence
           .requiresAnyStatus()
-          .requiresAnyType()
+          .requiresAnyTypeFrom(LicenceType.CARBON_STORAGE, LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION)
           .withoutLicenceScheduleRequirement()
           .isPrimaryButton(false)
         .build();

@@ -102,6 +102,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
         POSITION_ID,
         false,
         LicencePositionPageView.Actions.none(),
+        LICENCE.getType(),
         List.of()
     );
 

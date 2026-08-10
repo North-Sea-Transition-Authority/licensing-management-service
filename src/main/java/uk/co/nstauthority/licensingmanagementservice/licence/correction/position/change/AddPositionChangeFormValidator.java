@@ -60,7 +60,7 @@ public class AddPositionChangeFormValidator {
 
   private boolean isAvailable(AddPositionChangeType selected, LicenceCorrection correction) {
     return switch (selected) {
-      case ADMINISTRATOR_CHANGE -> true;
+      case ADMINISTRATOR_CHANGE -> !licenceService.isCarbonStorageLicence(correction.getLicence());
       case SET_EQUITY, TRANSFER_EQUITY -> licenceService.isCarbonStorageLicence(correction.getLicence());
     };
   }

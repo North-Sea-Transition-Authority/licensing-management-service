@@ -43,6 +43,7 @@
             licencePositionChanges=licencePositionPageView.changeViewByType()
             actions=licencePositionPageView.actions()
             canEdit=licencePositionPageView.canEdit()
+            isCarbonStorage=licencePositionPageView.isCarbonStorage()
           />
         </@grid.threeQuarterColumn>
         <@grid.oneQuarterColumn>

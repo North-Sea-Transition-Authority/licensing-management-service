@@ -77,6 +77,21 @@ class PositionChangeTest {
   }
 
   @Test
+  void validate_whenChangeTypeIsRemove_returnsEmptyWithoutValidatingOperations() {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withChangeId("change-1")
+        .withChangeType(LicencePositionChangeType.REMOVE_CHANGE)
+        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(5).build()))
+        .build();
+
+    var errors = change.validate(PositionValidationContextTestUtil.newBuilder()
+        .withPreviousState(PositionStateTestUtil.newBuilder().withAdministratorId(5).build())
+        .build());
+
+    assertThat(errors).isEmpty();
+  }
+
+  @Test
   void validate_whenOperationsValid_returnsEmpty() {
     var change = PositionChangeTestUtil.newBuilder()
         .withChangeId("change-1")

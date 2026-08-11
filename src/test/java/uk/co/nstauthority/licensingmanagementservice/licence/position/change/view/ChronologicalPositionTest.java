@@ -96,6 +96,21 @@ class ChronologicalPositionTest {
   }
 
   @Test
+  void validate_whenCarbonStorageAndFirstPositionWithNoAdministratorChange_returnsNoErrors() {
+    var position = ChronologicalPositionTestUtil.newBuilder().build();
+
+    var errors = position.validate(
+        PositionValidationContextTestUtil.newBuilder()
+            .withPosition(position)
+            .withIsFirstPosition(true)
+            .withIsCarbonStorage(true)
+            .build()
+    );
+
+    assertThat(errors).isEmpty();
+  }
+
+  @Test
   void validate_whenNotFirstPositionAndNoChanges_returnsNoErrors() {
     var position = ChronologicalPositionTestUtil.newBuilder().build();
 

@@ -145,6 +145,7 @@ class LicencePositionFeatureTestHarnessService {
     feature.setFeatureArea(FEATURE_AREA);
     feature.setAttributes(attributes);
     feature.setParentFeature(parentFeature);
+    feature.setActive(true);
     featureService.saveFeature(feature);
 
     var polygon = new Polygon();

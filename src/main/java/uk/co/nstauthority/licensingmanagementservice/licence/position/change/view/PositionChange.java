@@ -48,6 +48,10 @@ public record PositionChange(
   }
 
   public List<PositionValidationError> validate(PositionValidationContext positionValidationContext) {
+    if (Objects.equals(changeType, LicencePositionChangeType.REMOVE_CHANGE)) {
+      return List.of();
+    }
+
     return operations.stream()
         .map(licenceOperation -> licenceOperation.validate(positionValidationContext))
         .filter(Objects::nonNull)

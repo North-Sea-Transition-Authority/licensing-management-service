@@ -11,7 +11,8 @@ public class LicencePositionValidationService {
 
   public List<PositionValidationError> validate(
       List<ChronologicalPosition> allChronologicalPositions,
-      ResolvedStates resolvedStates
+      ResolvedStates resolvedStates,
+      boolean isCarbonStorage
   ) {
     var positionValidationErrors = new ArrayList<PositionValidationError>();
 
@@ -23,7 +24,8 @@ public class LicencePositionValidationService {
           new PositionValidationContext(
               chronologicalPosition,
               previousState,
-              firstPosition
+              firstPosition,
+              isCarbonStorage
           )
       ));
 

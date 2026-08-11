@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectPositionDateController;
@@ -182,7 +183,11 @@ public class LicencePositionViewService {
             .toList()
         : allChronologicalPositions;
 
-    var validationErrors = licencePositionValidationService.validate(validationPositions, resolvedStates);
+    var validationErrors = licencePositionValidationService.validate(
+        validationPositions,
+        resolvedStates,
+        licencePosition.getLicence().getType() == LicenceType.CARBON_STORAGE
+    );
     var errorSummaryItems = PositionValidationError.toErrorSummaryItems(validationErrors);
     var invalidPositionIds = validationErrors.stream()
         .map(PositionValidationError::positionId)
@@ -250,7 +255,11 @@ public class LicencePositionViewService {
 
     var actions = new LicencePositionPageView.Actions(addChangeUrl);
 
-    var validationErrors = licencePositionValidationService.validate(allChronologicalPositions, resolvedStates);
+    var validationErrors = licencePositionValidationService.validate(
+        allChronologicalPositions,
+        resolvedStates,
+        licenceCorrection.getLicence().getType() == LicenceType.CARBON_STORAGE
+    );
     var errorSummaryItems = PositionValidationError.toErrorSummaryItems(validationErrors);
     var invalidPositionIds = validationErrors.stream()
         .map(PositionValidationError::positionId)

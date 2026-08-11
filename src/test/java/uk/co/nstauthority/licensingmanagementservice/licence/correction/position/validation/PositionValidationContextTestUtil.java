@@ -9,6 +9,7 @@ public class PositionValidationContextTestUtil {
   private ChronologicalPosition position = ChronologicalPositionTestUtil.newBuilder().build();
   private LicencePositionState previousState = LicencePositionState.EMPTY;
   private boolean isFirstPosition = false;
+  private boolean isCarbonStorage = false;
 
   public static PositionValidationContextTestUtil newBuilder() {
     return new PositionValidationContextTestUtil();
@@ -29,7 +30,12 @@ public class PositionValidationContextTestUtil {
     return this;
   }
 
+  public PositionValidationContextTestUtil withIsCarbonStorage(boolean isCarbonStorage) {
+    this.isCarbonStorage = isCarbonStorage;
+    return this;
+  }
+
   public PositionValidationContext build() {
-    return new PositionValidationContext(position, previousState, isFirstPosition);
+    return new PositionValidationContext(position, previousState, isFirstPosition, isCarbonStorage);
   }
 }

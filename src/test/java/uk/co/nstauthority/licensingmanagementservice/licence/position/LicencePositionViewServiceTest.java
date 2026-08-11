@@ -93,6 +93,9 @@ class LicencePositionViewServiceTest {
   @Captor
   private ArgumentCaptor<ResolvedStates> validationStatesCaptor;
 
+  @Captor
+  private ArgumentCaptor<Boolean> isCarbonStorageCaptor;
+
   @Test
   void getAdministratorChangeContext() {
     var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
@@ -498,11 +501,16 @@ class LicencePositionViewServiceTest {
 
     licencePositionViewService.getCorrectionPositionPageView(correction, removed);
 
-    verify(licencePositionValidationService).validate(validationPositionsCaptor.capture(), validationStatesCaptor.capture());
+    verify(licencePositionValidationService).validate(
+        validationPositionsCaptor.capture(),
+        validationStatesCaptor.capture(),
+        isCarbonStorageCaptor.capture());
 
     assertThat(validationPositionsCaptor.getValue())
         .extracting(ChronologicalPosition::id)
         .containsExactly(following.getId());
+
+    assertThat(isCarbonStorageCaptor.getValue()).isFalse();
 
     assertThat(validationStatesCaptor.getValue().currentState(following.getId()).administratorId()).isNull();
   }

@@ -57,6 +57,10 @@ public record ChronologicalPosition(
   }
 
   private List<PositionValidationError> validateAdministratorChange(PositionValidationContext positionValidationContext) {
+    if (positionValidationContext.isCarbonStorage()) {
+      return List.of();
+    }
+
     var administratorChangeCount = changes.stream()
         .filter(change -> !LicencePositionChangeType.REMOVE_CHANGE.equals(change.changeType()))
         .flatMap(change -> change.operations().stream())

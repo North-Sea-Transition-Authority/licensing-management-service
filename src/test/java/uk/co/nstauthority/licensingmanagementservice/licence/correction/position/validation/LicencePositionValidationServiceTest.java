@@ -24,7 +24,7 @@ class LicencePositionValidationServiceTest {
     var chronologicalPositions = List.of(first, second);
     var states = LicencePositionStateResolver.resolve(chronologicalPositions);
 
-    assertThat(licencePositionValidationService.validate(chronologicalPositions, states))
+    assertThat(licencePositionValidationService.validate(chronologicalPositions, states, false))
         .extracting(PositionValidationError::positionId, PositionValidationError::message)
         .containsExactly(
             tuple(first.id(), "The first licence position must have an administrator change"));
@@ -43,7 +43,7 @@ class LicencePositionValidationServiceTest {
     );
     var states = LicencePositionStateResolver.resolve(chronologicalPositions);
 
-    assertThat(licencePositionValidationService.validate(chronologicalPositions, states))
+    assertThat(licencePositionValidationService.validate(chronologicalPositions, states, false))
         .extracting(PositionValidationError::message)
         .containsExactlyInAnyOrder(
             "The first licence position must have an administrator change",

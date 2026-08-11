@@ -6,6 +6,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 public record PositionValidationContext(
     ChronologicalPosition position,
     LicencePositionState previousState,
-    boolean isFirstPosition
+    boolean isFirstPosition,
+    boolean isCarbonStorage
 ) {
 }

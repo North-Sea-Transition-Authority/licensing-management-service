@@ -23,6 +23,10 @@ public record AdministratorOperation(
 
   @Override
   public PositionValidationError validate(PositionValidationContext positionValidationContext) {
+    if (positionValidationContext.isCarbonStorage()) {
+      return null;
+    }
+
     var previousAdministratorId = positionValidationContext.previousState().administratorId();
 
     if (Objects.equals(previousAdministratorId, operatorId)) {

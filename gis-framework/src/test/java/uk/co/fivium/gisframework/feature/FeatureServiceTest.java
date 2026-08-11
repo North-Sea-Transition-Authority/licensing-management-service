@@ -239,14 +239,16 @@ class FeatureServiceTest {
   @Test
   void findFeatureOrThrow_whenFound() {
     var feature = FeatureTestUtil.newBuilder().build();
-    when(featureRepository.findFirstByCoordinateSystem(CoordinateSystem.ED50)).thenReturn(Optional.of(feature));
-    assertThat(featureService.findFeatureOrThrow(CoordinateSystem.ED50)).isEqualTo(feature);
+    when(featureRepository.findFirstByCoordinateSystemAndCommandJourneyIsNull(CoordinateSystem.ED50))
+        .thenReturn(Optional.of(feature));
+    assertThat(featureService.findFeatureWithNoCommandJourneyOrThrow(CoordinateSystem.ED50)).isEqualTo(feature);
   }
 
   @Test
   void findFeatureOrThrow_whenNotFound_throw() {
-    when(featureRepository.findFirstByCoordinateSystem(CoordinateSystem.ED50)).thenReturn(Optional.empty());
-    assertThatThrownBy(() -> featureService.findFeatureOrThrow(CoordinateSystem.ED50))
+    when(featureRepository.findFirstByCoordinateSystemAndCommandJourneyIsNull(CoordinateSystem.ED50))
+        .thenReturn(Optional.empty());
+    assertThatThrownBy(() -> featureService.findFeatureWithNoCommandJourneyOrThrow(CoordinateSystem.ED50))
         .isInstanceOf(EntityNotFoundException.class)
         .hasMessage("Feature with coordinate system %s not found".formatted(CoordinateSystem.ED50));
   }

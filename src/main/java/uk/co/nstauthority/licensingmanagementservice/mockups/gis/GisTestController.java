@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
@@ -18,19 +19,23 @@ import uk.co.fivium.grpc.gis.CoordinateSystem;
 @Profile("mockups")
 public class GisTestController {
 
-  private final FeatureService featureService;
+  public static final String SRS_WKID_MODEL_NAME = "srsWkid";
 
-  public GisTestController(FeatureService featureService) {
+  private final FeatureService featureService;
+  private final CommandJourneyService commandJourneyService;
+
+  public GisTestController(FeatureService featureService, CommandJourneyService commandJourneyService) {
     this.featureService = featureService;
+    this.commandJourneyService = commandJourneyService;
   }
 
-  @GetMapping("/point-and-click")
-  public ModelAndView renderSplitByPointAndClick() {
-    var ed50Feature = featureService.findFeatureOrThrow(CoordinateSystem.ED50);
-    var bngFeature = featureService.findFeatureOrThrow(CoordinateSystem.BRITISH_NATIONAL_GRID);
+  @GetMapping("/point-and-click/{coordinateSystem}")
+  public ModelAndView renderSplitByPointAndClick(@PathVariable("coordinateSystem") CoordinateSystem coordinateSystem) {
+    var feature = featureService.findFeatureWithNoCommandJourneyOrThrow(coordinateSystem);
+    var commandJourney = commandJourneyService.createAndAssignCommandJourney(List.of(feature));
     return new ModelAndView("lms/mockups/gis/pointAndClickMapTester")
-        .addObject("featureIdsEd50", List.of(ed50Feature.getId().toString()))
-        .addObject("featureIdsBng", List.of(bngFeature.getId().toString()));
+        .addObject("commandJourneyId", commandJourney.getId().toString())
+        .addObject(SRS_WKID_MODEL_NAME, CoordinateSystemUtils.getWkid(coordinateSystem));
   }
 
   @GetMapping("/map-with-textual-description/{featureId}")
@@ -38,17 +43,17 @@ public class GisTestController {
     var feature = featureService.getFeatureOrThrow(featureId);
     return new ModelAndView("lms/mockups/gis/mapWithTextualDescriptionTester")
         .addObject("featureIds", List.of(feature.getId().toString()))
-        .addObject("srsWkid", CoordinateSystemUtils.getWkid(feature.getCoordinateSystem()));
+        .addObject(SRS_WKID_MODEL_NAME, CoordinateSystemUtils.getWkid(feature.getCoordinateSystem()));
   }
 
   @GetMapping("/split-by-coordinate/{coordinateSystem}")
   public ModelAndView renderSplitByCoordinateEntry(
       @PathVariable("coordinateSystem") CoordinateSystem coordinateSystem,
       @RequestParam(name = "precision", defaultValue = "4") int precision) {
-    var feature = featureService.findFeatureOrThrow(coordinateSystem);
+    var feature = featureService.findFeatureWithNoCommandJourneyOrThrow(coordinateSystem);
     return new ModelAndView("lms/mockups/gis/splitByCoordinateEntryTester")
         .addObject("featureIds", List.of(feature.getId().toString()))
-        .addObject("srsWkid", CoordinateSystemUtils.getWkid(coordinateSystem))
+        .addObject(SRS_WKID_MODEL_NAME, CoordinateSystemUtils.getWkid(coordinateSystem))
         .addObject("precision", precision);
   }
 }

@@ -128,8 +128,11 @@ public class FeatureService {
         new EntityNotFoundException("Feature %s not found".formatted(featureId)));
   }
 
-  public Feature findFeatureOrThrow(CoordinateSystem coordinateSystem) {
-    return featureRepository.findFirstByCoordinateSystem(coordinateSystem)
+  /**
+   * Used for GIS test page, will not be needed in the future.
+   */
+  public Feature findFeatureWithNoCommandJourneyOrThrow(CoordinateSystem coordinateSystem) {
+    return featureRepository.findFirstByCoordinateSystemAndCommandJourneyIsNull(coordinateSystem)
         .orElseThrow(() ->
             new EntityNotFoundException("Feature with coordinate system %s not found".formatted(coordinateSystem)));
   }

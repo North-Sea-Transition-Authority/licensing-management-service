@@ -93,6 +93,13 @@ the [browser-component-testing.md](documentation/browser-component-testing.md) d
 
 Go to `gis-framework/arcgis-node` and run `npx tsx src/grpc-server.ts`.
 
+### I can't run `grpc-server.ts` directly from intellij
+
+If you want to run the grpc server by right-clicking and get an ERR_MODULE_NOT_FOUND error then:
+
+1. Open the run configuration (Run → Edit Configurations → your grpc-server.ts config)
+2. In Node parameters, add: `--import tsx`
+
 ## Developing proto features
 
 We use protobuf to define the messages and types used in the gRPC communication.

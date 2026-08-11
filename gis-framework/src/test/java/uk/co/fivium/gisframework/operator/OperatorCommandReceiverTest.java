@@ -1,28 +1,44 @@
 package uk.co.fivium.gisframework.operator;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.co.fivium.gisframework.command.CommandJourney;
+import uk.co.fivium.gisframework.command.CommandJourneyService;
+import uk.co.fivium.gisframework.command.CommandJourneyTestUtil;
 import uk.co.fivium.gisframework.command.OperatorCommand;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
 import uk.co.fivium.gisframework.command.TransformationType;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
+import uk.co.fivium.gisframework.grpc.GrpcClientService;
+import uk.co.fivium.grpc.gis.CoordinateSystem;
 
 @ExtendWith(MockitoExtension.class)
 class OperatorCommandReceiverTest {
+
+  private static final List<List<List<BigDecimal>>> CUTTER_LINE_ORIGINAL_SRS_COORDINATES = List.of(
+      List.of(
+          List.of(BigDecimal.valueOf(1.1), BigDecimal.valueOf(2.2)),
+          List.of(BigDecimal.valueOf(3.3), BigDecimal.valueOf(4.4))
+      )
+  );
+
+  private static final String CUTTER_LINE_ESRI_JSON = "dummy cutter line esriJson";
 
   @Mock
   private SplitOperatorService splitOperatorService;
@@ -33,26 +49,38 @@ class OperatorCommandReceiverTest {
   @Mock
   private OperatorCommandService operatorCommandService;
 
+  @Mock
+  private CommandJourneyService commandJourneyService;
+
+  @Mock
+  private GrpcClientService grpcClientService;
+
   @InjectMocks
   private OperatorCommandReceiver operatorCommandReceiver;
 
   @Test
   void executeSplit_whenFeatureIsSplit_deactivatesInputAndActivatesOutput() {
-    var commandJourney = new CommandJourney();
-    var inputFeature = FeatureTestUtil.newBuilder().build();
+    var commandJourneyId = UUID.randomUUID();
+    var request = new SplitFromMapRequest(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, commandJourneyId);
+
+    var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
+    var inputFeature = FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build();
     inputFeature.setCommandJourney(commandJourney);
 
     var outputFeature1 = FeatureTestUtil.newBuilder().build();
     var outputFeature2 = FeatureTestUtil.newBuilder().build();
-    var cutterLineEsriJson = "dummy cutter line esriJson";
     var command = new OperatorCommand();
 
-    when(splitOperatorService.splitPolygon(inputFeature, cutterLineEsriJson))
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of(inputFeature));
+    when(grpcClientService.convertPointsToPolyline(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, 4230))
+        .thenReturn(CUTTER_LINE_ESRI_JSON);
+    when(splitOperatorService.splitPolygon(inputFeature, CUTTER_LINE_ESRI_JSON))
         .thenReturn(List.of(outputFeature1, outputFeature2));
     when(operatorCommandService.createOperatorCommand(
         commandJourney, Set.of(inputFeature.getId()), TransformationType.SPLIT)).thenReturn(command);
 
-    var result = operatorCommandReceiver.executeSplit(List.of(inputFeature), cutterLineEsriJson);
+    var result = operatorCommandReceiver.executeSplit(request);
 
     assertThat(result).containsExactly(outputFeature1, outputFeature2);
     assertThat(inputFeature.isActive()).isFalse();
@@ -73,12 +101,19 @@ class OperatorCommandReceiverTest {
 
   @Test
   void executeSplit_whenNoFeatureIsSplit_returnsEmptyListAndDoesNotRecordCommand() {
-    var inputFeature = FeatureTestUtil.newBuilder().build();
-    var cutterLineEsriJson = "dummy cutter line esriJson";
+    var commandJourneyId = UUID.randomUUID();
+    var request = new SplitFromMapRequest(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, commandJourneyId);
 
-    when(splitOperatorService.splitPolygon(inputFeature, cutterLineEsriJson)).thenReturn(List.of());
+    var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
+    var inputFeature = FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build();
 
-    var result = operatorCommandReceiver.executeSplit(List.of(inputFeature), cutterLineEsriJson);
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of(inputFeature));
+    when(grpcClientService.convertPointsToPolyline(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, 4230))
+        .thenReturn(CUTTER_LINE_ESRI_JSON);
+    when(splitOperatorService.splitPolygon(inputFeature, CUTTER_LINE_ESRI_JSON)).thenReturn(List.of());
+
+    var result = operatorCommandReceiver.executeSplit(request);
 
     assertThat(result).isEmpty();
     assertThat(inputFeature.isActive()).isTrue();
@@ -87,8 +122,17 @@ class OperatorCommandReceiverTest {
   }
 
   @Test
-  void executeSplit_whenNoInputFeatures_returnsEmptyList() {
-    assertThat(operatorCommandReceiver.executeSplit(List.of(), "dummy cutter line esriJson")).isEmpty();
+  void executeSplit_whenNoActiveFeaturesOnJourney_throws() {
+    var commandJourneyId = UUID.randomUUID();
+    var request = new SplitFromMapRequest(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, commandJourneyId);
+    var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
+
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of());
+
+    assertThatThrownBy(() -> operatorCommandReceiver.executeSplit(request))
+        .isInstanceOf(NoSuchElementException.class);
+
     verify(splitOperatorService, never()).splitPolygon(any(), any());
   }
 }

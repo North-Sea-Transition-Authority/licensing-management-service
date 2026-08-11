@@ -3,6 +3,7 @@ import OpenLayersMap from "vue3-openlayers";
 import BaseMap from "./components/baseMap/BaseMap.vue";
 import TextualDescription from "./components/textualDescription/TextualDescription.vue";
 import SplitByCoordinateEntryPage from "./components/coordinateInput/SplitByCoordinateEntryPage.vue";
+import SplitByPointAndClickPage from "./components/splitByPointAndClick/SplitByPointAndClickPage.vue";
 import MapWithTextualDescription from "./components/textualDescription/MapWithTextualDescription.vue";
 import "ol/ol.css";
 import "vue3-openlayers/vue3-openlayers.css";
@@ -47,6 +48,22 @@ for (const element of document.querySelectorAll<HTMLElement>("[data-gis-componen
     coordinatePrecision: element.dataset.gisPrecision !== undefined ? Number(element.dataset.gisPrecision) : undefined,
     featuresUrl: element.dataset.gisFeaturesUrl,
     outlineNodesUrl: element.dataset.gisOutlineNodesUrl,
+    includeNstaQuadrants: element.dataset.gisIncludeNstaQuadrants === "true",
+    includeNstaBlocks: element.dataset.gisIncludeNstaBlocks === "true",
+  })
+    .use(OpenLayersMap)
+    .mount(element);
+}
+
+for (const element of document.querySelectorAll<HTMLElement>("[data-gis-component='gis-split-by-point-and-click']")) {
+  createApp(SplitByPointAndClickPage, {
+    commandJourneyId: element.dataset.gisCommandJourneyId,
+    srsWkid: Number(element.dataset.gisSrsWkid),
+    featuresBaseUrl: element.dataset.gisFeaturesBaseUrl,
+    outlineNodesBaseUrl: element.dataset.gisOutlineNodesBaseUrl,
+    splitUrl: element.dataset.gisSplitUrl,
+    csrfHeaderName: element.dataset.gisCsrfHeaderName,
+    csrfToken: element.dataset.gisCsrfToken,
     includeNstaQuadrants: element.dataset.gisIncludeNstaQuadrants === "true",
     includeNstaBlocks: element.dataset.gisIncludeNstaBlocks === "true",
   })

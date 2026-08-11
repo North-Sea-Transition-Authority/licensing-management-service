@@ -8,7 +8,7 @@ import MultiPoint from "ol/geom/MultiPoint";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import { Circle as CircleStyle, Fill, Stroke, Style } from "ol/style";
-import { onMounted, onUnmounted, ref, watchEffect } from "vue";
+import { onMounted, onUnmounted, ref, watch, watchEffect } from "vue";
 import { isOrthogonalSegment } from "../../draw-line-utils";
 
 interface DrawLineLayerProps {
@@ -18,11 +18,17 @@ interface DrawLineLayerProps {
   // When provided, the line is drawn from these points (controlled mode, e.g. coordinate entry)
   // instead of from points selected by clicking snap points on the map.
   points?: LinePoint[],
+  // Incremented by the parent to clear the drawn line
+  refreshCounter?: number,
 }
 
 const props = withDefaults(defineProps<DrawLineLayerProps>(), {
   requireOrthogonal: false,
 });
+
+const emit = defineEmits<{
+  "update:points": [points: LinePoint[]],
+}>();
 
 const selectedPoints = ref<LinePoint[]>([]);
 
@@ -72,7 +78,19 @@ const vectorLayer = new VectorLayer({
 
 function addPoint(point: LinePoint): void {
   selectedPoints.value = [...selectedPoints.value, point];
+  emit("update:points", selectedPoints.value);
 }
+
+function clear(): void {
+  selectedPoints.value = [];
+  emit("update:points", selectedPoints.value);
+}
+
+watch(() => props.refreshCounter, (newValue: any, oldValue: any) => {
+  if (newValue !== oldValue) {
+    clear();
+  }
+});
 
 function handleClick(): void {
   const point = props.hoveredSnapPoint;
@@ -123,5 +141,5 @@ watchEffect(() => {
   );
 });
 
-defineExpose({ addPoint, selectedPoints });
+defineExpose({ addPoint, clear, selectedPoints });
 </script>

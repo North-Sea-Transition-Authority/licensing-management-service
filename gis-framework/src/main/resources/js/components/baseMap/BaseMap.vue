@@ -23,9 +23,11 @@
       :hovered-snap-point="hoveredSnapPoint"
       :require-orthogonal="true"
       :points="selectedPoints"
+      :refresh-counter="refreshCounter"
+      @update:points="emit('update:points', $event)"
     />
-    <feature-layer v-if="mapRef" :features-url="featuresUrl" :ol-map="mapRef"/>
-    <node-numbering-layer :outline-nodes-url="outlineNodesUrl"/>
+    <feature-layer v-if="mapRef" :features-url="featuresUrl" :refresh-counter="refreshCounter" :ol-map="mapRef"/>
+    <node-numbering-layer :outline-nodes-url="outlineNodesUrl" :refresh-counter="refreshCounter"/>
   </ol-map>
 </template>
 
@@ -51,6 +53,7 @@ interface BaseMapProps {
   includeSnapPoints?: boolean,
   includeDrawLine?: boolean,
   selectedPoints?: LinePoint[],
+  refreshCounter?: number,
   // Optional override for the map's inline style. When omitted the map uses its default sizing;
   // wrappers can pass e.g. a full-height style to make the map fill a fixed-aspect container.
   mapStyleOverride?: CSSProperties,
@@ -62,6 +65,10 @@ const props = withDefaults(defineProps<BaseMapProps>(), {
   includeSnapPoints: true,
   includeDrawLine: true,
 });
+
+const emit = defineEmits<{
+  "update:points": [points: LinePoint[]],
+}>();
 
 // Allow openLayers to receive features in WGS84
 useGeographic();

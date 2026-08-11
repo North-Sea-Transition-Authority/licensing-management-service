@@ -9,9 +9,11 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 
 @RestController
@@ -23,42 +25,51 @@ class FeatureRestController {
   private final ObjectMapper objectMapper;
   private final LineService lineService;
   private final TextualDescriptionService textualDescriptionService;
+  private final CommandJourneyService commandJourneyService;
 
   FeatureRestController(
       FeatureService featureService,
       PolygonService polygonService,
       ObjectMapper objectMapper,
       LineService lineService,
-      TextualDescriptionService textualDescriptionService
-  ) {
+      TextualDescriptionService textualDescriptionService,
+      CommandJourneyService commandJourneyService) {
     this.featureService = featureService;
     this.polygonService = polygonService;
     this.objectMapper = objectMapper;
     this.lineService = lineService;
     this.textualDescriptionService = textualDescriptionService;
+    this.commandJourneyService = commandJourneyService;
   }
 
   @GetMapping("/features")
   ResponseEntity<JsonFeatures> getFeaturesEsriJson(@RequestParam("featureIds") List<UUID> featureIds)
       throws JsonProcessingException {
     List<Feature> features = featureService.getFeaturesByIds(featureIds);
-    List<JsonFeature> esriJsonFeatures = new ArrayList<>();
-
-    for (var feature : features) {
-      var esriJsonPolygons = polygonService.getPolygonsAsEsriJson(feature, true);
-
-      var attributes = JsonFeature.Attributes.from(feature);
-      for (var esriJsonPolygon : esriJsonPolygons) {
-        Map<String, Object> geometry = objectMapper.readValue(esriJsonPolygon, new TypeReference<>() {
-        });
-        esriJsonFeatures.add(new JsonFeature(geometry, attributes));
-      }
-    }
-
+    List<JsonFeature> esriJsonFeatures = processFeaturesIntoWgs84EsriJson(features);
     return ResponseEntity.ok(new JsonFeatures(
         esriJsonFeatures,
         JsonFeatures.SpatialReference.from(CoordinateSystem.WGS84)
     ));
+  }
+
+  @GetMapping("/command-journey-features/{commandJourneyId}")
+  ResponseEntity<JsonFeatures> getCommandJourneyActiveFeatures(@PathVariable UUID commandJourneyId)
+      throws JsonProcessingException {
+    var commandJourney = commandJourneyService.getCommandJourneyOrThrow(commandJourneyId);
+    var features = commandJourneyService.getActiveFeatures(commandJourney);
+    List<JsonFeature> esriJsonFeatures = processFeaturesIntoWgs84EsriJson(features);
+    return ResponseEntity.ok(new JsonFeatures(
+        esriJsonFeatures,
+        JsonFeatures.SpatialReference.from(CoordinateSystem.WGS84)
+    ));
+  }
+
+  @GetMapping("/command-journey-outline-nodes/{commandJourneyId}")
+  ResponseEntity<JsonFeatureOutlineNodesResponse> getCommandJourneyActiveOutlineNodes(@PathVariable UUID commandJourneyId) {
+    var commandJourney = commandJourneyService.getCommandJourneyOrThrow(commandJourneyId);
+    var features = commandJourneyService.getActiveFeatures(commandJourney);
+    return ResponseEntity.ok(new JsonFeatureOutlineNodesResponse(lineService.getOutlineNodes(features)));
   }
 
   @GetMapping("/outline-nodes")
@@ -74,5 +85,21 @@ class FeatureRestController {
     var features = featureService.getFeaturesByIds(featureIds);
     return ResponseEntity.ok(
         new JsonTextualDescription(textualDescriptionService.getTextualDescription(features)));
+  }
+
+  private List<JsonFeature> processFeaturesIntoWgs84EsriJson(List<Feature> features) throws JsonProcessingException {
+    List<JsonFeature> esriJsonFeatures = new ArrayList<>();
+
+    for (var feature : features) {
+      var esriJsonPolygons = polygonService.getPolygonsAsEsriJson(feature, true);
+
+      var attributes = JsonFeature.Attributes.from(feature);
+      for (var esriJsonPolygon : esriJsonPolygons) {
+        Map<String, Object> geometry = objectMapper.readValue(esriJsonPolygon, new TypeReference<>() {
+        });
+        esriJsonFeatures.add(new JsonFeature(geometry, attributes));
+      }
+    }
+    return esriJsonFeatures;
   }
 }

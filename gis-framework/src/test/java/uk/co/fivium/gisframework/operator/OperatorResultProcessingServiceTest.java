@@ -222,6 +222,7 @@ class OperatorResultProcessingServiceTest {
         .withActive(false)
         .withCreatedByCommand(null)
         .withCommandJourney(null)
+        .withActive(true)
         .build();
     assertThat(savedFeature).usingRecursiveComparison()
         .ignoringFields("id", "legacyId")
@@ -287,6 +288,7 @@ class OperatorResultProcessingServiceTest {
         .withActive(false)
         .withCreatedByCommand(null)
         .withCommandJourney(null)
+        .withActive(true)
         .build();
     assertThat(savedFeature).usingRecursiveComparison()
         .ignoringFields("id", "legacyId")
@@ -349,6 +351,7 @@ class OperatorResultProcessingServiceTest {
         .withActive(false)
         .withCreatedByCommand(null)
         .withCommandJourney(null)
+        .withActive(true)
         .build();
     assertThat(savedFeature).usingRecursiveComparison()
         .ignoringFields("id", "legacyId")

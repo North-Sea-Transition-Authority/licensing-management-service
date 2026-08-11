@@ -205,7 +205,7 @@ public class OperatorResultProcessingService {
     newFeature.setParentFeature(target.getParentFeature());
     newFeature.setStartDate(null);
     newFeature.setEndDate(null);
-
+    newFeature.setActive(true);
     return newFeature;
   }
 

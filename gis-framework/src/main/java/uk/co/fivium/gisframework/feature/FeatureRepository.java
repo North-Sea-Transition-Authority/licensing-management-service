@@ -31,5 +31,5 @@ interface FeatureRepository extends ListCrudRepository<Feature, UUID> {
   @Query(value = "SELECT * FROM lms.gis_framework_features WHERE attributes ->> ?1 IN (?2)", nativeQuery = true)
   List<Feature> findAllByAttributeValueIn(String key, Collection<String> values);
 
-  Optional<Feature> findFirstByCoordinateSystem(CoordinateSystem coordinateSystem);
+  Optional<Feature> findFirstByCoordinateSystemAndCommandJourneyIsNull(CoordinateSystem coordinateSystem);
 }

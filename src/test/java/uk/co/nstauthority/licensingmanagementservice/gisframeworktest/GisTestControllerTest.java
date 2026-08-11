@@ -16,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.co.fivium.gisframework.command.CommandJourney;
+import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
@@ -30,30 +32,34 @@ class GisTestControllerTest extends AbstractControllerTest {
   @MockitoBean
   private FeatureService featureService;
 
+  @MockitoBean
+  private CommandJourneyService commandJourneyService;
+
   @Test
   void renderSplitByPointAndClick_whenNotLoggedIn() throws Exception {
     mockMvc.perform(
-            get(ReverseRouter.route(on(GisTestController.class).renderSplitByPointAndClick())))
+            get(ReverseRouter.route(on(GisTestController.class).renderSplitByPointAndClick(CoordinateSystem.ED50))))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectionToLoginUrl());
   }
 
   @Test
   void renderSplitByPointAndClick_assertModelProperties() throws Exception {
-    UUID ed50Id = UUID.randomUUID();
-    var ed50Feature = getMockFeature(ed50Id);
-    UUID bngId = UUID.randomUUID();
-    var bngFeature = getMockFeature(bngId);
+    UUID featureId = UUID.randomUUID();
+    var feature = getMockFeature(featureId);
+    var commandJourneyId = UUID.randomUUID();
+    var commandJourney = mock(CommandJourney.class);
+    when(commandJourney.getId()).thenReturn(commandJourneyId);
 
-    when(featureService.findFeatureOrThrow(CoordinateSystem.ED50)).thenReturn(ed50Feature);
-    when(featureService.findFeatureOrThrow(CoordinateSystem.BRITISH_NATIONAL_GRID)).thenReturn(bngFeature);
+    when(featureService.findFeatureWithNoCommandJourneyOrThrow(CoordinateSystem.ED50)).thenReturn(feature);
+    when(commandJourneyService.createAndAssignCommandJourney(List.of(feature))).thenReturn(commandJourney);
 
-    mockMvc.perform(get(ReverseRouter.route(on(GisTestController.class).renderSplitByPointAndClick()))
+    mockMvc.perform(get(ReverseRouter.route(on(GisTestController.class).renderSplitByPointAndClick(CoordinateSystem.ED50)))
             .with(user(regulatorUser)))
         .andExpect(status().isOk())
         .andExpect(view().name("lms/mockups/gis/pointAndClickMapTester"))
-        .andExpect(model().attribute("featureIdsEd50", List.of(ed50Id.toString())))
-        .andExpect(model().attribute("featureIdsBng", List.of(bngId.toString())));
+        .andExpect(model().attribute("commandJourneyId", commandJourneyId.toString()))
+        .andExpect(model().attribute("srsWkid", 4230));
   }
 
   @Test
@@ -69,7 +75,7 @@ class GisTestControllerTest extends AbstractControllerTest {
     UUID ed50Id = UUID.randomUUID();
     var ed50Feature = getMockFeature(ed50Id);
 
-    when(featureService.findFeatureOrThrow(CoordinateSystem.ED50)).thenReturn(ed50Feature);
+    when(featureService.findFeatureWithNoCommandJourneyOrThrow(CoordinateSystem.ED50)).thenReturn(ed50Feature);
 
     mockMvc.perform(get(ReverseRouter.route(
                 on(GisTestController.class).renderSplitByCoordinateEntry(CoordinateSystem.ED50, 4)))

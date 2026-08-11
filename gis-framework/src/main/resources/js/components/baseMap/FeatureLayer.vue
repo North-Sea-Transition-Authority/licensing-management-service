@@ -17,10 +17,11 @@ import type OlMap from "vue3-openlayers/map/OlMap";
 import type OlSourceVector from "vue3-openlayers/sources/OlSourceVector";
 import { EsriJSON } from "ol/format";
 import { Fill, Stroke, Style, Text } from "ol/style";
-import { ref } from "vue";
+import { nextTick, ref, watch } from "vue";
 
 interface Props {
   featuresUrl: string,
+  refreshCounter?: number,
   olMap: InstanceType<typeof OlMap>,
   fillColor?: [number, number, number],
   strokeColor?: [number, number, number, number],
@@ -34,6 +35,14 @@ const props = withDefaults(defineProps<Props>(), {
 const esriJson = new EsriJSON();
 const featureLabelFont = "18px \"GDS Transport\"";
 const vectorSourceRef = ref<InstanceType<typeof OlSourceVector> | null>(null);
+
+watch(() => props.refreshCounter, async () => {
+  await nextTick();
+  const source = vectorSourceRef.value?.source;
+  if (source?.refresh) {
+    source.refresh();
+  }
+});
 
 function featureStyle(feature: Feature<Geometry>) {
   return new Style({

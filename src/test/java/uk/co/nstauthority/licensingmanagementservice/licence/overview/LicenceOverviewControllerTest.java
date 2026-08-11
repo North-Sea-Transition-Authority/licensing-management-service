@@ -135,6 +135,7 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("licenceReference", licence.getLicenceReference()))
         .andExpect(model().attribute("caption", licence.getType().getDisplayName()))
         .andExpect(model().attribute("licenceActions", actions))
+        .andExpect(model().attributeExists("historyForm"))
         .andExpect(model().attributeDoesNotExist("timelineSummaryCardView"))
         .andExpect(model().attributeDoesNotExist("scheduleEventViews"))
         .andExpect(model().attributeDoesNotExist("timelineFilterOptions"))

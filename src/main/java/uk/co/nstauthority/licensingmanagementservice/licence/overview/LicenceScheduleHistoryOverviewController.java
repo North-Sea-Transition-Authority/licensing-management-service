@@ -31,15 +31,18 @@ public class LicenceScheduleHistoryOverviewController {
   private final LicenceActionService licenceActionService;
   private final LicenceScheduleDetailService licenceScheduleDetailService;
   private final LicenceScheduleTimelineService licenceScheduleTimelineService;
+  private final LicenceScheduleHistoryFormService licenceScheduleHistoryFormService;
 
   public LicenceScheduleHistoryOverviewController(
       LicenceActionService licenceActionService,
       LicenceScheduleDetailService licenceScheduleDetailService,
-      LicenceScheduleTimelineService licenceScheduleTimelineService
+      LicenceScheduleTimelineService licenceScheduleTimelineService,
+      LicenceScheduleHistoryFormService licenceScheduleHistoryFormService
   ) {
     this.licenceActionService = licenceActionService;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.licenceScheduleTimelineService = licenceScheduleTimelineService;
+    this.licenceScheduleHistoryFormService = licenceScheduleHistoryFormService;
   }
 
   @GetMapping
@@ -62,7 +65,7 @@ public class LicenceScheduleHistoryOverviewController {
         .addObject("licenceReference", licence.getLicenceReference())
         .addObject("caption", licence.getType().getDisplayName())
         .addObject("licenceActions", licenceActionService.getAvailableUserActionItems(licence, user))
-        .addObject("historyForm", new LicenceScheduleHistoryForm())
+        .addObject("historyForm", licenceScheduleHistoryFormService.getScheduleHistoryForm(licenceScheduleDetail))
         .addObject("scheduleHistoryOptions", licenceScheduleDetailService.getScheduleDetailHistoryOptions(licence))
         .addObject("viewScheduleHistoryUrl", ReverseRouter.route(on(LicenceScheduleHistoryOverviewController.class)
             .viewScheduleHistory(licenceScheduleDetailId, null))

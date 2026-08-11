@@ -47,6 +47,9 @@ class LicenceScheduleHistoryOverviewControllerTest extends AbstractControllerTes
   @MockitoBean
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
 
+  @MockitoBean
+  private LicenceScheduleHistoryFormService licenceScheduleHistoryFormService;
+
   private Licence licence;
 
   private LicenceScheduleDetail licenceScheduleDetail;
@@ -87,6 +90,10 @@ class LicenceScheduleHistoryOverviewControllerTest extends AbstractControllerTes
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
     when(licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(eq(licenceScheduleDetail), any(), any())).thenReturn(scheduleEventViews);
 
+    var historyForm = new LicenceScheduleHistoryForm();
+    historyForm.setLicenceScheduleDetailId(licenceScheduleDetail.getId().toString());
+    when(licenceScheduleHistoryFormService.getScheduleHistoryForm(licenceScheduleDetail)).thenReturn(historyForm);
+
     mockMvc.perform(
             get(viewOverviewUrl)
                 .with(user(USER))
@@ -96,7 +103,7 @@ class LicenceScheduleHistoryOverviewControllerTest extends AbstractControllerTes
         .andExpect(model().attribute("licenceReference", licence.getLicenceReference()))
         .andExpect(model().attribute("caption", licence.getType().getDisplayName()))
         .andExpect(model().attribute("licenceActions", actions))
-        .andExpect(model().attributeExists("historyForm"))
+        .andExpect(model().attribute("historyForm", historyForm))
         .andExpect(model().attribute("scheduleHistoryOptions", scheduleHistoryOptions))
         .andExpect(model().attribute("viewScheduleHistoryUrl", ReverseRouter.route(on(LicenceScheduleHistoryOverviewController.class)
             .viewScheduleHistory(licenceScheduleDetail.getId(), null)))

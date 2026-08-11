@@ -57,6 +57,11 @@ public class LicenceOverviewController {
       form.clearFilter();
     }
 
+    var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(
+        licence,
+        LicenceScheduleDetailStatus.ACTIVE
+    );
+
     var modelAndView = new ModelAndView("lms/licence/licenceOverview")
         .addObject("form", form)
         .addObject("licenceReference", licence.getLicenceReference())
@@ -67,11 +72,6 @@ public class LicenceOverviewController {
         .addObject("viewScheduleHistoryUrl", ReverseRouter.route(on(LicenceOverviewController.class)
             .viewScheduleHistory(licenceId, null))
         );
-
-    var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(
-        licence,
-        LicenceScheduleDetailStatus.ACTIVE
-    );
 
     licenceScheduleDetail.ifPresent(scheduleDetail -> modelAndView
         .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(scheduleDetail))

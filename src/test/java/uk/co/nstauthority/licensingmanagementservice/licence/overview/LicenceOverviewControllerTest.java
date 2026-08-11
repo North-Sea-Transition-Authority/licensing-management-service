@@ -49,6 +49,9 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
   @MockitoBean
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
 
+  @MockitoBean
+  private LicenceScheduleOverviewService licenceScheduleOverviewService;
+
   private Licence licence;
 
   private LicenceScheduleDetail licenceScheduleDetail;
@@ -89,6 +92,9 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
     when(licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(eq(licenceScheduleDetail), any(), any())).thenReturn(scheduleEventViews);
 
+    var csRegisterUrl = "https://www.nstauthority.co.uk/regulatory-information/carbon-storage/carbon-storage-public-register/?section=P1";
+    when(licenceScheduleOverviewService.getCsRegisterlink(licence)).thenReturn(csRegisterUrl);
+
     mockMvc.perform(
             get(viewOverviewUrl)
                 .with(user(USER))
@@ -103,6 +109,7 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("viewScheduleHistoryUrl", ReverseRouter.route(on(LicenceOverviewController.class)
             .viewScheduleHistory(licence.getId(), null)))
         )
+        .andExpect(model().attribute("csRegisterUrl", csRegisterUrl))
         .andExpect(model().attribute("timelineSummaryCardView", timelineSummaryCardView))
         .andExpect(model().attribute("scheduleEventViews", scheduleEventViews))
         .andExpect(model().attribute("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions()))
@@ -126,6 +133,9 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
     when(licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(eq(licenceScheduleDetail), any(), any())).thenReturn(scheduleEventViews);
 
+    var csRegisterUrl = "https://www.nstauthority.co.uk/regulatory-information/carbon-storage/carbon-storage-public-register/?section=P1";
+    when(licenceScheduleOverviewService.getCsRegisterlink(licence)).thenReturn(csRegisterUrl);
+
     mockMvc.perform(
             get(viewOverviewUrl)
                 .with(user(USER))
@@ -136,6 +146,7 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("caption", licence.getType().getDisplayName()))
         .andExpect(model().attribute("licenceActions", actions))
         .andExpect(model().attributeExists("historyForm"))
+        .andExpect(model().attribute("csRegisterUrl", csRegisterUrl))
         .andExpect(model().attributeDoesNotExist("timelineSummaryCardView"))
         .andExpect(model().attributeDoesNotExist("scheduleEventViews"))
         .andExpect(model().attributeDoesNotExist("timelineFilterOptions"))

@@ -31,18 +31,18 @@ public class LicenceScheduleHistoryOverviewController {
   private final LicenceActionService licenceActionService;
   private final LicenceScheduleDetailService licenceScheduleDetailService;
   private final LicenceScheduleTimelineService licenceScheduleTimelineService;
-  private final LicenceScheduleHistoryFormService licenceScheduleHistoryFormService;
+  private final LicenceScheduleOverviewService licenceScheduleOverviewService;
 
   public LicenceScheduleHistoryOverviewController(
       LicenceActionService licenceActionService,
       LicenceScheduleDetailService licenceScheduleDetailService,
       LicenceScheduleTimelineService licenceScheduleTimelineService,
-      LicenceScheduleHistoryFormService licenceScheduleHistoryFormService
+      LicenceScheduleOverviewService licenceScheduleOverviewService
   ) {
     this.licenceActionService = licenceActionService;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.licenceScheduleTimelineService = licenceScheduleTimelineService;
-    this.licenceScheduleHistoryFormService = licenceScheduleHistoryFormService;
+    this.licenceScheduleOverviewService = licenceScheduleOverviewService;
   }
 
   @GetMapping
@@ -65,11 +65,12 @@ public class LicenceScheduleHistoryOverviewController {
         .addObject("licenceReference", licence.getLicenceReference())
         .addObject("caption", licence.getType().getDisplayName())
         .addObject("licenceActions", licenceActionService.getAvailableUserActionItems(licence, user))
-        .addObject("historyForm", licenceScheduleHistoryFormService.getScheduleHistoryForm(licenceScheduleDetail))
+        .addObject("historyForm", licenceScheduleOverviewService.getScheduleHistoryForm(licenceScheduleDetail))
         .addObject("scheduleHistoryOptions", licenceScheduleDetailService.getScheduleDetailHistoryOptions(licence))
         .addObject("viewScheduleHistoryUrl", ReverseRouter.route(on(LicenceScheduleHistoryOverviewController.class)
             .viewScheduleHistory(licenceScheduleDetailId, null))
         )
+        .addObject("csRegisterUrl", licenceScheduleOverviewService.getCsRegisterlink(licence))
         .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .addObject("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions())
         .addObject("scheduleEventViews",

@@ -13,6 +13,13 @@ pageSize=PageSize.FULL_COLUMN
         <@scheduleTimeline.timelineSummaryCard timelineSummaryCardView=timelineSummaryCardView/>
     </#if>
 
+    <#if csRegisterUrl?has_content>
+        <@fdsAction.link linkText="View in public register" linkUrl=csRegisterUrl linkClass="govuk-link--stand-alone" openInNewTab=true/>
+        <br/>
+        <br/>
+    </#if>
+
+
     <@actionItems.actionItems actionItems=licenceActions screenReaderText=licenceReference/>
 
     <#if scheduleHistoryOptions?has_content>

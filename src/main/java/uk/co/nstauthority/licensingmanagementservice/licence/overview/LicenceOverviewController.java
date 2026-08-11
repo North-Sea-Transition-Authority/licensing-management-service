@@ -33,15 +33,18 @@ public class LicenceOverviewController {
   private final LicenceActionService licenceActionService;
   private final LicenceScheduleDetailService licenceScheduleDetailService;
   private final LicenceScheduleTimelineService licenceScheduleTimelineService;
+  private final LicenceScheduleOverviewService licenceScheduleOverviewService;
 
   public LicenceOverviewController(
       LicenceActionService licenceActionService,
       LicenceScheduleDetailService licenceScheduleDetailService,
-      LicenceScheduleTimelineService licenceScheduleTimelineService
+      LicenceScheduleTimelineService licenceScheduleTimelineService,
+      LicenceScheduleOverviewService licenceScheduleOverviewService
   ) {
     this.licenceActionService = licenceActionService;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.licenceScheduleTimelineService = licenceScheduleTimelineService;
+    this.licenceScheduleOverviewService = licenceScheduleOverviewService;
   }
 
   @GetMapping
@@ -71,7 +74,7 @@ public class LicenceOverviewController {
         .addObject("scheduleHistoryOptions", licenceScheduleDetailService.getScheduleDetailHistoryOptions(licence))
         .addObject("viewScheduleHistoryUrl", ReverseRouter.route(on(LicenceOverviewController.class)
             .viewScheduleHistory(licenceId, null))
-        );
+        ).addObject("csRegisterUrl", licenceScheduleOverviewService.getCsRegisterlink(licence));
 
     licenceScheduleDetail.ifPresent(scheduleDetail -> modelAndView
         .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(scheduleDetail))

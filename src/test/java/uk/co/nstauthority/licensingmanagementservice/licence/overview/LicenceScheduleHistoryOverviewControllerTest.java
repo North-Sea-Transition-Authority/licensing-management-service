@@ -48,7 +48,7 @@ class LicenceScheduleHistoryOverviewControllerTest extends AbstractControllerTes
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
 
   @MockitoBean
-  private LicenceScheduleHistoryFormService licenceScheduleHistoryFormService;
+  private LicenceScheduleOverviewService licenceScheduleOverviewService;
 
   private Licence licence;
 
@@ -92,7 +92,10 @@ class LicenceScheduleHistoryOverviewControllerTest extends AbstractControllerTes
 
     var historyForm = new LicenceScheduleHistoryForm();
     historyForm.setLicenceScheduleDetailId(licenceScheduleDetail.getId().toString());
-    when(licenceScheduleHistoryFormService.getScheduleHistoryForm(licenceScheduleDetail)).thenReturn(historyForm);
+    when(licenceScheduleOverviewService.getScheduleHistoryForm(licenceScheduleDetail)).thenReturn(historyForm);
+
+    var csRegisterUrl = "https://www.nstauthority.co.uk/regulatory-information/carbon-storage/carbon-storage-public-register/?section=P1";
+    when(licenceScheduleOverviewService.getCsRegisterlink(licence)).thenReturn(csRegisterUrl);
 
     mockMvc.perform(
             get(viewOverviewUrl)
@@ -108,6 +111,7 @@ class LicenceScheduleHistoryOverviewControllerTest extends AbstractControllerTes
         .andExpect(model().attribute("viewScheduleHistoryUrl", ReverseRouter.route(on(LicenceScheduleHistoryOverviewController.class)
             .viewScheduleHistory(licenceScheduleDetail.getId(), null)))
         )
+        .andExpect(model().attribute("csRegisterUrl", csRegisterUrl))
         .andExpect(model().attribute("timelineSummaryCardView", timelineSummaryCardView))
         .andExpect(model().attribute("scheduleEventViews", scheduleEventViews))
         .andExpect(model().attribute("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions()))

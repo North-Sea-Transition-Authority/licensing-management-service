@@ -13,6 +13,7 @@ import uk.co.fivium.energyportalapi.generated.types.LicenceStatus;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.correlationid.CorrelationIdUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceSubtype;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
@@ -55,7 +56,8 @@ public class LicenceQueryService {
   private EpaLicenceDataDto createLicenceDataDto(List<uk.co.fivium.energyportalapi.generated.types.Licence> portalLicences) {
     return new EpaLicenceDataDto(
         convertPortalLicences(portalLicences),
-        getLicenceIdOrgIdMap(portalLicences)
+        getLicenceIdOrgIdMap(portalLicences),
+        getLicenceIdStatusMap(portalLicences)
     );
   }
 
@@ -78,9 +80,6 @@ public class LicenceQueryService {
     licence.setPrefix(portalLicence.getLicenceType());
     licence.setLicenceReference(portalLicence.getLicenceRef());
     licence.setRoundIssuedOn(portalLicence.getRoundIssuedOn());
-    licence.setStatus(
-        uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus.valueOf(portalLicence.getLicenceStatus().name())
-    );
     licence.setEndDate(portalLicence.getLicenceEndDate());
     return licence;
   }
@@ -99,6 +98,16 @@ public class LicenceQueryService {
     return organisationUnits.stream()
         .map(OrganisationUnit::getOrganisationUnitId)
         .toList();
+  }
+
+  private Map<Integer, LicenceStatusType> getLicenceIdStatusMap(
+      List<uk.co.fivium.energyportalapi.generated.types.Licence> portalLicences
+  ) {
+    return portalLicences.stream()
+        .collect(StreamUtil.toLinkedHashMap(
+            uk.co.fivium.energyportalapi.generated.types.Licence::getId,
+            portalLicence -> LicenceStatusType.valueOf(portalLicence.getLicenceStatus().name())
+        ));
   }
 
 }

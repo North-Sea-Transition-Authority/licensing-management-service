@@ -16,12 +16,13 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
@@ -30,8 +31,8 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 public class LicenceActionService {
   private static final Map<LicenceActionItem, Set<Role>> ACTIONS_TO_ROLES
       = new EnumMap<>(LicenceActionItem.class);
-  private static final Map<LicenceStatus, Set<LicenceActionItem>> STATUS_TO_ACTIONS
-      = new EnumMap<>(LicenceStatus.class);
+  private static final Map<LicenceStatusType, Set<LicenceActionItem>> STATUS_TO_ACTIONS
+      = new EnumMap<>(LicenceStatusType.class);
   private static final Map<LicenceActionItem, Set<LicenceType>> ACTIONS_TO_LICENCE_TYPE
       = new EnumMap<>(LicenceActionItem.class);
   private static final Map<LicenceActionItem, Set<LicenceScheduleRequirement>> ACTIONS_TO_LICENCE_SCHEDULE_REQUIREMENT
@@ -43,17 +44,20 @@ public class LicenceActionService {
   private final LicenceScheduleDetailService licenceScheduleDetailService;
   private final LicenceCorrectionService licenceCorrectionService;
   private final Environment environment;
+  private final LicenceStatusService licenceStatusService;
 
   public LicenceActionService(
       TeamQueryService teamQueryService,
       LicenceScheduleDetailService licenceScheduleDetailService,
       LicenceCorrectionService licenceCorrectionService,
-      Environment environment
+      Environment environment,
+      LicenceStatusService licenceStatusService
   ) {
     this.teamQueryService = teamQueryService;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.licenceCorrectionService = licenceCorrectionService;
     this.environment = environment;
+    this.licenceStatusService = licenceStatusService;
 
     var registeredActions = LicenceActionBuilder.newBuilder()
         .registerAction(LicenceActionItem.CREATE_LICENCE_SCHEDULE)
@@ -98,10 +102,11 @@ public class LicenceActionService {
             .collect(toSet());
 
     var licenceScheduleState = getLicenceScheduleState(licence);
+    var currentStatus = licenceStatusService.getCurrentStatus(licence);
 
     return EnumSet.allOf(LicenceActionItem.class).stream()
         // remove the actions which aren't applicable to the current licence status
-        .filter(STATUS_TO_ACTIONS.get(licence.getStatus())::contains)
+        .filter(STATUS_TO_ACTIONS.get(currentStatus)::contains)
         // remove actions that users can't see given their roles
         .filter(action -> CollectionUtils.containsAny(ACTIONS_TO_ROLES.get(action), userRoles))
         // remove the actions which aren't applicable to the licence type

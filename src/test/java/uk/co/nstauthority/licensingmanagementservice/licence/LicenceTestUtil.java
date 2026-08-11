@@ -18,7 +18,6 @@ public class LicenceTestUtil {
     private String licencePrefix;
     private String licenceReference;
     private String roundIssuedOn;
-    private LicenceStatus status;
     private LocalDate endDate;
 
     private Builder() {}
@@ -53,11 +52,6 @@ public class LicenceTestUtil {
       return this;
     }
 
-    public Builder withStatus(LicenceStatus status) {
-      this.status = status;
-      return this;
-    }
-
     public Builder withEndDate(LocalDate endDate) {
       this.endDate = endDate;
       return this;
@@ -71,7 +65,6 @@ public class LicenceTestUtil {
       licence.setPrefix(licencePrefix);
       licence.setLicenceReference(licenceReference);
       licence.setRoundIssuedOn(roundIssuedOn);
-      licence.setStatus(status);
       licence.setEndDate(endDate);
 
       return licence;

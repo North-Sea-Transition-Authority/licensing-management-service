@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,7 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
@@ -22,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleo
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceInternalApiServiceTest {
@@ -37,6 +39,9 @@ class LicenceInternalApiServiceTest {
 
   @Mock
   private LicenceService licenceService;
+
+  @Mock
+  private LicenceStatusService licenceStatusService;
 
   @InjectMocks
   private LicenceInternalApiService licenceInternalApiService;
@@ -75,7 +80,6 @@ class LicenceInternalApiServiceTest {
         .withId(id)
         .withLicenceReference(licenceReference)
         .withLicenceType(licenceType)
-        .withStatus(LicenceStatus.EXTANT)
         .build();
 
     var licenceResponsibleOrganisation = new LicenceResponsibleOrganisation();
@@ -91,6 +95,9 @@ class LicenceInternalApiServiceTest {
         List.of(licenceType),
         LicenceScheduleDetailStatus.ACTIVE)
     ).thenReturn(List.of(licenceScheduleDetail));
+
+    when(licenceStatusService.getCurrentStatusesByLicenceId(List.of(licence)))
+        .thenReturn(Map.of(id, LicenceStatusType.EXTANT));
 
     var licenceJson = new LicenceJson(id, licenceReference);
 
@@ -119,14 +126,12 @@ class LicenceInternalApiServiceTest {
         .withId(extantLicenceId)
         .withLicenceReference(extantLicenceReference)
         .withLicenceType(licenceType)
-        .withStatus(LicenceStatus.EXTANT)
         .build();
 
     var revokedLicence = LicenceTestUtil.builder()
         .withId(4)
         .withLicenceReference("CS002")
         .withLicenceType(licenceType)
-        .withStatus(LicenceStatus.REVOKED)
         .build();
 
     var extantLicenceResponsibleOrganisation = new LicenceResponsibleOrganisation();
@@ -146,6 +151,12 @@ class LicenceInternalApiServiceTest {
         List.of(licenceType),
         LicenceScheduleDetailStatus.ACTIVE)
     ).thenReturn(List.of(extantLicenceScheduleDetail, revokedLicenceScheduleDetail));
+
+    when(licenceStatusService.getCurrentStatusesByLicenceId(List.of(extantLicence, revokedLicence)))
+        .thenReturn(Map.of(
+            extantLicenceId, LicenceStatusType.EXTANT,
+            4, LicenceStatusType.REVOKED
+        ));
 
     var licenceJson = new LicenceJson(extantLicenceId, extantLicenceReference);
 

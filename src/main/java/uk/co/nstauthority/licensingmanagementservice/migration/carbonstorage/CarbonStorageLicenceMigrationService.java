@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
@@ -44,6 +44,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusRepository;
 
 @Service
 public class CarbonStorageLicenceMigrationService {
@@ -59,6 +61,7 @@ public class CarbonStorageLicenceMigrationService {
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
   private final WorkProgrammeActivityService workProgrammeActivityService;
   private final WorkProgrammeActivityStatusRepository workProgrammeActivityStatusRepository;
+  private final LicenceStatusRepository licenceStatusRepository;
   private final EventCommentRepository eventCommentRepository;
   private final CarbonStorageLicenceMigrationExtractRepository carbonStorageLicenceMigrationExtractRepository;
   private final CarbonStorageLicenceOrgMappingRepository carbonStorageLicenceOrgMappingRepository;
@@ -76,6 +79,7 @@ public class CarbonStorageLicenceMigrationService {
       LicenceScheduleCalculationService licenceScheduleCalculationService,
       WorkProgrammeActivityService workProgrammeActivityService,
       WorkProgrammeActivityStatusRepository workProgrammeActivityStatusRepository,
+      LicenceStatusRepository licenceStatusRepository,
       EventCommentRepository eventCommentRepository,
       CarbonStorageLicenceMigrationExtractRepository carbonStorageLicenceMigrationExtractRepository,
       CarbonStorageLicenceOrgMappingRepository carbonStorageLicenceOrgMappingRepository,
@@ -92,6 +96,7 @@ public class CarbonStorageLicenceMigrationService {
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
     this.workProgrammeActivityService = workProgrammeActivityService;
     this.workProgrammeActivityStatusRepository = workProgrammeActivityStatusRepository;
+    this.licenceStatusRepository = licenceStatusRepository;
     this.eventCommentRepository = eventCommentRepository;
     this.carbonStorageLicenceMigrationExtractRepository = carbonStorageLicenceMigrationExtractRepository;
     this.carbonStorageLicenceOrgMappingRepository = carbonStorageLicenceOrgMappingRepository;
@@ -107,6 +112,7 @@ public class CarbonStorageLicenceMigrationService {
     var currentLicenceId = licenceService.getNextLicenceId();
 
     var licences = new ArrayList<Licence>();
+    var licenceStatusTypeByLicenceId = new HashMap<Integer, LicenceStatusType>();
     var licenceResponsibleOrganisations = new ArrayList<LicenceResponsibleOrganisation>();
 
     for (var migrationExtract : carbonStorageLicenceMigrationExtracts) {
@@ -116,8 +122,9 @@ public class CarbonStorageLicenceMigrationService {
       licence.setPrefix(LicenceType.CARBON_STORAGE.getPrefix());
       licence.setLicenceNumber(migrationExtract.getLicenceNumber());
       licence.setLicenceReference(migrationExtract.getLicenceRef());
-      licence.setStatus(getLicenceStatusFromString(migrationExtract.getStatus()));
       licences.add(licence);
+
+      licenceStatusTypeByLicenceId.put(licence.getId(), getLicenceStatusFromString(migrationExtract.getStatus()));
 
       String[] organisations = migrationExtract.getResponsibleOrgs().split(",");
       for (var responsibleOrg : organisations) {
@@ -136,7 +143,19 @@ public class CarbonStorageLicenceMigrationService {
       }
     }
 
-    licenceService.saveLicences(licences);
+    var savedLicences = (List<Licence>) licenceService.saveLicences(licences);
+
+    var licenceStatuses = savedLicences.stream()
+        .map(savedLicence -> {
+          var licenceStatus = new LicenceStatus();
+          licenceStatus.setLicence(savedLicence);
+          licenceStatus.setStatus(licenceStatusTypeByLicenceId.get(savedLicence.getId()));
+          licenceStatus.setStatusDate(LocalDate.now());
+          return licenceStatus;
+        })
+        .toList();
+
+    licenceStatusRepository.saveAll(licenceStatuses);
     licenceResponsibleOrganisationService.saveLicensees(licenceResponsibleOrganisations);
   }
 
@@ -410,14 +429,14 @@ public class CarbonStorageLicenceMigrationService {
     return licenceRef + "|" + caseDate;
   }
 
-  private LicenceStatus getLicenceStatusFromString(String status) {
+  private LicenceStatusType getLicenceStatusFromString(String status) {
     return switch (status) {
-      case "Extant" -> LicenceStatus.EXTANT;
-      case "Expired" -> LicenceStatus.EXPIRED;
-      case "Revoked" -> LicenceStatus.REVOKED;
-      case "Surrendered" -> LicenceStatus.SURRENDERED;
-      case "Split" -> LicenceStatus.SPLIT_AND_TERMINATED;
-      default -> null;
+      case "Extant" -> LicenceStatusType.EXTANT;
+      case "Expired" -> LicenceStatusType.EXPIRED;
+      case "Revoked" -> LicenceStatusType.REVOKED;
+      case "Surrendered" -> LicenceStatusType.SURRENDERED;
+      case "Split" -> LicenceStatusType.SPLIT_AND_TERMINATED;
+      default -> throw new IllegalArgumentException("%s does not map to a valid status".formatted(status));
     };
   }
 }

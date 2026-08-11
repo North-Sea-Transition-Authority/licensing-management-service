@@ -5,7 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
-public enum LicenceStatus implements Displayable {
+public enum LicenceStatusType implements Displayable {
   EXTANT("Extant", 10, Arrays.asList(LicenceType.values())),
   REVOKED("Revoked", 20, Arrays.asList(LicenceType.values())),
   SURRENDERED("Surrendered", 30, Arrays.asList(LicenceType.values())),
@@ -16,7 +16,7 @@ public enum LicenceStatus implements Displayable {
   private final int displayOrder;
   private final List<LicenceType> applicableLicenceTypes;
 
-  LicenceStatus(String displayName, int displayOrder, List<LicenceType> applicableLicenceTypes) {
+  LicenceStatusType(String displayName, int displayOrder, List<LicenceType> applicableLicenceTypes) {
     this.displayName = displayName;
     this.displayOrder = displayOrder;
     this.applicableLicenceTypes = applicableLicenceTypes;
@@ -36,10 +36,10 @@ public enum LicenceStatus implements Displayable {
     return applicableLicenceTypes;
   }
 
-  public static List<LicenceStatus> getApplicableStatusesForLicenceType(LicenceType licenceType) {
-    return Arrays.stream(LicenceStatus.values())
+  public static List<LicenceStatusType> getApplicableStatusesForLicenceType(LicenceType licenceType) {
+    return Arrays.stream(LicenceStatusType.values())
         .filter(status -> status.getApplicableLicenceTypes().contains(licenceType))
-        .sorted(Comparator.comparing(LicenceStatus::getDisplayOrder))
+        .sorted(Comparator.comparing(LicenceStatusType::getDisplayOrder))
         .toList();
   }
 }

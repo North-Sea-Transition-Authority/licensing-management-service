@@ -47,6 +47,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusService;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -66,6 +67,7 @@ public class LicenceScheduleTimelineService {
   private final WorkProgrammeActivityStatusService workProgrammeActivityStatusService;
   private final EventCommentService eventCommentService;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
+  private final LicenceStatusService licenceStatusService;
   private final Clock clock;
 
   public LicenceScheduleTimelineService(
@@ -81,6 +83,7 @@ public class LicenceScheduleTimelineService {
       WorkProgrammeActivityStatusService workProgrammeActivityStatusService,
       EventCommentService eventCommentService,
       LicenceScheduleCalculationService licenceScheduleCalculationService,
+      LicenceStatusService licenceStatusService,
       Clock clock
   ) {
     this.licenceStartDateService = licenceStartDateService;
@@ -95,6 +98,7 @@ public class LicenceScheduleTimelineService {
     this.workProgrammeActivityStatusService = workProgrammeActivityStatusService;
     this.eventCommentService = eventCommentService;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
+    this.licenceStatusService = licenceStatusService;
     this.clock = clock;
   }
 
@@ -113,7 +117,7 @@ public class LicenceScheduleTimelineService {
         licenceExpiryDateString,
         licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType()),
         licence.getRoundIssuedOn(),
-        licence.getStatus().getDisplayName(),
+        licenceStatusService.getCurrentStatus(licence).getDisplayName(),
         licenceEndDateString,
         finalTermEndDateString
     );

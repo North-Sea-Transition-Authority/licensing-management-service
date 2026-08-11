@@ -13,6 +13,14 @@ errorSummaryItems=errorSummaryItems>
             radioItems=licenceStatusOptions
         />
 
+        <@fdsDateInput.dateInput
+            dayPath="form.licenceStatusDate.dayInput.inputValue"
+            monthPath="form.licenceStatusDate.monthInput.inputValue"
+            yearPath="form.licenceStatusDate.yearInput.inputValue"
+            labelText="What date did the licence enter this status?"
+            formId="form-licence-status-date"
+        />
+
         <@fdsAddToList.addToList
             pathForList="form.organisationUnitIds"
             pathForSelector="form.organisationUnitSelector"

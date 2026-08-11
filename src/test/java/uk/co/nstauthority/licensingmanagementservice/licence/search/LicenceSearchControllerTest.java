@@ -25,7 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
@@ -75,7 +75,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("licenceTypes",
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes())))
         .andExpect(model().attribute("licenceStatuses",
-            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatus.class)))
+            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatusType.class)))
         .andExpect(model().attribute("canCreateLicence", true))
         .andExpect(model().attribute("createLicenceUrl", CREATE_LICENCE_ROUTE))
         .andReturn();
@@ -85,7 +85,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
     var renderedForm = (LicenceSearchFilterForm) result.getModelAndView().getModel().get("form");
     assertThat(renderedForm.getLicenceTypes()).containsExactlyElementsOf(LicenceType.getDisplayableLicenceTypesNames());
     assertThat(renderedForm.getLicenceStatuses())
-        .containsExactlyInAnyOrderElementsOf(Arrays.stream(LicenceStatus.values()).map(Enum::name).toList());
+        .containsExactlyInAnyOrderElementsOf(Arrays.stream(LicenceStatusType.values()).map(Enum::name).toList());
   }
 
   @Test
@@ -108,7 +108,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("licenceTypes",
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes())))
         .andExpect(model().attribute("licenceStatuses",
-            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatus.class)))
+            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatusType.class)))
         .andExpect(model().attribute("canCreateLicence", true))
         .andExpect(model().attribute("createLicenceUrl", CREATE_LICENCE_ROUTE));
     verify(licenceSearchService).getSearchResultItems(form, organisationUser);

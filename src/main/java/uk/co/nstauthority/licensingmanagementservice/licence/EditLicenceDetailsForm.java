@@ -1,21 +1,32 @@
 package uk.co.nstauthority.licensingmanagementservice.licence;
 
 import java.util.List;
+import uk.co.fivium.formlibrary.input.ThreeFieldDateInput;
 
 public class EditLicenceDetailsForm {
 
-  private LicenceStatus licenceStatus;
+  private LicenceStatusType licenceStatus;
+
+  private ThreeFieldDateInput licenceStatusDate = new ThreeFieldDateInput("licenceStatusDate", "licence status date");
 
   private List<String> organisationUnitIds;
 
   private String organisationUnitSelector;
 
-  public LicenceStatus getLicenceStatus() {
+  public LicenceStatusType getLicenceStatus() {
     return licenceStatus;
   }
 
-  public void setLicenceStatus(LicenceStatus licenceStatus) {
+  public void setLicenceStatus(LicenceStatusType licenceStatus) {
     this.licenceStatus = licenceStatus;
+  }
+
+  public ThreeFieldDateInput getLicenceStatusDate() {
+    return licenceStatusDate;
+  }
+
+  public void setLicenceStatusDate(ThreeFieldDateInput licenceStatusDate) {
+    this.licenceStatusDate = licenceStatusDate;
   }
 
   public List<String> getOrganisationUnitIds() {

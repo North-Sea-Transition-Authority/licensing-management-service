@@ -4,6 +4,8 @@ import jakarta.transaction.Transactional;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 
@@ -44,6 +46,12 @@ public class LicenceService {
   @Transactional
   public Iterable<Licence> saveLicences(Collection<Licence> licences) {
     return licenceRepository.saveAll(licences);
+  }
+
+  public Set<Integer> getExistingLicenceIds(Collection<Integer> licenceIds) {
+    return licenceRepository.findAllById(licenceIds).stream()
+        .map(Licence::getId)
+        .collect(Collectors.toSet());
   }
   // Generate the next licence id. If there are none, start at 10000 to leave a buffer for pears managed licence ids.
   // We are manually generating ids because @GeneratedValue prevents saving fixed ids which we need to do to when

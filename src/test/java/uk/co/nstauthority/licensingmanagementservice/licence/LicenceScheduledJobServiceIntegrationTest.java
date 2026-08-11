@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,7 @@ import uk.co.fivium.energyportalapi.generated.types.LicenceStatus;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusRepository;
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
 
 @Transactional
@@ -33,6 +35,9 @@ class LicenceScheduledJobServiceIntegrationTest {
 
   @Autowired
   private LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository;
+
+  @Autowired
+  private LicenceStatusRepository licenceStatusRepository;
 
   @Autowired
   private LicenceScheduledJobService licenceScheduledJobService;
@@ -62,6 +67,7 @@ class LicenceScheduledJobServiceIntegrationTest {
     portalLicence.setLicenceSubType("Frontier");
     portalLicence.setLicenceNo(1);
     portalLicence.setLicensees(List.of(orgUnit1, orgUnit2));
+    // licence 1's previously-recorded status is REVOKED (see createDBBaseline) - this run reports a changed status
     portalLicence.setLicenceStatus(LicenceStatus.EXTANT);
 
     var portalLicence2 = new uk.co.fivium.energyportalapi.generated.types.Licence();
@@ -70,6 +76,7 @@ class LicenceScheduledJobServiceIntegrationTest {
     portalLicence2.setLicenceSubType(null);
     portalLicence2.setLicenceNo(2);
     portalLicence2.setLicensees(List.of(orgUnit3));
+    // licence 2's previously-recorded status is already EXTANT (see createDBBaseline) - this run reports no change
     portalLicence2.setLicenceStatus(LicenceStatus.EXTANT);
 
     var portalLicence3 = new uk.co.fivium.energyportalapi.generated.types.Licence();
@@ -92,7 +99,6 @@ class LicenceScheduledJobServiceIntegrationTest {
     licence3.setSubtype(null);
     licence3.setLicenceNumber("3");
     licence3.setPrefix("EXL");
-    licence3.setStatus(uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus.EXTANT);
 
     var licencesResult = licenceRepository.findAll();
 
@@ -100,6 +106,26 @@ class LicenceScheduledJobServiceIntegrationTest {
         .usingRecursiveComparison()
         .ignoringCollectionOrder()
         .isEqualTo(List.of(licence, licence2, licence3));
+
+    // licence 3 is genuinely new (did not exist before this sync run) so a status history row should be recorded for it
+    assertThat(licenceStatusRepository.findAllByLicence_IdIn(List.of(3)))
+        .extracting(uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatus::getStatus)
+        .containsExactly(uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType.EXTANT);
+
+    // licence 1 already existed with a recorded status of REVOKED, and this run's portal status (EXTANT) differs,
+    // so a new status row should be recorded in addition to the original one
+    assertThat(licenceStatusRepository.findAllByLicence_IdIn(List.of(1)))
+        .extracting(uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatus::getStatus)
+        .containsExactlyInAnyOrder(
+            uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType.REVOKED,
+            uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType.EXTANT
+        );
+
+    // licence 2 already existed with a recorded status of EXTANT, and this run's portal status is unchanged (EXTANT),
+    // so no new status row should be recorded
+    assertThat(licenceStatusRepository.findAllByLicence_IdIn(List.of(2)))
+        .extracting(uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatus::getStatus)
+        .containsExactly(uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType.EXTANT);
 
     var responsibleOrganisation4 = new LicenceResponsibleOrganisation();
     responsibleOrganisation4.setResponsibleOrganisationId(3);
@@ -131,7 +157,6 @@ class LicenceScheduledJobServiceIntegrationTest {
     licence.setType(LicenceType.SEAWARD_PRODUCTION);
     licence.setSubtype(LicenceSubtype.FRONTIER);
     licence.setLicenceNumber("1");
-    licence.setStatus(uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus.EXTANT);
 
     entityManager.persist(licence);
 
@@ -140,9 +165,22 @@ class LicenceScheduledJobServiceIntegrationTest {
     licence2.setType(LicenceType.LANDWARD_PRODUCTION);
     licence2.setSubtype(null);
     licence2.setLicenceNumber("2");
-    licence2.setStatus(uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus.EXTANT);
 
     entityManager.persist(licence2);
+
+    var licenceStatus = new uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatus();
+    licenceStatus.setLicence(licence);
+    licenceStatus.setStatus(LicenceStatusType.REVOKED);
+    licenceStatus.setStatusDate(LocalDate.now());
+
+    entityManager.persist(licenceStatus);
+
+    var licenceStatus2 = new uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatus();
+    licenceStatus2.setLicence(licence2);
+    licenceStatus2.setStatus(LicenceStatusType.EXTANT);
+    licenceStatus2.setStatusDate(LocalDate.now());
+
+    entityManager.persist(licenceStatus2);
 
     // exists in pears and will be removed from lms and re-added
     licenceResponsibleOrganisation = new LicenceResponsibleOrganisation();

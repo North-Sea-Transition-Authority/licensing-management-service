@@ -17,11 +17,12 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceReferenceComparator;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
@@ -37,29 +38,36 @@ public class LicenceSearchService {
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final OrganisationGroupQueryService organisationGroupQueryService;
   private final TeamQueryService teamQueryService;
+  private final LicenceStatusService licenceStatusService;
 
   public LicenceSearchService(LicenceService licenceService,
                               LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
                               OrganisationUnitQueryService organisationUnitQueryService,
                               OrganisationGroupQueryService organisationGroupQueryService,
-                              TeamQueryService teamQueryService
+                              TeamQueryService teamQueryService,
+                              LicenceStatusService licenceStatusService
   ) {
     this.licenceService = licenceService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.organisationGroupQueryService = organisationGroupQueryService;
     this.teamQueryService = teamQueryService;
+    this.licenceStatusService = licenceStatusService;
   }
 
   public List<SearchResultItem> getSearchResultItems(
       LicenceSearchFilterForm filterForm,
       ServiceUserDetail serviceUserDetail
   ) {
+    var allLicences = licenceService.getAllLicences();
+    var currentStatusesByLicenceId = licenceStatusService.getCurrentStatusesByLicenceId(allLicences);
+
     // get all licenses and apply simple filtering
-    var filteredLicenses = licenceService.getAllLicences().stream()
+    var filteredLicenses = allLicences.stream()
         .filter(licence -> FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference()))
         .filter(licence -> FilterUtil.matchesEnum(LicenceType.class, licence.getType(), filterForm.getLicenceTypes()))
-        .filter(licence -> FilterUtil.matchesEnum(LicenceStatus.class, licence.getStatus(), filterForm.getLicenceStatuses()))
+        .filter(licence -> FilterUtil.matchesEnum(
+            LicenceStatusType.class, currentStatusesByLicenceId.get(licence.getId()), filterForm.getLicenceStatuses()))
         .toList();
 
     var licenceResponsibleOrganisations = licenceResponsibleOrganisationService.getAllByLicenceIn(filteredLicenses);
@@ -85,7 +93,10 @@ public class LicenceSearchService {
 
     var responsibleOrganisationNames = getResponsibleOrganisationNamesByLicences(licenceResponsibleOrganisations);
     return batchFilteredLicences
-        .map(licence -> toSearchResultItem(licence, responsibleOrganisationNames.getOrDefault(licence, List.of())))
+        .map(licence -> toSearchResultItem(
+            licence,
+            responsibleOrganisationNames.getOrDefault(licence, List.of()),
+            currentStatusesByLicenceId.get(licence.getId())))
         .sorted(Comparator.comparing(SearchResultItem::linkHeadingText, new LicenceReferenceComparator()))
         .toList();
   }
@@ -178,7 +189,7 @@ public class LicenceSearchService {
         .toList();
   }
 
-  private SearchResultItem toSearchResultItem(Licence licence, List<String> licensees) {
+  private SearchResultItem toSearchResultItem(Licence licence, List<String> licensees, LicenceStatusType status) {
     var mappedLicensees = licensees.stream().filter(Objects::nonNull).toList();
     return SearchResultItem.newBuilder()
         .withId(licence.getId().toString())
@@ -188,7 +199,7 @@ public class LicenceSearchService {
         .withCaptionText(licence.getType().getDisplayName())
         .withDataItemRow(SummaryDataView.newBuilder()
             .addStringValue("Licensee(s)", String.join(", ", mappedLicensees))
-            .addStringValue("Status", licence.getStatus().getDisplayName())
+            .addStringValue("Status", status.getDisplayName())
             .build())
         .build();
   }

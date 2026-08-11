@@ -2,12 +2,14 @@ package uk.co.nstauthority.licensingmanagementservice.licence;
 
 import jakarta.transaction.Transactional;
 import java.util.List;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.licence.LicenceQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 
 @Service
 public class LicenceScheduledJobService {
@@ -17,14 +19,17 @@ public class LicenceScheduledJobService {
   private final LicenceQueryService licenceQueryService;
   private final LicenceService licenceService;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
+  private final LicenceStatusService licenceStatusService;
 
   public LicenceScheduledJobService(LicenceQueryService licenceQueryService,
                                     LicenceService licenceService,
-                                    LicenceResponsibleOrganisationService licenceResponsibleOrganisationService
+                                    LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
+                                    LicenceStatusService licenceStatusService
   ) {
     this.licenceQueryService = licenceQueryService;
     this.licenceService = licenceService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
+    this.licenceStatusService = licenceStatusService;
   }
 
   @Transactional
@@ -35,12 +40,27 @@ public class LicenceScheduledJobService {
 
     var licenceData = licenceQueryService.getEpaLicenceData();
 
-    var savedLicences = licenceService.saveLicences(licenceData.licences());
+    var incomingLicenceIds = licenceData.licences().stream().map(Licence::getId).toList();
+    var existingLicenceIds = licenceService.getExistingLicenceIds(incomingLicenceIds);
+
+    var savedLicences = (List<Licence>) licenceService.saveLicences(licenceData.licences());
 
     LOGGER.info("Updated licences from PEARS");
 
+    var currentStatusesByLicenceId = licenceStatusService.getCurrentStatusesByLicenceId(savedLicences);
+
+    savedLicences.forEach(licence -> {
+      var incomingStatus = licenceData.licenceIdStatusMap().get(licence.getId());
+      var isNewLicence = !existingLicenceIds.contains(licence.getId());
+      var hasStatusChanged = !Objects.equals(incomingStatus, currentStatusesByLicenceId.get(licence.getId()));
+
+      if (isNewLicence || hasStatusChanged) {
+        licenceStatusService.recordLicenceStatus(licence, incomingStatus);
+      }
+    });
+
     licenceResponsibleOrganisationService.refreshPearsResponsibleOrganisations(
-        (List<Licence>) savedLicences,
+        savedLicences,
         licenceData.licenceIdOrgIdMap()
     );
 

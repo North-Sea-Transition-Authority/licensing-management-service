@@ -24,7 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
@@ -62,7 +62,6 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
         .withLicenceReference("P1")
         .withRoundIssuedOn("1")
-        .withStatus(LicenceStatus.EXTANT)
         .build();
 
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
@@ -84,7 +83,7 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
     var scheduleHistoryOptions = Map.of(licenceScheduleDetail.getId().toString(), "1 January 2024 10:00am");
     when(licenceScheduleDetailService.getScheduleDetailHistoryOptions(licence)).thenReturn(scheduleHistoryOptions);
 
-    var timelineSummaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatus.EXTANT.getDisplayName(), "", "");
+    var timelineSummaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatusType.EXTANT.getDisplayName(), "", "");
     var scheduleEventViews = List.of(new TimelineTermView(List.of(), List.of(), TermType.INITIAL, "", "", "", "", "", true, List.of(), true, true));
 
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
@@ -121,7 +120,7 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
 
     when(licenceActionService.getAvailableUserActionItems(licence, USER)).thenReturn(actions);
 
-    var timelineSummaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatus.EXTANT.getDisplayName(), "", "");
+    var timelineSummaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatusType.EXTANT.getDisplayName(), "", "");
     var scheduleEventViews = List.of(new TimelineTermView(List.of(), List.of(), TermType.INITIAL, "", "", "", "", "", true, List.of(), true, true));
 
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);

@@ -19,7 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
@@ -56,7 +56,7 @@ public class LicenceSearchController {
     boolean hasSearchBeenInvoked = searchSession.hasSearchBeenInvoked();
     if (!hasSearchBeenInvoked) {
       form.setLicenceTypes(LicenceType.getDisplayableLicenceTypesNames());
-      form.setLicenceStatuses(Arrays.stream(LicenceStatus.values()).map(Enum::name).toList());
+      form.setLicenceStatuses(Arrays.stream(LicenceStatusType.values()).map(Enum::name).toList());
       licenceSearchItems = Collections.emptyList();
     } else {
       licenceSearchItems = licenceSearchService.getSearchResultItems(form, serviceUserDetail);
@@ -93,7 +93,7 @@ public class LicenceSearchController {
         .addObject("form", form)
         .addObject("clearFilterUrl", ReverseRouter.route(on(LicenceSearchController.class).clearSearchFilters(null, null)))
         .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
-        .addObject("licenceStatuses", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatus.class))
+        .addObject("licenceStatuses", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatusType.class))
         .addObject("licenseeGroupOrgUnitUrl",
             SearchSelectorService.route(on(OrganisationGroupRestController.class).getOrganisationGroupSearchResults(null)))
         .addObject("preSelectedLicenseeGroupOrgUnit",

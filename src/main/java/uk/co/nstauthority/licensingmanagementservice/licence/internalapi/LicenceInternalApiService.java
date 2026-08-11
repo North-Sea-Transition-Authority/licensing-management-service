@@ -11,7 +11,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceReferenceComparator;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
@@ -20,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 
 @Service
 public class LicenceInternalApiService {
@@ -28,17 +29,20 @@ public class LicenceInternalApiService {
   private final LicenceScheduleDetailService licenceScheduleDetailService;
   private final ApplicationAccessService applicationAccessService;
   private final LicenceService licenceService;
+  private final LicenceStatusService licenceStatusService;
 
   public LicenceInternalApiService(
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
       LicenceScheduleDetailService licenceScheduleDetailService,
       ApplicationAccessService applicationAccessService,
-      LicenceService licenceService
+      LicenceService licenceService,
+      LicenceStatusService licenceStatusService
   ) {
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.applicationAccessService = applicationAccessService;
     this.licenceService = licenceService;
+    this.licenceStatusService = licenceStatusService;
   }
 
   List<LicenceJson> searchLicencesByReferenceAndType(
@@ -66,10 +70,15 @@ public class LicenceInternalApiService {
         status
     );
 
-    var licences = licenceScheduleDetails.stream()
+    var candidateLicences = licenceScheduleDetails.stream()
         .map(LicenceScheduleDetail::getLicenceSchedule)
         .map(LicenceSchedule::getLicence)
-        .filter(licence -> licence.getStatus() == LicenceStatus.EXTANT)
+        .toList();
+
+    var currentStatusesByLicenceId = licenceStatusService.getCurrentStatusesByLicenceId(candidateLicences);
+
+    var licences = candidateLicences.stream()
+        .filter(licence -> currentStatusesByLicenceId.get(licence.getId()) == LicenceStatusType.EXTANT)
         .toList();
 
     var organisationByLicence = licenceResponsibleOrganisationService.getAllByLicenceIn(licences).stream()

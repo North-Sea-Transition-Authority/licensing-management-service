@@ -14,7 +14,7 @@ import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlConfig;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceRepository;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
@@ -33,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusRepository;
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
 
 @Sql(
@@ -74,6 +75,9 @@ class CarbonStorageLicenceMigrationServiceIntegrationTest {
   @Autowired
   private EventCommentRepository eventCommentRepository;
 
+  @Autowired
+  private LicenceStatusRepository licenceStatusRepository;
+
   @Test
   void migrateLicences_persistsLicencesAndResponsibleOrganisations() {
     var extract = new CarbonStorageLicenceMigrationExtract();
@@ -102,7 +106,11 @@ class CarbonStorageLicenceMigrationServiceIntegrationTest {
     assertThat(licence.getType()).isEqualTo(LicenceType.CARBON_STORAGE);
     assertThat(licence.getLicenceNumber()).isEqualTo("1");
     assertThat(licence.getPrefix()).isEqualTo(LicenceType.CARBON_STORAGE.getPrefix());
-    assertThat(licence.getStatus()).isEqualTo(LicenceStatus.EXTANT);
+
+    var licenceStatuses = licenceStatusRepository.findAllByLicence(licence);
+    assertThat(licenceStatuses).hasSize(1);
+    assertThat(licenceStatuses.get(0).getStatus()).isEqualTo(LicenceStatusType.EXTANT);
+    assertThat(licenceStatuses.get(0).getStatusDate()).isNotNull();
 
     var responsibleOrgs = licenceResponsibleOrganisationRepository.findAllByLicence(licence);
     assertThat(responsibleOrgs).hasSize(2);

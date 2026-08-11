@@ -19,7 +19,7 @@ import uk.co.fivium.energyportalapi.client.licence.licence.LicenceSearchFilter;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceSubtype;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 
@@ -51,7 +51,6 @@ class LicenceQueryServiceTest {
     licence.setLicenceNumber("1");
     licence.setLicenceReference("P1");
     licence.setRoundIssuedOn("1");
-    licence.setStatus(LicenceStatus.EXTANT);
 
     var licence2 = new Licence();
     licence2.setId(2);
@@ -61,7 +60,6 @@ class LicenceQueryServiceTest {
     licence2.setLicenceNumber("2");
     licence2.setLicenceReference("PEDL2");
     licence2.setRoundIssuedOn("2");
-    licence2.setStatus(LicenceStatus.EXTANT);
 
     when(licenceApi.searchLicences(
         any(LicenceSearchFilter.class),
@@ -78,12 +76,18 @@ class LicenceQueryServiceTest {
         2, List.of(1)
     );
 
-    var expectedResult = new EpaLicenceDataDto(licences, licenceIdOrgIdMap);
+    var licenceIdStatusMap = Map.of(
+        1, LicenceStatusType.EXTANT,
+        2, LicenceStatusType.EXTANT
+    );
+
+    var expectedResult = new EpaLicenceDataDto(licences, licenceIdOrgIdMap, licenceIdStatusMap);
 
     var result = licenceQueryService.getEpaLicenceData();
 
     assertThat(result.licences()).usingRecursiveComparison().isEqualTo(expectedResult.licences());
     assertThat(result.licenceIdOrgIdMap()).usingRecursiveComparison().isEqualTo(expectedResult.licenceIdOrgIdMap());
+    assertThat(result.licenceIdStatusMap()).usingRecursiveComparison().isEqualTo(expectedResult.licenceIdStatusMap());
   }
 
   @Test

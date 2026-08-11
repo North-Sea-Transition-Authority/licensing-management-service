@@ -12,7 +12,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 
@@ -29,8 +29,8 @@ public class LicenceActionBuilder {
       SetLicenceScheduleRequirementForAnAction,
       RegisterAnAction {
 
-    public final Map<LicenceStatus, Set<LicenceActionItem>> statusMap =
-        new EnumMap<>(LicenceStatus.class);
+    public final Map<LicenceStatusType, Set<LicenceActionItem>> statusMap =
+        new EnumMap<>(LicenceStatusType.class);
     public final Map<LicenceActionItem, Set<Role>> roleMap =
         new EnumMap<>(LicenceActionItem.class);
     public final Map<LicenceActionItem, Set<LicenceType>> licenceTypeMap =
@@ -67,9 +67,9 @@ public class LicenceActionBuilder {
     }
 
     @Override
-    public SetLicenceTypeForAnAction requiresAnyStatusFrom(LicenceStatus... statuses) {
+    public SetLicenceTypeForAnAction requiresAnyStatusFrom(LicenceStatusType... statuses) {
 
-      for (LicenceStatus status : statuses) {
+      for (LicenceStatusType status : statuses) {
         statusMap.merge(
             status,
             Set.of(Objects.requireNonNull(actionItems.peek())),
@@ -82,9 +82,9 @@ public class LicenceActionBuilder {
 
     @Override
     public SetLicenceTypeForAnAction requiresAnyStatus() {
-      var statuses = Arrays.stream(LicenceStatus.values()).toList();
+      var statuses = Arrays.stream(LicenceStatusType.values()).toList();
 
-      for (LicenceStatus status : statuses) {
+      for (LicenceStatusType status : statuses) {
         statusMap.merge(
             status,
             Set.of(Objects.requireNonNull(actionItems.peek())),
@@ -166,7 +166,7 @@ public class LicenceActionBuilder {
   }
 
   interface SetStatusForAnAction {
-    SetLicenceTypeForAnAction requiresAnyStatusFrom(LicenceStatus... statuses);
+    SetLicenceTypeForAnAction requiresAnyStatusFrom(LicenceStatusType... statuses);
 
     SetLicenceTypeForAnAction requiresAnyStatus();
   }

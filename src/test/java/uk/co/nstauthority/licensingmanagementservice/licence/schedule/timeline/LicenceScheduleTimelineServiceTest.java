@@ -23,7 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
@@ -70,6 +70,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -116,6 +117,9 @@ class LicenceScheduleTimelineServiceTest {
   @Mock
   private Clock clock;
 
+  @Mock
+  private LicenceStatusService licenceStatusService;
+
   @InjectMocks
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
 
@@ -128,7 +132,6 @@ class LicenceScheduleTimelineServiceTest {
     licence = LicenceTestUtil.builder()
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
         .withRoundIssuedOn("1")
-        .withStatus(LicenceStatus.EXTANT)
         .build();
 
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
@@ -149,6 +152,8 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(Optional.of(licenceExpiryDate));
     when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(true);
 
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
     assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .extracting(
             TimelineSummaryCardView::licenceStartDate,
@@ -162,7 +167,7 @@ class LicenceScheduleTimelineServiceTest {
             DateFormatUtil.convertToDisplayText(licenceExpiryDate.getExpiryDate()),
             true,
             licence.getRoundIssuedOn(),
-            licence.getStatus().getDisplayName()
+            LicenceStatusType.EXTANT.getDisplayName()
         );
   }
 
@@ -178,6 +183,8 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(Optional.of(licenceExpiryDate));
     when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(true);
 
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
     assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .extracting(
             TimelineSummaryCardView::licenceStartDate,
@@ -191,7 +198,7 @@ class LicenceScheduleTimelineServiceTest {
             "",
             true,
             licence.getRoundIssuedOn(),
-            licence.getStatus().getDisplayName()
+            LicenceStatusType.EXTANT.getDisplayName()
         );
   }
 
@@ -208,6 +215,8 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(Optional.empty());
     when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(false);
 
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
     assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .extracting(TimelineSummaryCardView::licenceEndedDate)
         .isEqualTo("1 January 2027 (2 years 1 day)");
@@ -221,6 +230,8 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail)).thenReturn(licenceStartDate);
     when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(Optional.empty());
     when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(false);
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
     assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .extracting(TimelineSummaryCardView::licenceEndedDate)
@@ -244,6 +255,8 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(false);
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
 
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
     assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .extracting(TimelineSummaryCardView::finalTermEndDate)
         .isEqualTo("1 January 2026 (1 year 1 day)");
@@ -258,6 +271,8 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(Optional.empty());
     when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(false);
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
     assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .extracting(TimelineSummaryCardView::finalTermEndDate)

@@ -17,7 +17,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
@@ -26,6 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -45,6 +46,9 @@ class LicenceActionServiceTest {
 
   @Mock
   private Environment environment;
+
+  @Mock
+  private LicenceStatusService licenceStatusService;
 
   @InjectMocks
   private LicenceActionService licenceActionService;
@@ -66,8 +70,9 @@ class LicenceActionServiceTest {
     var licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.CARBON_STORAGE)
-        .withStatus(LicenceStatus.EXTANT)
         .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
     var teamRole = TeamRoleTestUtil.newBuilder()
         .withRole(Role.OFFLINE_LICENCE_ADMINISTRATOR)
@@ -87,8 +92,9 @@ class LicenceActionServiceTest {
     var licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
-        .withStatus(LicenceStatus.EXTANT)
         .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
     assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
         .doesNotContain(LicenceActionItem.EDIT_LICENCE_DETAILS.toActionItemView(licence));
@@ -99,8 +105,9 @@ class LicenceActionServiceTest {
     var licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
-        .withStatus(LicenceStatus.EXTANT)
         .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
     var teamRole = TeamRoleTestUtil.newBuilder()
         .withRole(Role.SCHEDULE_ADMINISTRATOR)
@@ -128,8 +135,9 @@ class LicenceActionServiceTest {
     var licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
-        .withStatus(LicenceStatus.EXTANT)
         .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
     var teamRole = TeamRoleTestUtil.newBuilder()
         .withRole(Role.SCHEDULE_ADMINISTRATOR)
@@ -157,8 +165,9 @@ class LicenceActionServiceTest {
     var licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
-        .withStatus(LicenceStatus.EXTANT)
         .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
     var teamRole = TeamRoleTestUtil.newBuilder()
         .withRole(Role.SCHEDULE_ADMINISTRATOR)
@@ -186,8 +195,9 @@ class LicenceActionServiceTest {
     var licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.CARBON_STORAGE)
-        .withStatus(LicenceStatus.EXTANT)
         .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
     var teamRole = TeamRoleTestUtil.newBuilder()
         .withRole(Role.OFFLINE_LICENCE_ADMINISTRATOR)
@@ -207,8 +217,9 @@ class LicenceActionServiceTest {
     var licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
-        .withStatus(LicenceStatus.EXTANT)
         .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
     var teamRole = TeamRoleTestUtil
         .newBuilder()
@@ -230,8 +241,9 @@ class LicenceActionServiceTest {
     var licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.METHANE_DRAINAGE)
-        .withStatus(LicenceStatus.EXTANT)
         .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
     var teamRole = TeamRoleTestUtil
         .newBuilder()
         .withRole(Role.SCHEDULE_ADMINISTRATOR)
@@ -248,8 +260,9 @@ class LicenceActionServiceTest {
     var licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
-        .withStatus(LicenceStatus.EXTANT)
         .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
     var teamRole = TeamRoleTestUtil
         .newBuilder()
@@ -271,8 +284,9 @@ class LicenceActionServiceTest {
     var licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
-        .withStatus(LicenceStatus.EXTANT)
         .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
     var teamRole = TeamRoleTestUtil
         .newBuilder()
@@ -291,8 +305,9 @@ class LicenceActionServiceTest {
     var licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.SEAWARD_EXPLORATION)
-        .withStatus(LicenceStatus.EXTANT)
         .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
     var teamRole = TeamRoleTestUtil
         .newBuilder()
@@ -314,8 +329,9 @@ class LicenceActionServiceTest {
     var licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.CARBON_STORAGE)
-        .withStatus(LicenceStatus.EXTANT)
         .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
     var teamRole = TeamRoleTestUtil
         .newBuilder()
@@ -336,8 +352,9 @@ class LicenceActionServiceTest {
     var licence = LicenceTestUtil.builder()
         .withId(1)
         .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
-        .withStatus(LicenceStatus.EXTANT)
         .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
     var teamRole = TeamRoleTestUtil
         .newBuilder()

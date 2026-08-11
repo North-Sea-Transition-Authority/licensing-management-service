@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -26,12 +27,13 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
@@ -51,11 +53,13 @@ class LicenceSearchServiceTest {
   private static final int ORG_GROUP_ID = 5;
   private static final long USER_WUA_ID = 999L;
 
-  private static final Licence SEAWARD_PRODUCTION_LICENCE = buildLicence(1, LicenceType.SEAWARD_PRODUCTION, "P1", LicenceStatus.EXTANT);
-  private static final Licence CARBON_STORAGE_LICENCE = buildLicence(2, LicenceType.CARBON_STORAGE, "CS1", LicenceStatus.EXTANT);
-  private static final Licence CARBON_STORAGE_LICENCE_2 = buildLicence(5, LicenceType.CARBON_STORAGE, "CS2", LicenceStatus.EXTANT);
-  private static final Licence GAS_STORAGE_LICENCE = buildLicence(3, LicenceType.GAS_STORAGE, "GS1", LicenceStatus.EXPIRED);
-  private static final Licence LANDWARD_PRODUCTION_LICENCE = buildLicence(4, LicenceType.LANDWARD_PRODUCTION, "PEDL1", LicenceStatus.SURRENDERED);
+  private static final Map<Integer, LicenceStatusType> LICENCE_STATUSES_BY_ID = new HashMap<>();
+
+  private static final Licence SEAWARD_PRODUCTION_LICENCE = buildLicence(1, LicenceType.SEAWARD_PRODUCTION, "P1", LicenceStatusType.EXTANT);
+  private static final Licence CARBON_STORAGE_LICENCE = buildLicence(2, LicenceType.CARBON_STORAGE, "CS1", LicenceStatusType.EXTANT);
+  private static final Licence CARBON_STORAGE_LICENCE_2 = buildLicence(5, LicenceType.CARBON_STORAGE, "CS2", LicenceStatusType.EXTANT);
+  private static final Licence GAS_STORAGE_LICENCE = buildLicence(3, LicenceType.GAS_STORAGE, "GS1", LicenceStatusType.EXPIRED);
+  private static final Licence LANDWARD_PRODUCTION_LICENCE = buildLicence(4, LicenceType.LANDWARD_PRODUCTION, "PEDL1", LicenceStatusType.SURRENDERED);
 
   private static final ServiceUserDetail serviceUserDetail = ServiceUserDetailTestUtil.newBuilder()
       .withWuaId(USER_WUA_ID)
@@ -76,6 +80,9 @@ class LicenceSearchServiceTest {
   @Mock
   private TeamQueryService teamQueryService;
 
+  @Mock
+  private LicenceStatusService licenceStatusService;
+
   @InjectMocks
   private LicenceSearchService licenceSearchService;
 
@@ -86,8 +93,10 @@ class LicenceSearchServiceTest {
 
   @Test
   void getSearchResultItems_NoFilters_ReturnsAllResults() {
-    when(licenceService.getAllLicences()).thenReturn(List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE));
-    when(licenceResponsibleOrganisationService.getAllByLicenceIn(List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE)))
+    var licences = List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE);
+    when(licenceService.getAllLicences()).thenReturn(licences);
+    when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusMapFor(licences));
+    when(licenceResponsibleOrganisationService.getAllByLicenceIn(licences))
         .thenReturn(List.of());
 
     var result = licenceSearchService.getSearchResultItems(new LicenceSearchFilterForm(), serviceUserDetail);
@@ -103,8 +112,10 @@ class LicenceSearchServiceTest {
 
   @Test
   void getSearchResultItems_FilterByReference_ReturnsFilteredResults() {
+    var licences = List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE, CARBON_STORAGE_LICENCE_2);
     when(licenceService.getAllLicences())
-        .thenReturn(List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE, CARBON_STORAGE_LICENCE_2));
+        .thenReturn(licences);
+    when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusMapFor(licences));
 
     var filterForm = new LicenceSearchFilterForm();
     filterForm.setLicenceReference("s");
@@ -122,8 +133,10 @@ class LicenceSearchServiceTest {
 
   @Test
   void getSearchResultItems_FilterByLicenceType_ReturnsFilteredResults() {
+    var licences = List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE, CARBON_STORAGE_LICENCE_2, LANDWARD_PRODUCTION_LICENCE);
     when(licenceService.getAllLicences())
-        .thenReturn(List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE, CARBON_STORAGE_LICENCE_2, LANDWARD_PRODUCTION_LICENCE));
+        .thenReturn(licences);
+    when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusMapFor(licences));
 
     var filterForm = new LicenceSearchFilterForm();
     filterForm.setLicenceTypes(List.of(LicenceType.CARBON_STORAGE.name(), LicenceType.LANDWARD_PRODUCTION.name()));
@@ -142,11 +155,13 @@ class LicenceSearchServiceTest {
 
   @Test
   void getSearchResultItems_FilterByLicenceStatus_ReturnsFilteredResults() {
+    var licences = List.of(SEAWARD_PRODUCTION_LICENCE, GAS_STORAGE_LICENCE, LANDWARD_PRODUCTION_LICENCE);
     when(licenceService.getAllLicences())
-        .thenReturn(List.of(SEAWARD_PRODUCTION_LICENCE, GAS_STORAGE_LICENCE, LANDWARD_PRODUCTION_LICENCE));
+        .thenReturn(licences);
+    when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusMapFor(licences));
 
     var filterForm = new LicenceSearchFilterForm();
-    filterForm.setLicenceStatuses(List.of(LicenceStatus.EXPIRED.name(), LicenceStatus.SURRENDERED.name()));
+    filterForm.setLicenceStatuses(List.of(LicenceStatusType.EXPIRED.name(), LicenceStatusType.SURRENDERED.name()));
 
     var result = licenceSearchService.getSearchResultItems(filterForm, serviceUserDetail);
 
@@ -164,6 +179,7 @@ class LicenceSearchServiceTest {
     var licences = List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE, GAS_STORAGE_LICENCE, LANDWARD_PRODUCTION_LICENCE);
 
     when(licenceService.getAllLicences()).thenReturn(licences);
+    when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusMapFor(licences));
     var lro1 = buildLicenceResponsibleOrganisation(SEAWARD_PRODUCTION_LICENCE, ORG_UNIT_ID_ALPHA);
     var lro3 = buildLicenceResponsibleOrganisation(GAS_STORAGE_LICENCE, ORG_UNIT_ID_BETA);
     when(licenceResponsibleOrganisationService.getAllByLicenceIn(licences))
@@ -189,6 +205,7 @@ class LicenceSearchServiceTest {
     var licences = List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE, GAS_STORAGE_LICENCE);
 
     when(licenceService.getAllLicences()).thenReturn(licences);
+    when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusMapFor(licences));
     var lro1 = buildLicenceResponsibleOrganisation(SEAWARD_PRODUCTION_LICENCE, ORG_UNIT_ID_ALPHA);
     var lro2 = buildLicenceResponsibleOrganisation(CARBON_STORAGE_LICENCE, ORG_UNIT_ID_BETA);
     when(licenceResponsibleOrganisationService.getAllByLicenceIn(licences))
@@ -217,6 +234,7 @@ class LicenceSearchServiceTest {
 
     when(teamQueryService.userIsInRegulatorTeam(USER_WUA_ID)).thenReturn(false);
     when(licenceService.getAllLicences()).thenReturn(licences);
+    when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusMapFor(licences));
     var lro1 = buildLicenceResponsibleOrganisation(SEAWARD_PRODUCTION_LICENCE, ORG_UNIT_ID_ALPHA);
     var lro2 = buildLicenceResponsibleOrganisation(CARBON_STORAGE_LICENCE, ORG_UNIT_ID_BETA);
     when(licenceResponsibleOrganisationService.getAllByLicenceIn(licences))
@@ -254,6 +272,7 @@ class LicenceSearchServiceTest {
 
     when(teamQueryService.userIsInRegulatorTeam(USER_WUA_ID)).thenReturn(false);
     when(licenceService.getAllLicences()).thenReturn(licences);
+    when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusMapFor(licences));
     when(licenceResponsibleOrganisationService.getAllByLicenceIn(licences))
         .thenReturn(List.of());
     when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of());
@@ -333,13 +352,20 @@ class LicenceSearchServiceTest {
     assertThat(result).isEmpty();
   }
 
-  private static Licence buildLicence(Integer id, LicenceType licenceType, String ref, LicenceStatus status) {
-    return LicenceTestUtil.builder()
+  private static Licence buildLicence(Integer id, LicenceType licenceType, String ref, LicenceStatusType status) {
+    var licence = LicenceTestUtil.builder()
         .withId(id)
         .withLicenceType(licenceType)
         .withLicenceReference(ref)
-        .withStatus(status)
         .build();
+    LICENCE_STATUSES_BY_ID.put(id, status);
+    return licence;
+  }
+
+  private static Map<Integer, LicenceStatusType> statusMapFor(List<Licence> licences) {
+    var statusMap = new HashMap<Integer, LicenceStatusType>();
+    licences.forEach(licence -> statusMap.put(licence.getId(), LICENCE_STATUSES_BY_ID.get(licence.getId())));
+    return statusMap;
   }
 
   private static LicenceResponsibleOrganisation buildLicenceResponsibleOrganisation(Licence licence,
@@ -359,7 +385,7 @@ class LicenceSearchServiceTest {
         .withCaptionText(licence.getType().getDisplayName())
         .withDataItemRow(SummaryDataView.newBuilder()
             .addStringValue("Licensee(s)", String.join(", ", licensees))
-            .addStringValue("Status", licence.getStatus().getDisplayName())
+            .addStringValue("Status", LICENCE_STATUSES_BY_ID.get(licence.getId()).getDisplayName())
             .build())
         .build();
   }

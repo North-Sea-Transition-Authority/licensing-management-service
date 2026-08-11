@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.internalapi;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
@@ -10,7 +11,8 @@ import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSe
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 
-@RestController("/internal/api/licences")
+@RestController
+@RequestMapping("/internal/api/licences")
 public class LicenceInternalApiRestController {
 
   private final LicenceInternalApiService licenceInternalApiService;

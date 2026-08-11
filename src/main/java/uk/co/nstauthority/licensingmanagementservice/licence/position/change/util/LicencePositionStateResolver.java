@@ -65,7 +65,7 @@ public final class LicencePositionStateResolver {
     return currentState;
   }
 
-  private static LicencePositionState applyChange(LicencePositionState state, PositionChange change) {
+  static LicencePositionState applyChange(LicencePositionState state, PositionChange change) {
     if (Objects.equals(change.changeType(), LicencePositionChangeType.REMOVE_CHANGE)) {
       return state;
     }
@@ -108,14 +108,14 @@ public final class LicencePositionStateResolver {
       LicencePositionState state,
       List<SetEquityOperation> setEquityOperations
   ) {
-    var equityByOrganisationId = new HashMap<Integer, BigDecimal>();
+    var equityByOrganisationId = new HashMap<>(state.equityByOrganisationId());
     for (var setEquityOperation : setEquityOperations) {
       equityByOrganisationId.put(setEquityOperation.transferTo(), setEquityOperation.equity());
     }
     return state.withEquityByOrganisationId(equityByOrganisationId);
   }
 
-  private static LicencePositionState applyTransferEquity(
+  static LicencePositionState applyTransferEquity(
       LicencePositionState state,
       TransferEquityOperation transferEquityOperation
   ) {
@@ -141,7 +141,9 @@ public final class LicencePositionStateResolver {
       equityByOrganisationId.put(transferFrom, remainingEquity);
     }
 
-    equityByOrganisationId.merge(transferTo, transferEquity, BigDecimal::add);
+    if (transferEquity.signum() > 0) {
+      equityByOrganisationId.merge(transferTo, transferEquity, BigDecimal::add);
+    }
 
     return state.withEquityByOrganisationId(equityByOrganisationId);
   }

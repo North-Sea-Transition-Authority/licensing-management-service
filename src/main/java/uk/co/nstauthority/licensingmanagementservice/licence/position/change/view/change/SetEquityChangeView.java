@@ -6,13 +6,15 @@ import java.util.List;
 
 public record SetEquityChangeView(
     List<SetEquityRow> rows,
-    @Nullable String changeType
+    @Nullable String changeType,
+    @Nullable String updateUrl
 ) implements LicencePositionChangeView {
 
   @Override
   public LicencePositionChangeView merge(LicencePositionChangeView other) {
+    var otherView = (SetEquityChangeView) other;
     var combined = new ArrayList<>(rows);
-    combined.addAll(((SetEquityChangeView) other).rows());
-    return new SetEquityChangeView(combined, changeType);
+    combined.addAll(otherView.rows());
+    return new SetEquityChangeView(combined, changeType, updateUrl != null ? updateUrl : otherView.updateUrl());
   }
 }

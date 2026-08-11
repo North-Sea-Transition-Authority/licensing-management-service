@@ -1,11 +1,13 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.transferequity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.validation.BeanPropertyBindingResult;
@@ -33,8 +35,11 @@ class LicencePositionTransferEquityFormValidatorTest {
     var hasErrors = validator.hasErrors(form, bindingResult);
 
     assertThat(bindingResult.getFieldErrors())
-        .extracting(FieldError::getField)
-        .contains("transferFrom", "transferTo", "equity.inputValue");
+        .extracting(FieldError::getField, FieldError::getDefaultMessage)
+        .contains(
+            tuple("transferFrom", "Select the organisation equity is being transferred from"),
+            tuple("transferTo", "Select the organisation equity is being transferred to"),
+            tuple("equity.inputValue", "Enter the equity amount being transferred as a percentage"));
     assertThat(hasErrors).isTrue();
   }
 
@@ -47,8 +52,10 @@ class LicencePositionTransferEquityFormValidatorTest {
     var hasErrors = validator.hasErrors(form, bindingResult);
 
     assertThat(bindingResult.getFieldErrors("transferTo"))
-        .extracting(FieldError::getCode)
-        .contains("transferTo.sameAsTransferFrom");
+        .extracting(FieldError::getCode, FieldError::getDefaultMessage)
+        .containsExactly(tuple(
+            "transferTo.sameAsTransferFrom",
+            "The organisation equity is transferred to must be different from the organisation it is transferred from"));
     assertThat(hasErrors).isTrue();
   }
 
@@ -60,24 +67,28 @@ class LicencePositionTransferEquityFormValidatorTest {
 
     validator.hasErrors(form, bindingResult);
 
-    assertThat(bindingResult.hasFieldErrors("equity.inputValue")).isTrue();
+    assertThat(bindingResult.getFieldErrors("equity.inputValue"))
+        .extracting(FieldError::getDefaultMessage)
+        .containsExactly("Equity amount must be more than 0%");
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {
-      "-1",
-      "0",
-      "100.01",
-      "1.12345678901"
+  @CsvSource({
+      "-1, Equity amount must be more than 0%",
+      "0, Equity amount must be more than 0%",
+      "100.01, Equity amount must be 100% or less",
+      "1.12345678901, Equity amount must have 10 decimal places or fewer"
   })
-  void hasErrors_whenEquityInvalid_rejectsEquityField(String invalidEquity) {
+  void hasErrors_whenEquityInvalid_rejectsEquityFieldWithMessage(String invalidEquity, String expectedMessage) {
     form.setTransferFrom("123");
     form.setTransferTo("456");
     form.getEquity().setInputValue(invalidEquity);
 
     validator.hasErrors(form, bindingResult);
 
-    assertThat(bindingResult.hasFieldErrors("equity.inputValue")).isTrue();
+    assertThat(bindingResult.getFieldErrors("equity.inputValue"))
+        .extracting(FieldError::getDefaultMessage)
+        .containsExactly(expectedMessage);
   }
 
   @ParameterizedTest

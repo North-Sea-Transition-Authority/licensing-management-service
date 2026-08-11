@@ -79,7 +79,19 @@
       <@changeHeading change=change headingText="Set equity"/>
     </#assign>
 
-    <@fdsSummaryList.summaryListCard headingText=headingText summaryListId="set-equity">
+    <#assign cardActions>
+        <@fdsSummaryList.summaryListCardActionList>
+            <#if change.updateUrl()?has_content>
+                <@fdsSummaryList.summaryListCardActionItem
+                itemUrl=springUrl(change.updateUrl())
+                itemText="Correct"
+                itemScreenReaderText="set equity change"
+                />
+            </#if>
+        </@fdsSummaryList.summaryListCardActionList>
+    </#assign>
+
+    <@fdsSummaryList.summaryListCard headingText=headingText summaryListId="set-equity" cardActionsContent=cardActions>
         <#list change.rows() as row>
             <@fdsSummaryList.summaryListRowNoAction keyText=row.organisationName()>
                 ${row.equity()}%
@@ -93,7 +105,19 @@
       <@changeHeading change=change headingText="Transfer equity"/>
     </#assign>
 
-    <@fdsSummaryList.summaryListCard headingText=headingText summaryListId="transfer-equity">
+    <#assign cardActions>
+        <@fdsSummaryList.summaryListCardActionList>
+            <#if change.updateUrl()?has_content>
+                <@fdsSummaryList.summaryListCardActionItem
+                itemUrl=springUrl(change.updateUrl())
+                itemText="Correct"
+                itemScreenReaderText="equity transfer change"
+                />
+            </#if>
+        </@fdsSummaryList.summaryListCardActionList>
+    </#assign>
+
+    <@fdsSummaryList.summaryListCard headingText=headingText summaryListId="transfer-equity" cardActionsContent=cardActions>
       <table class="govuk-table govuk-!-margin-top-2 govuk-!-margin-bottom-0">
         <thead class="govuk-table__head">
         <tr class="govuk-table__row">
@@ -105,8 +129,14 @@
         <tbody class="govuk-table__body">
         <#list change.holdings() as holding>
           <tr class="govuk-table__row">
-            <td class="govuk-table__cell">${holding.transferFromOrganisationName()}</td>
-            <td class="govuk-table__cell">${holding.transferToOrganisationName()}</td>
+            <td class="govuk-table__cell">
+              <div>${holding.transferFromOrganisationName()}</div>
+              <div class="govuk-hint govuk-!-margin-bottom-0">before this position they had ${holding.transferFromStartingEquity()}%</div>
+            </td>
+            <td class="govuk-table__cell">
+              <div>${holding.transferToOrganisationName()}</div>
+              <div class="govuk-hint govuk-!-margin-bottom-0">before this position they had ${holding.transferToStartingEquity()}%</div>
+            </td>
             <td class="govuk-table__cell govuk-table__cell--numeric">${holding.equity()}%</td>
           </tr>
         </#list>

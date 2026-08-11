@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Set;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
@@ -166,7 +166,7 @@ class LicencePositionStateResolverTest {
     assertThat(result.currentState(first.getId()).equityByOrganisationId())
         .isEqualTo(Map.of(1, new BigDecimal("50"), 2, new BigDecimal("50")));
     assertThat(result.currentState(second.getId()).equityByOrganisationId())
-        .isEqualTo(Map.of(1, new BigDecimal("30"), 3, new BigDecimal("70")));
+        .isEqualTo(Map.of(1, new BigDecimal("30"), 2, new BigDecimal("50"), 3, new BigDecimal("70")));
   }
 
   @Test

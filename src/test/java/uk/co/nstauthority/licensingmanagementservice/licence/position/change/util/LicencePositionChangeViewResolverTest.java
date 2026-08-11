@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.ut
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -10,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
@@ -22,6 +25,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityRow;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityChangeHoldingView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityChangeView;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 class LicencePositionChangeViewResolverTest {
 
@@ -34,6 +40,13 @@ class LicencePositionChangeViewResolverTest {
   private static final Map<UUID, String> FEATURE_NAMES = Map.of(
       FIRST_FEATURE_ID, "30/1a",
       SECOND_FEATURE_ID, "30/2");
+
+  private static final int SET_EQUITY_ORG_ID = 300;
+  private static final String SET_EQUITY_ORG_NAME = "Set Equity Org Ltd";
+  private static final int TRANSFER_FROM_ID = 500;
+  private static final int TRANSFER_TO_ID = 600;
+  private static final String TRANSFER_FROM_NAME = "Transfer From Org Ltd";
+  private static final String TRANSFER_TO_NAME = "Transfer To Org Ltd";
 
   @Test
   void getChangeViews_filtersChangesNotOnCurrentPosition() {
@@ -333,7 +346,248 @@ class LicencePositionChangeViewResolverTest {
     assertThat(setEquityChangeView.rows())
         .singleElement()
         .extracting(SetEquityRow::organisationName)
-        .isEqualTo("");
+        .isEqualTo("Not available");
+  }
+
+  @Test
+  void buildSetEquityChangeView_whenExecutedAddChange_buildsViewWithRowChangeTypeAndUpdateUrl() {
+    var correctionId = UUID.randomUUID();
+    var licencePositionId = UUID.randomUUID();
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(correctionId, licencePositionId);
+
+    var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
+
+    var expected = new SetEquityChangeView(
+        List.of(new SetEquityRow(SET_EQUITY_ORG_NAME, BigDecimal.valueOf(75))),
+        LicencePositionChangeType.ADD_CHANGE,
+        ReverseRouter.route(on(LicencePositionSetEquityController.class)
+            .renderSummaryForExecutedPosition(correctionId, licencePositionId, null)));
+
+    assertThat(view).isEqualTo(expected);
+  }
+
+  @Test
+  void buildSetEquityChangeView_whenExecutedUpdateChangeOperations_buildsUpdateUrlToExecutedSummary() {
+    var correctionId = UUID.randomUUID();
+    var licencePositionId = UUID.randomUUID();
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(correctionId, licencePositionId);
+
+    var view = setEquityChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, urlContext);
+
+    assertThat(view.updateUrl()).isEqualTo(ReverseRouter.route(on(LicencePositionSetEquityController.class)
+        .renderSummaryForExecutedPosition(correctionId, licencePositionId, null)));
+  }
+
+  @Test
+  void buildSetEquityChangeView_whenAddedPositionAddChange_buildsUpdateUrlToAddedSummary() {
+    var correctionId = UUID.randomUUID();
+    var licencePositionCorrectionId = UUID.randomUUID();
+    var urlContext = PositionChangeUrlContext.forAddedPosition(correctionId, licencePositionCorrectionId);
+
+    var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
+
+    assertThat(view.updateUrl()).isEqualTo(ReverseRouter.route(on(LicencePositionSetEquityController.class)
+        .renderSummaryForAddedPosition(correctionId, licencePositionCorrectionId, null)));
+  }
+
+  @Test
+  void buildSetEquityChangeView_whenNoUrlContext_hasNoUpdateUrl() {
+    var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, null);
+    assertThat(view.updateUrl()).isNull();
+  }
+
+  @Test
+  void buildSetEquityChangeView_whenUntouchedExecutedChange_hasNoUpdateUrl() {
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID());
+    var view = setEquityChangeView(null, urlContext);
+
+    assertThat(view.updateUrl()).isNull();
+  }
+
+  @Test
+  void getChangeViews_buildsTransferEquityChangeView() {
+    var previousPosition = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
+    var currentPosition = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
+    var urlContext = PositionChangeUrlContext.forAddedPosition(previousPosition.getId(), currentPosition.getId());
+
+    var previousChronological = ChronologicalPositionTestUtil.live(
+        previousPosition,
+        new SetEquityOperation(TRANSFER_FROM_ID, BigDecimal.valueOf(100)));
+    var currentChronological = ChronologicalPositionTestUtil.live(
+        currentPosition,
+        LicenceOperation.newTransferEquityOperation()
+            .withTransferFrom(TRANSFER_FROM_ID)
+            .withTransferTo(TRANSFER_TO_ID)
+            .withEquity(BigDecimal.valueOf(30))
+            .build());
+
+    var chronologicalPositions = List.of(previousChronological, currentChronological);
+    var result = LicencePositionChangeViewResolver.getChangeViews(
+        currentPosition.getId(),
+        chronologicalPositions,
+        LicencePositionStateResolver.resolve(chronologicalPositions),
+        Map.of(TRANSFER_FROM_ID, TRANSFER_FROM_NAME, TRANSFER_TO_ID, TRANSFER_TO_NAME),
+        null,
+        urlContext
+    );
+
+    var view = (TransferEquityChangeView) result.get(LicenceOperation.TRANSFER_EQUITY);
+
+    var expected = new TransferEquityChangeView(
+        List.of(new TransferEquityChangeHoldingView(
+            TRANSFER_FROM_NAME, BigDecimal.valueOf(100), BigDecimal.valueOf(70),
+            TRANSFER_TO_NAME, BigDecimal.ZERO, BigDecimal.valueOf(30),
+            BigDecimal.valueOf(30), null)),
+        null,
+        null);
+
+    assertThat(view).isEqualTo(expected);
+  }
+
+  @Test
+  void getChangeViews_whenTransferEquityRetainsBeneficialInterest_passesFlagThrough() {
+    var view = transferEquityChangeView(null, null, true);
+    assertThat(view.holdings().getFirst().retainBeneficialInterest()).isTrue();
+  }
+
+  @Test
+  void getChangeViews_whenTransferEquityOrganisationNamesNotFound_usesEmptyNames() {
+    var previousPosition = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
+    var currentPosition = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
+    var urlContext = PositionChangeUrlContext.forAddedPosition(previousPosition.getId(), currentPosition.getId());
+
+    var previousChronological = ChronologicalPositionTestUtil.live(
+        previousPosition,
+        new SetEquityOperation(TRANSFER_FROM_ID, BigDecimal.valueOf(100)));
+    var currentChronological = ChronologicalPositionTestUtil.live(
+        currentPosition,
+        LicenceOperation.newTransferEquityOperation()
+            .withTransferFrom(TRANSFER_FROM_ID)
+            .withTransferTo(TRANSFER_TO_ID)
+            .withEquity(BigDecimal.valueOf(30))
+            .build());
+
+    var chronologicalPositions = List.of(previousChronological, currentChronological);
+    var result = LicencePositionChangeViewResolver.getChangeViews(
+        currentPosition.getId(),
+        chronologicalPositions,
+        LicencePositionStateResolver.resolve(chronologicalPositions),
+        Map.of(),
+        null,
+        urlContext
+    );
+
+    var view = (TransferEquityChangeView) result.get(LicenceOperation.TRANSFER_EQUITY);
+
+    var holding = view.holdings().getFirst();
+    assertThat(holding.transferFromOrganisationName()).isEqualTo("Not available");
+    assertThat(holding.transferToOrganisationName()).isEqualTo("Not available");
+  }
+
+  @Test
+  void buildTransferEquityChangeView_whenExecutedAddChange_buildsUpdateUrlToExecutedSummary() {
+    var correctionId = UUID.randomUUID();
+    var licencePositionId = UUID.randomUUID();
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(correctionId, licencePositionId);
+
+    var view = transferEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext, null);
+
+    assertThat(view.updateUrl()).isEqualTo(ReverseRouter.route(on(LicencePositionTransferEquityController.class)
+        .renderSummaryForExecutedPosition(correctionId, licencePositionId, null)));
+  }
+
+  @Test
+  void buildTransferEquityChangeView_whenAddedPositionUpdateChangeOperations_buildsUpdateUrlToAddedSummary() {
+    var correctionId = UUID.randomUUID();
+    var licencePositionCorrectionId = UUID.randomUUID();
+    var urlContext = PositionChangeUrlContext.forAddedPosition(correctionId, licencePositionCorrectionId);
+
+    var view = transferEquityChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, urlContext, null);
+
+    assertThat(view.updateUrl()).isEqualTo(ReverseRouter.route(on(LicencePositionTransferEquityController.class)
+        .renderSummaryForAddedPosition(correctionId, licencePositionCorrectionId, null)));
+  }
+
+  @Test
+  void buildTransferEquityChangeView_whenNoUrlContext_hasNoUpdateUrl() {
+    var view = transferEquityChangeView(LicencePositionChangeType.ADD_CHANGE, null, null);
+    assertThat(view.updateUrl()).isNull();
+  }
+
+  @Test
+  void buildTransferEquityChangeView_whenUntouchedExecutedChange_hasNoUpdateUrl() {
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID());
+    var view = transferEquityChangeView(null, urlContext, null);
+
+    assertThat(view.updateUrl()).isNull();
+  }
+
+  private SetEquityChangeView setEquityChangeView(String changeType, PositionChangeUrlContext urlContext) {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
+
+    var change = new PositionChange(
+        UUID.randomUUID().toString(),
+        1,
+        changeType,
+        List.of(new SetEquityOperation(SET_EQUITY_ORG_ID, BigDecimal.valueOf(75))));
+    var currentChronologicalPosition = ChronologicalPosition.fromLicencePosition(
+        currentLicencePosition,
+        currentLicencePosition.getPositionDate(),
+        currentLicencePosition.getPositionDateOrder(),
+        List.of(change));
+
+    var chronologicalPositions = List.of(currentChronologicalPosition);
+    var result = LicencePositionChangeViewResolver.getChangeViews(
+        currentLicencePosition.getId(),
+        chronologicalPositions,
+        LicencePositionStateResolver.resolve(chronologicalPositions),
+        Map.of(SET_EQUITY_ORG_ID, SET_EQUITY_ORG_NAME),
+        Map.of(),
+        urlContext
+    );
+
+    return (SetEquityChangeView) result.get(LicenceOperation.SET_EQUITY);
+  }
+
+  private TransferEquityChangeView transferEquityChangeView(
+      String changeType,
+      PositionChangeUrlContext urlContext,
+      Boolean retainBeneficialInterest
+  ) {
+    var previousPosition = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
+    var currentPosition = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
+
+    var previousChronological = ChronologicalPositionTestUtil.live(
+        previousPosition,
+        new SetEquityOperation(TRANSFER_FROM_ID, BigDecimal.valueOf(100)));
+
+    var transferChange = new PositionChange(
+        UUID.randomUUID().toString(),
+        1,
+        changeType,
+        List.of(LicenceOperation.newTransferEquityOperation()
+            .withTransferFrom(TRANSFER_FROM_ID)
+            .withTransferTo(TRANSFER_TO_ID)
+            .withEquity(BigDecimal.valueOf(30))
+            .withRetainBeneficialInterest(retainBeneficialInterest)
+            .build()));
+    var currentChronological = ChronologicalPosition.fromLicencePosition(
+        currentPosition,
+        currentPosition.getPositionDate(),
+        currentPosition.getPositionDateOrder(),
+        List.of(transferChange));
+
+    var chronologicalPositions = List.of(previousChronological, currentChronological);
+    var result = LicencePositionChangeViewResolver.getChangeViews(
+        currentPosition.getId(),
+        chronologicalPositions,
+        LicencePositionStateResolver.resolve(chronologicalPositions),
+        Map.of(TRANSFER_FROM_ID, TRANSFER_FROM_NAME, TRANSFER_TO_ID, TRANSFER_TO_NAME),
+        null,
+        urlContext
+    );
+
+    return (TransferEquityChangeView) result.get(LicenceOperation.TRANSFER_EQUITY);
   }
 
   @Test

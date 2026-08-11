@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.contact;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -28,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
@@ -70,6 +72,46 @@ class LicenceContactServiceTest {
 
   @Captor
   private ArgumentCaptor<LicenceContact> contactCaptor;
+
+  @Test
+  void hasContactForLicensee_whenContactExistsForThatLicence_returnsTrue() {
+    var licensee = licensee();
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of(contact(licensee, "licensing@example.com")));
+
+    assertThat(licenceContactService.hasContactForLicensee(applicationDetail(LICENCE, ORG_ID))).isTrue();
+  }
+
+  @Test
+  void hasContactForLicensee_whenLicenseeHasNoContactAtAll_returnsFalse() {
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of());
+
+    assertThat(licenceContactService.hasContactForLicensee(applicationDetail(LICENCE, ORG_ID))).isFalse();
+  }
+
+  @Test
+  void hasContactForLicensee_whenContactIsOnlyOnAnotherLicence_returnsFalse() {
+    var licenseeOnOtherLicence = licenseeOnLicence(otherLicence());
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of(contact(licenseeOnOtherLicence, "licensing@example.com")));
+
+    assertThat(licenceContactService.hasContactForLicensee(applicationDetail(LICENCE, ORG_ID))).isFalse();
+  }
+
+  @Test
+  void hasContactForLicensee_whenNoResponsibleOrganisation_returnsFalseWithoutQuerying() {
+    assertThat(licenceContactService.hasContactForLicensee(applicationDetail(LICENCE, null))).isFalse();
+
+    verifyNoInteractions(licenceContactRepository);
+  }
+
+  @Test
+  void hasContactForLicensee_whenNoLicence_returnsFalseWithoutQuerying() {
+    assertThat(licenceContactService.hasContactForLicensee(applicationDetail(null, ORG_ID))).isFalse();
+
+    verifyNoInteractions(licenceContactRepository);
+  }
 
   @Test
   void getIndustryContactsTable_whenUserHasNoOrgUnits_returnsEmptyTable() {
@@ -484,6 +526,13 @@ class LicenceContactServiceTest {
     licensee.setResponsibleOrganisationId(ORG_ID);
     licensee.setManagedByLms(false);
     return licensee;
+  }
+
+  private LicenceApplicationDetail applicationDetail(Licence licence, Integer responsibleOrganisationUnitId) {
+    var applicationDetail = mock(LicenceApplicationDetail.class);
+    when(applicationDetail.getLicence()).thenReturn(licence);
+    when(applicationDetail.getResponsibleOrganisationUnitId()).thenReturn(responsibleOrganisationUnitId);
+    return applicationDetail;
   }
 
   private static LicenceContact contact(LicenceResponsibleOrganisation licensee, String email) {

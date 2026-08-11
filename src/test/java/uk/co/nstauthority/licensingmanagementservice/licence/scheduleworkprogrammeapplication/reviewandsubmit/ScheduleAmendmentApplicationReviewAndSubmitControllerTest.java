@@ -1,10 +1,15 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.reviewandsubmit;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -28,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
@@ -50,6 +56,9 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
 
   @MockitoBean
   ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService;
+
+  @MockitoBean
+  LicenceContactService licenceContactService;
 
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail;
   private static final UUID SCHEDULE_APPLICATION_DETAIL_ID = UUID.randomUUID();
@@ -127,6 +136,90 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
         .andExpect(model().attribute("isSubmittable", false));
   }
 
+  @Test
+  void getReviewAndSubmit_whenLicenseeHasNoContact_cannotSubmit() throws Exception {
+    var applicationDetailId = scheduleWorkProgrammeApplicationDetail.getId();
+    mockScheduleWorkProgrammeApplicationDetailScenario(applicationDetailId);
+    when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
+    when(scheduleWorkProgrammeApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
+    when(licenceContactService.hasContactForLicensee(scheduleWorkProgrammeApplicationDetail)).thenReturn(false);
+
+    mockMvc
+        .perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
+            applicationDetailId,
+            null,
+            null
+        )))
+            .with(user(USER)))
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("isSubmittable", true))
+        .andExpect(model().attribute("hasLicenceContact", false));
+  }
+
+  @Test
+  void getReviewAndSubmit_whenLicenseeHasNoContact_rendersErrorBannerAndHidesSubmit() throws Exception {
+    var applicationDetailId = scheduleWorkProgrammeApplicationDetail.getId();
+    mockScheduleWorkProgrammeApplicationDetailScenario(applicationDetailId);
+    when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
+    when(scheduleWorkProgrammeApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
+    when(scheduleWorkProgrammeApplicationService.userCanSubmitApplication(any(), any())).thenReturn(true);
+    when(licenceContactService.hasContactForLicensee(scheduleWorkProgrammeApplicationDetail)).thenReturn(false);
+
+    mockMvc
+        .perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
+            applicationDetailId,
+            null,
+            null
+        )))
+            .with(user(USER)))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("This application cannot be submitted as there is no contact for the licensee.")))
+        .andExpect(content().string(containsString("Provide a contact for the submitting licensee in the Licence contacts list.")))
+        .andExpect(content().string(containsString("govuk-error-summary")))
+        .andExpect(content().string(not(containsString("value=\"Submit\""))));
+  }
+
+  @Test
+  void getReviewAndSubmit_whenLicenseeHasContact_rendersNoErrorBannerAndShowsSubmit() throws Exception {
+    var applicationDetailId = scheduleWorkProgrammeApplicationDetail.getId();
+    mockScheduleWorkProgrammeApplicationDetailScenario(applicationDetailId);
+    when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
+    when(scheduleWorkProgrammeApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
+    when(scheduleWorkProgrammeApplicationService.userCanSubmitApplication(any(), any())).thenReturn(true);
+
+    mockMvc
+        .perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
+            applicationDetailId,
+            null,
+            null
+        )))
+            .with(user(USER)))
+        .andExpect(status().isOk())
+        .andExpect(content().string(not(containsString("This application cannot be submitted as there is no contact for the licensee."))))
+        .andExpect(content().string(containsString("value=\"Submit\"")));
+  }
+
+  @Test
+  void submitApplication_whenLicenseeHasNoContact_doesNotSubmit() throws Exception {
+    var applicationDetailId = scheduleWorkProgrammeApplicationDetail.getId();
+    mockScheduleWorkProgrammeApplicationDetailScenario(applicationDetailId);
+    when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
+    when(scheduleWorkProgrammeApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
+    when(licenceContactService.hasContactForLicensee(scheduleWorkProgrammeApplicationDetail)).thenReturn(false);
+
+    var resultActions = mockMvc
+        .perform(post(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class)
+            .submitApplication(applicationDetailId, null, null, null)))
+            .with(user(USER))
+            .with(csrf()))
+        .andExpect(status().isOk());
+
+    assertRenderPageModelsAttributesArePresent(resultActions, applicationDetailId);
+    resultActions.andExpect(model().attribute("hasLicenceContact", false));
+
+    verify(scheduleWorkProgrammeApplicationService, never()).submitApplication(any(), any());
+  }
+
   private void assertRenderPageModelsAttributesArePresent(ResultActions resultActions, UUID id) throws Exception {
     resultActions
         .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/reviewAndSubmit"))
@@ -142,6 +235,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
         )))
         .andExpect(model().attribute("accordionId", scheduleWorkProgrammeApplicationDetail.getId()))
         .andExpect(model().attributeExists("isSubmittable"))
+        .andExpect(model().attributeExists("hasLicenceContact"))
         .andExpect(model().attributeExists("userCanSubmit"))
         .andExpect(model().attribute("submitterRoleName", Role.APPLICATION_SUBMITTER.getName()))
         .andExpect(model().attribute("breadcrumbs", Map.of(
@@ -155,6 +249,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationDetailId)).thenReturn(scheduleWorkProgrammeApplicationDetail);
     when(licenceScheduleSummarySectionService.getSummarySections(any(), any())).thenReturn(List.of(new SummarySection(1, List.of())));
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(licenceContactService.hasContactForLicensee(scheduleWorkProgrammeApplicationDetail)).thenReturn(true);
   }
 
   @Test

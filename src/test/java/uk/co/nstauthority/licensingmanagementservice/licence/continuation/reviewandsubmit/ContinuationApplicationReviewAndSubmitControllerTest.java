@@ -1,6 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation.reviewandsubmit;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -26,6 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
@@ -49,6 +52,9 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
 
   @MockitoBean
   LicenceContinuationApplication licenceContinuationApplication;
+
+  @MockitoBean
+  LicenceContactService licenceContactService;
 
   private LicenceContinuationApplicationDetail licenceContinuationApplicationDetail;
   private static final UUID LICENCE_CONTINUATION_APPLICATION_DETAIL_ID = UUID.randomUUID();
@@ -118,6 +124,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
     var applicationDetailId = licenceContinuationApplicationDetail.getId();
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
     when(licenceContinuationApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
+    when(licenceContactService.hasContactForLicensee(licenceContinuationApplicationDetail)).thenReturn(true);
 
     when(licenceContinuationApplication.getApplicationReference()).thenReturn("APP-REF-123");
     when(licenceContinuationService.submitApplication(any(), any())).thenReturn(licenceContinuationApplication);
@@ -132,6 +139,46 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
         .andExpect(model().attribute("feedbackUrl", ReverseRouter.route(on(FeedbackController.class).getFeedback(null))))
         .andExpect(model().attribute("workAreaUrl", ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))))
         .andExpect(model().attribute("applicationReference", licenceContinuationApplication.getApplicationReference()));
+  }
+
+  @Test
+  void getReviewAndSubmit_whenLicenseeHasNoContact_cannotSubmit() throws Exception {
+    var applicationDetailId = licenceContinuationApplicationDetail.getId();
+    when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(licenceContinuationApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
+    when(licenceContactService.hasContactForLicensee(licenceContinuationApplicationDetail)).thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class)
+                .getReviewAndSubmit(applicationDetailId, null, null)))
+                .with(user(USER))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("isSubmittable", true))
+        .andExpect(model().attribute("hasLicenceContact", false));
+  }
+
+  @Test
+  void submitApplication_whenLicenseeHasNoContact_doesNotSubmit() throws Exception {
+    var applicationDetailId = licenceContinuationApplicationDetail.getId();
+    when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(licenceContinuationApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
+    when(licenceContactService.hasContactForLicensee(licenceContinuationApplicationDetail)).thenReturn(false);
+
+    var resultActions = mockMvc.perform(
+            post(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class)
+                .submitApplication(applicationDetailId, null, null, null)))
+                .with(user(USER))
+                .with(csrf())
+        )
+        .andExpect(status().isOk());
+
+    assertRenderPageModelsAttributesArePresent(resultActions, applicationDetailId);
+    resultActions.andExpect(model().attribute("hasLicenceContact", false));
+
+    verify(licenceContinuationService, never()).submitApplication(any(), any());
   }
 
   @ParameterizedTest
@@ -202,6 +249,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
         .andExpect(model().attribute("summarySections", continuationSummarySectionService.getSummarySections(licenceContinuationApplicationDetail, null)))
         .andExpect(model().attribute("accordionId", licenceContinuationApplicationDetail.getId()))
         .andExpect(model().attributeExists("isSubmittable"))
+        .andExpect(model().attributeExists("hasLicenceContact"))
         .andExpect(model().attributeExists("userCanSubmit"))
         .andExpect(model().attribute("submitterRoleName", Role.APPLICATION_SUBMITTER.getName()))
         .andExpect(model().attribute("breadcrumbs", Map.of(

@@ -8,6 +8,8 @@ public interface LicenceApplicationDetail {
 
   LicenceApplication getLicenceApplication();
 
+  Licence getLicence();
+
   Integer getResponsibleOrganisationUnitId();
 
   Instant getSubmittedDatetime();

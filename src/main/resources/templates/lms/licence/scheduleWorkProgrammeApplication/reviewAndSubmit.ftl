@@ -12,6 +12,11 @@ pageHeadingClass="govuk-heading-xl"
 pageSize=PageSize.FULL_COLUMN
 extendContainerWidth=true
 breadcrumbs=breadcrumbs>
+    <#if !hasLicenceContact>
+        <@fdsError.singleErrorSummary
+            errorMessage="This application cannot be submitted as there is no contact for the licensee. Provide a contact for the submitting licensee in the Licence contacts list."/>
+    </#if>
+
     <#if !isSubmittable>
       <@banner.summaryMissingInformationNotificationBanner/>
     <#elseif !userCanSubmit>
@@ -25,7 +30,7 @@ breadcrumbs=breadcrumbs>
     <@fdsForm.htmlForm>
         <@scheduleApplicationSummary.scheduleApplicationSummary accordionId=accordionId summarySections=summarySections/>
 
-        <#if isSubmittable && userCanSubmit>
+        <#if isSubmittable && hasLicenceContact && userCanSubmit>
             <@fdsAction.submitButtons
             primaryButtonText="Submit"
             secondaryLinkText="Back to task list"

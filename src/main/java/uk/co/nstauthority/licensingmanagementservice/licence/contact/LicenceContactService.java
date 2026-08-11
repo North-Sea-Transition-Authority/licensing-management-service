@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableValu
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableView;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.Tag;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.TagColour;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
@@ -75,6 +76,19 @@ public class LicenceContactService {
         .toList();
     var nameByOrgUnitId = organisationUnitQueryService.getOrganisationUnitNamesByIds(orgUnitIds);
     return buildContactsTable(licensees, nameByOrgUnitId, orgUnitIds, false, filterForm);
+  }
+
+  public boolean hasContactForLicensee(LicenceApplicationDetail applicationDetail) {
+    var licence = applicationDetail.getLicence();
+    var responsibleOrganisationUnitId = applicationDetail.getResponsibleOrganisationUnitId();
+
+    if (licence == null || responsibleOrganisationUnitId == null) {
+      return false;
+    }
+
+    return licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(responsibleOrganisationUnitId))
+        .stream()
+        .anyMatch(contact -> contact.getLicensee().getLicence().getId().equals(licence.getId()));
   }
 
   private LicenceContactsTableView buildContactsTable(

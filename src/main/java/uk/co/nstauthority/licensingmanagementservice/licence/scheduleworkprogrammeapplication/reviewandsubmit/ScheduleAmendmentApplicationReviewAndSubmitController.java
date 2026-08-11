@@ -18,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil
 import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
@@ -36,16 +37,20 @@ public class ScheduleAmendmentApplicationReviewAndSubmitController {
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final LicenceScheduleSummarySectionService licenceScheduleSummarySectionService;
   private final ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService;
+  private final LicenceContactService licenceContactService;
 
   public ScheduleAmendmentApplicationReviewAndSubmitController(
       LicenceService licenceService,
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
       LicenceScheduleSummarySectionService licenceScheduleSummarySectionService,
-      ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService) {
+      ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService,
+      LicenceContactService licenceContactService
+  ) {
     this.licenceService = licenceService;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.licenceScheduleSummarySectionService = licenceScheduleSummarySectionService;
     this.scheduleWorkProgrammeApplicationTaskListService = scheduleWorkProgrammeApplicationTaskListService;
+    this.licenceContactService = licenceContactService;
   }
 
   @GetMapping
@@ -76,6 +81,7 @@ public class ScheduleAmendmentApplicationReviewAndSubmitController {
         .addObject("summarySections", licenceScheduleSummarySectionService.getSummarySections(applicationDetail, null))
         .addObject("accordionId", applicationDetail.getId())
         .addObject("isSubmittable", isSubmittable)
+        .addObject("hasLicenceContact", licenceContactService.hasContactForLicensee(applicationDetail))
         .addObject("userCanSubmit", scheduleWorkProgrammeApplicationService.userCanSubmitApplication(applicationDetail, user))
         .addObject("submitterRoleName", Role.APPLICATION_SUBMITTER.getName());
 
@@ -100,7 +106,7 @@ public class ScheduleAmendmentApplicationReviewAndSubmitController {
         user
     );
 
-    if (!submittable) {
+    if (!submittable || !licenceContactService.hasContactForLicensee(scheduleWorkProgrammeApplicationDetail)) {
       return getReviewAndSubmitModelAndView(scheduleWorkProgrammeApplicationDetail, submittable, user);
     }
 

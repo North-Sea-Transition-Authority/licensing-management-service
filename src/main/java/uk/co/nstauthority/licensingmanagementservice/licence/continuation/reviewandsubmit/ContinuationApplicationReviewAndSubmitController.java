@@ -18,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil
 import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
@@ -38,19 +39,22 @@ public class ContinuationApplicationReviewAndSubmitController {
   private final ContinuationSummarySectionService continuationSummarySectionService;
   private final LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService;
   private final LicenceScheduleService licenceScheduleService;
+  private final LicenceContactService licenceContactService;
 
   public ContinuationApplicationReviewAndSubmitController(
       LicenceService licenceService,
       LicenceContinuationService licenceContinuationService,
       ContinuationSummarySectionService continuationSummarySectionService,
       LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService,
-      LicenceScheduleService licenceScheduleService
+      LicenceScheduleService licenceScheduleService,
+      LicenceContactService licenceContactService
   ) {
     this.licenceService = licenceService;
     this.licenceContinuationService = licenceContinuationService;
     this.continuationSummarySectionService = continuationSummarySectionService;
     this.licenceContinuationApplicationTaskListService = licenceContinuationApplicationTaskListService;
     this.licenceScheduleService = licenceScheduleService;
+    this.licenceContactService = licenceContactService;
   }
 
   @GetMapping
@@ -79,7 +83,7 @@ public class ContinuationApplicationReviewAndSubmitController {
         user
     );
 
-    if (!submittable) {
+    if (!submittable || !licenceContactService.hasContactForLicensee(licenceContinuationApplicationDetail)) {
       return getReviewAndSubmitModelAndView(licenceContinuationApplicationDetail, submittable, user);
     }
 
@@ -112,6 +116,8 @@ public class ContinuationApplicationReviewAndSubmitController {
         )
         .addObject("accordionId", licenceContinuationApplicationDetail.getId())
         .addObject("isSubmittable", isSubmittable)
+        .addObject("hasLicenceContact",
+            licenceContactService.hasContactForLicensee(licenceContinuationApplicationDetail))
         .addObject("userCanSubmit", licenceContinuationService.userCanSubmitApplication(
             licenceContinuationApplicationDetail, user))
         .addObject("submitterRoleName", Role.APPLICATION_SUBMITTER.getName())

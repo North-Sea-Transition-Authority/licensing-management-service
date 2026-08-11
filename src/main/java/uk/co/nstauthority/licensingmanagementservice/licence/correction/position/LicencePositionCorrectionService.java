@@ -437,7 +437,7 @@ public class LicencePositionCorrectionService {
     replaceAddChangeFor(licencePositionCorrection, SetEquityOperation.class, operations);
   }
 
-  public void replaceAddChangeFor(
+  public LicencePositionCorrection replaceAddChangeFor(
       LicencePositionCorrection licencePositionCorrection,
       Class<? extends LicenceOperation> operationType,
       List<? extends LicenceOperation> operations
@@ -453,7 +453,7 @@ public class LicencePositionCorrectionService {
     }
 
     licencePositionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
-    licencePositionCorrectionRepository.save(licencePositionCorrection);
+    return licencePositionCorrectionRepository.save(licencePositionCorrection);
   }
 
   private List<SetEquityOperation> setEquityOperations(List<LicencePositionChangeType> changes) {

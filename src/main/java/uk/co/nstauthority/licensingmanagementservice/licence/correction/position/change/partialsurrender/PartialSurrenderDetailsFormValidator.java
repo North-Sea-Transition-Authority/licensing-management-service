@@ -10,7 +10,7 @@ import org.springframework.validation.Errors;
 import uk.co.fivium.gisframework.feature.Feature;
 
 @Service
-class PartialSurrenderDetailsFormValidator {
+public class PartialSurrenderDetailsFormValidator {
 
   private static final String FEATURE_IDS_FIELD = "featureIds";
   private static final String FEATURE_IDS_ERROR = "Select the licence blocks being surrendered";

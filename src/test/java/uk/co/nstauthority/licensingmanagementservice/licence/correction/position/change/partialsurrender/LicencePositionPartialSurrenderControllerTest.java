@@ -36,11 +36,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
@@ -115,9 +116,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenBlockFeaturesForExecutedPosition(licencePosition, BLOCK_FEATURES);
-    when(partialSurrenderCorrectionService
-        .getCommittedPartialSurrenderForExecutedPosition(correction, licencePosition))
-        .thenReturn(Optional.empty());
+    givenNoUpdatePositionCorrection(correction, licencePosition);
     when(licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition))
         .thenReturn(POSITION_DATE);
 
@@ -131,28 +130,29 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
             model().attribute("pageCaption", LICENCE.getLicenceReference()),
             model().attribute("surrenderDate", "1 August 2026"),
             model().attribute("blockOptions", BLOCK_OPTIONS),
-            model().attribute("backLinkUrl", ReverseRouter.route(on(LicencePositionAddChangeController.class)
-                .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null))));
+            model().attribute("backLinkUrl", addChangeUrlForExecutedPosition()));
   }
 
   @Test
-  void renderForExecutedPosition_whenSurrenderAlreadyCommitted_prefillsSelectedBlocks() throws Exception {
+  void renderForExecutedPosition_whenSurrenderAlreadyCommitted_prefillsSelectedBlocksAndLinksBackToTaskList()
+      throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenBlockFeaturesForExecutedPosition(licencePosition, BLOCK_FEATURES);
-    when(partialSurrenderCorrectionService
-        .getCommittedPartialSurrenderForExecutedPosition(correction, licencePosition))
-        .thenReturn(Optional.of(LicenceOperation.newPartialSurrenderOperation()
+    givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition,
+        LicenceOperation.newPartialSurrenderOperation()
             .withFeatureIds(List.of(BLOCK_30_1A.getId(), BLOCK_30_2.getId()))
-            .build()));
+            .build());
     when(licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition))
         .thenReturn(POSITION_DATE);
 
     var result = mockMvc.perform(get(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
             .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
             .with(user(regulatorUser)))
-        .andExpect(status().isOk())
+        .andExpectAll(
+            status().isOk(),
+            model().attribute("backLinkUrl", taskListUrl()))
         .andReturn();
 
     var form = (PartialSurrenderDetailsForm) result.getModelAndView().getModel().get("form");
@@ -165,6 +165,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenBlockFeaturesForExecutedPosition(licencePosition, BLOCK_FEATURES);
+    givenNoUpdatePositionCorrection(correction, licencePosition);
     when(licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition))
         .thenReturn(POSITION_DATE);
     when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class), eq(BLOCK_FEATURES)))
@@ -176,7 +177,8 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
         .andExpectAll(
             status().isOk(),
             view().name(VIEW_NAME),
-            model().attributeExists("form", "blockOptions", "surrenderDate", "backLinkUrl"));
+            model().attributeExists("form", "blockOptions", "surrenderDate"),
+            model().attribute("backLinkUrl", addChangeUrlForExecutedPosition()));
 
     verify(partialSurrenderCorrectionService, never())
         .commitPartialSurrenderForExecutedPosition(any(), any(), any());
@@ -184,11 +186,39 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
   }
 
   @Test
-  void submitForExecutedPosition_whenValid_commitsAndRedirectsToPositionPage() throws Exception {
+  void submitForExecutedPosition_whenInvalidAndSurrenderAlreadyCommitted_linksBackToTaskList() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenBlockFeaturesForExecutedPosition(licencePosition, BLOCK_FEATURES);
+    givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition,
+        LicenceOperation.newPartialSurrenderOperation()
+            .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+            .build());
+    when(licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition))
+        .thenReturn(POSITION_DATE);
+    when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class), eq(BLOCK_FEATURES)))
+        .thenReturn(true);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
+            .submitForExecutedPosition(CORRECTION_ID, POSITION_ID, null, null, null, null)))
+            .with(user(regulatorUser)).with(csrf()))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("backLinkUrl", taskListUrl()));
+  }
+
+  @Test
+  void submitForExecutedPosition_whenValid_commitsAndRedirectsToTaskList() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var licencePosition = executedPosition();
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    givenBlockFeaturesForExecutedPosition(licencePosition, BLOCK_FEATURES);
+    givenNoUpdatePositionCorrection(correction, licencePosition);
+    when(partialSurrenderCorrectionService.commitPartialSurrenderForExecutedPosition(
+        eq(correction), eq(licencePosition), any(PartialSurrenderOperation.class)))
+        .thenReturn(updatePositionCorrection(licencePosition));
     when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class),
         eq(BLOCK_FEATURES))).thenReturn(false);
 
@@ -200,8 +230,8 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(CORRECTION_ID, POSITION_ID, null))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+            .renderTaskList(CORRECTION_ID, POSITION_CORRECTION_ID, null, null))));
 
     var captor = ArgumentCaptor.forClass(PartialSurrenderOperation.class);
     verify(partialSurrenderCorrectionService)
@@ -215,9 +245,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenBlockFeaturesForExecutedPosition(licencePosition, List.of());
-    when(partialSurrenderCorrectionService
-        .getCommittedPartialSurrenderForExecutedPosition(correction, licencePosition))
-        .thenReturn(Optional.empty());
+    givenNoUpdatePositionCorrection(correction, licencePosition);
     when(licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition))
         .thenReturn(POSITION_DATE);
 
@@ -246,7 +274,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var positionCorrection = addedPositionCorrection();
     when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
         .thenReturn(positionCorrection);
-    givenBlockFeaturesForAddedPosition(BLOCK_FEATURES);
+    givenBlockFeaturesForAddedPosition(positionCorrection, BLOCK_FEATURES);
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .thenReturn(Optional.empty());
     when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
@@ -259,8 +287,28 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
             view().name(VIEW_NAME),
             model().attribute("surrenderDate", "1 August 2026"),
             model().attribute("blockOptions", BLOCK_OPTIONS),
-            model().attribute("backLinkUrl", ReverseRouter.route(on(LicencePositionAddChangeController.class)
-                .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null))));
+            model().attribute("backLinkUrl", addChangeUrlForAddedPosition()));
+  }
+
+  @Test
+  void renderForAddedPosition_whenSurrenderAlreadyCommitted_linksBackToTaskList() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var positionCorrection = addedPositionCorrection();
+    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
+        .thenReturn(positionCorrection);
+    givenBlockFeaturesForAddedPosition(positionCorrection, BLOCK_FEATURES);
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
+        .thenReturn(Optional.of(LicenceOperation.newPartialSurrenderOperation()
+            .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+            .build()));
+    when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
+            .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            model().attribute("backLinkUrl", taskListUrl()));
   }
 
   @Test
@@ -269,7 +317,9 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var positionCorrection = addedPositionCorrection();
     when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
         .thenReturn(positionCorrection);
-    givenBlockFeaturesForAddedPosition(BLOCK_FEATURES);
+    givenBlockFeaturesForAddedPosition(positionCorrection, BLOCK_FEATURES);
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
+        .thenReturn(Optional.empty());
     when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
     when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class), eq(BLOCK_FEATURES)))
         .thenReturn(true);
@@ -280,18 +330,43 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
         .andExpectAll(
             status().isOk(),
             view().name(VIEW_NAME),
-            model().attributeExists("form", "blockOptions", "surrenderDate", "backLinkUrl"));
+            model().attributeExists("form", "blockOptions", "surrenderDate"),
+            model().attribute("backLinkUrl", addChangeUrlForAddedPosition()));
 
     verify(partialSurrenderCorrectionService, never()).commitPartialSurrender(any(), any());
   }
 
   @Test
-  void submitForAddedPosition_whenValid_commitsAndRedirectsToAddedPositionPage() throws Exception {
+  void submitForAddedPosition_whenInvalidAndSurrenderAlreadyCommitted_linksBackToTaskList() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var positionCorrection = addedPositionCorrection();
     when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
         .thenReturn(positionCorrection);
-    givenBlockFeaturesForAddedPosition(BLOCK_FEATURES);
+    givenBlockFeaturesForAddedPosition(positionCorrection, BLOCK_FEATURES);
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
+        .thenReturn(Optional.of(LicenceOperation.newPartialSurrenderOperation()
+            .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+            .build()));
+    when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
+    when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class), eq(BLOCK_FEATURES)))
+        .thenReturn(true);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
+            .submitForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null, null, null, null)))
+            .with(user(regulatorUser)).with(csrf()))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("backLinkUrl", taskListUrl()));
+  }
+
+  @Test
+  void submitForAddedPosition_whenValid_commitsAndRedirectsToTaskList() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var positionCorrection = addedPositionCorrection();
+    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
+        .thenReturn(positionCorrection);
+    givenBlockFeaturesForAddedPosition(positionCorrection, BLOCK_FEATURES);
     when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class),
         eq(BLOCK_FEATURES))).thenReturn(false);
 
@@ -303,8 +378,8 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+            .renderTaskList(CORRECTION_ID, POSITION_CORRECTION_ID, null, null))));
 
     var captor = ArgumentCaptor.forClass(PartialSurrenderOperation.class);
     verify(partialSurrenderCorrectionService).commitPartialSurrender(eq(positionCorrection), captor.capture());
@@ -341,8 +416,52 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
         .build();
   }
 
-  private void givenBlockFeaturesForAddedPosition(List<Feature> blockFeatures) {
-    when(licencePositionService.getBlockFeaturesOnLicenceOnOrBefore(LICENCE, POSITION_DATE, POSITION_DATE_ORDER))
+  private LicencePositionCorrection updatePositionCorrection(LicencePosition licencePosition) {
+    return LicencePositionCorrectionTestUtil.newBuilder()
+        .withId(POSITION_CORRECTION_ID)
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(licencePosition)
+        .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().build())
+        .build();
+  }
+
+  private void givenBlockFeaturesForAddedPosition(
+      LicencePositionCorrection positionCorrection,
+      List<Feature> blockFeatures
+  ) {
+    when(partialSurrenderCorrectionService.getSurrenderableBlockFeatures(positionCorrection))
         .thenReturn(blockFeatures);
+  }
+
+  private void givenNoUpdatePositionCorrection(LicenceCorrection correction, LicencePosition licencePosition) {
+    when(licencePositionCorrectionService.findUpdatePositionCorrection(correction, licencePosition))
+        .thenReturn(Optional.empty());
+  }
+
+  private void givenStagedSurrenderOnUpdatePositionCorrection(
+      LicenceCorrection correction,
+      LicencePosition licencePosition,
+      PartialSurrenderOperation staged
+  ) {
+    var positionCorrection = updatePositionCorrection(licencePosition);
+    when(licencePositionCorrectionService.findUpdatePositionCorrection(correction, licencePosition))
+        .thenReturn(Optional.of(positionCorrection));
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
+        .thenReturn(Optional.of(staged));
+  }
+
+  private static String addChangeUrlForExecutedPosition() {
+    return ReverseRouter.route(on(LicencePositionAddChangeController.class)
+        .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null));
+  }
+
+  private static String addChangeUrlForAddedPosition() {
+    return ReverseRouter.route(on(LicencePositionAddChangeController.class)
+        .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null));
+  }
+
+  private static String taskListUrl() {
+    return ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+        .renderTaskList(CORRECTION_ID, POSITION_CORRECTION_ID, null, null));
   }
 }

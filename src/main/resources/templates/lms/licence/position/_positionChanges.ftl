@@ -1,31 +1,35 @@
 <#include '../../layout/layout.ftl'>
 
+<#macro changeHeading change headingText>
+  <div style="display: flex; gap: 1rem">
+    ${headingText}
+    <#switch change.changeType()!>
+      <#case "add-change">
+        <@fdsTag.tag tagClass="govuk-tag--green">Added change</@fdsTag.tag>
+      <#break>
+      <#case "update-change-operations">
+        <@fdsTag.tag tagClass="govuk-tag--blue">Corrected change</@fdsTag.tag>
+      <#break>
+      <#case "remove-change">
+        <@fdsTag.tag tagClass="govuk-tag--red">Removed</@fdsTag.tag>
+      <#break>
+    </#switch>
+  </div>
+</#macro>
+
 <#macro administratorChange change>
   <#assign removed>
-      <@fdsTag.tag tagClass="govuk-tag--red">Removed</@fdsTag.tag>
+    <@fdsTag.tag tagClass="govuk-tag--red">Removed</@fdsTag.tag>
   </#assign>
 
   <#assign added>
-      <@fdsTag.tag tagClass="govuk-tag--green">Added</@fdsTag.tag>
+    <@fdsTag.tag tagClass="govuk-tag--green">Added</@fdsTag.tag>
   </#assign>
 
   <#assign isRemoved = (change.changeType()!) == "remove-change">
 
   <#assign headingText>
-    <div style="display: flex; gap: 1rem">
-      Licence administrator change
-      <#switch change.changeType()!>
-        <#case "add-change">
-          <@fdsTag.tag tagClass="govuk-tag--green">Added change</@fdsTag.tag>
-        <#break>
-        <#case "update-change-operations">
-          <@fdsTag.tag tagClass="govuk-tag--blue">Corrected change</@fdsTag.tag>
-        <#break>
-        <#case "remove-change">
-          <@fdsTag.tag tagClass="govuk-tag--red">Removed</@fdsTag.tag>
-        <#break>
-      </#switch>
-    </div>
+    <@changeHeading change=change headingText="Licence administrator change"/>
   </#assign>
 
   <#assign cardActions>
@@ -72,17 +76,7 @@
 
 <#macro setEquityChange change>
     <#assign headingText>
-      <div style="display: flex; gap: 1rem">
-        Set equity
-          <#switch change.changeType()!>
-              <#case "add-change">
-                  <@fdsTag.tag tagClass="govuk-tag--green">Added change</@fdsTag.tag>
-                  <#break>
-              <#case "update-change-operations">
-                  <@fdsTag.tag tagClass="govuk-tag--blue">Corrected change</@fdsTag.tag>
-                  <#break>
-          </#switch>
-      </div>
+      <@changeHeading change=change headingText="Set equity"/>
     </#assign>
 
     <@fdsSummaryList.summaryListCard headingText=headingText summaryListId="set-equity">
@@ -96,17 +90,7 @@
 
 <#macro transferEquityChange change>
     <#assign headingText>
-      <div style="display: flex; gap: 1rem">
-        Transfer equity
-          <#switch change.changeType()!>
-              <#case "add-change">
-                  <@fdsTag.tag tagClass="govuk-tag--green">Added change</@fdsTag.tag>
-                  <#break>
-              <#case "update-change-operations">
-                  <@fdsTag.tag tagClass="govuk-tag--blue">Corrected change</@fdsTag.tag>
-                  <#break>
-          </#switch>
-      </div>
+      <@changeHeading change=change headingText="Transfer equity"/>
     </#assign>
 
     <@fdsSummaryList.summaryListCard headingText=headingText summaryListId="transfer-equity">
@@ -129,4 +113,25 @@
         </tbody>
       </table>
     </@fdsSummaryList.summaryListCard>
+</#macro>
+
+<#macro partialSurrenderChange change>
+  <#assign headingText>
+    <@changeHeading change=change headingText="Partial surrender"/>
+  </#assign>
+
+  <@fdsSummaryList.summaryListCard headingText=headingText summaryListId="partial-surrender">
+    <#if change.surrenderDate()??>
+      <@fdsSummaryList.summaryListRowNoAction keyText="Date of surrender">
+        ${change.surrenderDate()}
+      </@fdsSummaryList.summaryListRowNoAction>
+    </#if>
+    <@fdsSummaryList.summaryListRowNoAction keyText="Blocks to surrender">
+      <dl>
+        <#list change.blockLabels() as blockLabel>
+          <dt>${blockLabel}</dt>
+        </#list>
+      </dl>
+    </@fdsSummaryList.summaryListRowNoAction>
+  </@fdsSummaryList.summaryListCard>
 </#macro>

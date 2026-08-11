@@ -16,11 +16,11 @@ import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
@@ -36,18 +36,15 @@ public class LicencePositionAddChangeController {
   private static final String PAGE_TITLE = "Add change";
 
   private final AddPositionChangeFormValidator addPositionChangeFormValidator;
-  private final LicenceService licenceService;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final LicencePositionService licencePositionService;
 
   public LicencePositionAddChangeController(
       AddPositionChangeFormValidator addPositionChangeFormValidator,
-      LicenceService licenceService,
       LicencePositionCorrectionService licencePositionCorrectionService,
       LicencePositionService licencePositionService
   ) {
     this.addPositionChangeFormValidator = addPositionChangeFormValidator;
-    this.licenceService = licenceService;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.licencePositionService = licencePositionService;
   }
@@ -85,6 +82,8 @@ public class LicencePositionAddChangeController {
           .renderForExecutedPosition(correctionId, licencePositionId, null));
       case TRANSFER_EQUITY -> ReverseRouter.redirect(on(LicencePositionTransferEquityController.class)
           .renderForExecutedPosition(correctionId, licencePositionId, null));
+      case PARTIAL_SURRENDER -> ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
+          .renderForExecutedPosition(correctionId, licencePositionId, null));
     };
   }
 
@@ -120,6 +119,8 @@ public class LicencePositionAddChangeController {
           .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
       case TRANSFER_EQUITY -> ReverseRouter.redirect(on(LicencePositionTransferEquityController.class)
           .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
+      case PARTIAL_SURRENDER -> ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
+          .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
     };
   }
 
@@ -147,11 +148,10 @@ public class LicencePositionAddChangeController {
   }
 
   private Map<String, String> availableChangeTypeOptions(LicenceCorrection correction) {
-    var isCarbonStorage = licenceService.isCarbonStorageLicence(correction.getLicence());
     var availableChangeTypes = Arrays.stream(AddPositionChangeType.values())
-        .filter(changeType -> changeType == AddPositionChangeType.ADMINISTRATOR_CHANGE || isCarbonStorage)
-        .filter(changeType -> changeType != AddPositionChangeType.ADMINISTRATOR_CHANGE || !isCarbonStorage)
+        .filter(changeType -> changeType.isAvailableFor(correction.getLicence().getType()))
         .toList();
+
     return DisplayableEnumOptionUtil.getDisplayableOptions(availableChangeTypes);
   }
 }

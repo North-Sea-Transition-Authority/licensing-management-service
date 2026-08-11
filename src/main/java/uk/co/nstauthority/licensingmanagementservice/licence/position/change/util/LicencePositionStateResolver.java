@@ -12,6 +12,7 @@ import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
@@ -99,6 +100,7 @@ public final class LicencePositionStateResolver {
       case TransferEquityOperation transferEquityOperation ->
           applyTransferEquity(state, transferEquityOperation);
       case SetEquityOperation setEquityOperation -> state;
+      case PartialSurrenderOperation partialSurrenderOperation -> state;
     };
   }
 

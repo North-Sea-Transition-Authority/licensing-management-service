@@ -21,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
@@ -282,7 +283,7 @@ public class TransferEquityCorrectionService {
       changes.add(buildTransferEquityChange(operations, licencePositionCorrectionService.nextChangeOrder(changes)));
     }
 
-    licencePositionCorrection.setPayload(licencePositionCorrectionService.withChanges(payload, changes));
+    licencePositionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
     licencePositionCorrectionRepository.save(licencePositionCorrection);
   }
 }

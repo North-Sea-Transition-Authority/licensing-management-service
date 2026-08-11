@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -17,6 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityRow;
 
@@ -26,6 +29,11 @@ class LicencePositionChangeViewResolverTest {
   private static final int WITHDRAWING_ID = 200;
   private static final String JOINING_NAME = "Joining Org Ltd";
   private static final String WITHDRAWING_NAME = "Withdrawing Org Ltd";
+  private static final UUID FIRST_FEATURE_ID = UUID.randomUUID();
+  private static final UUID SECOND_FEATURE_ID = UUID.randomUUID();
+  private static final Map<UUID, String> FEATURE_NAMES = Map.of(
+      FIRST_FEATURE_ID, "30/1a",
+      SECOND_FEATURE_ID, "30/2");
 
   @Test
   void getChangeViews_filtersChangesNotOnCurrentPosition() {
@@ -43,6 +51,7 @@ class LicencePositionChangeViewResolverTest {
         currentLicencePosition.getId(),
         chronologicalPositions,
         LicencePositionStateResolver.resolve(chronologicalPositions),
+        Map.of(),
         Map.of(),
         null
     );
@@ -70,6 +79,7 @@ class LicencePositionChangeViewResolverTest {
         chronologicalPositions,
         LicencePositionStateResolver.resolve(chronologicalPositions),
         Map.of(JOINING_ID, JOINING_NAME, WITHDRAWING_ID, WITHDRAWING_NAME),
+        Map.of(),
         null
     );
 
@@ -99,6 +109,7 @@ class LicencePositionChangeViewResolverTest {
         chronologicalPositions,
         LicencePositionStateResolver.resolve(chronologicalPositions),
         Map.of(JOINING_ID, JOINING_NAME),
+        Map.of(),
         null
     );
 
@@ -135,6 +146,7 @@ class LicencePositionChangeViewResolverTest {
         chronologicalPositions,
         LicencePositionStateResolver.resolve(chronologicalPositions),
         Map.of(JOINING_ID, JOINING_NAME),
+        Map.of(),
         null
     );
 
@@ -234,6 +246,7 @@ class LicencePositionChangeViewResolverTest {
         chronologicalPositions,
         LicencePositionStateResolver.resolve(chronologicalPositions),
         Map.of(JOINING_ID, JOINING_NAME),
+        Map.of(),
         urlContext
     );
 
@@ -255,6 +268,7 @@ class LicencePositionChangeViewResolverTest {
         chronologicalPositions,
         LicencePositionStateResolver.resolve(chronologicalPositions),
         Map.of(300, "Org"),
+        Map.of(),
         null
     );
 
@@ -284,6 +298,7 @@ class LicencePositionChangeViewResolverTest {
         chronologicalPositions,
         LicencePositionStateResolver.resolve(chronologicalPositions),
         Map.of(300, "Org", 400, "Org2"),
+        Map.of(),
         null
     );
 
@@ -310,6 +325,7 @@ class LicencePositionChangeViewResolverTest {
         chronologicalPositions,
         LicencePositionStateResolver.resolve(chronologicalPositions),
         Map.of(),
+        Map.of(),
         null
     );
 
@@ -318,5 +334,103 @@ class LicencePositionChangeViewResolverTest {
         .singleElement()
         .extracting(SetEquityRow::organisationName)
         .isEqualTo("");
+  }
+
+  @Test
+  void getChangeViews_buildsPartialSurrenderChangeView() {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder()
+        .withPositionDate(LocalDate.of(2026, Month.AUGUST, 1))
+        .build();
+
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        LicenceOperation.newPartialSurrenderOperation()
+            .withFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
+            .build()
+    );
+
+    var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
+
+    assertThat(result)
+        .extractingByKey(LicenceOperation.PARTIAL_SURRENDER)
+        .isInstanceOf(PartialSurrenderChangeView.class);
+
+    var partialSurrenderChangeView = (PartialSurrenderChangeView) result.get(LicenceOperation.PARTIAL_SURRENDER);
+    assertThat(partialSurrenderChangeView.blockLabels()).containsExactly("30/1a", "30/2");
+  }
+
+  @Test
+  void getChangeViews_whenBlockNameNotFound_usesEmptyLabel() {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder()
+        .withPositionDate(LocalDate.of(2026, Month.AUGUST, 1))
+        .build();
+
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        LicenceOperation.newPartialSurrenderOperation()
+            .withFeatureIds(List.of(FIRST_FEATURE_ID))
+            .build()
+    );
+
+    var result = changeViewsFor(currentLicencePosition.getId(), Map.of(), currentChronologicalPosition);
+
+    var partialSurrenderChangeView = (PartialSurrenderChangeView) result.get(LicenceOperation.PARTIAL_SURRENDER);
+    assertThat(partialSurrenderChangeView.blockLabels()).containsExactly("");
+  }
+
+  @Test
+  void getChangeViews_whenPartialSurrenderHasNoOwnDate_usesThePositionDate() {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder()
+        .withPositionDate(LocalDate.of(2026, Month.AUGUST, 1))
+        .build();
+
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        LicenceOperation.newPartialSurrenderOperation()
+            .withFeatureIds(List.of(FIRST_FEATURE_ID))
+            .build()
+    );
+
+    var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
+
+    var partialSurrenderChangeView = (PartialSurrenderChangeView) result.get(LicenceOperation.PARTIAL_SURRENDER);
+    assertThat(partialSurrenderChangeView.surrenderDate()).isEqualTo("1 August 2026");
+  }
+
+  @Test
+  void getChangeViews_whenPartialSurrenderHasItsOwnDate_usesThatDate() {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder()
+        .withPositionDate(LocalDate.of(2026, Month.AUGUST, 1))
+        .build();
+
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        LicenceOperation.newPartialSurrenderOperation()
+            .withSurrenderDate(LocalDate.of(2026, Month.SEPTEMBER, 30))
+            .withFeatureIds(List.of(FIRST_FEATURE_ID))
+            .build()
+    );
+
+    var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
+
+    var partialSurrenderChangeView = (PartialSurrenderChangeView) result.get(LicenceOperation.PARTIAL_SURRENDER);
+    assertThat(partialSurrenderChangeView.surrenderDate()).isEqualTo("30 September 2026");
+  }
+
+  private static Map<String, LicencePositionChangeView> changeViewsFor(
+      UUID currentPositionId,
+      Map<UUID, String> featureNames,
+      ChronologicalPosition... chronologicalPositions
+  ) {
+    var positions = List.of(chronologicalPositions);
+
+    return LicencePositionChangeViewResolver.getChangeViews(
+        currentPositionId,
+        positions,
+        LicencePositionStateResolver.resolve(positions),
+        Map.of(),
+        featureNames,
+        null
+    );
   }
 }

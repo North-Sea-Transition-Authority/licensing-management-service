@@ -1,9 +1,11 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
@@ -17,11 +19,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -38,7 +40,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicencePositionValidationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
@@ -46,8 +50,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -56,6 +62,9 @@ class LicencePositionViewServiceTest {
 
   private static final Licence LICENCE = LicenceTestUtil.builder().build();
   private static final UUID POSITION_ID = UUID.randomUUID();
+  private static final AdministratorOperation ADMINISTRATOR_OPERATION = LicenceOperation.newAdministratorChange()
+      .withOperator(1)
+      .build();
 
   @Mock
   private LicencePositionService licencePositionService;
@@ -68,6 +77,9 @@ class LicencePositionViewServiceTest {
 
   @Mock
   private OrganisationUnitQueryService organisationUnitQueryService;
+
+  @Mock
+  private FeatureService featureService;
 
   @Spy
   private LicencePositionValidationService licencePositionValidationService = new LicencePositionValidationService();
@@ -256,7 +268,7 @@ class LicencePositionViewServiceTest {
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(executed)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
-            .withChanges(List.of(AddChange.buildAddAdminChange(1, 1)))
+            .withChanges(List.of(AddChange.buildOperationsChange(List.of(ADMINISTRATOR_OPERATION), 1)))
             .build())
         .build();
 
@@ -351,7 +363,7 @@ class LicencePositionViewServiceTest {
     var payload = CreateLicencePositionPayloadTestUtil.newBuilder()
         .withEffectiveDate(LocalDate.of(2026, Month.JUNE, 5))
         .withCorrectionReference("ADD-REF")
-        .withChanges(List.of(AddChange.buildAddAdminChange(1, 1)))
+        .withChanges(List.of(AddChange.buildOperationsChange(List.of(ADMINISTRATOR_OPERATION), 1)))
         .build();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withLicenceCorrection(correction)
@@ -637,6 +649,60 @@ class LicencePositionViewServiceTest {
     verify(organisationUnitQueryService).getOrganisationUnitNamesByIds(idsCaptor.capture());
 
     assertThat(idsCaptor.getValue()).containsExactlyInAnyOrder(1, 2, 3);
+  }
+
+  @Test
+  void getPositionPageView_whenPartialSurrender_resolvesFeatureNamesIntoTheChangeView() {
+    var positionDate = LocalDate.of(2026, Month.JANUARY, 1);
+    var position = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF").build())
+        .withPositionDate(positionDate).withPositionOrder(1).withIsExecuted(true).build();
+
+    var firstBlock = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 1);
+    var secondBlock = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 2);
+    var partialSurrenderOp = new PartialSurrenderOperation(
+        null, List.of(firstBlock.getId(), secondBlock.getId()));
+
+    var change = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(position)
+        .withOperations(List.of(partialSurrenderOp))
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
+    when(featureService.getFeaturesByIds(List.of(firstBlock.getId(), secondBlock.getId())))
+        .thenReturn(List.of(firstBlock, secondBlock));
+
+    var result = licencePositionViewService.getPositionPageView(position);
+
+    var expected = new PartialSurrenderChangeView(
+        "1 January 2026",
+        List.of(firstBlock.getFeatureName(), secondBlock.getFeatureName()),
+        null);
+    assertThat(result.changeViewByType())
+        .containsOnly(entry(LicenceOperation.PARTIAL_SURRENDER, expected));
+  }
+
+  @Test
+  void getPositionPageView_whenNoPartialSurrender_doesNotLookUpFeatureNames() {
+    var position = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF").build())
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true).build();
+
+    var change = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(position)
+        .withOperations(List.of(ADMINISTRATOR_OPERATION))
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1))).thenReturn(Map.of());
+
+    licencePositionViewService.getPositionPageView(position);
+
+    verifyNoInteractions(featureService);
   }
 
   @Test

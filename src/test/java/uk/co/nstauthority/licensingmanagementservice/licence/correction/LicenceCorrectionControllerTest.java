@@ -28,8 +28,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionPageView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTimelineView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUtil;
 
@@ -217,6 +223,67 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
             model().attribute("cancelCorrectionUrl", ReverseRouter.route(on(LicenceCorrectionCancelController.class)
                 .renderCancelCorrection(CORRECTION_ID, null)))
         );
+  }
+
+  @Test
+  void renderLicencePosition_whenPartialSurrenderStaged_rendersThePartialSurrenderCard() throws Exception {
+    var licence = LicenceTestUtil.builder()
+        .withLicenceReference(LICENCE_REFERENCE)
+        .withLicenceType(LICENCE_TYPE)
+        .build();
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withLicence(licence)
+        .withCorrectionReference(CORRECTION_REFERENCE)
+        .withReason(REASON)
+        .withAllocatedToWuaId(ALLOCATED_TO_WUA_ID)
+        .build();
+    var allocatedToUser = EnergyPortalUserTestUtil.newBuilder()
+        .withWebUserAccountId(ALLOCATED_TO_WUA_ID)
+        .withForename("Jane")
+        .withSurname("Doe")
+        .buildJson();
+    var position = LicencePositionTestUtil.newBuilder().build();
+    var pageView = LicencePositionPageView.fromExecutedPosition(
+        List.of(LicencePositionTimelineView.builder()
+            .withPositionId(position.getId())
+            .withUrl("/position")
+            .withRegulatorReference("REF-1")
+            .withFormattedPositionDate("1 Jan 2026")
+            .build()),
+        "1 Jan 2026",
+        "REF-1",
+        Map.of(LicenceOperation.PARTIAL_SURRENDER,
+            new PartialSurrenderChangeView("1 August 2026", List.of("30/1a", "30/2"),
+                LicencePositionChangeType.ADD_CHANGE)),
+        new LicencePositionStateView(new AdministratorStateView("Operator Ltd"), List.of()),
+        position.getId(),
+        LicencePositionPageView.Actions.none(),
+        LICENCE_TYPE,
+        List.of()
+    );
+
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
+    when(licencePositionService.getPositionForLicence(licence, position.getId())).thenReturn(position);
+    when(licencePositionViewService.getCorrectionPositionPageView(correction, position)).thenReturn(pageView);
+    when(energyPortalUserService.getByWuaId(WebUserAccountId.from(ALLOCATED_TO_WUA_ID), USER_LOOKUP_PURPOSE))
+        .thenReturn(allocatedToUser);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceCorrectionController.class)
+            .renderLicencePosition(CORRECTION_ID, position.getId(), null)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name("lms/licence/correction/viewCorrection"),
+            model().attribute("pageTitle", PAGE_TITLE),
+            model().attribute("pageCaption", PAGE_CAPTION),
+            model().attribute("correction", correction),
+            model().attribute("allocatedToUser", allocatedToUser.displayName()),
+            model().attribute("licencePositionPageView", pageView),
+            model().attribute("cancelCorrectionUrl", ReverseRouter.route(on(LicenceCorrectionCancelController.class)
+                .renderCancelCorrection(CORRECTION_ID, null))));
   }
 
   @Test

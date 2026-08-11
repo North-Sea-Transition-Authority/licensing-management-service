@@ -16,12 +16,12 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
@@ -297,6 +297,41 @@ public class LicencePositionCorrectionService {
     applySetEquity(positionCorrection, operations);
   }
 
+  /**
+   * The date a change staged against this position correction takes effect. A partial surrender does
+   * not record its own date on a correction - it takes the position date, so correcting that date
+   * later moves the surrender with it.
+   */
+  public LocalDate resolveEffectiveDate(LicencePositionCorrection licencePositionCorrection) {
+    return switch (licencePositionCorrection.getPayload()) {
+      case CreateLicencePositionPayload create -> create.effectiveDate();
+      case UpdateLicencePositionPayload update -> update.effectiveDate() != null
+          ? update.effectiveDate()
+          : targetPositionDate(licencePositionCorrection);
+    };
+  }
+
+  private LocalDate targetPositionDate(LicencePositionCorrection licencePositionCorrection) {
+    var targetLicencePosition = licencePositionCorrection.getTargetLicencePosition();
+
+    if (targetLicencePosition == null) {
+      throw new IllegalStateException(
+          "Cannot resolve the effective date of licence position correction %s as it updates a position but has no target"
+              .formatted(licencePositionCorrection.getId()));
+    }
+
+    return targetLicencePosition.getPositionDate();
+  }
+
+  public LocalDate getEffectivePositionDate(
+      LicenceCorrection licenceCorrection,
+      LicencePosition licencePosition
+  ) {
+    return findUpdatePositionCorrection(licenceCorrection, licencePosition)
+        .map(this::resolveEffectiveDate)
+        .orElseGet(licencePosition::getPositionDate);
+  }
+
   public LicencePositionCorrection newUpdatePositionCorrection(
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition
@@ -385,28 +420,6 @@ public class LicencePositionCorrectionService {
     }
   }
 
-  public LicencePositionPayload withChanges(
-      LicencePositionPayload payload,
-      List<LicencePositionChangeType> changes
-  ) {
-    return switch (payload) {
-      case CreateLicencePositionPayload create -> LicencePositionPayload.newCreateLicencePositionPayload()
-          .withLicencePositionId(create.licencePositionId())
-          .withLicenceTransactionId(create.licenceTransactionId())
-          .withEffectiveDate(create.effectiveDate())
-          .withEffectiveDateOrder(create.effectiveDateOrder())
-          .withCorrectionReference(create.correctionReference())
-          .withChanges(changes)
-          .build();
-      case UpdateLicencePositionPayload update -> LicencePositionPayload.newUpdateLicencePositionPayload()
-          .withEffectiveDate(update.effectiveDate())
-          .withEffectiveDateOrder(update.effectiveDateOrder())
-          .withCorrectionReference(update.correctionReference())
-          .withChanges(changes)
-          .build();
-    };
-  }
-
   public int nextChangeOrder(List<LicencePositionChangeType> changes) {
     return changes.stream()
         .filter(AddChange.class::isInstance)
@@ -421,21 +434,36 @@ public class LicencePositionCorrectionService {
       LicencePositionCorrection licencePositionCorrection,
       List<SetEquityOperation> operations
   ) {
+    replaceAddChangeFor(licencePositionCorrection, SetEquityOperation.class, operations);
+  }
+
+  public void replaceAddChangeFor(
+      LicencePositionCorrection licencePositionCorrection,
+      Class<? extends LicenceOperation> operationType,
+      List<? extends LicenceOperation> operations
+  ) {
     var payload = licencePositionCorrection.getPayload();
 
     var changes = payload.changes().stream()
-        .filter(change -> !isSetEquityChange(change))
+        .filter(change -> !hasAddOperationOfType(change, operationType))
         .collect(Collectors.toCollection(ArrayList::new));
 
     if (!CollectionUtils.isEmpty(operations)) {
-      changes.add(buildSetEquityChange(operations, nextChangeOrder(changes)));
+      changes.add(AddChange.buildOperationsChange(operations, nextChangeOrder(changes)));
     }
 
-    licencePositionCorrection.setPayload(withChanges(payload, changes));
+    licencePositionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
     licencePositionCorrectionRepository.save(licencePositionCorrection);
   }
 
   private List<SetEquityOperation> setEquityOperations(List<LicencePositionChangeType> changes) {
+    return getAddOperationsOfType(changes, SetEquityOperation.class);
+  }
+
+  public <T extends LicenceOperation> List<T> getAddOperationsOfType(
+      List<LicencePositionChangeType> changes,
+      Class<T> operationType
+  ) {
     return changes.stream()
         .filter(AddChange.class::isInstance)
         .map(AddChange.class::cast)
@@ -443,31 +471,16 @@ public class LicencePositionCorrectionService {
         .filter(LicencePositionAddOperation.class::isInstance)
         .map(LicencePositionAddOperation.class::cast)
         .map(LicencePositionAddOperation::operation)
-        .filter(SetEquityOperation.class::isInstance)
-        .map(SetEquityOperation.class::cast)
+        .filter(operationType::isInstance)
+        .map(operationType::cast)
         .toList();
   }
 
-  private boolean isSetEquityChange(LicencePositionChangeType change) {
-    return !setEquityOperations(List.of(change)).isEmpty();
-  }
-
-  private AddChange buildSetEquityChange(
-      List<SetEquityOperation> operations,
-      int changeOrder
+  private boolean hasAddOperationOfType(
+      LicencePositionChangeType change,
+      Class<? extends LicenceOperation> operationType
   ) {
-    var changeOperations = operations.stream()
-        .map(operation -> (LicencePositionChangeOperation) LicencePositionChangeOperation.newLicencePositionAddOperation()
-            .withOperationId(operation.id())
-            .withOperation(operation)
-            .build())
-        .toList();
-
-    return LicencePositionChangeType.addChange()
-        .withChangeId(UUID.randomUUID().toString())
-        .withChangeOrder(changeOrder)
-        .withOperations(changeOperations)
-        .build();
+    return !getAddOperationsOfType(List.of(change), operationType).isEmpty();
   }
 
   private void updateAddedPositionOrder(LicencePositionCorrection addedCorrection, int newOrder) {

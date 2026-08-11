@@ -1,11 +1,12 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.feature;
 
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.Layer;
-
+import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 public final class LicenceBlockFeatureUtil {
 
@@ -30,6 +31,13 @@ public final class LicenceBlockFeatureUtil {
 
   private LicenceBlockFeatureUtil() {
     throw new IllegalStateException("Utility class should not be instantiated.");
+  }
+
+  public static Map<String, String> toBlockCheckboxOptions(List<Feature> blockFeatures) {
+    return blockFeatures.stream()
+        .collect(StreamUtil.toLinkedHashMap(
+            feature -> feature.getId().toString(),
+            feature -> "Block %s".formatted(feature.getFeatureName())));
   }
 
   public static boolean isLicenceBlock(Feature feature) {

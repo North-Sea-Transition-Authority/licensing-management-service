@@ -22,16 +22,22 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
     @JsonSubTypes.Type(
         value = TransferEquityOperation.class,
         name = LicenceOperation.TRANSFER_EQUITY
+    ),
+    @JsonSubTypes.Type(
+        value = PartialSurrenderOperation.class,
+        name = LicenceOperation.PARTIAL_SURRENDER
     )
 })
 public sealed interface LicenceOperation permits
     AdministratorOperation,
     SetEquityOperation,
-    TransferEquityOperation  {
+    TransferEquityOperation,
+    PartialSurrenderOperation {
 
   String LICENCE_ADMINISTRATOR = "licence-administrator";
   String SET_EQUITY = "set-equity";
   String TRANSFER_EQUITY = "transfer-equity";
+  String PARTIAL_SURRENDER = "partial-surrender";
 
   String type();
 
@@ -50,5 +56,9 @@ public sealed interface LicenceOperation permits
 
   static TransferEquityOperation.Builder newTransferEquityOperation() {
     return new TransferEquityOperation.Builder();
+  }
+
+  static PartialSurrenderOperation.Builder newPartialSurrenderOperation() {
+    return new PartialSurrenderOperation.Builder();
   }
 }

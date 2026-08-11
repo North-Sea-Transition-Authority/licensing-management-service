@@ -16,6 +16,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
+import uk.co.fivium.gisframework.feature.Feature;
+import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
@@ -35,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
@@ -62,19 +65,22 @@ public class LicencePositionViewService {
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final LicencePositionValidationService licencePositionValidationService;
+  private final FeatureService featureService;
 
   public LicencePositionViewService(
       LicencePositionService licencePositionService,
       LicencePositionChangeService licencePositionChangeService,
       LicencePositionCorrectionService licencePositionCorrectionService,
       OrganisationUnitQueryService organisationUnitQueryService,
-      LicencePositionValidationService licencePositionValidationService
+      LicencePositionValidationService licencePositionValidationService,
+      FeatureService featureService
   ) {
     this.licencePositionService = licencePositionService;
     this.licencePositionChangeService = licencePositionChangeService;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.licencePositionValidationService = licencePositionValidationService;
+    this.featureService = featureService;
   }
 
   /**
@@ -106,6 +112,7 @@ public class LicencePositionViewService {
     var liveChronologicalPositions = getLiveChronologicalPositions(executedChronologicalLicencePositions);
     var resolvedStates = LicencePositionStateResolver.resolve(liveChronologicalPositions);
     var organisationNames = resolveOrganisationNames(liveChronologicalPositions);
+    var featureNames = resolveFeatureNames(liveChronologicalPositions);
 
     return LicencePositionPageView.readOnly(
         getReadOnlyTimelineView(executedChronologicalLicencePositions),
@@ -116,6 +123,7 @@ public class LicencePositionViewService {
             liveChronologicalPositions,
             resolvedStates,
             organisationNames,
+            featureNames,
             null
         ),
         LicencePositionStateViewResolver.getStateView(
@@ -152,12 +160,14 @@ public class LicencePositionViewService {
     var excludedFromState = currentPositionRemoved ? Set.of(licencePosition.getId()) : Set.<UUID>of();
     var resolvedStates = LicencePositionStateResolver.resolve(allChronologicalPositions, excludedFromState);
     var organisationNames = resolveOrganisationNames(allChronologicalPositions);
+    var featureNames = resolveFeatureNames(allChronologicalPositions);
 
     var changeViews = LicencePositionChangeViewResolver.getChangeViews(
         licencePosition.getId(),
         allChronologicalPositions,
         resolvedStates,
         organisationNames,
+        featureNames,
         PositionChangeUrlContext.forExecutedPosition(licenceCorrection.getId(), licencePosition.getId())
     );
 
@@ -224,12 +234,14 @@ public class LicencePositionViewService {
     );
     var resolvedStates = LicencePositionStateResolver.resolve(allChronologicalPositions);
     var organisationNames = resolveOrganisationNames(allChronologicalPositions);
+    var featureNames = resolveFeatureNames(allChronologicalPositions);
 
     var changeViews = LicencePositionChangeViewResolver.getChangeViews(
         addedPositionId,
         allChronologicalPositions,
         resolvedStates,
         organisationNames,
+        featureNames,
         PositionChangeUrlContext.forAddedPosition(licenceCorrection.getId(), positionCorrection.getId())
     );
 
@@ -350,11 +362,31 @@ public class LicencePositionViewService {
     return organisationUnitQueryService.getOrganisationUnitNamesByIds(organisationIds);
   }
 
+  private Map<UUID, String> resolveFeatureNames(List<ChronologicalPosition> chronologicalPositions) {
+    var featureIds = chronologicalPositions.stream()
+        .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
+        .flatMap(change -> change.operations().stream())
+        .filter(PartialSurrenderOperation.class::isInstance)
+        .map(PartialSurrenderOperation.class::cast)
+        .flatMap(operation -> operation.featureIds().stream())
+        .distinct()
+        .toList();
+
+    if (featureIds.isEmpty()) {
+      return Collections.emptyMap();
+    }
+
+    return featureService.getFeaturesByIds(featureIds)
+        .stream()
+        .collect(Collectors.toMap(Feature::getId, Feature::getFeatureName));
+  }
+
   private static List<Integer> organisationIds(LicenceOperation operation) {
     return switch (operation) {
       case AdministratorOperation administratorOperation -> List.of(administratorOperation.operatorId());
       case SetEquityOperation setEquityOperation -> List.of(setEquityOperation.transferTo());
       case TransferEquityOperation transfer -> List.of(transfer.transferFrom(), transfer.transferTo());
+      case PartialSurrenderOperation ignored -> List.of();
     };
   }
 

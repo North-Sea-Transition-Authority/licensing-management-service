@@ -39,4 +39,7 @@
   <#if licencePositionChanges["transfer-equity"]??>
       <@positionChanges.transferEquityChange change=licencePositionChanges["transfer-equity"]/>
   </#if>
+  <#if licencePositionChanges["partial-surrender"]??>
+      <@positionChanges.partialSurrenderChange change=licencePositionChanges["partial-surrender"]/>
+  </#if>
 </#macro>

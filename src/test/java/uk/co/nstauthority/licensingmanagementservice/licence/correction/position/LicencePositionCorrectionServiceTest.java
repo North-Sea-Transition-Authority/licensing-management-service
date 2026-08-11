@@ -40,6 +40,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
@@ -900,8 +901,12 @@ class LicencePositionCorrectionServiceTest {
         .build();
 
     // seed an unrelated change type (administrator change) on the same position
+    var administratorOperation = LicenceOperation.newAdministratorChange()
+        .withOperator(ADMINISTRATOR_ID)
+        .build();
     positionCorrection.setPayload(LicencePositionPayload.withChanges(
-        positionCorrection.getPayload(), List.of(AddChange.buildAddAdminChange(ADMINISTRATOR_ID, 1))));
+        positionCorrection.getPayload(),
+        List.of(AddChange.buildOperationsChange(List.of(administratorOperation), 1))));
 
     licencePositionCorrectionService.commitSetEquity(positionCorrection, List.of(setEquityOp(1, 100)));
 
@@ -1144,4 +1149,119 @@ class LicencePositionCorrectionServiceTest {
         .build();
   }
 
+  @Test
+  void resolveEffectiveDate_whenAddedPosition_returnsThePayloadEffectiveDate() {
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withTargetLicencePosition(null)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withEffectiveDate(POSITION_DATE)
+            .withChanges(List.of())
+            .build())
+        .build();
+
+    assertThat(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).isEqualTo(POSITION_DATE);
+  }
+
+  @Test
+  void resolveEffectiveDate_whenExecutedPositionWithCorrectedDate_returnsTheCorrectedDate() {
+    var correctedDate = POSITION_DATE.plusMonths(1);
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withTargetLicencePosition(LicencePositionTestUtil.newBuilder().withPositionDate(POSITION_DATE).build())
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withEffectiveDate(correctedDate)
+            .withChanges(List.of())
+            .build())
+        .build();
+
+    assertThat(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).isEqualTo(correctedDate);
+  }
+
+  @Test
+  void resolveEffectiveDate_whenExecutedPositionWithNoCorrectedDate_returnsThePositionDate() {
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withTargetLicencePosition(LicencePositionTestUtil.newBuilder().withPositionDate(POSITION_DATE).build())
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withEffectiveDate(null)
+            .withChanges(List.of())
+            .build())
+        .build();
+
+    assertThat(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).isEqualTo(POSITION_DATE);
+  }
+
+  @Test
+  void resolveEffectiveDate_whenExecutedPositionWithNoCorrectedDateAndNoTarget_thenThrows() {
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withTargetLicencePosition(null)
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withEffectiveDate(null)
+            .withChanges(List.of())
+            .build())
+        .build();
+
+    assertThatThrownBy(() -> licencePositionCorrectionService.resolveEffectiveDate(positionCorrection))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(("Cannot resolve the effective date of licence position correction %s as it updates a position "
+            + "but has no target").formatted(positionCorrection.getId()));
+  }
+
+  @Test
+  void getEffectivePositionDate_whenNoUpdatePositionCorrection_returnsThePositionDate() {
+    var licencePosition = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withPositionDate(POSITION_DATE)
+        .build();
+    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+        LICENCE_CORRECTION, licencePosition, LicencePositionCorrectionChangeType.UPDATE_POSITION))
+        .thenReturn(Optional.empty());
+
+    assertThat(licencePositionCorrectionService.getEffectivePositionDate(LICENCE_CORRECTION, licencePosition))
+        .isEqualTo(POSITION_DATE);
+  }
+
+  @Test
+  void getEffectivePositionDate_whenDateCorrectedInThisCorrection_returnsTheCorrectedDate() {
+    var correctedDate = POSITION_DATE.plusMonths(1);
+    var licencePosition = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withPositionDate(POSITION_DATE)
+        .build();
+    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+        LICENCE_CORRECTION, licencePosition, LicencePositionCorrectionChangeType.UPDATE_POSITION))
+        .thenReturn(Optional.of(LicencePositionCorrectionTestUtil.newBuilder()
+            .withTargetLicencePosition(licencePosition)
+            .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+            .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+                .withEffectiveDate(correctedDate)
+                .withChanges(List.of())
+                .build())
+            .build()));
+
+    assertThat(licencePositionCorrectionService.getEffectivePositionDate(LICENCE_CORRECTION, licencePosition))
+        .isEqualTo(correctedDate);
+  }
+
+  @Test
+  void getEffectivePositionDate_whenUpdatePositionCorrectionHasNoDate_returnsThePositionDate() {
+    var licencePosition = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withPositionDate(POSITION_DATE)
+        .build();
+    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+        LICENCE_CORRECTION, licencePosition, LicencePositionCorrectionChangeType.UPDATE_POSITION))
+        .thenReturn(Optional.of(LicencePositionCorrectionTestUtil.newBuilder()
+            .withTargetLicencePosition(licencePosition)
+            .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+            .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+                .withEffectiveDate(null)
+                .withChanges(List.of())
+                .build())
+            .build()));
+
+    assertThat(licencePositionCorrectionService.getEffectivePositionDate(LICENCE_CORRECTION, licencePosition))
+        .isEqualTo(POSITION_DATE);
+  }
 }

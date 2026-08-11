@@ -17,20 +17,22 @@ public record AddChange(
     return ADD_CHANGE;
   }
 
-  public static AddChange buildAddAdminChange(Integer administratorId, int changeOrder) {
-    var administratorOperation = LicenceOperation.newAdministratorChange()
-        .withOperator(administratorId)
-        .build();
-
-    var changeOperation = LicencePositionChangeOperation.newLicencePositionAddOperation()
-        .withOperationId(administratorOperation.id())
-        .withOperation(administratorOperation)
-        .build();
+  public static AddChange buildOperationsChange(
+      List<? extends LicenceOperation> operations,
+      int changeOrder
+  ) {
+    var changeOperations = operations.stream()
+        .map(operation -> (LicencePositionChangeOperation) LicencePositionChangeOperation
+            .newLicencePositionAddOperation()
+            .withOperationId(operation.id())
+            .withOperation(operation)
+            .build())
+        .toList();
 
     return LicencePositionChangeType.addChange()
         .withChangeId(UUID.randomUUID().toString())
         .withChangeOrder(changeOrder)
-        .withOperations(List.of(changeOperation))
+        .withOperations(changeOperations)
         .build();
   }
 

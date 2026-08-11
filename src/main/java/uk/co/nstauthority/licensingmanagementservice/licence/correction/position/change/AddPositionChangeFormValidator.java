@@ -3,10 +3,11 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
@@ -14,15 +15,15 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 @Component
 public class AddPositionChangeFormValidator {
 
-  private final LicenceService licenceService;
   private final LicencePositionChangeService licencePositionChangeService;
+  private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
   public AddPositionChangeFormValidator(
-      LicenceService licenceService,
-      LicencePositionChangeService licencePositionChangeService
+      LicencePositionChangeService licencePositionChangeService,
+      PartialSurrenderCorrectionService partialSurrenderCorrectionService
   ) {
-    this.licenceService = licenceService;
     this.licencePositionChangeService = licencePositionChangeService;
+    this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
   }
 
   public boolean hasErrors(
@@ -40,7 +41,7 @@ public class AddPositionChangeFormValidator {
 
     var selected = parseChangeType(form.getChangeType());
 
-    if (selected == null || !isAvailable(selected, correction)) {
+    if (selected == null || !selected.isAvailableFor(correction.getLicence().getType())) {
       errors.rejectValue("changeType", "changeType.invalid", "Select the type of change to add");
     } else if (changeAlreadyExists(selected, positionCorrection)) {
       errors.rejectValue("changeType", "changeType.exists",
@@ -58,13 +59,6 @@ public class AddPositionChangeFormValidator {
     }
   }
 
-  private boolean isAvailable(AddPositionChangeType selected, LicenceCorrection correction) {
-    return switch (selected) {
-      case ADMINISTRATOR_CHANGE -> !licenceService.isCarbonStorageLicence(correction.getLicence());
-      case SET_EQUITY, TRANSFER_EQUITY -> licenceService.isCarbonStorageLicence(correction.getLicence());
-    };
-  }
-
   private boolean changeAlreadyExists(AddPositionChangeType selected, LicencePositionCorrection positionCorrection) {
     var livePositionId = positionCorrection.getTargetLicencePosition() != null
         ? positionCorrection.getTargetLicencePosition().getId()
@@ -74,6 +68,9 @@ public class AddPositionChangeFormValidator {
           licencePositionChangeService.changeExists(livePositionId, AdministratorOperation.class);
       case SET_EQUITY -> licencePositionChangeService.changeExists(livePositionId, SetEquityOperation.class);
       case TRANSFER_EQUITY -> licencePositionChangeService.changeExists(livePositionId, TransferEquityOperation.class);
+      case PARTIAL_SURRENDER ->
+          licencePositionChangeService.changeExists(livePositionId, PartialSurrenderOperation.class)
+              || partialSurrenderCorrectionService.hasStagedPartialSurrender(positionCorrection);
     };
   }
 }

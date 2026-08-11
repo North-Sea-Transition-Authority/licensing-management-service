@@ -10,6 +10,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 
 public final class LicencePositionAdministratorChangeUtil {
@@ -34,7 +35,7 @@ public final class LicencePositionAdministratorChangeUtil {
       return replaceAdminChange(changes, administratorId);
     }
     var updatedChanges = new ArrayList<>(changes);
-    updatedChanges.add(AddChange.buildAddAdminChange(administratorId, updatedChanges.size() + 1));
+    updatedChanges.add(addAdminChange(administratorId, updatedChanges.size() + 1));
     return updatedChanges;
   }
 
@@ -77,13 +78,21 @@ public final class LicencePositionAdministratorChangeUtil {
 
   private static LicencePositionChangeType rebuildWithAdmin(LicencePositionChangeType change, Integer administratorId) {
     return switch (change) {
-      case AddChange addChange -> AddChange.buildAddAdminChange(administratorId, addChange.changeOrder());
+      case AddChange addChange -> addAdminChange(administratorId, addChange.changeOrder());
       case UpdateChangeOperations updateChange -> UpdateChangeOperations.buildUpdateAdminChange(
           updateChange.changeId(),
           administratorId
       );
       case RemoveChange ignored -> change;
     };
+  }
+
+  private static AddChange addAdminChange(Integer administratorId, int changeOrder) {
+    var administratorOperation = LicenceOperation.newAdministratorChange()
+        .withOperator(administratorId)
+        .build();
+
+    return AddChange.buildOperationsChange(List.of(administratorOperation), changeOrder);
   }
 
   private static List<LicencePositionChangeOperation> operationsOf(LicencePositionChangeType change) {

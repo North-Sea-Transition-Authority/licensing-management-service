@@ -25,11 +25,13 @@ import org.springframework.validation.BindingResult;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -43,14 +45,29 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   @MockitoBean
   private AddPositionChangeFormValidator addPositionChangeFormValidator;
 
-  private static final Licence LICENCE = LicenceTestUtil.builder().withLicenceReference("CS/1").build();
+  private static final Licence LICENCE = LicenceTestUtil.builder()
+      .withLicenceReference("P/1")
+      .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+      .build();
+  private static final Licence CARBON_STORAGE_LICENCE = LicenceTestUtil.builder()
+      .withLicenceReference("CS/1")
+      .withLicenceType(LicenceType.CARBON_STORAGE)
+      .build();
+  private static final Licence EXPLORATION_LICENCE = LicenceTestUtil.builder()
+      .withLicenceReference("E/1")
+      .withLicenceType(LicenceType.SEAWARD_EXPLORATION)
+      .build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
   private static final String VIEW_NAME = "lms/licence/correction/change/addChange";
 
   private LicenceCorrection givenCorrectionAllocatedToUser() {
-    var correction = LicenceCorrectionTestUtil.newBuilder().withId(CORRECTION_ID).withLicence(LICENCE).build();
+    return givenCorrectionAllocatedToUser(LICENCE);
+  }
+
+  private LicenceCorrection givenCorrectionAllocatedToUser(Licence licence) {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withId(CORRECTION_ID).withLicence(licence).build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
     return correction;
@@ -75,8 +92,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
 
   @Test
   void renderForExecutedPosition_whenCarbonStorage_offersSetEquityAndTransferEquity() throws Exception {
-    givenCorrectionAllocatedToUser();
-    when(licenceService.isCarbonStorageLicence(LICENCE)).thenReturn(true);
+    givenCorrectionAllocatedToUser(CARBON_STORAGE_LICENCE);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
             .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
@@ -86,7 +102,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             view().name(VIEW_NAME),
             model().attributeExists("form"),
             model().attribute("pageTitle", "Add change"),
-            model().attribute("pageCaption", LICENCE.getLicenceReference()),
+            model().attribute("pageCaption", CARBON_STORAGE_LICENCE.getLicenceReference()),
             model().attribute("changeTypeOptions", Map.of(
                 "SET_EQUITY", "Set equity",
                 "TRANSFER_EQUITY", "Transfer equity")),
@@ -95,9 +111,23 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForExecutedPosition_whenNotCarbonStorage_offersAdministratorOnly() throws Exception {
+  void renderForExecutedPosition_whenProduction_offersAdministratorAndPartialSurrender() throws Exception {
     givenCorrectionAllocatedToUser();
-    when(licenceService.isCarbonStorageLicence(LICENCE)).thenReturn(false);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
+            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("changeTypeOptions", Map.of(
+                "ADMINISTRATOR_CHANGE", "Administrator change",
+                "PARTIAL_SURRENDER", "Partial surrender")));
+  }
+
+  @Test
+  void renderForExecutedPosition_whenExploration_offersAdministratorOnly() throws Exception {
+    givenCorrectionAllocatedToUser(EXPLORATION_LICENCE);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
             .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
@@ -219,8 +249,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
 
   @Test
   void renderForAddedPosition_whenCarbonStorage_offersSetEquityAndTransferEquity() throws Exception {
-    givenCorrectionAllocatedToUser();
-    when(licenceService.isCarbonStorageLicence(LICENCE)).thenReturn(true);
+    givenCorrectionAllocatedToUser(CARBON_STORAGE_LICENCE);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
             .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null)))
@@ -230,7 +259,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             view().name(VIEW_NAME),
             model().attributeExists("form"),
             model().attribute("pageTitle", "Add change"),
-            model().attribute("pageCaption", LICENCE.getLicenceReference()),
+            model().attribute("pageCaption", CARBON_STORAGE_LICENCE.getLicenceReference()),
             model().attribute("changeTypeOptions", Map.of(
                 "SET_EQUITY", "Set equity",
                 "TRANSFER_EQUITY", "Transfer equity")),
@@ -239,9 +268,23 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForAddedPosition_whenNotCarbonStorage_offersAdministratorOnly() throws Exception {
+  void renderForAddedPosition_whenProduction_offersAdministratorAndPartialSurrender() throws Exception {
     givenCorrectionAllocatedToUser();
-    when(licenceService.isCarbonStorageLicence(LICENCE)).thenReturn(false);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
+            .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("changeTypeOptions", Map.of(
+                "ADMINISTRATOR_CHANGE", "Administrator change",
+                "PARTIAL_SURRENDER", "Partial surrender")));
+  }
+
+  @Test
+  void renderForAddedPosition_whenExploration_offersAdministratorOnly() throws Exception {
+    givenCorrectionAllocatedToUser(EXPLORATION_LICENCE);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
             .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null)))
@@ -315,6 +358,52 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionSetEquityController.class)
+            .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null))));
+  }
+
+  @Test
+  void submitForExecutedPosition_whenPartialSurrender_redirectsToSurrenderDetailsForm() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var licencePosition = executedPosition();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
+        .thenReturn(positionCorrection);
+
+    var form = new AddPositionChangeForm();
+    form.setChangeType(AddPositionChangeType.PARTIAL_SURRENDER.name());
+    when(addPositionChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection)))
+        .thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
+            .submitForExecutedPosition(CORRECTION_ID, POSITION_ID, null, null, null)))
+            .with(user(regulatorUser)).with(csrf())
+            .flashAttr("form", form))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
+            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null))));
+  }
+
+  @Test
+  void submitForAddedPosition_whenPartialSurrender_redirectsToSurrenderDetailsForm() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
+        .thenReturn(positionCorrection);
+
+    var form = new AddPositionChangeForm();
+    form.setChangeType(AddPositionChangeType.PARTIAL_SURRENDER.name());
+    when(addPositionChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection)))
+        .thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
+            .submitForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null, null, null)))
+            .with(user(regulatorUser)).with(csrf())
+            .flashAttr("form", form))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
             .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null))));
   }
 

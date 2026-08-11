@@ -14,13 +14,14 @@ import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.TimelineFilterForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.TimelineSession;
+import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -28,18 +29,21 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @SessionAttributes("timelineSession")
 public class LicenceScheduleHistoryOverviewController {
 
-  private final LicenceActionService licenceActionService;
+  private final LicenceScheduleTab licenceScheduleTab;
+  private final TabbedLicencePageService tabbedLicencePageService;
   private final LicenceScheduleDetailService licenceScheduleDetailService;
   private final LicenceScheduleTimelineService licenceScheduleTimelineService;
   private final LicenceScheduleOverviewService licenceScheduleOverviewService;
 
   public LicenceScheduleHistoryOverviewController(
-      LicenceActionService licenceActionService,
+      LicenceScheduleTab licenceScheduleTab,
+      TabbedLicencePageService tabbedLicencePageService,
       LicenceScheduleDetailService licenceScheduleDetailService,
       LicenceScheduleTimelineService licenceScheduleTimelineService,
       LicenceScheduleOverviewService licenceScheduleOverviewService
   ) {
-    this.licenceActionService = licenceActionService;
+    this.licenceScheduleTab = licenceScheduleTab;
+    this.tabbedLicencePageService = tabbedLicencePageService;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.licenceScheduleTimelineService = licenceScheduleTimelineService;
     this.licenceScheduleOverviewService = licenceScheduleOverviewService;
@@ -60,11 +64,13 @@ public class LicenceScheduleHistoryOverviewController {
 
     var licence = licenceScheduleDetail.getLicenceSchedule().getLicence();
 
-    return new ModelAndView("lms/licence/licenceOverview")
+    var modelAndView = new ModelAndView("lms/licence/licenceOverview");
+    tabbedLicencePageService.hydrateModel(modelAndView, licence, licenceScheduleTab, user);
+
+    return modelAndView
         .addObject("form", form)
         .addObject("licenceReference", licence.getLicenceReference())
         .addObject("caption", licence.getType().getDisplayName())
-        .addObject("licenceActions", licenceActionService.getAvailableUserActionItems(licence, user))
         .addObject("historyForm", licenceScheduleOverviewService.getScheduleHistoryForm(licenceScheduleDetail))
         .addObject("scheduleHistoryOptions", licenceScheduleDetailService.getScheduleDetailHistoryOptions(licence))
         .addObject("viewScheduleHistoryUrl", ReverseRouter.route(on(LicenceScheduleHistoryOverviewController.class)

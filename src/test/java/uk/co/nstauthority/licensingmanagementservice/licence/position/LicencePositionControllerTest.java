@@ -24,9 +24,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
-@ContextConfiguration(classes = LicencePositionController.class)
+@ContextConfiguration(classes = {
+    LicencePositionController.class,
+    TabbedLicencePageService.class,
+    LicenceTimelinePositionTab.class
+})
 @ActiveProfiles({"test", "enable-lms2"})
 class LicencePositionControllerTest extends AbstractControllerTest {
 
@@ -45,7 +50,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
 
   @Test
   void renderLicencePositionTimeline_whenNotLoggedIn() throws Exception {
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class).renderLicencePositionTimeline(LICENCE))))
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class).renderLicencePositionTimeline(LICENCE, null))))
         .andExpect(redirectionToLoginUrl());
   }
 
@@ -57,11 +62,11 @@ class LicencePositionControllerTest extends AbstractControllerTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
         .thenReturn(List.of(older, latest));
 
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class).renderLicencePositionTimeline(LICENCE)))
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class).renderLicencePositionTimeline(LICENCE, null)))
             .with(user(regulatorUser)))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionController.class)
-            .renderLicencePosition(LICENCE, latest.getId()))));
+            .renderLicencePosition(LICENCE, latest.getId(), null))));
   }
 
   @Test
@@ -70,7 +75,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of());
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class)
-            .renderLicencePositionTimeline(LICENCE)))
+            .renderLicencePositionTimeline(LICENCE, null)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -82,7 +87,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
   @Test
   void renderLicencePosition_whenNotLoggedIn() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class)
-            .renderLicencePosition(LICENCE, POSITION_ID))))
+            .renderLicencePosition(LICENCE, POSITION_ID, null))))
         .andExpect(redirectionToLoginUrl());
   }
 
@@ -111,7 +116,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
     when(licencePositionViewService.getPositionPageView(position)).thenReturn(pageView);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class)
-            .renderLicencePosition(LICENCE, POSITION_ID)))
+            .renderLicencePosition(LICENCE, POSITION_ID, null)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),

@@ -17,32 +17,44 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.fds.tab.FdsBackendTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.TimelineSummaryCardView;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.TimelineTermView;
+import uk.co.nstauthority.licensingmanagementservice.licence.tab.LicenceTabContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
-@ContextConfiguration(classes = LicenceScheduleHistoryOverviewController.class)
+@ContextConfiguration(classes = {
+    LicenceScheduleHistoryOverviewController.class,
+    TabbedLicencePageService.class,
+    LicenceScheduleTab.class
+})
 class LicenceScheduleHistoryOverviewControllerTest extends AbstractControllerTest {
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
 
   private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder()
       .withWuaId(ORGANISATION_USER_WUA_ID)
       .build();
+
+  @Autowired
+  private LicenceScheduleTab licenceScheduleTab;
 
   @MockitoBean
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
@@ -77,9 +89,12 @@ class LicenceScheduleHistoryOverviewControllerTest extends AbstractControllerTes
   void renderLicenceOverview() throws Exception {
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
 
-    var actions = List.of(LicenceActionItem.EDIT_LICENCE_DETAILS.toActionItemView(licence));
+    var topLevelLicenceActions = List.of(LicenceActionItem.EDIT_LICENCE_DETAILS.toActionItemView(licence));
+    var currentTabLicenceActions = List.of(LicenceActionItem.UPDATE_LICENCE_SCHEDULE.toActionItemView(licence));
+    var licenceTabContext = new LicenceTabContext(licence);
 
-    when(licenceActionService.getAvailableUserActionItems(licence, USER)).thenReturn(actions);
+    when(licenceActionService.getTopLevelLicenceActionItems(licence, USER)).thenReturn(topLevelLicenceActions);
+    when(licenceActionService.getLicenceActionItemsForTab(licence, USER, licenceScheduleTab)).thenReturn(currentTabLicenceActions);
 
     var scheduleHistoryOptions = Map.of(licenceScheduleDetail.getId().toString(), "1 January 2024 10:00am");
     when(licenceScheduleDetailService.getScheduleDetailHistoryOptions(licence)).thenReturn(scheduleHistoryOptions);
@@ -105,7 +120,6 @@ class LicenceScheduleHistoryOverviewControllerTest extends AbstractControllerTes
         .andExpect(view().name("lms/licence/licenceOverview"))
         .andExpect(model().attribute("licenceReference", licence.getLicenceReference()))
         .andExpect(model().attribute("caption", licence.getType().getDisplayName()))
-        .andExpect(model().attribute("licenceActions", actions))
         .andExpect(model().attribute("historyForm", historyForm))
         .andExpect(model().attribute("scheduleHistoryOptions", scheduleHistoryOptions))
         .andExpect(model().attribute("viewScheduleHistoryUrl", ReverseRouter.route(on(LicenceScheduleHistoryOverviewController.class)
@@ -117,7 +131,11 @@ class LicenceScheduleHistoryOverviewControllerTest extends AbstractControllerTes
         .andExpect(model().attribute("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions()))
         .andExpect(model().attribute("clearFilterUrl", ReverseRouter.route(on(LicenceScheduleHistoryOverviewController.class)
             .clearFilters(licenceScheduleDetail.getId(), null, null)))
-        );
+        )
+        .andExpect(model().attribute("topLevelLicenceActions", topLevelLicenceActions))
+        .andExpect(model().attribute("tabs", List.of(FdsBackendTab.from(licenceScheduleTab, licenceTabContext))))
+        .andExpect(model().attribute("currentTab", FdsBackendTab.from(licenceScheduleTab, licenceTabContext)))
+        .andExpect(model().attribute("currentTabLicenceActions", currentTabLicenceActions));
   }
 
   @Test

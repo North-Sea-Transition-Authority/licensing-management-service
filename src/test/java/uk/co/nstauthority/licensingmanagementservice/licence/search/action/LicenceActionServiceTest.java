@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.search.action;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -21,12 +22,16 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenceTimelinePositionTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
+import uk.co.nstauthority.licensingmanagementservice.licence.tab.LicenceTab;
+import uk.co.nstauthority.licensingmanagementservice.licence.tab.LicenceTabContext;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -155,7 +160,7 @@ class LicenceActionServiceTest {
 
     assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
         .contains(LicenceActionItem.UPDATE_LICENCE_SCHEDULE.toActionItemView(licence));
-    
+
     assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
         .doesNotContain(LicenceActionItem.CREATE_LICENCE_SCHEDULE.toActionItemView(licence));
   }
@@ -366,5 +371,158 @@ class LicenceActionServiceTest {
 
     assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
         .doesNotContain(LicenceActionItem.START_CORRECTION.toActionItemView(licence));
+  }
+
+  @Test
+  void getTopLevelLicenceActionItems_assertOnlyActionsRegisteredAtTopLevelReturned() {
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.OFFLINE_LICENCE_ADMINISTRATOR)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    assertThat(licenceActionService.getTopLevelLicenceActionItems(licence, serviceUserDetail))
+        .containsExactly(
+            LicenceActionItem.EDIT_LICENCE_DETAILS.toActionItemView(licence)
+        );
+  }
+
+  @Test
+  void getTopLevelLicenceActionItems_whenUserDoesNotHaveTheRequiredRoles_assertNoActions() {
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.SCHEDULE_ADMINISTRATOR)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    assertThat(licenceActionService.getTopLevelLicenceActionItems(licence, serviceUserDetail)).isEmpty();
+  }
+
+  @Test
+  void getTopLevelLicenceActionItems_whenLicenceTypeNotManagedByLms_assertNoActions() {
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.OFFLINE_LICENCE_ADMINISTRATOR)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    assertThat(licenceActionService.getTopLevelLicenceActionItems(licence, serviceUserDetail)).isEmpty();
+  }
+
+  @Test
+  void getLicenceActionItemsForTab_whenLicenceOverviewTab_assertScheduleActionsReturned() {
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.SCHEDULE_ADMINISTRATOR)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
+    when(licenceScheduleDetailService.getAllScheduleDetailsByLicence(licence)).thenReturn(List.of());
+
+    assertThat(licenceActionService.getLicenceActionItemsForTab(licence, serviceUserDetail, new LicenceScheduleTab()))
+        .containsExactly(LicenceActionItem.CREATE_LICENCE_SCHEDULE.toActionItemView(licence));
+  }
+
+  @Test
+  void getLicenceActionItemsForTab_whenLicenceTimelinePositionTab_assertCorrectionActionReturned() {
+    when(environment.acceptsProfiles(Profiles.of("enable-lms2"))).thenReturn(true);
+
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.APPLICATION_SUBMITTER) //TODO - LMS2-55: Define who can carry out corrections on a licence
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
+    when(licenceCorrectionService.hasOpenCorrection(licence)).thenReturn(false);
+
+    assertThat(licenceActionService.getLicenceActionItemsForTab(
+        licence,
+        serviceUserDetail,
+        new LicenceTimelinePositionTab()
+    )).containsExactly(LicenceActionItem.START_CORRECTION.toActionItemView(licence));
+  }
+
+  @Test
+  void getLicenceActionItemsForTab_whenTabActionIsNotAvailableToTheUser_assertNoActions() {
+    when(environment.acceptsProfiles(Profiles.of("enable-lms2"))).thenReturn(true);
+
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.APPLICATION_SUBMITTER) //TODO - LMS2-55: Define who can carry out corrections on a licence
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
+    when(licenceCorrectionService.hasOpenCorrection(licence)).thenReturn(true);
+
+    assertThat(licenceActionService.getLicenceActionItemsForTab(
+        licence,
+        serviceUserDetail,
+        new LicenceTimelinePositionTab()
+    )).isEmpty();
+  }
+
+  @Test
+  void getLicenceActionItemsForTab_whenTabHasNoRegisteredActions_assertNoActionsAndNoLookups() {
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+
+    assertThat(licenceActionService.getLicenceActionItemsForTab(licence, serviceUserDetail, new UnregisteredLicenceTab()))
+        .isEmpty();
+
+    verifyNoInteractions(teamQueryService, licenceScheduleDetailService, licenceCorrectionService, licenceStatusService);
+  }
+
+  private static class UnregisteredLicenceTab implements LicenceTab {
+
+    @Override
+    public String displayName() {
+      return "Unregistered";
+    }
+
+    @Override
+    public String url(LicenceTabContext context) {
+      return "/unregistered";
+    }
   }
 }

@@ -602,7 +602,7 @@ public class LicencePositionViewService {
 
   private String getPositionUrl(LicencePosition licencePosition) {
     return ReverseRouter.route(on(LicencePositionController.class)
-        .renderLicencePosition(licencePosition.getLicence(), licencePosition.getId()));
+        .renderLicencePosition(licencePosition.getLicence(), licencePosition.getId(), null));
   }
 
   private String getCorrectionPositionUrl(LicenceCorrection correction, LicencePosition position) {

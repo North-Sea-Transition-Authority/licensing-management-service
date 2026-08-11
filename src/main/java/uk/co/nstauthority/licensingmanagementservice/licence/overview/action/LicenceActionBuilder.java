@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.overview.action;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
@@ -14,6 +15,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.tab.LicenceTab;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 
 public class LicenceActionBuilder {
@@ -27,19 +29,25 @@ public class LicenceActionBuilder {
       SetStatusForAnAction,
       SetLicenceTypeForAnAction,
       SetLicenceScheduleRequirementForAnAction,
+      DisplayOptionsForAnAction,
       RegisterAnAction {
 
-    public final Map<LicenceStatusType, Set<LicenceActionItem>> statusMap =
-        new EnumMap<>(LicenceStatusType.class);
-    public final Map<LicenceActionItem, Set<Role>> roleMap =
-        new EnumMap<>(LicenceActionItem.class);
-    public final Map<LicenceActionItem, Set<LicenceType>> licenceTypeMap =
-        new EnumMap<>(LicenceActionItem.class);
-    public final Map<LicenceActionItem, Set<LicenceScheduleRequirement>> licenceScheduleRequirementMap =
-        new EnumMap<>(LicenceActionItem.class);
+    final Map<LicenceStatusType, Set<LicenceActionItem>> statusMap
+        = new EnumMap<>(LicenceStatusType.class);
+    final Map<LicenceActionItem, Set<Role>> roleMap
+        = new EnumMap<>(LicenceActionItem.class);
+    final Map<LicenceActionItem, Set<LicenceType>> licenceTypeMap
+        = new EnumMap<>(LicenceActionItem.class);
+    final Map<LicenceActionItem, Set<LicenceScheduleRequirement>> licenceScheduleRequirementMap
+        = new EnumMap<>(LicenceActionItem.class);
+    final Map<LicenceActionItem, Predicate<Licence>> primaryActionPredicateMap
+        = new EnumMap<>(LicenceActionItem.class);
+    final Set<LicenceActionItem> topLevelLicenceActionItems
+        = new HashSet<>();
+    final Map<Class<? extends LicenceTab>, Set<LicenceActionItem>> licenceActionItemsByLicenceTabClass
+        = new HashMap<>();
+
     private final Deque<LicenceActionItem> actionItems = new LinkedList<>();
-    public final Map<LicenceActionItem, Predicate<Licence>> primaryActionPredicateMap =
-        new EnumMap<>(LicenceActionItem.class);
 
     private Builder() {
     }
@@ -67,7 +75,7 @@ public class LicenceActionBuilder {
     }
 
     @Override
-    public SetLicenceTypeForAnAction requiresAnyStatusFrom(LicenceStatusType... statuses) {
+    public DisplayOptionsForAnAction requiresAnyStatusFrom(LicenceStatusType... statuses) {
 
       for (LicenceStatusType status : statuses) {
         statusMap.merge(
@@ -81,7 +89,7 @@ public class LicenceActionBuilder {
     }
 
     @Override
-    public SetLicenceTypeForAnAction requiresAnyStatus() {
+    public DisplayOptionsForAnAction requiresAnyStatus() {
       var statuses = Arrays.stream(LicenceStatusType.values()).toList();
 
       for (LicenceStatusType status : statuses) {
@@ -136,6 +144,19 @@ public class LicenceActionBuilder {
       return isPrimaryButton(detail -> isPrimary);
     }
 
+    @Override
+    public SetLicenceTypeForAnAction positionWithinTabs(Class<? extends LicenceTab> licenceTabClass) {
+      var actionItem = actionItems.peek();
+      this.licenceActionItemsByLicenceTabClass.computeIfAbsent(licenceTabClass, tab -> new HashSet<>()).add(actionItem);
+      return this;
+    }
+
+    @Override
+    public SetLicenceTypeForAnAction positionAtTopLevel() {
+      var actionItem = actionItems.peek();
+      this.topLevelLicenceActionItems.add(actionItem);
+      return this;
+    }
 
     @Override
     public Builder build() {
@@ -146,6 +167,7 @@ public class LicenceActionBuilder {
       if (!CollectionUtils.isEmpty(missingActions)) {
         throw new IllegalStateException("Missing registration for following actions %s".formatted(missingActions));
       }
+
       return this;
     }
 
@@ -166,9 +188,17 @@ public class LicenceActionBuilder {
   }
 
   interface SetStatusForAnAction {
-    SetLicenceTypeForAnAction requiresAnyStatusFrom(LicenceStatusType... statuses);
+    DisplayOptionsForAnAction requiresAnyStatusFrom(LicenceStatusType... statuses);
 
-    SetLicenceTypeForAnAction requiresAnyStatus();
+    DisplayOptionsForAnAction requiresAnyStatus();
+  }
+
+  interface DisplayOptionsForAnAction {
+
+    SetLicenceTypeForAnAction positionWithinTabs(Class<? extends LicenceTab> licenceTabClass);
+
+    SetLicenceTypeForAnAction positionAtTopLevel();
+
   }
 
   interface SetLicenceTypeForAnAction {
@@ -194,4 +224,5 @@ public class LicenceActionBuilder {
 
     Builder build();
   }
+
 }

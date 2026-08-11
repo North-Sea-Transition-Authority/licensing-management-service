@@ -1,13 +1,15 @@
 <#include '../layout/layout.ftl'>
-<#import '../component/actions/actionItems.ftl' as actionItems>
+<#import './tabbedLicencePage.ftl' as tabbedLicencePage>
 <#import 'schedule/timeline/scheduleComponents.ftl' as scheduleTimeline>
 <#import '../component/inline/inlineInputAction.ftl' as inlineInputAction>
 
-<@defaultPage
-htmlTitle=licenceReference
-pageHeading=licenceReference
-caption=caption
-pageSize=PageSize.FULL_COLUMN
+<@tabbedLicencePage.page
+    heading=licenceReference
+    caption=caption
+    topLevelLicenceActions=topLevelLicenceActions
+    tabs=tabs
+    currentTab=currentTab
+    currentTabLicenceActions=currentTabLicenceActions
 >
     <#if timelineSummaryCardView?has_content>
         <@scheduleTimeline.timelineSummaryCard timelineSummaryCardView=timelineSummaryCardView/>
@@ -18,9 +20,6 @@ pageSize=PageSize.FULL_COLUMN
         <br/>
         <br/>
     </#if>
-
-
-    <@actionItems.actionItems actionItems=licenceActions screenReaderText=licenceReference/>
 
     <#if scheduleHistoryOptions?has_content>
         <@fdsForm.htmlForm actionUrl=springUrl(viewScheduleHistoryUrl)>
@@ -39,4 +38,5 @@ pageSize=PageSize.FULL_COLUMN
         clearFilterUrl=clearFilterUrl
         />
     </#if>
-</@defaultPage>
+
+</@tabbedLicencePage.page>

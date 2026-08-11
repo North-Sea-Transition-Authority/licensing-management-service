@@ -1,4 +1,5 @@
 <#include '../../layout/layout.ftl'>
+<#import '../tabbedLicencePage.ftl' as tabbedLicencePage>
 <#import '_licencePositionTimeLine.ftl' as licencePositionTimeLine>
 <#import '_licencePositionDetails.ftl' as licencePositionDetails>
 
@@ -10,11 +11,13 @@
   </#if>
 </#assign>
 
-<@defaultPage
-  htmlTitle=pageTitle
-  pageHeading=pageTitle
+<@tabbedLicencePage.page
+  heading=pageTitle
   caption=pageCaption
-  pageSize=PageSize.FULL_COLUMN
+  topLevelLicenceActions=topLevelLicenceActions
+  tabs=tabs
+  currentTab=currentTab
+  currentTabLicenceActions=currentTabLicenceActions
 >
 
     <#if licencePositionPageView.hasPositions()>
@@ -34,4 +37,4 @@
       <@fdsInsetText.insetText>No executed licence positions for this licence.</@fdsInsetText.insetText>
     </#if>
 
-</@defaultPage>
+</@tabbedLicencePage.page>

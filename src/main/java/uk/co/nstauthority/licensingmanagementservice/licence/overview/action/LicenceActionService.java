@@ -2,9 +2,12 @@ package uk.co.nstauthority.licensingmanagementservice.licence.overview.action;
 
 import static java.util.stream.Collectors.toSet;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,16 +22,20 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenceTimelinePositionTab;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
+import uk.co.nstauthority.licensingmanagementservice.licence.tab.LicenceTab;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 
 @Service
 public class LicenceActionService {
+
   private static final Map<LicenceActionItem, Set<Role>> ACTIONS_TO_ROLES
       = new EnumMap<>(LicenceActionItem.class);
   private static final Map<LicenceStatusType, Set<LicenceActionItem>> STATUS_TO_ACTIONS
@@ -39,6 +46,10 @@ public class LicenceActionService {
       = new EnumMap<>(LicenceActionItem.class);
   private static final Map<LicenceActionItem, Predicate<Licence>> ACTIONS_TO_PRIMARY_PREDICATES
       = new EnumMap<>(LicenceActionItem.class);
+  private static final Set<LicenceActionItem> TOP_LEVEL_LICENCE_ACTION_ITEMS
+      = new HashSet<>();
+  private static final Map<Class<? extends LicenceTab>, Set<LicenceActionItem>> LICENCE_ACTION_ITEMS_BY_LICENCE_TAB_CLASS
+      = new HashMap<>();
 
   private final TeamQueryService teamQueryService;
   private final LicenceScheduleDetailService licenceScheduleDetailService;
@@ -63,24 +74,28 @@ public class LicenceActionService {
         .registerAction(LicenceActionItem.CREATE_LICENCE_SCHEDULE)
           .requiresAnyRoleFrom(Role.SCHEDULE_ADMINISTRATOR)
           .requiresAnyStatus()
+          .positionWithinTabs(LicenceScheduleTab.class)
           .requiresAnyTypeFrom(LicenceType.CARBON_STORAGE, LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION)
           .withLicenceScheduleRequirement(LicenceScheduleRequirement.NO_SCHEDULE_EXISTS)
           .isPrimaryButton(false)
         .registerAction(LicenceActionItem.UPDATE_LICENCE_SCHEDULE)
           .requiresAnyRoleFrom(Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR)
           .requiresAnyStatus()
+          .positionWithinTabs(LicenceScheduleTab.class)
           .requiresAnyTypeFrom(LicenceType.CARBON_STORAGE, LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION)
           .withLicenceScheduleRequirement(LicenceScheduleRequirement.CAN_CREATE_DRAFT)
           .isPrimaryButton(false)
         .registerAction(LicenceActionItem.EDIT_LICENCE_DETAILS)
           .requiresAnyRoleFrom(Role.OFFLINE_LICENCE_ADMINISTRATOR)
           .requiresAnyStatus()
+          .positionAtTopLevel()
           .requiresAnyTypeManagedByLms()
           .withoutLicenceScheduleRequirement()
           .isPrimaryButton(false)
         .registerAction(LicenceActionItem.START_CORRECTION)
           .requiresAnyRole()//TODO - LMS2-55: Define who can carry out corrections on a licence
           .requiresAnyStatus()
+          .positionWithinTabs(LicenceTimelinePositionTab.class)
           .requiresAnyTypeFrom(LicenceType.CARBON_STORAGE, LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION)
           .withoutLicenceScheduleRequirement()
           .isPrimaryButton(false)
@@ -91,20 +106,40 @@ public class LicenceActionService {
     ACTIONS_TO_LICENCE_TYPE.putAll(registeredActions.licenceTypeMap);
     ACTIONS_TO_LICENCE_SCHEDULE_REQUIREMENT.putAll(registeredActions.licenceScheduleRequirementMap);
     ACTIONS_TO_PRIMARY_PREDICATES.putAll(registeredActions.primaryActionPredicateMap);
+    TOP_LEVEL_LICENCE_ACTION_ITEMS.addAll(registeredActions.topLevelLicenceActionItems);
+    LICENCE_ACTION_ITEMS_BY_LICENCE_TAB_CLASS.putAll(registeredActions.licenceActionItemsByLicenceTabClass);
   }
 
-  public List<ActionItemView> getAvailableUserActionItems(
+  public List<ActionItemView> getTopLevelLicenceActionItems(Licence licence, ServiceUserDetail user) {
+    return filterLicenceActionItems(licence, TOP_LEVEL_LICENCE_ACTION_ITEMS, user);
+  }
+
+  public List<ActionItemView> getLicenceActionItemsForTab(Licence licence, ServiceUserDetail user, LicenceTab licenceTab) {
+    var actionItems = LICENCE_ACTION_ITEMS_BY_LICENCE_TAB_CLASS.getOrDefault(licenceTab.getClass(), Set.of());
+    return filterLicenceActionItems(licence, actionItems, user);
+  }
+
+  public List<ActionItemView> getAvailableUserActionItems(Licence licence, ServiceUserDetail user) {
+    return filterLicenceActionItems(licence, EnumSet.allOf(LicenceActionItem.class), user);
+  }
+
+  private List<ActionItemView> filterLicenceActionItems(
       Licence licence,
+      Collection<LicenceActionItem> licenceActionItems,
       ServiceUserDetail user
   ) {
+    if (licenceActionItems.isEmpty()) {
+      return List.of();
+    }
+
     var userRoles = teamQueryService.getTeamRolesForUser(user.wuaId()).stream()
-            .map(TeamRole::getRole)
-            .collect(toSet());
+        .map(TeamRole::getRole)
+        .collect(toSet());
 
     var licenceScheduleState = getLicenceScheduleState(licence);
     var currentStatus = licenceStatusService.getCurrentStatus(licence);
 
-    return EnumSet.allOf(LicenceActionItem.class).stream()
+    return licenceActionItems.stream()
         // remove the actions which aren't applicable to the current licence status
         .filter(STATUS_TO_ACTIONS.get(currentStatus)::contains)
         // remove actions that users can't see given their roles

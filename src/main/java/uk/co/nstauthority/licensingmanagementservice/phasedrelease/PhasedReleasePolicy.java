@@ -9,9 +9,10 @@ import java.util.Optional;
  * a controller that is not classified returns {@link Optional#empty()} and is therefore denied by
  * {@link PhasedReleaseInterceptor}.
  *
- * <p>Classification is by controller package rather than URL pattern: the application has root-level and constant-based
- * request mappings that a pure path allow-list cannot express safely. Every controller must resolve to a phase — this
- * is enforced by {@code PhasedReleasePolicyTest}.</p>
+ * <p>Classification is by controller package rather than URL pattern: URLs do not partition cleanly by phase (the
+ * singular {@code licence/...} vs plural {@code licences/...} split cuts across phases, and both LMS1 and LMS2 endpoints
+ * sit under {@code licences/{licenceId}/...}), and classifying by package lets {@code PhasedReleasePolicyTest} prove
+ * statically that every controller resolves to a phase — the completeness guarantee that makes default-deny safe.</p>
  *
  * <p>See {@code documentation/adr/0008-phased-go-live-feature-flag.md}.</p>
  */

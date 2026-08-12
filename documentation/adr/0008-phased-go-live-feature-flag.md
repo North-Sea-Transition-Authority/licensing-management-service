@@ -334,14 +334,30 @@ Two collaborating pieces, deliberately separated:
   phase, and asks `FeatureFlagService` whether that phase is on. No classification lives in
   the interceptor; it is generic.
 
-> **Why classify by controller package, not URL pattern?** The application has request
-> mappings a pure path allow-list cannot express safely — notably `LicenceInternalApiRestController`
-> whose `@RestController("/internal/api/licences")` value is the *bean name*, not a path, so
-> the endpoint actually maps at root `/{slug}`; plus `FooterController`, which maps several
-> root paths (`/accessibility-statement`, `/cookies`, `/contact`). A single root-level `/{var}`
-> mapping makes a prefix allow-list either catch everything or miss it. Classifying the resolved
-> controller by package sidesteps all of this and is more robust: it does not depend on how a
-> controller happens to spell its `@RequestMapping`.
+> **Why classify by controller package, not URL pattern?** Two reasons, one durable and one
+> historical.
+>
+> *Durable.* Package classification is independent of how a controller spells its
+> `@RequestMapping`, and — decisively — it lets an ArchUnit test prove *statically* that every
+> controller resolves to a phase. Default-deny is only as safe as that completeness guarantee,
+> and a URL allow-list cannot reproduce it cheaply (method-level paths, concatenated literals and
+> inheritance mean the full pattern set can't be enumerated from bytecode; you would drop to a
+> runtime `RequestMappingHandlerMapping` test, and "does this pattern match a rule" is fuzzy when
+> both sides carry wildcards). URLs also do not partition cleanly by phase: the singular
+> `licence/…` vs plural `licences/…` split cuts *across* phase boundaries, and under
+> `licences/{licenceId}/…` sit both LMS1 (`/overview`) and LMS2 (`/timeline`, `/correction/start`)
+> endpoints — distinguishable only by a segment that falls *after* a path variable, which a prefix
+> allow-list cannot express without ordered pattern matching. Compounding this, `FooterController`
+> maps three unrelated root paths (`/accessibility-statement`, `/cookies`, `/contact`) and several
+> prefixes are shared across packages (`/api`, `/application`, `/licence/schedule`). Classifying
+> the resolved controller by package sidesteps all of it.
+>
+> *Historical.* An earlier concrete blocker was `LicenceInternalApiRestController`, whose
+> `@RestController("…")` value was read as the *bean name* rather than a path, so the endpoint
+> mapped at root `/{slug}`. That has since been fixed (namespaced under `/internal/api/licences`,
+> PR #561), and no controller now maps a path variable as its first root segment. The package
+> approach is nevertheless retained for the durable reasons above — the fix removed one symptom,
+> not the underlying case for classifying by package.
 
 #### `PhasedReleasePolicy` — the allow-list as code
 
@@ -363,6 +379,7 @@ public final class PhasedReleasePolicy {
       Map.entry(BASE + "licence.position",   ReleasePhase.LMS2),
       Map.entry(BASE + "licence",            ReleasePhase.LMS1),   // search, overview, schedule, apps, internal API…
       Map.entry(BASE + "document",           ReleasePhase.LMS1),
+      Map.entry(BASE + "gis",                ReleasePhase.LMS2),   // split-from-map endpoint; backs LMS2 map editing
       Map.entry(BASE + "workarea",           ReleasePhase.NOT_FLAGGED),
       Map.entry(BASE + "teams",              ReleasePhase.NOT_FLAGGED),
       Map.entry(BASE + "feedback",           ReleasePhase.NOT_FLAGGED),
@@ -624,8 +641,9 @@ packages below — i.e. licence search & management, licence overview, schedules
 (`licence.application.*`), the licence internal search API (`licence.internalapi`), the base
 `LicenceController`/`LicenceRedirectorController` (`licence`) — plus `document` (document library).
 
-**Locked behind `enable-lms2` (LMS2 phase — all other functionality):** `licence.correction.*`
-and `licence.position`.
+**Locked behind `enable-lms2` (LMS2 phase — all other functionality):** `licence.correction.*`,
+`licence.position`, and `gis` (the GIS split-from-map endpoint that backs LMS2 licence-position
+correction / partial-surrender map editing).
 
 > The licence-correction controllers and `LicencePositionController` **already** carry
 > `@Profile("enable-lms2")`, so they are unregistered (404) when that profile is off,

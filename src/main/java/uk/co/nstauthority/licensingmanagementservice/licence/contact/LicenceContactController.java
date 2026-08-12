@@ -60,8 +60,9 @@ public class LicenceContactController {
     LicenceContactsTableView contactsTableView;
 
     if (regulatorRoleService.isRegulator(user)) {
-      pageTitle = "Licence contact details";
-      contactsTableView = licenceContactService.getRegulatorContactsTable(form);
+      var canManage = regulatorRoleService.isLicenceContactsManager(user);
+      pageTitle = canManage ? "Manage licence contact details" : "Licence contact details";
+      contactsTableView = licenceContactService.getRegulatorContactsTable(canManage, form);
     } else {
       var canManage = teamQueryService.userHasRoleInTeamType(
           user.wuaId(),
@@ -124,7 +125,10 @@ public class LicenceContactController {
   }
 
   @GetMapping("/licence/{licenceId}/responsible-organisation/{responsibleOrganisationId}")
-  @HasRolesInTeamType(@RolesAndTeamType(roles = {Role.LICENSEE_CONTACTS_MANAGER}, teamType = TeamType.ORGANISATION))
+  @HasRolesInTeamType({
+      @RolesAndTeamType(roles = {Role.LICENSEE_CONTACTS_MANAGER}, teamType = TeamType.ORGANISATION),
+      @RolesAndTeamType(roles = {Role.LICENCE_CONTACTS_MANAGER}, teamType = TeamType.LICENCE_MANAGEMENT)
+  })
   public ModelAndView renderUpdateContact(
       @PathVariable Integer licenceId,
       @PathVariable Integer responsibleOrganisationId,
@@ -137,7 +141,10 @@ public class LicenceContactController {
   }
 
   @PostMapping("/licence/{licenceId}/responsible-organisation/{responsibleOrganisationId}")
-  @HasRolesInTeamType(@RolesAndTeamType(roles = {Role.LICENSEE_CONTACTS_MANAGER}, teamType = TeamType.ORGANISATION))
+  @HasRolesInTeamType({
+      @RolesAndTeamType(roles = {Role.LICENSEE_CONTACTS_MANAGER}, teamType = TeamType.ORGANISATION),
+      @RolesAndTeamType(roles = {Role.LICENCE_CONTACTS_MANAGER}, teamType = TeamType.LICENCE_MANAGEMENT)
+  })
   public ModelAndView saveContact(
       @PathVariable Integer licenceId,
       @PathVariable Integer responsibleOrganisationId,

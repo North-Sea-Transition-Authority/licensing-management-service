@@ -63,6 +63,10 @@ public enum Role {
       "Document template administrator",
       "Create and edit document templates"
   ),
+  LICENCE_CONTACTS_MANAGER(
+      "Licence contacts manager",
+      "Can add and update the contact email for any licensee on any licence"
+  ),
   CASE_MANAGER_NEW_VENTURES(
       "Case manager (New Ventures)",
       "Receive and manage extension and amendment applications for licences in the initial term"

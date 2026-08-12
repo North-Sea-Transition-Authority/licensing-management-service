@@ -17,6 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableRow;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableValue;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableView;
@@ -27,6 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleo
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
 
 @Service
@@ -38,6 +40,7 @@ public class LicenceContactService {
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final OrganisationGroupQueryService organisationGroupQueryService;
   private final LicenceContactEmailService licenceContactEmailService;
+  private final RegulatorRoleService regulatorRoleService;
 
   public LicenceContactService(
       LicenceContactRepository licenceContactRepository,
@@ -45,7 +48,8 @@ public class LicenceContactService {
       LicenceOrganisationService licenceOrganisationService,
       OrganisationUnitQueryService organisationUnitQueryService,
       OrganisationGroupQueryService organisationGroupQueryService,
-      LicenceContactEmailService licenceContactEmailService
+      LicenceContactEmailService licenceContactEmailService,
+      RegulatorRoleService regulatorRoleService
   ) {
     this.licenceContactRepository = licenceContactRepository;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
@@ -53,6 +57,7 @@ public class LicenceContactService {
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.organisationGroupQueryService = organisationGroupQueryService;
     this.licenceContactEmailService = licenceContactEmailService;
+    this.regulatorRoleService = regulatorRoleService;
   }
 
   public LicenceContactsTableView getIndustryContactsTable(
@@ -68,14 +73,14 @@ public class LicenceContactService {
     return buildContactsTable(licensees, nameByOrgUnitId, orgUnitIds, canManage, filterForm);
   }
 
-  public LicenceContactsTableView getRegulatorContactsTable(LicenceContactFilterForm filterForm) {
+  public LicenceContactsTableView getRegulatorContactsTable(boolean canManage, LicenceContactFilterForm filterForm) {
     var licensees = licenceResponsibleOrganisationService.getAll();
     var orgUnitIds = licensees.stream()
         .map(LicenceResponsibleOrganisation::getResponsibleOrganisationId)
         .distinct()
         .toList();
     var nameByOrgUnitId = organisationUnitQueryService.getOrganisationUnitNamesByIds(orgUnitIds);
-    return buildContactsTable(licensees, nameByOrgUnitId, orgUnitIds, false, filterForm);
+    return buildContactsTable(licensees, nameByOrgUnitId, orgUnitIds, canManage, filterForm);
   }
 
   public boolean hasContactForLicensee(LicenceApplicationDetail applicationDetail) {
@@ -203,8 +208,17 @@ public class LicenceContactService {
     return rowBuilder.build();
   }
 
+  private String getLicenseeNameOrThrow(ServiceUserDetail user, Integer organisationId) {
+    if (regulatorRoleService.isLicenceContactsManager(user)) {
+      return organisationUnitQueryService.getOrganisationUnitNameById(organisationId)
+          .orElseThrow(() -> new LmsEntityNotFoundException("organisation unit", organisationId.toString()));
+    }
+
+    return licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, organisationId);
+  }
+
   public LicenceContactFormView getLicenceContactFormView(ServiceUserDetail user, Integer licenceId, Integer organisationId) {
-    licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, organisationId);
+    getLicenseeNameOrThrow(user, organisationId);
     var licensee = licenceResponsibleOrganisationService
         .getByLicenceIdAndResponsibleOrganisationIdOrThrow(licenceId, organisationId);
     var currentEmail = licenceContactRepository.findByLicensee(licensee)
@@ -215,7 +229,7 @@ public class LicenceContactService {
 
   @Transactional
   public void saveContact(ServiceUserDetail user, Integer licenceId, Integer organisationId, String contactEmail) {
-    licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, organisationId);
+    getLicenseeNameOrThrow(user, organisationId);
     var licensee = licenceResponsibleOrganisationService
         .getByLicenceIdAndResponsibleOrganisationIdOrThrow(licenceId, organisationId);
 
@@ -230,7 +244,7 @@ public class LicenceContactService {
       Integer currentLicenceId,
       Integer organisationId
   ) {
-    var licenseeName = licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, organisationId);
+    var licenseeName = getLicenseeNameOrThrow(user, organisationId);
 
     var emailByLicensee = licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(organisationId))
         .stream()
@@ -265,7 +279,7 @@ public class LicenceContactService {
       String contactEmail,
       Collection<Integer> licenceIds
   ) {
-    var licenseeName = licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, organisationId);
+    var licenseeName = getLicenseeNameOrThrow(user, organisationId);
 
     var licenceReferences = new ArrayList<String>();
     licenceIds.forEach(licenceId -> {

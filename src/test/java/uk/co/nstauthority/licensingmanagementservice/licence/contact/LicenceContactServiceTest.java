@@ -34,6 +34,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
+import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceContactServiceTest {
@@ -48,6 +49,7 @@ class LicenceContactServiceTest {
   private static final OrganisationUnitJson ORG_UNIT = new OrganisationUnitJson(ORG_ID, SHELL_U_K_LIMITED);
 
   private final ServiceUserDetail user = ServiceUserDetailTestUtil.newBuilder().build();
+  private final ServiceUserDetail nstaContactsManager = ServiceUserDetailTestUtil.newBuilder().withWuaId(400L).build();
 
   @Mock
   private LicenceContactRepository licenceContactRepository;
@@ -66,6 +68,9 @@ class LicenceContactServiceTest {
 
   @Mock
   private LicenceContactEmailService licenceContactEmailService;
+
+  @Mock
+  private RegulatorRoleService regulatorRoleService;
 
   @InjectMocks
   private LicenceContactService licenceContactService;
@@ -176,7 +181,7 @@ class LicenceContactServiceTest {
   void getRegulatorContactsTable_whenNoLicensees_returnsEmptyTable() {
     when(licenceResponsibleOrganisationService.getAll()).thenReturn(List.of());
 
-    var tableView = licenceContactService.getRegulatorContactsTable(new LicenceContactFilterForm());
+    var tableView = licenceContactService.getRegulatorContactsTable(false, new LicenceContactFilterForm());
 
     assertThat(tableView.tableJson()).doesNotContain("P 123");
     assertThat(tableView.contactCount()).isZero();
@@ -191,14 +196,31 @@ class LicenceContactServiceTest {
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(List.of(ORG_ID)))
         .thenReturn(List.of(contact(licensee, "licensing@example.com")));
 
-    var tableView = licenceContactService.getRegulatorContactsTable(new LicenceContactFilterForm());
+    var tableView = licenceContactService.getRegulatorContactsTable(false, new LicenceContactFilterForm());
 
     assertThat(tableView.tableJson())
         .contains("P 123")
         .contains(SHELL_U_K_LIMITED)
         .contains("licensing@example.com")
-        .doesNotContain("Not assigned");
+        .doesNotContain("Not assigned")
+        .doesNotContain("licence-contacts/");
     assertThat(tableView.contactCount()).isEqualTo(1);
+  }
+
+  @Test
+  void getRegulatorContactsTable_whenUserCanManage_hasActionLink() {
+    var licensee = licensee();
+    when(licenceResponsibleOrganisationService.getAll()).thenReturn(List.of(licensee));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(ORG_ID)))
+        .thenReturn(Map.of(ORG_ID, SHELL_U_K_LIMITED));
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(List.of(ORG_ID)))
+        .thenReturn(List.of());
+
+    var tableView = licenceContactService.getRegulatorContactsTable(true, new LicenceContactFilterForm());
+
+    assertThat(tableView.tableJson())
+        .contains("Add contact email")
+        .contains("\"licence-contacts/licence/%d/responsible-organisation/%d\"".formatted(LICENCE_ID, ORG_ID));
   }
 
   @Test
@@ -210,7 +232,7 @@ class LicenceContactServiceTest {
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(List.of(ORG_ID)))
         .thenReturn(List.of());
 
-    var tableView = licenceContactService.getRegulatorContactsTable(new LicenceContactFilterForm());
+    var tableView = licenceContactService.getRegulatorContactsTable(false, new LicenceContactFilterForm());
 
     assertThat(tableView.tableJson())
         .contains("P 123")
@@ -293,7 +315,7 @@ class LicenceContactServiceTest {
     var filterForm = new LicenceContactFilterForm();
     filterForm.setLicenseeOrgUnitId(20);
 
-    var tableView = licenceContactService.getRegulatorContactsTable(filterForm);
+    var tableView = licenceContactService.getRegulatorContactsTable(false, filterForm);
 
     assertThat(tableView.tableJson())
         .contains("BP Exploration")
@@ -316,7 +338,7 @@ class LicenceContactServiceTest {
     var filterForm = new LicenceContactFilterForm();
     filterForm.setLicenseeOrgGroupId(55);
 
-    var tableView = licenceContactService.getRegulatorContactsTable(filterForm);
+    var tableView = licenceContactService.getRegulatorContactsTable(false, filterForm);
 
     assertThat(tableView.tableJson())
         .contains(SHELL_U_K_LIMITED)
@@ -399,6 +421,82 @@ class LicenceContactServiceTest {
     assertThat(context.licenceReference()).isEqualTo("P 123");
     assertThat(context.currentEmail()).isEqualTo("licensing@example.com");
     assertThat(context.isUpdate()).isTrue();
+  }
+
+  @Test
+  void getLicenceContactFormView_whenNstaContactsManager_skipsOrgGroupScopeCheck() {
+    var licensee = licensee();
+    when(regulatorRoleService.isLicenceContactsManager(nstaContactsManager)).thenReturn(true);
+    when(organisationUnitQueryService.getOrganisationUnitNameById(ORG_ID)).thenReturn(Optional.of(SHELL_U_K_LIMITED));
+    when(licenceResponsibleOrganisationService.getByLicenceIdAndResponsibleOrganisationIdOrThrow(LICENCE_ID, ORG_ID))
+        .thenReturn(licensee);
+    when(licenceContactRepository.findByLicensee(licensee))
+        .thenReturn(Optional.of(contact(licensee, "licensing@example.com")));
+
+    var context = licenceContactService.getLicenceContactFormView(nstaContactsManager, LICENCE_ID, ORG_ID);
+
+    assertThat(context.licenceReference()).isEqualTo("P 123");
+    assertThat(context.currentEmail()).isEqualTo("licensing@example.com");
+    verifyNoInteractions(licenceOrganisationService);
+  }
+
+  @Test
+  void getLicenceContactFormView_whenNstaContactsManagerAndOrgUnitNotFound_throwsNotFound() {
+    when(regulatorRoleService.isLicenceContactsManager(nstaContactsManager)).thenReturn(true);
+    when(organisationUnitQueryService.getOrganisationUnitNameById(999)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> licenceContactService.getLicenceContactFormView(nstaContactsManager, LICENCE_ID, 999))
+        .isInstanceOf(LmsEntityNotFoundException.class);
+
+    verifyNoInteractions(licenceResponsibleOrganisationService, licenceContactRepository);
+  }
+
+  @Test
+  void getOtherLicencesHeldByLicensee_whenNstaContactsManager_usesPortalLicenseeName() {
+    var currentLicensee = licensee();
+    var otherLicensee = licenseeOnLicence(otherLicence());
+
+    when(regulatorRoleService.isLicenceContactsManager(nstaContactsManager)).thenReturn(true);
+    when(organisationUnitQueryService.getOrganisationUnitNameById(ORG_ID)).thenReturn(Optional.of(SHELL_U_K_LIMITED));
+    when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of(currentLicensee, otherLicensee));
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of(contact(otherLicensee, "other@example.com")));
+
+    var candidates = licenceContactService.getOtherLicencesHeldByLicensee(nstaContactsManager, LICENCE_ID, ORG_ID);
+
+    assertThat(candidates)
+        .containsExactly(new BulkContactCandidate(2, "P 456", SHELL_U_K_LIMITED, "other@example.com"));
+    verifyNoInteractions(licenceOrganisationService);
+  }
+
+  @Test
+  void applyContactToLicences_whenNstaContactsManager_savesForEachLicenceAndSendsEmail() {
+    var licensee1 = licensee();
+    var licensee2 = licenseeOnLicence(otherLicence());
+
+    when(regulatorRoleService.isLicenceContactsManager(nstaContactsManager)).thenReturn(true);
+    when(organisationUnitQueryService.getOrganisationUnitNameById(ORG_ID)).thenReturn(Optional.of(SHELL_U_K_LIMITED));
+    when(licenceResponsibleOrganisationService.getByLicenceIdAndResponsibleOrganisationIdOrThrow(LICENCE_ID, ORG_ID))
+        .thenReturn(licensee1);
+    when(licenceResponsibleOrganisationService.getByLicenceIdAndResponsibleOrganisationIdOrThrow(2, ORG_ID))
+        .thenReturn(licensee2);
+    when(licenceContactRepository.findByLicensee(licensee1)).thenReturn(Optional.empty());
+    when(licenceContactRepository.findByLicensee(licensee2)).thenReturn(Optional.empty());
+
+    licenceContactService.applyContactToLicences(nstaContactsManager, ORG_ID, "nsta@example.com", List.of(LICENCE_ID, 2));
+
+    verify(licenceContactRepository, times(2)).save(contactCaptor.capture());
+    assertThat(contactCaptor.getAllValues())
+        .extracting(LicenceContact::getContactEmail)
+        .containsExactly("nsta@example.com", "nsta@example.com");
+    verify(licenceContactEmailService).sendContactUpdatedEmail(
+        "nsta@example.com",
+        SHELL_U_K_LIMITED,
+        List.of("P 123", "P 456"),
+        ORG_ID
+    );
+    verifyNoInteractions(licenceOrganisationService);
   }
 
   @Test

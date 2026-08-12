@@ -54,8 +54,6 @@ public class DataBootstrapper {
 
     LOGGER.info("Bootstrapping data...");
 
-    var regulatorTeamUsers = new HashMap<TeamType, Map<Role, String>>();
-
     var licenceManagementUserMap = new HashMap<Role, String>();
     licenceManagementUserMap.put(Role.MANAGE_TEAM, "administrator@lms.co.uk");
     licenceManagementUserMap.put(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM, "industry.manager@lms.co.uk");
@@ -64,6 +62,9 @@ public class DataBootstrapper {
     licenceManagementUserMap.put(Role.WORK_PROGRAMME_ADMINISTRATOR, "wp.administrator@lms.co.uk");
     licenceManagementUserMap.put(Role.WORK_PROGRAMME_STATUS_ADMINISTRATOR, "wp.status.administrator@lms.co.uk");
     licenceManagementUserMap.put(Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER, "licence.viewer@lms.co.uk");
+    licenceManagementUserMap.put(Role.LICENCE_CONTACTS_MANAGER, "licence.administrator@lms.co.uk");
+
+    var regulatorTeamUsers = new HashMap<TeamType, Map<Role, String>>();
     regulatorTeamUsers.put(TeamType.LICENCE_MANAGEMENT, licenceManagementUserMap);
 
     var offshoreProductionLicensingUserMap = new HashMap<Role, String>();

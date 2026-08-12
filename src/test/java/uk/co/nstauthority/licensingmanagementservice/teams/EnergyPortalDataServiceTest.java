@@ -62,7 +62,8 @@ class EnergyPortalDataServiceTest {
         createServiceRoleDto(Role.WORK_PROGRAMME_ADMINISTRATOR, false),
         createServiceRoleDto(Role.WORK_PROGRAMME_STATUS_ADMINISTRATOR, false),
         createServiceRoleDto(Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER, false),
-        createServiceRoleDto(Role.DOCUMENT_TEMPLATE_MANAGER, false)
+        createServiceRoleDto(Role.DOCUMENT_TEMPLATE_MANAGER, false),
+        createServiceRoleDto(Role.LICENCE_CONTACTS_MANAGER, false)
     );
 
     var productionRoleDtos = Set.of(

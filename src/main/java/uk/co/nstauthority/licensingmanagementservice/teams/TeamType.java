@@ -25,7 +25,8 @@ public enum TeamType implements Displayable {
           Role.WORK_PROGRAMME_ADMINISTRATOR,
           Role.WORK_PROGRAMME_STATUS_ADMINISTRATOR,
           Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER,
-          Role.DOCUMENT_TEMPLATE_MANAGER
+          Role.DOCUMENT_TEMPLATE_MANAGER,
+          Role.LICENCE_CONTACTS_MANAGER
      ),
       null,
       true

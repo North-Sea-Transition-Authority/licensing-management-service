@@ -71,6 +71,24 @@ class RegulatorRoleServiceTest {
   }
 
   @Test
+  void isLicenceContactsManager_whenUserHasRole_returnsTrue() {
+    when(teamQueryService.userHasAtLeastOneStaticRole(USER.wuaId(), TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.LICENCE_CONTACTS_MANAGER)))
+        .thenReturn(true);
+
+    assertThat(regulatorRoleService.isLicenceContactsManager(USER)).isTrue();
+  }
+
+  @Test
+  void isLicenceContactsManager_whenUserDoesNotHaveRole_returnsFalse() {
+    when(teamQueryService.userHasAtLeastOneStaticRole(USER.wuaId(), TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.LICENCE_CONTACTS_MANAGER)))
+        .thenReturn(false);
+
+    assertThat(regulatorRoleService.isLicenceContactsManager(USER)).isFalse();
+  }
+
+  @Test
   void isDecisionIssuer_whenUserHasDecisionIssuerRole_returnsTrue() {
     var teamRole = new TeamRole();
     teamRole.setRole(Role.DECISION_ISSUER_ONSHORE);

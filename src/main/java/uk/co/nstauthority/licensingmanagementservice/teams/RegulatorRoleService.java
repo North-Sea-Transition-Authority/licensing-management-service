@@ -36,6 +36,14 @@ public class RegulatorRoleService {
     );
   }
 
+  public boolean isLicenceContactsManager(ServiceUserDetail userDetail) {
+    return teamQueryService.userHasAtLeastOneStaticRole(
+        userDetail.wuaId(),
+        TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.LICENCE_CONTACTS_MANAGER)
+    );
+  }
+
   public boolean isDecisionIssuer(ServiceUserDetail userDetail) {
     return teamQueryService.getTeamRolesForUser(userDetail.wuaId()).stream()
         .anyMatch(teamRole -> DECISION_ISSUER_ROLES.contains(teamRole.getRole()));

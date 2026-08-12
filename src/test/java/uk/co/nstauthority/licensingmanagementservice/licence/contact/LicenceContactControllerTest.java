@@ -55,10 +55,12 @@ class LicenceContactControllerTest extends AbstractControllerTest {
   private RegulatorRoleService regulatorRoleService;
 
   private ServiceUserDetail contactManager;
+  private ServiceUserDetail nstaContactManager;
 
   @BeforeEach
   void setUp() {
     contactManager = ServiceUserDetailTestUtil.newBuilder().withWuaId(200L).build();
+    nstaContactManager = ServiceUserDetailTestUtil.newBuilder().withWuaId(500L).build();
     when(teamQueryService.userHasRoleInTeamType(
         contactManager.wuaId(), TeamType.ORGANISATION, Set.of(Role.LICENSEE_CONTACTS_MANAGER)))
         .thenReturn(true);
@@ -80,7 +82,7 @@ class LicenceContactControllerTest extends AbstractControllerTest {
     var form = new LicenceContactFilterForm();
     var filterSession = new LicenceContactFilterSession(form);
     when(regulatorRoleService.isRegulator(regulator)).thenReturn(true);
-    when(licenceContactService.getRegulatorContactsTable(form))
+    when(licenceContactService.getRegulatorContactsTable(false, form))
         .thenReturn(new LicenceContactsTableView(tableJson, 2));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null, null)))
@@ -95,6 +97,32 @@ class LicenceContactControllerTest extends AbstractControllerTest {
             model().attribute("isRegulatorUser", true),
             model().attribute("clearFilterUrl", CLEAR_FILTERS_ROUTE),
             model().attribute("pageTitle", "Licence contact details"));
+  }
+
+  @Test
+  void renderManageContacts_whenNstaContactsManager_rendersManageableContacts() throws Exception {
+    var tableJson = SortableTableView.sortableTableBuilder()
+        .newWithHeadings("Licence", "Licensee", "Contact email")
+        .withActionHeading("Action")
+        .build()
+        .toString();
+    var form = new LicenceContactFilterForm();
+    var filterSession = new LicenceContactFilterSession(form);
+    when(regulatorRoleService.isRegulator(nstaContactManager)).thenReturn(true);
+    when(regulatorRoleService.isLicenceContactsManager(nstaContactManager)).thenReturn(true);
+    when(licenceContactService.getRegulatorContactsTable(true, form))
+        .thenReturn(new LicenceContactsTableView(tableJson, 2));
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null, null)))
+            .flashAttr("licenceContactFilterSession", filterSession)
+            .with(user(nstaContactManager)))
+        .andExpectAll(
+            status().isOk(),
+            view().name("lms/licence/contact/manageContacts"),
+            model().attribute("contactsTableJson", tableJson),
+            model().attribute("contactCount", 2),
+            model().attribute("isRegulatorUser", true),
+            model().attribute("pageTitle", "Manage licence contact details"));
   }
 
   @Test
@@ -171,6 +199,66 @@ class LicenceContactControllerTest extends AbstractControllerTest {
             on(LicenceContactController.class).renderUpdateContact(LICENCE_ID, ORG_ID, null)))
             .with(user(viewer)))
         .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderUpdateContact_whenRegulatorWithoutContactsManagerRole_isForbidden() throws Exception {
+    var regulator = ServiceUserDetailTestUtil.newBuilder().withWuaId(450L).build();
+
+    mockMvc.perform(get(ReverseRouter.route(
+            on(LicenceContactController.class).renderUpdateContact(LICENCE_ID, ORG_ID, null)))
+            .with(user(regulator)))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderUpdateContact_whenNstaContactsManager_rendersForm() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(
+        nstaContactManager.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.LICENCE_CONTACTS_MANAGER)))
+        .thenReturn(true);
+    when(licenceContactService.getLicenceContactFormView(nstaContactManager, LICENCE_ID, ORG_ID))
+        .thenReturn(new LicenceContactFormView("P 123", "licensing@example.com"));
+
+    mockMvc.perform(get(ReverseRouter.route(
+            on(LicenceContactController.class).renderUpdateContact(LICENCE_ID, ORG_ID, null)))
+            .with(user(nstaContactManager)))
+        .andExpectAll(
+            status().isOk(),
+            view().name("lms/licence/contact/updateContact"),
+            model().attributeExists("form", "isUpdate", "licenceReference"));
+  }
+
+  @Test
+  void saveContact_whenNstaContactsManager_savesAndRedirectsToList() throws Exception {
+    when(teamQueryService.userHasRoleInTeamType(
+        nstaContactManager.wuaId(), TeamType.LICENCE_MANAGEMENT, Set.of(Role.LICENCE_CONTACTS_MANAGER)))
+        .thenReturn(true);
+
+    mockMvc.perform(post(ReverseRouter.route(
+            on(LicenceContactController.class).saveContact(LICENCE_ID, ORG_ID, null, null, null, null)))
+            .param("contactEmail", "nsta@example.com")
+            .param("bulkUpdateLicenceIds", "2")
+            .with(user(nstaContactManager))
+            .with(csrf()))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(MANAGE_CONTACTS_ROUTE));
+
+    verify(licenceContactService)
+        .applyContactToLicences(nstaContactManager, ORG_ID, "nsta@example.com", List.of(LICENCE_ID, 2));
+  }
+
+  @Test
+  void saveContact_whenRegulatorWithoutContactsManagerRole_isForbidden() throws Exception {
+    var regulator = ServiceUserDetailTestUtil.newBuilder().withWuaId(450L).build();
+
+    mockMvc.perform(post(ReverseRouter.route(
+            on(LicenceContactController.class).saveContact(LICENCE_ID, ORG_ID, null, null, null, null)))
+            .param("contactEmail", "nsta@example.com")
+            .with(user(regulator))
+            .with(csrf()))
+        .andExpect(status().isForbidden());
+
+    verify(licenceContactService, never()).applyContactToLicences(any(), any(), any(), any());
   }
 
   @Test

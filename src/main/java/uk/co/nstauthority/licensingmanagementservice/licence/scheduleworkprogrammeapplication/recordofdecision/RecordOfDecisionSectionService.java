@@ -46,8 +46,10 @@ public class RecordOfDecisionSectionService implements TaskListSectionService<Re
         ReverseRouter.route(on(RecordDecisionController.class).renderForm(applicationDetail.getId(), null))));
 
     if (recordOfDecisionService.isExtensionApproved(applicationDetail)) {
-      // TODO LMS1-543: extension details step sets visibility and completion
-      items.add(new TaskListItem(EXTENSION_DECISION_DETAILS, TaskListLabel.notStartedOrComplete(false), URL));
+      items.add(new TaskListItem(
+          EXTENSION_DECISION_DETAILS,
+          TaskListLabel.notStartedOrComplete(recordOfDecisionService.isExtensionDetailsSaved(applicationDetail)),
+          ReverseRouter.route(on(RecordExtensionDetailsController.class).renderForm(applicationDetail.getId(), null))));
     }
 
     if (recordOfDecisionService.isExtensionDetailsSaved(applicationDetail)) {

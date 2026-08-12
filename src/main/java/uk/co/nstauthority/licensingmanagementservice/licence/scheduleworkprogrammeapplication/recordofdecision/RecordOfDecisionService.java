@@ -9,9 +9,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 public class RecordOfDecisionService {
 
   private final RecordOfDecisionRepository recordOfDecisionRepository;
+  private final RecordOfDecisionExtensionRepository recordOfDecisionExtensionRepository;
 
-  public RecordOfDecisionService(RecordOfDecisionRepository recordOfDecisionRepository) {
+  public RecordOfDecisionService(
+      RecordOfDecisionRepository recordOfDecisionRepository,
+      RecordOfDecisionExtensionRepository recordOfDecisionExtensionRepository
+  ) {
     this.recordOfDecisionRepository = recordOfDecisionRepository;
+    this.recordOfDecisionExtensionRepository = recordOfDecisionExtensionRepository;
   }
 
   public Optional<RecordOfDecision> findByApplicationDetail(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
@@ -47,8 +52,7 @@ public class RecordOfDecisionService {
   }
 
   public boolean isExtensionDetailsSaved(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
-    // TODO LMS1-543: always false until the extension details step saves data
-    return false;
+    return recordOfDecisionExtensionRepository.existsByScheduleWorkProgrammeApplicationDetail(applicationDetail);
   }
 
   public boolean isWorkProgrammeAmendmentApproved(ScheduleWorkProgrammeApplicationDetail applicationDetail) {

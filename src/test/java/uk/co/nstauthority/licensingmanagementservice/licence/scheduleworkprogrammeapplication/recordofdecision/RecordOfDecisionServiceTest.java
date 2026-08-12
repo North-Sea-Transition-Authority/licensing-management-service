@@ -22,6 +22,9 @@ class RecordOfDecisionServiceTest {
   @Mock
   private RecordOfDecisionRepository recordOfDecisionRepository;
 
+  @Mock
+  private RecordOfDecisionExtensionRepository recordOfDecisionExtensionRepository;
+
   @InjectMocks
   private RecordOfDecisionService recordOfDecisionService;
 
@@ -73,7 +76,18 @@ class RecordOfDecisionServiceTest {
   }
 
   @Test
-  void isExtensionDetailsSaved_returnsFalseUntilExtensionDetailsStepIsBuilt() {
+  void isExtensionDetailsSaved_whenExtensionRowsExist_returnsTrue() {
+    when(recordOfDecisionExtensionRepository.existsByScheduleWorkProgrammeApplicationDetail(applicationDetail))
+        .thenReturn(true);
+
+    assertThat(recordOfDecisionService.isExtensionDetailsSaved(applicationDetail)).isTrue();
+  }
+
+  @Test
+  void isExtensionDetailsSaved_whenNoExtensionRows_returnsFalse() {
+    when(recordOfDecisionExtensionRepository.existsByScheduleWorkProgrammeApplicationDetail(applicationDetail))
+        .thenReturn(false);
+
     assertThat(recordOfDecisionService.isExtensionDetailsSaved(applicationDetail)).isFalse();
   }
 

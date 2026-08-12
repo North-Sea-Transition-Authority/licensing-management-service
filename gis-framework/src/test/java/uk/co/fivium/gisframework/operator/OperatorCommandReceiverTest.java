@@ -1,7 +1,6 @@
 package uk.co.fivium.gisframework.operator;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -9,7 +8,6 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -119,20 +117,5 @@ class OperatorCommandReceiverTest {
     assertThat(inputFeature.isActive()).isTrue();
     verify(operatorCommandService, never()).createOperatorCommand(any(), any(), any());
     verify(featureService, never()).saveFeatures(any());
-  }
-
-  @Test
-  void executeSplit_whenNoActiveFeaturesOnJourney_throws() {
-    var commandJourneyId = UUID.randomUUID();
-    var request = new SplitFromMapRequest(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, commandJourneyId);
-    var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
-
-    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
-    when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of());
-
-    assertThatThrownBy(() -> operatorCommandReceiver.executeSplit(request))
-        .isInstanceOf(NoSuchElementException.class);
-
-    verify(splitOperatorService, never()).splitPolygon(any(), any());
   }
 }

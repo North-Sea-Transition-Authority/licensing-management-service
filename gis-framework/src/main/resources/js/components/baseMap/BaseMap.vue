@@ -53,6 +53,7 @@ interface BaseMapProps {
   includeSnapPoints?: boolean,
   includeDrawLine?: boolean,
   selectedPoints?: LinePoint[],
+  // Increment to trigger the map to render the features again
   refreshCounter?: number,
   // Optional override for the map's inline style. When omitted the map uses its default sizing;
   // wrappers can pass e.g. a full-height style to make the map fill a fixed-aspect container.

@@ -48,14 +48,14 @@ public class OperatorCommandReceiver {
   public List<Feature> executeSplit(SplitFromMapRequest request) {
     var commandJourney = commandJourneyService.getCommandJourneyOrThrow(request.commandJourneyId());
     var inputFeatures = commandJourneyService.getActiveFeatures(commandJourney);
-    int wkid = CoordinateSystemUtils.getWkid(inputFeatures.getFirst().getCoordinateSystem());
-    String cutterLineEsriJson = grpcClientService.convertPointsToPolyline(request.cutterLineOriginalSrsCoordinates(),
-        wkid);
 
     if (CollectionUtils.isEmpty(inputFeatures)) {
       return List.of();
     }
 
+    int wkid = CoordinateSystemUtils.getWkid(inputFeatures.getFirst().getCoordinateSystem());
+    String cutterLineEsriJson = grpcClientService
+        .convertPointsToPolyline(request.cutterLineOriginalSrsCoordinates(), wkid);
     List<Feature> affectedInputFeatures = new ArrayList<>();
     List<Feature> outputFeatures = new ArrayList<>();
 

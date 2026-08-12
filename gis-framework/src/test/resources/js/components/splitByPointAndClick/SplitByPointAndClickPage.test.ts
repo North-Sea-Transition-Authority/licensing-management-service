@@ -124,19 +124,19 @@ describe("splitByPointAndClickPage", () => {
       );
     });
 
-    expect(container.querySelector(".govuk-error-message")).not.toBeInTheDocument();
+    expect(container.querySelector(".govuk-error-summary")).not.toBeInTheDocument();
     expect(screen.getByTestId("refresh-counter").textContent).toBe("0");
   });
 
   it("shows an error message when the split request fails", async () => {
     splitFeatureMock.mockRejectedValue(new Error("network error"));
-    const { container } = renderPage();
+    renderPage();
 
     await fireEvent.click(screen.getByTestId("emit-two-points"));
 
     await waitFor(() => {
-      expect(container.querySelector(".govuk-error-message")?.textContent?.trim())
-        .toBe("An error occurred while attempting to split the feature. Please try again.");
+      expect(screen.getByRole("alert").textContent)
+        .toContain("An error occurred while attempting to split the feature. Please try again.");
     });
   });
 });

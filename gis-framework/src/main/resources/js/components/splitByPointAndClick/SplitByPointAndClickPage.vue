@@ -1,6 +1,6 @@
 <template>
   <div>
-    <single-error-summary :message="splitError"/>
+    <error-summary v-if="splitError" :description="splitError"/>
     <base-map
       :srs-wkid="srsWkid"
       :features-url="featuresUrl"
@@ -21,7 +21,7 @@ import type { LinePoint } from "../../grid-utils";
 import { computed, ref, watch } from "vue";
 import { splitFeature } from "../../api/split.api";
 import BaseMap from "../baseMap/BaseMap.vue";
-import SingleErrorSummary from "../SingleErrorSummary.vue";
+import ErrorSummary from "../gdsComponents/error/ErrorSummary.vue";
 
 interface SplitByPointAndClickPageProps {
   commandJourneyId: string,

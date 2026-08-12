@@ -86,7 +86,7 @@ function clear(): void {
   emit("update:points", selectedPoints.value);
 }
 
-watch(() => props.refreshCounter, (newValue: any, oldValue: any) => {
+watch(() => props.refreshCounter, (newValue: number | undefined, oldValue: number | undefined) => {
   if (newValue !== oldValue) {
     clear();
   }

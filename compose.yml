@@ -1,20 +1,17 @@
 services:
-
-  local-db:
+  postgres:
     image: postgres:16-alpine
     ports:
-      - target: 5432
-        published: 5432
+      - "5432:5432"
     environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: dev1
       POSTGRES_DB: lms
+      POSTGRES_USER: lms_app
+      POSTGRES_PASSWORD: dev1
     volumes:
-      - lms-db-volume:/var/lib/postgresql/data
-      - ./create_db_user.sh:/docker-entrypoint-initdb.d/create_db_user.sh
+      - postgres-data:/var/lib/postgresql/data
 
   clamav:
-    image: clamav/clamav:stable
+    image: clamav/clamav-debian:stable
     ports:
       - "3310:3310"
 
@@ -36,4 +33,4 @@ services:
       - "9411:9411"
 
 volumes:
-  lms-db-volume:
+  postgres-data:

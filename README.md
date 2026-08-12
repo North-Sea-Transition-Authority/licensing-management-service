@@ -20,15 +20,7 @@ The service also sends reminders to licensees to provide updates on future licen
 
 ## Setup
 
-### 1. Run the backend services
-- Ensure that you have [Docker for Windows](https://hub.docker.com/editions/community/docker-ce-desktop-windows)
-  installed and running (or an alternative way of running docker).  
-- Run the backing services defined in the `local-dev-compose.yml`. This can be done by clicking the run icon
-  next to `services` when in the file.
-  - If IntelliJ doesn't detect the file as a docker compose file automatically you may need to 
-    [Associate docker-compose as file type](https://intellij-support.jetbrains.com/hc/en-us/community/posts/360009394620-Associate-docker-compose-as-file-type) manually.
-
-### 2. Add the required profile
+### 1. Add the required profile(s)
 
 ### Development
 - In your IntelliJ run configuration for the Spring app, include `development` in your active profiles
@@ -109,13 +101,13 @@ In order to turn on JSON logging, set the profile `json-logging`. This will auto
 
 JSON logging is the preferred solution for SB2.
 
-### 3. Initialise the Fivium Design System
+### 2. Initialise the Fivium Design System
 ```bash
 git submodule update --init --recursive
 cd fivium-design-system-core && npm install && npx gulp buildAll && cd ..
 ```
 
-### 3a. Upgrade FDS (the developer doing the upgrade)
+### 2a. Upgrade FDS (the developer doing the upgrade)
 Update `.gitmodules` to reflect the new version of FDS, then
 ```bash
 git submodule update --remote
@@ -127,36 +119,36 @@ npx gulp buildAll
 ```
 > After upgrading FDS as above you should be committing the change to `.gitmodules` and a new commit hash for the `fivium-design-system-core` submodule only
 
-### 3b. If you're a developer working on a project where another developer has upgraded FDS, you need to:
+### 2b. If you're a developer working on a project where another developer has upgraded FDS, you need to:
 ```bash
 git submodule update
 cd fivium-design-system-core && npm install && npx gulp buildAll && cd ..
 npx gulp buildAll
 ```
 
-### 4. Build frontend components
+### 3. Build frontend components
 ```bash
 npm install && npx gulp buildAll
 ```
 
-### 5. Start the GIS framework
+### 4. Start the GIS framework
 
 See [GIS framework README](gis-framework/README.md) for initialization instructions.
 
-### 6. Run the app
+### 5. Run the app
 Create a run configuration for the Spring app and start the application.
 
-The application will be running on `localhost:8080/lms/<endpoint>`
+The application will be running on [http://localhost:8080/lms](http://localhost:8080/lms)
 
 ## Development setup
 
 ### Tracing with Zipkin
 
-The `local-dev-compose.yml` includes a Zipkin container. Tracing is **disabled by default** — the app starts normally without Zipkin running.
+The `compose.yml` includes a Zipkin container. Tracing is **disabled by default** — the app starts normally without Zipkin running.
 
 To enable tracing:
 
-1. Ensure the Zipkin container is running (start it alongside the other backing services via `local-dev-compose.yml`).
+1. Ensure the Zipkin container is running (start it alongside the other backing services via `compose.yml`).
 2. Set `LMS_ENABLE_ZIPKIN=1.0` in your IntelliJ run configuration environment variables. This sets the sampling probability to 100%, meaning every request is traced.
 3. Start the app and make a request to any endpoint.
 4. Open the Zipkin UI at `http://localhost:9411`.

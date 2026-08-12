@@ -32,19 +32,19 @@ public class LicenceActionBuilder {
       DisplayOptionsForAnAction,
       RegisterAnAction {
 
-    final Map<LicenceStatusType, Set<LicenceActionItem>> statusMap
+    private final Map<LicenceStatusType, Set<LicenceActionItem>> statusMap
         = new EnumMap<>(LicenceStatusType.class);
-    final Map<LicenceActionItem, Set<Role>> roleMap
+    private final Map<LicenceActionItem, Set<Role>> roleMap
         = new EnumMap<>(LicenceActionItem.class);
-    final Map<LicenceActionItem, Set<LicenceType>> licenceTypeMap
+    private final Map<LicenceActionItem, Set<LicenceType>> licenceTypeMap
         = new EnumMap<>(LicenceActionItem.class);
-    final Map<LicenceActionItem, Set<LicenceScheduleRequirement>> licenceScheduleRequirementMap
+    private final Map<LicenceActionItem, Set<LicenceScheduleRequirement>> licenceScheduleRequirementMap
         = new EnumMap<>(LicenceActionItem.class);
-    final Map<LicenceActionItem, Predicate<Licence>> primaryActionPredicateMap
+    private final Map<LicenceActionItem, Predicate<Licence>> primaryActionPredicateMap
         = new EnumMap<>(LicenceActionItem.class);
-    final Set<LicenceActionItem> topLevelLicenceActionItems
+    private final Set<LicenceActionItem> topLevelLicenceActionItems
         = new HashSet<>();
-    final Map<Class<? extends LicenceTab>, Set<LicenceActionItem>> licenceActionItemsByLicenceTabClass
+    private final Map<Class<? extends LicenceTab>, Set<LicenceActionItem>> licenceActionItemsByLicenceTabClass
         = new HashMap<>();
 
     private final Deque<LicenceActionItem> actionItems = new LinkedList<>();
@@ -159,7 +159,7 @@ public class LicenceActionBuilder {
     }
 
     @Override
-    public Builder build() {
+    public RegisteredActions build() {
       var missingActions = CollectionUtils.disjunction(
           actionItems,
           Arrays.stream(LicenceActionItem.values()).toList()
@@ -168,7 +168,15 @@ public class LicenceActionBuilder {
         throw new IllegalStateException("Missing registration for following actions %s".formatted(missingActions));
       }
 
-      return this;
+      return new RegisteredActions(
+          statusMap,
+          roleMap,
+          licenceTypeMap,
+          licenceScheduleRequirementMap,
+          primaryActionPredicateMap,
+          topLevelLicenceActionItems,
+          licenceActionItemsByLicenceTabClass
+      );
     }
 
     private static <T> Set<T> merge(
@@ -222,7 +230,7 @@ public class LicenceActionBuilder {
 
     RegisterAnAction isPrimaryButton(boolean isPrimary);
 
-    Builder build();
+    RegisteredActions build();
   }
 
 }

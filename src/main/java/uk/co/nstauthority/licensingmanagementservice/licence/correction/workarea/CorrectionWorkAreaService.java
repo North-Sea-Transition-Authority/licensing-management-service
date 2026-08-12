@@ -11,6 +11,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
@@ -24,6 +25,11 @@ public class CorrectionWorkAreaService implements WorkAreaItemProvider {
 
   public CorrectionWorkAreaService(LicenceCorrectionService licenceCorrectionService) {
     this.licenceCorrectionService = licenceCorrectionService;
+  }
+
+  @Override
+  public ReleaseFeature getReleaseFeature() {
+    return ReleaseFeature.START_CORRECTION;
   }
 
   @Override

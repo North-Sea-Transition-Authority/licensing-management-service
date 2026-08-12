@@ -21,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.mvc.error.ErrorSummaryItemsHandlerInterceptor;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.PhasedReleaseInterceptor;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.access.TeamManagementHandlerInterceptor;
 
 @Configuration
@@ -30,6 +31,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
 
   private final ServiceUserDetailArgumentResolver serviceUserDetailArgumentResolver;
   private final TeamManagementHandlerInterceptor teamManagementHandlerInterceptor;
+  private final PhasedReleaseInterceptor phasedReleaseInterceptor;
   private final AccessHandlerInterceptor accessHandlerInterceptor;
   private final ErrorSummaryItemsHandlerInterceptor errorSummaryItemsHandlerInterceptor;
   private final LicenceArgumentResolver licenceArgumentResolver;
@@ -43,6 +45,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
   public WebMvcConfiguration(
       ServiceUserDetailArgumentResolver serviceUserDetailArgumentResolver,
       TeamManagementHandlerInterceptor teamManagementHandlerInterceptor,
+      PhasedReleaseInterceptor phasedReleaseInterceptor,
       AccessHandlerInterceptor accessHandlerInterceptor,
       ErrorSummaryItemsHandlerInterceptor errorSummaryItemsHandlerInterceptor,
       LicenceArgumentResolver licenceArgumentResolver,
@@ -55,6 +58,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
   ) {
     this.serviceUserDetailArgumentResolver = serviceUserDetailArgumentResolver;
     this.teamManagementHandlerInterceptor = teamManagementHandlerInterceptor;
+    this.phasedReleaseInterceptor = phasedReleaseInterceptor;
     this.accessHandlerInterceptor = accessHandlerInterceptor;
     this.errorSummaryItemsHandlerInterceptor = errorSummaryItemsHandlerInterceptor;
     this.licenceArgumentResolver = licenceArgumentResolver;
@@ -78,6 +82,9 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
   @Override
   public void addInterceptors(InterceptorRegistry registry) {
     registry.addInterceptor(new ResponseBufferSizeHandlerInterceptor())
+        .excludePathPatterns(STATIC_ASSETS_PATH);
+    // Phased go-live gate — runs before the access rules so a locked feature 404s rather than leaking a 403
+    registry.addInterceptor(phasedReleaseInterceptor)
         .excludePathPatterns(STATIC_ASSETS_PATH);
     registry.addInterceptor(accessHandlerInterceptor)
         .excludePathPatterns(STATIC_ASSETS_PATH);

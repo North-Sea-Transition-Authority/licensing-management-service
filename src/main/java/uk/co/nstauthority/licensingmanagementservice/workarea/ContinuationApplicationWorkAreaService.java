@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overvi
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
@@ -54,6 +55,11 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
     this.regulatorRoleService = regulatorRoleService;
     this.workAreaItemViewService = workAreaItemViewService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
+  }
+
+  @Override
+  public ReleaseFeature getReleaseFeature() {
+    return ReleaseFeature.CONTINUATION_APPLICATION;
   }
 
   @Override

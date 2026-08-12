@@ -5,16 +5,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Set;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.env.MockEnvironment;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 
-@ExtendWith(MockitoExtension.class)
 class SelectApplicationTypeFormValidatorTest {
 
-  @InjectMocks
-  private SelectApplicationTypeFormValidator validator;
+  private SelectApplicationTypeFormValidator validatorWithProfiles(String... activeProfiles) {
+    var environment = new MockEnvironment();
+    environment.setActiveProfiles(activeProfiles);
+    return new SelectApplicationTypeFormValidator(new FeatureFlagService(environment));
+  }
 
   @Test
   void isValid_validForm() {
@@ -23,7 +24,7 @@ class SelectApplicationTypeFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(bindingResult)).isTrue();
+    assertThat(validatorWithProfiles("enable-lms1").isValid(form, bindingResult)).isTrue();
   }
 
   @Test
@@ -32,10 +33,24 @@ class SelectApplicationTypeFormValidatorTest {
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValid(bindingResult)).isFalse();
+    assertThat(validatorWithProfiles("enable-lms1").isValid(form, bindingResult)).isFalse();
 
     assertThat(ValidatorTestingUtil.extractErrors(bindingResult))
         .containsExactly(entry("selectedApplicationType", Set.of("selectedApplicationType.required")));
+  }
+
+  @Test
+  void isValid_invalidForm_typeNotAvailableInCurrentPhase() {
+    var form = new SelectApplicationTypeForm();
+    form.setSelectedApplicationType(ApplicationType.CONTINUATION_APPLICATION);
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    // No phase profiles active -> the type's feature is off -> rejected on submit
+    assertThat(validatorWithProfiles().isValid(form, bindingResult)).isFalse();
+
+    assertThat(ValidatorTestingUtil.extractErrors(bindingResult))
+        .containsExactly(entry("selectedApplicationType", Set.of("selectedApplicationType.notAvailable")));
   }
 
 }

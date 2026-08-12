@@ -59,7 +59,7 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
 
   @Test
   void submit() throws Exception {
-    when(selectApplicationTypeFormValidator.isValid(any())).thenReturn(true);
+    when(selectApplicationTypeFormValidator.isValid(any(), any())).thenReturn(true);
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
 
     var applicationType = ApplicationType.CONTINUATION_APPLICATION;
@@ -83,7 +83,7 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
   @Test
   void submit_invalid() throws Exception {
     when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
-    when(selectApplicationTypeFormValidator.isValid(any())).thenReturn(false);
+    when(selectApplicationTypeFormValidator.isValid(any(), any())).thenReturn(false);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(SelectApplicationTypeController.class).submit(null, null)))

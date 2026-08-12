@@ -18,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
@@ -40,6 +41,11 @@ public class ScheduleWorkAreaService implements WorkAreaItemProvider {
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.licenceSearchService = licenceSearchService;
     this.workAreaItemViewService = workAreaItemViewService;
+  }
+
+  @Override
+  public ReleaseFeature getReleaseFeature() {
+    return ReleaseFeature.MANAGE_SCHEDULE;
   }
 
   @Override

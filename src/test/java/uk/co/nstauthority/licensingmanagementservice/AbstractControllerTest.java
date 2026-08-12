@@ -80,6 +80,8 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.RequestLogFilter;
 import uk.co.nstauthority.licensingmanagementservice.mvc.WebMvcConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.mvc.error.ErrorService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.error.ErrorSummaryItemsHandlerInterceptor;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.PhasedReleaseInterceptor;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
@@ -115,6 +117,8 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
     InvokingUserCanAccessScheduleApplicationInterceptorRule.class,
     InvokingUserCanStartApplicationInterceptorRule.class,
     DocumentTemplateSearchStringToTabConverter.class,
+    FeatureFlagService.class,
+    PhasedReleaseInterceptor.class,
     LicenceActionEndPointInterceptorRule.class,
     InvokingUserCanAccessContinuationApplicationInterceptorRule.class,
     ContinuationApplicationHasStatusInterceptorRule.class,

@@ -23,7 +23,8 @@
      `filterEnabled(...)`, with the submit path re-checked. Adding a toggle, a new application
      type, or a new provider = adding an enum constant / `PhaseGated` bean, not a method.
   3. **Direct URL access** — a **default-deny allow-list interceptor**
-     (`PhasedReleaseInterceptor` + `PhasedReleasePathPolicy`). Unmapped path → 404, so new
+     (`PhasedReleaseInterceptor` + `PhasedReleasePolicy`). The policy classifies each request's
+     **controller (by package)** to a phase; an unclassified controller → 404, so new
      controllers are locked until explicitly classified. Plain 404, no holding page.
 - **Why an allow-list, not `@Profile` per controller:** default-deny means a *new* controller
   is off until listed — the correct posture for "everything else is hidden". `@Profile`
@@ -31,7 +32,7 @@
 - **Migration:** each area's data lands with its phase, **except licences** (present from the
   Initial release, since licence contacts need them).
 - **Retirement:** flags are scaffolding — once a phase is permanently live, delete its flag.
-  Enum-constant checks make this compiler-guided; promote its allow-list rules to `INITIAL`
+  Enum-constant checks make this compiler-guided; promote its allow-list rules to `NOT_FLAGGED`
   rather than deleting them (default-deny would 404 a live area).
 
 ## Problem
@@ -199,8 +200,15 @@ timeline/position), so no new profile is introduced there — its scope simply b
 
 > **Fail-safe direction.** Absence of a profile = locked down. The live environment starts
 > with both profiles *off*, so a forgotten config leaves features hidden, never accidentally
-> exposed. Development/integration-test profiles should activate both `enable-lms1` and
-> `enable-lms2` (via a `spring.profiles.group`) so day-to-day work sees the full app.
+> exposed. The main `application.properties` carries **no** phase profiles. Tests activate both
+> via a `spring.profiles.group` in a **test-only** base properties file
+> (`src/test/resources/application.properties`, keyed on the `test` and `integration-test`
+> profiles) so the suite exercises the full app; local development enables `enable-lms1` /
+> `enable-lms2` **manually** in the run configuration.
+>
+> The group must live in a *base* (non-profile-specific) source: a `spring.profiles.group`
+> defined inside an `application-<profile>.properties` document is applied too late to activate
+> the grouped profiles.
 
 ### Decision 2 — Enforcement: per-controller `@Profile` vs. allow-list interceptor
 
@@ -215,11 +223,11 @@ controllers.
 - **Option B — a new `AccessInterceptorRule` + marker annotation.** Idiomatic, but still
   opt-in per controller (you must remember to annotate each one), so it shares Option A's
   "new controller leaks" flaw.
-- **Option C (chosen) — one allow-list interceptor.** When a feature profile is inactive,
-  **block every request whose path is not on the allow-list.** New controllers are disabled
-  by default until explicitly allow-listed. A single, auditable place defines exactly what
-  the initial release exposes. This inverts the default from "exposed unless annotated" to
-  "hidden unless allow-listed", which is the correct posture for a go-live lock-down.
+- **Option C (chosen) — one allow-list interceptor.** **Block every request whose controller
+  is not on the allow-list (or whose phase is off).** New controllers are disabled by default
+  until explicitly classified. A single, auditable place defines exactly what the initial
+  release exposes. This inverts the default from "exposed unless annotated" to "hidden unless
+  allow-listed", which is the correct posture for a go-live lock-down.
 
 Option A/B remain useful *in addition* for individual sub-features that are hard to express
 as a path prefix, but the interceptor is the backstop.
@@ -233,7 +241,7 @@ Java and templates consult the same logic.
 
 There are two concepts:
 
-- **`ReleasePhase`** — the profile-backed phase (INITIAL / LMS1 / LMS2). This is the *only*
+- **`ReleasePhase`** — the profile-backed phase (NOT_FLAGGED / LMS1 / LMS2). This is the *only*
   thing tied to a Spring profile.
 - **`ReleaseFeature`** — the catalogue of individually toggleable **actions / in-page
   features** (Start application, edit schedule, add licence contact override, start
@@ -243,7 +251,7 @@ There are two concepts:
 
 ```java
 public enum ReleasePhase {
-  INITIAL(null),          // always on — initial release
+  NOT_FLAGGED(null),          // always on — initial release
   LMS1("enable-lms1"),    // new profile
   LMS2("enable-lms2");    // existing profile
 
@@ -292,7 +300,7 @@ public class FeatureFlagService {
 
   /** Phase-level check — used by the interceptor and nav filter. */
   public boolean isEnabled(ReleasePhase phase) {
-    return phase == ReleasePhase.INITIAL
+    return phase == ReleasePhase.NOT_FLAGGED
         || environment.acceptsProfiles(Profiles.of(phase.getProfileName()));
   }
 
@@ -317,47 +325,62 @@ feature names the intent, and its phase mapping lives in one place.
 
 Two collaborating pieces, deliberately separated:
 
-- **`PhasedReleasePathPolicy`** — *the data.* The single, auditable definition of the
-  allow-list: an ordered set of URL-path patterns, each mapped to the `ReleasePhase` it
-  belongs to. It answers one question — *"which phase does this request path belong to?"* —
-  and returns nothing for an unmapped path (which is what makes the default deny).
+- **`PhasedReleasePolicy`** — *the data.* The single, auditable definition of the allow-list:
+  each controller, classified **by package**, is mapped to the `ReleasePhase` it belongs to.
+  It answers one question — *"which phase does this request's controller belong to?"* — and
+  returns nothing for an unclassified controller (which is what makes the default deny).
 - **`PhasedReleaseInterceptor`** — *the plumbing.* A `HandlerInterceptor` that, for each
-  request, asks the policy for the path's phase and asks `FeatureFlagService` whether that
-  phase is on. No path knowledge lives in the interceptor; it is generic.
+  request, takes the resolved controller from the `HandlerMethod`, asks the policy for its
+  phase, and asks `FeatureFlagService` whether that phase is on. No classification lives in
+  the interceptor; it is generic.
 
-#### `PhasedReleasePathPolicy` — the allow-list as code
+> **Why classify by controller package, not URL pattern?** The application has request
+> mappings a pure path allow-list cannot express safely — notably `LicenceInternalApiRestController`
+> whose `@RestController("/internal/api/licences")` value is the *bean name*, not a path, so
+> the endpoint actually maps at root `/{slug}`; plus `FooterController`, which maps several
+> root paths (`/accessibility-statement`, `/cookies`, `/contact`). A single root-level `/{var}`
+> mapping makes a prefix allow-list either catch everything or miss it. Classifying the resolved
+> controller by package sidesteps all of this and is more robust: it does not depend on how a
+> controller happens to spell its `@RequestMapping`.
+
+#### `PhasedReleasePolicy` — the allow-list as code
 
 The "The allow-list" section below is the human-readable version of exactly this mapping.
-First match wins; **an unmatched path returns empty and is therefore denied** — so a new
-controller is locked until someone adds it here (enforced by the ArchUnit test in Testing).
+Longest / most-specific prefix first, first match wins; **an unclassified controller returns
+empty and is therefore denied** — so a new controller is locked until someone adds its package
+here (enforced by the ArchUnit test in Testing).
 
 ```java
-public final class PhasedReleasePathPolicy {
+public final class PhasedReleasePolicy {
 
-  private static final AntPathMatcher MATCHER = new AntPathMatcher();
+  private static final String BASE = "uk.co.nstauthority.licensingmanagementservice.";
 
-  // Ordered — first match wins. Paths are context-path-relative.
+  // Ordered — first match wins. More specific / differing-phase packages precede the broad
+  // "licence" rule (licence.contact is NOT_FLAGGED, licence.correction/position are LMS2).
   private static final List<Map.Entry<String, ReleasePhase>> RULES = List.of(
-      // INITIAL — always available
-      entry("/work-area/**",        ReleasePhase.INITIAL),
-      entry("/team-management/**",  ReleasePhase.INITIAL),
-      entry("/licence-contacts/**", ReleasePhase.INITIAL),
-      entry("/api/**",              ReleasePhase.INITIAL),
-      // LMS1
-      entry("/licences/schedule-work-programme-application/**", ReleasePhase.LMS1),
-      entry("/licence/schedule/**", ReleasePhase.LMS1),
-      entry("/licences/search",     ReleasePhase.LMS1),
-      entry("/document-library/**", ReleasePhase.LMS1),
-      // LMS2
-      entry("/licence-corrections/**", ReleasePhase.LMS2)
-      // ...one entry per controller base path (see full allow-list below)
+      Map.entry(BASE + "licence.contact",    ReleasePhase.NOT_FLAGGED),
+      Map.entry(BASE + "licence.correction", ReleasePhase.LMS2),
+      Map.entry(BASE + "licence.position",   ReleasePhase.LMS2),
+      Map.entry(BASE + "licence",            ReleasePhase.LMS1),   // search, overview, schedule, apps, internal API…
+      Map.entry(BASE + "document",           ReleasePhase.LMS1),
+      Map.entry(BASE + "workarea",           ReleasePhase.NOT_FLAGGED),
+      Map.entry(BASE + "teams",              ReleasePhase.NOT_FLAGGED),
+      Map.entry(BASE + "feedback",           ReleasePhase.NOT_FLAGGED),
+      Map.entry(BASE + "fds",                ReleasePhase.NOT_FLAGGED),
+      Map.entry(BASE + "file",               ReleasePhase.NOT_FLAGGED),
+      Map.entry(BASE + "mvc",                ReleasePhase.NOT_FLAGGED),
+      Map.entry(BASE + "authentication",     ReleasePhase.NOT_FLAGGED),
+      Map.entry(BASE + "energyportal",       ReleasePhase.NOT_FLAGGED),
+      Map.entry(BASE + "migration",          ReleasePhase.NOT_FLAGGED),  // dev/test-only, already @Profile-gated
+      Map.entry(BASE + "mockups",            ReleasePhase.NOT_FLAGGED),
+      Map.entry(BASE + "testharness",        ReleasePhase.NOT_FLAGGED)
   );
 
-  /** Empty = path is not on the allow-list at all → deny. */
-  public static Optional<ReleasePhase> phaseFor(HttpServletRequest request) {
-    var path = request.getRequestURI().substring(request.getContextPath().length());
+  /** Empty = controller is not on the allow-list → deny. */
+  public static Optional<ReleasePhase> phaseFor(Class<?> controllerType) {
+    var packageName = controllerType.getPackageName();
     return RULES.stream()
-        .filter(rule -> MATCHER.match(rule.getKey(), path))
+        .filter(rule -> packageName.equals(rule.getKey()) || packageName.startsWith(rule.getKey() + "."))
         .map(Map.Entry::getValue)
         .findFirst();
   }
@@ -374,24 +397,23 @@ public class PhasedReleaseInterceptor implements HandlerInterceptor {
 
   @Override
   public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-    if (handler instanceof ResourceHttpRequestHandler) {
-      return true;
+    if (!(handler instanceof HandlerMethod handlerMethod)) {
+      return true;  // static resources and other non-controller handlers pass through
     }
-    var phase = PhasedReleasePathPolicy.phaseFor(request);
+    var phase = PhasedReleasePolicy.phaseFor(handlerMethod.getBeanType());
     if (phase.isPresent() && featureFlagService.isEnabled(phase.get())) {
       return true;
     }
-    // Unmapped path, or its phase is off → hide it.
+    // Unclassified controller, or its phase is off → hide it.
     throw new ResponseStatusException(HttpStatus.NOT_FOUND);
   }
 }
 ```
 
-Registered in `WebMvcConfiguration.addInterceptors()`; runs post-authentication. Infra
-paths that never reach an MVC handler in the normal way (`/assets/**`, `/error`,
-`/login/**`, SAML ACS, `/api/v1/logout/*`) are either allow-listed as INITIAL above or
-excluded at registration via `excludePathPatterns(...)`, mirroring how the existing
-interceptors are registered.
+Registered in `WebMvcConfiguration.addInterceptors()`, before `AccessHandlerInterceptor`;
+runs post-authentication. Non-`HandlerMethod` handlers (static resources) pass straight
+through, and infrastructure controllers (`DefaultErrorController`, `LogoutController`, …) are
+classified NOT_FLAGGED by their package, so nothing infra-critical is ever blocked.
 
 The interceptor returns a plain **404** (rather than 403) — this hides the feature entirely
 and avoids advertising that a hidden endpoint exists. There is no "coming soon" / holding
@@ -414,7 +436,7 @@ to its `ReleasePhase`:
 ```
 
 Give `TopNavigationItem` a `ReleasePhase` field: `WORK_AREA/TEAMS/LICENCE_CONTACTS →
-INITIAL`, `LICENCES → LMS1`, `DOCUMENT_LIBRARY → LMS1`. The existing team/role filter stays;
+NOT_FLAGGED`, `LICENCES → LMS1`, `DOCUMENT_LIBRARY → LMS1`. The existing team/role filter stays;
 the phase filter is ANDed on top. Covered by the existing `TopNavigationServiceTest`.
 
 ### 4. Layer 2 — in-page actions / features
@@ -576,63 +598,61 @@ its `ReleaseFeature`.
 
 ## The allow-list (initial release)
 
-Paths are relative to the `/lms` context path. **Everything not listed is denied** while
-the corresponding feature profile is off.
+Controllers are classified **by package** (relative to
+`uk.co.nstauthority.licensingmanagementservice`). **Every controller not classified is
+denied**; a classified controller is reachable only while its phase is on.
 
-**Always available (INITIAL):**
+**Always available (NOT_FLAGGED):**
 
-- `/work-area/**` — work area (Start button hidden via layer 2)
-- `/team-management/**` — teams
-- `/licence-contacts/**` — licence contacts
-- `/api/**` — org unit/group REST (`OrganisationUnitRestController`,
-  `OrganisationGroupRestController`) — **required** by autocompletes on the team-management
-  and licence-contact pages; verify no other sensitive `/api` endpoints exist before
-  wildcarding
-- Feedback (`FeedbackController`, root mapping) — footer feedback link
-- Infrastructure that must never be blocked: `/login/**`, SAML ACS
-  (`/login/saml2/sso/**`), `/logout` + `/api/v1/logout/*`, `/error`, `/assets/**`,
-  actuator `/actuator/health`
+- `workarea` — work area (Start button hidden via layer 2)
+- `teams` — team management
+- `licence.contact` — licence contacts
+- `energyportal` — org unit/group REST (`OrganisationUnitRestController`,
+  `OrganisationGroupRestController`), **required** by autocompletes on the team-management and
+  licence-contact pages
+- `feedback`, `fds` (footer), `file` (unlinked file uploads)
+- Infrastructure classified NOT_FLAGGED so it is never phase-blocked: `mvc` (`DefaultErrorController`),
+  `authentication` (`LogoutController`). Static resources bypass the interceptor entirely
+  (non-`HandlerMethod`). SAML ACS / `/login` are filter-chain concerns and never reach the MVC
+  handler.
+- Dev/test-only controllers, each already `@Profile`-gated: `migration`, `mockups`, `testharness`
 
-**Locked behind `enable-lms1` (LMS1 phase):**
+**Locked behind `enable-lms1` (LMS1 phase):** everything under `licence.*` **except** the LMS2
+packages below — i.e. licence search & management, licence overview, schedules management
+(`licence.schedule.*`), schedule & continuation applications
+(`licence.scheduleworkprogrammeapplication.*`, `licence.continuation.*`), application letters
+(`licence.application.*`), the licence internal search API (`licence.internalapi`), the base
+`LicenceController`/`LicenceRedirectorController` (`licence`) — plus `document` (document library).
 
-- *Schedule & continuation applications:* `licences/start-application`,
-  `licences/schedule-work-programme-application/**`,
-  `licence/schedule-work-programme-application/**`, `licences/continuation-application/**`,
-  `licence/continuation-application/**`, `/application/**`, XYZ scaffolding
-  (`/start-application`, `/application/{id}/**`)
-- *Licence search & management:* `/licences`, `licences/search`, `licences/{id}/overview`,
-  `licences/{id}/responsible-team`, `/redirect-to-licence/**`
-- *Schedules management:* `licence/{id}/schedule/**`, `licence/schedule/**`
-- *Document library:* `document-library/**`
-
-**Locked behind `enable-lms2` (LMS2 phase — all other functionality):**
-`/licence-corrections/**`, `licences/{id}/correction/**`, `licences/{id}/timeline`
-(licence position/timeline).
+**Locked behind `enable-lms2` (LMS2 phase — all other functionality):** `licence.correction.*`
+and `licence.position`.
 
 > The licence-correction controllers and `LicencePositionController` **already** carry
 > `@Profile("enable-lms2")`, so they are unregistered (404) when that profile is off,
-> independent of this interceptor — the interceptor's LMS2 entries above are the backstop
-> that keeps the same phase boundary explicit and auditable in one place. Note the document
-> library controllers are **not** `@Profile`-annotated (they are always registered), so for
-> the LMS1 phase the interceptor is the *only* thing gating `document-library/**` — it must
-> be present in the allow-list, mapped to LMS1.
+> independent of this interceptor — the interceptor's LMS2 entries are the backstop that keeps
+> the same phase boundary explicit and auditable in one place. Note the document-library
+> controllers are **not** `@Profile`-annotated (they are always registered), so for the LMS1
+> phase the interceptor is the *only* thing gating the `document` package — it must be present
+> in the policy, mapped to LMS1.
 
-> **Verification step before shipping:** enumerate every `@RequestMapping` base path (the
-> agent inventory in this doc is a starting point) and assign each to INITIAL, LMS1 or LMS2.
-> Anything unassigned defaults to denied — which is safe — but should be a conscious choice,
-> not an oversight. An ArchUnit test (below) can assert every controller's path is covered
-> by the policy so the two never drift.
+> **Ordering matters.** `licence.contact` (NOT_FLAGGED) and `licence.correction` / `licence.position`
+> (LMS2) sit *under* the broad `licence` (LMS1) prefix, so they must precede it in the rule list —
+> first match wins. The ArchUnit test (below) asserts every controller resolves to a phase and
+> that all three phases are reachable, so a mis-ordering or a new unclassified package fails the
+> build rather than silently 404-ing at runtime.
 
 ## Testing
 
-- **`FeatureFlagServiceTest`** — for both overloads: `INITIAL` always on; each
+- **`FeatureFlagServiceTest`** — for both overloads: `NOT_FLAGGED` always on; each
   `ReleaseFeature` enabled iff its phase's profile is active; `getEnabledFeatures()` returns
   exactly the features whose phase is on. A parameterised test over all `ReleaseFeature`
   values guards against an unmapped constant.
-- **`PhasedReleaseInterceptorTest`** / MVC slice tests — with neither profile: `GET`
-  work-area/teams/licence-contacts → 200; `GET` an LMS1 path (start-application, licence
-  search, schedule editing, document library) or an LMS2 path (licence corrections) → 404.
-  With `enable-lms1`: LMS1 paths reachable, LMS2 paths still 404.
+- **`PhasedReleaseInterceptorTest`** — drive `preHandle` with a `HandlerMethod` per phase: an
+  NOT_FLAGGED controller (`WorkAreaController`) is always allowed; an LMS1 controller
+  (`LicenceSearchController`) throws `NOT_FOUND` with no profiles and is allowed under
+  `enable-lms1`; an LMS2 controller (`LicenceCorrectionController`) is blocked under
+  `enable-lms1` only and allowed under both; an unclassified controller is blocked; a
+  non-`HandlerMethod` handler passes through.
 - **`TopNavigationServiceTest`** — extend to assert `LICENCES` and `DOCUMENT_LIBRARY` absent
   unless `enable-lms1`; core three always present.
 - **In-page actions** — for a representative role-gated feature (e.g. Start application),
@@ -647,18 +667,24 @@ the corresponding feature profile is off.
   with `enable-lms2` off, `WorkAreaService` yields no correction rows (its provider is filtered
   out); with it on, they appear. A parameterised test over all `PhaseGated` implementations
   (option enums *and* providers) guards against an unmapped constant.
-- **ArchUnit** (`architecture` package) — assert every `@Controller`/`@RestController`
-  request-mapping prefix is classified by `PhasedReleasePathPolicy`, so a new controller
-  can't silently bypass the lock-down.
-- Integration tests run with `development` + `integration-test`; ensure the profile group
-  activates both `enable-lms1` and `enable-lms2` so existing tests continue to exercise
-  full functionality unchanged.
+- **`PhasedReleasePolicyTest`** (ArchUnit `ClassFileImporter`, main sources only) — assert
+  every `@Controller`/`@RestController` is classified by `PhasedReleasePolicy` (a new,
+  unclassified controller fails the build rather than silently 404-ing), and that all three
+  phases are reachable from the mapping (catches a typo that drops a phase). Static analysis,
+  so `@Profile`-gated controllers are included.
+- A test-only base `src/test/resources/application.properties` defines
+  `spring.profiles.group.test` and `spring.profiles.group.integration-test` = `enable-lms1,
+  enable-lms2`, so both the `@WebMvcTest` slices (`test` profile) and the `@IntegrationTest`
+  runs (`development` + `integration-test`) exercise the full app unchanged.
 
 ## Risks & edge cases
 
-- **`/api/**` wildcard.** Convenient, but confirm it exposes only the org-unit/group
-  lookups the allowed pages need. If other REST endpoints live under `/api`, enumerate them
-  explicitly instead of wildcarding.
+- **Package-based classification vs. package moves.** Because a controller's phase is derived
+  from its package, moving a controller to a different package can silently change its phase.
+  The `PhasedReleasePolicyTest` completeness check catches a controller that lands in an
+  *unclassified* package (build fails), but a move into an already-classified package of the
+  *wrong* phase would pass. Keep controllers in packages that match their phase, and treat the
+  `PhasedReleasePolicy` rule list as the source of truth when adding a package.
 - **Migrated data is phased with its feature — except licences.** Assumption: data for a
   given area is only migrated in once that area's phase is switched on. The **exception is
   licence records**, which are migrated as part of the **initial release** (they underpin
@@ -676,8 +702,9 @@ the corresponding feature profile is off.
   `enable-lms1` + `enable-lms2`).
 - **Document library has no `@Profile`.** Unlike licence corrections, the document-library
   controllers are always registered, so the allow-list interceptor is the sole gate keeping
-  them hidden in the initial phase and switching them on for LMS1. If the interceptor entry
-  is missing or misclassified, the document library leaks — cover it explicitly in tests.
+  them hidden in the initial phase and switching them on for LMS1. If the `document` package
+  mapping is missing or set to the wrong phase, the document library leaks — the completeness
+  test guards against it being missing.
 - **Interceptor ordering.** Register `PhasedReleaseInterceptor` so it runs early (before
   `AccessHandlerInterceptor` does expensive work) but after authentication is established —
   its position in `addInterceptors()` and reliance on the security filter chain already
@@ -685,9 +712,9 @@ the corresponding feature profile is off.
 
 ## Rollout
 
-1. Ship the `FeatureFlagService`, `PhasedReleaseInterceptor` + path policy, nav filter, and
-   button gating — all behaviour-neutral when `enable-lms1` + `enable-lms2` are active (as
-   in dev/test).
+1. Ship the `FeatureFlagService`, `PhasedReleaseInterceptor` + policy, nav filter, and button
+   gating — all behaviour-neutral when `enable-lms1` + `enable-lms2` are active (as in the test
+   suite and a fully-enabled local dev run).
 2. **Initial live release:** run with **neither** profile → only work area, teams, licence
    contacts; Start button hidden.
 3. **LMS1 phase:** add `enable-lms1` to the live environment's `SPRING_PROFILES_ACTIVE` →
@@ -716,12 +743,13 @@ E.g. LMS1 is permanently live but LMS2 is still pending. The goal: make everythi
 unconditionally available while leaving LMS2 gating intact.
 
 1. **Remove the profile from every environment's config** (`enable-lms1` out of
-   `SPRING_PROFILES_ACTIVE` and out of the dev/test `spring.profiles.group`). Nothing should
-   depend on it being toggleable any more.
-2. **Promote — do not delete — the phase's path rules.** In `PhasedReleasePathPolicy`, change
-   every LMS1 rule's phase to `INITIAL`. ⚠️ **Do not just remove the rules** — an unmapped
-   path is *denied* under default-deny, so deleting the entry would 404 a now-live area. The
-   rule stays in the allow-list; only its phase changes to "always on".
+   `SPRING_PROFILES_ACTIVE`, out of the test-only `spring.profiles.group` in
+   `src/test/resources/application.properties`, and from local run configurations). Nothing
+   should depend on it being toggleable any more.
+2. **Promote — do not delete — the phase's package rules.** In `PhasedReleasePolicy`, change
+   every LMS1 rule's phase to `NOT_FLAGGED`. ⚠️ **Do not just remove the rules** — an unclassified
+   controller is *denied* under default-deny, so deleting the entry would 404 a now-live area.
+   The rule stays in the allow-list; only its phase changes to "always on".
 3. **Inline the in-page guards and collection filters.** At each `isEnabled(ReleaseFeature.LMS1_thing)`
    call site (surfaced by the compiler once you delete the constant), drop the flag term so the
    action always renders — keeping any co-existing role/permission check. For a collection whose
@@ -729,15 +757,15 @@ unconditionally available while leaving LMS2 gating intact.
    `filterEnabled` call and validator re-check entirely so everything shows. For a **mixed-phase**
    collection (e.g. the work-area providers, spanning LMS1 and LMS2), **keep** the `filterEnabled`
    call — it still gates the remaining LMS2 members — and repoint each retired provider to an
-   always-on feature (one mapped to `INITIAL`) so it now always passes the filter. Then remove
+   always-on feature (one mapped to `NOT_FLAGGED`) so it now always passes the filter. Then remove
    the corresponding `ReleaseFeature` constants and any now-dead `enabledFeatures` template guards.
-4. **Fold the nav mapping.** Point the phase's `TopNavigationItem`s at `INITIAL` (or remove
+4. **Fold the nav mapping.** Point the phase's `TopNavigationItem`s at `NOT_FLAGGED` (or remove
    the phase term from the filter for them).
 5. **Delete `ReleasePhase.LMS1`** once nothing references it. The compiler confirms when it is
    safe.
-6. **Update tests.** Drop the "LMS1 path 404s when profile off" cases; keep the ArchUnit
-   "every controller path is classified by `PhasedReleasePathPolicy`" test — its expectation
-   simply shifts LMS1 paths from LMS1 to INITIAL.
+6. **Update tests.** Drop the "LMS1 controller 404s when profile off" cases; keep the
+   `PhasedReleasePolicyTest` "every controller is classified" test — its expectation simply
+   shifts the LMS1 packages from LMS1 to NOT_FLAGGED.
 
 The same recipe retires `enable-lms2` later, with one extra step: **remove the
 `@Profile("enable-lms2")` annotations** from the licence-correction / position controllers so
@@ -752,7 +780,7 @@ dependency order:
    attribute in `DefaultPageControllerAdvice` (compiler-guided); drop the `PhaseGated` mappings
    (option enums *and* providers) and the validator re-checks so every option and category shows.
 2. `PhasedReleaseInterceptor` and its registration in `WebMvcConfiguration`, then
-   `PhasedReleasePathPolicy`.
+   `PhasedReleasePolicy`.
 3. The phase filter in `TopNavigationService` and the `ReleasePhase` field on
    `TopNavigationItem`.
 4. `FeatureFlagService`, `ReleaseFeature`, `ReleasePhase`, `PhaseGated`, and any remaining
@@ -763,7 +791,7 @@ The app is left in its naturally-open state, governed only by the normal access-
 interceptors — as if the flags had never existed.
 
 > **Guard against half-retirement.** Retire a flag in a single, self-contained change, not
-> piecemeal. A partially-removed flag — profile gone but path rules still mapped to it, or the
+> piecemeal. A partially-removed flag — profile gone but package rules still mapped to it, or the
 > enum deleted but a template still guarding on a stale attribute — is worse than either
 > state. The "delete the enum constant, fix every compiler error, done" discipline keeps each
 > retirement atomic.

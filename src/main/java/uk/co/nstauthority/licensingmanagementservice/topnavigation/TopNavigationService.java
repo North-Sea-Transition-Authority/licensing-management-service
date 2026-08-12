@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 
@@ -15,13 +16,16 @@ public class TopNavigationService {
 
   private final UserDetailService userDetailService;
   private final TeamQueryService teamQueryService;
+  private final FeatureFlagService featureFlagService;
 
   public TopNavigationService(
       UserDetailService userDetailService,
-      TeamQueryService teamQueryService
+      TeamQueryService teamQueryService,
+      FeatureFlagService featureFlagService
   ) {
     this.userDetailService = userDetailService;
     this.teamQueryService = teamQueryService;
+    this.featureFlagService = featureFlagService;
   }
 
   public List<TopNavigationItem> getTopNavigationItems() {
@@ -34,6 +38,8 @@ public class TopNavigationService {
 
     return EnumSet.allOf(TopNavigationItem.class)
         .stream()
+        // Hide items whose release phase is not yet switched on
+        .filter(item -> featureFlagService.isEnabled(item.getReleasePhase()))
         .filter(item ->
             // For nav items that can appear for any team
             item.getRequiredTeamType() == null

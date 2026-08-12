@@ -6,12 +6,13 @@ import static org.mockito.Mockito.when;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.env.MockEnvironment;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -33,14 +34,17 @@ class TopNavigationServiceTest {
   @Mock
   private TeamQueryService teamQueryService;
 
-  @InjectMocks
-  private TopNavigationService topNavigationService;
+  private TopNavigationService serviceWithPhaseProfiles(String... activeProfiles) {
+    var environment = new MockEnvironment();
+    environment.setActiveProfiles(activeProfiles);
+    return new TopNavigationService(userDetailService, teamQueryService, new FeatureFlagService(environment));
+  }
 
   @Test
   void getTopNavigationItems_withoutLoggedInUser() {
     when(userDetailService.isUserLoggedIn()).thenReturn(false);
 
-    var topNavigationItems = topNavigationService.getTopNavigationItems();
+    var topNavigationItems = serviceWithPhaseProfiles("enable-lms1").getTopNavigationItems();
 
     assertThat(topNavigationItems).isEmpty();
   }
@@ -51,7 +55,7 @@ class TopNavigationServiceTest {
 
     givenLoggedInUserWithRoles(Set.of(teamRole));
 
-    var topNavigationItems = topNavigationService.getTopNavigationItems();
+    var topNavigationItems = serviceWithPhaseProfiles("enable-lms1", "enable-lms2").getTopNavigationItems();
 
     assertThat(topNavigationItems).containsExactly(
         TopNavigationItem.WORK_AREA,
@@ -68,7 +72,7 @@ class TopNavigationServiceTest {
 
     givenLoggedInUserWithRoles(Set.of(teamRole));
 
-    var topNavigationItems = topNavigationService.getTopNavigationItems();
+    var topNavigationItems = serviceWithPhaseProfiles("enable-lms1", "enable-lms2").getTopNavigationItems();
 
     assertThat(topNavigationItems).containsExactly(
         TopNavigationItem.WORK_AREA,
@@ -82,13 +86,45 @@ class TopNavigationServiceTest {
   void getTopNavigationItems_whenUserHasNoRoles_thenOnlyIncludesUnrestrictedItems() {
     givenLoggedInUserWithRoles(Set.of());
 
-    var topNavigationItems = topNavigationService.getTopNavigationItems();
+    var topNavigationItems = serviceWithPhaseProfiles("enable-lms1", "enable-lms2").getTopNavigationItems();
 
     assertThat(topNavigationItems).containsExactly(
         TopNavigationItem.WORK_AREA,
         TopNavigationItem.LICENCES,
         TopNavigationItem.TEAMS,
         TopNavigationItem.LICENCE_CONTACTS
+    );
+  }
+
+  @Test
+  void getTopNavigationItems_whenInitialPhase_thenLicencesAndDocumentLibraryHidden() {
+    var teamRole = getTeamRole(TeamType.LICENCE_MANAGEMENT, Role.MANAGE_TEAM);
+
+    givenLoggedInUserWithRoles(Set.of(teamRole));
+
+    var topNavigationItems = serviceWithPhaseProfiles().getTopNavigationItems();
+
+    assertThat(topNavigationItems).containsExactly(
+        TopNavigationItem.WORK_AREA,
+        TopNavigationItem.TEAMS,
+        TopNavigationItem.LICENCE_CONTACTS
+    );
+  }
+
+  @Test
+  void getTopNavigationItems_whenLms1Phase_thenLicencesAndDocumentLibraryVisible() {
+    var teamRole = getTeamRole(TeamType.LICENCE_MANAGEMENT, Role.MANAGE_TEAM);
+
+    givenLoggedInUserWithRoles(Set.of(teamRole));
+
+    var topNavigationItems = serviceWithPhaseProfiles("enable-lms1").getTopNavigationItems();
+
+    assertThat(topNavigationItems).containsExactly(
+        TopNavigationItem.WORK_AREA,
+        TopNavigationItem.LICENCES,
+        TopNavigationItem.TEAMS,
+        TopNavigationItem.LICENCE_CONTACTS,
+        TopNavigationItem.DOCUMENT_LIBRARY
     );
   }
 

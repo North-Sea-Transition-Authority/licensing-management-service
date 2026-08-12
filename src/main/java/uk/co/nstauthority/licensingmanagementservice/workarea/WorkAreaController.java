@@ -18,6 +18,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.Applica
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @Controller
@@ -28,13 +30,16 @@ public class WorkAreaController {
 
   private final WorkAreaService workAreaService;
   private final ApplicationAccessService applicationAccessService;
+  private final FeatureFlagService featureFlagService;
 
   public WorkAreaController(
       WorkAreaService workAreaService,
-      ApplicationAccessService applicationAccessService
+      ApplicationAccessService applicationAccessService,
+      FeatureFlagService featureFlagService
   ) {
     this.workAreaService = workAreaService;
     this.applicationAccessService = applicationAccessService;
+    this.featureFlagService = featureFlagService;
   }
 
   @GetMapping
@@ -67,7 +72,9 @@ public class WorkAreaController {
     return new ModelAndView("lms/workarea/workArea")
         .addObject("pageTitle", WORK_AREA_PAGE_NAME)
         .addObject("workAreaItems", workAreaService.getWorkAreaResults(form, user))
-        .addObject("canStartApplication", applicationAccessService.userHasAccessToStartApplication(user.wuaId()))
+        .addObject("canStartApplication",
+            featureFlagService.isEnabled(ReleaseFeature.START_APPLICATION)
+                && applicationAccessService.userHasAccessToStartApplication(user.wuaId()))
         .addObject("startApplicationUrl", ReverseRouter
                 .route(on(SelectApplicationTypeController.class).render()))
         .addObject("form", form)

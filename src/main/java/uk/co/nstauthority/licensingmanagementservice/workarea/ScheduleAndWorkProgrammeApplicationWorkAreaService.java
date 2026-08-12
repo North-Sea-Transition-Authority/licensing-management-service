@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
@@ -54,6 +55,11 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
     this.workAreaItemViewService = workAreaItemViewService;
     this.regulatorRoleService = regulatorRoleService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
+  }
+
+  @Override
+  public ReleaseFeature getReleaseFeature() {
+    return ReleaseFeature.SCHEDULE_APPLICATION;
   }
 
   @Override

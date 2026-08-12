@@ -2,12 +2,12 @@ package uk.co.nstauthority.licensingmanagementservice.migration.industryteam;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @Profile("migration")
-@Controller
+@RestController
 @RequestMapping("/migration/industry-teams")
 public class IndustryTeamMigrationController {
 
@@ -17,7 +17,7 @@ public class IndustryTeamMigrationController {
     this.industryTeamMigrationService = industryTeamMigrationService;
   }
 
-  @GetMapping("/teams")
+  @PostMapping("/teams")
   public ResponseEntity<String> migrateIndustryTeams() {
     var createdCount = industryTeamMigrationService.migrateIndustryTeams();
     return ResponseEntity.ok("%d industry teams migrated".formatted(createdCount));

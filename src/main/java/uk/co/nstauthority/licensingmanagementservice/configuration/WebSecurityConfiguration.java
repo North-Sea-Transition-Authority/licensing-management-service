@@ -67,7 +67,7 @@ public class WebSecurityConfiguration {
       )
       .saml2Login(saml2 -> saml2.authenticationManager(new ProviderManager(authenticationProvider)))
       .logout(logout -> logout.logoutSuccessHandler(serviceLogoutSuccessHandler))
-      .csrf(csrf -> csrf.ignoringRequestMatchers("/api/v1/logout/*"))
+      .csrf(csrf -> csrf.ignoringRequestMatchers("/api/v1/logout/*", "/migration/**"))
       .addFilterBefore(requestLogFilter, SecurityContextHolderFilter.class)
       .addFilterAfter(postAuthenticationRequestMdcFilter, SecurityContextHolderFilter.class)
       .build();

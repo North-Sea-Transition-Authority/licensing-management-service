@@ -10,13 +10,13 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
@@ -47,7 +47,7 @@ import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamT
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamView;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
-@RestController
+@Controller
 @RequestMapping("/team-management")
 public class TeamManagementController {
 

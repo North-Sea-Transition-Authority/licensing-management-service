@@ -2,9 +2,9 @@ package uk.co.nstauthority.licensingmanagementservice.migration.pears;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduledJobService;
 
 /**
@@ -13,7 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduledJob
  * updated on demand rather than waiting for the next scheduled run.
  */
 @Profile("migration")
-@Controller
+@RestController
 @RequestMapping("/migration/pears-refresh")
 public class PearsRefreshController {
 
@@ -23,7 +23,7 @@ public class PearsRefreshController {
     this.licenceScheduledJobService = licenceScheduledJobService;
   }
 
-  @GetMapping
+  @PostMapping
   public ResponseEntity<String> refreshPearsLicences() {
     licenceScheduledJobService.retrieveAndSavePearsLicences();
     return ResponseEntity.ok("PEARS licences and responsible organisations refreshed");

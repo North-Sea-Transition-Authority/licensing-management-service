@@ -3,11 +3,11 @@ package uk.co.nstauthority.licensingmanagementservice.teams.management;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
@@ -26,7 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.teams.management.access.Inv
 import uk.co.nstauthority.licensingmanagementservice.teams.management.form.NewOrganisationTeamForm;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.form.NewOrganisationTeamFormValidator;
 
-@RestController
+@Controller
 public class ScopedTeamManagementController {
 
   private final TeamManagementService teamManagementService;

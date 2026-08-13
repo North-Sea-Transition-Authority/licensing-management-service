@@ -24,6 +24,9 @@ The service also sends reminders to licensees to provide updates on future licen
 
 ### Development
 - In your IntelliJ run configuration for the Spring app, include `development` in your active profiles
+- Add `enable-lms1` and `enable-lms2` to run the app with all phased go-live features switched on
+  (see [Feature flags (phased go-live)](#feature-flags-phased-go-live)) — without them you get the initial-release
+  feature set only
 
 | Environment Variable                     | Description                                                                                                        |
 |------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
@@ -139,6 +142,36 @@ See [GIS framework README](gis-framework/README.md) for initialization instructi
 Create a run configuration for the Spring app and start the application.
 
 The application will be running on [http://localhost:8080/lms](http://localhost:8080/lms)
+
+## Feature flags (phased go-live)
+
+LMS goes live in three phases, gated by profile-backed feature flags in the `phasedrelease` package.
+
+| Phase | Active profiles | Unlocks |
+|-------|-----------------|---------|
+| **Initial** | *(none)* | Work area (without the Start application button), teams, licence contacts |
+| **LMS1** | `enable-lms1` | + schedules management, licence search & management, schedule & continuation applications, document library |
+| **LMS2** | `enable-lms1` + `enable-lms2` | + all other functionality (licence corrections, licence position/timeline) |
+
+**Absence of a profile means locked**, so no phase profile is set in `application.properties`. For local development,
+add `enable-lms1` and `enable-lms2` to your run configuration to work with the full app. Tests already run with both
+on, via the profile groups in the test-only `src/test/resources/application.properties`. Live environments switch a
+phase on by adding its profile to `SPRING_PROFILES_ACTIVE` — config only, no redeploy.
+
+`FeatureFlagService` is the single source of truth for "is this on?", checked against two enums: `ReleasePhase`
+(the profile-backed phase) and `ReleaseFeature` (the catalogue of toggleable actions and options, each mapped to a
+phase). It gates three layers:
+
+1. **URL access** — `PhasedReleaseInterceptor` is a default-deny allow-list; `PhasedReleasePolicy` maps each
+   controller by package to a phase, and anything unclassified or off-phase 404s. **A new controller is unreachable
+   until its package is classified there** — `PhasedReleasePolicyTest` fails the build as a reminder.
+2. **In-page actions** — `isEnabled(...)` in the controller (ANDed with any existing role check), or the
+   `enabledFeatures` model attribute in a template.
+3. **Options and categories** — anything implementing `PhaseGated` (application types, work-area providers) is
+   filtered with `filterEnabled(...)`; submit paths re-check, since hiding an option does not make it inaccessible.
+
+Flags are scaffolding — see [ADR 0008](documentation/adr/0008-phased-go-live-feature-flag.md) for the full rationale,
+the allow-list, and the recipe for retiring a flag once its phase is permanently live.
 
 ## Development setup
 

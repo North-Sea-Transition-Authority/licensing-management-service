@@ -266,9 +266,7 @@ public enum ReleaseFeature {
   START_APPLICATION(ReleasePhase.LMS1),        // the Start button (coarse: any type available)
   SCHEDULE_APPLICATION(ReleasePhase.LMS1),     // an individual application-type option
   CONTINUATION_APPLICATION(ReleasePhase.LMS1), // "
-  EDIT_SCHEDULE(ReleasePhase.LMS1),
-  LICENCE_SEARCH(ReleasePhase.LMS1),
-  DOCUMENT_LIBRARY(ReleasePhase.LMS1),
+  MANAGE_SCHEDULE(ReleasePhase.LMS1),          // draft schedule management + its work-area category
   // --- LMS2 ---
   START_CORRECTION(ReleasePhase.LMS2);
   // ...add one entry per action/feature/option that needs phasing — including each new
@@ -485,8 +483,8 @@ model.addAttribute("enabledFeatures",
 ```
 
 ```ftl
-<#if enabledFeatures?seq_contains("DOCUMENT_LIBRARY")>
-    <@fdsAction.link linkText="Manage templates" .../>
+<#if enabledFeatures?seq_contains("MANAGE_SCHEDULE")>
+    <@fdsAction.link linkText="Manage schedule" .../>
 </#if>
 ```
 

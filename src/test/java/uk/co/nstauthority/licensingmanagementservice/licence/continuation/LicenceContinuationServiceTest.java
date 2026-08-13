@@ -44,7 +44,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.Applica
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.withdraw.ApplicationWithdrawService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -95,7 +95,7 @@ class LicenceContinuationServiceTest {
   private ClearDownWorkAreaLogService clearDownWorkAreaLogService;
 
   @Mock
-  private LicenceScheduleService licenceScheduleService;
+  private LicenceScheduleStateService licenceScheduleStateService;
 
   @Mock
   private LicenceApplication licenceApplication;
@@ -207,7 +207,7 @@ class LicenceContinuationServiceTest {
     var result = licenceContinuationService.resolveScheduleState(detail);
 
     assertThat(result).isEqualTo(new ScheduleState(currentTerm, currentPhase, nextTerm, nextPhase));
-    verifyNoInteractions(licenceScheduleService, licenceScheduleDetailService);
+    verifyNoInteractions(licenceScheduleStateService, licenceScheduleDetailService);
   }
 
   @Test
@@ -222,7 +222,7 @@ class LicenceContinuationServiceTest {
     var result = licenceContinuationService.resolveScheduleState(detail);
 
     assertThat(result).isEqualTo(new ScheduleState(currentTerm, currentPhase, null, null));
-    verifyNoInteractions(licenceScheduleService, licenceScheduleDetailService);
+    verifyNoInteractions(licenceScheduleStateService, licenceScheduleDetailService);
   }
 
   @Test
@@ -232,7 +232,7 @@ class LicenceContinuationServiceTest {
     var derivedState = new ScheduleState(mock(LicenceScheduleTerm.class), null, null, null);
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(LICENCE, LicenceScheduleDetailStatus.ACTIVE))
         .thenReturn(LICENCE_SCHEDULE_DETAIL);
-    when(licenceScheduleService.getScheduleState(LICENCE_SCHEDULE_DETAIL)).thenReturn(derivedState);
+    when(licenceScheduleStateService.getScheduleState(LICENCE_SCHEDULE_DETAIL)).thenReturn(derivedState);
 
     var result = licenceContinuationService.resolveScheduleState(detail);
 
@@ -278,7 +278,7 @@ class LicenceContinuationServiceTest {
     var currentPhase = mock(LicenceSchedulePhase.class);
     var nextTerm = mock(LicenceScheduleTerm.class);
     var nextPhase = mock(LicenceSchedulePhase.class);
-    when(licenceScheduleService.getScheduleState(LICENCE_SCHEDULE_DETAIL))
+    when(licenceScheduleStateService.getScheduleState(LICENCE_SCHEDULE_DETAIL))
         .thenReturn(new ScheduleState(currentTerm, currentPhase, nextTerm, nextPhase));
 
     var currentYear = LocalDate.now(clock).getYear();

@@ -22,7 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
@@ -49,7 +49,7 @@ class SwpApplicationRequestPurposeServiceTest {
   private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
 
   @Mock
-  private LicenceScheduleService licenceScheduleService;
+  private LicenceScheduleStateService licenceScheduleStateService;
 
   @InjectMocks
   private SwpApplicationRequestPurposeService underTest;
@@ -296,7 +296,7 @@ class SwpApplicationRequestPurposeServiceTest {
     when(licenceTypeRulesResolver.arePhasesCaptured(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
     when(licenceTypeRulesResolver.hasWorkProgramme(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
     when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(detail)).thenReturn(mock(LicenceScheduleDetail.class));
-    when(licenceScheduleService.hasCurrentWorkProgrammeActivities(any())).thenReturn(false);
+    when(licenceScheduleStateService.hasCurrentWorkProgrammeActivities(any())).thenReturn(false);
 
     var options = underTest.getPageOptions(detail);
 
@@ -317,7 +317,7 @@ class SwpApplicationRequestPurposeServiceTest {
     when(licenceTypeRulesResolver.arePhasesCaptured(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
     when(licenceTypeRulesResolver.hasWorkProgramme(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
     when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(detail)).thenReturn(mock(LicenceScheduleDetail.class));
-    when(licenceScheduleService.hasCurrentWorkProgrammeActivities(any())).thenReturn(true);
+    when(licenceScheduleStateService.hasCurrentWorkProgrammeActivities(any())).thenReturn(true);
 
     var options = underTest.getPageOptions(detail);
 
@@ -330,7 +330,7 @@ class SwpApplicationRequestPurposeServiceTest {
     var scheduleDetail = mock(LicenceScheduleDetail.class);
     when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(detail))
         .thenReturn(scheduleDetail);
-    when(licenceScheduleService.hasCurrentWorkProgrammeActivities(scheduleDetail)).thenReturn(true);
+    when(licenceScheduleStateService.hasCurrentWorkProgrammeActivities(scheduleDetail)).thenReturn(true);
 
     assertThat(underTest.hasAmendableWorkProgrammeActivities(detail)).isTrue();
   }
@@ -341,7 +341,7 @@ class SwpApplicationRequestPurposeServiceTest {
     var scheduleDetail = mock(LicenceScheduleDetail.class);
     when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(detail))
         .thenReturn(scheduleDetail);
-    when(licenceScheduleService.hasCurrentWorkProgrammeActivities(scheduleDetail)).thenReturn(false);
+    when(licenceScheduleStateService.hasCurrentWorkProgrammeActivities(scheduleDetail)).thenReturn(false);
 
     assertThat(underTest.hasAmendableWorkProgrammeActivities(detail)).isFalse();
   }
@@ -360,7 +360,7 @@ class SwpApplicationRequestPurposeServiceTest {
     when(licenceTypeRulesResolver.arePhasesCaptured(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
     when(licenceTypeRulesResolver.hasWorkProgramme(LicenceType.SEAWARD_EXPLORATION)).thenReturn(true);
     when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(detail)).thenReturn(mock(LicenceScheduleDetail.class));
-    when(licenceScheduleService.hasCurrentWorkProgrammeActivities(any())).thenReturn(false);
+    when(licenceScheduleStateService.hasCurrentWorkProgrammeActivities(any())).thenReturn(false);
     when(swpApplicationRequestPurposeRepository.getByScheduleWorkProgrammeApplicationDetail(detail))
         .thenReturn(Optional.empty());
 
@@ -376,7 +376,7 @@ class SwpApplicationRequestPurposeServiceTest {
   void applyDefaultRequestPurposeIfNotApplicable_whenAmendableActivities_doesNotPersist() {
     var detail = new ScheduleWorkProgrammeApplicationDetail();
     when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(detail)).thenReturn(mock(LicenceScheduleDetail.class));
-    when(licenceScheduleService.hasCurrentWorkProgrammeActivities(any())).thenReturn(true);
+    when(licenceScheduleStateService.hasCurrentWorkProgrammeActivities(any())).thenReturn(true);
 
     underTest.applyDefaultRequestPurposeIfNotApplicable(detail);
 

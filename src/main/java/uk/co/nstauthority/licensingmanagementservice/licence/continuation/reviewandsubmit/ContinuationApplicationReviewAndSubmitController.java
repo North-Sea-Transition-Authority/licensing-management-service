@@ -23,7 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
@@ -38,7 +38,7 @@ public class ContinuationApplicationReviewAndSubmitController {
   private final LicenceContinuationService licenceContinuationService;
   private final ContinuationSummarySectionService continuationSummarySectionService;
   private final LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService;
-  private final LicenceScheduleService licenceScheduleService;
+  private final LicenceScheduleStateService licenceScheduleStateService;
   private final LicenceContactService licenceContactService;
 
   public ContinuationApplicationReviewAndSubmitController(
@@ -46,14 +46,14 @@ public class ContinuationApplicationReviewAndSubmitController {
       LicenceContinuationService licenceContinuationService,
       ContinuationSummarySectionService continuationSummarySectionService,
       LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService,
-      LicenceScheduleService licenceScheduleService,
+      LicenceScheduleStateService licenceScheduleStateService,
       LicenceContactService licenceContactService
   ) {
     this.licenceService = licenceService;
     this.licenceContinuationService = licenceContinuationService;
     this.continuationSummarySectionService = continuationSummarySectionService;
     this.licenceContinuationApplicationTaskListService = licenceContinuationApplicationTaskListService;
-    this.licenceScheduleService = licenceScheduleService;
+    this.licenceScheduleStateService = licenceScheduleStateService;
     this.licenceContactService = licenceContactService;
   }
 
@@ -101,7 +101,7 @@ public class ContinuationApplicationReviewAndSubmitController {
       boolean isSubmittable,
       ServiceUserDetail user
   ) {
-    var workProgrammeActivities = licenceScheduleService.getCurrentWorkProgrammeActivitiesViews(
+    var workProgrammeActivities = licenceScheduleStateService.getCurrentWorkProgrammeActivitiesViews(
         licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail)
     );
 

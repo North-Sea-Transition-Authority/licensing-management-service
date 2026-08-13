@@ -17,7 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.schedul
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
@@ -33,16 +33,16 @@ public class SelectLicenceWorkAmendmentController {
 
   public static final String PAGE_TITLE = "What work programme activity are you requesting to amend?";
   private final SelectLicenceAmendmentFormValidator selectLicenceAmendmentFormValidator;
-  private final LicenceScheduleService licenceScheduleService;
+  private final LicenceScheduleStateService licenceScheduleStateService;
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
 
   public SelectLicenceWorkAmendmentController(
       SelectLicenceAmendmentFormValidator selectLicenceAmendmentFormValidator,
-      LicenceScheduleService licenceScheduleService,
+      LicenceScheduleStateService licenceScheduleStateService,
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService
   ) {
     this.selectLicenceAmendmentFormValidator = selectLicenceAmendmentFormValidator;
-    this.licenceScheduleService = licenceScheduleService;
+    this.licenceScheduleStateService = licenceScheduleStateService;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
   }
 
@@ -79,7 +79,7 @@ public class SelectLicenceWorkAmendmentController {
     var modelAndView = new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/selectScheduleWorkProgrammeToAmend")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("form", form)
-        .addObject("workProgrammeAmendmentViews", licenceScheduleService.getCurrentWorkProgrammeActivitiesViews(
+        .addObject("workProgrammeAmendmentViews", licenceScheduleStateService.getCurrentWorkProgrammeActivitiesViews(
             scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(scheduleWorkProgrammeApplicationDetail)
         ))
         .addObject("cancelUrl", taskListUrl);

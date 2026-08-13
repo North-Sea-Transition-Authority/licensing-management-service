@@ -85,15 +85,15 @@ class LicenceContinuationApplicationTaskListControllerTest extends AbstractContr
     when(nextPhase.getPhaseType()).thenReturn(PhaseType.PHASE_B);
 
     var scheduleState = new ScheduleState(currentTerm, currentPhase, nextTerm, nextPhase);
-    when(licenceScheduleService.getScheduleState(LICENCE_SCHEDULE_DETAIL)).thenReturn(scheduleState);
+    when(licenceScheduleStateService.getScheduleState(LICENCE_SCHEDULE_DETAIL)).thenReturn(scheduleState);
 
     String expectedCurrentDisplay = String.format("%s (%s)", currentPhase.getPhaseType(), currentTerm.getTermType());
     String expectedNextDisplay = String.format("%s (%s)", nextPhase.getPhaseType(), nextTerm.getTermType());
 
-    when(licenceScheduleService.formatTermPhaseDisplay(currentTerm, currentPhase))
+    when(licenceScheduleStateService.formatTermPhaseDisplay(currentTerm, currentPhase))
         .thenReturn(expectedCurrentDisplay);
 
-    when(licenceScheduleService.formatTermPhaseDisplay(nextTerm, nextPhase))
+    when(licenceScheduleStateService.formatTermPhaseDisplay(nextTerm, nextPhase))
         .thenReturn(expectedNextDisplay);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)

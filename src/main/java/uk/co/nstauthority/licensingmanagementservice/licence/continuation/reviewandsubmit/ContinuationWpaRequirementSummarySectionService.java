@@ -10,7 +10,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementRequest;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
@@ -25,16 +25,16 @@ public class ContinuationWpaRequirementSummarySectionService
   public static final int SECTION_DISPLAY_ORDER = 20;
   private final LicenceContinuationWpaRequirementService licenceContinuationWpaRequirementService;
   private final LicenceContinuationService licenceContinuationService;
-  private final LicenceScheduleService licenceScheduleService;
+  private final LicenceScheduleStateService licenceScheduleStateService;
 
   public ContinuationWpaRequirementSummarySectionService(
       LicenceContinuationWpaRequirementService licenceContinuationWpaRequirementService,
       LicenceContinuationService licenceContinuationService,
-      LicenceScheduleService licenceScheduleService
+      LicenceScheduleStateService licenceScheduleStateService
   ) {
     this.licenceContinuationWpaRequirementService = licenceContinuationWpaRequirementService;
     this.licenceContinuationService = licenceContinuationService;
-    this.licenceScheduleService = licenceScheduleService;
+    this.licenceScheduleStateService = licenceScheduleStateService;
   }
 
   @Override
@@ -46,7 +46,7 @@ public class ContinuationWpaRequirementSummarySectionService
         licenceContinuationApplicationDetail
     );
 
-    if (!licenceScheduleService.hasCurrentWorkProgrammeActivities(scheduleDetail)) {
+    if (!licenceScheduleStateService.hasCurrentWorkProgrammeActivities(scheduleDetail)) {
       return Optional.empty();
     }
 

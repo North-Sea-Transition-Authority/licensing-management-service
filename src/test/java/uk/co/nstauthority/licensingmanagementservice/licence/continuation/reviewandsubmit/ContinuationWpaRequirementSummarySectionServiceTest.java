@@ -16,7 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementRequest;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCardType;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
@@ -31,7 +31,7 @@ class ContinuationWpaRequirementSummarySectionServiceTest {
   private LicenceContinuationService licenceContinuationService;
 
   @Mock
-  private LicenceScheduleService licenceScheduleService;
+  private LicenceScheduleStateService licenceScheduleStateService;
 
   @InjectMocks
   private ContinuationWpaRequirementSummarySectionService continuationWpaRequirementSummarySectionService;
@@ -54,7 +54,7 @@ class ContinuationWpaRequirementSummarySectionServiceTest {
   void getSummarySection_withWpaRequirement_returnsWpaSummaryCardOnly() {
     var wpaRequest = createWpaRequirementRequest();
 
-    when(licenceScheduleService.hasCurrentWorkProgrammeActivities(scheduleDetail))
+    when(licenceScheduleStateService.hasCurrentWorkProgrammeActivities(scheduleDetail))
         .thenReturn(true);
     when(licenceContinuationWpaRequirementService.getWorkProgrammeActivitiesRequirementRequest(licenceContinuationApplicationDetail))
         .thenReturn(Optional.of(wpaRequest));
@@ -78,7 +78,7 @@ class ContinuationWpaRequirementSummarySectionServiceTest {
 
   @Test
   void getSummarySection_whenScheduleHasNoWorkProgrammeActivities_returnsEmptyOptional() {
-    when(licenceScheduleService.hasCurrentWorkProgrammeActivities(scheduleDetail))
+    when(licenceScheduleStateService.hasCurrentWorkProgrammeActivities(scheduleDetail))
         .thenReturn(false);
 
     Optional<SummarySection> result = continuationWpaRequirementSummarySectionService.getSummarySection(
@@ -91,7 +91,7 @@ class ContinuationWpaRequirementSummarySectionServiceTest {
 
   @Test
   void getSummarySection_withNoRequirements_returnsEmptySummaryCardsList() {
-    when(licenceScheduleService.hasCurrentWorkProgrammeActivities(scheduleDetail))
+    when(licenceScheduleStateService.hasCurrentWorkProgrammeActivities(scheduleDetail))
         .thenReturn(true);
     when(licenceContinuationWpaRequirementService.getWorkProgrammeActivitiesRequirementRequest(licenceContinuationApplicationDetail))
         .thenReturn(Optional.empty());

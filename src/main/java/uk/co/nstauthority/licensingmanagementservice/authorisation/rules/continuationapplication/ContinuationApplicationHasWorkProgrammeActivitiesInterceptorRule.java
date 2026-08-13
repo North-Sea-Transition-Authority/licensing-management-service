@@ -11,22 +11,22 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleR
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AccessInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 
 @Component
 @Order(10)
 public class ContinuationApplicationHasWorkProgrammeActivitiesInterceptorRule implements AccessInterceptorRule {
 
   private final LicenceContinuationService licenceContinuationService;
-  private final LicenceScheduleService licenceScheduleService;
+  private final LicenceScheduleStateService licenceScheduleStateService;
 
   @Autowired
   public ContinuationApplicationHasWorkProgrammeActivitiesInterceptorRule(
       LicenceContinuationService licenceContinuationService,
-      LicenceScheduleService licenceScheduleService
+      LicenceScheduleStateService licenceScheduleStateService
   ) {
     this.licenceContinuationService = licenceContinuationService;
-    this.licenceScheduleService = licenceScheduleService;
+    this.licenceScheduleStateService = licenceScheduleStateService;
   }
 
   @Override
@@ -41,7 +41,7 @@ public class ContinuationApplicationHasWorkProgrammeActivitiesInterceptorRule im
     var applicationDetail = getApplicationDetailFromRequest(request);
     var scheduleDetail = licenceContinuationService.getScheduleDetailFromApplicationDetail(applicationDetail);
 
-    if (licenceScheduleService.hasCurrentWorkProgrammeActivities(scheduleDetail)) {
+    if (licenceScheduleStateService.hasCurrentWorkProgrammeActivities(scheduleDetail)) {
       return SecurityRuleResult.continueAsNormal();
     }
 

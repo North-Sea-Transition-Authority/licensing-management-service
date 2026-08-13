@@ -17,7 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListController;
@@ -34,18 +34,18 @@ public class LicenceScheduleExtensionController {
   private final LicenceScheduleExtensionService licenceScheduleExtensionFormService;
   private final LicenceScheduleExtensionFormValidator licenceScheduleExtensionFormValidator;
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
-  private final LicenceScheduleService licenceScheduleService;
+  private final LicenceScheduleStateService licenceScheduleStateService;
 
   public LicenceScheduleExtensionController(
       LicenceScheduleExtensionService licenceScheduleExtensionFormService,
       LicenceScheduleExtensionFormValidator licenceScheduleExtensionFormValidator,
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
-      LicenceScheduleService licenceScheduleService
+      LicenceScheduleStateService licenceScheduleStateService
   ) {
     this.licenceScheduleExtensionFormService = licenceScheduleExtensionFormService;
     this.licenceScheduleExtensionFormValidator = licenceScheduleExtensionFormValidator;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
-    this.licenceScheduleService = licenceScheduleService;
+    this.licenceScheduleStateService = licenceScheduleStateService;
   }
 
   @GetMapping
@@ -81,8 +81,8 @@ public class LicenceScheduleExtensionController {
 
     var licenceScheduleDetail = scheduleWorkProgrammeApplicationService
         .getScheduleDetailFromApplicationDetail(scheduleWorkProgrammeApplicationDetail);
-    var currentTerm = licenceScheduleService.getCurrentTerm(licenceScheduleDetail);
-    var currentPhase = licenceScheduleService.getCurrentPhase(licenceScheduleDetail);
+    var currentTerm = licenceScheduleStateService.getCurrentTerm(licenceScheduleDetail);
+    var currentPhase = licenceScheduleStateService.getCurrentPhase(licenceScheduleDetail);
     var extendableTermAndPhases = licenceScheduleExtensionFormService.getExtendableTermAndPhases(licenceScheduleDetail);
 
     var taskListUrl = ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)

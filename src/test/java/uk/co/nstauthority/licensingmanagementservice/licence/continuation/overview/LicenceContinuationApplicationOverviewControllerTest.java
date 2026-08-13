@@ -104,7 +104,7 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
         .thenReturn(applicationContext);
     when(continuationSummarySectionService.getSummarySections(applicationDetail, USER))
         .thenReturn(List.of());
-    when(licenceScheduleService.getCurrentWorkProgrammeActivitiesViews(any()))
+    when(licenceScheduleStateService.getCurrentWorkProgrammeActivitiesViews(any()))
         .thenReturn(List.of());
     when(licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, USER))
         .thenReturn(List.of());

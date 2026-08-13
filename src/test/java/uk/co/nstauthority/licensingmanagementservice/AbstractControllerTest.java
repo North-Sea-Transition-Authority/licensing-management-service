@@ -65,7 +65,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleo
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityArgumentResolver;
@@ -207,7 +207,7 @@ public abstract class AbstractControllerTest {
   protected DocumentTemplateService documentTemplateService;
 
   @MockitoBean
-  protected LicenceScheduleService licenceScheduleService;
+  protected LicenceScheduleStateService licenceScheduleStateService;
 
   @MockitoBean
   protected WorkAreaItemViewService workAreaItemViewService;

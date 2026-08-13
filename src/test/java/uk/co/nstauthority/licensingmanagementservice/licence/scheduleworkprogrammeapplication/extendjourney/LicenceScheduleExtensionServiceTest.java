@@ -31,8 +31,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduleTerm
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleRepository;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseRepository;
@@ -64,9 +63,6 @@ class LicenceScheduleExtensionServiceTest {
   private LicenceScheduleTermRepository licenceScheduleTermRepository;
 
   @Mock
-  private LicenceScheduleRepository licenceScheduleRepository;
-
-  @Mock
   private Clock clock;
 
   @Mock
@@ -87,15 +83,14 @@ class LicenceScheduleExtensionServiceTest {
   private static final LocalDate TODAY = LocalDate.parse("2025-09-09");
   private static final LocalDate DATE_FUTURE = TODAY.plusYears(2);
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail;
-  private LicenceScheduleService licenceScheduleService;
+  private LicenceScheduleStateService licenceScheduleStateService;
 
   @BeforeEach
   void setUp() {
     scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(new ScheduleWorkProgrammeApplication());
 
-    licenceScheduleService = new LicenceScheduleService(
-        licenceScheduleRepository,
+    licenceScheduleStateService = new LicenceScheduleStateService(
         licenceScheduleTermService,
         licenceSchedulePhaseService,
         licenceTypeRulesResolver,
@@ -278,7 +273,7 @@ class LicenceScheduleExtensionServiceTest {
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(activeTerm));
 
-    var result = licenceScheduleService.getCurrentTerm(licenceScheduleDetail);
+    var result = licenceScheduleStateService.getCurrentTerm(licenceScheduleDetail);
     assertThat(result).isSameAs(activeTerm);
   }
 
@@ -298,7 +293,7 @@ class LicenceScheduleExtensionServiceTest {
 
     when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of(activePhase));
 
-    var result = licenceScheduleService.getCurrentPhase(term);
+    var result = licenceScheduleStateService.getCurrentPhase(term);
     assertThat(result).isSameAs(activePhase);
   }
 

@@ -29,12 +29,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
 
 @ExtendWith(MockitoExtension.class)
 class DocumentLinkingServiceTest {
@@ -49,7 +49,7 @@ class DocumentLinkingServiceTest {
   private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
 
   @Mock
-  private LicenceScheduleService licenceScheduleService;
+  private LicenceScheduleStateService licenceScheduleStateService;
 
   @Mock
   private LicenceTypeRulesResolver licenceTypeRulesResolver;
@@ -199,7 +199,7 @@ class DocumentLinkingServiceTest {
     when(licenceContinuationService.getScheduleDetailFromApplicationDetail(applicationDetail))
         .thenReturn(scheduleDetail);
     when(licenceTypeRulesResolver.hasPhases(LicenceType.SEAWARD_PRODUCTION)).thenReturn(false);
-    when(licenceScheduleService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
+    when(licenceScheduleStateService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
 
     var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
         .withItemType(ApplicationType.CONTINUATION_APPLICATION.name())
@@ -226,8 +226,8 @@ class DocumentLinkingServiceTest {
     when(licenceContinuationService.getScheduleDetailFromApplicationDetail(applicationDetail))
         .thenReturn(scheduleDetail);
     when(licenceTypeRulesResolver.hasPhases(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
-    when(licenceScheduleService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
-    when(licenceScheduleService.getCurrentPhase(currentTerm)).thenReturn(currentPhase);
+    when(licenceScheduleStateService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
+    when(licenceScheduleStateService.getCurrentPhase(currentTerm)).thenReturn(currentPhase);
 
     var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
         .withItemType(ApplicationType.CONTINUATION_APPLICATION.name())
@@ -253,7 +253,7 @@ class DocumentLinkingServiceTest {
     when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(applicationDetail))
         .thenReturn(scheduleDetail);
     when(licenceTypeRulesResolver.hasPhases(LicenceType.SEAWARD_PRODUCTION)).thenReturn(false);
-    when(licenceScheduleService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
+    when(licenceScheduleStateService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
 
     var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
         .withItemType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name())
@@ -280,8 +280,8 @@ class DocumentLinkingServiceTest {
     when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(applicationDetail))
         .thenReturn(scheduleDetail);
     when(licenceTypeRulesResolver.hasPhases(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
-    when(licenceScheduleService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
-    when(licenceScheduleService.getCurrentPhase(currentTerm)).thenReturn(currentPhase);
+    when(licenceScheduleStateService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
+    when(licenceScheduleStateService.getCurrentPhase(currentTerm)).thenReturn(currentPhase);
 
     var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
         .withItemType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name())
@@ -307,8 +307,8 @@ class DocumentLinkingServiceTest {
     when(licenceContinuationService.getScheduleDetailFromApplicationDetail(applicationDetail))
         .thenReturn(scheduleDetail);
     when(licenceTypeRulesResolver.hasPhases(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
-    when(licenceScheduleService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
-    when(licenceScheduleService.getCurrentPhase(currentTerm)).thenReturn(null);
+    when(licenceScheduleStateService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
+    when(licenceScheduleStateService.getCurrentPhase(currentTerm)).thenReturn(null);
 
     var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
         .withItemType(ApplicationType.CONTINUATION_APPLICATION.name())
@@ -334,8 +334,8 @@ class DocumentLinkingServiceTest {
     when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(applicationDetail))
         .thenReturn(scheduleDetail);
     when(licenceTypeRulesResolver.hasPhases(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
-    when(licenceScheduleService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
-    when(licenceScheduleService.getCurrentPhase(currentTerm)).thenReturn(null);
+    when(licenceScheduleStateService.getCurrentTerm(scheduleDetail)).thenReturn(currentTerm);
+    when(licenceScheduleStateService.getCurrentPhase(currentTerm)).thenReturn(null);
 
     var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
         .withItemType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name())
@@ -359,7 +359,7 @@ class DocumentLinkingServiceTest {
         .thenReturn(applicationDetail);
     when(licenceContinuationService.getScheduleDetailFromApplicationDetail(applicationDetail))
         .thenReturn(scheduleDetail);
-    when(licenceScheduleService.getNextTermPhaseStartDate(scheduleDetail)).thenReturn(Optional.of(nextStartDate));
+    when(licenceScheduleStateService.getNextTermPhaseStartDate(scheduleDetail)).thenReturn(Optional.of(nextStartDate));
 
     var documentInstanceDto = DocumentInstanceDtoTestUtil.newBuilder()
         .withItemType(ApplicationType.CONTINUATION_APPLICATION.name())

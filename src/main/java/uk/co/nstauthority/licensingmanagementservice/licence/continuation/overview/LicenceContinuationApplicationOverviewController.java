@@ -24,7 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.decisi
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.decision.ContinuationLetterFileUsages;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.action.LicenceContinuationActionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.reviewandsubmit.ContinuationSummarySectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
@@ -49,7 +49,7 @@ public class LicenceContinuationApplicationOverviewController {
   private final LicenceContinuationService licenceContinuationService;
   private final LicenceContinuationApplicationOverviewService overviewService;
   private final ContinuationSummarySectionService continuationSummarySectionService;
-  private final LicenceScheduleService licenceScheduleService;
+  private final LicenceScheduleStateService licenceScheduleStateService;
   private final LicenceContinuationActionService  licenceContinuationActionService;
   private final FileControllerHelperService fileControllerHelperService;
   private final ContinuationDecisionSummarySectionService continuationIssuePdfSummarySectionService;
@@ -59,7 +59,7 @@ public class LicenceContinuationApplicationOverviewController {
       LicenceContinuationService licenceContinuationService,
       LicenceContinuationApplicationOverviewService overviewService,
       ContinuationSummarySectionService continuationSummarySectionService,
-      LicenceScheduleService licenceScheduleService,
+      LicenceScheduleStateService licenceScheduleStateService,
       LicenceContinuationActionService licenceContinuationActionService,
       FileControllerHelperService fileControllerHelperService,
       ContinuationDecisionSummarySectionService continuationIssuePdfSummarySectionService,
@@ -68,7 +68,7 @@ public class LicenceContinuationApplicationOverviewController {
     this.licenceContinuationService = licenceContinuationService;
     this.overviewService = overviewService;
     this.continuationSummarySectionService = continuationSummarySectionService;
-    this.licenceScheduleService = licenceScheduleService;
+    this.licenceScheduleStateService = licenceScheduleStateService;
     this.licenceContinuationActionService = licenceContinuationActionService;
     this.fileControllerHelperService = fileControllerHelperService;
     this.continuationIssuePdfSummarySectionService = continuationIssuePdfSummarySectionService;
@@ -86,7 +86,7 @@ public class LicenceContinuationApplicationOverviewController {
     var summarySections = continuationSummarySectionService.getSummarySections(applicationDetail, serviceUserDetail);
     var applicationActions = licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail);
 
-    var workProgrammeActivities = licenceScheduleService.getCurrentWorkProgrammeActivitiesViews(
+    var workProgrammeActivities = licenceScheduleStateService.getCurrentWorkProgrammeActivitiesViews(
         licenceContinuationService.getScheduleDetailFromApplicationDetail(applicationDetail)
     );
 

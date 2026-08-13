@@ -9,7 +9,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.externalcontributorjourney.LicenceContinuationExternalContributorService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.summary.ExternalUrlView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
@@ -27,20 +27,20 @@ public class ContinuationLicenseeInformationSummarySectionService
   private final FoxRedirectService foxRedirectService;
   private final LicenceContinuationExternalContributorService licenceContinuationExternalContributorService;
   private final LicenceContinuationService licenceContinuationService;
-  private final LicenceScheduleService licenceScheduleService;
+  private final LicenceScheduleStateService licenceScheduleStateService;
 
   public ContinuationLicenseeInformationSummarySectionService(
       OrganisationUnitQueryService organisationUnitQueryService,
       FoxRedirectService foxRedirectService,
       LicenceContinuationExternalContributorService licenceContinuationExternalContributorService,
       LicenceContinuationService licenceContinuationService,
-      LicenceScheduleService licenceScheduleService
+      LicenceScheduleStateService licenceScheduleStateService
   ) {
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.foxRedirectService = foxRedirectService;
     this.licenceContinuationExternalContributorService = licenceContinuationExternalContributorService;
     this.licenceContinuationService = licenceContinuationService;
-    this.licenceScheduleService = licenceScheduleService;
+    this.licenceScheduleStateService = licenceScheduleStateService;
   }
 
   @Override
@@ -89,9 +89,9 @@ public class ContinuationLicenseeInformationSummarySectionService
     var licence = licenceContinuationApplicationDetail.getLicence();
     var scheduleState = licenceContinuationService.resolveScheduleState(licenceContinuationApplicationDetail);
 
-    var currentTermPhaseDisplay = licenceScheduleService.formatTermPhaseDisplay(
+    var currentTermPhaseDisplay = licenceScheduleStateService.formatTermPhaseDisplay(
         scheduleState.currentTerm(), scheduleState.currentPhase());
-    var nextTermPhaseDisplay = licenceScheduleService.formatTermPhaseDisplay(
+    var nextTermPhaseDisplay = licenceScheduleStateService.formatTermPhaseDisplay(
         scheduleState.nextTerm(), scheduleState.nextPhase());
 
     var summaryDataView = SummaryDataView.newBuilder()

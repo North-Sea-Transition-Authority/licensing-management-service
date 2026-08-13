@@ -20,7 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.Applica
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -32,20 +32,20 @@ public class LicenceContinuationWpaRequirementController {
 
   public static final String PAGE_TITLE = "Work programme";
   public final LicenceContinuationWpaRequirementService licenceContinuationWpaRequirementService;
-  public final LicenceScheduleService licenceScheduleService;
+  public final LicenceScheduleStateService licenceScheduleStateService;
   public final LicenceContinuationWpaRequirementValidator licenceContinuationWpaRequirementValidator;
   public final LicenceContinuationService licenceContinuationService;
 
   public LicenceContinuationWpaRequirementController(
       LicenceContinuationWpaRequirementService licenceContinuationWpaRequirementService,
-      LicenceScheduleService licenceScheduleService,
+      LicenceScheduleStateService licenceScheduleStateService,
       LicenceContinuationWpaRequirementValidator licenceContinuationWpaRequirementValidator,
       LicenceContinuationService licenceContinuationService
   ) {
 
     this.licenceContinuationWpaRequirementService = licenceContinuationWpaRequirementService;
 
-    this.licenceScheduleService = licenceScheduleService;
+    this.licenceScheduleStateService = licenceScheduleStateService;
     this.licenceContinuationWpaRequirementValidator = licenceContinuationWpaRequirementValidator;
     this.licenceContinuationService = licenceContinuationService;
   }
@@ -92,7 +92,7 @@ public class LicenceContinuationWpaRequirementController {
   ) {
     var scheduleDetail = licenceContinuationService.getScheduleDetailFromApplicationDetail(licenceContinuationApplicationDetail);
 
-    var workProgrammeActivities = licenceScheduleService.getCurrentWorkProgrammeActivitiesViews(scheduleDetail);
+    var workProgrammeActivities = licenceScheduleStateService.getCurrentWorkProgrammeActivitiesViews(scheduleDetail);
 
     var taskListUrl = ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
         .getTaskList(licenceContinuationApplicationDetail.getId(), null, null));

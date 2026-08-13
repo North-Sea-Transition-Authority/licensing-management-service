@@ -15,7 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requir
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.OtherRequirementsVisibilityResolverService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
@@ -31,7 +31,7 @@ public class LicenceContinuationRequirementsTaskListSectionService
   private final LicenceContinuationLicenceOperatorsSubmissionService licenceContinuationLicenceOperatorsSubmissionService;
   private final OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService;
   private final LicenceContinuationService licenceContinuationService;
-  private final LicenceScheduleService licenceScheduleService;
+  private final LicenceScheduleStateService licenceScheduleStateService;
 
   static final String LICENCE_CONTINUATION_REQUIREMENTS_SECTION_NAME = "Continuation requirements";
 
@@ -41,14 +41,14 @@ public class LicenceContinuationRequirementsTaskListSectionService
       LicenceContinuationLicenceOperatorsSubmissionService licenceContinuationLicenceOperatorsSubmissionService,
       OtherRequirementsVisibilityResolverService otherRequirementsVisibilityResolverService,
       LicenceContinuationService licenceContinuationService,
-      LicenceScheduleService licenceScheduleService
+      LicenceScheduleStateService licenceScheduleStateService
   ) {
     this.licenceContinuationWpaSubmissionService = licenceContinuationWpaSubmissionService;
     this.licenceContinuationOtherRequirementSubmissionService = licenceContinuationOtherRequirementSubmissionService;
     this.licenceContinuationLicenceOperatorsSubmissionService = licenceContinuationLicenceOperatorsSubmissionService;
     this.otherRequirementsVisibilityResolverService = otherRequirementsVisibilityResolverService;
     this.licenceContinuationService = licenceContinuationService;
-    this.licenceScheduleService = licenceScheduleService;
+    this.licenceScheduleStateService = licenceScheduleStateService;
   }
 
   static final String WORK_PROGRAMMES = "Work programme activities";
@@ -73,7 +73,7 @@ public class LicenceContinuationRequirementsTaskListSectionService
     var otherRequirementsVisibility = otherRequirementsVisibilityResolverService.resolveVisibility(
         licenceContinuationApplicationDetail);
 
-    if (licenceScheduleService.hasCurrentWorkProgrammeActivities(scheduleDetail)) {
+    if (licenceScheduleStateService.hasCurrentWorkProgrammeActivities(scheduleDetail)) {
       items.add(new TaskListItem(
           WORK_PROGRAMMES,
           TaskListLabel.notStartedOrComplete(licenceContinuationWpaSubmissionService.isSectionSubmittable(

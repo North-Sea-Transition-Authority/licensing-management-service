@@ -12,7 +12,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
@@ -23,20 +23,20 @@ public class DocumentLinkingService {
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final LicenceContinuationService licenceContinuationService;
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
-  private final LicenceScheduleService licenceScheduleService;
+  private final LicenceScheduleStateService licenceScheduleStateService;
   private final LicenceTypeRulesResolver licenceTypeRulesResolver;
 
   public DocumentLinkingService(
       OrganisationUnitQueryService organisationUnitQueryService,
       LicenceContinuationService licenceContinuationService,
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
-      LicenceScheduleService licenceScheduleService,
+      LicenceScheduleStateService licenceScheduleStateService,
       LicenceTypeRulesResolver licenceTypeRulesResolver
   ) {
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.licenceContinuationService = licenceContinuationService;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
-    this.licenceScheduleService = licenceScheduleService;
+    this.licenceScheduleStateService = licenceScheduleStateService;
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
   }
 
@@ -89,14 +89,14 @@ public class DocumentLinkingService {
     };
 
     var licence = scheduleDetail.getLicenceSchedule().getLicence();
-    var currentTerm = licenceScheduleService.getCurrentTerm(scheduleDetail);
+    var currentTerm = licenceScheduleStateService.getCurrentTerm(scheduleDetail);
 
     return resolveCurrentTermOrPhaseName(licence, currentTerm);
   }
 
   private String resolveCurrentTermOrPhaseName(Licence licence, LicenceScheduleTerm currentTerm) {
     if (licenceTypeRulesResolver.hasPhases(licence.getType())) {
-      var currentPhase = licenceScheduleService.getCurrentPhase(currentTerm);
+      var currentPhase = licenceScheduleStateService.getCurrentPhase(currentTerm);
       if (currentPhase != null) {
         return currentPhase.getPhaseType().getDisplayName();
       }
@@ -109,7 +109,7 @@ public class DocumentLinkingService {
     var applicationId = UUID.fromString(documentInstanceDto.itemReference());
     var scheduleDetail = getScheduleDetailFromContinuationApplication(applicationId);
 
-    return licenceScheduleService.getNextTermPhaseStartDate(scheduleDetail)
+    return licenceScheduleStateService.getNextTermPhaseStartDate(scheduleDetail)
         .map(DateUtils::format)
         .orElse("");
   }

@@ -19,7 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
@@ -29,7 +29,7 @@ class ContinuationApplicationHasWorkProgrammeActivitiesInterceptorRuleTest exten
   private LicenceContinuationService licenceContinuationService;
 
   @Mock
-  private LicenceScheduleService licenceScheduleService;
+  private LicenceScheduleStateService licenceScheduleStateService;
 
   @InjectMocks
   private ContinuationApplicationHasWorkProgrammeActivitiesInterceptorRule rule;
@@ -43,7 +43,7 @@ class ContinuationApplicationHasWorkProgrammeActivitiesInterceptorRuleTest exten
   @Test
   void check_whenScheduleHasWorkProgrammeActivities_rulePass() throws NoSuchMethodException {
     var scheduleDetail = mockApplicationAsPathVariableEntity();
-    when(licenceScheduleService.hasCurrentWorkProgrammeActivities(scheduleDetail))
+    when(licenceScheduleStateService.hasCurrentWorkProgrammeActivities(scheduleDetail))
         .thenReturn(true);
 
     var annotation = getAnnotation(
@@ -61,7 +61,7 @@ class ContinuationApplicationHasWorkProgrammeActivitiesInterceptorRuleTest exten
   @Test
   void check_whenScheduleHasNoWorkProgrammeActivities_ruleFailsForbidden() throws NoSuchMethodException {
     var scheduleDetail = mockApplicationAsPathVariableEntity();
-    when(licenceScheduleService.hasCurrentWorkProgrammeActivities(scheduleDetail))
+    when(licenceScheduleStateService.hasCurrentWorkProgrammeActivities(scheduleDetail))
         .thenReturn(false);
 
     var annotation = getAnnotation(

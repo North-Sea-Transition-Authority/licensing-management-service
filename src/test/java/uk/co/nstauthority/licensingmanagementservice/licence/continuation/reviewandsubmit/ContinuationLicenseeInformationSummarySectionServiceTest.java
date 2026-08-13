@@ -21,7 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.externalcontributorjourney.LicenceContinuationExternalContributorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -78,7 +78,7 @@ class ContinuationLicenseeInformationSummarySectionServiceTest {
   private LicenceContinuationService licenceContinuationService;
 
   @Mock
-  private LicenceScheduleService licenceScheduleService;
+  private LicenceScheduleStateService licenceScheduleStateService;
 
   @InjectMocks
   private ContinuationLicenseeInformationSummarySectionService continuationLicenseeInformationSummarySectionService;
@@ -150,8 +150,8 @@ class ContinuationLicenseeInformationSummarySectionServiceTest {
     var scheduleState = new ScheduleState(currentTerm, null, null, null);
     when(licenceContinuationService.resolveScheduleState(licenceContinuationApplicationDetail))
         .thenReturn(scheduleState);
-    when(licenceScheduleService.formatTermPhaseDisplay(currentTerm, null)).thenReturn(CURRENT_TERM_PHASE_DISPLAY);
-    when(licenceScheduleService.formatTermPhaseDisplay(null, null)).thenReturn(null);
+    when(licenceScheduleStateService.formatTermPhaseDisplay(currentTerm, null)).thenReturn(CURRENT_TERM_PHASE_DISPLAY);
+    when(licenceScheduleStateService.formatTermPhaseDisplay(null, null)).thenReturn(null);
 
     var result = continuationLicenseeInformationSummarySectionService
         .getSummarySection(licenceContinuationApplicationDetail, null).get();
@@ -220,7 +220,7 @@ class ContinuationLicenseeInformationSummarySectionServiceTest {
     var scheduleState = new ScheduleState(currentTerm, currentPhase, nextTerm, nextPhase);
 
     when(licenceContinuationService.resolveScheduleState(detail)).thenReturn(scheduleState);
-    when(licenceScheduleService.formatTermPhaseDisplay(currentTerm, currentPhase)).thenReturn(CURRENT_TERM_PHASE_DISPLAY);
-    when(licenceScheduleService.formatTermPhaseDisplay(nextTerm, nextPhase)).thenReturn(NEXT_TERM_PHASE_DISPLAY);
+    when(licenceScheduleStateService.formatTermPhaseDisplay(currentTerm, currentPhase)).thenReturn(CURRENT_TERM_PHASE_DISPLAY);
+    when(licenceScheduleStateService.formatTermPhaseDisplay(nextTerm, nextPhase)).thenReturn(NEXT_TERM_PHASE_DISPLAY);
   }
 }

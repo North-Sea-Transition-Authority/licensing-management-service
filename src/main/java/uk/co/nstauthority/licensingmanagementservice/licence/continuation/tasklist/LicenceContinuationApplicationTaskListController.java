@@ -19,7 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.Applica
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDeleteController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 
@@ -38,18 +38,18 @@ public class LicenceContinuationApplicationTaskListController {
   private final LicenceService licenceService;
   private final LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService;
   private final LicenceContinuationService licenceContinuationService;
-  private final LicenceScheduleService licenceScheduleService;
+  private final LicenceScheduleStateService licenceScheduleStateService;
 
   public LicenceContinuationApplicationTaskListController(
       LicenceService licenceService,
       LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService,
       LicenceContinuationService licenceContinuationService,
-      LicenceScheduleService licenceScheduleService
+      LicenceScheduleStateService licenceScheduleStateService
   ) {
     this.licenceService = licenceService;
     this.licenceContinuationApplicationTaskListService = licenceContinuationApplicationTaskListService;
     this.licenceContinuationService = licenceContinuationService;
-    this.licenceScheduleService = licenceScheduleService;
+    this.licenceScheduleStateService = licenceScheduleStateService;
   }
 
   @GetMapping
@@ -67,10 +67,16 @@ public class LicenceContinuationApplicationTaskListController {
         licenceContinuationApplicationDetail
     );
 
-    var state = licenceScheduleService.getScheduleState(scheduleDetailFromApplicationDetail);
+    var state = licenceScheduleStateService.getScheduleState(scheduleDetailFromApplicationDetail);
 
-    String currentTermPhaseDisplay = licenceScheduleService.formatTermPhaseDisplay(state.currentTerm(), state.currentPhase());
-    String nextTermPhaseDisplay = licenceScheduleService.formatTermPhaseDisplay(state.nextTerm(), state.nextPhase());
+    String currentTermPhaseDisplay = licenceScheduleStateService.formatTermPhaseDisplay(
+        state.currentTerm(),
+        state.currentPhase()
+    );
+    String nextTermPhaseDisplay = licenceScheduleStateService.formatTermPhaseDisplay(
+        state.nextTerm(),
+        state.nextPhase()
+    );
 
     var modelAndView = new ModelAndView("lms/licence/continuation/taskList")
         .addObject("pageTitle", PAGE_TITLE)

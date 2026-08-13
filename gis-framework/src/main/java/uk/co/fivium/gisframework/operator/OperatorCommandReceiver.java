@@ -7,30 +7,30 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
+import uk.co.fivium.gisframework.command.FeatureJourneyStateService;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
 import uk.co.fivium.gisframework.command.TransformationType;
 import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
 import uk.co.fivium.gisframework.feature.Feature;
-import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 
 @Service
 public class OperatorCommandReceiver {
 
   private final SplitOperatorService splitOperatorService;
-  private final FeatureService featureService;
+  private final FeatureJourneyStateService featureJourneyStateService;
   private final OperatorCommandService operatorCommandService;
   private final CommandJourneyService commandJourneyService;
   private final GrpcClientService grpcClientService;
 
   public OperatorCommandReceiver(
       SplitOperatorService splitOperatorService,
-      FeatureService featureService,
+      FeatureJourneyStateService featureJourneyStateService,
       OperatorCommandService operatorCommandService,
       CommandJourneyService commandJourneyService,
       GrpcClientService grpcClientService) {
     this.splitOperatorService = splitOperatorService;
-    this.featureService = featureService;
+    this.featureJourneyStateService = featureJourneyStateService;
     this.operatorCommandService = operatorCommandService;
     this.commandJourneyService = commandJourneyService;
     this.grpcClientService = grpcClientService;
@@ -75,15 +75,8 @@ public class OperatorCommandReceiver {
     var command = operatorCommandService.createOperatorCommand(commandJourney, affectedInputFeatureIds,
         TransformationType.SPLIT);
 
-    affectedInputFeatures.forEach(feature -> feature.setActive(false));
-    featureService.saveFeatures(affectedInputFeatures);
-
-    outputFeatures.forEach(feature -> {
-      feature.setCreatedByCommand(command);
-      feature.setCommandJourney(commandJourney);
-      feature.setActive(true);
-    });
-    featureService.saveFeatures(outputFeatures);
+    featureJourneyStateService.deactivateFeatures(affectedInputFeatures);
+    featureJourneyStateService.createFeatureJourneyStatesForCommandOutput(commandJourney, command, outputFeatures);
 
     return outputFeatures;
   }

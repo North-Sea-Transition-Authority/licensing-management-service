@@ -219,10 +219,6 @@ class OperatorResultProcessingServiceTest {
         .withFeatureArea(BigDecimal.TEN)
         .withStartDate(null)
         .withEndDate(null)
-        .withActive(false)
-        .withCreatedByCommand(null)
-        .withCommandJourney(null)
-        .withActive(true)
         .build();
     assertThat(savedFeature).usingRecursiveComparison()
         .ignoringFields("id", "legacyId")
@@ -285,10 +281,6 @@ class OperatorResultProcessingServiceTest {
         .withFeatureArea(BigDecimal.TEN)
         .withStartDate(null)
         .withEndDate(null)
-        .withActive(false)
-        .withCreatedByCommand(null)
-        .withCommandJourney(null)
-        .withActive(true)
         .build();
     assertThat(savedFeature).usingRecursiveComparison()
         .ignoringFields("id", "legacyId")
@@ -348,10 +340,6 @@ class OperatorResultProcessingServiceTest {
         .withFeatureArea(BigDecimal.TEN)
         .withStartDate(null)
         .withEndDate(null)
-        .withActive(false)
-        .withCreatedByCommand(null)
-        .withCommandJourney(null)
-        .withActive(true)
         .build();
     assertThat(savedFeature).usingRecursiveComparison()
         .ignoringFields("id", "legacyId")

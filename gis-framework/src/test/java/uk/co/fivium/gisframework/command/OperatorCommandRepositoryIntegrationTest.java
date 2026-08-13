@@ -13,6 +13,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ActiveProfiles;
+import uk.co.fivium.gisframework.feature.Feature;
 
 @DataJpaTest
 @ActiveProfiles("integration-test")
@@ -74,7 +75,7 @@ class OperatorCommandRepositoryIntegrationTest {
 
   @SpringBootConfiguration
   @EnableAutoConfiguration
-  @EntityScan(basePackageClasses = {OperatorCommand.class, CommandJourney.class})
+  @EntityScan(basePackageClasses = {OperatorCommand.class, CommandJourney.class, Feature.class})
   @EnableJpaRepositories(basePackageClasses = OperatorCommandRepository.class)
   static class TestApplication {
   }

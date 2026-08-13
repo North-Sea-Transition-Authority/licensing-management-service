@@ -174,7 +174,6 @@ class LicencePositionFeatureTestHarnessServiceTest {
     feature.setFeatureArea(FEATURE_AREA);
     feature.setAttributes(attributes);
     feature.setParentFeature(parentFeature);
-    feature.setActive(true);
     return feature;
   }
 

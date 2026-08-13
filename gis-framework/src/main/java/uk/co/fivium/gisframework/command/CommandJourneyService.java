@@ -6,17 +6,17 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.feature.Feature;
-import uk.co.fivium.gisframework.feature.FeatureService;
 
 @Service
 public class CommandJourneyService {
 
   private final CommandJourneyRepository commandJourneyRepository;
-  private final FeatureService featureService;
+  private final FeatureJourneyStateService featureJourneyStateService;
 
-  public CommandJourneyService(CommandJourneyRepository commandJourneyRepository, FeatureService featureService) {
+  public CommandJourneyService(CommandJourneyRepository commandJourneyRepository,
+                               FeatureJourneyStateService featureJourneyStateService) {
     this.commandJourneyRepository = commandJourneyRepository;
-    this.featureService = featureService;
+    this.featureJourneyStateService = featureJourneyStateService;
   }
 
   /**
@@ -29,8 +29,7 @@ public class CommandJourneyService {
   @Transactional
   public CommandJourney createAndAssignCommandJourney(List<Feature> features) {
     var commandJourney = commandJourneyRepository.save(new CommandJourney());
-    features.forEach(feature -> feature.setCommandJourney(commandJourney));
-    featureService.saveFeatures(features);
+    featureJourneyStateService.createInitialFeatureJourneyStates(commandJourney, features);
     return commandJourney;
   }
 
@@ -46,8 +45,6 @@ public class CommandJourneyService {
    * @return the journey's active features.
    */
   public List<Feature> getActiveFeatures(CommandJourney commandJourney) {
-    return featureService.findAllByCommandJourney(commandJourney).stream()
-        .filter(Feature::isActive)
-        .toList();
+    return featureJourneyStateService.getActiveFeatures(commandJourney);
   }
 }

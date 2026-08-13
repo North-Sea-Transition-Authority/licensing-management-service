@@ -17,11 +17,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.command.CommandJourneyTestUtil;
+import uk.co.fivium.gisframework.command.FeatureJourneyStateService;
 import uk.co.fivium.gisframework.command.OperatorCommand;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
 import uk.co.fivium.gisframework.command.TransformationType;
-import uk.co.fivium.gisframework.feature.Feature;
-import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
@@ -42,7 +41,7 @@ class OperatorCommandReceiverTest {
   private SplitOperatorService splitOperatorService;
 
   @Mock
-  private FeatureService featureService;
+  private FeatureJourneyStateService featureJourneyStateService;
 
   @Mock
   private OperatorCommandService operatorCommandService;
@@ -63,7 +62,6 @@ class OperatorCommandReceiverTest {
 
     var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
     var inputFeature = FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build();
-    inputFeature.setCommandJourney(commandJourney);
 
     var outputFeature1 = FeatureTestUtil.newBuilder().build();
     var outputFeature2 = FeatureTestUtil.newBuilder().build();
@@ -81,20 +79,10 @@ class OperatorCommandReceiverTest {
     var result = operatorCommandReceiver.executeSplit(request);
 
     assertThat(result).containsExactly(outputFeature1, outputFeature2);
-    assertThat(inputFeature.isActive()).isFalse();
-    assertThat(outputFeature1).extracting(
-        Feature::getCommandJourney,
-        Feature::isActive,
-        Feature::getCreatedByCommand
-    ).contains(commandJourney, true, command);
-    assertThat(outputFeature2).extracting(
-        Feature::getCommandJourney,
-        Feature::isActive,
-        Feature::getCreatedByCommand
-    ).contains(commandJourney, true, command);
 
-    verify(featureService).saveFeatures(List.of(inputFeature));
-    verify(featureService).saveFeatures(List.of(outputFeature1, outputFeature2));
+    verify(featureJourneyStateService).deactivateFeatures(List.of(inputFeature));
+    verify(featureJourneyStateService)
+        .createFeatureJourneyStatesForCommandOutput(commandJourney, command, List.of(outputFeature1, outputFeature2));
   }
 
   @Test
@@ -114,8 +102,8 @@ class OperatorCommandReceiverTest {
     var result = operatorCommandReceiver.executeSplit(request);
 
     assertThat(result).isEmpty();
-    assertThat(inputFeature.isActive()).isTrue();
     verify(operatorCommandService, never()).createOperatorCommand(any(), any(), any());
-    verify(featureService, never()).saveFeatures(any());
+    verify(featureJourneyStateService, never()).deactivateFeatures(any());
+    verify(featureJourneyStateService, never()).createFeatureJourneyStatesForCommandOutput(any(), any(), any());
   }
 }

@@ -18,6 +18,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.fivium.gisframework.command.CommandJourney;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
+import uk.co.fivium.gisframework.command.FeatureJourneyStateService;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
@@ -35,6 +36,9 @@ class GisTestControllerTest extends AbstractControllerTest {
   @MockitoBean
   private CommandJourneyService commandJourneyService;
 
+  @MockitoBean
+  private FeatureJourneyStateService featureJourneyStateService;
+
   @Test
   void renderSplitByPointAndClick_whenNotLoggedIn() throws Exception {
     mockMvc.perform(
@@ -51,7 +55,7 @@ class GisTestControllerTest extends AbstractControllerTest {
     var commandJourney = mock(CommandJourney.class);
     when(commandJourney.getId()).thenReturn(commandJourneyId);
 
-    when(featureService.findFeatureWithNoCommandJourneyOrThrow(CoordinateSystem.ED50)).thenReturn(feature);
+    when(featureJourneyStateService.findFeatureWithNoJourneyStateOrThrow(CoordinateSystem.ED50)).thenReturn(feature);
     when(commandJourneyService.createAndAssignCommandJourney(List.of(feature))).thenReturn(commandJourney);
 
     mockMvc.perform(get(ReverseRouter.route(on(GisTestController.class).renderSplitByPointAndClick(CoordinateSystem.ED50)))
@@ -75,7 +79,7 @@ class GisTestControllerTest extends AbstractControllerTest {
     UUID ed50Id = UUID.randomUUID();
     var ed50Feature = getMockFeature(ed50Id);
 
-    when(featureService.findFeatureWithNoCommandJourneyOrThrow(CoordinateSystem.ED50)).thenReturn(ed50Feature);
+    when(featureJourneyStateService.findFeatureWithNoJourneyStateOrThrow(CoordinateSystem.ED50)).thenReturn(ed50Feature);
 
     mockMvc.perform(get(ReverseRouter.route(
                 on(GisTestController.class).renderSplitByCoordinateEntry(CoordinateSystem.ED50, 4)))

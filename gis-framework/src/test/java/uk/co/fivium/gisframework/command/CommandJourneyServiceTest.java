@@ -15,7 +15,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
 
 @ExtendWith(MockitoExtension.class)
@@ -25,13 +24,13 @@ class CommandJourneyServiceTest {
   private CommandJourneyRepository commandJourneyRepository;
 
   @Mock
-  private FeatureService featureService;
+  private FeatureJourneyStateService featureJourneyStateService;
 
   @InjectMocks
   private CommandJourneyService commandJourneyService;
 
   @Test
-  void createAndAssignCommandJourney_assignsJourneyToEachFeatureAndSaves() {
+  void createAndAssignCommandJourney_createsInitialFeatureJourneyStates() {
     var feature1 = FeatureTestUtil.newBuilder().build();
     var feature2 = FeatureTestUtil.newBuilder().build();
     var savedJourney = new CommandJourney();
@@ -41,9 +40,7 @@ class CommandJourneyServiceTest {
     var result = commandJourneyService.createAndAssignCommandJourney(List.of(feature1, feature2));
 
     assertThat(result).isEqualTo(savedJourney);
-    assertThat(feature1.getCommandJourney()).isEqualTo(savedJourney);
-    assertThat(feature2.getCommandJourney()).isEqualTo(savedJourney);
-    verify(featureService).saveFeatures(List.of(feature1, feature2));
+    verify(featureJourneyStateService).createInitialFeatureJourneyStates(savedJourney, List.of(feature1, feature2));
   }
 
   @Test
@@ -65,13 +62,11 @@ class CommandJourneyServiceTest {
   }
 
   @Test
-  void getActiveFeatures_filtersOutInactiveFeatures() {
+  void getActiveFeatures_delegatesToFeatureJourneyStateService() {
     var journey = new CommandJourney();
     var activeFeature = FeatureTestUtil.newBuilder().build();
-    var inactiveFeature = FeatureTestUtil.newBuilder().build();
-    inactiveFeature.setActive(false);
 
-    when(featureService.findAllByCommandJourney(journey)).thenReturn(List.of(activeFeature, inactiveFeature));
+    when(featureJourneyStateService.getActiveFeatures(journey)).thenReturn(List.of(activeFeature));
 
     assertThat(commandJourneyService.getActiveFeatures(journey)).containsExactly(activeFeature);
   }

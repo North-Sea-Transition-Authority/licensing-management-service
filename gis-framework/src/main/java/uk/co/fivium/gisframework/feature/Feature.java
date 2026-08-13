@@ -17,8 +17,6 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import org.hibernate.type.SqlTypes;
-import uk.co.fivium.gisframework.command.CommandJourney;
-import uk.co.fivium.gisframework.command.OperatorCommand;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 
 @Entity
@@ -50,16 +48,6 @@ public class Feature {
   private LocalDate startDate;
 
   private LocalDate endDate;
-
-  @ManyToOne
-  @JoinColumn(name = "command_journey_id")
-  private CommandJourney commandJourney;
-
-  @ManyToOne
-  @JoinColumn(name = "created_by_command_id")
-  private OperatorCommand createdByCommand;
-
-  private Boolean active;
 
   @VisibleForTesting
   Feature(UUID id) {
@@ -135,29 +123,5 @@ public class Feature {
 
   public void setEndDate(LocalDate endDate) {
     this.endDate = endDate;
-  }
-
-  public CommandJourney getCommandJourney() {
-    return commandJourney;
-  }
-
-  public void setCommandJourney(CommandJourney commandJourney) {
-    this.commandJourney = commandJourney;
-  }
-
-  public OperatorCommand getCreatedByCommand() {
-    return createdByCommand;
-  }
-
-  public void setCreatedByCommand(OperatorCommand createdByCommand) {
-    this.createdByCommand = createdByCommand;
-  }
-
-  public boolean isActive() {
-    return Boolean.TRUE.equals(active);
-  }
-
-  public void setActive(boolean active) {
-    this.active = active;
   }
 }

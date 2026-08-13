@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
+import uk.co.fivium.gisframework.command.FeatureJourneyStateService;
 import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
@@ -23,15 +24,20 @@ public class GisTestController {
 
   private final FeatureService featureService;
   private final CommandJourneyService commandJourneyService;
+  private final FeatureJourneyStateService featureJourneyStateService;
 
-  public GisTestController(FeatureService featureService, CommandJourneyService commandJourneyService) {
+  public GisTestController(
+      FeatureService featureService,
+      CommandJourneyService commandJourneyService,
+      FeatureJourneyStateService featureJourneyStateService) {
     this.featureService = featureService;
     this.commandJourneyService = commandJourneyService;
+    this.featureJourneyStateService = featureJourneyStateService;
   }
 
   @GetMapping("/point-and-click/{coordinateSystem}")
   public ModelAndView renderSplitByPointAndClick(@PathVariable("coordinateSystem") CoordinateSystem coordinateSystem) {
-    var feature = featureService.findFeatureWithNoCommandJourneyOrThrow(coordinateSystem);
+    var feature = featureJourneyStateService.findFeatureWithNoJourneyStateOrThrow(coordinateSystem);
     var commandJourney = commandJourneyService.createAndAssignCommandJourney(List.of(feature));
     return new ModelAndView("lms/mockups/gis/pointAndClickMapTester")
         .addObject("commandJourneyId", commandJourney.getId().toString())
@@ -50,7 +56,7 @@ public class GisTestController {
   public ModelAndView renderSplitByCoordinateEntry(
       @PathVariable("coordinateSystem") CoordinateSystem coordinateSystem,
       @RequestParam(name = "precision", defaultValue = "4") int precision) {
-    var feature = featureService.findFeatureWithNoCommandJourneyOrThrow(coordinateSystem);
+    var feature = featureJourneyStateService.findFeatureWithNoJourneyStateOrThrow(coordinateSystem);
     return new ModelAndView("lms/mockups/gis/splitByCoordinateEntryTester")
         .addObject("featureIds", List.of(feature.getId().toString()))
         .addObject(SRS_WKID_MODEL_NAME, CoordinateSystemUtils.getWkid(coordinateSystem))

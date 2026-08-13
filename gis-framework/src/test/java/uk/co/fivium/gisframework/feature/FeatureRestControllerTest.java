@@ -87,7 +87,7 @@ class FeatureRestControllerTest extends AbstractControllerTest {
   @Test
   void getCommandJourneyActiveFeatures_assertJsonMap() throws Exception {
     var commandJourney = CommandJourneyTestUtil.newBuilder().build();
-    var feature = FeatureTestUtil.newBuilder().withCommandJourney(commandJourney).build();
+    var feature = FeatureTestUtil.newBuilder().build();
     var esriJsonPolygon1 = """
         {
           "rings": [[[0, 0], [1, 0], [1, 1], [0, 0]]],
@@ -134,8 +134,8 @@ class FeatureRestControllerTest extends AbstractControllerTest {
   @Test
   void getCommandJourneyActiveOutlineNodes() throws Exception {
     var commandJourney = CommandJourneyTestUtil.newBuilder().build();
-    var feature1 = FeatureTestUtil.newBuilder().withCommandJourney(commandJourney).build();
-    var feature2 = FeatureTestUtil.newBuilder().withCommandJourney(commandJourney).build();
+    var feature1 = FeatureTestUtil.newBuilder().build();
+    var feature2 = FeatureTestUtil.newBuilder().build();
 
     var feature1Nodes = List.of(
         new JsonOutlineNode("polygon-1", "line-1", 0, 1, 2, 3, "(1)"),

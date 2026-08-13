@@ -7,15 +7,11 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.ListCrudRepository;
 import org.springframework.stereotype.Repository;
-import uk.co.fivium.gisframework.command.CommandJourney;
-import uk.co.fivium.grpc.gis.CoordinateSystem;
 
 @Repository
 interface FeatureRepository extends ListCrudRepository<Feature, UUID> {
 
   List<Feature> findAllByParentFeatureId(UUID parentFeatureId);
-
-  List<Feature> findAllByCommandJourney(CommandJourney commandJourney);
 
   Optional<Feature> findByLegacyId(Integer legacyId);
 
@@ -30,6 +26,4 @@ interface FeatureRepository extends ListCrudRepository<Feature, UUID> {
 
   @Query(value = "SELECT * FROM lms.gis_framework_features WHERE attributes ->> ?1 IN (?2)", nativeQuery = true)
   List<Feature> findAllByAttributeValueIn(String key, Collection<String> values);
-
-  Optional<Feature> findFirstByCoordinateSystemAndCommandJourneyIsNull(CoordinateSystem coordinateSystem);
 }

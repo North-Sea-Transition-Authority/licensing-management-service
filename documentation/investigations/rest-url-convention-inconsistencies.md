@@ -34,6 +34,14 @@ document:
    `IndustryTeamMigrationController`, `CarbonStorageLicenceMigrationController`) → changed to
    `POST` (with a `/migration/**` CSRF exemption, mirroring the logout endpoint, so the
    operator/script trigger still works).
+
+   **Subsequently revised:** these three now accept **both `GET` and `POST`**
+   (`@RequestMapping(method = {GET, POST})`). Because `/migration/**` sits behind SAML
+   authentication, a logged-in browser is the only practical way to trigger them by hand, and
+   that means a `GET`. `POST` is retained as the correct verb for scripted triggers. The
+   mutating-GET caveat therefore still applies — browsers and intermediaries may prefetch or
+   retry these URLs, so treat each operation as one that must tolerate being invoked more than
+   once.
 2. **Misannotations** — the migration controllers `@Controller` → `@RestController` (they
    return `ResponseEntity<String>`, no views); `TeamManagementController` and
    `ScopedTeamManagementController` `@RestController` → `@Controller` (they render

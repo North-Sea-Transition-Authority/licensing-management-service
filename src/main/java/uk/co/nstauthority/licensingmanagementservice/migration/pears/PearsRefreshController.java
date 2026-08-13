@@ -2,8 +2,8 @@ package uk.co.nstauthority.licensingmanagementservice.migration.pears;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduledJobService;
 
@@ -23,7 +23,11 @@ public class PearsRefreshController {
     this.licenceScheduledJobService = licenceScheduledJobService;
   }
 
-  @PostMapping
+  /**
+   * GET is supported alongside POST purely so the refresh can be triggered by pasting the URL into a logged in browser,
+   * which is the only practical way to reach this endpoint by hand given it sits behind SAML authentication.
+   */
+  @RequestMapping(method = {RequestMethod.GET, RequestMethod.POST})
   public ResponseEntity<String> refreshPearsLicences() {
     licenceScheduledJobService.retrieveAndSavePearsLicences();
     return ResponseEntity.ok("PEARS licences and responsible organisations refreshed");

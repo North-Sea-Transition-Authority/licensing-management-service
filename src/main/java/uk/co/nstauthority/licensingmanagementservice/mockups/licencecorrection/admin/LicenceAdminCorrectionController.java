@@ -18,14 +18,14 @@ public class LicenceAdminCorrectionController {
 
   @GetMapping
   ModelAndView renderPlayback() {
-    return new ModelAndView("lms/mockups/licencecorrection/changeStatePlayback")
+    return new ModelAndView("lms/mockups/licencecorrection/admin/changeStatePlayback")
         .addObject("editUrl", ReverseRouter.route(on(this.getClass()).renderLicenceAdminCorrection()))
         .addObject("deleteUrl", ReverseRouter.route(on(this.getClass()).renderDelete()));
   }
 
   @GetMapping("/edit")
   ModelAndView renderLicenceAdminCorrection() {
-    return new ModelAndView("lms/mockups/licencecorrection/licenceAdminCorrection")
+    return new ModelAndView("lms/mockups/licencecorrection/admin/licenceAdminCorrection")
         .addObject("form", new LicenceAdminCorrectionForm())
         .addObject("organisationUnitsUrl",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
@@ -34,7 +34,7 @@ public class LicenceAdminCorrectionController {
 
   @GetMapping("/delete")
   ModelAndView renderDelete() {
-    return new ModelAndView("lms/mockups/licencecorrection/deleteAdminCorrection")
+    return new ModelAndView("lms/mockups/licencecorrection/admin/deleteAdminCorrection")
         .addObject("backUrl", ReverseRouter.route(on(this.getClass()).renderPlayback()));
 
   }

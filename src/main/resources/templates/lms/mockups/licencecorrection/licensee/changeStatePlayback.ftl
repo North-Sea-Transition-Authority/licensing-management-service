@@ -1,10 +1,12 @@
-<#include '../../layout/layout.ftl'>
-<#import '_adminCorrectionPlayback.ftl' as adminCorrectionPlayback>
+<#include '../../../layout/layout.ftl'>
+<#import '_licenseeCorrectionPlayback.ftl' as licenseeCorrectionPlayback>
 
 <@defaultPage
   htmlTitle="P1"
   caption="Seaward production"
 >
+
+  <@fdsAction.link linkText="Add licensee change" linkUrl=springUrl(addUrl) linkClass="govuk-button"/>
 
   <@fdsTimeline.timeline>
 
@@ -13,9 +15,10 @@
             timeStampHeading="27 May 2026"
             timeStampHeadingHint="REF-4A652C2B">
               <@fdsTimeline.timelineEvent>
-                  <@fdsTimeline.timelineEvent>
-                      <@adminCorrectionPlayback.adminStatePlayback licenceAdmin="SHELL U.K. LIMITED (00140141)"/>
-                  </@fdsTimeline.timelineEvent>
+                  <@licenseeCorrectionPlayback.licenseeStatePlayback licensees=[
+                    "SHELL U.K. LIMITED",
+                    "TOTAL E&P UK LIMITED"
+                  ]/>
               </@fdsTimeline.timelineEvent>
           </@fdsTimeline.timelineTimeStamp>
 
@@ -23,8 +26,11 @@
             timeStampHeading="16 Feb 2026"
             timeStampHeadingHint="REF-674C56EB">
               <@fdsTimeline.timelineEvent>
-                <@adminCorrectionPlayback.adminChangePlayback editUrl=springUrl(editUrl) deleteUrl=springUrl(deleteUrl)/>
-                <@adminCorrectionPlayback.adminStatePlayback licenceAdmin="SHELL U.K. LIMITED (00140141)"/>
+                  <@licenseeCorrectionPlayback.licenseeStatePlayback licensees=[
+                  "SHELL U.K. LIMITED",
+                  "TOTAL E&P UK LIMITED"
+                  ]/>
+                <@licenseeCorrectionPlayback.licenseeChangePlayback correctUrl=springUrl(correctUrl) removeUrl=springUrl(removeUrl)/>
               </@fdsTimeline.timelineEvent>
           </@fdsTimeline.timelineTimeStamp>
 
@@ -34,7 +40,9 @@
             timeStampClass="fds-timeline__time-stamp--no-border"
           >
               <@fdsTimeline.timelineEvent>
-                <@adminCorrectionPlayback.adminStatePlayback licenceAdmin="BP EXPLORATION (ALPHA) LIMITED (01021007)"/>
+                <@licenseeCorrectionPlayback.licenseeStatePlayback licensees=[
+                  "BP EXPLORATION (ALPHA) LIMITED"
+                ]/>
               </@fdsTimeline.timelineEvent>
           </@fdsTimeline.timelineTimeStamp>
 

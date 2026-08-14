@@ -1,4 +1,4 @@
-<#include '../../layout/layout.ftl'>
+<#include '../../../layout/layout.ftl'>
 <#import '_adminCorrectionPlayback.ftl' as adminCorrectionPlayback>
 
 <@defaultPage

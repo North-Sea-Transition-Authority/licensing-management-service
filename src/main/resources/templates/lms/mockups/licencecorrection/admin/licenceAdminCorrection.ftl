@@ -1,4 +1,4 @@
-<#include '../../layout/layout.ftl'>
+<#include '../../../layout/layout.ftl'>
 
 <@defaultPage
   htmlTitle="Change licence administrator"

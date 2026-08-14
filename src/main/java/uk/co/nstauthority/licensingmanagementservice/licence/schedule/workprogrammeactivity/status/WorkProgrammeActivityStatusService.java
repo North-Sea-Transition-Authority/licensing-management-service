@@ -64,6 +64,12 @@ public class WorkProgrammeActivityStatusService {
     workProgrammeActivityStatusRepository.save(activityStatus);
   }
 
+  @Transactional
+  public void deleteStatusesFor(WorkProgrammeActivity activity) {
+    var statuses = workProgrammeActivityStatusRepository.findAllByScheduleEvent_OriginalEventId(activity.getOriginalEventId());
+    workProgrammeActivityStatusRepository.deleteAll(statuses);
+  }
+
   public WorkProgrammeActivityStatus getLatestStatusFor(WorkProgrammeActivity activity) {
     return workProgrammeActivityStatusRepository.findAllByScheduleEvent_OriginalEventId(activity.getOriginalEventId()).stream()
         .max(Comparator.comparing(WorkProgrammeActivityStatus::getAppliedDatetime))

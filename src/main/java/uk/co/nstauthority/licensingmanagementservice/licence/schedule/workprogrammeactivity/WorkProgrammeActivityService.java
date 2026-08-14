@@ -111,6 +111,10 @@ public class WorkProgrammeActivityService {
   @Transactional
   public void deleteWorkProgrammeActivity(WorkProgrammeActivity workProgrammeActivity) {
     eventCommentService.deletePendingCommentForScheduleEvent(workProgrammeActivity);
+    if (workProgrammeActivityRepository.countByOriginalEventId(workProgrammeActivity.getOriginalEventId()) == 1) {
+      workProgrammeActivityStatusService.deleteStatusesFor(workProgrammeActivity);
+    }
+
     workProgrammeActivityRepository.delete(workProgrammeActivity);
   }
 

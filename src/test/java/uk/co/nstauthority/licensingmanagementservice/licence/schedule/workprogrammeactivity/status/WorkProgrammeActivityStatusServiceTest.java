@@ -96,6 +96,38 @@ class WorkProgrammeActivityStatusServiceTest {
   }
 
   @Test
+  void deleteStatusesFor() {
+    var activity = new WorkProgrammeActivity();
+    activity.setId(UUID.randomUUID());
+    activity.setOriginalEventId(activity.getId());
+
+    var activityStatus = new WorkProgrammeActivityStatus();
+    var activityStatus2 = new WorkProgrammeActivityStatus();
+    var statuses = List.of(activityStatus, activityStatus2);
+
+    when(workProgrammeActivityStatusRepository.findAllByScheduleEvent_OriginalEventId(activity.getOriginalEventId()))
+        .thenReturn(statuses);
+
+    workProgrammeActivityStatusService.deleteStatusesFor(activity);
+
+    verify(workProgrammeActivityStatusRepository).deleteAll(statuses);
+  }
+
+  @Test
+  void deleteStatusesFor_whenNoStatusesExist_deletesEmptyList() {
+    var activity = new WorkProgrammeActivity();
+    activity.setId(UUID.randomUUID());
+    activity.setOriginalEventId(activity.getId());
+
+    when(workProgrammeActivityStatusRepository.findAllByScheduleEvent_OriginalEventId(activity.getOriginalEventId()))
+        .thenReturn(List.of());
+
+    workProgrammeActivityStatusService.deleteStatusesFor(activity);
+
+    verify(workProgrammeActivityStatusRepository).deleteAll(List.of());
+  }
+
+  @Test
   void getLatestStatusFor() {
     var activity = new WorkProgrammeActivity();
     activity.setId(UUID.randomUUID());

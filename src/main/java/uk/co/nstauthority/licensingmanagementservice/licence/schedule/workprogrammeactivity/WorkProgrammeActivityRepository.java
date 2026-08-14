@@ -40,6 +40,8 @@ public interface WorkProgrammeActivityRepository
       LocalDate date
   );
 
+  Integer countByOriginalEventId(UUID originalEventId);
+  
   @EntityGraph(attributePaths = {"licenceSchedulePhase.licenceScheduleTerm", "licenceScheduleTerm"})
   List<WorkProgrammeActivity> findByLicenceSchedulePhase(LicenceSchedulePhase licenceSchedulePhase);
 

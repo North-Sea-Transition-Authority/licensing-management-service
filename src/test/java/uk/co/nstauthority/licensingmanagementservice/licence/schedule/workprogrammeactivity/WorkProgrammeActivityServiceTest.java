@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -158,12 +159,32 @@ class WorkProgrammeActivityServiceTest {
   }
 
   @Test
-  void deleteWorkProgrammeActivity() {
+  void deleteWorkProgrammeActivity_whenOnlyOneActivityForOriginalEventId_deletesStatuses() {
     var workProgrammeActivity = new WorkProgrammeActivity();
+    workProgrammeActivity.setOriginalEventId(ACTIVITY_ID);
+
+    when(workProgrammeActivityRepository.countByOriginalEventId(ACTIVITY_ID)).thenReturn(1);
 
     workProgrammeActivityService.deleteWorkProgrammeActivity(workProgrammeActivity);
 
     verify(eventCommentService).deletePendingCommentForScheduleEvent(workProgrammeActivity);
+    verify(workProgrammeActivityStatusService).deleteStatusesFor(workProgrammeActivity);
+    verify(workProgrammeActivityRepository).delete(workProgrammeActivity);
+  }
+
+  @Test
+  void deleteWorkProgrammeActivity_whenOtherActivitiesShareOriginalEventId_doesNotDeleteStatuses() {
+    var workProgrammeActivity = new WorkProgrammeActivity();
+    workProgrammeActivity.setOriginalEventId(ACTIVITY_ID);
+    var otherActivityForSameEvent = new WorkProgrammeActivity();
+    otherActivityForSameEvent.setOriginalEventId(ACTIVITY_ID);
+
+    when(workProgrammeActivityRepository.countByOriginalEventId(ACTIVITY_ID)).thenReturn(2);
+
+    workProgrammeActivityService.deleteWorkProgrammeActivity(workProgrammeActivity);
+
+    verify(eventCommentService).deletePendingCommentForScheduleEvent(workProgrammeActivity);
+    verify(workProgrammeActivityStatusService, never()).deleteStatusesFor(any());
     verify(workProgrammeActivityRepository).delete(workProgrammeActivity);
   }
 

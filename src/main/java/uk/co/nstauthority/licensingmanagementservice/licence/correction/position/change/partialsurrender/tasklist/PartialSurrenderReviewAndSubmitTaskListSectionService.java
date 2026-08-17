@@ -27,7 +27,10 @@ public class PartialSurrenderReviewAndSubmitTaskListSectionService
         ReverseRouter.route(on(PartialSurrenderTaskListController.class).renderReviewAndSubmit(
             positionCorrection.getLicenceCorrection().getId(),
             positionCorrection.getId(),
-            null))));
+            null,
+            null
+        ))
+    ));
 
     return Optional.of(new TaskListSection(REVIEW_AND_SUBMIT, SECTION_ORDER, items));
   }

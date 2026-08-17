@@ -155,3 +155,6 @@ CVE-2026-40984
 
 # org.jsoup:jsoup
 CVE-2026-71497
+
+# org.apache.logging.log4j:log4j-api (app.jar)
+CVE-2026-49844

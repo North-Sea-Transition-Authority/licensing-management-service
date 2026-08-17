@@ -31,8 +31,9 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -43,6 +44,9 @@ class CorrectPositionDateControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private CorrectPositionDateFormValidator correctPositionDateFormValidator;
+
+  @MockitoBean
+  private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
   private static final Licence LICENCE = LicenceTestUtil.builder().build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
@@ -110,8 +114,11 @@ class CorrectPositionDateControllerTest extends AbstractControllerTest {
     var form = new CorrectPositionDateForm();
     form.getCorrectPositionDate().setDate(POSITION_DATE);
 
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
     when(correctPositionDateFormValidator.hasErrors(eq(form), any(BindingResult.class))).thenReturn(false);
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
+    when(licencePositionCorrectionService.correctPositionDate(correction, POSITION, POSITION_DATE))
+        .thenReturn(positionCorrection);
 
     mockMvc.perform(post(ReverseRouter.route(on(CorrectPositionDateController.class)
             .correctLicencePositionCorrectionDate(CORRECTION_ID, POSITION_ID, null, null, null, null)))
@@ -127,6 +134,7 @@ class CorrectPositionDateControllerTest extends AbstractControllerTest {
         );
 
     verify(licencePositionCorrectionService).correctPositionDate(correction, POSITION, POSITION_DATE);
+    verify(partialSurrenderCorrectionService).adjustPartialSurrenderBlocks(positionCorrection);
   }
 
   @Test
@@ -153,6 +161,7 @@ class CorrectPositionDateControllerTest extends AbstractControllerTest {
         );
 
     verifyNoInteractions(licencePositionCorrectionService);
+    verifyNoInteractions(partialSurrenderCorrectionService);
   }
 
   @Test

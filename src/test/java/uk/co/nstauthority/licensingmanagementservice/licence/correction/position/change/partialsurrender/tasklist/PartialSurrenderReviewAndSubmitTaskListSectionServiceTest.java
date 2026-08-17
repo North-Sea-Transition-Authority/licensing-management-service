@@ -41,6 +41,6 @@ class PartialSurrenderReviewAndSubmitTaskListSectionServiceTest {
         List.of(new TaskListItem(
             PartialSurrenderReviewAndSubmitTaskListSectionService.REVIEW_AND_SUBMIT,
             ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-                .renderReviewAndSubmit(CORRECTION_ID, POSITION_CORRECTION_ID, null))))));
+                .renderReviewAndSubmit(CORRECTION_ID, POSITION_CORRECTION_ID, null, null))))));
   }
 }

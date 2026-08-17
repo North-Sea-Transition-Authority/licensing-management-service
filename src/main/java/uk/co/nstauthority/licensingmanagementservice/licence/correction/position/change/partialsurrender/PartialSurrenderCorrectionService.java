@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import jakarta.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.feature.Feature;
@@ -74,6 +75,36 @@ public class PartialSurrenderCorrectionService {
 
   public boolean hasStagedPartialSurrender(LicencePositionCorrection licencePositionCorrection) {
     return getCommittedPartialSurrender(licencePositionCorrection).isPresent();
+  }
+
+  @Transactional
+  public void adjustPartialSurrenderBlocks(LicencePositionCorrection licencePositionCorrection) {
+    var committedPartialSurrender = getCommittedPartialSurrender(licencePositionCorrection);
+    if (committedPartialSurrender.isEmpty()) {
+      return;
+    }
+
+    var surrenderableIds = getSurrenderableBlockFeatures(licencePositionCorrection).stream()
+        .map(Feature::getId)
+        .collect(Collectors.toSet());
+
+    var retainedIds = committedPartialSurrender.get().featureIds().stream()
+        .filter(surrenderableIds::contains)
+        .toList();
+
+    if (retainedIds.size() == committedPartialSurrender.get().featureIds().size()) {
+      return;
+    }
+
+    var operations = retainedIds.isEmpty()
+        ? List.<PartialSurrenderOperation>of()
+        : List.of(new PartialSurrenderOperation(committedPartialSurrender.get().surrenderDate(), retainedIds));
+
+    licencePositionCorrectionService.replaceAddChangeFor(
+        licencePositionCorrection,
+        PartialSurrenderOperation.class,
+        operations
+    );
   }
 
   public List<Feature> getSurrenderableBlockFeatures(LicencePositionCorrection licencePositionCorrection) {

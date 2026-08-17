@@ -30,6 +30,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderSummaryContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -39,6 +41,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
@@ -80,6 +84,9 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
   @MockitoBean
   private PartialSurrenderTaskListService partialSurrenderTaskListService;
 
+  @MockitoBean
+  private PartialSurrenderSummarySectionService partialSurrenderSummarySectionService;
+
   @Test
   void renderTaskList_whenExecutedPosition_thenBackLinkGoesToThePosition() throws Exception {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
@@ -95,7 +102,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
         .andExpectAll(
             status().isOk(),
             view().name(VIEW_NAME),
-            model().attribute("pageTitle", PartialSurrenderTaskListController.PAGE_TITLE),
+            model().attribute("pageTitle", PartialSurrenderTaskListController.TASK_LIST_PAGE_TITLE),
             model().attribute("pageCaption", LICENCE.getLicenceReference()),
             model().attribute("positionReference", POSITION_REGULATOR_REFERENCE),
             model().attribute("positionDate", DateUtil.formatLongDate(POSITION_DATE)),
@@ -171,14 +178,36 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
 
   @Test
   void renderReviewAndSubmit() throws Exception {
-    givenCorrectionAllocatedToUser(LICENCE);
+    var correction = givenCorrectionAllocatedToUser(LICENCE);
+    var positionCorrection = givenPositionCorrection(correction, LicencePositionCorrectionChangeType.UPDATE_POSITION);
+    var summarySections = List.of(new SummarySection(10, List.of(SummaryItem.withCards("Surrender details", List.of()))));
+    when(partialSurrenderSummarySectionService.getSummarySections(
+        new PartialSurrenderSummaryContext(positionCorrection), regulatorUser)).thenReturn(summarySections);
 
-    mockMvc.perform(get(ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderReviewAndSubmit(CORRECTION_ID, POSITION_CORRECTION_ID, null)))
-            .with(user(regulatorUser)))
+    mockMvc.perform(get(reviewAndSubmitUrl()).with(user(regulatorUser)))
         .andExpectAll(
-            status().isOk()
+            status().isOk(),
+            view().name("lms/licence/correction/change/partialSurrenderReviewAndSubmit"),
+            model().attribute("pageTitle", PartialSurrenderTaskListController.REVIEW_AND_SUBMIT_PAGE_TITLE),
+            model().attribute("pageCaption", LICENCE.getLicenceReference()),
+            model().attribute("summarySections", summarySections),
+            model().attribute("accordionId", POSITION_CORRECTION_ID),
+            model().attribute("backLinkUrl", taskListUrl())
         );
+  }
+
+  @Test
+  void renderReviewAndSubmit_whenNotAllocated_thenForbidden() throws Exception {
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.empty());
+
+    mockMvc.perform(get(reviewAndSubmitUrl()).with(user(regulatorUser)))
+        .andExpect(status().isForbidden());
+  }
+
+  private String reviewAndSubmitUrl() {
+    return ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+        .renderReviewAndSubmit(CORRECTION_ID, POSITION_CORRECTION_ID, null, null));
   }
 
   private String taskListUrl() {

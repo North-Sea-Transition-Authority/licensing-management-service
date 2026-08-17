@@ -18,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -31,15 +32,18 @@ public class CorrectPositionDateController {
   private final CorrectPositionDateFormValidator correctPositionDateFormValidator;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final LicencePositionService licencePositionService;
+  private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
   public CorrectPositionDateController(
           CorrectPositionDateFormValidator correctPositionDateFormValidator,
           LicencePositionCorrectionService licencePositionCorrectionService,
-          LicencePositionService licencePositionService
+          LicencePositionService licencePositionService,
+          PartialSurrenderCorrectionService partialSurrenderCorrectionService
   ) {
     this.correctPositionDateFormValidator = correctPositionDateFormValidator;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.licencePositionService = licencePositionService;
+    this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
   }
 
   @GetMapping
@@ -67,11 +71,13 @@ public class CorrectPositionDateController {
       return correctPositionCorrectionDateModelAndView(correction, licencePosition, form);
     }
 
-    licencePositionCorrectionService.correctPositionDate(
+    var positionCorrection = licencePositionCorrectionService.correctPositionDate(
         correction,
         licencePosition,
         form.getCorrectPositionDate().getAsLocalDate().orElseThrow()
     );
+
+    partialSurrenderCorrectionService.adjustPartialSurrenderBlocks(positionCorrection);
 
     NotificationBanner.newSuccessBanner()
         .withHeadingContent("Licence position correction date updated")

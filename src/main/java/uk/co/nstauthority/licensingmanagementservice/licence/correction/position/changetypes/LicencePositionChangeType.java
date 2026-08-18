@@ -47,6 +47,11 @@ public sealed interface LicencePositionChangeType permits AddChange, UpdateChang
     return new RemoveChange.Builder();
   }
 
+  static boolean containsEquityOperation(LicencePositionChangeType change) {
+    return LicencePositionChangeType.operationsOf(change).stream()
+        .anyMatch(LicenceOperation::isEquityOperation);
+  }
+
   static List<LicenceOperation> operationsOf(LicencePositionChangeType change) {
     return operationsFrom(change).stream()
         .map(changeOperation -> switch (changeOperation) {

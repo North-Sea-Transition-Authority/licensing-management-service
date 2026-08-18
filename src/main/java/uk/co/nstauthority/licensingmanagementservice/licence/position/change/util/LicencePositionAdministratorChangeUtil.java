@@ -60,6 +60,10 @@ public final class LicencePositionAdministratorChangeUtil {
         .anyMatch(operatorId -> operatorId.equals(administratorId));
   }
 
+  public static List<LicencePositionChangeType> removeChangeById(List<LicencePositionChangeType> changes, String changeId) {
+    return LicencePositionChangeUtil.removeChangeById(changes, changeId);
+  }
+
   public static boolean containsAdminOperation(LicencePositionChangeType change) {
     return operationsOf(change).stream()
         .map(changeOperation -> switch (changeOperation) {

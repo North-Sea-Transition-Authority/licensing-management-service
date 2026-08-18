@@ -88,12 +88,19 @@
                 itemScreenReaderText="set equity change"
                 />
             </#if>
+            <#if change.removeUrl()?has_content>
+                <@fdsSummaryList.summaryListCardActionItem
+                itemUrl=springUrl(change.removeUrl())
+                itemText="Remove"
+                itemScreenReaderText="set equity change"
+                />
+            </#if>
             <#if change.undoUrl()?has_content>
-              <@fdsSummaryList.summaryListCardActionItem
+                <@fdsSummaryList.summaryListCardActionItem
                 itemUrl=springUrl(change.undoUrl())
                 itemText="Undo"
                 itemScreenReaderText="set equity change"
-              />
+                />
             </#if>
         </@fdsSummaryList.summaryListCardActionList>
     </#assign>
@@ -121,12 +128,19 @@
                 itemScreenReaderText="equity transfer change"
                 />
             </#if>
+            <#if change.removeUrl()?has_content>
+                <@fdsSummaryList.summaryListCardActionItem
+                itemUrl=springUrl(change.removeUrl())
+                itemText="Remove"
+                itemScreenReaderText="equity transfer change"
+                />
+            </#if>
             <#if change.undoUrl()?has_content>
-              <@fdsSummaryList.summaryListCardActionItem
+                <@fdsSummaryList.summaryListCardActionItem
                 itemUrl=springUrl(change.undoUrl())
                 itemText="Undo"
                 itemScreenReaderText="equity transfer change"
-              />
+                />
             </#if>
         </@fdsSummaryList.summaryListCardActionList>
     </#assign>

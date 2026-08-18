@@ -17,6 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 
 class LicencePositionChangeUtilTest {
 
@@ -79,6 +80,43 @@ class LicencePositionChangeUtilTest {
     var change = setEquityAddChange(UUID.randomUUID().toString(), operation);
 
     assertThat(LicencePositionChangeType.operationsOf(change)).containsExactly(operation);
+  }
+
+  @Test
+  void operationsOf_change_whenUpdateChangeOperations_returnsUpdateOperations() {
+    var operation = LicenceOperation.newSetEquityOperation().withTransferTo(TRANSFER_TO_ID).withEquity(BigDecimal.TEN)
+        .build();
+    var change = LicencePositionChangeType.updateChangeOperations()
+        .withChangeId(UUID.randomUUID().toString())
+        .withOperations(List.of(LicencePositionChangeOperation.newLicencePositionUpdateOperation()
+            .withOperationId(operation.id())
+            .withOperation(operation)
+            .build()))
+        .build();
+
+    assertThat(LicencePositionChangeType.operationsOf(change)).containsExactly(operation);
+  }
+
+  @Test
+  void operationsOf_change_whenRemoveChange_returnsEmpty() {
+    var change = LicencePositionChangeType.removeChange().withChangeId(UUID.randomUUID().toString()).build();
+
+    assertThat(LicencePositionChangeType.operationsOf(change)).isEmpty();
+  }
+
+  @Test
+  void operationsOf_liveChange_returnsOperations() {
+    var operation = LicenceOperation.newSetEquityOperation().withTransferTo(TRANSFER_TO_ID).withEquity(BigDecimal.TEN)
+        .build();
+    var liveChange = new LicencePositionChange();
+    liveChange.setOperations(List.of(operation));
+
+    assertThat(LicencePositionChange.operationsOf(liveChange)).containsExactly(operation);
+  }
+
+  @Test
+  void operationsOf_liveChange_whenNullOperations_returnsEmpty() {
+    assertThat(LicencePositionChange.operationsOf(new LicencePositionChange())).isEmpty();
   }
 
   private LicencePositionCorrection updatePositionCorrection(LocalDate effectiveDate, Integer effectiveDateOrder) {

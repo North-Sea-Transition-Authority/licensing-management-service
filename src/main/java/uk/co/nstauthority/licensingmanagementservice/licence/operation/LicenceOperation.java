@@ -61,4 +61,8 @@ public sealed interface LicenceOperation permits
   static PartialSurrenderOperation.Builder newPartialSurrenderOperation() {
     return new PartialSurrenderOperation.Builder();
   }
+
+  static boolean isEquityOperation(LicenceOperation operation) {
+    return operation instanceof SetEquityOperation || operation instanceof TransferEquityOperation;
+  }
 }

@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
@@ -350,20 +351,23 @@ class LicencePositionChangeViewResolverTest {
   }
 
   @Test
-  void buildSetEquityChangeView_whenExecutedAddChange_buildsViewWithRowChangeTypeAndUpdateUrl() {
+  void buildSetEquityChangeView_whenExecutedAddChange_buildsViewWithRowChangeTypeUpdateAndUndoUrls() {
     var correctionId = UUID.randomUUID();
     var licencePositionId = UUID.randomUUID();
+    var changeId = UUID.randomUUID().toString();
     var urlContext = PositionChangeUrlContext.forExecutedPosition(correctionId, licencePositionId);
 
-    var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
+    var view = setEquityChangeView(changeId, LicencePositionChangeType.ADD_CHANGE, urlContext);
 
-    assertThat(view.rows()).containsExactly(new SetEquityRow(SET_EQUITY_ORG_NAME, BigDecimal.valueOf(75)));
-    assertThat(view.changeType()).isEqualTo(LicencePositionChangeType.ADD_CHANGE);
-    assertThat(view.updateUrl()).isEqualTo(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-        .renderSummaryForExecutedPosition(correctionId, licencePositionId, null)));
-    assertThat(view.undoUrl())
-        .contains("/licence-corrections/" + correctionId + "/change/")
-        .endsWith("/undo-equity-change");
+    assertThat(view).isEqualTo(new SetEquityChangeView(
+        List.of(new SetEquityRow(SET_EQUITY_ORG_NAME, BigDecimal.valueOf(75))),
+        LicencePositionChangeType.ADD_CHANGE,
+        ReverseRouter.route(on(LicencePositionSetEquityController.class)
+            .renderSummaryForExecutedPosition(correctionId, licencePositionId, null)),
+        null,
+        ReverseRouter.route(on(RemoveEquityChangeController.class)
+            .renderUndoEquityChange(correctionId, changeId, null))
+    ));
   }
 
   @Test
@@ -405,6 +409,59 @@ class LicencePositionChangeViewResolverTest {
   }
 
   @Test
+  void buildSetEquityChangeView_whenUntouchedExecutedChange_populatesRemoveNotUndo() {
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID());
+    var view = setEquityChangeView(null, urlContext);
+
+    assertThat(view.removeUrl()).contains("remove-equity-change");
+    assertThat(view.undoUrl()).isNull();
+  }
+
+  @Test
+  void buildSetEquityChangeView_whenExecutedUpdateChange_populatesUndoNotRemove() {
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID());
+    var view = setEquityChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, urlContext);
+
+    assertThat(view.removeUrl()).isNull();
+    assertThat(view.undoUrl()).contains("undo-equity-change");
+  }
+
+  @Test
+  void buildSetEquityChangeView_whenAddChange_populatesUndoNotRemove() {
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID());
+    var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
+
+    assertThat(view.removeUrl()).isNull();
+    assertThat(view.undoUrl()).contains("undo-equity-change");
+  }
+
+  @Test
+  void buildSetEquityChangeView_whenRemoveChange_populatesUndoOnly() {
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID());
+    var view = setEquityChangeView(LicencePositionChangeType.REMOVE_CHANGE, urlContext);
+
+    assertThat(view.removeUrl()).isNull();
+    assertThat(view.undoUrl()).contains("undo-equity-change");
+  }
+
+  @Test
+  void buildSetEquityChangeView_whenAddedPosition_populatesUndoNotRemove() {
+    var urlContext = PositionChangeUrlContext.forAddedPosition(UUID.randomUUID(), UUID.randomUUID());
+    var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
+
+    assertThat(view.removeUrl()).isNull();
+    assertThat(view.undoUrl()).contains("undo-equity-change");
+  }
+
+  @Test
+  void buildSetEquityChangeView_whenNoUrlContext_hasNoRemoveOrUndoUrls() {
+    var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, null);
+
+    assertThat(view.removeUrl()).isNull();
+    assertThat(view.undoUrl()).isNull();
+  }
+
+  @Test
   void getChangeViews_buildsTransferEquityChangeView() {
     var previousPosition = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
     var currentPosition = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
@@ -440,7 +497,9 @@ class LicencePositionChangeViewResolverTest {
             BigDecimal.valueOf(30), null)),
         null,
         null,
-        null);
+        null,
+        null
+    );
 
     assertThat(view).isEqualTo(expected);
   }
@@ -523,11 +582,37 @@ class LicencePositionChangeViewResolverTest {
     assertThat(view.updateUrl()).isNull();
   }
 
+  @Test
+  void buildTransferEquityChangeView_whenUntouchedExecutedChange_populatesRemoveNotUndo() {
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID());
+    var view = transferEquityChangeView(null, urlContext, null);
+
+    assertThat(view.removeUrl()).contains("remove-equity-change");
+    assertThat(view.undoUrl()).isNull();
+  }
+
+  @Test
+  void buildTransferEquityChangeView_whenExecutedAddChange_populatesUndoNotRemove() {
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID());
+    var view = transferEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext, null);
+
+    assertThat(view.removeUrl()).isNull();
+    assertThat(view.undoUrl()).contains("undo-equity-change");
+  }
+
   private SetEquityChangeView setEquityChangeView(String changeType, PositionChangeUrlContext urlContext) {
+    return setEquityChangeView(UUID.randomUUID().toString(), changeType, urlContext);
+  }
+
+  private SetEquityChangeView setEquityChangeView(
+      String changeId,
+      String changeType,
+      PositionChangeUrlContext urlContext
+  ) {
     var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
 
     var change = new PositionChange(
-        UUID.randomUUID().toString(),
+        changeId,
         1,
         changeType,
         List.of(new SetEquityOperation(SET_EQUITY_ORG_ID, BigDecimal.valueOf(75))));

@@ -1,6 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
@@ -10,10 +12,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.SetEquityCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.TransferEquityCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil;
 
 @Service
@@ -22,15 +28,35 @@ public class EquityChangeService {
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final TransferEquityCorrectionService transferEquityCorrectionService;
   private final SetEquityCorrectionService setEquityCorrectionService;
+  private final LicencePositionChangeService licencePositionChangeService;
 
   public EquityChangeService(
       LicencePositionCorrectionService licencePositionCorrectionService,
       TransferEquityCorrectionService transferEquityCorrectionService,
-      SetEquityCorrectionService setEquityCorrectionService
+      SetEquityCorrectionService setEquityCorrectionService, LicencePositionChangeService licencePositionChangeService
   ) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.transferEquityCorrectionService = transferEquityCorrectionService;
     this.setEquityCorrectionService = setEquityCorrectionService;
+    this.licencePositionChangeService = licencePositionChangeService;
+  }
+
+  @Transactional
+  public void removeExistingEquityChange(
+      LicencePosition licencePosition,
+      LicenceCorrection licenceCorrection,
+      String changeId
+  ) {
+    var positionCorrection = licencePositionCorrectionService
+        .getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
+
+    var payload = positionCorrection.getPayload();
+
+    var changes = new ArrayList<>(LicencePositionChangeUtil.removeChangeById(payload.changes(), changeId));
+    changes.add(LicencePositionChangeType.removeChange().withChangeId(changeId).build());
+
+    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionCorrectionService.save(positionCorrection);
   }
 
   @Transactional
@@ -59,12 +85,19 @@ public class EquityChangeService {
     licencePositionCorrectionService.save(positionCorrection);
   }
 
-  public EquityChangeUndoView getEquityChangeUndoView(LicenceCorrection licenceCorrection, String changeId) {
+  public EquityChangeContext getExecutedEquityChangeContext(String changeId) {
+    var liveChange = licencePositionChangeService.getByIdOrThrow(UUID.fromString(changeId));
+    return buildContext(LicencePositionChange.operationsOf(liveChange));
+  }
+
+  public EquityChangeContext getEquityChangeContext(LicenceCorrection licenceCorrection, String changeId) {
     var positionCorrection = licencePositionCorrectionService
         .getPositionCorrectionContainingChange(licenceCorrection, changeId);
 
-    var operations = LicencePositionChangeType.operationsOf(findChange(positionCorrection, changeId));
+    return buildContext(resolveOperations(findChange(positionCorrection, changeId)));
+  }
 
+  private EquityChangeContext buildContext(List<LicenceOperation> operations) {
     var setEquityRows = setEquityCorrectionService.getSetEquityViews(
         operations.stream()
             .filter(SetEquityOperation.class::isInstance)
@@ -77,7 +110,7 @@ public class EquityChangeService {
             .map(TransferEquityOperation.class::cast)
             .toList());
 
-    return new EquityChangeUndoView(setEquityRows, transferEquityRows);
+    return new EquityChangeContext(setEquityRows, transferEquityRows);
   }
 
   private LicencePositionChangeType findChange(LicencePositionCorrection positionCorrection, String changeId) {
@@ -90,7 +123,15 @@ public class EquityChangeService {
   }
 
   private boolean isEquityChange(LicencePositionChangeType change) {
-    return containsEquityOperation(LicencePositionChangeType.operationsOf(change));
+    return containsEquityOperation(resolveOperations(change));
+  }
+
+  private List<LicenceOperation> resolveOperations(LicencePositionChangeType change) {
+    if (change instanceof RemoveChange(String changeId)) {
+      var liveChange = licencePositionChangeService.getByIdOrThrow(UUID.fromString(changeId));
+      return LicencePositionChange.operationsOf(liveChange);
+    }
+    return LicencePositionChangeType.operationsOf(change);
   }
 
   private boolean containsEquityOperation(List<LicenceOperation> operations) {

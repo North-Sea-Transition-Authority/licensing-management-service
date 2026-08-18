@@ -14,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.LicencePositionHasNoLiveAdministratorChange;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.ValidLicencePositionAdministratorChange;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.equity.ValidLicencePositionEquityChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -135,5 +136,14 @@ public class InterceptorRuleTestEndpoints {
   @CorrectionLicenceIsType({})
   public ResponseEntity<String> correctionLicenceIsType_noProvidedTypes() {
     return ResponseEntity.ok("correction licence is type no provided types test endpoint");
+  }
+
+  @GetMapping("position/{licencePositionId}/change/{changeId}/valid-equity-change")
+  @ValidLicencePositionEquityChange
+  public ResponseEntity<String> validLicencePositionEquityChange(
+      @PathVariable UUID licencePositionId,
+      @PathVariable UUID changeId
+  ) {
+    return ResponseEntity.ok("valid licence position equity change test endpoint");
   }
 }

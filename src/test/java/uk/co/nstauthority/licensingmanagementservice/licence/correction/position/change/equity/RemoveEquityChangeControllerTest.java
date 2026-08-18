@@ -32,8 +32,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityRow;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityHoldingView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = RemoveEquityChangeController.class)
@@ -47,11 +49,98 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final String CHANGE_ID = UUID.randomUUID().toString();
+  private static final String REMOVE_PAGE_TITLE = "Are you sure you want to remove this beneficial interest change?";
   private static final String UNDO_PAGE_TITLE = "Are you sure you want to undo this beneficial interest change?";
-  private static final String VIEW_NAME = "lms/licence/correction/change/undoEquityChange";
+  private static final String VIEW_NAME = "lms/licence/correction/change/removeEquityChange";
+  private static final List<SetEquityRow> SET_EQUITY_ROWS = List.of(new SetEquityRow("Org Ltd", BigDecimal.TEN));
+  private static final List<TransferEquityHoldingView> TRANSFER_EQUITY_ROWS =
+      List.of(new TransferEquityHoldingView("From Org Ltd", "To Org Ltd", BigDecimal.TEN, null));
 
   private final String positionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
       .renderLicencePosition(CORRECTION_ID, POSITION_ID, null));
+
+  @Test
+  void renderRemoveExecutedEquityChange_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveEquityChangeController.class)
+            .renderRemoveExecutedEquityChange(CORRECTION_ID, POSITION_ID, CHANGE_ID, null))))
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void renderRemoveExecutedEquityChange_whenNotAllocatedToUser() throws Exception {
+    givenCorrectionNotAllocatedToUser();
+
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveEquityChangeController.class)
+            .renderRemoveExecutedEquityChange(CORRECTION_ID, POSITION_ID, CHANGE_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderRemoveExecutedEquityChange_whenAllocatedToUser() throws Exception {
+    givenCorrectionAllocatedToUser();
+    var position = positionWithId();
+
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+    when(equityChangeService.getExecutedEquityChangeContext(CHANGE_ID))
+        .thenReturn(new EquityChangeContext(SET_EQUITY_ROWS, TRANSFER_EQUITY_ROWS));
+
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveEquityChangeController.class)
+            .renderRemoveExecutedEquityChange(CORRECTION_ID, POSITION_ID, CHANGE_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("pageTitle", REMOVE_PAGE_TITLE),
+            model().attribute("primaryButtonText", "Remove beneficial interest change"),
+            model().attribute("setEquityRows", SET_EQUITY_ROWS),
+            model().attribute("transferEquityRows", TRANSFER_EQUITY_ROWS),
+            model().attribute("cancelUrl", positionUrl)
+        );
+  }
+
+  @Test
+  void removeEquityChange_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveEquityChangeController.class)
+            .removeEquityChange(CORRECTION_ID, POSITION_ID, CHANGE_ID, null, null)))
+            .with(csrf()))
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void removeEquityChange_whenNotAllocatedToUser() throws Exception {
+    givenCorrectionNotAllocatedToUser();
+
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveEquityChangeController.class)
+            .removeEquityChange(CORRECTION_ID, POSITION_ID, CHANGE_ID, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden());
+
+    verifyNoInteractions(equityChangeService);
+  }
+
+  @Test
+  void removeEquityChange_whenEligible() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var position = positionWithId();
+
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveEquityChangeController.class)
+            .removeEquityChange(CORRECTION_ID, POSITION_ID, CHANGE_ID, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(positionUrl),
+            notificationBanner(NotificationBanner.newSuccessBanner()
+                .withHeadingContent("Beneficial interest change removed")
+                .build())
+        );
+
+    verify(equityChangeService).removeExistingEquityChange(position, correction, CHANGE_ID);
+  }
 
   @Test
   void renderUndoEquityChange_whenNotLoggedIn() throws Exception {
@@ -73,7 +162,7 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
   @Test
   void renderUndoEquityChange_whenAllocatedToUser() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var position = positionWithId();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(position)
@@ -82,8 +171,8 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
 
     when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
         .thenReturn(positionCorrection);
-    when(equityChangeService.getEquityChangeUndoView(correction, CHANGE_ID))
-        .thenReturn(new EquityChangeUndoView(setEquityRows, List.of()));
+    when(equityChangeService.getEquityChangeContext(correction, CHANGE_ID))
+        .thenReturn(new EquityChangeContext(SET_EQUITY_ROWS, TRANSFER_EQUITY_ROWS));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveEquityChangeController.class)
             .renderUndoEquityChange(CORRECTION_ID, CHANGE_ID, null)))
@@ -93,8 +182,8 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
             view().name(VIEW_NAME),
             model().attribute("pageTitle", UNDO_PAGE_TITLE),
             model().attribute("primaryButtonText", "Undo beneficial interest change"),
-            model().attribute("setEquityRows", setEquityRows),
-            model().attribute("transferEquityRows", List.of()),
+            model().attribute("setEquityRows", SET_EQUITY_ROWS),
+            model().attribute("transferEquityRows", TRANSFER_EQUITY_ROWS),
             model().attribute("cancelUrl", positionUrl)
         );
   }
@@ -123,7 +212,7 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
   @Test
   void undoEquityChange_whenAllocatedToUser() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var position = positionWithId();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(position)
@@ -145,6 +234,10 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
         );
 
     verify(equityChangeService).undoEquityChange(correction, CHANGE_ID);
+  }
+
+  private LicencePosition positionWithId() {
+    return LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
   }
 
   private LicenceCorrection givenCorrectionAllocatedToUser() {

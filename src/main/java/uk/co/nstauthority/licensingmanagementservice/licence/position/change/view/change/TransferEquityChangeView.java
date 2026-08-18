@@ -8,6 +8,7 @@ public record TransferEquityChangeView(
     List<TransferEquityChangeHoldingView> holdings,
     @Nullable String changeType,
     @Nullable String updateUrl,
+    @Nullable String removeUrl,
     @Nullable String undoUrl
 ) implements LicencePositionChangeView {
 
@@ -20,6 +21,7 @@ public record TransferEquityChangeView(
         combined,
         changeType,
         updateUrl != null ? updateUrl : otherView.updateUrl(),
+        removeUrl != null ? removeUrl : otherView.removeUrl(),
         undoUrl != null ? undoUrl : otherView.undoUrl()
     );
   }

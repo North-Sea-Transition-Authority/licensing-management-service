@@ -175,6 +175,7 @@ public final class LicencePositionChangeViewResolver {
                 .renderSummaryForAddedPosition(ctx.correctionId(), ctx.routingId(), null)),
             ctx -> ReverseRouter.route(on(LicencePositionSetEquityController.class)
                 .renderSummaryForExecutedPosition(ctx.correctionId(), ctx.routingId(), null))),
+        removeEquityChangeUrl(urlContext, change),
         undoEquityChangeUrl(urlContext, change)
     );
   }
@@ -213,6 +214,7 @@ public final class LicencePositionChangeViewResolver {
             ctx -> ReverseRouter.route(on(LicencePositionTransferEquityController.class)
                 .renderSummaryForExecutedPosition(ctx.correctionId(), ctx.routingId(), null))
         ),
+        removeEquityChangeUrl(urlContext, change),
         undoEquityChangeUrl(urlContext, change)
     );
   }
@@ -238,6 +240,15 @@ public final class LicencePositionChangeViewResolver {
     return urlContext.addedPosition()
         ? addedPositionSummaryUrl.apply(urlContext)
         : executedPositionSummaryUrl.apply(urlContext);
+  }
+
+  @Nullable
+  private static String removeEquityChangeUrl(@Nullable PositionChangeUrlContext urlContext, PositionChange change) {
+    if (urlContext == null || urlContext.addedPosition() || change.changeType() != null) {
+      return null;
+    }
+    return ReverseRouter.route(on(RemoveEquityChangeController.class)
+        .renderRemoveExecutedEquityChange(urlContext.correctionId(), urlContext.routingId(), change.changeId(), null));
   }
 
   @Nullable

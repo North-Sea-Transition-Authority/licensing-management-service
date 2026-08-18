@@ -116,27 +116,6 @@ class LicencePositionAdministratorChangeUtilTest {
     assertThat(LicencePositionAdministratorChangeUtil.adminIdNotChanged(change, UPDATED_ADMINISTRATOR_ID)).isFalse();
   }
 
-  @Test
-  void removeChangeById_dropsMatchingChangeKeepsOthers() {
-    var keptId = UUID.randomUUID().toString();
-    var removedId = UUID.randomUUID().toString();
-    var kept = adminUpdateChange(keptId, ADMINISTRATOR_ID);
-    var removed = adminUpdateChange(removedId, UPDATED_ADMINISTRATOR_ID);
-
-    var result = LicencePositionAdministratorChangeUtil.removeChangeById(List.of(kept, removed), removedId);
-
-    assertThat(result).containsExactly(kept);
-  }
-
-  @Test
-  void removeChangeById_whenNoMatch_returnsUnchanged() {
-    var change = adminUpdateChange(UUID.randomUUID().toString(), ADMINISTRATOR_ID);
-
-    var result = LicencePositionAdministratorChangeUtil.removeChangeById(List.of(change), UUID.randomUUID().toString());
-
-    assertThat(result).containsExactly(change);
-  }
-
   private LicencePositionChange liveAdminChange(Integer administratorId) {
     var change = new LicencePositionChange();
     change.setOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(administratorId).build()));

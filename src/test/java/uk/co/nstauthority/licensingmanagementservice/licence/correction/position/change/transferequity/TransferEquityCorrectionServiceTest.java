@@ -80,8 +80,7 @@ class TransferEquityCorrectionServiceTest {
   void setUp() {
     var licencePositionCorrectionService = new LicencePositionCorrectionService(
         licencePositionCorrectionRepository,
-        licencePositionRepository,
-        organisationUnitQueryService
+        licencePositionRepository
     );
     transferEquityCorrectionService = new TransferEquityCorrectionService(
         licencePositionCorrectionRepository,

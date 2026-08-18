@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -26,7 +25,6 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -45,7 +43,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquity
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityRow;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,9 +65,6 @@ class LicencePositionCorrectionServiceTest {
 
   @Mock
   private LicencePositionRepository licencePositionRepository;
-
-  @Mock
-  private OrganisationUnitQueryService organisationUnitQueryService;
 
   @InjectMocks
   private LicencePositionCorrectionService licencePositionCorrectionService;
@@ -816,54 +810,28 @@ class LicencePositionCorrectionServiceTest {
   }
 
   @Test
-  void getCommittedSetEquityOperations_whenNoSetEquityChange_returnsEmpty() {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(List.of()).build())
-        .build();
-
-    assertThat(licencePositionCorrectionService.getCommittedSetEquityOperations(positionCorrection)).isEmpty();
+  void getAddOperationsOfType_whenNoMatchingChange_returnsEmpty() {
+    assertThat(licencePositionCorrectionService.getAddOperationsOfType(List.of(), SetEquityOperation.class))
+        .isEmpty();
   }
 
   @Test
-  void getCommittedSetEquityOperations_returnsTheOperationsFromTheSetEquityChange() {
-    var positionCorrection = positionCorrectionWithSetEquity(List.of(setEquityOp(1, 40), setEquityOp(2, 60)));
+  void getAddOperationsOfType_returnsTheOperationsFromMatchingAddChanges() {
+    var changes = List.of(setEquityChange(List.of(setEquityOp(1, 40), setEquityOp(2, 60))));
 
-    assertThat(licencePositionCorrectionService.getCommittedSetEquityOperations(positionCorrection))
+    assertThat(licencePositionCorrectionService.getAddOperationsOfType(changes, SetEquityOperation.class))
         .extracting(SetEquityOperation::transferTo)
         .containsExactly(1, 2);
   }
 
   @Test
-  void getSetEquityViews_mapsOperationsToViewsWithResolvedNames() {
-    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1, 2)))
-        .thenReturn(Map.of(1, "Org One", 2, "Org Two"));
-
-    var views = licencePositionCorrectionService.getSetEquityViews(List.of(setEquityOp(1, 40), setEquityOp(2, 60)));
-
-    assertThat(views)
-        .extracting(SetEquityRow::organisationName, SetEquityRow::equity)
-        .containsExactly(
-            tuple("Org One", BigDecimal.valueOf(40)),
-            tuple("Org Two", BigDecimal.valueOf(60))
-        );
-  }
-
-  @Test
-  void getSetEquityViews_whenNameUnknown_usesEmptyString() {
-    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1))).thenReturn(Map.of());
-
-    var views = licencePositionCorrectionService.getSetEquityViews(List.of(setEquityOp(1, 40)));
-
-    assertThat(views).singleElement().extracting(SetEquityRow::organisationName).isEqualTo("");
-  }
-
-  @Test
-  void commitSetEquity_whenNoExistingChange_createsOneWithTheOperations() {
+  void replaceAddChangeFor_whenNoExistingChange_createsOneWithTheOperations() {
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(List.of()).build())
         .build();
 
-    licencePositionCorrectionService.commitSetEquity(positionCorrection, List.of(setEquityOp(1, 100)));
+    licencePositionCorrectionService.replaceAddChangeFor(
+        positionCorrection, SetEquityOperation.class, List.of(setEquityOp(1, 100)));
 
     verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
     var payload = (CreateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
@@ -871,10 +839,11 @@ class LicencePositionCorrectionServiceTest {
   }
 
   @Test
-  void commitSetEquity_whenExistingChange_replacesItsOperations() {
+  void replaceAddChangeFor_whenExistingChange_replacesItsOperations() {
     var positionCorrection = positionCorrectionWithSetEquity(List.of(setEquityOp(1, 40)));
 
-    licencePositionCorrectionService.commitSetEquity(positionCorrection, List.of(setEquityOp(1, 40), setEquityOp(2, 60)));
+    licencePositionCorrectionService.replaceAddChangeFor(
+        positionCorrection, SetEquityOperation.class, List.of(setEquityOp(1, 40), setEquityOp(2, 60)));
 
     verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
     var payload = (CreateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
@@ -884,10 +853,10 @@ class LicencePositionCorrectionServiceTest {
   }
 
   @Test
-  void commitSetEquity_whenNoOperations_dropsTheChange() {
+  void replaceAddChangeFor_whenNoOperations_dropsTheChange() {
     var positionCorrection = positionCorrectionWithSetEquity(List.of(setEquityOp(1, 40)));
 
-    licencePositionCorrectionService.commitSetEquity(positionCorrection, List.of());
+    licencePositionCorrectionService.replaceAddChangeFor(positionCorrection, SetEquityOperation.class, List.of());
 
     verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
     var payload = (CreateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
@@ -895,7 +864,7 @@ class LicencePositionCorrectionServiceTest {
   }
 
   @Test
-  void commitSetEquity_retainsOtherChangeTypes() {
+  void replaceAddChangeFor_retainsOtherChangeTypes() {
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(List.of()).build())
         .build();
@@ -908,11 +877,12 @@ class LicencePositionCorrectionServiceTest {
         positionCorrection.getPayload(),
         List.of(AddChange.buildOperationsChange(List.of(administratorOperation), 1))));
 
-    licencePositionCorrectionService.commitSetEquity(positionCorrection, List.of(setEquityOp(1, 100)));
+    licencePositionCorrectionService.replaceAddChangeFor(
+        positionCorrection, SetEquityOperation.class, List.of(setEquityOp(1, 100)));
 
     var payload = (CreateLicencePositionPayload) positionCorrection.getPayload();
     assertThat(payload.changes()).hasSize(2);
-    assertThat(licencePositionCorrectionService.getCommittedSetEquityOperations(positionCorrection))
+    assertThat(licencePositionCorrectionService.getAddOperationsOfType(payload.changes(), SetEquityOperation.class))
         .extracting(SetEquityOperation::transferTo)
         .containsExactly(1);
   }
@@ -973,40 +943,6 @@ class LicencePositionCorrectionServiceTest {
   }
 
   @Test
-  void commitSetEquityForExecutedPosition_whenNoExistingCorrection_createsUpdatePositionCorrection() {
-    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
-        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
-        .thenReturn(Optional.empty());
-
-    licencePositionCorrectionService.commitSetEquityForExecutedPosition(
-        LICENCE_CORRECTION, LICENCE_POSITION, List.of(setEquityOp(1, 100)));
-
-    verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
-    var saved = licencePositionCorrectionCaptor.getValue();
-    assertThat(saved.getLicenceCorrection()).isEqualTo(LICENCE_CORRECTION);
-    assertThat(saved.getChangeType()).isEqualTo(LicencePositionCorrectionChangeType.UPDATE_POSITION);
-    assertThat(saved.getTargetLicencePosition()).isEqualTo(LICENCE_POSITION);
-    assertThat(saved.getPayload()).isInstanceOf(UpdateLicencePositionPayload.class);
-    assertThat(saved.getPayload().changes()).hasSize(1);
-  }
-
-  @Test
-  void commitSetEquityForExecutedPosition_whenCorrectionExists_updatesExistingCorrection() {
-    var existing = updatePositionCorrectionWithSetEquity(List.of(setEquityOp(1, 40)));
-    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
-        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
-        .thenReturn(Optional.of(existing));
-
-    licencePositionCorrectionService.commitSetEquityForExecutedPosition(
-        LICENCE_CORRECTION, LICENCE_POSITION, List.of(setEquityOp(1, 40), setEquityOp(2, 60)));
-
-    verify(licencePositionCorrectionRepository).save(existing);
-    var payload = (UpdateLicencePositionPayload) existing.getPayload();
-    var change = (AddChange) payload.changes().getFirst();
-    assertThat(change.operations()).hasSize(2);
-  }
-
-  @Test
   void getOrBuildUpdatePositionCorrection_whenExistingUpdateCorrection_returnsExistingWithoutSaving() {
     var existing = LicencePositionCorrectionTestUtil.newBuilder()
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
@@ -1046,42 +982,18 @@ class LicencePositionCorrectionServiceTest {
   }
 
   @Test
-  void commitSetEquity_whenUpdatePayload_rebuildsAsUpdatePayloadPreservingType() {
+  void replaceAddChangeFor_whenUpdatePayload_rebuildsAsUpdatePayloadPreservingType() {
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().withChanges(List.of()).build())
         .build();
 
-    licencePositionCorrectionService.commitSetEquity(positionCorrection, List.of(setEquityOp(1, 100)));
+    licencePositionCorrectionService.replaceAddChangeFor(
+        positionCorrection, SetEquityOperation.class, List.of(setEquityOp(1, 100)));
 
     verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
     var payload = licencePositionCorrectionCaptor.getValue().getPayload();
     assertThat(payload).isInstanceOf(UpdateLicencePositionPayload.class);
     assertThat(payload.changes()).hasSize(1);
-  }
-
-  @Test
-  void getCommittedSetEquityOperationsForExecutedPosition_whenUpdateCorrectionExists_returnsOperations() {
-    var positionCorrection = updatePositionCorrectionWithSetEquity(List.of(setEquityOp(1, 40), setEquityOp(2, 60)));
-    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
-        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
-        .thenReturn(Optional.of(positionCorrection));
-
-    assertThat(licencePositionCorrectionService
-        .getCommittedSetEquityOperationsForExecutedPosition(LICENCE_CORRECTION, LICENCE_POSITION))
-        .extracting(SetEquityOperation::transferTo)
-        .containsExactly(1, 2);
-  }
-
-  @Test
-  void getCommittedSetEquityOperationsForExecutedPosition_whenNoCorrection_returnsEmptyWithoutSaving() {
-    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
-        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
-        .thenReturn(Optional.empty());
-
-    assertThat(licencePositionCorrectionService
-        .getCommittedSetEquityOperationsForExecutedPosition(LICENCE_CORRECTION, LICENCE_POSITION))
-        .isEmpty();
-    verify(licencePositionCorrectionRepository, never()).save(any());
   }
 
   private static LicencePositionChangeType setEquityChange(List<SetEquityOperation> operations) {
@@ -1096,13 +1008,6 @@ class LicencePositionCorrectionServiceTest {
         .withChangeOrder(1)
         .withOperations(changeOperations)
         .build();
-  }
-
-  private static LicencePositionCorrection updatePositionCorrectionWithSetEquity(List<SetEquityOperation> operations) {
-    var payload = UpdateLicencePositionPayloadTestUtil.newBuilder()
-        .withChanges(List.of(setEquityChange(operations)))
-        .build();
-    return LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
   }
 
   private LicencePosition executedPosition(UUID id, LocalDate positionDate, int order, String reference) {

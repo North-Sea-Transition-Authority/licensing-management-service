@@ -7,7 +7,8 @@ import java.util.List;
 public record TransferEquityChangeView(
     List<TransferEquityChangeHoldingView> holdings,
     @Nullable String changeType,
-    @Nullable String updateUrl
+    @Nullable String updateUrl,
+    @Nullable String undoUrl
 ) implements LicencePositionChangeView {
 
   @Override
@@ -15,6 +16,11 @@ public record TransferEquityChangeView(
     var otherView = (TransferEquityChangeView) other;
     var combined = new ArrayList<>(holdings);
     combined.addAll(otherView.holdings());
-    return new TransferEquityChangeView(combined, changeType, updateUrl != null ? updateUrl : otherView.updateUrl());
+    return new TransferEquityChangeView(
+        combined,
+        changeType,
+        updateUrl != null ? updateUrl : otherView.updateUrl(),
+        undoUrl != null ? undoUrl : otherView.undoUrl()
+    );
   }
 }

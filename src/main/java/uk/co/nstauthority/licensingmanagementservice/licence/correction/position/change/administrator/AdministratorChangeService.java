@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionAdministratorChangeUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil;
 
 @Service
 public class AdministratorChangeService {
@@ -199,12 +199,11 @@ public class AdministratorChangeService {
               .formatted(changeId));
     }
 
-    var remainingChanges = LicencePositionAdministratorChangeUtil.removeChangeById(payload.changes(), changeId);
+    var remainingChanges = LicencePositionChangeUtil.removeChangeById(payload.changes(), changeId);
 
     if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.UPDATE_POSITION
         && remainingChanges.isEmpty()
-        && positionDateAndOrderUnchanged(positionCorrection
-    )) {
+        && LicencePositionChangeUtil.positionDateAndOrderUnchanged(positionCorrection)) {
       licencePositionCorrectionService.delete(positionCorrection);
       return;
     }
@@ -227,15 +226,5 @@ public class AdministratorChangeService {
       return LicencePositionAdministratorChangeUtil.containsAdminOperation(liveChange);
     }
     return LicencePositionAdministratorChangeUtil.containsAdminOperation(change);
-  }
-
-  private static boolean positionDateAndOrderUnchanged(LicencePositionCorrection positionCorrection) {
-    var payload = (UpdateLicencePositionPayload) positionCorrection.getPayload();
-    var licencePosition = positionCorrection.getTargetLicencePosition();
-    var dateUnchanged = payload.effectiveDate() == null
-        || payload.effectiveDate().equals(licencePosition.getPositionDate());
-    var orderUnchanged = payload.effectiveDateOrder() == null
-        || Objects.equals(payload.effectiveDateOrder(), licencePosition.getPositionDateOrder());
-    return dateUnchanged && orderUnchanged;
   }
 }

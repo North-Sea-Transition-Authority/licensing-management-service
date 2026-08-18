@@ -357,13 +357,13 @@ class LicencePositionChangeViewResolverTest {
 
     var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
 
-    var expected = new SetEquityChangeView(
-        List.of(new SetEquityRow(SET_EQUITY_ORG_NAME, BigDecimal.valueOf(75))),
-        LicencePositionChangeType.ADD_CHANGE,
-        ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderSummaryForExecutedPosition(correctionId, licencePositionId, null)));
-
-    assertThat(view).isEqualTo(expected);
+    assertThat(view.rows()).containsExactly(new SetEquityRow(SET_EQUITY_ORG_NAME, BigDecimal.valueOf(75)));
+    assertThat(view.changeType()).isEqualTo(LicencePositionChangeType.ADD_CHANGE);
+    assertThat(view.updateUrl()).isEqualTo(ReverseRouter.route(on(LicencePositionSetEquityController.class)
+        .renderSummaryForExecutedPosition(correctionId, licencePositionId, null)));
+    assertThat(view.undoUrl())
+        .contains("/licence-corrections/" + correctionId + "/change/")
+        .endsWith("/undo-equity-change");
   }
 
   @Test
@@ -438,6 +438,7 @@ class LicencePositionChangeViewResolverTest {
             TRANSFER_FROM_NAME, BigDecimal.valueOf(100), BigDecimal.valueOf(70),
             TRANSFER_TO_NAME, BigDecimal.ZERO, BigDecimal.valueOf(30),
             BigDecimal.valueOf(30), null)),
+        null,
         null,
         null);
 

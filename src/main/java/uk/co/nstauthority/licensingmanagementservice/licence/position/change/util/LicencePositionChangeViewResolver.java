@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
@@ -173,7 +174,8 @@ public final class LicencePositionChangeViewResolver {
             ctx -> ReverseRouter.route(on(LicencePositionSetEquityController.class)
                 .renderSummaryForAddedPosition(ctx.correctionId(), ctx.routingId(), null)),
             ctx -> ReverseRouter.route(on(LicencePositionSetEquityController.class)
-                .renderSummaryForExecutedPosition(ctx.correctionId(), ctx.routingId(), null)))
+                .renderSummaryForExecutedPosition(ctx.correctionId(), ctx.routingId(), null))),
+        undoEquityChangeUrl(urlContext, change)
     );
   }
 
@@ -210,7 +212,8 @@ public final class LicencePositionChangeViewResolver {
                 .renderSummaryForAddedPosition(ctx.correctionId(), ctx.routingId(), null)),
             ctx -> ReverseRouter.route(on(LicencePositionTransferEquityController.class)
                 .renderSummaryForExecutedPosition(ctx.correctionId(), ctx.routingId(), null))
-        )
+        ),
+        undoEquityChangeUrl(urlContext, change)
     );
   }
 
@@ -235,6 +238,15 @@ public final class LicencePositionChangeViewResolver {
     return urlContext.addedPosition()
         ? addedPositionSummaryUrl.apply(urlContext)
         : executedPositionSummaryUrl.apply(urlContext);
+  }
+
+  @Nullable
+  private static String undoEquityChangeUrl(@Nullable PositionChangeUrlContext urlContext, PositionChange change) {
+    if (urlContext == null || change.changeType() == null) {
+      return null;
+    }
+    return ReverseRouter.route(on(RemoveEquityChangeController.class)
+        .renderUndoEquityChange(urlContext.correctionId(), change.changeId(), null));
   }
 
   @Nullable

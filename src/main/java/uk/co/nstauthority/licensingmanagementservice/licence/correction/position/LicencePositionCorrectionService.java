@@ -12,7 +12,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
@@ -22,26 +21,21 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityRow;
 
 @Service
 public class LicencePositionCorrectionService {
 
   private final LicencePositionCorrectionRepository licencePositionCorrectionRepository;
   private final LicencePositionRepository licencePositionRepository;
-  private final OrganisationUnitQueryService organisationUnitQueryService;
 
   public LicencePositionCorrectionService(
       LicencePositionCorrectionRepository licencePositionCorrectionRepository,
-      LicencePositionRepository licencePositionRepository,
-      OrganisationUnitQueryService organisationUnitQueryService
+      LicencePositionRepository licencePositionRepository
   ) {
     this.licencePositionCorrectionRepository = licencePositionCorrectionRepository;
     this.licencePositionRepository = licencePositionRepository;
-    this.organisationUnitQueryService = organisationUnitQueryService;
   }
 
   public Optional<LicencePositionCorrection> findUpdatePositionCorrection(
@@ -240,61 +234,12 @@ public class LicencePositionCorrectionService {
     return licencePositionCorrectionRepository.save(positionCorrection);
   }
 
-  public List<SetEquityOperation> getCommittedSetEquityOperations(
-      LicencePositionCorrection licencePositionCorrection
-  ) {
-    return setEquityOperations(licencePositionCorrection.getPayload().changes());
-  }
-
-  public List<SetEquityRow> getSetEquityViews(List<SetEquityOperation> operations) {
-    var organisationIds = operations.stream()
-        .map(SetEquityOperation::transferTo)
-        .toList();
-
-    var organisationNames = organisationUnitQueryService.getOrganisationUnitNamesByIds(organisationIds);
-
-    return operations.stream()
-        .map(operation -> new SetEquityRow(
-            organisationNames.getOrDefault(operation.transferTo(), ""),
-            operation.equity()
-        ))
-        .toList();
-  }
-
-  @Transactional
-  public void commitSetEquity(
-      LicencePositionCorrection licencePositionCorrection,
-      List<SetEquityOperation> operations
-  ) {
-    applySetEquity(licencePositionCorrection, operations);
-  }
-
   public LicencePositionCorrection getOrBuildUpdatePositionCorrection(
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition
   ) {
     return findUpdatePositionCorrection(licenceCorrection, licencePosition)
         .orElseGet(() -> newUpdatePositionCorrection(licenceCorrection, licencePosition));
-  }
-
-  public List<SetEquityOperation> getCommittedSetEquityOperationsForExecutedPosition(
-      LicenceCorrection licenceCorrection,
-      LicencePosition licencePosition
-  ) {
-    return findUpdatePositionCorrection(licenceCorrection, licencePosition)
-        .map(this::getCommittedSetEquityOperations)
-        .orElseGet(List::of);
-  }
-
-  @Transactional
-  public void commitSetEquityForExecutedPosition(
-      LicenceCorrection licenceCorrection,
-      LicencePosition licencePosition,
-      List<SetEquityOperation> operations
-  ) {
-    var positionCorrection = getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
-
-    applySetEquity(positionCorrection, operations);
   }
 
   /**
@@ -430,13 +375,6 @@ public class LicencePositionCorrectionService {
         .orElse(0) + 1;
   }
 
-  private void applySetEquity(
-      LicencePositionCorrection licencePositionCorrection,
-      List<SetEquityOperation> operations
-  ) {
-    replaceAddChangeFor(licencePositionCorrection, SetEquityOperation.class, operations);
-  }
-
   public LicencePositionCorrection replaceAddChangeFor(
       LicencePositionCorrection licencePositionCorrection,
       Class<? extends LicenceOperation> operationType,
@@ -454,10 +392,6 @@ public class LicencePositionCorrectionService {
 
     licencePositionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
     return licencePositionCorrectionRepository.save(licencePositionCorrection);
-  }
-
-  private List<SetEquityOperation> setEquityOperations(List<LicencePositionChangeType> changes) {
-    return getAddOperationsOfType(changes, SetEquityOperation.class);
   }
 
   public <T extends LicenceOperation> List<T> getAddOperationsOfType(

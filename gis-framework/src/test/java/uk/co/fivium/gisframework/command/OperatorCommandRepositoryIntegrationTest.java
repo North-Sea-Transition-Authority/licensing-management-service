@@ -73,6 +73,37 @@ class OperatorCommandRepositoryIntegrationTest {
     assertThat(result).isEmpty();
   }
 
+  @Test
+  void findFirstByCommandJourneyAndStatusOrderByCommandOrderDesc_whenActiveCommandsExist_returnsHighestCommandOrder() {
+    var latestActiveCommand = OperatorCommandTestUtil.newBuilder()
+        .withId(null)
+        .withCommandJourney(commandJourneyWithCommands)
+        .withCommandOrder(5)
+        .withStatus(CommandStatus.ACTIVE)
+        .build();
+    var undoneCommand = OperatorCommandTestUtil.newBuilder()
+        .withId(null)
+        .withCommandJourney(commandJourneyWithCommands)
+        .withCommandOrder(6)
+        .withStatus(CommandStatus.UNDONE)
+        .build();
+
+    operatorCommandRepository.saveAll(List.of(latestActiveCommand, undoneCommand));
+
+    var result = operatorCommandRepository.findFirstByCommandJourneyAndStatusOrderByCommandOrderDesc(
+        commandJourneyWithCommands, CommandStatus.ACTIVE);
+
+    assertThat(result).map(OperatorCommand::getCommandOrder).contains(5);
+  }
+
+  @Test
+  void findFirstByCommandJourneyAndStatusOrderByCommandOrderDesc_whenNoActiveCommandsExist_returnsEmpty() {
+    var result = operatorCommandRepository.findFirstByCommandJourneyAndStatusOrderByCommandOrderDesc(
+        commandJourneyWithNoCommands, CommandStatus.ACTIVE);
+
+    assertThat(result).isEmpty();
+  }
+
   @SpringBootConfiguration
   @EnableAutoConfiguration
   @EntityScan(basePackageClasses = {OperatorCommand.class, CommandJourney.class, Feature.class})

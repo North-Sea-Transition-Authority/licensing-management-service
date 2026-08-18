@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.gis;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -17,6 +18,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.json.JsonCompareMode;
+import uk.co.fivium.gisframework.command.CommandJourney;
+import uk.co.fivium.gisframework.command.CommandJourneyService;
+import uk.co.fivium.gisframework.command.OperatorCommandService;
+import uk.co.fivium.gisframework.operator.JsonSplitHistoryStatus;
 import uk.co.fivium.gisframework.operator.JsonSplitResponse;
 import uk.co.fivium.gisframework.operator.OperatorCommandReceiver;
 import uk.co.fivium.gisframework.operator.SplitFromMapRequest;
@@ -28,6 +33,12 @@ class SplitRestControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private OperatorCommandReceiver operatorCommandReceiver;
+
+  @MockitoBean
+  private CommandJourneyService commandJourneyService;
+
+  @MockitoBean
+  private OperatorCommandService operatorCommandService;
 
   @Autowired
   private ObjectMapper objectMapper;
@@ -78,6 +89,67 @@ class SplitRestControllerTest extends AbstractControllerTest {
     mockMvc.perform(post("/api/gis-framework/split")
             .contentType(MediaType.APPLICATION_JSON)
             .content(requestBody)
+            .with(csrf())
+            .with(user(regulatorUser)))
+        .andExpect(status().isOk())
+        .andExpect(content().json(objectMapper.writeValueAsString(new JsonSplitResponse(List.of())), JsonCompareMode.STRICT));
+  }
+
+  @Test
+  void getSplitHistory_whenCanUndo_assertCanUndoTrue() throws Exception {
+    var commandJourneyId = UUID.randomUUID();
+    var commandJourney = new CommandJourney();
+
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(operatorCommandService.canUndo(commandJourney)).thenReturn(true);
+
+    mockMvc.perform(get("/api/gis-framework/split-history/{commandJourneyId}", commandJourneyId)
+            .with(user(regulatorUser)))
+        .andExpect(status().isOk())
+        .andExpect(content().json(objectMapper.writeValueAsString(new JsonSplitHistoryStatus(true)), JsonCompareMode.STRICT));
+  }
+
+  @Test
+  void getSplitHistory_whenCannotUndo_assertCanUndoFalse() throws Exception {
+    var commandJourneyId = UUID.randomUUID();
+    var commandJourney = new CommandJourney();
+
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(operatorCommandService.canUndo(commandJourney)).thenReturn(false);
+
+    mockMvc.perform(get("/api/gis-framework/split-history/{commandJourneyId}", commandJourneyId)
+            .with(user(regulatorUser)))
+        .andExpect(status().isOk())
+        .andExpect(content().json(objectMapper.writeValueAsString(new JsonSplitHistoryStatus(false)), JsonCompareMode.STRICT));
+  }
+
+  @Test
+  void undo_whenActiveCommandExists_assertReactivatedFeatureIds() throws Exception {
+    var commandJourneyId = UUID.randomUUID();
+    var commandJourney = new CommandJourney();
+    var reactivatedFeature = FeatureTestUtil.builder().build();
+
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(operatorCommandReceiver.undo(commandJourney)).thenReturn(List.of(reactivatedFeature));
+
+    mockMvc.perform(post("/api/gis-framework/undo/{commandJourneyId}", commandJourneyId)
+            .with(csrf())
+            .with(user(regulatorUser)))
+        .andExpect(status().isOk())
+        .andExpect(content().json(
+            objectMapper.writeValueAsString(new JsonSplitResponse(List.of(reactivatedFeature.getId().toString()))),
+            JsonCompareMode.STRICT));
+  }
+
+  @Test
+  void undo_whenNoActiveCommand_assertEmptyOutputFeatureIds() throws Exception {
+    var commandJourneyId = UUID.randomUUID();
+    var commandJourney = new CommandJourney();
+
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(operatorCommandReceiver.undo(commandJourney)).thenReturn(List.of());
+
+    mockMvc.perform(post("/api/gis-framework/undo/{commandJourneyId}", commandJourneyId)
             .with(csrf())
             .with(user(regulatorUser)))
         .andExpect(status().isOk())

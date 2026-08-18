@@ -1,6 +1,6 @@
 import type { LinePoint } from "../../../../main/resources/js/grid-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { splitFeature } from "../../../../main/resources/js/api/split.api";
+import { splitFeature, undoSplit } from "../../../../main/resources/js/api/split.api";
 
 function point(originalSrsCoordinates: [number, number]): LinePoint {
   return { coordinates: [0, 0], originalSrsCoordinates };
@@ -51,6 +51,37 @@ describe("splitApi", () => {
         "X-CSRF-TOKEN",
         "csrf-token-1",
       )).rejects.toBe("Response status: Internal Server Error");
+    });
+  });
+
+  describe("undoSplit", () => {
+    it("undoSplit_whenResponseOk_returnsResponse", async () => {
+      const expected = { outputFeatureIds: ["feature-1"] };
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue(expected),
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const result = await undoSplit("/api/gis-framework/undo/journey-1", "X-CSRF-TOKEN", "csrf-token-1");
+
+      expect(result).toEqual(expected);
+      expect(fetchMock).toHaveBeenCalledWith("/api/gis-framework/undo/journey-1", {
+        method: "POST",
+        headers: { "X-CSRF-TOKEN": "csrf-token-1" },
+      });
+    });
+
+    it("undoSplit_whenResponseNotOk_rejects", async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: false,
+        statusText: "Internal Server Error",
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      await expect(undoSplit("/api/gis-framework/undo/journey-1", "X-CSRF-TOKEN", "csrf-token-1"))
+        .rejects
+        .toBe("Response status: Internal Server Error");
     });
   });
 });

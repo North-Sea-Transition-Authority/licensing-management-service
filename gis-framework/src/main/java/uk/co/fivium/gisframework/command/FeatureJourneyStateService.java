@@ -38,6 +38,21 @@ public class FeatureJourneyStateService {
     featureJourneyStateRepository.saveAll(states);
   }
 
+  @Transactional
+  public void activateFeatures(List<Feature> features) {
+    var featureIds = features.stream().map(Feature::getId).collect(Collectors.toSet());
+    var states = featureJourneyStateRepository.findAllByFeature_IdIn(featureIds);
+    states.forEach(state -> state.setActive(true));
+    featureJourneyStateRepository.saveAll(states);
+  }
+
+  @Transactional
+  public void deactivateFeaturesCreatedByCommand(OperatorCommand createdByCommand) {
+    var states = featureJourneyStateRepository.findAllByCreatedByCommand(createdByCommand);
+    states.forEach(state -> state.setActive(false));
+    featureJourneyStateRepository.saveAll(states);
+  }
+
   /**
    * Creates a FeatureJourneyState for the output features of an OperatorCommand. The state will be marked as active.
    *

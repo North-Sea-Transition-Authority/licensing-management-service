@@ -1,4 +1,4 @@
-import { createApp } from "vue";
+import {createApp} from "vue";
 import OpenLayersMap from "vue3-openlayers";
 import BaseMap from "./components/baseMap/BaseMap.vue";
 import TextualDescription from "./components/textualDescription/TextualDescription.vue";
@@ -62,6 +62,8 @@ for (const element of document.querySelectorAll<HTMLElement>("[data-gis-componen
     featuresBaseUrl: element.dataset.gisFeaturesBaseUrl,
     outlineNodesBaseUrl: element.dataset.gisOutlineNodesBaseUrl,
     splitUrl: element.dataset.gisSplitUrl,
+    historyBaseUrl: element.dataset.gisHistoryBaseUrl,
+    undoBaseUrl: element.dataset.gisUndoBaseUrl,
     csrfHeaderName: element.dataset.gisCsrfHeaderName,
     csrfToken: element.dataset.gisCsrfToken,
     includeNstaQuadrants: element.dataset.gisIncludeNstaQuadrants === "true",

@@ -1,4 +1,4 @@
-import type { LinePoint } from "../grid-utils";
+import type {LinePoint} from "../grid-utils";
 
 export interface JsonSplitResponse {
   outputFeatureIds: string[];
@@ -20,6 +20,23 @@ export async function splitFeature(
     method: "POST",
     headers: { "Content-Type": "application/json", [csrfHeaderName]: csrfToken },
     body: JSON.stringify({ cutterLineOriginalSrsCoordinates, commandJourneyId }),
+  });
+
+  if (!response.ok) {
+    return Promise.reject(`Response status: ${response.statusText}`);
+  }
+
+  return await response.json() as JsonSplitResponse;
+}
+
+export async function undoSplit(
+  undoUrl: string,
+  csrfHeaderName: string,
+  csrfToken: string,
+): Promise<JsonSplitResponse> {
+  const response = await fetch(undoUrl, {
+    method: "POST",
+    headers: { [csrfHeaderName]: csrfToken },
   });
 
   if (!response.ok) {

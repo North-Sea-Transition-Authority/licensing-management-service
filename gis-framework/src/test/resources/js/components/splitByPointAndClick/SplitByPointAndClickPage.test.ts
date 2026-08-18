@@ -37,12 +37,29 @@ const baseMapStub = {
   `,
 };
 
+// Stubs SplitActions entirely, exposing buttons that emit action-success/action-error, so tests can
+// drive the page's shared success/error handling without exercising the real undo/history behaviour.
+const splitActionsStub = {
+  props: ["refreshCounter", "historyUrl", "undoUrl", "csrfHeaderName", "csrfToken"],
+  emits: ["action-success", "action-error"],
+  template: `
+    <div>
+      <p data-testid="history-url">{{ historyUrl }}</p>
+      <p data-testid="undo-url">{{ undoUrl }}</p>
+      <button data-testid="emit-action-success" @click="$emit('action-success')">success</button>
+      <button data-testid="emit-action-error" @click="$emit('action-error', 'undo failed')">error</button>
+    </div>
+  `,
+};
+
 const baseProps = {
   commandJourneyId: "journey-1",
   srsWkid: SupportedWkid.ED50_WKID,
   featuresBaseUrl: "/api/gis-framework/features",
   outlineNodesBaseUrl: "/api/gis-framework/outline-nodes",
   splitUrl: "/api/gis-framework/split",
+  historyBaseUrl: "/api/gis-framework/split-history",
+  undoBaseUrl: "/api/gis-framework/undo",
   csrfHeaderName: "X-CSRF-TOKEN",
   csrfToken: "csrf-token-1",
 };
@@ -50,7 +67,7 @@ const baseProps = {
 function renderPage() {
   return render(SplitByPointAndClickPage, {
     props: { ...baseProps },
-    global: { stubs: { BaseMap: baseMapStub } },
+    global: { stubs: { BaseMap: baseMapStub, SplitActions: splitActionsStub } },
   });
 }
 
@@ -64,6 +81,35 @@ describe("splitByPointAndClickPage", () => {
 
     expect(screen.getByTestId("features-url").textContent)
       .toBe("/api/gis-framework/features/journey-1");
+  });
+
+  it("builds the history and undo urls from the given command journey id", () => {
+    renderPage();
+
+    expect(screen.getByTestId("history-url").textContent)
+      .toBe("/api/gis-framework/split-history/journey-1");
+    expect(screen.getByTestId("undo-url").textContent)
+      .toBe("/api/gis-framework/undo/journey-1");
+  });
+
+  it("refreshes the map and clears any error when split actions succeed", async () => {
+    renderPage();
+
+    await fireEvent.click(screen.getByTestId("emit-action-success"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("refresh-counter").textContent).toBe("1");
+    });
+  });
+
+  it("shows an error message when split actions fail", async () => {
+    renderPage();
+
+    await fireEvent.click(screen.getByTestId("emit-action-error"));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert").textContent).toContain("undo failed");
+    });
   });
 
   it("does not attempt a split with fewer than two points", async () => {

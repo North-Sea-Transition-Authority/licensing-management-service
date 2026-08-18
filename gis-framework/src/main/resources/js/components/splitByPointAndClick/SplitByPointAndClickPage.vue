@@ -12,6 +12,15 @@
       :refresh-counter="refreshCounter"
       @update:points="points = $event"
     />
+    <split-actions
+      :refresh-counter="refreshCounter"
+      :history-url="historyUrl"
+      :undo-url="undoUrl"
+      :csrf-header-name="csrfHeaderName"
+      :csrf-token="csrfToken"
+      @action-success="onSplitSuccess"
+      @action-error="splitError = $event"
+    />
   </div>
 </template>
 
@@ -22,6 +31,7 @@ import { computed, ref, watch } from "vue";
 import { splitFeature } from "../../api/split.api";
 import BaseMap from "../baseMap/BaseMap.vue";
 import ErrorSummary from "../gdsComponents/error/ErrorSummary.vue";
+import SplitActions from "./SplitActions.vue";
 
 interface SplitByPointAndClickPageProps {
   commandJourneyId: string,
@@ -29,6 +39,8 @@ interface SplitByPointAndClickPageProps {
   featuresBaseUrl: string,
   outlineNodesBaseUrl: string,
   splitUrl: string,
+  historyBaseUrl: string,
+  undoBaseUrl: string,
   csrfHeaderName: string,
   csrfToken: string,
   includeNstaQuadrants?: boolean,
@@ -45,12 +57,14 @@ const splitError = ref<string | null>(null);
 const autoSplitInProgress = ref(false);
 const refreshCounter = ref(0);
 
-function buildFeatureIdsUrl(baseUrl: string, commandJourney: string): string {
+function buildCommandJourneyUrl(baseUrl: string, commandJourney: string): string {
   return `${baseUrl}/${commandJourney}`;
 }
 
-const featuresUrl = computed(() => buildFeatureIdsUrl(props.featuresBaseUrl, props.commandJourneyId));
-const outlineNodesUrl = computed(() => buildFeatureIdsUrl(props.outlineNodesBaseUrl, props.commandJourneyId));
+const featuresUrl = computed(() => buildCommandJourneyUrl(props.featuresBaseUrl, props.commandJourneyId));
+const outlineNodesUrl = computed(() => buildCommandJourneyUrl(props.outlineNodesBaseUrl, props.commandJourneyId));
+const historyUrl = computed(() => buildCommandJourneyUrl(props.historyBaseUrl, props.commandJourneyId));
+const undoUrl = computed(() => buildCommandJourneyUrl(props.undoBaseUrl, props.commandJourneyId));
 
 function onSplitSuccess() {
   splitError.value = null;

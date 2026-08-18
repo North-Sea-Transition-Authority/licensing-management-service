@@ -11,4 +11,7 @@ interface OperatorCommandRepository extends ListCrudRepository<OperatorCommand, 
 
   @Query("SELECT MAX(command.commandOrder) FROM OperatorCommand command WHERE command.commandJourney = :commandJourney")
   Optional<Integer> findMaxCommandOrderByCommandJourney(CommandJourney commandJourney);
+
+  Optional<OperatorCommand> findFirstByCommandJourneyAndStatusOrderByCommandOrderDesc(CommandJourney commandJourney,
+                                                                                      CommandStatus status);
 }

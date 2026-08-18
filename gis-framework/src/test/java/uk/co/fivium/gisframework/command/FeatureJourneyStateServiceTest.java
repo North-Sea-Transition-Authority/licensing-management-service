@@ -81,6 +81,42 @@ class FeatureJourneyStateServiceTest {
   }
 
   @Test
+  void activateFeatures_setsExistingStatesActive() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var state = FeatureJourneyStateTestUtil.newBuilder().withFeature(feature).withActive(false).build();
+
+    when(featureJourneyStateRepository.findAllByFeature_IdIn(Set.of(feature.getId()))).thenReturn(List.of(state));
+    when(featureJourneyStateRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    featureJourneyStateService.activateFeatures(List.of(feature));
+
+    verify(featureJourneyStateRepository).saveAll(statesCaptor.capture());
+    assertThat(statesCaptor.getValue())
+        .extracting(FeatureJourneyState::getFeature, FeatureJourneyState::isActive)
+        .containsExactly(tuple(feature, true));
+  }
+
+  @Test
+  void deactivateFeaturesCreatedByCommand_setsStatesInactive() {
+    var command = OperatorCommandTestUtil.newBuilder().build();
+    var feature = FeatureTestUtil.newBuilder().build();
+    var state = FeatureJourneyStateTestUtil.newBuilder()
+        .withFeature(feature)
+        .withCreatedByCommand(command)
+        .withActive(true)
+        .build();
+
+    when(featureJourneyStateRepository.findAllByCreatedByCommand(command)).thenReturn(List.of(state));
+
+    featureJourneyStateService.deactivateFeaturesCreatedByCommand(command);
+
+    verify(featureJourneyStateRepository).saveAll(statesCaptor.capture());
+    assertThat(statesCaptor.getValue())
+        .extracting(FeatureJourneyState::getFeature, FeatureJourneyState::isActive)
+        .containsExactly(tuple(feature, false));
+  }
+
+  @Test
   void createFeatureJourneyStatesForCommandOutput_createsActiveStateWithCreatingCommand() {
     var commandJourney = CommandJourneyTestUtil.newBuilder().build();
     var command = OperatorCommandTestUtil.newBuilder().build();

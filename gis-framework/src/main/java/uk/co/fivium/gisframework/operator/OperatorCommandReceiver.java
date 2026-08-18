@@ -6,18 +6,21 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import uk.co.fivium.gisframework.command.CommandJourney;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.command.FeatureJourneyStateService;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
 import uk.co.fivium.gisframework.command.TransformationType;
 import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
 import uk.co.fivium.gisframework.feature.Feature;
+import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 
 @Service
 public class OperatorCommandReceiver {
 
   private final SplitOperatorService splitOperatorService;
+  private final FeatureService featureService;
   private final FeatureJourneyStateService featureJourneyStateService;
   private final OperatorCommandService operatorCommandService;
   private final CommandJourneyService commandJourneyService;
@@ -25,11 +28,13 @@ public class OperatorCommandReceiver {
 
   public OperatorCommandReceiver(
       SplitOperatorService splitOperatorService,
+      FeatureService featureService,
       FeatureJourneyStateService featureJourneyStateService,
       OperatorCommandService operatorCommandService,
       CommandJourneyService commandJourneyService,
       GrpcClientService grpcClientService) {
     this.splitOperatorService = splitOperatorService;
+    this.featureService = featureService;
     this.featureJourneyStateService = featureJourneyStateService;
     this.operatorCommandService = operatorCommandService;
     this.commandJourneyService = commandJourneyService;
@@ -79,5 +84,32 @@ public class OperatorCommandReceiver {
     featureJourneyStateService.createFeatureJourneyStatesForCommandOutput(commandJourney, command, outputFeatures);
 
     return outputFeatures;
+  }
+
+  /**
+   * Undoes the most recent active command in the given journey: the features it produced are deactivated and the
+   * features it consumed are reactivated.
+   *
+   * @param commandJourney the journey to undo the latest command for.
+   * @return the reactivated input features, or an empty list if the journey has no active command to undo.
+   */
+  @Transactional
+  public List<Feature> undo(CommandJourney commandJourney) {
+    var currentActiveCommandOpt = operatorCommandService.getCurrentActiveCommand(commandJourney);
+
+    if (currentActiveCommandOpt.isEmpty()) {
+      return List.of();
+    }
+
+    var currentActiveCommand = currentActiveCommandOpt.get();
+
+    featureJourneyStateService.deactivateFeaturesCreatedByCommand(currentActiveCommand);
+
+    var inputFeatures = featureService.getFeaturesByIds(currentActiveCommand.getInputFeatureIds());
+    featureJourneyStateService.activateFeatures(inputFeatures);
+
+    operatorCommandService.markUndone(currentActiveCommand);
+
+    return inputFeatures;
   }
 }

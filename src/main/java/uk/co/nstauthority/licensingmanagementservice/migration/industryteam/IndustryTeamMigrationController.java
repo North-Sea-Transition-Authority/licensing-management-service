@@ -26,4 +26,10 @@ public class IndustryTeamMigrationController {
     var createdCount = industryTeamMigrationService.migrateIndustryTeams();
     return ResponseEntity.ok("%d industry teams migrated".formatted(createdCount));
   }
+
+  @RequestMapping(value = "/team-users", method = {RequestMethod.GET, RequestMethod.POST})
+  public ResponseEntity<String> migrateIndustryTeamUsers() {
+    var createdCount = industryTeamMigrationService.migrateIndustryTeamUsers();
+    return ResponseEntity.ok("%d industry team users migrated".formatted(createdCount));
+  }
 }

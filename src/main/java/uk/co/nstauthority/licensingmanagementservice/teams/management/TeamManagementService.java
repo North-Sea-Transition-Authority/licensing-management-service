@@ -231,8 +231,9 @@ public class TeamManagementService {
 
   @Transactional
   public void setUserTeamRoles(Long wuaId, Team team, List<Role> roles, ServiceUserDetail instigatingUser) {
-    if (!new HashSet<>(team.getTeamType().getAllowedRoles()).containsAll(roles)) {
-      throw new TeamManagementException("Roles %s are not valid for team type %s".formatted(roles, team.getTeamType()));
+    if (!new HashSet<>(teamQueryService.getAvailableRoles(team.getTeamType())).containsAll(roles)) {
+      throw new TeamManagementException(
+          "Roles %s are not available for team type %s".formatted(roles, team.getTeamType()));
     }
 
     // Check the user is valid

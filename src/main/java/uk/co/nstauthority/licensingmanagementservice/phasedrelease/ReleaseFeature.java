@@ -8,6 +8,14 @@ package uk.co.nstauthority.licensingmanagementservice.phasedrelease;
  */
 public enum ReleaseFeature {
 
+  // --- Not flagged ---
+  /**
+   * A team role that is available from the initial release. The default for every role that is not held back by a
+   * later phase — regulator and external contributor roles, plus team management and licensee contacts for industry
+   * teams.
+   */
+  TEAM_ROLE(ReleasePhase.NOT_FLAGGED),
+
   // --- LMS1 ---
   /** The "Start application" button on the work area (coarse: shown when any application type is available). */
   START_APPLICATION(ReleasePhase.LMS1),
@@ -19,6 +27,11 @@ public enum ReleaseFeature {
   MANAGE_SCHEDULE(ReleasePhase.LMS1),
   /** The schedule tab on the licence page. */
   VIEW_LICENCE_SCHEDULE(ReleasePhase.LMS1),
+  /**
+   * The industry team roles that grant licence and application access — application editor, application submitter and
+   * licence viewer. Only team management and licensee contacts are offered for industry teams before LMS1.
+   */
+  INDUSTRY_LICENCE_AND_APPLICATION_ROLE(ReleasePhase.LMS1),
 
   // --- LMS2 ---
   /** Licence corrections and the corrections work-area category. */

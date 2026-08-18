@@ -182,6 +182,10 @@ class TeamManagementServiceTest {
 
   }
 
+  private void allowAllRolesFor(TeamType teamType) {
+    when(teamQueryService.getAvailableRoles(teamType)).thenReturn(teamType.getAllowedRoles());
+  }
+
   @Test
   void createScopedTeam() {
     var scopeRef = TeamScopeReference.from("1", "OU");
@@ -414,6 +418,7 @@ class TeamManagementServiceTest {
 
   @Test
   void setUserTeamRoles() {
+    allowAllRolesFor(TeamType.LICENCE_MANAGEMENT);
     when(energyPortalUserService.findByWuaId(WebUserAccountId.from(1L), PORTAL_VALIDATE_USERS_LOOKUP_PURPOSE))
         .thenReturn(Optional.of(EnergyPortalUserJson.from(user1)));
     when(teamRoleRepository.findByTeam(regTeam))
@@ -444,6 +449,7 @@ class TeamManagementServiceTest {
 
   @Test
   void setUserTeamRole_isNewUser() {
+    allowAllRolesFor(TeamType.LICENCE_MANAGEMENT);
     when(energyPortalUserService.findByWuaId(WebUserAccountId.from(USER_1_WUA_ID), PORTAL_VALIDATE_USERS_LOOKUP_PURPOSE))
         .thenReturn(Optional.of(EnergyPortalUserJson.from(user1)));
     when(teamRoleRepository.findByTeam(regTeam))
@@ -465,6 +471,7 @@ class TeamManagementServiceTest {
 
   @Test
   void setUserTeamRoles_noTeamManagerLeft() {
+    allowAllRolesFor(TeamType.LICENCE_MANAGEMENT);
     when(energyPortalUserService.findByWuaId(WebUserAccountId.from(1L), PORTAL_VALIDATE_USERS_LOOKUP_PURPOSE))
         .thenReturn(Optional.of(EnergyPortalUserJson.from(user1)));
 
@@ -485,6 +492,10 @@ class TeamManagementServiceTest {
 
   @Test
   void setUserTeamRoles_invalidRoles() {
+    // Covers both roles that do not belong to the team type and roles held back until a later release phase
+    when(teamQueryService.getAvailableRoles(TeamType.LICENCE_MANAGEMENT))
+        .thenReturn(List.of(Role.MANAGE_TEAM));
+
     var roleList = List.of(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM);
     assertThatExceptionOfType(TeamManagementException.class)
         .isThrownBy(
@@ -502,6 +513,7 @@ class TeamManagementServiceTest {
 
   @Test
   void setUserTeamRoles_noEpaUser() {
+    allowAllRolesFor(TeamType.LICENCE_MANAGEMENT);
     when(energyPortalUserService.findByWuaId(WebUserAccountId.from(1L), PORTAL_VALIDATE_USERS_LOOKUP_PURPOSE))
         .thenReturn(Optional.empty());
 
@@ -521,6 +533,7 @@ class TeamManagementServiceTest {
 
   @Test
   void setUserTeamRoles_sharedAccount() {
+    allowAllRolesFor(TeamType.LICENCE_MANAGEMENT);
     var epaUser = new User();
     epaUser.setIsAccountShared(true);
 
@@ -543,6 +556,7 @@ class TeamManagementServiceTest {
 
   @Test
   void setUserTeamRoles_canNotLogin() {
+    allowAllRolesFor(TeamType.LICENCE_MANAGEMENT);
     var epaUser = new User();
     epaUser.setCanLogin(false);
 

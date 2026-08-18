@@ -5,15 +5,26 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 
 @Service
 public class TeamQueryService {
   private final TeamRepository teamRepository;
   private final TeamRoleRepository teamRoleRepository;
+  private final FeatureFlagService featureFlagService;
 
-  public TeamQueryService(TeamRepository teamRepository, TeamRoleRepository teamRoleRepository) {
+  public TeamQueryService(
+      TeamRepository teamRepository,
+      TeamRoleRepository teamRoleRepository,
+      FeatureFlagService featureFlagService
+  ) {
     this.teamRepository = teamRepository;
     this.teamRoleRepository = teamRoleRepository;
+    this.featureFlagService = featureFlagService;
+  }
+
+  public List<Role> getAvailableRoles(TeamType teamType) {
+    return featureFlagService.filterEnabled(teamType.getAllowedRoles());
   }
 
   public boolean userHasStaticRole(Long wuaId, TeamType teamType, Role role) {

@@ -330,7 +330,7 @@ public class TeamManagementController {
   private ModelAndView buildTeamListView(Team team, Long wuaId) {
     var modelAndView = new ModelAndView("lms/teamManagement/teamMembers")
         .addObject("teamName", team.getName())
-        .addObject("rolesInTeam", team.getTeamType().getAllowedRoles())
+        .addObject("rolesInTeam", teamQueryService.getAvailableRoles(team.getTeamType()))
         .addObject("canManageTeam", teamManagementService.canManageTeam(team, wuaId))
         .addObject("teamMemberViews", teamManagementService.getTeamMemberViewsForTeam(team));
 
@@ -369,7 +369,7 @@ public class TeamManagementController {
       form.setRoles(teamMemberView.roles().stream().map(Role::name).toList());
     }
 
-    var availableRoles = team.getTeamType().getAllowedRoles();
+    var availableRoles = teamQueryService.getAvailableRoles(team.getTeamType());
     Map<String, String> rolesNamesMap = availableRoles.stream()
                                                       .collect(StreamUtil.toLinkedHashMap(Enum::name, Role::getName));
 

@@ -446,6 +446,9 @@ class TeamManagementControllerTest extends AbstractControllerTest {
     when(teamManagementService.getTeamMemberViewsForTeam(regTeam))
         .thenReturn(List.of(regTeamMemberView));
 
+    when(teamQueryService.getAvailableRoles(TeamType.LICENCE_MANAGEMENT))
+        .thenReturn(TeamType.LICENCE_MANAGEMENT.getAllowedRoles());
+
     mockMvc.perform(
             get(ReverseRouter.route(on(TeamManagementController.class).renderTeamMemberList(regTeam.getId(), null)))
                 .with(user(invokingUser)))
@@ -460,6 +463,27 @@ class TeamManagementControllerTest extends AbstractControllerTest {
             ReverseRouter.route(on(TeamManagementController.class).renderAddMemberToTeam(regTeam.getId(), null))
         ))
         .andExpect(model().attribute("rolesInTeam", regTeam.getTeamType().getAllowedRoles()));
+  }
+
+  @Test
+  void renderTeamMemberList_whenRoleIsNotYetAvailable_thenNotListed() throws Exception {
+    var availableRoles = List.of(Role.MANAGE_TEAM, Role.LICENSEE_CONTACTS_MANAGER);
+
+    when(teamManagementService.getTeam(organisationTeam.getId()))
+        .thenReturn(organisationTeam);
+
+    when(teamManagementService.userCanManageAnyOrganisationTeam(invokingUser.wuaId()))
+        .thenReturn(true);
+
+    when(teamQueryService.getAvailableRoles(TeamType.ORGANISATION))
+        .thenReturn(availableRoles);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(
+                on(TeamManagementController.class).renderTeamMemberList(organisationTeam.getId(), null)))
+                .with(user(invokingUser)))
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("rolesInTeam", availableRoles));
   }
 
   @Test
@@ -667,6 +691,9 @@ class TeamManagementControllerTest extends AbstractControllerTest {
 
     when(teamManagementService.getTeamMemberView(regTeam, 999L))
         .thenReturn(regTeamMemberView);
+
+    when(teamQueryService.getAvailableRoles(TeamType.LICENCE_MANAGEMENT))
+        .thenReturn(TeamType.LICENCE_MANAGEMENT.getAllowedRoles());
 
     when(allowedDomainService.isAllowedDomain(regTeamMemberView.email(), regTeam)).thenReturn(
         isAllowed
@@ -1132,6 +1159,9 @@ class TeamManagementControllerTest extends AbstractControllerTest {
 
     when(teamManagementService.getTeamMemberView(externalContributors, 999L))
         .thenReturn(applicationScopedTeamMemberView);
+
+    when(teamQueryService.getAvailableRoles(TeamType.EXTERNAL_CONTRIBUTORS))
+        .thenReturn(TeamType.EXTERNAL_CONTRIBUTORS.getAllowedRoles());
 
     var modelAndView = mockMvc.perform(
                                   get(ReverseRouter.route(on(TeamManagementController.class).renderUserScheduleExternalContributorsTeamRoles(

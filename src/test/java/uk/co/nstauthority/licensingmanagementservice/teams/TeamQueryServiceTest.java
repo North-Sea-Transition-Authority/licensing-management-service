@@ -11,10 +11,15 @@ import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagServiceTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 class TeamQueryServiceTest {
@@ -24,6 +29,9 @@ class TeamQueryServiceTest {
 
   @Mock
   private TeamRoleRepository teamRoleRepository;
+
+  @Spy
+  private FeatureFlagService featureFlagService = FeatureFlagServiceTestUtil.allPhasesEnabled();
 
   @InjectMocks
   private TeamQueryService teamQueryService;
@@ -197,6 +205,32 @@ class TeamQueryServiceTest {
     when(teamRoleRepository.findAllByWuaId(1L)).thenReturn(List.of(teamRole));
 
     assertThat(teamQueryService.userIsInRegulatorTeam(1L)).isFalse();
+  }
+
+  @ParameterizedTest
+  @EnumSource(TeamType.class)
+  void getAvailableRoles_whenAllPhasesEnabled_thenEveryAllowedRole(TeamType teamType) {
+    assertThat(teamQueryService.getAvailableRoles(teamType))
+        .isEqualTo(teamType.getAllowedRoles());
+  }
+
+  @Test
+  void getAvailableRoles_whenInitialRelease_thenIndustryTeamOffersManageTeamAndLicenseeContactsOnly() {
+    var initialRelease = new TeamQueryService(
+        teamRepository, teamRoleRepository, FeatureFlagServiceTestUtil.initialReleaseOnly());
+
+    assertThat(initialRelease.getAvailableRoles(TeamType.ORGANISATION))
+        .containsExactly(Role.MANAGE_TEAM, Role.LICENSEE_CONTACTS_MANAGER);
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = TeamType.class, names = "ORGANISATION", mode = EnumSource.Mode.EXCLUDE)
+  void getAvailableRoles_whenInitialRelease_thenRegulatorAndExternalContributorRolesAreUnaffected(TeamType teamType) {
+    var initialRelease = new TeamQueryService(
+        teamRepository, teamRoleRepository, FeatureFlagServiceTestUtil.initialReleaseOnly());
+
+    assertThat(initialRelease.getAvailableRoles(teamType))
+        .isEqualTo(teamType.getAllowedRoles());
   }
 
   private void setupStaticTeamAndRoles(Long wuaId, TeamType teamType, List<Role> roles) {

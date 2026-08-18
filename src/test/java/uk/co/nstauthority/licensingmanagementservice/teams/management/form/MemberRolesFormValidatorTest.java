@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.validation.BeanPropertyBindingResult;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
@@ -26,6 +27,9 @@ class MemberRolesFormValidatorTest {
 
   @Mock
   private TeamManagementService teamManagementService;
+
+  @Mock
+  private TeamQueryService teamQueryService;
 
   @InjectMocks
   private MemberRolesFormValidator memberRolesFormValidator;
@@ -48,6 +52,9 @@ class MemberRolesFormValidatorTest {
   @Test
   void isValid() {
     form.setRoles(List.of("MANAGE_TEAM"));
+
+    when(teamQueryService.getAvailableRoles(TeamType.ORGANISATION))
+        .thenReturn(TeamType.ORGANISATION.getAllowedRoles());
 
     when(teamManagementService.willManageTeamRoleBePresentAfterMemberRoleUpdate(team, 1L, List.of(Role.MANAGE_TEAM)))
         .thenReturn(true);
@@ -78,8 +85,31 @@ class MemberRolesFormValidatorTest {
   }
 
   @Test
+  void isValid_roleNotAvailableForRelease() {
+    form.setRoles(List.of("APPLICATION_SUBMITTER"));
+
+    when(teamQueryService.getAvailableRoles(TeamType.ORGANISATION))
+        .thenReturn(List.of(Role.MANAGE_TEAM, Role.LICENSEE_CONTACTS_MANAGER));
+
+    memberRolesFormValidator.validate(form, 1L, team, errors);
+
+    assertThat(errors.hasErrors()).isTrue();
+
+    var extractedErrors = ValidatorTestingUtil.extractErrors(errors);
+    assertThat(extractedErrors).containsExactly(
+        entry(FIELD_NAME, Set.of(FIELD_NAME + ".notAvailable")));
+
+    var errorMessages = ValidatorTestingUtil.extractErrorMessages(errors);
+    assertThat(errorMessages).containsExactly(
+        entry(FIELD_NAME, Set.of("Select roles that are available for this team")));
+  }
+
+  @Test
   void isValid_noTeamManagerLeft() {
     form.setRoles(List.of("MANAGE_TEAM"));
+
+    when(teamQueryService.getAvailableRoles(TeamType.ORGANISATION))
+        .thenReturn(TeamType.ORGANISATION.getAllowedRoles());
 
     when(teamManagementService.willManageTeamRoleBePresentAfterMemberRoleUpdate(team, 1L, List.of(Role.MANAGE_TEAM)))
         .thenReturn(false);

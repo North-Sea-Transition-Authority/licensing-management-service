@@ -6,14 +6,11 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.springframework.mock.env.MockEnvironment;
 
 class FeatureFlagServiceTest {
 
   private FeatureFlagService serviceWithProfiles(String... activeProfiles) {
-    var environment = new MockEnvironment();
-    environment.setActiveProfiles(activeProfiles);
-    return new FeatureFlagService(environment);
+    return FeatureFlagServiceTestUtil.withProfiles(activeProfiles);
   }
 
   @Test
@@ -65,8 +62,10 @@ class FeatureFlagServiceTest {
   }
 
   @Test
-  void getEnabledFeatures_whenNoProfiles_thenEmpty() {
-    assertThat(serviceWithProfiles().getEnabledFeatures()).isEmpty();
+  void getEnabledFeatures_whenNoProfiles_thenOnlyNotFlaggedFeatures() {
+    assertThat(serviceWithProfiles().getEnabledFeatures())
+        .allSatisfy(feature -> assertThat(feature.getReleasePhase()).isEqualTo(ReleasePhase.NOT_FLAGGED))
+        .contains(ReleaseFeature.TEAM_ROLE);
   }
 
   @Test

@@ -20,13 +20,16 @@ class EnergyPortalDataService implements EnergyPortalServiceProviderDataService 
 
   private final TeamRepository teamRepository;
   private final TeamRoleRepository teamRoleRepository;
+  private final TeamQueryService teamQueryService;
 
   EnergyPortalDataService(
       TeamRepository teamRepository,
-      TeamRoleRepository teamRoleRepository
+      TeamRoleRepository teamRoleRepository,
+      TeamQueryService teamQueryService
   ) {
     this.teamRepository = teamRepository;
     this.teamRoleRepository = teamRoleRepository;
+    this.teamQueryService = teamQueryService;
   }
 
   @Override
@@ -47,7 +50,8 @@ class EnergyPortalDataService implements EnergyPortalServiceProviderDataService 
     Map<String, Collection<ServiceProviderTeamTypeRoleDto>> teamTypeToRoles = new HashMap<>();
 
     for (var teamType : TeamType.values()) {
-      var serviceRoleDtos = teamType.getAllowedRoles()
+      // Roles held back until a later release phase are not published, so they cannot be assigned from the portal
+      var serviceRoleDtos = teamQueryService.getAvailableRoles(teamType)
           .stream()
           .map(role -> new ServiceProviderTeamTypeRoleDto(
                   role.name(),

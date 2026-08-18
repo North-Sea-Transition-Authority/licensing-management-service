@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.teams;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -24,6 +25,9 @@ class EnergyPortalDataServiceTest {
 
   @Mock
   private TeamRoleRepository teamRoleRepository;
+
+  @Mock
+  private TeamQueryService teamQueryService;
 
   @InjectMocks
   private EnergyPortalDataService energyPortalDataService;
@@ -54,6 +58,9 @@ class EnergyPortalDataServiceTest {
 
   @Test
   void getTeamTypeToServiceProviderTeamTypeRoleDtos() {
+    when(teamQueryService.getAvailableRoles(any()))
+        .thenAnswer(invocation -> invocation.<TeamType>getArgument(0).getAllowedRoles());
+
     var licenceManagementRoleDtos = Set.of(
         createServiceRoleDto(Role.MANAGE_TEAM, true),
         createServiceRoleDto(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM, false),
@@ -136,6 +143,22 @@ class EnergyPortalDataServiceTest {
                 TeamType.REGULATIONS_LICENSING.name(), regulationsLicensingRoleDtos
             )
         );
+  }
+
+  @Test
+  void getTeamTypeToServiceProviderTeamTypeRoleDtos_whenRoleIsNotYetAvailable_thenNotPublished() {
+    when(teamQueryService.getAvailableRoles(any()))
+        .thenAnswer(invocation -> invocation.<TeamType>getArgument(0) == TeamType.ORGANISATION
+            ? List.of(Role.MANAGE_TEAM, Role.LICENSEE_CONTACTS_MANAGER)
+            : invocation.<TeamType>getArgument(0).getAllowedRoles());
+
+    assertThat(energyPortalDataService.getTeamTypeToServiceProviderTeamTypeRoleDtos())
+        .containsEntry(
+            TeamType.ORGANISATION.name(),
+            Set.of(
+                createServiceRoleDto(Role.MANAGE_TEAM, true),
+                createServiceRoleDto(Role.LICENSEE_CONTACTS_MANAGER, false)
+            ));
   }
 
   @Test

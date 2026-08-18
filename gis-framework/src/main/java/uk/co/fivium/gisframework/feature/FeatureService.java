@@ -16,14 +16,20 @@ public class FeatureService {
   private final FeatureRepository featureRepository;
   private final LineService lineService;
   private final BrokenBlockConfigurationProperties brokenBlockConfigurationProperties;
+  private final LineRepository lineRepository;
+  private final PolygonRepository polygonRepository;
 
   public FeatureService(
       FeatureRepository featureRepository,
       LineService lineService,
-      BrokenBlockConfigurationProperties brokenBlockConfigurationProperties) {
+      BrokenBlockConfigurationProperties brokenBlockConfigurationProperties,
+      LineRepository lineRepository,
+      PolygonRepository polygonRepository) {
     this.featureRepository = featureRepository;
     this.lineService = lineService;
     this.brokenBlockConfigurationProperties = brokenBlockConfigurationProperties;
+    this.lineRepository = lineRepository;
+    this.polygonRepository = polygonRepository;
   }
 
   @Transactional
@@ -33,6 +39,14 @@ public class FeatureService {
 
   public List<Feature> getFeaturesByIds(Collection<UUID> ids) {
     return featureRepository.findAllById(ids);
+  }
+
+  @Transactional
+  public void deleteAll(Collection<Feature> features) {
+    lineRepository.deleteAllByPolygon_FeatureIn(features);
+    polygonRepository.deleteAllByFeatureIn(features);
+    featureRepository.deleteAll(features.stream().filter(f -> f.getParentFeature() != null).toList());
+    featureRepository.deleteAll(features.stream().filter(f -> f.getParentFeature() == null).toList());
   }
 
   public List<Feature> findAllByParentFeature(Feature parentFeature) {

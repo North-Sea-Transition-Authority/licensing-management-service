@@ -1,5 +1,6 @@
 export interface JsonSplitHistoryStatus {
   canUndo: boolean;
+  canRedo: boolean;
 }
 
 export async function getSplitHistoryStatus(historyUrl: string): Promise<JsonSplitHistoryStatus> {

@@ -117,6 +117,26 @@ class FeatureJourneyStateServiceTest {
   }
 
   @Test
+  void activateFeaturesCreatedByCommand_setsStatesActiveAndReturnsFeatures() {
+    var command = OperatorCommandTestUtil.newBuilder().build();
+    var feature = FeatureTestUtil.newBuilder().build();
+    var state = FeatureJourneyStateTestUtil.newBuilder()
+        .withFeature(feature)
+        .withCreatedByCommand(command)
+        .withActive(false)
+        .build();
+
+    when(featureJourneyStateRepository.findAllByCreatedByCommand(command)).thenReturn(List.of(state));
+    when(featureJourneyStateRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    var result = featureJourneyStateService.activateFeaturesCreatedByCommand(command);
+
+    assertThat(state.isActive()).isTrue();
+    assertThat(result).containsExactly(feature);
+    verify(featureJourneyStateRepository).saveAll(List.of(state));
+  }
+
+  @Test
   void createFeatureJourneyStatesForCommandOutput_createsActiveStateWithCreatingCommand() {
     var commandJourney = CommandJourneyTestUtil.newBuilder().build();
     var command = OperatorCommandTestUtil.newBuilder().build();
@@ -136,6 +156,23 @@ class FeatureJourneyStateServiceTest {
             FeatureJourneyState::isActive
         )
         .containsExactly(tuple(outputFeature, commandJourney, command, true));
+  }
+
+  @Test
+  void deleteFeatureJourneyStatesCreatedByCommands_deletesStatesAndReturnsFeatures() {
+    var command = OperatorCommandTestUtil.newBuilder().build();
+    var feature = FeatureTestUtil.newBuilder().build();
+    var state = FeatureJourneyStateTestUtil.newBuilder()
+        .withFeature(feature)
+        .withCreatedByCommand(command)
+        .build();
+
+    when(featureJourneyStateRepository.findAllByCreatedByCommandIn(List.of(command))).thenReturn(List.of(state));
+
+    var result = featureJourneyStateService.deleteFeatureJourneyStatesCreatedByCommands(List.of(command));
+
+    assertThat(result).containsExactly(feature);
+    verify(featureJourneyStateRepository).deleteAll(List.of(state));
   }
 
   @Test

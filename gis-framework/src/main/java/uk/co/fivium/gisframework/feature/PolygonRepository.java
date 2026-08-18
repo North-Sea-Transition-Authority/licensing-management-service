@@ -12,4 +12,6 @@ interface PolygonRepository extends ListCrudRepository<Polygon, UUID> {
   List<Polygon> findAllByFeatureIn(Collection<Feature> features);
 
   List<Polygon> findAllByFeature(Feature feature);
+
+  void deleteAllByFeatureIn(Collection<Feature> features);
 }

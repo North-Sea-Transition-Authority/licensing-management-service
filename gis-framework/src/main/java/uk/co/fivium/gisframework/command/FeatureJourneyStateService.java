@@ -54,6 +54,20 @@ public class FeatureJourneyStateService {
   }
 
   /**
+   * Reactivates the features created by an OperatorCommand, used when redoing that command.
+   *
+   * @param createdByCommand The command whose output features should be reactivated
+   * @return The reactivated features
+   */
+  @Transactional
+  public List<Feature> activateFeaturesCreatedByCommand(OperatorCommand createdByCommand) {
+    var states = featureJourneyStateRepository.findAllByCreatedByCommand(createdByCommand);
+    states.forEach(state -> state.setActive(true));
+    featureJourneyStateRepository.saveAll(states);
+    return states.stream().map(FeatureJourneyState::getFeature).toList();
+  }
+
+  /**
    * Creates a FeatureJourneyState for the output features of an OperatorCommand. The state will be marked as active.
    *
    * @param commandJourney   The command journey
@@ -68,6 +82,21 @@ public class FeatureJourneyStateService {
         .map(feature -> newState(feature, commandJourney, createdByCommand, true))
         .toList();
     featureJourneyStateRepository.saveAll(states);
+  }
+
+  /**
+   * Hard-deletes the feature journey states created by the given commands, returning the features they were for
+   * so their now-orphaned geometry and the features themselves can also be hard-deleted.
+   *
+   * @param createdByCommands The commands whose output feature journey states should be deleted
+   * @return The features the deleted states were for
+   */
+  @Transactional
+  public List<Feature> deleteFeatureJourneyStatesCreatedByCommands(List<OperatorCommand> createdByCommands) {
+    var states = featureJourneyStateRepository.findAllByCreatedByCommandIn(createdByCommands);
+    var features = states.stream().map(FeatureJourneyState::getFeature).toList();
+    featureJourneyStateRepository.deleteAll(states);
+    return features;
   }
 
   /**

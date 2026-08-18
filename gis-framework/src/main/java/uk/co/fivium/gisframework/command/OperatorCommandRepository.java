@@ -1,5 +1,6 @@
 package uk.co.fivium.gisframework.command;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.Query;
@@ -14,4 +15,9 @@ interface OperatorCommandRepository extends ListCrudRepository<OperatorCommand, 
 
   Optional<OperatorCommand> findFirstByCommandJourneyAndStatusOrderByCommandOrderDesc(CommandJourney commandJourney,
                                                                                       CommandStatus status);
+
+  Optional<OperatorCommand> findFirstByCommandJourneyAndStatusOrderByCommandOrderAsc(CommandJourney commandJourney,
+                                                                                     CommandStatus status);
+
+  List<OperatorCommand> findAllByCommandJourneyAndStatus(CommandJourney commandJourney, CommandStatus status);
 }

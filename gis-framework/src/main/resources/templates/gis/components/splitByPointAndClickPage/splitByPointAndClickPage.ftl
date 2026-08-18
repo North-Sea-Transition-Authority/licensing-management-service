@@ -12,6 +12,7 @@
       data-gis-split-url="<@spring.url '/api/gis-framework/split'/>"
       data-gis-history-base-url="<@spring.url '/api/gis-framework/split-history'/>"
       data-gis-undo-base-url="<@spring.url '/api/gis-framework/undo'/>"
+      data-gis-redo-base-url="<@spring.url '/api/gis-framework/redo'/>"
       data-gis-csrf-header-name="${_csrf.headerName}"
       data-gis-csrf-token="${_csrf.token}"
    >

@@ -40,12 +40,13 @@ const baseMapStub = {
 // Stubs SplitActions entirely, exposing buttons that emit action-success/action-error, so tests can
 // drive the page's shared success/error handling without exercising the real undo/history behaviour.
 const splitActionsStub = {
-  props: ["refreshCounter", "historyUrl", "undoUrl", "csrfHeaderName", "csrfToken"],
+  props: ["refreshCounter", "historyUrl", "undoUrl", "redoUrl", "csrfHeaderName", "csrfToken"],
   emits: ["action-success", "action-error"],
   template: `
     <div>
       <p data-testid="history-url">{{ historyUrl }}</p>
       <p data-testid="undo-url">{{ undoUrl }}</p>
+      <p data-testid="redo-url">{{ redoUrl }}</p>
       <button data-testid="emit-action-success" @click="$emit('action-success')">success</button>
       <button data-testid="emit-action-error" @click="$emit('action-error', 'undo failed')">error</button>
     </div>
@@ -60,6 +61,7 @@ const baseProps = {
   splitUrl: "/api/gis-framework/split",
   historyBaseUrl: "/api/gis-framework/split-history",
   undoBaseUrl: "/api/gis-framework/undo",
+  redoBaseUrl: "/api/gis-framework/redo",
   csrfHeaderName: "X-CSRF-TOKEN",
   csrfToken: "csrf-token-1",
 };
@@ -83,13 +85,15 @@ describe("splitByPointAndClickPage", () => {
       .toBe("/api/gis-framework/features/journey-1");
   });
 
-  it("builds the history and undo urls from the given command journey id", () => {
+  it("builds the history, undo and redo urls from the given command journey id", () => {
     renderPage();
 
     expect(screen.getByTestId("history-url").textContent)
       .toBe("/api/gis-framework/split-history/journey-1");
     expect(screen.getByTestId("undo-url").textContent)
       .toBe("/api/gis-framework/undo/journey-1");
+    expect(screen.getByTestId("redo-url").textContent)
+      .toBe("/api/gis-framework/redo/journey-1");
   });
 
   it("refreshes the map and clears any error when split actions succeed", async () => {

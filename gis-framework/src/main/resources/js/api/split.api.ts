@@ -45,3 +45,20 @@ export async function undoSplit(
 
   return await response.json() as JsonSplitResponse;
 }
+
+export async function redoSplit(
+  redoUrl: string,
+  csrfHeaderName: string,
+  csrfToken: string,
+): Promise<JsonSplitResponse> {
+  const response = await fetch(redoUrl, {
+    method: "POST",
+    headers: { [csrfHeaderName]: csrfToken },
+  });
+
+  if (!response.ok) {
+    return Promise.reject(`Response status: ${response.statusText}`);
+  }
+
+  return await response.json() as JsonSplitResponse;
+}

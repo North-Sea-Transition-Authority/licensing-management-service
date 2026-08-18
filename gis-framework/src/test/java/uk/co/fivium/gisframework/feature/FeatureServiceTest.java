@@ -29,6 +29,12 @@ class FeatureServiceTest {
   @Mock
   private LineService lineService;
 
+  @Mock
+  private LineRepository lineRepository;
+
+  @Mock
+  private PolygonRepository polygonRepository;
+
   private FeatureService featureService;
 
   @BeforeEach
@@ -36,7 +42,9 @@ class FeatureServiceTest {
     featureService = new FeatureService(
         featureRepository,
         lineService,
-        new BrokenBlockConfigurationProperties(Map.of("16/30", List.of("16/29c")))
+        new BrokenBlockConfigurationProperties(Map.of("16/30", List.of("16/29c"))),
+        lineRepository,
+        polygonRepository
     );
   }
 
@@ -169,6 +177,21 @@ class FeatureServiceTest {
     var inOrder = Mockito.inOrder(featureRepository);
     inOrder.verify(featureRepository).deleteAllByParentFeatureIsNotNull();
     inOrder.verify(featureRepository).deleteAll();
+  }
+
+  @Test
+  void deleteAll_withFeatures_deletesLinesAndPolygonsThenChildFeaturesBeforeParentFeatures() {
+    var parentFeature = FeatureTestUtil.newBuilder().build();
+    var childFeature = FeatureTestUtil.newBuilder().withParentFeature(parentFeature).build();
+    var features = List.of(parentFeature, childFeature);
+
+    featureService.deleteAll(features);
+
+    var inOrder = Mockito.inOrder(lineRepository, polygonRepository, featureRepository);
+    inOrder.verify(lineRepository).deleteAllByPolygon_FeatureIn(features);
+    inOrder.verify(polygonRepository).deleteAllByFeatureIn(features);
+    inOrder.verify(featureRepository).deleteAll(List.of(childFeature));
+    inOrder.verify(featureRepository).deleteAll(List.of(parentFeature));
   }
 
   @Test

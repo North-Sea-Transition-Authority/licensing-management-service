@@ -59,7 +59,10 @@ class SplitRestController {
   @GetMapping("/split-history/{commandJourneyId}")
   ResponseEntity<JsonSplitHistoryStatus> getSplitHistory(@PathVariable UUID commandJourneyId) {
     var commandJourney = commandJourneyService.getCommandJourneyOrThrow(commandJourneyId);
-    return ResponseEntity.ok(new JsonSplitHistoryStatus(operatorCommandService.canUndo(commandJourney)));
+    return ResponseEntity.ok(new JsonSplitHistoryStatus(
+        operatorCommandService.canUndo(commandJourney),
+        operatorCommandService.canRedo(commandJourney)
+    ));
   }
 
   @PostMapping("/undo/{commandJourneyId}")
@@ -69,6 +72,17 @@ class SplitRestController {
     var reactivatedFeatures = operatorCommandReceiver.undo(commandJourney);
     List<String> reactivatedFeatureIds = reactivatedFeatures.stream().map(feature -> feature.getId().toString()).toList();
     LOGGER.info("Undo request completed successfully for command journey '{}', reactivated {} features",
+        commandJourneyId, reactivatedFeatureIds.size());
+    return ResponseEntity.ok(new JsonSplitResponse(reactivatedFeatureIds));
+  }
+
+  @PostMapping("/redo/{commandJourneyId}")
+  ResponseEntity<JsonSplitResponse> redo(@PathVariable UUID commandJourneyId) {
+    LOGGER.info("Received redo request for command journey '{}'", commandJourneyId);
+    var commandJourney = commandJourneyService.getCommandJourneyOrThrow(commandJourneyId);
+    var reactivatedFeatures = operatorCommandReceiver.redo(commandJourney);
+    List<String> reactivatedFeatureIds = reactivatedFeatures.stream().map(feature -> feature.getId().toString()).toList();
+    LOGGER.info("Redo request completed successfully for command journey '{}', reactivated {} features",
         commandJourneyId, reactivatedFeatureIds.size());
     return ResponseEntity.ok(new JsonSplitResponse(reactivatedFeatureIds));
   }

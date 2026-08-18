@@ -1,5 +1,6 @@
 package uk.co.fivium.gisframework.command;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -19,6 +20,8 @@ interface FeatureJourneyStateRepository extends ListCrudRepository<FeatureJourne
   List<Feature> findActiveFeaturesByCommandJourney(@Param("commandJourney") CommandJourney commandJourney);
 
   List<FeatureJourneyState> findAllByCreatedByCommand(OperatorCommand createdByCommand);
+
+  List<FeatureJourneyState> findAllByCreatedByCommandIn(Collection<OperatorCommand> createdByCommands);
 
   List<FeatureJourneyState> findAllByFeature_IdIn(Set<UUID> featureIds);
 

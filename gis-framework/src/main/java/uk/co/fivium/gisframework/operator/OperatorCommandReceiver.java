@@ -75,6 +75,7 @@ public class OperatorCommandReceiver {
     if (outputFeatures.isEmpty()) {
       return List.of();
     }
+    clearUndoStack(commandJourney);
 
     var affectedInputFeatureIds = affectedInputFeatures.stream().map(Feature::getId).collect(Collectors.toSet());
     var command = operatorCommandService.createOperatorCommand(commandJourney, affectedInputFeatureIds,
@@ -111,5 +112,43 @@ public class OperatorCommandReceiver {
     operatorCommandService.markUndone(currentActiveCommand);
 
     return inputFeatures;
+  }
+
+  /**
+   * Redoes the earliest undone command in the given journey: the features it consumed are deactivated and the
+   * features it produced are reactivated.
+   *
+   * @param commandJourney the journey to redo the next undone command for.
+   * @return the reactivated output features, or an empty list if the journey has no undone command to redo.
+   */
+  @Transactional
+  public List<Feature> redo(CommandJourney commandJourney) {
+    var nextRedoCommandOpt = operatorCommandService.getNextRedoCommand(commandJourney);
+
+    if (nextRedoCommandOpt.isEmpty()) {
+      return List.of();
+    }
+
+    var nextRedoCommand = nextRedoCommandOpt.get();
+    var inputFeatures = featureService.getFeaturesByIds(nextRedoCommand.getInputFeatureIds());
+    featureJourneyStateService.deactivateFeatures(inputFeatures);
+    var outputFeatures = featureJourneyStateService.activateFeaturesCreatedByCommand(nextRedoCommand);
+    operatorCommandService.markRedone(nextRedoCommand);
+    return outputFeatures;
+  }
+
+  /**
+   * Hard-deletes all commands with status UNDONE and their output features.
+   *
+   * @param commandJourney the journey whose undone commands should be discarded.
+   */
+  private void clearUndoStack(CommandJourney commandJourney) {
+    var undoneCommands = operatorCommandService.getUndoneCommands(commandJourney);
+    if (undoneCommands.isEmpty()) {
+      return;
+    }
+    var orphanedFeatures = featureJourneyStateService.deleteFeatureJourneyStatesCreatedByCommands(undoneCommands);
+    featureService.deleteAll(orphanedFeatures);
+    operatorCommandService.deleteCommands(undoneCommands);
   }
 }

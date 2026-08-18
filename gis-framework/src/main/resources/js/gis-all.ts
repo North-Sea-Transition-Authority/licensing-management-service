@@ -64,6 +64,7 @@ for (const element of document.querySelectorAll<HTMLElement>("[data-gis-componen
     splitUrl: element.dataset.gisSplitUrl,
     historyBaseUrl: element.dataset.gisHistoryBaseUrl,
     undoBaseUrl: element.dataset.gisUndoBaseUrl,
+    redoBaseUrl: element.dataset.gisRedoBaseUrl,
     csrfHeaderName: element.dataset.gisCsrfHeaderName,
     csrfToken: element.dataset.gisCsrfToken,
     includeNstaQuadrants: element.dataset.gisIncludeNstaQuadrants === "true",

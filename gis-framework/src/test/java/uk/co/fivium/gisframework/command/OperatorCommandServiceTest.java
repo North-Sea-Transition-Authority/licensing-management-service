@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -101,5 +102,79 @@ class OperatorCommandServiceTest {
         journey, CommandStatus.ACTIVE)).thenReturn(Optional.empty());
 
     assertThat(operatorCommandService.canUndo(journey)).isFalse();
+  }
+
+  @Test
+  void getNextRedoCommand_whenUndoneCommandExists_returnsIt() {
+    var journey = new CommandJourney();
+    var command = OperatorCommandTestUtil.newBuilder().withStatus(CommandStatus.UNDONE).build();
+
+    when(operatorCommandRepository.findFirstByCommandJourneyAndStatusOrderByCommandOrderAsc(
+        journey, CommandStatus.UNDONE)).thenReturn(Optional.of(command));
+
+    assertThat(operatorCommandService.getNextRedoCommand(journey)).contains(command);
+  }
+
+  @Test
+  void getNextRedoCommand_whenNoUndoneCommandExists_returnsEmpty() {
+    var journey = new CommandJourney();
+
+    when(operatorCommandRepository.findFirstByCommandJourneyAndStatusOrderByCommandOrderAsc(
+        journey, CommandStatus.UNDONE)).thenReturn(Optional.empty());
+
+    assertThat(operatorCommandService.getNextRedoCommand(journey)).isEmpty();
+  }
+
+  @Test
+  void markRedone_setsStatusToActiveAndSaves() {
+    var command = OperatorCommandTestUtil.newBuilder().withStatus(CommandStatus.UNDONE).build();
+
+    when(operatorCommandRepository.save(command)).thenReturn(command);
+
+    operatorCommandService.markRedone(command);
+
+    assertThat(command.getStatus()).isEqualTo(CommandStatus.ACTIVE);
+    verify(operatorCommandRepository).save(command);
+  }
+
+  @Test
+  void canRedo_whenUndoneCommandExists_returnsTrue() {
+    var journey = new CommandJourney();
+    var command = OperatorCommandTestUtil.newBuilder().withStatus(CommandStatus.UNDONE).build();
+
+    when(operatorCommandRepository.findFirstByCommandJourneyAndStatusOrderByCommandOrderAsc(
+        journey, CommandStatus.UNDONE)).thenReturn(Optional.of(command));
+
+    assertThat(operatorCommandService.canRedo(journey)).isTrue();
+  }
+
+  @Test
+  void canRedo_whenNoUndoneCommand_returnsFalse() {
+    var journey = new CommandJourney();
+
+    when(operatorCommandRepository.findFirstByCommandJourneyAndStatusOrderByCommandOrderAsc(
+        journey, CommandStatus.UNDONE)).thenReturn(Optional.empty());
+
+    assertThat(operatorCommandService.canRedo(journey)).isFalse();
+  }
+
+  @Test
+  void getUndoneCommands_returnsUndoneCommandsForJourney() {
+    var journey = new CommandJourney();
+    var command = OperatorCommandTestUtil.newBuilder().withStatus(CommandStatus.UNDONE).build();
+
+    when(operatorCommandRepository.findAllByCommandJourneyAndStatus(journey, CommandStatus.UNDONE))
+        .thenReturn(List.of(command));
+
+    assertThat(operatorCommandService.getUndoneCommands(journey)).containsExactly(command);
+  }
+
+  @Test
+  void deleteCommands_delegatesToRepository() {
+    var command = OperatorCommandTestUtil.newBuilder().build();
+
+    operatorCommandService.deleteCommands(List.of(command));
+
+    verify(operatorCommandRepository).deleteAll(List.of(command));
   }
 }

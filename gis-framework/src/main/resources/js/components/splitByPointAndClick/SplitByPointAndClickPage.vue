@@ -16,6 +16,7 @@
       :refresh-counter="refreshCounter"
       :history-url="historyUrl"
       :undo-url="undoUrl"
+      :redo-url="redoUrl"
       :csrf-header-name="csrfHeaderName"
       :csrf-token="csrfToken"
       @action-success="onSplitSuccess"
@@ -41,6 +42,7 @@ interface SplitByPointAndClickPageProps {
   splitUrl: string,
   historyBaseUrl: string,
   undoBaseUrl: string,
+  redoBaseUrl: string,
   csrfHeaderName: string,
   csrfToken: string,
   includeNstaQuadrants?: boolean,
@@ -65,6 +67,7 @@ const featuresUrl = computed(() => buildCommandJourneyUrl(props.featuresBaseUrl,
 const outlineNodesUrl = computed(() => buildCommandJourneyUrl(props.outlineNodesBaseUrl, props.commandJourneyId));
 const historyUrl = computed(() => buildCommandJourneyUrl(props.historyBaseUrl, props.commandJourneyId));
 const undoUrl = computed(() => buildCommandJourneyUrl(props.undoBaseUrl, props.commandJourneyId));
+const redoUrl = computed(() => buildCommandJourneyUrl(props.redoBaseUrl, props.commandJourneyId));
 
 function onSplitSuccess() {
   splitError.value = null;

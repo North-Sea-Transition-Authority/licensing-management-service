@@ -23,13 +23,16 @@ public class IndustryTeamMigrationController {
    */
   @RequestMapping(value = "/teams", method = {RequestMethod.GET, RequestMethod.POST})
   public ResponseEntity<String> migrateIndustryTeams() {
-    var createdCount = industryTeamMigrationService.migrateIndustryTeams();
-    return ResponseEntity.ok("%d industry teams migrated".formatted(createdCount));
+    var result = industryTeamMigrationService.migrateIndustryTeams();
+    return ResponseEntity.ok(result.describe("industry teams"));
   }
 
+  /**
+   * GET is supported alongside POST for the same reason as {@link #migrateIndustryTeams()}.
+   */
   @RequestMapping(value = "/team-users", method = {RequestMethod.GET, RequestMethod.POST})
   public ResponseEntity<String> migrateIndustryTeamUsers() {
-    var createdCount = industryTeamMigrationService.migrateIndustryTeamUsers();
-    return ResponseEntity.ok("%d industry team users migrated".formatted(createdCount));
+    var result = industryTeamMigrationService.migrateIndustryTeamUsers();
+    return ResponseEntity.ok(result.describe("industry team users"));
   }
 }

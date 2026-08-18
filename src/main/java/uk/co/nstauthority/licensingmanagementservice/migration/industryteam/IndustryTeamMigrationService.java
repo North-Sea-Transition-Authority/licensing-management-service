@@ -24,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPor
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationRepository;
+import uk.co.nstauthority.licensingmanagementservice.migration.MigrationResult;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
@@ -36,13 +37,7 @@ public class IndustryTeamMigrationService {
   private static final Logger LOGGER = LoggerFactory.getLogger(IndustryTeamMigrationService.class);
 
   static final String CONTACT_USER_LOOKUP_PURPOSE = "Validate PEARS contact being migrated into an industry team";
-
-  /**
-   * The roles every migrated PEARS contact is given in their industry team. {@link Role#MANAGE_TEAM} is the team admin
-   * role, and {@link Role#LICENSEE_CONTACTS_MANAGER} is the industry equivalent of the licence contacts manager role —
-   * {@link Role#LICENCE_CONTACTS_MANAGER} is a regulator role and is not valid for {@link TeamType#ORGANISATION}.
-   */
-  static final List<Role> MIGRATED_CONTACT_ROLES = List.of(Role.MANAGE_TEAM, Role.LICENSEE_CONTACTS_MANAGER);
+  static final List<Role> MIGRATED_CONTACT_ROLES = List.of(Role.MANAGE_TEAM);
 
   private final LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository;
   private final OrganisationUnitQueryService organisationUnitQueryService;
@@ -76,12 +71,13 @@ public class IndustryTeamMigrationService {
   /**
    * Creates an organisation (industry) team for each unique organisation group that owns a responsible organisation
    * on a licence. Responsible organisation ids are organisation unit ids; each is resolved via EPA to its parent
-   * organisation group, and one team is created per unique group. Teams that already exist for a group are skipped.
+   * organisation group, and one team is created per unique group. Teams that already exist for a group are skipped, so
+   * the migration can safely be re-run.
    *
-   * @return the number of industry teams created
+   * @return how many industry teams were created and how many organisation groups already had one
    */
   @Transactional
-  public int migrateIndustryTeams() {
+  public MigrationResult migrateIndustryTeams() {
     var organisationUnitIds = licenceResponsibleOrganisationRepository.findAll().stream()
         .map(LicenceResponsibleOrganisation::getResponsibleOrganisationId)
         .filter(Objects::nonNull)
@@ -90,7 +86,7 @@ public class IndustryTeamMigrationService {
 
     if (organisationUnitIds.isEmpty()) {
       LOGGER.info("No responsible organisations found, no industry teams to migrate");
-      return 0;
+      return MigrationResult.nothingToMigrate();
     }
 
     var organisationGroupIds = organisationUnitQueryService.findOrganisationGroupIdsByUnitIds(organisationUnitIds)
@@ -101,15 +97,18 @@ public class IndustryTeamMigrationService {
     var organisationGroups = organisationGroupQueryService.getOrganisationGroupsByIds(organisationGroupIds);
 
     var createdCount = 0;
+    var skippedCount = 0;
     for (var organisationGroup : organisationGroups) {
       if (createIndustryTeamIfNotExists(organisationGroup)) {
         createdCount++;
+      } else {
+        skippedCount++;
       }
     }
 
-    LOGGER.info("Created {} industry teams from {} responsible organisation units", createdCount,
-        organisationUnitIds.size());
-    return createdCount;
+    LOGGER.info("Created {} industry teams from {} responsible organisation units, skipped {} groups that already " +
+        "had a team", createdCount, organisationUnitIds.size(), skippedCount);
+    return new MigrationResult(createdCount, skippedCount);
   }
 
   /**
@@ -121,15 +120,15 @@ public class IndustryTeamMigrationService {
    * <p>{@link #migrateIndustryTeams()} must have been run first, as it is what creates the teams the contacts are
    * added to.
    *
-   * @return the number of users added to industry teams
+   * @return how many users were added to industry teams and how many extracted contacts were skipped
    */
   @Transactional
-  public int migrateIndustryTeamUsers() {
+  public MigrationResult migrateIndustryTeamUsers() {
     var wuaIdsByOrganisationGroupId = getExtractedWuaIdsByOrganisationGroupId();
 
     if (wuaIdsByOrganisationGroupId.isEmpty()) {
       LOGGER.info("No PEARS contacts found in the migration extract, no industry team users to migrate");
-      return 0;
+      return MigrationResult.nothingToMigrate();
     }
 
     var industryTeamsByOrganisationGroupId = getIndustryTeamsByOrganisationGroupId(
@@ -147,6 +146,7 @@ public class IndustryTeamMigrationService {
     var instigatingUser = userDetailService.getUserDetail();
 
     var migratedCount = 0;
+    var skippedCount = 0;
     for (var extractedGroup : wuaIdsByOrganisationGroupId.entrySet()) {
       var organisationGroupId = extractedGroup.getKey();
       var team = industryTeamsByOrganisationGroupId.get(organisationGroupId);
@@ -154,17 +154,20 @@ public class IndustryTeamMigrationService {
       if (team == null) {
         LOGGER.warn("No industry team exists for organisation group {}, skipping its {} extracted contacts",
             organisationGroupId, extractedGroup.getValue().size());
+        skippedCount += extractedGroup.getValue().size();
         continue;
       }
 
       for (var wuaId : extractedGroup.getValue()) {
         if (!canMigrateContact(wuaId, organisationGroupId, contactUsers)) {
+          skippedCount++;
           continue;
         }
 
         if (teamManagementService.isMemberOfTeam(team, wuaId)) {
           LOGGER.info("User {} is already a member of industry team {}, leaving their existing roles unchanged",
               wuaId, team.getId());
+          skippedCount++;
           continue;
         }
 
@@ -173,9 +176,9 @@ public class IndustryTeamMigrationService {
       }
     }
 
-    LOGGER.info("Added {} users to industry teams from {} extracted organisation groups", migratedCount,
-        wuaIdsByOrganisationGroupId.size());
-    return migratedCount;
+    LOGGER.info("Added {} users to industry teams from {} extracted organisation groups, skipped {} contacts",
+        migratedCount, wuaIdsByOrganisationGroupId.size(), skippedCount);
+    return new MigrationResult(migratedCount, skippedCount);
   }
 
   /**

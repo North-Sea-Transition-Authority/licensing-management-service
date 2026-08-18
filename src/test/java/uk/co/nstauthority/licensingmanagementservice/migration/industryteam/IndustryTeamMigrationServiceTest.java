@@ -68,13 +68,16 @@ class IndustryTeamMigrationServiceTest {
   void migrateIndustryTeamUsers_whenExtractIsEmpty_thenMigratesNoUsers() {
     when(pearsContactsMigrationExtractRepository.findAll()).thenReturn(List.of());
 
-    assertThat(industryTeamMigrationService.migrateIndustryTeamUsers()).isZero();
+    var result = industryTeamMigrationService.migrateIndustryTeamUsers();
+
+    assertThat(result.migrated()).isZero();
+    assertThat(result.skipped()).isZero();
 
     verifyNoInteractions(teamManagementService, energyPortalUserService, userDetailService);
   }
 
   @Test
-  void migrateIndustryTeamUsers_addsEachContactToTheirIndustryTeamAsTeamAdminAndLicenseeContactsManager() {
+  void migrateIndustryTeamUsers_addsEachContactToTheirIndustryTeamAsTeamAdmin() {
     givenExtractContains(
         extractRow(ORGANISATION_GROUP_ID, CONTACT_WUA_ID),
         extractRow(ORGANISATION_GROUP_ID, OTHER_CONTACT_WUA_ID)
@@ -82,9 +85,12 @@ class IndustryTeamMigrationServiceTest {
     givenIndustryTeamsExist(industryTeam);
     givenEpaUsersCanBeUsed(CONTACT_WUA_ID, OTHER_CONTACT_WUA_ID);
 
-    assertThat(industryTeamMigrationService.migrateIndustryTeamUsers()).isEqualTo(2);
+    var result = industryTeamMigrationService.migrateIndustryTeamUsers();
 
-    var expectedRoles = List.of(Role.MANAGE_TEAM, Role.LICENSEE_CONTACTS_MANAGER);
+    assertThat(result.migrated()).isEqualTo(2);
+    assertThat(result.skipped()).isZero();
+
+    var expectedRoles = List.of(Role.MANAGE_TEAM);
     verify(teamManagementService).setUserTeamRoles(CONTACT_WUA_ID, industryTeam, expectedRoles, INSTIGATING_USER);
     verify(teamManagementService).setUserTeamRoles(OTHER_CONTACT_WUA_ID, industryTeam, expectedRoles, INSTIGATING_USER);
   }
@@ -98,7 +104,11 @@ class IndustryTeamMigrationServiceTest {
     givenIndustryTeamsExist(industryTeam);
     givenEpaUsersCanBeUsed(CONTACT_WUA_ID);
 
-    assertThat(industryTeamMigrationService.migrateIndustryTeamUsers()).isEqualTo(1);
+    var result = industryTeamMigrationService.migrateIndustryTeamUsers();
+
+    assertThat(result.migrated()).isEqualTo(1);
+    // the repeated row is collapsed before migrating, so it is not reported as a skip
+    assertThat(result.skipped()).isZero();
 
     verify(teamManagementService).setUserTeamRoles(eq(CONTACT_WUA_ID), eq(industryTeam), any(), any());
   }
@@ -112,7 +122,10 @@ class IndustryTeamMigrationServiceTest {
     givenIndustryTeamsExist(industryTeam);
     givenEpaUsersCanBeUsed(CONTACT_WUA_ID, OTHER_CONTACT_WUA_ID);
 
-    assertThat(industryTeamMigrationService.migrateIndustryTeamUsers()).isEqualTo(1);
+    var result = industryTeamMigrationService.migrateIndustryTeamUsers();
+
+    assertThat(result.migrated()).isEqualTo(1);
+    assertThat(result.skipped()).isEqualTo(1);
 
     verify(teamManagementService).setUserTeamRoles(eq(CONTACT_WUA_ID), eq(industryTeam), any(), any());
     verify(teamManagementService, never()).setUserTeamRoles(eq(OTHER_CONTACT_WUA_ID), any(), any(), any());
@@ -126,7 +139,10 @@ class IndustryTeamMigrationServiceTest {
 
     when(teamManagementService.isMemberOfTeam(industryTeam, CONTACT_WUA_ID)).thenReturn(true);
 
-    assertThat(industryTeamMigrationService.migrateIndustryTeamUsers()).isZero();
+    var result = industryTeamMigrationService.migrateIndustryTeamUsers();
+
+    assertThat(result.migrated()).isZero();
+    assertThat(result.skipped()).isEqualTo(1);
 
     verify(teamManagementService, never()).setUserTeamRoles(anyLong(), any(), any(), any());
   }
@@ -140,7 +156,10 @@ class IndustryTeamMigrationServiceTest {
     givenIndustryTeamsExist(industryTeam);
     givenEpaUsersCanBeUsed(CONTACT_WUA_ID);
 
-    assertThat(industryTeamMigrationService.migrateIndustryTeamUsers()).isEqualTo(1);
+    var result = industryTeamMigrationService.migrateIndustryTeamUsers();
+
+    assertThat(result.migrated()).isEqualTo(1);
+    assertThat(result.skipped()).isEqualTo(1);
 
     verify(teamManagementService).setUserTeamRoles(eq(CONTACT_WUA_ID), eq(industryTeam), any(), any());
     verify(teamManagementService, never()).setUserTeamRoles(eq(OTHER_CONTACT_WUA_ID), any(), any(), any());
@@ -155,7 +174,10 @@ class IndustryTeamMigrationServiceTest {
         .thenReturn(Map.of(WebUserAccountId.from(CONTACT_WUA_ID), epaUser(CONTACT_WUA_ID, false, false)));
     when(userDetailService.getUserDetail()).thenReturn(INSTIGATING_USER);
 
-    assertThat(industryTeamMigrationService.migrateIndustryTeamUsers()).isZero();
+    var result = industryTeamMigrationService.migrateIndustryTeamUsers();
+
+    assertThat(result.migrated()).isZero();
+    assertThat(result.skipped()).isEqualTo(1);
 
     verify(teamManagementService, never()).setUserTeamRoles(anyLong(), any(), any(), any());
   }
@@ -169,7 +191,10 @@ class IndustryTeamMigrationServiceTest {
         .thenReturn(Map.of(WebUserAccountId.from(CONTACT_WUA_ID), epaUser(CONTACT_WUA_ID, true, true)));
     when(userDetailService.getUserDetail()).thenReturn(INSTIGATING_USER);
 
-    assertThat(industryTeamMigrationService.migrateIndustryTeamUsers()).isZero();
+    var result = industryTeamMigrationService.migrateIndustryTeamUsers();
+
+    assertThat(result.migrated()).isZero();
+    assertThat(result.skipped()).isEqualTo(1);
 
     verify(teamManagementService, never()).setUserTeamRoles(anyLong(), any(), any(), any());
   }

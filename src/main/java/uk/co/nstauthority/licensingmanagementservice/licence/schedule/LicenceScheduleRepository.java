@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -13,6 +14,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 public interface LicenceScheduleRepository extends JpaRepository<LicenceSchedule, UUID>, NotDuplicationSource {
 
   Optional<LicenceSchedule> findByLicence(Licence licence);
+
+  List<LicenceSchedule> findAllByLicenceIn(Collection<Licence> licences);
 
   List<LicenceSchedule> findAllByLicence_LicenceReferenceContainingIgnoreCaseAndLicence_Type(
       String searchTerm,

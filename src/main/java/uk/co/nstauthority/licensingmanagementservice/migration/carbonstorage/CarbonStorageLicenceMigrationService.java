@@ -8,12 +8,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.EnumUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
@@ -46,9 +49,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusRepository;
+import uk.co.nstauthority.licensingmanagementservice.migration.MigrationPreconditionException;
+import uk.co.nstauthority.licensingmanagementservice.migration.MigrationResult;
 
 @Service
 public class CarbonStorageLicenceMigrationService {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(CarbonStorageLicenceMigrationService.class);
 
   private static final DateTimeFormatter CASE_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
@@ -105,17 +112,46 @@ public class CarbonStorageLicenceMigrationService {
     this.carbonStorageWorkProgrammeMigrationRepository = carbonStorageWorkProgrammeMigrationRepository;
   }
 
+  /**
+   * Creates a licence, status and set of responsible organisations for each row of the carbon storage licence extract.
+   *
+   * <p>Extract rows whose licence reference already belongs to a licence are skipped, so the migration can safely be
+   * re-run — without that guard a second run would mint new licence ids and insert a duplicate of every licence, which
+   * nothing in the schema would reject.
+   *
+   * @return how many licences were migrated and how many extract rows were skipped
+   */
   @Transactional
-  public void migrateLicences() {
+  public MigrationResult migrateLicences() {
     var carbonStorageLicenceMigrationExtracts = carbonStorageLicenceMigrationExtractRepository.findAll();
+
+    var extractLicenceRefs = carbonStorageLicenceMigrationExtracts.stream()
+        .map(CarbonStorageLicenceMigrationExtract::getLicenceRef)
+        .toList();
+
+    if (extractLicenceRefs.isEmpty()) {
+      LOGGER.info("No carbon storage licence extract rows found, no licences to migrate");
+      return MigrationResult.nothingToMigrate();
+    }
+
+    // Refs already taken, either by an earlier run of this migration or by a licence from another source. Extract rows
+    // are added as they are consumed so that a ref repeated within the extract is only migrated once.
+    var takenLicenceRefs = new HashSet<>(licenceService.getExistingLicenceReferences(extractLicenceRefs));
 
     var currentLicenceId = licenceService.getNextLicenceId();
 
     var licences = new ArrayList<Licence>();
     var licenceStatusTypeByLicenceId = new HashMap<Integer, LicenceStatusType>();
     var licenceResponsibleOrganisations = new ArrayList<LicenceResponsibleOrganisation>();
+    var skippedCount = 0;
 
     for (var migrationExtract : carbonStorageLicenceMigrationExtracts) {
+      if (!takenLicenceRefs.add(migrationExtract.getLicenceRef())) {
+        LOGGER.info("Licence {} already exists, skipping extract row", migrationExtract.getLicenceRef());
+        skippedCount++;
+        continue;
+      }
+
       var licence = new Licence();
       licence.setId(currentLicenceId++);
       licence.setType(LicenceType.CARBON_STORAGE);
@@ -157,15 +193,53 @@ public class CarbonStorageLicenceMigrationService {
 
     licenceStatusRepository.saveAll(licenceStatuses);
     licenceResponsibleOrganisationService.saveLicensees(licenceResponsibleOrganisations);
+
+    LOGGER.info("Migrated {} carbon storage licences, skipped {} of {} extract rows", savedLicences.size(),
+        skippedCount, carbonStorageLicenceMigrationExtracts.size());
+    return new MigrationResult(savedLicences.size(), skippedCount);
   }
 
+  /**
+   * Builds the schedule, schedule details, start dates, terms and work programme activities for each carbon storage
+   * licence from the term and work programme extracts.
+   *
+   * <p>Licences that already have a schedule are skipped, so the migration can safely be re-run — a licence has at most
+   * one schedule, and a second unguarded run would give each licence a second schedule with its own set of details,
+   * leaving two ACTIVE details per licence for the rest of the application to choose between.
+   *
+   * @return how many licences were given a schedule and how many were skipped
+   * @throws MigrationPreconditionException if the extract tables are empty, which would otherwise create an empty
+   *     schedule for every carbon storage licence and block a subsequent correct run
+   */
   @Transactional
-  public void migrateSchedules() {
-    var licenceSchedules = buildLicenceSchedules();
+  public MigrationResult migrateSchedules() {
+    var casesByLicence = buildCasesByLicence();
+
+    if (casesByLicence.isEmpty()) {
+      throw new MigrationPreconditionException(
+          "No carbon storage term or work programme extract rows found. Load the extract tables before migrating " +
+              "schedules, otherwise every carbon storage licence is given an empty schedule."
+      );
+    }
+
+    var csLicences = licenceService.getAllLicences().stream()
+        .filter(licence -> LicenceType.CARBON_STORAGE.equals(licence.getType()))
+        .toList();
+
+    var alreadyScheduledLicenceIds = licenceScheduleService.getIdsOfLicencesWithASchedule(csLicences);
+
+    var licencesToSchedule = csLicences.stream()
+        .filter(licence -> !alreadyScheduledLicenceIds.contains(licence.getId()))
+        .toList();
+
+    if (licencesToSchedule.isEmpty()) {
+      LOGGER.info("All {} carbon storage licences already have a schedule, nothing to migrate", csLicences.size());
+      return new MigrationResult(0, csLicences.size());
+    }
+
+    var licenceSchedules = buildLicenceSchedules(licencesToSchedule);
     var savedSchedules = new ArrayList<LicenceSchedule>();
     licenceScheduleService.saveLicenceSchedules(licenceSchedules).forEach(savedSchedules::add);
-
-    var casesByLicence = buildCasesByLicence();
 
     var detailsResult = buildScheduleDetails(savedSchedules, casesByLicence);
     licenceScheduleDetailService.saveLicenceScheduleDetails(detailsResult.details());
@@ -191,14 +265,16 @@ public class CarbonStorageLicenceMigrationService {
         .map(LicenceStartDate::getLicenceScheduleDetail)
         .distinct()
         .forEach(licenceScheduleCalculationService::calculateAndSaveLicenceScheduleDates);
+
+    var skippedCount = csLicences.size() - licencesToSchedule.size();
+    LOGGER.info("Migrated schedules for {} carbon storage licences, skipped {} that already had one",
+        savedSchedules.size(), skippedCount);
+    return new MigrationResult(savedSchedules.size(), skippedCount);
   }
 
-  private List<LicenceSchedule> buildLicenceSchedules() {
-    var csLicences = licenceService.getAllLicences().stream()
-        .filter(licence -> LicenceType.CARBON_STORAGE.equals(licence.getType()))
-        .toList();
+  private List<LicenceSchedule> buildLicenceSchedules(List<Licence> licences) {
     var licenceSchedules = new ArrayList<LicenceSchedule>();
-    for (var licence : csLicences) {
+    for (var licence : licences) {
       var licenceSchedule = new LicenceSchedule();
       licenceSchedule.setLicence(licence);
       licenceSchedules.add(licenceSchedule);

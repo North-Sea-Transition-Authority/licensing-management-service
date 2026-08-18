@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.migration.carbonstorage;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
@@ -20,6 +21,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailRepository;
@@ -34,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusRepository;
+import uk.co.nstauthority.licensingmanagementservice.migration.MigrationPreconditionException;
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
 
 @Sql(
@@ -56,6 +60,9 @@ class CarbonStorageLicenceMigrationServiceIntegrationTest {
 
   @Autowired
   private LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository;
+
+  @Autowired
+  private LicenceScheduleRepository licenceScheduleRepository;
 
   @Autowired
   private LicenceScheduleDetailRepository licenceScheduleDetailRepository;
@@ -120,6 +127,195 @@ class CarbonStorageLicenceMigrationServiceIntegrationTest {
     assertThat(responsibleOrgs)
         .extracting(LicenceResponsibleOrganisation::getManagedByLms)
         .containsOnly(true);
+  }
+
+  @Test
+  void migrateLicences_whenRunTwice_thenSecondRunSkipsEveryExtractRowAndCreatesNoDuplicates() {
+    var extract = new CarbonStorageLicenceMigrationExtract();
+    extract.setLicenceRef("CS020/2020");
+    extract.setLicenceNumber("20");
+    extract.setResponsibleOrgs("Org A");
+    extract.setStatus("Extant");
+    em.persist(extract);
+
+    var orgMapping = new CarbonStorageLicenceOrgMapping();
+    orgMapping.setCsExtractResponsibleOrganisation("Org A");
+    orgMapping.setOrganisationUnitId(100);
+    em.persist(orgMapping);
+
+    em.flush();
+
+    var firstRun = carbonStorageLicenceMigrationService.migrateLicences();
+    em.flush();
+
+    assertThat(firstRun.migrated()).isEqualTo(1);
+    assertThat(firstRun.skipped()).isZero();
+
+    var secondRun = carbonStorageLicenceMigrationService.migrateLicences();
+    em.flush();
+
+    assertThat(secondRun.migrated()).isZero();
+    assertThat(secondRun.skipped()).isEqualTo(1);
+
+    var licence = licenceRepository.findByLicenceReference("CS020/2020").orElseThrow();
+    assertThat(licencesWithReference("CS020/2020")).isEqualTo(1);
+    assertThat(licenceStatusRepository.findAllByLicence(licence)).hasSize(1);
+    assertThat(licenceResponsibleOrganisationRepository.findAllByLicence(licence)).hasSize(1);
+  }
+
+  @Test
+  void migrateLicences_whenExtractRepeatsALicenceReference_thenMigratesItOnce() {
+    var firstExtract = new CarbonStorageLicenceMigrationExtract();
+    firstExtract.setLicenceRef("CS021/2020");
+    firstExtract.setLicenceNumber("21");
+    firstExtract.setResponsibleOrgs("Org A");
+    firstExtract.setStatus("Extant");
+    em.persist(firstExtract);
+
+    var orgMapping = new CarbonStorageLicenceOrgMapping();
+    orgMapping.setCsExtractResponsibleOrganisation("Org A");
+    orgMapping.setOrganisationUnitId(100);
+    em.persist(orgMapping);
+
+    em.flush();
+
+    // the extract table has no primary key, so the same licence reference can appear twice
+    em.createNativeQuery(
+            "INSERT INTO lms.cs_licence_migration_extract (licence_ref, licence_number, responsible_orgs, status) " +
+                "VALUES ('CS021/2020', '21', 'Org A', 'Extant')")
+        .executeUpdate();
+
+    var result = carbonStorageLicenceMigrationService.migrateLicences();
+    em.flush();
+
+    assertThat(result.migrated()).isEqualTo(1);
+    assertThat(result.skipped()).isEqualTo(1);
+    assertThat(licencesWithReference("CS021/2020")).isEqualTo(1);
+  }
+
+  @Test
+  void migrateSchedules_whenRunTwice_thenSecondRunSkipsEveryLicenceAndCreatesNoDuplicates() {
+    var licence = LicenceTestUtil.builder()
+        .withId(10020)
+        .withLicenceReference("CS022/2021")
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+    em.persist(licence);
+
+    var startDateExtract = new CarbonStorageStartDateMigrationExtract();
+    startDateExtract.setLicenceRef("CS022/2021");
+    startDateExtract.setStartDate("01/01/2020");
+    em.persist(startDateExtract);
+
+    var termExtract = new CarbonStorageTermMigrationExtract();
+    termExtract.setId(21);
+    termExtract.setLicenceRef("CS022/2021");
+    termExtract.setCaseDate("01/06/2021");
+    termExtract.setTerm("Initial");
+    termExtract.setYears(5);
+    termExtract.setMonths(0);
+    termExtract.setDays(0);
+    em.persist(termExtract);
+
+    var wpExtract = new CarbonStorageWorkProgrammeMigrationExtract();
+    wpExtract.setId(21);
+    wpExtract.setLicenceRef("CS022/2021");
+    wpExtract.setCaseDate("01/06/2021");
+    wpExtract.setUniqueEventId(UUID.fromString("00000000-0000-0000-0000-000000000021"));
+    wpExtract.setStatus("Open");
+    wpExtract.setComments("Legacy note");
+    em.persist(wpExtract);
+
+    em.flush();
+
+    var firstRun = carbonStorageLicenceMigrationService.migrateSchedules();
+    em.flush();
+
+    assertThat(firstRun.migrated()).isEqualTo(1);
+    assertThat(firstRun.skipped()).isZero();
+
+    var secondRun = carbonStorageLicenceMigrationService.migrateSchedules();
+    em.flush();
+
+    assertThat(secondRun.migrated()).isZero();
+    assertThat(secondRun.skipped()).isEqualTo(1);
+
+    // one schedule, one active detail, and one of each child record — not two
+    var schedule = licenceScheduleRepository.findByLicence(licence).orElseThrow();
+
+    var allDetails = licenceScheduleDetailRepository.findAllByLicenceSchedule_Licence(licence);
+    assertThat(allDetails).hasSize(1);
+
+    var activeDetail = allDetails.get(0);
+    assertThat(activeDetail.getStatus()).isEqualTo(LicenceScheduleDetailStatus.ACTIVE);
+    assertThat(licenceStartDateRepository.findByLicenceScheduleDetail(activeDetail)).isPresent();
+    assertThat(licenceScheduleTermRepository.findAllByLicenceScheduleDetail(activeDetail)).hasSize(1);
+
+    var activities = workProgrammeActivityRepository.findAllByLicenceScheduleDetail(activeDetail);
+    assertThat(activities).hasSize(1);
+    assertThat(workProgrammeActivityStatusRepository
+        .findAllByScheduleEvent_OriginalEventId(activities.get(0).getOriginalEventId())).hasSize(1);
+    assertThat(eventCommentRepository
+        .getAllByScheduleEvent_LicenceScheduleAndStatus(schedule, EventCommentStatus.PUBLISHED)).hasSize(1);
+  }
+
+  @Test
+  void migrateSchedules_whenExtractTablesAreEmpty_thenFailsWithoutCreatingAnything() {
+    var licence = LicenceTestUtil.builder()
+        .withId(10021)
+        .withLicenceReference("CS023/2021")
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+    em.persist(licence);
+
+    em.flush();
+
+    assertThatExceptionOfType(MigrationPreconditionException.class)
+        .isThrownBy(() -> carbonStorageLicenceMigrationService.migrateSchedules())
+        .withMessageContaining("Load the extract tables before migrating schedules");
+
+    assertThat(licenceScheduleRepository.findByLicence(licence)).isEmpty();
+    assertThat(licenceScheduleDetailRepository.findAllByLicenceSchedule_Licence(licence)).isEmpty();
+  }
+
+  @Test
+  void migrateSchedules_whenSomeLicencesAlreadyHaveASchedule_thenOnlyMigratesTheRest() {
+    var alreadyMigratedLicence = LicenceTestUtil.builder()
+        .withId(10022)
+        .withLicenceReference("CS024/2021")
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+    em.persist(alreadyMigratedLicence);
+
+    var newLicence = LicenceTestUtil.builder()
+        .withId(10023)
+        .withLicenceReference("CS025/2021")
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+    em.persist(newLicence);
+
+    em.persist(initialTermExtract(22, "CS024/2021"));
+    em.persist(initialTermExtract(23, "CS025/2021"));
+
+    em.flush();
+
+    // the first licence is migrated on its own, standing in for a previous partial run
+    var existingSchedule = new LicenceSchedule();
+    existingSchedule.setLicence(alreadyMigratedLicence);
+    em.persist(existingSchedule);
+    em.flush();
+
+    var result = carbonStorageLicenceMigrationService.migrateSchedules();
+    em.flush();
+
+    assertThat(result.migrated()).isEqualTo(1);
+    assertThat(result.skipped()).isEqualTo(1);
+
+    assertThat(licenceScheduleDetailRepository.findAllByLicenceSchedule_Licence(newLicence)).hasSize(1);
+    // the licence that already had a schedule is left exactly as it was, with no details added to it
+    assertThat(licenceScheduleDetailRepository.findAllByLicenceSchedule_Licence(alreadyMigratedLicence)).isEmpty();
+    assertThat(licenceScheduleRepository.findByLicence(alreadyMigratedLicence).orElseThrow().getId())
+        .isEqualTo(existingSchedule.getId());
   }
 
   @Test
@@ -292,6 +488,17 @@ class CarbonStorageLicenceMigrationServiceIntegrationTest {
         .withLicenceType(LicenceType.CARBON_STORAGE)
         .build();
     em.persist(licence);
+
+    // an extract row for an unrelated licence, so the extracts are not empty and the migration is allowed to run
+    var unrelatedTermExtract = new CarbonStorageTermMigrationExtract();
+    unrelatedTermExtract.setId(20);
+    unrelatedTermExtract.setLicenceRef("CS999/2021");
+    unrelatedTermExtract.setCaseDate("01/01/2021");
+    unrelatedTermExtract.setTerm("Initial");
+    unrelatedTermExtract.setYears(5);
+    unrelatedTermExtract.setMonths(0);
+    unrelatedTermExtract.setDays(0);
+    em.persist(unrelatedTermExtract);
 
     em.flush();
 
@@ -793,5 +1000,23 @@ class CarbonStorageLicenceMigrationServiceIntegrationTest {
     assertThat(comments)
         .extracting(c -> c.getScheduleEvent().getId())
         .containsExactlyInAnyOrder(replacedActivities.get(0).getId(), activeActivities.get(0).getId());
+  }
+
+  private long licencesWithReference(String licenceReference) {
+    return licenceRepository.findAll().stream()
+        .filter(licence -> licenceReference.equals(licence.getLicenceReference()))
+        .count();
+  }
+
+  private static CarbonStorageTermMigrationExtract initialTermExtract(int id, String licenceRef) {
+    var termExtract = new CarbonStorageTermMigrationExtract();
+    termExtract.setId(id);
+    termExtract.setLicenceRef(licenceRef);
+    termExtract.setCaseDate("01/01/2021");
+    termExtract.setTerm("Initial");
+    termExtract.setYears(5);
+    termExtract.setMonths(0);
+    termExtract.setDays(0);
+    return termExtract;
   }
 }

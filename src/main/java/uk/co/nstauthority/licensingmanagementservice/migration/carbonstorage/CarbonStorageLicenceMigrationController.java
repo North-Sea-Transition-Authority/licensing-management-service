@@ -1,10 +1,13 @@
 package uk.co.nstauthority.licensingmanagementservice.migration.carbonstorage;
 
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import uk.co.nstauthority.licensingmanagementservice.migration.MigrationPreconditionException;
 
 @Profile("migration")
 @RestController
@@ -25,8 +28,8 @@ public class CarbonStorageLicenceMigrationController {
    */
   @RequestMapping(value = "/licences", method = {RequestMethod.GET, RequestMethod.POST})
   public ResponseEntity<String> migrateLicences() {
-    carbonStorageLicenceMigrationService.migrateLicences();
-    return ResponseEntity.ok("licences migrated");
+    var result = carbonStorageLicenceMigrationService.migrateLicences();
+    return ResponseEntity.ok(result.describe("carbon storage licences"));
   }
 
   /**
@@ -34,7 +37,16 @@ public class CarbonStorageLicenceMigrationController {
    */
   @RequestMapping(value = "/schedules", method = {RequestMethod.GET, RequestMethod.POST})
   public ResponseEntity<String> migrateSchedules() {
-    carbonStorageLicenceMigrationService.migrateSchedules();
-    return ResponseEntity.ok("schedules migrated");
+    var result = carbonStorageLicenceMigrationService.migrateSchedules();
+    return ResponseEntity.ok(result.describe("carbon storage licence schedules"));
+  }
+
+  /**
+   * Returned when the migration was triggered before the data it needs is in place. The migration has done nothing, so
+   * it can be triggered again once the extract tables are loaded.
+   */
+  @ExceptionHandler(MigrationPreconditionException.class)
+  public ResponseEntity<String> handleMigrationPreconditionException(MigrationPreconditionException exception) {
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(exception.getMessage());
   }
 }

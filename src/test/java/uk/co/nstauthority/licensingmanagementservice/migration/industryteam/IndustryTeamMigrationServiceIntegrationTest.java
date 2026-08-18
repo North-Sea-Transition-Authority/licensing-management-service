@@ -67,9 +67,10 @@ class IndustryTeamMigrationServiceIntegrationTest {
             organisationGroup(600, "Group Beta")
         ));
 
-    var createdCount = industryTeamMigrationService.migrateIndustryTeams();
+    var result = industryTeamMigrationService.migrateIndustryTeams();
 
-    assertThat(createdCount).isEqualTo(2);
+    assertThat(result.migrated()).isEqualTo(2);
+    assertThat(result.skipped()).isZero();
 
     var teamAlpha = getOrganisationTeam("500").orElseThrow();
     assertThat(teamAlpha.getName()).isEqualTo("Group Alpha");
@@ -108,9 +109,10 @@ class IndustryTeamMigrationServiceIntegrationTest {
             organisationGroup(600, "Group Beta")
         ));
 
-    var createdCount = industryTeamMigrationService.migrateIndustryTeams();
+    var result = industryTeamMigrationService.migrateIndustryTeams();
 
-    assertThat(createdCount).isEqualTo(1);
+    assertThat(result.migrated()).isEqualTo(1);
+    assertThat(result.skipped()).isEqualTo(1);
 
     // existing team for group 500 is left untouched — not renamed or duplicated
     var teamAlpha = getOrganisationTeam("500").orElseThrow();
@@ -125,9 +127,10 @@ class IndustryTeamMigrationServiceIntegrationTest {
 
   @Test
   void migrateIndustryTeams_whenNoResponsibleOrganisations_createsNoTeamsAndReturnsZero() {
-    var createdCount = industryTeamMigrationService.migrateIndustryTeams();
+    var result = industryTeamMigrationService.migrateIndustryTeams();
 
-    assertThat(createdCount).isZero();
+    assertThat(result.migrated()).isZero();
+    assertThat(result.skipped()).isZero();
     verify(organisationApi, never()).getOrganisationUnitsByIds(any(), any(), any(), any());
     verify(energyPortalAccountsMessagePublishingService, never()).publishTeam(any());
   }

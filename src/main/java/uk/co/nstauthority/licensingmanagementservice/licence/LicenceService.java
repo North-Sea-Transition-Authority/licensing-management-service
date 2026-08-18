@@ -53,6 +53,16 @@ public class LicenceService {
         .map(Licence::getId)
         .collect(Collectors.toSet());
   }
+
+  /**
+   * Returns the subset of the given licence references that already belong to a licence, of any type. Used by
+   * migrations to avoid inserting a licence that has already been migrated.
+   */
+  public Set<String> getExistingLicenceReferences(Collection<String> licenceReferences) {
+    return licenceRepository.findAllByLicenceReferenceIn(licenceReferences).stream()
+        .map(Licence::getLicenceReference)
+        .collect(Collectors.toSet());
+  }
   // Generate the next licence id. If there are none, start at 10000 to leave a buffer for pears managed licence ids.
   // We are manually generating ids because @GeneratedValue prevents saving fixed ids which we need to do to when
   // pulling licence data from pears to preserve pears licence ids.

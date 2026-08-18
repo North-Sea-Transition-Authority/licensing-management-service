@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,4 +23,6 @@ public interface LicenceRepository extends JpaRepository<Licence, Integer>, NotD
   );
 
   Optional<Licence> findByLicenceReference(String licenceReference);
+
+  List<Licence> findAllByLicenceReferenceIn(Collection<String> licenceReferences);
 }

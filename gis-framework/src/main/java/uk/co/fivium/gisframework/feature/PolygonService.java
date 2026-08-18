@@ -1,12 +1,17 @@
 package uk.co.fivium.gisframework.feature;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
+import uk.co.fivium.grpc.gis.CoordinateSystem;
 
 @Service
 public class PolygonService {
@@ -14,13 +19,16 @@ public class PolygonService {
   private final PolygonRepository polygonRepository;
   private final FeatureService featureService;
   private final GrpcClientService grpcClientService;
+  private final ObjectMapper objectMapper;
 
   public PolygonService(PolygonRepository polygonRepository,
                         FeatureService featureService,
-                        GrpcClientService grpcClientService) {
+                        GrpcClientService grpcClientService,
+                        ObjectMapper objectMapper) {
     this.polygonRepository = polygonRepository;
     this.featureService = featureService;
     this.grpcClientService = grpcClientService;
+    this.objectMapper = objectMapper;
   }
 
   @Transactional
@@ -54,6 +62,35 @@ public class PolygonService {
   public List<String> getPolygonsAsEsriJson(Feature feature, boolean projectToWgs84) {
     var entityBackedFeature = featureService.getEntityBackedFeature(feature);
     return getPolygonsAsEsriJson(entityBackedFeature, projectToWgs84);
+  }
+
+  /**
+   * Builds the WGS84 EsriJSON representation of the given features, ready to return from a REST endpoint.
+   *
+   * @param features the features to convert.
+   * @return the features as EsriJSON, alongside the WGS84 spatial reference.
+   */
+  public JsonFeatures getFeaturesAsWgs84EsriJson(List<Feature> features) {
+    List<JsonFeature> esriJsonFeatures = new ArrayList<>();
+
+    for (var feature : features) {
+      var esriJsonPolygons = getPolygonsAsEsriJson(feature, true);
+      var attributes = JsonFeature.Attributes.from(feature);
+      for (var esriJsonPolygon : esriJsonPolygons) {
+        esriJsonFeatures.add(new JsonFeature(readGeometry(esriJsonPolygon), attributes));
+      }
+    }
+
+    return new JsonFeatures(esriJsonFeatures, JsonFeatures.SpatialReference.from(CoordinateSystem.WGS84));
+  }
+
+  private Map<String, Object> readGeometry(String esriJsonPolygon) {
+    try {
+      return objectMapper.readValue(esriJsonPolygon, new TypeReference<>() {
+      });
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("Failed to parse generated EsriJSON polygon '%s'".formatted(esriJsonPolygon), e);
+    }
   }
 
   @Transactional

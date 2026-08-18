@@ -70,4 +70,25 @@ class CommandJourneyServiceTest {
 
     assertThat(commandJourneyService.getActiveFeatures(journey)).containsExactly(activeFeature);
   }
+
+  @Test
+  void getActiveFeaturesByJourneyId_whenJourneyFound_returnsActiveFeatures() {
+    var journeyId = UUID.randomUUID();
+    var journey = new CommandJourney();
+    var activeFeature = FeatureTestUtil.newBuilder().build();
+
+    when(commandJourneyRepository.findById(journeyId)).thenReturn(Optional.of(journey));
+    when(featureJourneyStateService.getActiveFeatures(journey)).thenReturn(List.of(activeFeature));
+
+    assertThat(commandJourneyService.getActiveFeatures(journeyId)).containsExactly(activeFeature);
+  }
+
+  @Test
+  void getActiveFeaturesByJourneyId_whenJourneyNotFound_throws() {
+    var journeyId = UUID.randomUUID();
+    when(commandJourneyRepository.findById(journeyId)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> commandJourneyService.getActiveFeatures(journeyId))
+        .isInstanceOf(EntityNotFoundException.class);
+  }
 }

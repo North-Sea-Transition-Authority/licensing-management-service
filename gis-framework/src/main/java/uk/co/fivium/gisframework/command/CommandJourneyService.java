@@ -47,4 +47,14 @@ public class CommandJourneyService {
   public List<Feature> getActiveFeatures(CommandJourney commandJourney) {
     return featureJourneyStateService.getActiveFeatures(commandJourney);
   }
+
+  /**
+   * Fetches the features currently scoped to a journey that have not been superseded by a later transformation.
+   *
+   * @param commandJourneyId the id of the journey to fetch active features for.
+   * @return the journey's active features.
+   */
+  public List<Feature> getActiveFeatures(UUID commandJourneyId) {
+    return getActiveFeatures(getCommandJourneyOrThrow(commandJourneyId));
+  }
 }

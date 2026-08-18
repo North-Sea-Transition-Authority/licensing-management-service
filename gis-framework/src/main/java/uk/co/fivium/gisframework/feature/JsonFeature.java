@@ -2,16 +2,16 @@ package uk.co.fivium.gisframework.feature;
 
 import java.util.Map;
 
-record JsonFeature(
+public record JsonFeature(
     Map<String, Object> geometry,
     Attributes attributes
 ) {
 
-  record Attributes(
+  public record Attributes(
       String featureId,
       String featureName
   ) {
-    static Attributes from(Feature feature) {
+    public static Attributes from(Feature feature) {
       return new Attributes(feature.getId().toString(), feature.getFeatureName());
     }
   }

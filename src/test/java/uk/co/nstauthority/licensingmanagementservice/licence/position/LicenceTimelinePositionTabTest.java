@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.LicenceTabContext;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 
 class LicenceTimelinePositionTabTest {
 
@@ -15,6 +16,16 @@ class LicenceTimelinePositionTabTest {
   @Test
   void displayName() {
     assertThat(licenceTimelinePositionTab.displayName()).isEqualTo("Timeline");
+  }
+
+  @Test
+  void displayOrder() {
+    assertThat(licenceTimelinePositionTab.displayOrder()).isEqualTo(1);
+  }
+
+  @Test
+  void getReleaseFeature() {
+    assertThat(licenceTimelinePositionTab.getReleaseFeature()).isEqualTo(ReleaseFeature.VIEW_LICENCE_TIMELINE);
   }
 
   @Test

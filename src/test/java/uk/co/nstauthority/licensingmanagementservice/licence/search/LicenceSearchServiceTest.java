@@ -1,11 +1,11 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.search;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,9 +32,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -83,12 +82,17 @@ class LicenceSearchServiceTest {
   @Mock
   private LicenceStatusService licenceStatusService;
 
+  @Mock
+  private TabbedLicencePageService tabbedLicencePageService;
+
   @InjectMocks
   private LicenceSearchService licenceSearchService;
 
   @BeforeEach
   void setUp() {
     lenient().when(teamQueryService.userIsInRegulatorTeam(USER_WUA_ID)).thenReturn(true);
+    lenient().when(tabbedLicencePageService.getDefaultTabUrl(any(Licence.class)))
+        .thenAnswer(invocation -> defaultTabUrl(invocation.getArgument(0)));
   }
 
   @Test
@@ -376,11 +380,15 @@ class LicenceSearchServiceTest {
     return lro;
   }
 
+  /** Stands in for whichever tab is the default under the active release phase. */
+  private static String defaultTabUrl(Licence licence) {
+    return "/licences/%d/default-tab".formatted(licence.getId());
+  }
+
   private static SearchResultItem buildSearchResultItem(Licence licence, List<String> licensees) {
     return SearchResultItem.newBuilder()
         .withId(licence.getId().toString())
-        .withLinkHeadingUrl(ReverseRouter.route(
-            on(LicenceOverviewController.class).renderLicenceOverview(licence.getId(), null, null, null)))
+        .withLinkHeadingUrl(defaultTabUrl(licence))
         .withLinkHeadingText(licence.getLicenceReference())
         .withCaptionText(licence.getType().getDisplayName())
         .withDataItemRow(SummaryDataView.newBuilder()

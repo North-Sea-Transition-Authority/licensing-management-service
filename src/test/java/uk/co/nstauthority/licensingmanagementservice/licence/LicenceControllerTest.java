@@ -9,6 +9,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
@@ -27,6 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
+import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -44,8 +46,12 @@ class LicenceControllerTest extends AbstractControllerTest {
   @MockitoBean
   private EditLicenceDetailsValidator editLicenceDetailsValidator;
 
+  @MockitoBean
+  private TabbedLicencePageService tabbedLicencePageService;
+
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
+  private static final String DEFAULT_TAB_URL = "/licences/1/default-tab";
 
   @BeforeEach
   void setUp() {
@@ -85,6 +91,7 @@ class LicenceControllerTest extends AbstractControllerTest {
 
     when(newLicenceValidator.isValid(any(), any())).thenReturn(true);
     when(licenceFormService.saveNewLicenceFromForm(any())).thenReturn(licence);
+    when(tabbedLicencePageService.getDefaultTabUrl(licence)).thenReturn(DEFAULT_TAB_URL);
     when(teamQueryService.userHasRoleInTeamType(
         organisationUser.wuaId(),
         TeamType.LICENCE_MANAGEMENT,
@@ -96,7 +103,8 @@ class LicenceControllerTest extends AbstractControllerTest {
             .with(user(organisationUser))
             .with(csrf())
     )
-    .andExpect(status().is3xxRedirection());
+    .andExpect(status().is3xxRedirection())
+    .andExpect(redirectedUrl(DEFAULT_TAB_URL));
 
     verify(licenceFormService).saveNewLicenceFromForm(any());
   }
@@ -140,6 +148,7 @@ class LicenceControllerTest extends AbstractControllerTest {
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
     when(licenceFormService.getEditLicenceDetailsForm(licence)).thenReturn(editLicenceDetailsForm);
     when(licenceFormService.getSavedOrganisationUnits(licence)).thenReturn(selectedOrgUnits);
+    when(tabbedLicencePageService.getDefaultTabUrl(licence)).thenReturn(DEFAULT_TAB_URL);
     when(teamQueryService.userHasRoleInTeamType(
         organisationUser.wuaId(),
         TeamType.LICENCE_MANAGEMENT,
@@ -158,6 +167,7 @@ class LicenceControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("preselectedOrgUnits", selectedOrgUnits))
         .andExpect(model().attribute("organisationUnitSearchEndpoint",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))))
+        .andExpect(model().attribute("backUrl", DEFAULT_TAB_URL))
         .andReturn();
 
     var form = (EditLicenceDetailsForm) result.getModelAndView().getModel().get("form");
@@ -190,6 +200,7 @@ class LicenceControllerTest extends AbstractControllerTest {
 
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
     when(editLicenceDetailsValidator.isValid(any(), any(), any())).thenReturn(true);
+    when(tabbedLicencePageService.getDefaultTabUrl(licence)).thenReturn(DEFAULT_TAB_URL);
     when(teamQueryService.userHasRoleInTeamType(
         organisationUser.wuaId(),
         TeamType.LICENCE_MANAGEMENT,
@@ -201,7 +212,8 @@ class LicenceControllerTest extends AbstractControllerTest {
                 .with(user(organisationUser))
                 .with(csrf())
         )
-        .andExpect(status().is3xxRedirection());
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(DEFAULT_TAB_URL));
 
     verify(licenceFormService).saveEditLicenceDetailsFromForm(eq(licence), any());
   }
@@ -215,6 +227,7 @@ class LicenceControllerTest extends AbstractControllerTest {
     when(licenceService.findLicenceByIdOrThrow(1)).thenReturn(licence);
     when(editLicenceDetailsValidator.isValid(any(), any(), any())).thenReturn(false);
     when(licenceFormService.getPreselectedOrganisationUnits(List.of())).thenReturn(List.of());
+    when(tabbedLicencePageService.getDefaultTabUrl(licence)).thenReturn(DEFAULT_TAB_URL);
     when(teamQueryService.userHasRoleInTeamType(
         organisationUser.wuaId(),
         TeamType.LICENCE_MANAGEMENT,
@@ -233,7 +246,8 @@ class LicenceControllerTest extends AbstractControllerTest {
                 LicenceStatusType.getApplicableStatusesForLicenceType(LicenceType.CARBON_STORAGE))))
         .andExpect(model().attribute("preselectedOrgUnits", List.of()))
         .andExpect(model().attribute("organisationUnitSearchEndpoint",
-            SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))));
+            SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))))
+        .andExpect(model().attribute("backUrl", DEFAULT_TAB_URL));
 
     verify(licenceFormService).getPreselectedOrganisationUnits(null);
   }

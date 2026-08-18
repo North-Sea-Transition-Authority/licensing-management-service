@@ -18,8 +18,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
+import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -33,15 +33,18 @@ public class StartLicenceCorrectionController {
   private final LicenceService licenceService;
   private final StartLicenceCorrectionFormValidator startLicenceCorrectionFormValidator;
   private final LicenceCorrectionService licenceCorrectionService;
+  private final TabbedLicencePageService tabbedLicencePageService;
 
   public StartLicenceCorrectionController(
       LicenceService licenceService,
       StartLicenceCorrectionFormValidator startLicenceCorrectionFormValidator,
-      LicenceCorrectionService licenceCorrectionService
+      LicenceCorrectionService licenceCorrectionService,
+      TabbedLicencePageService tabbedLicencePageService
   ) {
     this.licenceService = licenceService;
     this.startLicenceCorrectionFormValidator = startLicenceCorrectionFormValidator;
     this.licenceCorrectionService = licenceCorrectionService;
+    this.tabbedLicencePageService = tabbedLicencePageService;
   }
 
   @GetMapping
@@ -83,7 +86,6 @@ public class StartLicenceCorrectionController {
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("pageCaption", licenceService.getLicencePageCaption(licence))
         .addObject("form", form)
-        .addObject("backLinkUrl",
-            ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licence.getId(), null, null, null)));
+        .addObject("backLinkUrl", tabbedLicencePageService.getDefaultTabUrl(licence));
   }
 }

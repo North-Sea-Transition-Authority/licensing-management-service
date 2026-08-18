@@ -7,6 +7,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOve
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.LicenceTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.LicenceTabContext;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 
 @Component
 public class LicenceScheduleTab implements LicenceTab {
@@ -14,6 +15,16 @@ public class LicenceScheduleTab implements LicenceTab {
   @Override
   public String displayName() {
     return "Schedule";
+  }
+
+  @Override
+  public int displayOrder() {
+    return 2;
+  }
+
+  @Override
+  public ReleaseFeature getReleaseFeature() {
+    return ReleaseFeature.VIEW_LICENCE_SCHEDULE;
   }
 
   @Override

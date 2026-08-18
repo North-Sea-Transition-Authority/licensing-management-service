@@ -14,7 +14,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -24,9 +24,14 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 class LicenceCorrectionCancelController {
 
   private final LicenceCorrectionService licenceCorrectionService;
+  private final TabbedLicencePageService tabbedLicencePageService;
 
-  LicenceCorrectionCancelController(LicenceCorrectionService licenceCorrectionService) {
+  LicenceCorrectionCancelController(
+      LicenceCorrectionService licenceCorrectionService,
+      TabbedLicencePageService tabbedLicencePageService
+  ) {
     this.licenceCorrectionService = licenceCorrectionService;
+    this.tabbedLicencePageService = tabbedLicencePageService;
   }
 
   @GetMapping
@@ -48,7 +53,6 @@ class LicenceCorrectionCancelController {
         redirectAttributes
     );
 
-    return ReverseRouter.redirect(on(LicenceOverviewController.class)
-        .renderLicenceOverview(licenceCorrection.getLicence().getId(), null, null, null));
+    return ReverseRouter.redirectToUrl(tabbedLicencePageService.getDefaultTabUrl(licenceCorrection.getLicence()));
   }
 }

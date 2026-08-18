@@ -5,17 +5,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 
 class LicenceTabTest {
 
   @Test
   void anchor_whenSingleWordDisplayName_assertLowerCased() {
-    assertThat(new TestLicenceTab("Overview").anchor()).isEqualTo("overview");
+    assertThat(new TestLicenceTab("Overview", 1).anchor()).isEqualTo("overview");
   }
 
   @Test
   void anchor_whenMultipleWordDisplayName_assertSpacesReplacedWithHyphens() {
-    assertThat(new TestLicenceTab("Licence position and schedule").anchor())
+    assertThat(new TestLicenceTab("Licence position and schedule", 1).anchor())
         .isEqualTo("licence-position-and-schedule");
   }
 
@@ -24,10 +25,15 @@ class LicenceTabTest {
     var licence = LicenceTestUtil.builder().withId(1).build();
     var user = ServiceUserDetailTestUtil.newBuilder().build();
 
-    assertThat(new TestLicenceTab("Overview").actions(licence, user)).isEmpty();
+    assertThat(new TestLicenceTab("Overview", 1).actions(licence, user)).isEmpty();
   }
 
-  private record TestLicenceTab(String displayName) implements LicenceTab {
+  private record TestLicenceTab(String displayName, int displayOrder) implements LicenceTab {
+
+    @Override
+    public ReleaseFeature getReleaseFeature() {
+      return ReleaseFeature.VIEW_LICENCE_SCHEDULE;
+    }
 
     @Override
     public String url(LicenceTabContext context) {

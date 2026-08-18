@@ -1,7 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.search;
 
-import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
-
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -21,9 +19,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -39,13 +36,15 @@ public class LicenceSearchService {
   private final OrganisationGroupQueryService organisationGroupQueryService;
   private final TeamQueryService teamQueryService;
   private final LicenceStatusService licenceStatusService;
+  private final TabbedLicencePageService tabbedLicencePageService;
 
   public LicenceSearchService(LicenceService licenceService,
                               LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
                               OrganisationUnitQueryService organisationUnitQueryService,
                               OrganisationGroupQueryService organisationGroupQueryService,
                               TeamQueryService teamQueryService,
-                              LicenceStatusService licenceStatusService
+                              LicenceStatusService licenceStatusService,
+                              TabbedLicencePageService tabbedLicencePageService
   ) {
     this.licenceService = licenceService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
@@ -53,6 +52,7 @@ public class LicenceSearchService {
     this.organisationGroupQueryService = organisationGroupQueryService;
     this.teamQueryService = teamQueryService;
     this.licenceStatusService = licenceStatusService;
+    this.tabbedLicencePageService = tabbedLicencePageService;
   }
 
   public List<SearchResultItem> getSearchResultItems(
@@ -193,8 +193,7 @@ public class LicenceSearchService {
     var mappedLicensees = licensees.stream().filter(Objects::nonNull).toList();
     return SearchResultItem.newBuilder()
         .withId(licence.getId().toString())
-        .withLinkHeadingUrl(ReverseRouter.route(on(LicenceOverviewController.class)
-          .renderLicenceOverview(licence.getId(), null, null, null)))
+        .withLinkHeadingUrl(tabbedLicencePageService.getDefaultTabUrl(licence))
         .withLinkHeadingText(licence.getLicenceReference())
         .withCaptionText(licence.getType().getDisplayName())
         .withDataItemRow(SummaryDataView.newBuilder()

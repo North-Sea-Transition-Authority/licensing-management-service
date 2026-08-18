@@ -17,10 +17,14 @@ public enum ReleaseFeature {
   CONTINUATION_APPLICATION(ReleasePhase.LMS1),
   /** Draft licence schedule management (schedule editing) and its work-area category. */
   MANAGE_SCHEDULE(ReleasePhase.LMS1),
+  /** The schedule tab on the licence page. */
+  VIEW_LICENCE_SCHEDULE(ReleasePhase.LMS1),
 
   // --- LMS2 ---
   /** Licence corrections and the corrections work-area category. */
-  START_CORRECTION(ReleasePhase.LMS2);
+  START_CORRECTION(ReleasePhase.LMS2),
+  /** The timeline (licence position) tab on the licence page. */
+  VIEW_LICENCE_TIMELINE(ReleasePhase.LMS2);
 
   private final ReleasePhase releasePhase;
 

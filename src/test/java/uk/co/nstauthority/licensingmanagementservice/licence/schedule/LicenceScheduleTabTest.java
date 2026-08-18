@@ -8,6 +8,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.LicenceTabContext;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 
 class LicenceScheduleTabTest {
 
@@ -16,6 +17,16 @@ class LicenceScheduleTabTest {
   @Test
   void displayName() {
     assertThat(licenceScheduleTab.displayName()).isEqualTo("Schedule");
+  }
+
+  @Test
+  void displayOrder() {
+    assertThat(licenceScheduleTab.displayOrder()).isEqualTo(2);
+  }
+
+  @Test
+  void getReleaseFeature() {
+    assertThat(licenceScheduleTab.getReleaseFeature()).isEqualTo(ReleaseFeature.VIEW_LICENCE_SCHEDULE);
   }
 
   @Test

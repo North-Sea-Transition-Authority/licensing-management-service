@@ -31,8 +31,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
+import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = StartLicenceCorrectionController.class)
@@ -42,10 +42,14 @@ class StartLicenceCorrectionControllerTest extends AbstractControllerTest {
   @MockitoBean
   private StartLicenceCorrectionFormValidator startLicenceCorrectionFormValidator;
 
+  @MockitoBean
+  private TabbedLicencePageService tabbedLicencePageService;
+
   private static final Integer LICENCE_ID = 1;
   private static final Licence LICENCE = LicenceTestUtil.builder().withId(LICENCE_ID).build();
   private static final String PAGE_TITLE = "Start a licence correction";
   private static final String PAGE_CAPTION = "licence - 1";
+  private static final String DEFAULT_TAB_URL = "/licences/1/default-tab";
 
   @BeforeEach
   void setUp() {
@@ -62,6 +66,7 @@ class StartLicenceCorrectionControllerTest extends AbstractControllerTest {
   void renderStartLicenceCorrection() throws Exception {
     givenCanStartCorrection();
     when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(PAGE_CAPTION);
+    when(tabbedLicencePageService.getDefaultTabUrl(LICENCE)).thenReturn(DEFAULT_TAB_URL);
 
     mockMvc.perform(get(ReverseRouter.route(on(StartLicenceCorrectionController.class).renderStartLicenceCorrection(LICENCE)))
             .with(user(regulatorUser)))
@@ -71,8 +76,7 @@ class StartLicenceCorrectionControllerTest extends AbstractControllerTest {
             model().attribute("pageTitle", PAGE_TITLE),
             model().attribute("pageCaption", PAGE_CAPTION),
             model().attributeExists("form"),
-            model().attribute("backLinkUrl",
-                ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(LICENCE_ID, null, null, null)))
+            model().attribute("backLinkUrl", DEFAULT_TAB_URL)
         );
   }
 
@@ -144,6 +148,7 @@ class StartLicenceCorrectionControllerTest extends AbstractControllerTest {
 
     when(startLicenceCorrectionFormValidator.hasErrors(eq(startCorrectionForm), any(BindingResult.class))).thenReturn(true);
     when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(PAGE_CAPTION);
+    when(tabbedLicencePageService.getDefaultTabUrl(LICENCE)).thenReturn(DEFAULT_TAB_URL);
 
     mockMvc.perform(post(
             ReverseRouter.route(on(StartLicenceCorrectionController.class)
@@ -157,8 +162,7 @@ class StartLicenceCorrectionControllerTest extends AbstractControllerTest {
             model().attribute("pageTitle", PAGE_TITLE),
             model().attribute("pageCaption", PAGE_CAPTION),
             model().attribute("form", startCorrectionForm),
-            model().attribute("backLinkUrl",
-                ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(LICENCE_ID, null, null, null)))
+            model().attribute("backLinkUrl", DEFAULT_TAB_URL)
         );
 
     verify(startLicenceCorrectionFormValidator).hasErrors(eq(startCorrectionForm), any(BindingResult.class));

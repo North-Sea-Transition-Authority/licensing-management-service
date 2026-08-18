@@ -9,6 +9,7 @@
 <#-- @ftlvariable name="tabs" type="java.util.Collection<uk.co.nstauthority.licensingmanagementservice.fds.tab.FdsBackendTab>" -->
 <#-- @ftlvariable name="currentTab" type="uk.co.nstauthority.licensingmanagementservice.fds.tab.FdsBackendTab" -->
 <#-- @ftlvariable name="currentTabLicenceActions" type="java.util.Collection<uk.co.nstauthority.licensingmanagementservice.fds.tab.FdsBackendTab>" -->
+<#-- @ftlvariable name="csRegisterUrl" type="String" -->
 
 <#macro page heading caption topLevelLicenceActions tabs currentTab currentTabLicenceActions>
   <@defaultPage
@@ -17,6 +18,12 @@
     caption=caption
     pageSize=PageSize.FULL_COLUMN
   >
+    <#if csRegisterUrl?has_content>
+      <p class="govuk-body">
+        <@fdsAction.link linkText="View in public register" linkUrl=csRegisterUrl openInNewTab=true/>
+      </p>
+    </#if>
+
     <@actionItems.actionItems actionItems=topLevelLicenceActions screenReaderText="Actions for ${heading}"/>
 
     <@fdsBackendTabs.tabs tabsHeading="Licence tabs">

@@ -130,6 +130,14 @@ public class ReverseRouter {
   }
 
   /**
+   * Redirect to a URL which has already been routed — for example one resolved from a bean rather than from a
+   * controller method call.
+   */
+  public static ModelAndView redirectToUrl(String url) {
+    return new ModelAndView("redirect:" + url);
+  }
+
+  /**
    * Return an empty BindingResult.
    * Used to avoid passing null into a BindingResult route parameter, which then will cause null warnings to be thrown by IJ if
    * the controller invokes methods on the BindingResult, as it now thinks null is a possible runtime value.

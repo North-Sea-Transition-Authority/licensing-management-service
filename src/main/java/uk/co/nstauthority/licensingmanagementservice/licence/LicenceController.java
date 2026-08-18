@@ -18,8 +18,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamT
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
+import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -37,15 +37,18 @@ public class LicenceController {
   private final LicenceFormService licenceFormService;
   private final NewLicenceValidator newLicenceValidator;
   private final EditLicenceDetailsValidator editLicenceDetailsValidator;
+  private final TabbedLicencePageService tabbedLicencePageService;
 
   public LicenceController(
       LicenceFormService licenceFormService,
       NewLicenceValidator newLicenceValidator,
-      EditLicenceDetailsValidator editLicenceDetailsValidator
+      EditLicenceDetailsValidator editLicenceDetailsValidator,
+      TabbedLicencePageService tabbedLicencePageService
   ) {
     this.licenceFormService = licenceFormService;
     this.newLicenceValidator = newLicenceValidator;
     this.editLicenceDetailsValidator = editLicenceDetailsValidator;
+    this.tabbedLicencePageService = tabbedLicencePageService;
   }
 
   @GetMapping("/new")
@@ -61,7 +64,7 @@ public class LicenceController {
     if (newLicenceValidator.isValid(form, bindingResult)) {
       var licence = licenceFormService.saveNewLicenceFromForm(form);
 
-      return ReverseRouter.redirect(on(LicenceOverviewController.class).renderLicenceOverview(licence.getId(), null, null, null));
+      return ReverseRouter.redirectToUrl(tabbedLicencePageService.getDefaultTabUrl(licence));
     }
 
     return getNewLicenceModelAndView(form);
@@ -125,7 +128,7 @@ public class LicenceController {
     }
 
     licenceFormService.saveEditLicenceDetailsFromForm(licence, form);
-    return ReverseRouter.redirect(on(LicenceOverviewController.class).renderLicenceOverview(licenceId, null, null, null));
+    return ReverseRouter.redirectToUrl(tabbedLicencePageService.getDefaultTabUrl(licence));
   }
 
   private ModelAndView getEditLicenceDetailsModelAndView(
@@ -143,7 +146,6 @@ public class LicenceController {
         .addObject("preselectedOrgUnits", organisationUnits)
         .addObject("organisationUnitSearchEndpoint",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
-        .addObject("backUrl",
-            ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licence.getId(), null, null, null)));
+        .addObject("backUrl", tabbedLicencePageService.getDefaultTabUrl(licence));
   }
 }

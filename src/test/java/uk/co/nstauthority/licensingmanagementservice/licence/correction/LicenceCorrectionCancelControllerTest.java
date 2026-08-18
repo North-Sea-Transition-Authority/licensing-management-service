@@ -20,13 +20,19 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = LicenceCorrectionCancelController.class)
 @ActiveProfiles({"test", "enable-lms2"})
 class LicenceCorrectionCancelControllerTest extends AbstractControllerTest {
+
+  private static final String DEFAULT_TAB_URL = "/licences/1/default-tab";
+
+  @MockitoBean
+  private TabbedLicencePageService tabbedLicencePageService;
 
   private final LicenceCorrection correction = LicenceCorrectionTestUtil.newBuilder().build();
 
@@ -89,14 +95,14 @@ class LicenceCorrectionCancelControllerTest extends AbstractControllerTest {
   void processCancelCorrection_whenAllocatedToUser_assertRedirection() throws Exception {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(correction.getId(), regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(tabbedLicencePageService.getDefaultTabUrl(correction.getLicence())).thenReturn(DEFAULT_TAB_URL);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicenceCorrectionCancelController.class)
             .processCancelCorrection(correction.getId(), null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceOverviewController.class)
-            .renderLicenceOverview(correction.getLicence().getId(), null, null, null))));
+        .andExpect(redirectedUrl(DEFAULT_TAB_URL));
 
     verify(licenceCorrectionService).cancelCorrection(correction);
   }

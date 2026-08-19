@@ -1,5 +1,5 @@
-<#include '../../../layout/layout.ftl'>
-<#import '../../../tasklist/standardTaskList.ftl' as taskList>
+<#include '../../../../layout/layout.ftl'>
+<#import '../../../../tasklist/standardTaskList.ftl' as taskList>
 
 <@defaultPage
   htmlTitle=pageTitle

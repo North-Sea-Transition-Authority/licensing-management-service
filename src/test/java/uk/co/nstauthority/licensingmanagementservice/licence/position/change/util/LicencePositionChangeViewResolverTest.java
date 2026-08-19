@@ -23,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityRow;
@@ -686,6 +687,9 @@ class LicencePositionChangeViewResolverTest {
         currentLicencePosition,
         LicenceOperation.newPartialSurrenderOperation()
             .withFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
+            .withBlockSurrenderTypeByFeatureId(Map.of(
+                FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER,
+                SECOND_FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER))
             .build()
     );
 
@@ -696,11 +700,13 @@ class LicencePositionChangeViewResolverTest {
         .isInstanceOf(PartialSurrenderChangeView.class);
 
     var partialSurrenderChangeView = (PartialSurrenderChangeView) result.get(LicenceOperation.PARTIAL_SURRENDER);
-    assertThat(partialSurrenderChangeView.blockLabels()).containsExactly("30/1a", "30/2");
+    assertThat(partialSurrenderChangeView.blockRows()).containsExactly(
+        new PartialSurrenderChangeView.BlockRow("30/1a", "Full surrender"),
+        new PartialSurrenderChangeView.BlockRow("30/2", "Partial surrender"));
   }
 
   @Test
-  void getChangeViews_whenBlockNameNotFound_usesEmptyLabel() {
+  void getChangeViews_whenBlockNameNotFound_usesNotAvailable() {
     var currentLicencePosition = LicencePositionTestUtil.newBuilder()
         .withPositionDate(LocalDate.of(2026, Month.AUGUST, 1))
         .build();
@@ -709,13 +715,15 @@ class LicencePositionChangeViewResolverTest {
         currentLicencePosition,
         LicenceOperation.newPartialSurrenderOperation()
             .withFeatureIds(List.of(FIRST_FEATURE_ID))
+            .withBlockSurrenderTypeByFeatureId(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
             .build()
     );
 
     var result = changeViewsFor(currentLicencePosition.getId(), Map.of(), currentChronologicalPosition);
 
     var partialSurrenderChangeView = (PartialSurrenderChangeView) result.get(LicenceOperation.PARTIAL_SURRENDER);
-    assertThat(partialSurrenderChangeView.blockLabels()).containsExactly("");
+    assertThat(partialSurrenderChangeView.blockRows())
+        .containsExactly(new PartialSurrenderChangeView.BlockRow("Not available", "Full surrender"));
   }
 
   @Test
@@ -728,6 +736,7 @@ class LicencePositionChangeViewResolverTest {
         currentLicencePosition,
         LicenceOperation.newPartialSurrenderOperation()
             .withFeatureIds(List.of(FIRST_FEATURE_ID))
+            .withBlockSurrenderTypeByFeatureId(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
             .build()
     );
 
@@ -748,6 +757,7 @@ class LicencePositionChangeViewResolverTest {
         LicenceOperation.newPartialSurrenderOperation()
             .withSurrenderDate(LocalDate.of(2026, Month.SEPTEMBER, 30))
             .withFeatureIds(List.of(FIRST_FEATURE_ID))
+            .withBlockSurrenderTypeByFeatureId(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
             .build()
     );
 

@@ -68,7 +68,7 @@ public class PartialSurrenderTaskListController {
     var sections = partialSurrenderTaskListService.getTaskListSections(
         new PartialSurrenderTaskListContext(positionCorrection), user);
 
-    return new ModelAndView("lms/licence/correction/change/partialSurrenderTaskList")
+    return new ModelAndView("lms/licence/correction/change/partialSurrender/partialSurrenderTaskList")
         .addObject("pageTitle", TASK_LIST_PAGE_TITLE)
         .addObject("pageCaption", correction.getLicence().getLicenceReference())
         .addObject("positionReference", positionReference(positionCorrection))

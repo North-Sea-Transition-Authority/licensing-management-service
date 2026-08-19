@@ -50,6 +50,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
@@ -670,7 +671,10 @@ class LicencePositionViewServiceTest {
     var firstBlock = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 1);
     var secondBlock = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 2);
     var partialSurrenderOp = new PartialSurrenderOperation(
-        null, List.of(firstBlock.getId(), secondBlock.getId()));
+        null, List.of(firstBlock.getId(), secondBlock.getId()),
+        Map.of(
+            firstBlock.getId(), BlockSurrenderType.FULL_SURRENDER,
+            secondBlock.getId(), BlockSurrenderType.PARTIAL_SURRENDER));
 
     var change = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(position)
@@ -686,7 +690,9 @@ class LicencePositionViewServiceTest {
 
     var expected = new PartialSurrenderChangeView(
         "1 January 2026",
-        List.of(firstBlock.getFeatureName(), secondBlock.getFeatureName()),
+        List.of(
+            new PartialSurrenderChangeView.BlockRow(firstBlock.getFeatureName(), "Full surrender"),
+            new PartialSurrenderChangeView.BlockRow(secondBlock.getFeatureName(), "Partial surrender")),
         null);
     assertThat(result.changeViewByType())
         .containsOnly(entry(LicenceOperation.PARTIAL_SURRENDER, expected));

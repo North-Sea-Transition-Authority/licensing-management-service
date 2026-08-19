@@ -254,7 +254,10 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         "1 Jan 2026",
         "REF-1",
         Map.of(LicenceOperation.PARTIAL_SURRENDER,
-            new PartialSurrenderChangeView("1 August 2026", List.of("30/1a", "30/2"),
+            new PartialSurrenderChangeView("1 August 2026",
+                List.of(
+                    new PartialSurrenderChangeView.BlockRow("30/1a", "Full surrender"),
+                    new PartialSurrenderChangeView.BlockRow("30/2", "Partial surrender")),
                 LicencePositionChangeType.ADD_CHANGE)),
         new LicencePositionStateView(new AdministratorStateView("Operator Ltd"), List.of()),
         position.getId(),

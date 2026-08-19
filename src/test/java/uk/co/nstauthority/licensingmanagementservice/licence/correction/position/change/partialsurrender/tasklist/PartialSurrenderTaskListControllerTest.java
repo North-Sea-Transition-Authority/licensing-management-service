@@ -76,7 +76,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
   private static final List<TaskListSection> SECTIONS = List.of(new TaskListSection("Surrender details", 10,
       List.of(new TaskListItem("Surrender details", TaskListLabel.COMPLETE, "/surrender-details"))));
 
-  private static final String VIEW_NAME = "lms/licence/correction/change/partialSurrenderTaskList";
+  private static final String VIEW_NAME = "lms/licence/correction/change/partialSurrender/partialSurrenderTaskList";
 
   @MockitoBean
   private PartialSurrenderCorrectionService partialSurrenderCorrectionService;

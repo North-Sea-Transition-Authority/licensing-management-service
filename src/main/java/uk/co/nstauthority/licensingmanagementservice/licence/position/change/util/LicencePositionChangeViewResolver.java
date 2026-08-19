@@ -124,14 +124,17 @@ public final class LicencePositionChangeViewResolver {
   ) {
     var surrenderDate = operation.surrenderDate() != null ? operation.surrenderDate() : currentPositionDate;
 
-    var blockLabels = operation.featureIds()
+    var blockRows = operation.featureIds()
         .stream()
-        .map(featureId -> featureNames.getOrDefault(featureId, ""))
+        .map(featureId -> new PartialSurrenderChangeView.BlockRow(
+            featureNames.getOrDefault(featureId, NOT_AVAILABLE),
+            operation.blockSurrenderTypeByFeatureId().get(featureId).getDisplayName()
+        ))
         .toList();
 
     return new PartialSurrenderChangeView(
         surrenderDate == null ? null : DateUtil.formatLongDate(surrenderDate),
-        blockLabels,
+        blockRows,
         change.changeType()
     );
   }
@@ -146,11 +149,11 @@ public final class LicencePositionChangeViewResolver {
     var joiningId = operation.operatorId();
 
     var withdrawingId = previousState.administratorId();
-    var withdrawingName = (withdrawingId == null) ? null : organisationNames.get(withdrawingId);
+    var withdrawingName = (withdrawingId == null) ? null : organisationNames.getOrDefault(withdrawingId, NOT_AVAILABLE);
 
     return new AdministratorChangeView(
         withdrawingName,
-        organisationNames.get(joiningId),
+        organisationNames.getOrDefault(joiningId, NOT_AVAILABLE),
         change.changeId(),
         change.changeType(),
         correctChangeUrl(urlContext, change),

@@ -186,8 +186,8 @@
     </#if>
     <@fdsSummaryList.summaryListRowNoAction keyText="Blocks to surrender">
       <dl>
-        <#list change.blockLabels() as blockLabel>
-          <dt>${blockLabel}</dt>
+        <#list change.blockRows() as blockRow>
+          <dt style="white-space: nowrap;">${blockRow.blockLabel()} - ${blockRow.surrenderType()}</dt>
         </#list>
       </dl>
     </@fdsSummaryList.summaryListRowNoAction>

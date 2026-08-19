@@ -8,13 +8,19 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -23,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
@@ -52,8 +59,14 @@ class PartialSurrenderCorrectionServiceTest {
   @Mock
   private LicencePositionService licencePositionService;
 
+  @Mock
+  private FeatureService featureService;
+
   @InjectMocks
   private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
+
+  @Captor
+  private ArgumentCaptor<List<PartialSurrenderOperation>> partialSurrenderOperationCaptor;
 
   private static LicencePositionCorrection positionCorrection() {
     return LicencePositionCorrectionTestUtil.newBuilder()
@@ -235,7 +248,38 @@ class PartialSurrenderCorrectionServiceTest {
 
     partialSurrenderCorrectionService.adjustPartialSurrenderBlocks(positionCorrection);
 
-    var expected = new PartialSurrenderOperation(surrender.surrenderDate(), List.of(FIRST_FEATURE_ID));
+    var expected = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(surrender.surrenderDate())
+        .withFeatureIds(List.of(FIRST_FEATURE_ID))
+        .build();
+    verify(licencePositionCorrectionService)
+        .replaceAddChangeFor(positionCorrection, PartialSurrenderOperation.class, List.of(expected));
+  }
+
+  @Test
+  void adjustPartialSurrenderBlocks_whenSomeBlocksNoLongerSurrenderable_preservesSurrenderTypesForRetainedBlocks() {
+    var positionCorrection = executedPositionCorrection();
+    var surrender = LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
+        .withBlockSurrenderTypeByFeatureId(Map.of(
+            FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER,
+            SECOND_FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER
+        ))
+        .build();
+    when(licencePositionCorrectionService.getAddOperationsOfType(
+        positionCorrection.getPayload().changes(), PartialSurrenderOperation.class))
+        .thenReturn(List.of(surrender));
+    when(licencePositionService.getBlockFeatures(LICENCE_POSITION)).thenReturn(List.of(
+        FeatureTestUtil.builder().withId(FIRST_FEATURE_ID).build()
+    ));
+
+    partialSurrenderCorrectionService.adjustPartialSurrenderBlocks(positionCorrection);
+
+    var expected = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(surrender.surrenderDate())
+        .withFeatureIds(List.of(FIRST_FEATURE_ID))
+        .withBlockSurrenderTypeByFeatureId(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
+        .build();
     verify(licencePositionCorrectionService)
         .replaceAddChangeFor(positionCorrection, PartialSurrenderOperation.class, List.of(expected));
   }
@@ -279,5 +323,71 @@ class PartialSurrenderCorrectionServiceTest {
 
     assertThat(partialSurrenderCorrectionService.getSurrenderableBlockFeatures(executedPositionCorrection()))
         .isEqualTo(blockFeatures);
+  }
+
+  @Test
+  void getSurrenderedBlockFeatureOrThrow_whenStaged_returnsTheFeature() {
+    var operation = LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(List.of(FIRST_FEATURE_ID))
+        .build();
+    var positionCorrection = positionCorrection();
+    var feature = FeatureTestUtil.builder().withId(FIRST_FEATURE_ID).build();
+    when(licencePositionCorrectionService.getAddOperationsOfType(
+        positionCorrection.getPayload().changes(), PartialSurrenderOperation.class))
+        .thenReturn(List.of(operation));
+    when(featureService.getFeatureOrThrow(FIRST_FEATURE_ID)).thenReturn(feature);
+
+    assertThat(partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(positionCorrection, FIRST_FEATURE_ID))
+        .isEqualTo(feature);
+  }
+
+  @Test
+  void getSurrenderedBlockFeatureOrThrow_whenNotStaged_throws() {
+    var operation = LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(List.of(FIRST_FEATURE_ID))
+        .build();
+    var positionCorrection = positionCorrection();
+    when(licencePositionCorrectionService.getAddOperationsOfType(
+        positionCorrection.getPayload().changes(), PartialSurrenderOperation.class))
+        .thenReturn(List.of(operation));
+
+    assertThatThrownBy(() ->
+        partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(positionCorrection, SECOND_FEATURE_ID))
+        .isInstanceOf(LmsEntityNotFoundException.class);
+  }
+
+  @Test
+  void setBlockSurrenderType_replacesTheOperationWithTheTypeSetForTheFeaturePreservingOtherState() {
+    var surrenderDate = LocalDate.of(2026, Month.AUGUST, 1);
+    var existingOperation = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(surrenderDate)
+        .withFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
+        .withBlockSurrenderTypeByFeatureId(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER))
+        .build();
+    var positionCorrection = positionCorrection();
+
+    when(licencePositionCorrectionService.getAddOperationsOfType(
+        positionCorrection.getPayload().changes(),
+        PartialSurrenderOperation.class
+    )).thenReturn(List.of(existingOperation));
+
+    partialSurrenderCorrectionService.setBlockSurrenderType(
+        positionCorrection, SECOND_FEATURE_ID,
+        BlockSurrenderType.FULL_SURRENDER
+    );
+
+    var expectedOperation = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(surrenderDate)
+        .withFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
+        .withBlockSurrenderTypeByFeatureId(Map.of(
+            FIRST_FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER,
+            SECOND_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER
+        ))
+        .build();
+
+    verify(licencePositionCorrectionService)
+        .replaceAddChangeFor(eq(positionCorrection), eq(PartialSurrenderOperation.class), partialSurrenderOperationCaptor.capture());
+
+    assertThat(partialSurrenderOperationCaptor.getValue()).containsExactly(expectedOperation);
   }
 }

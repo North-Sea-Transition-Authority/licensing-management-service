@@ -65,7 +65,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
   private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
   private static final LocalDate POSITION_DATE = LocalDate.of(2026, Month.AUGUST, 1);
   private static final int POSITION_DATE_ORDER = 2;
-  private static final String VIEW_NAME = "lms/licence/correction/change/partialSurrenderDetails";
+  private static final String VIEW_NAME = "lms/licence/correction/change/partialSurrender/partialSurrenderDetails";
 
   private static final Feature BLOCK_30_1A = FeatureTestUtil.builder()
       .withFeatureName("30/1a")
@@ -236,7 +236,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var captor = ArgumentCaptor.forClass(PartialSurrenderOperation.class);
     verify(partialSurrenderCorrectionService)
         .commitPartialSurrenderForExecutedPosition(eq(correction), eq(licencePosition), captor.capture());
-    assertThat(captor.getValue()).isEqualTo(new PartialSurrenderOperation(null, List.of(BLOCK_30_1A.getId())));
+    assertThat(captor.getValue()).isEqualTo(new PartialSurrenderOperation(null, List.of(BLOCK_30_1A.getId()), Map.of()));
   }
 
   @Test
@@ -384,7 +384,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var captor = ArgumentCaptor.forClass(PartialSurrenderOperation.class);
     verify(partialSurrenderCorrectionService).commitPartialSurrender(eq(positionCorrection), captor.capture());
     assertThat(captor.getValue())
-        .isEqualTo(new PartialSurrenderOperation(null, List.of(BLOCK_30_1A.getId(), BLOCK_30_2.getId())));
+        .isEqualTo(new PartialSurrenderOperation(null, List.of(BLOCK_30_1A.getId(), BLOCK_30_2.getId()), Map.of()));
   }
 
   private LicenceCorrection givenCorrectionAllocatedToUser() {

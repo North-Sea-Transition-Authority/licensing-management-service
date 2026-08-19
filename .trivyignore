@@ -161,3 +161,6 @@ CVE-2026-71497
 
 # org.apache.logging.log4j:log4j-api (app.jar)
 CVE-2026-49844
+
+# io.netty:netty-codec-http (app.jar)
+CVE-2026-59903

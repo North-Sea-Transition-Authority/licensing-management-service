@@ -4,6 +4,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import jakarta.annotation.Nullable;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.context.annotation.Profile;
@@ -26,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
@@ -107,7 +109,7 @@ public class LicencePositionPartialSurrenderController {
     }
 
     var committedPositionCorrection = partialSurrenderCorrectionService.commitPartialSurrenderForExecutedPosition(
-        correction, licencePosition, toOperation(form));
+        correction, licencePosition, toOperation(form, existing));
 
     NotificationBanner.newSuccessBannerWithHeader(SAVED_BANNER, redirectAttributes);
     return ReverseRouter.redirect(on(PartialSurrenderTaskListController.class)
@@ -156,16 +158,24 @@ public class LicencePositionPartialSurrenderController {
               addedChangeUrl(correctionId, licencePositionCorrectionId)));
     }
 
-    partialSurrenderCorrectionService.commitPartialSurrender(positionCorrection, toOperation(form));
+    partialSurrenderCorrectionService.commitPartialSurrender(positionCorrection, toOperation(form, existing));
 
     NotificationBanner.newSuccessBannerWithHeader(SAVED_BANNER, redirectAttributes);
     return ReverseRouter.redirect(on(PartialSurrenderTaskListController.class)
         .renderTaskList(correctionId, licencePositionCorrectionId, null, null));
   }
 
-  private PartialSurrenderOperation toOperation(PartialSurrenderDetailsForm form) {
+  private PartialSurrenderOperation toOperation(PartialSurrenderDetailsForm form, @Nullable PartialSurrenderOperation existing) {
+    var blockSurrenderTypesByFeatureId = new HashMap<UUID, BlockSurrenderType>();
+    if (existing != null) {
+      blockSurrenderTypesByFeatureId.putAll(existing.blockSurrenderTypeByFeatureId());
+      blockSurrenderTypesByFeatureId.keySet().retainAll(form.getFeatureIds());
+    }
+
     return LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(existing != null ? existing.surrenderDate() : null)
         .withFeatureIds(form.getFeatureIds())
+        .withBlockSurrenderTypeByFeatureId(blockSurrenderTypesByFeatureId)
         .build();
   }
 
@@ -176,7 +186,7 @@ public class LicencePositionPartialSurrenderController {
       List<Feature> blockFeatures,
       String backLinkUrl
   ) {
-    return new ModelAndView("lms/licence/correction/change/partialSurrenderDetails")
+    return new ModelAndView("lms/licence/correction/change/partialSurrender/partialSurrenderDetails")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("pageCaption", correction.getLicence().getLicenceReference())
         .addObject("form", form)

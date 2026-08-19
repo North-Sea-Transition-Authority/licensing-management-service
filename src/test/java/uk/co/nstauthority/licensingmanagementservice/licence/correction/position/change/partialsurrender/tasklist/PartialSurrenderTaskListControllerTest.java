@@ -41,6 +41,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
@@ -180,19 +182,40 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
   void renderReviewAndSubmit() throws Exception {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
     var positionCorrection = givenPositionCorrection(correction, LicencePositionCorrectionChangeType.UPDATE_POSITION);
-    var summarySections = List.of(new SummarySection(10, List.of(SummaryItem.withCards("Surrender details", List.of()))));
+    var summarySections = List.of(new SummarySection(10, List.of(SummaryItem.withCard(
+        "Surrender details",
+        SummaryCard.simpleSummaryCard(SummaryDataView.newStringKeyValue("Key", "Value"))
+        )))
+    );
     when(partialSurrenderSummarySectionService.getSummarySections(
         new PartialSurrenderSummaryContext(positionCorrection), regulatorUser)).thenReturn(summarySections);
+
+    when(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(positionCorrection)).thenReturn(false);
 
     mockMvc.perform(get(reviewAndSubmitUrl()).with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
-            view().name("lms/licence/correction/change/partialSurrenderReviewAndSubmit"),
+            view().name("lms/licence/correction/change/partialSurrender/partialSurrenderReviewAndSubmit"),
             model().attribute("pageTitle", PartialSurrenderTaskListController.REVIEW_AND_SUBMIT_PAGE_TITLE),
             model().attribute("pageCaption", LICENCE.getLicenceReference()),
             model().attribute("summarySections", summarySections),
-            model().attribute("accordionId", POSITION_CORRECTION_ID),
+            model().attribute("allSurrenderedBlocksAreFull", false),
             model().attribute("backLinkUrl", taskListUrl())
+        );
+  }
+
+  @Test
+  void renderReviewAndSubmit_whenAllBlocksFullSurrender_thenValidationErrorFlagSet() throws Exception {
+    var correction = givenCorrectionAllocatedToUser(LICENCE);
+    var positionCorrection = givenPositionCorrection(correction, LicencePositionCorrectionChangeType.UPDATE_POSITION);
+    when(partialSurrenderSummarySectionService.getSummarySections(
+        new PartialSurrenderSummaryContext(positionCorrection), regulatorUser)).thenReturn(List.of());
+    when(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(positionCorrection)).thenReturn(true);
+
+    mockMvc.perform(get(reviewAndSubmitUrl()).with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            model().attribute("allSurrenderedBlocksAreFull", true)
         );
   }
 

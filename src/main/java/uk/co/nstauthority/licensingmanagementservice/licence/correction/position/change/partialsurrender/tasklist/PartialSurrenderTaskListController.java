@@ -34,7 +34,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 public class PartialSurrenderTaskListController {
 
   public static final String TASK_LIST_PAGE_TITLE = "Partial surrender";
-  public static final String REVIEW_AND_SUBMIT_PAGE_TITLE = "Review the partial surrender before submitting";
+  public static final String REVIEW_AND_SUBMIT_PAGE_TITLE = "Review and submit";
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
@@ -94,11 +94,13 @@ public class PartialSurrenderTaskListController {
         user
     );
 
-    return new ModelAndView("lms/licence/correction/change/partialSurrenderReviewAndSubmit")
+    return new ModelAndView("lms/licence/correction/change/partialSurrender/partialSurrenderReviewAndSubmit")
         .addObject("pageTitle", REVIEW_AND_SUBMIT_PAGE_TITLE)
         .addObject("pageCaption", correction.getLicence().getLicenceReference())
         .addObject("summarySections", sections)
-        .addObject("accordionId", licencePositionCorrection.getId())
+        .addObject("allSurrenderedBlocksAreFull",
+            partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(licencePositionCorrection)
+        )
         .addObject("backLinkUrl", taskListUrl);
   }
 

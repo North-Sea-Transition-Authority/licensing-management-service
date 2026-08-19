@@ -86,6 +86,17 @@ public class PartialSurrenderCorrectionService {
     return getCommittedPartialSurrender(licencePositionCorrection).isPresent();
   }
 
+  public boolean allSurrenderedBlocksAreFull(LicencePositionCorrection licencePositionCorrection) {
+    var operation = getCommittedPartialSurrender(licencePositionCorrection).orElse(null);
+
+    if (operation == null || operation.featureIds().isEmpty()) {
+      return false;
+    }
+
+    return operation.featureIds().stream()
+        .allMatch(id -> operation.blockSurrenderTypeByFeatureId().get(id) == BlockSurrenderType.FULL_SURRENDER);
+  }
+
   @Transactional
   public void adjustPartialSurrenderBlocks(LicencePositionCorrection licencePositionCorrection) {
     var committedPartialSurrender = getCommittedPartialSurrender(licencePositionCorrection);

@@ -148,6 +148,48 @@ class PartialSurrenderCorrectionServiceTest {
   }
 
   @Test
+  void noSurrenderedBlocksArePartial_whenEveryBlockIsFullSurrender_returnsTrue() {
+    var positionCorrection = positionCorrection();
+    var operation = LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
+        .withBlockSurrenderTypeByFeatureId(Map.of(
+            FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER,
+            SECOND_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
+        .build();
+    when(licencePositionCorrectionService.getAddOperationsOfType(
+        positionCorrection.getPayload().changes(), PartialSurrenderOperation.class))
+        .thenReturn(List.of(operation));
+
+    assertThat(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(positionCorrection)).isTrue();
+  }
+
+  @Test
+  void noSurrenderedBlocksArePartial_whenAnyBlockIsPartialSurrender_returnsFalse() {
+    var positionCorrection = positionCorrection();
+    var operation = LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
+        .withBlockSurrenderTypeByFeatureId(Map.of(
+            FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER,
+            SECOND_FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER))
+        .build();
+    when(licencePositionCorrectionService.getAddOperationsOfType(
+        positionCorrection.getPayload().changes(), PartialSurrenderOperation.class))
+        .thenReturn(List.of(operation));
+
+    assertThat(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(positionCorrection)).isFalse();
+  }
+
+  @Test
+  void noSurrenderedBlocksArePartial_whenNoSurrenderStaged_returnsFalse() {
+    var positionCorrection = positionCorrection();
+    when(licencePositionCorrectionService.getAddOperationsOfType(
+        positionCorrection.getPayload().changes(), PartialSurrenderOperation.class))
+        .thenReturn(List.of());
+
+    assertThat(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(positionCorrection)).isFalse();
+  }
+
+  @Test
   void commitPartialSurrender_whenFeatureIds_replacesAddChangeWithTheOperation() {
     var positionCorrection = positionCorrection();
     var operation = LicenceOperation.newPartialSurrenderOperation()

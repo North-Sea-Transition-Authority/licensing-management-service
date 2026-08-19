@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
@@ -41,25 +40,12 @@ public class PartialSurrenderDetailsSummarySectionService implements SummarySect
       return Optional.empty();
     }
 
+    var licenceReference = licencePositionCorrection.getLicenceCorrection().getLicence().getLicenceReference();
     var surrenderDate = licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection);
-    var labelsById = LicenceBlockFeatureUtil.toBlockCheckboxOptions(
-        partialSurrenderCorrectionService.getSurrenderableBlockFeatures(licencePositionCorrection)
-    );
-    var surrenderedBlocks = surrender.get().featureIds().stream()
-        .map(id -> {
-          var label = labelsById.get(id.toString());
-          if (label == null) {
-            throw new IllegalStateException(
-                "Surrendered feature %s not resolvable as a surrenderable block on correction %s"
-                    .formatted(id, licencePositionCorrection.getId()));
-          }
-          return label;
-        })
-        .toList();
     var summaryCard = SummaryCard.simpleSummaryCard(
         SummaryDataView.newBuilder()
-            .addStringValue("Date of surrender", DateUtil.formatLongDate(surrenderDate))
-            .addStringValue("Blocks surrendered", surrenderedBlocks)
+            .addStringValue("Licence", licenceReference)
+            .addStringValue("Surrender date", DateUtil.formatLongDate(surrenderDate))
             .build()
     );
 

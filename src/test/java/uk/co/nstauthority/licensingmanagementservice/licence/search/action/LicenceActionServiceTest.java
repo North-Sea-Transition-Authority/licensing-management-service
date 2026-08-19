@@ -296,7 +296,7 @@ class LicenceActionServiceTest {
 
     var teamRole = TeamRoleTestUtil
         .newBuilder()
-        .withRole(Role.APPLICATION_SUBMITTER) //TODO - LMS2-55: Define who can carry out corrections on a licence
+        .withRole(Role.PRODUCTION_LICENCE_CORRECTOR)
         .build();
 
     when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
@@ -317,7 +317,7 @@ class LicenceActionServiceTest {
 
     var teamRole = TeamRoleTestUtil
         .newBuilder()
-        .withRole(Role.APPLICATION_SUBMITTER) //TODO - LMS2-55: Define who can carry out corrections on a licence
+        .withRole(Role.PRODUCTION_LICENCE_CORRECTOR)
         .build();
 
     when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
@@ -341,7 +341,7 @@ class LicenceActionServiceTest {
 
     var teamRole = TeamRoleTestUtil
         .newBuilder()
-        .withRole(Role.APPLICATION_SUBMITTER) //TODO - LMS2-55: Define who can carry out corrections on a licence
+        .withRole(Role.CARBON_STORAGE_LICENCE_CORRECTOR)
         .build();
 
     when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
@@ -364,11 +364,79 @@ class LicenceActionServiceTest {
 
     var teamRole = TeamRoleTestUtil
         .newBuilder()
-        .withRole(Role.APPLICATION_SUBMITTER) //TODO - LMS2-55: Define who can carry out corrections on a licence
+        .withRole(Role.PRODUCTION_LICENCE_CORRECTOR)
         .build();
 
     when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
     when(licenceCorrectionService.hasOpenCorrection(licence)).thenReturn(true);
+
+    assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
+        .doesNotContain(LicenceActionItem.START_CORRECTION.toActionItemView(licence));
+  }
+
+  @Test
+  void getAvailableUserActionItems_whenProductionLicenceAndUserIsCarbonStorageCorrector_excludesStartCorrection() {
+    when(environment.acceptsProfiles(Profiles.of("enable-lms2"))).thenReturn(true);
+
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
+    var teamRole = TeamRoleTestUtil
+        .newBuilder()
+        .withRole(Role.CARBON_STORAGE_LICENCE_CORRECTOR)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
+    when(licenceCorrectionService.hasOpenCorrection(licence)).thenReturn(false);
+
+    assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
+        .doesNotContain(LicenceActionItem.START_CORRECTION.toActionItemView(licence));
+  }
+
+  @Test
+  void getAvailableUserActionItems_whenCarbonStorageLicenceAndUserIsProductionCorrector_excludesStartCorrection() {
+    when(environment.acceptsProfiles(Profiles.of("enable-lms2"))).thenReturn(true);
+
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
+    var teamRole = TeamRoleTestUtil
+        .newBuilder()
+        .withRole(Role.PRODUCTION_LICENCE_CORRECTOR)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
+    when(licenceCorrectionService.hasOpenCorrection(licence)).thenReturn(false);
+
+    assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
+        .doesNotContain(LicenceActionItem.START_CORRECTION.toActionItemView(licence));
+  }
+
+  @Test
+  void getAvailableUserActionItems_whenUserHasNoCorrectorRole_excludesStartCorrection() {
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
+    var teamRole = TeamRoleTestUtil
+        .newBuilder()
+        .withRole(Role.APPLICATION_SUBMITTER)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
+    lenient().when(environment.acceptsProfiles(Profiles.of("enable-lms2"))).thenReturn(true);
+    lenient().when(licenceCorrectionService.hasOpenCorrection(licence)).thenReturn(false);
 
     assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
         .doesNotContain(LicenceActionItem.START_CORRECTION.toActionItemView(licence));
@@ -463,7 +531,7 @@ class LicenceActionServiceTest {
     when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
     var teamRole = TeamRoleTestUtil.newBuilder()
-        .withRole(Role.APPLICATION_SUBMITTER) //TODO - LMS2-55: Define who can carry out corrections on a licence
+        .withRole(Role.PRODUCTION_LICENCE_CORRECTOR)
         .build();
 
     when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
@@ -488,7 +556,7 @@ class LicenceActionServiceTest {
     when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
     var teamRole = TeamRoleTestUtil.newBuilder()
-        .withRole(Role.APPLICATION_SUBMITTER) //TODO - LMS2-55: Define who can carry out corrections on a licence
+        .withRole(Role.PRODUCTION_LICENCE_CORRECTOR)
         .build();
 
     when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
@@ -508,10 +576,12 @@ class LicenceActionServiceTest {
         .withLicenceType(LicenceType.CARBON_STORAGE)
         .build();
 
-    assertThat(licenceActionService.getLicenceActionItemsForTab(licence, serviceUserDetail, new UnregisteredLicenceTab()))
+    assertThat(
+        licenceActionService.getLicenceActionItemsForTab(licence, serviceUserDetail, new UnregisteredLicenceTab()))
         .isEmpty();
 
-    verifyNoInteractions(teamQueryService, licenceScheduleDetailService, licenceCorrectionService, licenceStatusService);
+    verifyNoInteractions(teamQueryService, licenceScheduleDetailService, licenceCorrectionService,
+        licenceStatusService);
   }
 
   private static class UnregisteredLicenceTab implements LicenceTab {

@@ -14,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionRoles;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenceTimelinePositionTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTab;
@@ -72,8 +73,8 @@ public class LicenceActionService {
           .withoutLicenceScheduleRequirement()
           .isPrimaryButton(false)
         .registerAction(LicenceActionItem.START_CORRECTION)
-          .requiresAnyRole()//TODO - LMS2-55: Define who can carry out corrections on a licence
-          .requiresAnyStatus()
+          .requiresAnyRoleFrom(Role.PRODUCTION_LICENCE_CORRECTOR, Role.CARBON_STORAGE_LICENCE_CORRECTOR)
+        .requiresAnyStatus()
           .positionWithinTabs(LicenceTimelinePositionTab.class)
           .requiresAnyTypeFrom(LicenceType.CARBON_STORAGE, LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION)
           .withoutLicenceScheduleRequirement()
@@ -120,7 +121,7 @@ public class LicenceActionService {
             licenceScheduleState,
             registeredActions.licenceScheduleRequirementMap().get(action)
         ))
-        .filter(action -> !LicenceActionItem.START_CORRECTION.equals(action) || canStartCorrection(licence))
+        .filter(action -> !LicenceActionItem.START_CORRECTION.equals(action) || canStartCorrection(licence, userRoles))
         .map(action -> action.toActionItemView(licence, registeredActions.isPrimary(action, licence)))
         .sorted(Comparator.comparing(ActionItemView::displayOrder))
         .toList();
@@ -156,10 +157,15 @@ public class LicenceActionService {
     return licenceScheduleState.activeScheduleExists && !licenceScheduleState.openDraftExists;
   }
 
-  private boolean canStartCorrection(Licence licence) {
+  private boolean canStartCorrection(Licence licence, Set<Role> userRoles) {
     if (!environment.acceptsProfiles(Profiles.of("enable-lms2"))) {
       return false;
     }
-    return !licenceCorrectionService.hasOpenCorrection(licence);
+    if (licenceCorrectionService.hasOpenCorrection(licence)) {
+      return false;
+    }
+    return LicenceCorrectionRoles.getRequiredRoleForLicenceType(licence.getType())
+        .map(userRoles::contains)
+        .orElse(false);
   }
 }

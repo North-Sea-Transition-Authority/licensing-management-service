@@ -70,17 +70,9 @@ class EnergyPortalDataServiceTest {
         createServiceRoleDto(Role.WORK_PROGRAMME_STATUS_ADMINISTRATOR, false),
         createServiceRoleDto(Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER, false),
         createServiceRoleDto(Role.DOCUMENT_TEMPLATE_MANAGER, false),
-        createServiceRoleDto(Role.LICENCE_CONTACTS_MANAGER, false)
-    );
-
-    var productionRoleDtos = Set.of(
-        createServiceRoleDto(Role.MANAGE_TEAM, true),
-        createServiceRoleDto(Role.VIEW_ANY_LICENCE, false)
-    );
-
-    var carbonStorageRoleDtos = Set.of(
-        createServiceRoleDto(Role.MANAGE_TEAM, true),
-        createServiceRoleDto(Role.VIEW_ANY_LICENCE, false)
+        createServiceRoleDto(Role.LICENCE_CONTACTS_MANAGER, false),
+        createServiceRoleDto(Role.PRODUCTION_LICENCE_CORRECTOR, false),
+        createServiceRoleDto(Role.CARBON_STORAGE_LICENCE_CORRECTOR, false)
     );
 
     var organisationServiceRoleDtos = Set.of(

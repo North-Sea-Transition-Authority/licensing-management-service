@@ -86,6 +86,16 @@ public enum Role implements PhaseGated {
       "Can add and update the contact email for any licensee on any licence",
       ReleaseFeature.TEAM_ROLE
   ),
+  PRODUCTION_LICENCE_CORRECTOR(
+      "Production licence corrector",
+      "Grants permission to make corrections to historical data on Production licences",
+      ReleaseFeature.TEAM_ROLE
+  ),
+  CARBON_STORAGE_LICENCE_CORRECTOR(
+      "Carbon Storage licence corrector",
+      "Grants permission to make corrections to historical data on Carbon Storage licences",
+      ReleaseFeature.TEAM_ROLE
+  ),
   CASE_MANAGER_NEW_VENTURES(
       "Case manager (New Ventures)",
       "Receive and manage extension and amendment applications for licences in the initial term",

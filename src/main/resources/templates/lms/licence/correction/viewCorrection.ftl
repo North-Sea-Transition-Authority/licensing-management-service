@@ -9,7 +9,23 @@
   caption=pageCaption
   errorSummaryItems=licencePositionPageView.errorSummaryItems()
 >
-  <@fdsSummaryList.summaryListCard summaryListId="correction-details" headingText="Correction details">
+    <#assign correctionDetailsCardActions>
+        <#if canUpdateGeneralDetails>
+      <@fdsSummaryList.summaryListCardActionList>
+          <@fdsSummaryList.summaryListCardActionItem
+            itemUrl=springUrl(updateGeneralDetailsUrl)
+            itemText="Update"
+            itemScreenReaderText="correction details"
+          />
+      </@fdsSummaryList.summaryListCardActionList>
+  </#if>
+    </#assign>
+
+    <@fdsSummaryList.summaryListCard
+     summaryListId="correction-details"
+     headingText="Correction details"
+     cardActionsContent=correctionDetailsCardActions
+    >
     <@fdsSummaryList.summaryListRowNoAction keyText="Correction reference">
       ${correction.getCorrectionReference()}
     </@fdsSummaryList.summaryListRowNoAction>

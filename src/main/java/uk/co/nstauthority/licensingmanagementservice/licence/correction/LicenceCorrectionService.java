@@ -59,6 +59,13 @@ public class LicenceCorrectionService {
     licenceCorrectionRepository.save(licenceCorrection);
   }
 
+  @Transactional
+  public void updateGeneralDetails(LicenceCorrection licenceCorrection, String correctionReference, String reason) {
+    licenceCorrection.setCorrectionReference(correctionReference);
+    licenceCorrection.setReason(reason);
+    licenceCorrectionRepository.save(licenceCorrection);
+  }
+
   public boolean hasOpenCorrection(Licence licence) {
     return licenceCorrectionRepository.existsByLicenceAndStatus(licence, LicenceCorrectionStatus.IN_PROGRESS);
   }

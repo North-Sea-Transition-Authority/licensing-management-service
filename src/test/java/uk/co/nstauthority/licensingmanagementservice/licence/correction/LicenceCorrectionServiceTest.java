@@ -180,4 +180,18 @@ class LicenceCorrectionServiceTest {
         .isEqualTo(correction);
     assertThat(persistedCorrection.getStatus()).isEqualTo(LicenceCorrectionStatus.CANCELLED);
   }
+
+  @Test
+  void updateGeneralDetails() {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withCorrectionReference("OLD-REF")
+        .withReason("Old reason")
+        .build();
+
+    licenceCorrectionService.updateGeneralDetails(correction, "NEW-REF", "New reason");
+
+    verify(licenceCorrectionRepository).save(correction);
+    assertThat(correction.getCorrectionReference()).isEqualTo("NEW-REF");
+    assertThat(correction.getReason()).isEqualTo("New reason");
+  }
 }

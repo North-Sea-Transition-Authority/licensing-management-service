@@ -68,8 +68,7 @@ class LicencePositionStateViewResolverTest {
         Map.of(CURRENT_ADMIN_ID, CURRENT_ADMIN_NAME)
     );
 
-    assertThat(result)
-        .isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of()));
+    assertThat(result).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of()));
   }
 
   @Test
@@ -87,7 +86,7 @@ class LicencePositionStateViewResolverTest {
   }
 
   @Test
-  void getStateView_whenBeneficialInterestNameNotFound_usesEmptyName() {
+  void getStateView_whenBeneficialInterestNameNotFound_displaysNotAvailable() {
     var currentPositionId = UUID.randomUUID();
 
     var state = LicencePositionState.EMPTY.withEquityByOrganisationId(Map.of(5, new BigDecimal("100")));
@@ -98,7 +97,8 @@ class LicencePositionStateViewResolverTest {
         Map.of()
     );
 
-    assertThat(result.administratorStateView().organisationName()).isEmpty();
+    assertThat(result.beneficialInterests())
+        .isEqualTo(List.of(new BeneficialInterestView("Not available", new BigDecimal("100"))));
   }
 
   private static ResolvedStates resolvedStatesFor(UUID positionId, LicencePositionState state) {

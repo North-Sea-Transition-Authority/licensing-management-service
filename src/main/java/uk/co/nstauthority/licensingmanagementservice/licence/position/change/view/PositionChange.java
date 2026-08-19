@@ -56,6 +56,7 @@ public record PositionChange(
         .map(licenceOperation -> licenceOperation.validate(positionValidationContext))
         .filter(Objects::nonNull)
         .map(positionValidationError -> positionValidationError.withChangeId(changeId))
+        .distinct()
         .toList();
   }
 

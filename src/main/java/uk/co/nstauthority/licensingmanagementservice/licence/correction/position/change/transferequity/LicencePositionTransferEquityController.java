@@ -88,7 +88,8 @@ public class LicencePositionTransferEquityController {
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    if (licencePositionTransferEquityFormValidator.hasErrors(form, bindingResult)) {
+    var equityHoldings = transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, licencePositionId);
+    if (licencePositionTransferEquityFormValidator.hasErrors(form, bindingResult, equityHoldings)) {
       return transferEquityModelAndView(
           correction, form, executedAddTransferBackLinkUrl(correction, correctionId, licencePositionId));
     }
@@ -238,13 +239,13 @@ public class LicencePositionTransferEquityController {
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    if (licencePositionTransferEquityFormValidator.hasErrors(form, bindingResult)) {
+    var positionCorrection = licencePositionCorrectionService
+        .getPositionCorrectionForCorrection(licencePositionCorrectionId, correction);
+    var equityHoldings = transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, positionCorrection);
+    if (licencePositionTransferEquityFormValidator.hasErrors(form, bindingResult, equityHoldings)) {
       return transferEquityModelAndView(
           correction, form, addedAddTransferBackLinkUrl(correction, correctionId, licencePositionCorrectionId));
     }
-
-    var positionCorrection = licencePositionCorrectionService
-        .getPositionCorrectionForCorrection(licencePositionCorrectionId, correction);
     transferEquityCorrectionService.addTransferEquity(positionCorrection, form);
 
     var operations = transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection);

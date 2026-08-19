@@ -3,6 +3,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.tr
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
+import java.math.BigDecimal;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +21,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 @ExtendWith(MockitoExtension.class)
 class LicencePositionTransferEquityFormValidatorTest {
 
+  private static final int TRANSFER_FROM = 123;
+  private static final Map<Integer, BigDecimal> SUFFICIENT_HOLDINGS = Map.of(TRANSFER_FROM, new BigDecimal("100"));
+
   private LicencePositionTransferEquityFormValidator validator;
   private LicencePositionTransferEquityForm form;
   private BindingResult bindingResult;
@@ -32,7 +37,7 @@ class LicencePositionTransferEquityFormValidatorTest {
 
   @Test
   void hasErrors_emptyForm_reportsAllFields() {
-    var hasErrors = validator.hasErrors(form, bindingResult);
+    var hasErrors = validator.hasErrors(form, bindingResult, Map.of());
 
     assertThat(bindingResult.getFieldErrors())
         .extracting(FieldError::getField, FieldError::getDefaultMessage)
@@ -45,11 +50,11 @@ class LicencePositionTransferEquityFormValidatorTest {
 
   @Test
   void hasErrors_whenTransferToSameAsTransferFrom_rejectsTransferTo() {
-    form.setTransferFrom("123");
-    form.setTransferTo("123");
+    form.setTransferFrom(String.valueOf(TRANSFER_FROM));
+    form.setTransferTo(String.valueOf(TRANSFER_FROM));
     form.getEquity().setInputValue("40");
 
-    var hasErrors = validator.hasErrors(form, bindingResult);
+    var hasErrors = validator.hasErrors(form, bindingResult, SUFFICIENT_HOLDINGS);
 
     assertThat(bindingResult.getFieldErrors("transferTo"))
         .extracting(FieldError::getCode, FieldError::getDefaultMessage)
@@ -61,11 +66,11 @@ class LicencePositionTransferEquityFormValidatorTest {
 
   @Test
   void hasErrors_whenEquityIsZero_rejectsEquity() {
-    form.setTransferFrom("123");
+    form.setTransferFrom(String.valueOf(TRANSFER_FROM));
     form.setTransferTo("456");
     form.getEquity().setInputValue("0");
 
-    validator.hasErrors(form, bindingResult);
+    validator.hasErrors(form, bindingResult, SUFFICIENT_HOLDINGS);
 
     assertThat(bindingResult.getFieldErrors("equity.inputValue"))
         .extracting(FieldError::getDefaultMessage)
@@ -80,11 +85,11 @@ class LicencePositionTransferEquityFormValidatorTest {
       "1.12345678901, Equity amount must have 10 decimal places or fewer"
   })
   void hasErrors_whenEquityInvalid_rejectsEquityFieldWithMessage(String invalidEquity, String expectedMessage) {
-    form.setTransferFrom("123");
+    form.setTransferFrom(String.valueOf(TRANSFER_FROM));
     form.setTransferTo("456");
     form.getEquity().setInputValue(invalidEquity);
 
-    validator.hasErrors(form, bindingResult);
+    validator.hasErrors(form, bindingResult, SUFFICIENT_HOLDINGS);
 
     assertThat(bindingResult.getFieldErrors("equity.inputValue"))
         .extracting(FieldError::getDefaultMessage)
@@ -94,10 +99,49 @@ class LicencePositionTransferEquityFormValidatorTest {
   @ParameterizedTest
   @ValueSource(strings = {"0.0000000001", "50", "100", "33.3333333333"})
   void hasErrors_whenFormValid_returnsFalse(String equity) {
-    form.setTransferFrom("123");
+    form.setTransferFrom(String.valueOf(TRANSFER_FROM));
     form.setTransferTo("456");
     form.getEquity().setInputValue(equity);
 
-    assertThat(validator.hasErrors(form, bindingResult)).isFalse();
+    assertThat(validator.hasErrors(form, bindingResult, SUFFICIENT_HOLDINGS)).isFalse();
+  }
+
+  @Test
+  void hasErrors_whenTransferorHoldsNoEquity_rejectsTransferFrom() {
+    form.setTransferFrom(String.valueOf(TRANSFER_FROM));
+    form.setTransferTo("456");
+    form.getEquity().setInputValue("40");
+
+    var hasErrors = validator.hasErrors(form, bindingResult, Map.of());
+
+    assertThat(bindingResult.getFieldErrors("transferFrom"))
+        .extracting(FieldError::getCode, FieldError::getDefaultMessage)
+        .containsExactly(
+            tuple("transferFrom.insufficientEquity", "This organisation does not hold enough equity to transfer"));
+    assertThat(hasErrors).isTrue();
+  }
+
+  @Test
+  void hasErrors_whenTransferExceedsAvailableEquity_rejectsTransferFrom() {
+    form.setTransferFrom(String.valueOf(TRANSFER_FROM));
+    form.setTransferTo("456");
+    form.getEquity().setInputValue("50");
+
+    var hasErrors = validator.hasErrors(form, bindingResult, Map.of(TRANSFER_FROM, new BigDecimal("40")));
+
+    assertThat(bindingResult.getFieldErrors("transferFrom"))
+        .extracting(FieldError::getCode, FieldError::getDefaultMessage)
+        .containsExactly(
+            tuple("transferFrom.insufficientEquity", "This organisation does not hold enough equity to transfer"));
+    assertThat(hasErrors).isTrue();
+  }
+
+  @Test
+  void hasErrors_whenTransferEqualsAvailableEquity_returnsFalse() {
+    form.setTransferFrom(String.valueOf(TRANSFER_FROM));
+    form.setTransferTo("456");
+    form.getEquity().setInputValue("40");
+
+    assertThat(validator.hasErrors(form, bindingResult, Map.of(TRANSFER_FROM, new BigDecimal("40")))).isFalse();
   }
 }

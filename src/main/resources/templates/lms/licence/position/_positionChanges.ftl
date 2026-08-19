@@ -75,20 +75,20 @@
 </#macro>
 
 <#macro setEquityChange change>
-    <#assign headingText>
-      <@changeHeading change=change headingText="Set equity"/>
-    </#assign>
+  <#assign headingText>
+    <@changeHeading change=change headingText="Set equity"/>
+  </#assign>
 
-    <#assign cardActions>
-        <@fdsSummaryList.summaryListCardActionList>
-            <#if change.updateUrl()?has_content>
-                <@fdsSummaryList.summaryListCardActionItem
-                itemUrl=springUrl(change.updateUrl())
-                itemText="Correct"
-                itemScreenReaderText="set equity change"
-                />
-            </#if>
-            <#if change.removeUrl()?has_content>
+  <#assign cardActions>
+    <@fdsSummaryList.summaryListCardActionList>
+      <#if change.updateUrl()?has_content>
+        <@fdsSummaryList.summaryListCardActionItem
+          itemUrl=springUrl(change.updateUrl())
+          itemText="Correct"
+          itemScreenReaderText="set equity change"
+        />
+      </#if>
+    <#if change.removeUrl()?has_content>
                 <@fdsSummaryList.summaryListCardActionItem
                 itemUrl=springUrl(change.removeUrl())
                 itemText="Remove"
@@ -103,32 +103,32 @@
                 />
             </#if>
         </@fdsSummaryList.summaryListCardActionList>
-    </#assign>
+  </#assign>
 
-    <@fdsSummaryList.summaryListCard headingText=headingText summaryListId="set-equity" cardActionsContent=cardActions>
-        <#list change.rows() as row>
-            <@fdsSummaryList.summaryListRowNoAction keyText=row.organisationName()>
-                ${row.equity()}%
-            </@fdsSummaryList.summaryListRowNoAction>
-        </#list>
+  <@fdsSummaryList.summaryListCard headingText=headingText summaryListId="set-equity" cardActionsContent=cardActions>
+    <#list change.rows() as row>
+        <@fdsSummaryList.summaryListRowNoAction keyText=row.organisationName()>
+            ${row.equity()}%
+        </@fdsSummaryList.summaryListRowNoAction>
+    </#list>
     </@fdsSummaryList.summaryListCard>
 </#macro>
 
 <#macro transferEquityChange change>
-    <#assign headingText>
-      <@changeHeading change=change headingText="Transfer equity"/>
-    </#assign>
+  <#assign headingText>
+    <@changeHeading change=change headingText="Transfer equity"/>
+  </#assign>
 
-    <#assign cardActions>
-        <@fdsSummaryList.summaryListCardActionList>
-            <#if change.updateUrl()?has_content>
-                <@fdsSummaryList.summaryListCardActionItem
-                itemUrl=springUrl(change.updateUrl())
-                itemText="Correct"
-                itemScreenReaderText="equity transfer change"
-                />
-            </#if>
-            <#if change.removeUrl()?has_content>
+  <#assign cardActions>
+    <@fdsSummaryList.summaryListCardActionList>
+      <#if change.updateUrl()?has_content>
+        <@fdsSummaryList.summaryListCardActionItem
+        itemUrl=springUrl(change.updateUrl())
+        itemText="Correct"
+        itemScreenReaderText="equity transfer change"
+        />
+      </#if>
+    <#if change.removeUrl()?has_content>
                 <@fdsSummaryList.summaryListCardActionItem
                 itemUrl=springUrl(change.removeUrl())
                 itemText="Remove"
@@ -143,34 +143,34 @@
                 />
             </#if>
         </@fdsSummaryList.summaryListCardActionList>
-    </#assign>
+  </#assign>
 
-    <@fdsSummaryList.summaryListCard headingText=headingText summaryListId="transfer-equity" cardActionsContent=cardActions>
-      <table class="govuk-table govuk-!-margin-top-2 govuk-!-margin-bottom-0">
-        <thead class="govuk-table__head">
-        <tr class="govuk-table__row">
-          <th scope="col" class="govuk-table__header">Transfer from</th>
-          <th scope="col" class="govuk-table__header">Transfer to</th>
-          <th scope="col" class="govuk-table__header govuk-table__header--numeric">Amount</th>
-        </tr>
-        </thead>
-        <tbody class="govuk-table__body">
-        <#list change.holdings() as holding>
-          <tr class="govuk-table__row">
-            <td class="govuk-table__cell">
-              <div>${holding.transferFromOrganisationName()}</div>
-              <div class="govuk-hint govuk-!-margin-bottom-0">before this position they had ${holding.transferFromStartingEquity()}%</div>
-            </td>
-            <td class="govuk-table__cell">
-              <div>${holding.transferToOrganisationName()}</div>
-              <div class="govuk-hint govuk-!-margin-bottom-0">before this position they had ${holding.transferToStartingEquity()}%</div>
-            </td>
-            <td class="govuk-table__cell govuk-table__cell--numeric">${holding.equity()}%</td>
-          </tr>
-        </#list>
-        </tbody>
-      </table>
-    </@fdsSummaryList.summaryListCard>
+  <@fdsSummaryList.summaryListCard headingText=headingText summaryListId="transfer-equity" cardActionsContent=cardActions>
+    <table class="govuk-table govuk-!-margin-top-2 govuk-!-margin-bottom-0">
+      <thead class="govuk-table__head">
+      <tr class="govuk-table__row">
+        <th scope="col" class="govuk-table__header">Transfer from</th>
+        <th scope="col" class="govuk-table__header">Transfer to</th>
+        <th scope="col" class="govuk-table__header govuk-table__header--numeric">Amount</th>
+      </tr>
+      </thead>
+      <tbody class="govuk-table__body">
+    <#list change.holdings() as holding>
+      <tr class="govuk-table__row">
+        <td class="govuk-table__cell">
+        <div>${holding.transferFromOrganisationName()}</div>
+        <div class="govuk-hint govuk-!-margin-bottom-0">before this position they had ${holding.transferFromStartingEquity()}%</div>
+        </td>
+        <td class="govuk-table__cell">
+      <div>${holding.transferToOrganisationName()}</div>
+      <div class="govuk-hint govuk-!-margin-bottom-0">before this position they had ${holding.transferToStartingEquity()}%</div>
+    </td>
+      <td class="govuk-table__cell govuk-table__cell--numeric">${holding.equity()}%</td>
+    </tr>
+  </#list>
+      </tbody>
+    </table>
+  </@fdsSummaryList.summaryListCard>
 </#macro>
 
 <#macro partialSurrenderChange change>

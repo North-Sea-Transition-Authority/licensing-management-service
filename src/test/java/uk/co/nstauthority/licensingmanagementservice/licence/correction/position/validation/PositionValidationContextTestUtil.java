@@ -7,6 +7,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 public class PositionValidationContextTestUtil {
 
   private ChronologicalPosition position = ChronologicalPositionTestUtil.newBuilder().build();
+  private LicencePositionState resolvedState = LicencePositionState.EMPTY;
   private LicencePositionState previousState = LicencePositionState.EMPTY;
   private boolean isFirstPosition = false;
   private boolean isCarbonStorage = false;
@@ -17,6 +18,11 @@ public class PositionValidationContextTestUtil {
 
   public PositionValidationContextTestUtil withPosition(ChronologicalPosition position) {
     this.position = position;
+    return this;
+  }
+
+  public PositionValidationContextTestUtil withResolvedState(LicencePositionState resolvedState) {
+    this.resolvedState = resolvedState;
     return this;
   }
 
@@ -35,7 +41,9 @@ public class PositionValidationContextTestUtil {
     return this;
   }
 
+
+
   public PositionValidationContext build() {
-    return new PositionValidationContext(position, previousState, isFirstPosition, isCarbonStorage);
+    return new PositionValidationContext(position, resolvedState, previousState,isFirstPosition, isCarbonStorage);
   }
 }

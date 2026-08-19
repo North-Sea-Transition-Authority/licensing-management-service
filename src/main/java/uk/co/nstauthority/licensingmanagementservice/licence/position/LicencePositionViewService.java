@@ -189,9 +189,7 @@ public class LicencePositionViewService {
         licencePosition.getLicence().getType() == LicenceType.CARBON_STORAGE
     );
     var errorSummaryItems = PositionValidationError.toErrorSummaryItems(validationErrors);
-    var invalidPositionIds = validationErrors.stream()
-        .map(PositionValidationError::positionId)
-        .collect(Collectors.toSet());
+    var invalidPositionIds = invalidPositionIds(validationErrors);
 
     return LicencePositionPageView.fromExecutedPosition(
         getCorrectionTimelineView(
@@ -261,9 +259,7 @@ public class LicencePositionViewService {
         licenceCorrection.getLicence().getType() == LicenceType.CARBON_STORAGE
     );
     var errorSummaryItems = PositionValidationError.toErrorSummaryItems(validationErrors);
-    var invalidPositionIds = validationErrors.stream()
-        .map(PositionValidationError::positionId)
-        .collect(Collectors.toSet());
+    var invalidPositionIds = invalidPositionIds(validationErrors);
 
     return LicencePositionPageView.fromAddedPosition(
         getCorrectionTimelineView(
@@ -352,6 +348,24 @@ public class LicencePositionViewService {
 
     chronologicalPositions.sort(CHRONOLOGICAL_POSITION_COMPARATOR);
     return chronologicalPositions;
+  }
+
+  private List<PositionValidationError> validate(
+      List<ChronologicalPosition> allChronologicalPositions,
+      Set<UUID> removedPositionIds,
+      boolean carbonStorageLicence
+  ) {
+    var validationPositions = allChronologicalPositions.stream()
+        .filter(position -> !removedPositionIds.contains(position.id()))
+        .toList();
+    var validationStates = LicencePositionStateResolver.resolve(validationPositions);
+    return licencePositionValidationService.validate(validationPositions, validationStates, carbonStorageLicence);
+  }
+
+  private static Set<UUID> invalidPositionIds(List<PositionValidationError> validationErrors) {
+    return validationErrors.stream()
+        .map(PositionValidationError::positionId)
+        .collect(Collectors.toSet());
   }
 
   private Map<Integer, String> resolveOrganisationNames(List<ChronologicalPosition> chronologicalPositions) {
@@ -544,7 +558,7 @@ public class LicencePositionViewService {
           var timelineViewBuilder = baseTimelineViewBuilder(
               licencePosition, getCorrectionPositionUrl(licenceCorrection, licencePosition))
               .withFormattedPositionDate(DateUtil.formatLongDateWithOrder(effectiveDate, effectiveDateOrder))
-              .withCorrectedInThisCorrection(correctedPayload != null)
+              .withCorrectedInThisCorrection(hasPendingCorrection(correctedPayload))
               .withRemovedInThisCorrection(removed)
               .withHasError(invalidPositionIds.contains(licencePosition.getId()));
 
@@ -650,6 +664,13 @@ public class LicencePositionViewService {
     var correctedPayload = correctedPayloadsByPositionId.get(position.getId());
     return correctedPayload != null && correctedPayload.effectiveDateOrder() != null
         ? correctedPayload.effectiveDateOrder() : position.getPositionDateOrder();
+  }
+
+  private static boolean hasPendingCorrection(@Nullable UpdateLicencePositionPayload correctedPayload) {
+    return correctedPayload != null
+        && (!correctedPayload.changes().isEmpty()
+        || correctedPayload.effectiveDate() != null
+        || correctedPayload.effectiveDateOrder() != null);
   }
 
   private LicencePositionTimelineView.Builder baseTimelineViewBuilder(LicencePosition position, String url) {

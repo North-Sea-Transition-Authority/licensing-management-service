@@ -287,14 +287,17 @@ class LicencePositionChangeViewResolverTest {
         null
     );
 
-    assertThat(result)
-        .extractingByKey(LicenceOperation.SET_EQUITY)
-        .isInstanceOf(SetEquityChangeView.class);
-
     var setEquityChangeView = (SetEquityChangeView) result.get(LicenceOperation.SET_EQUITY);
-    assertThat(setEquityChangeView.rows())
-        .extracting(SetEquityRow::organisationName, SetEquityRow::equity)
-        .containsExactly(tuple("Org", BigDecimal.valueOf(75)));
+    assertThat(setEquityChangeView)
+        .usingRecursiveComparison()
+        .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
+        .isEqualTo(new SetEquityChangeView(
+            List.of(new SetEquityRow("Org", BigDecimal.valueOf(75))),
+            null,
+            null,
+            null,
+            null
+        ));
   }
 
   @Test

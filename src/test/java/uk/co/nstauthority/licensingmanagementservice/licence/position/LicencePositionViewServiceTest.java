@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -559,6 +560,43 @@ class LicencePositionViewServiceTest {
             LicencePositionTimelineView::correctDateUrl)
         .containsExactly(
             tuple("CORR-REF", "15 August 2026 (3)", true, expectedCorrectDateUrl));
+  }
+
+  @Test
+  void getCorrectionPositionPageView_whenPayloadHasNoChangesOrDate_doesNotMarkPositionAsCorrected() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+
+    var current = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("CURRENT").build())
+        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+
+    var emptyPayload = UpdateLicencePositionPayloadTestUtil.newBuilder()
+        .withEffectiveDate(null)
+        .withEffectiveDateOrder(null)
+        .withChanges(List.of())
+        .build();
+    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(current)
+        .withPayload(emptyPayload)
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(current));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(current))).thenReturn(List.of());
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(updateCorrection));
+
+    var result = licencePositionViewService.getCorrectionPositionPageView(correction, current);
+
+    assertThat(result.timelineViews())
+        .extracting(
+            LicencePositionTimelineView::regulatorReference,
+            LicencePositionTimelineView::formattedPositionDate,
+            LicencePositionTimelineView::correctedInThisCorrection)
+        .containsExactly(
+            tuple("CURRENT", "1 June 2026", false));
   }
 
   @Test

@@ -129,11 +129,12 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
         .thenReturn(positionCorrection);
     when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
         .thenReturn(List.of(transferOp(1, 2, 40, null)));
+    var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
     when(transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, positionCorrection))
-        .thenReturn(Map.of(1, BigDecimal.valueOf(60)));
+        .thenReturn(equityHoldings);
 
     var form = transferForm();
-    when(validator.hasErrors(eq(form), any(BindingResult.class))).thenReturn(false);
+    when(validator.hasErrors(eq(form), any(BindingResult.class), eq(equityHoldings))).thenReturn(false);
 
     mockMvc.perform(post(addedFormUrl()).with(user(regulatorUser)).with(csrf()).flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
@@ -150,11 +151,12 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
         .thenReturn(positionCorrection);
     when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
         .thenReturn(List.of(transferOp(1, 2, 100, null)));
+    var equityHoldings = Map.of(1, BigDecimal.ZERO);
     when(transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, positionCorrection))
-        .thenReturn(Map.of(1, BigDecimal.ZERO));
+        .thenReturn(equityHoldings);
 
     var form = transferForm();
-    when(validator.hasErrors(eq(form), any(BindingResult.class))).thenReturn(false);
+    when(validator.hasErrors(eq(form), any(BindingResult.class), eq(equityHoldings))).thenReturn(false);
 
     mockMvc.perform(post(addedFormUrl()).with(user(regulatorUser)).with(csrf()).flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
@@ -165,12 +167,18 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
 
   @Test
   void submitForAddedPosition_whenInvalid_rendersFormWithPreselectedOrganisationsAndDoesNotPersist() throws Exception {
-    givenCorrectionAllocatedToUser();
+    var correction = givenCorrectionAllocatedToUser();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
+        .thenReturn(positionCorrection);
+    var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
+    when(transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, positionCorrection))
+        .thenReturn(equityHoldings);
 
     var form = new LicencePositionTransferEquityForm();
     form.setTransferFrom("1");
     form.setTransferTo("2");
-    when(validator.hasErrors(eq(form), any(BindingResult.class))).thenReturn(true);
+    when(validator.hasErrors(eq(form), any(BindingResult.class), eq(equityHoldings))).thenReturn(true);
     when(organisationUnitQueryService.getOrganisationUnitSelectOption("1")).thenReturn(Map.of("1", "Org One"));
     when(organisationUnitQueryService.getOrganisationUnitSelectOption("2")).thenReturn(Map.of("2", "Org Two"));
 
@@ -425,11 +433,12 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
         .thenReturn(List.of(transferOp(1, 2, 100, null)));
+    var equityHoldings = Map.of(1, BigDecimal.ZERO);
     when(transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, POSITION_ID))
-        .thenReturn(Map.of(1, BigDecimal.ZERO));
+        .thenReturn(equityHoldings);
 
     var form = transferForm();
-    when(validator.hasErrors(eq(form), any(BindingResult.class))).thenReturn(false);
+    when(validator.hasErrors(eq(form), any(BindingResult.class), eq(equityHoldings))).thenReturn(false);
 
     mockMvc.perform(post(executedFormUrl()).with(user(regulatorUser)).with(csrf()).flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
@@ -445,11 +454,12 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
         .thenReturn(List.of(transferOp(1, 2, 40, null)));
+    var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
     when(transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, POSITION_ID))
-        .thenReturn(Map.of(1, BigDecimal.valueOf(60)));
+        .thenReturn(equityHoldings);
 
     var form = transferForm();
-    when(validator.hasErrors(eq(form), any(BindingResult.class))).thenReturn(false);
+    when(validator.hasErrors(eq(form), any(BindingResult.class), eq(equityHoldings))).thenReturn(false);
 
     mockMvc.perform(post(executedFormUrl()).with(user(regulatorUser)).with(csrf()).flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
@@ -507,14 +517,17 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
 
   @Test
   void submitForExecutedPosition_whenInvalid_rendersFormWithPreselectedOrganisationsAndDoesNotPersist() throws Exception {
-    givenCorrectionAllocatedToUser();
+    var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
+    when(transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, POSITION_ID))
+        .thenReturn(equityHoldings);
 
     var form = new LicencePositionTransferEquityForm();
     form.setTransferFrom("1");
     form.setTransferTo("2");
-    when(validator.hasErrors(eq(form), any(BindingResult.class))).thenReturn(true);
+    when(validator.hasErrors(eq(form), any(BindingResult.class), eq(equityHoldings))).thenReturn(true);
     when(organisationUnitQueryService.getOrganisationUnitSelectOption("1")).thenReturn(Map.of("1", "Org One"));
     when(organisationUnitQueryService.getOrganisationUnitSelectOption("2")).thenReturn(Map.of("2", "Org Two"));
 
@@ -536,13 +549,16 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
 
   @Test
   void submitForExecutedPosition_whenInvalidAndTransferToIsBlankOrInvalidNumber_rendersFormWithEmptyPreselectedMap() throws Exception {
-    givenCorrectionAllocatedToUser();
+    var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
+    when(transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, POSITION_ID))
+        .thenReturn(equityHoldings);
 
     var form = new LicencePositionTransferEquityForm();
     form.setTransferTo("NOT_A_NUMBER");
-    when(validator.hasErrors(eq(form), any(BindingResult.class))).thenReturn(true);
+    when(validator.hasErrors(eq(form), any(BindingResult.class), eq(equityHoldings))).thenReturn(true);
 
     mockMvc.perform(post(executedFormUrl()).with(user(regulatorUser)).with(csrf()).flashAttr("form", form))
         .andExpect(status().isOk())

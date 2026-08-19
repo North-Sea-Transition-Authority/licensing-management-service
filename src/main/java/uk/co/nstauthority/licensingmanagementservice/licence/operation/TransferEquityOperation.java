@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.EquityOperationRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 
@@ -33,7 +34,26 @@ public record TransferEquityOperation(
 
   @Override
   public PositionValidationError validate(PositionValidationContext positionValidationContext) {
-    //TODO LMS2-131: identify when a correction to a CS beneficial interest results in an invalid licence position
+    if (!positionValidationContext.isCarbonStorage()) {
+      return PositionValidationError.forPosition(
+          positionValidationContext,
+          EquityOperationRule.CARBON_STORAGE_LICENCE_ONLY
+      );
+    }
+
+    if (equity.signum() > 0) {
+      var availableEquity = positionValidationContext.previousState()
+          .equityByOrganisationId()
+          .getOrDefault(transferFrom, BigDecimal.ZERO)
+          .max(BigDecimal.ZERO);
+      if (equity.compareTo(availableEquity) > 0) {
+        return PositionValidationError.forPosition(
+            positionValidationContext,
+            EquityOperationRule.INSUFFICIENT_EQUITY_TO_TRANSFER
+        );
+      }
+    }
+
     return null;
   }
 

@@ -10,6 +10,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 public class ChronologicalPositionTestUtil {
 
   private UUID id = UUID.randomUUID();
+  private UUID transactionId = UUID.randomUUID();
   private LocalDate date = LocalDate.of(2026, Month.AUGUST, 5);
   private int order = 1;
   private List<PositionChange> changes = List.of();
@@ -20,6 +21,11 @@ public class ChronologicalPositionTestUtil {
 
   public ChronologicalPositionTestUtil withId(UUID id) {
     this.id = id;
+    return this;
+  }
+
+  public ChronologicalPositionTestUtil withTransactionId(UUID transactionId) {
+    this.transactionId = transactionId;
     return this;
   }
 
@@ -39,7 +45,7 @@ public class ChronologicalPositionTestUtil {
   }
 
   public ChronologicalPosition build() {
-    return new ChronologicalPosition(id, date, order, changes);
+    return new ChronologicalPosition(id, transactionId, date, order, changes);
   }
 
   public static ChronologicalPosition live(LicencePosition position, LicenceOperation... operations) {

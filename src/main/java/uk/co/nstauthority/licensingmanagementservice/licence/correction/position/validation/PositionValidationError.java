@@ -14,10 +14,13 @@ public record PositionValidationError(
     String message
 ) {
 
-  public static PositionValidationError forPosition(PositionValidationContext positionValidationContext, String message) {
+  public static PositionValidationError forPosition(
+      PositionValidationContext positionValidationContext,
+      PositionValidationRule rule
+  ) {
     var position = positionValidationContext.position();
 
-    return new PositionValidationError(position.id(), position.positionName(), null, null, message);
+    return new PositionValidationError(position.id(), position.positionName(), null, null, rule.getMessage());
   }
 
   public static PositionValidationError forOperation(

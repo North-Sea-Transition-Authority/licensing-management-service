@@ -33,6 +33,8 @@ import java.util.UUID;
  * @param correctedInThisCorrection true when this row is a live position whose date has been
  *                                  corrected in the current correction.
  * @param correctDateUrl link to correct this live position's date as part of the correction;
+ * @param hasError true when this position fails one or more validation rules once the correction is
+ *                 applied; drives the error styling on the timeline
  */
 public record LicencePositionTimelineView(
     UUID positionId,

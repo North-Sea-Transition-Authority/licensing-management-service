@@ -12,7 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = LicenceRedirectorController.class)
@@ -61,7 +61,7 @@ class LicenceRedirectorControllerTest extends AbstractControllerTest {
                 .with(user(regulatorUser))
         )
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceOverviewController.class)
+        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceScheduleTabController.class)
             .renderLicenceOverview(licence.getId(), null, null, null))));
   }
 
@@ -96,7 +96,7 @@ class LicenceRedirectorControllerTest extends AbstractControllerTest {
                 .with(user(regulatorUser))
         )
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceOverviewController.class)
+        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceScheduleTabController.class)
             .renderWorkProgrammesOnlyTimeline(licence.getId(), null))));
   }
 }

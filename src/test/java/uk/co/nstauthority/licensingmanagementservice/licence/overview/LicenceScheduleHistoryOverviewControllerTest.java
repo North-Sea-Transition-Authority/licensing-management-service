@@ -44,6 +44,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @ContextConfiguration(classes = {
     LicenceScheduleHistoryOverviewController.class,
     TabbedLicencePageService.class,
+    LicenceOverviewService.class,
     LicenceScheduleTab.class
 })
 class LicenceScheduleHistoryOverviewControllerTest extends AbstractControllerTest {
@@ -61,6 +62,9 @@ class LicenceScheduleHistoryOverviewControllerTest extends AbstractControllerTes
 
   @MockitoBean
   private LicenceScheduleOverviewService licenceScheduleOverviewService;
+
+  @Autowired
+  private LicenceOverviewService licenceOverviewService;
 
   private Licence licence;
 
@@ -109,23 +113,19 @@ class LicenceScheduleHistoryOverviewControllerTest extends AbstractControllerTes
     historyForm.setLicenceScheduleDetailId(licenceScheduleDetail.getId().toString());
     when(licenceScheduleOverviewService.getScheduleHistoryForm(licenceScheduleDetail)).thenReturn(historyForm);
 
-    var csRegisterUrl = "https://www.nstauthority.co.uk/regulatory-information/carbon-storage/carbon-storage-public-register/?section=P1";
-    when(licenceScheduleOverviewService.getCsRegisterlink(licence)).thenReturn(csRegisterUrl);
-
     mockMvc.perform(
             get(viewOverviewUrl)
                 .with(user(USER))
         )
         .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/licenceOverview"))
-        .andExpect(model().attribute("licenceReference", licence.getLicenceReference()))
-        .andExpect(model().attribute("caption", licence.getType().getDisplayName()))
+        .andExpect(view().name("lms/licence/schedule/licencetab/licenceScheduleTab"))
+        .andExpect(model().attribute("licenceOverviewView", licenceOverviewService.getLicenceOverviewView(licence)))
+        .andExpect(model().attribute("scheduleExists", true))
         .andExpect(model().attribute("historyForm", historyForm))
         .andExpect(model().attribute("scheduleHistoryOptions", scheduleHistoryOptions))
         .andExpect(model().attribute("viewScheduleHistoryUrl", ReverseRouter.route(on(LicenceScheduleHistoryOverviewController.class)
             .viewScheduleHistory(licenceScheduleDetail.getId(), null)))
         )
-        .andExpect(model().attribute("csRegisterUrl", csRegisterUrl))
         .andExpect(model().attribute("timelineSummaryCardView", timelineSummaryCardView))
         .andExpect(model().attribute("scheduleEventViews", scheduleEventViews))
         .andExpect(model().attribute("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions()))

@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -24,20 +23,17 @@ public class LicencePositionController {
   private final TabbedLicencePageService tabbedLicencePageService;
   private final LicencePositionService licencePositionService;
   private final LicencePositionViewService licencePositionViewService;
-  private final LicenceService licenceService;
 
   LicencePositionController(
       LicenceTimelinePositionTab licenceTimelinePositionTab,
       TabbedLicencePageService tabbedLicencePageService,
       LicencePositionService licencePositionService,
-      LicencePositionViewService licencePositionViewService,
-      LicenceService licenceService
+      LicencePositionViewService licencePositionViewService
   ) {
     this.licenceTimelinePositionTab = licenceTimelinePositionTab;
     this.tabbedLicencePageService = tabbedLicencePageService;
     this.licencePositionService = licencePositionService;
     this.licencePositionViewService = licencePositionViewService;
-    this.licenceService = licenceService;
   }
 
   @GetMapping
@@ -74,7 +70,6 @@ public class LicencePositionController {
       ServiceUserDetail user
   ) {
     var licencePositionsModelAndView = new ModelAndView("lms/licence/position/licencePositions")
-        .addObject("pageCaption", licenceService.getLicencePageCaption(licence))
         .addObject("licencePositionPageView", licencePositionPageView);
 
     tabbedLicencePageService.hydrateModel(licencePositionsModelAndView, licence, licenceTimelinePositionTab, user);

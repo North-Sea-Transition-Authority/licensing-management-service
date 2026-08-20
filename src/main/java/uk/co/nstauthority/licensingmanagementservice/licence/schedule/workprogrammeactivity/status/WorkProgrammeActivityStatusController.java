@@ -18,7 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.internalapi.LicenceInternalApiRestController;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivitySummaryView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -82,7 +82,7 @@ public class WorkProgrammeActivityStatusController {
         redirectAttributes
     );
 
-    return ReverseRouter.redirect(on(LicenceOverviewController.class)
+    return ReverseRouter.redirect(on(LicenceScheduleTabController.class)
         .renderLicenceOverview(workProgrammeActivity.getLicence().getId(), null, null, null));
   }
 
@@ -100,7 +100,7 @@ public class WorkProgrammeActivityStatusController {
         .addObject("licenceSearchUrl", SearchSelectorService.route(on(LicenceInternalApiRestController.class)
             .searchLicencesByReferenceAndType(licence.getType().getUrlSlug(), null))
         )
-        .addObject("cancelUrl", ReverseRouter.route(on(LicenceOverviewController.class)
+        .addObject("cancelUrl", ReverseRouter.route(on(LicenceScheduleTabController.class)
             .renderLicenceOverview(licence.getId(), null, null, null))
         );
   }

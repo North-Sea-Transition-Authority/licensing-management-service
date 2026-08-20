@@ -700,7 +700,7 @@ class LicenceScheduleTimelineServiceTest {
         List.of(),
         true, false);
 
-    var form = new TimelineFilterForm();
+    var form = new ScheduleTimelineFilterForm();
     form.setEventTypes(ScheduleEventType.getFilterDefaults());
 
     var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
@@ -1046,7 +1046,7 @@ class LicenceScheduleTimelineServiceTest {
         List.of(),
         true, false);
 
-    var form = new TimelineFilterForm();
+    var form = new ScheduleTimelineFilterForm();
     form.setEventTypes(ScheduleEventType.getFilterDefaults());
 
     var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
@@ -1382,7 +1382,7 @@ class LicenceScheduleTimelineServiceTest {
         List.of(),
         true, false);
 
-    var form = new TimelineFilterForm();
+    var form = new ScheduleTimelineFilterForm();
     form.setEventTypes(List.of(
         ScheduleEventType.WORK_PROGRAMME_ACTIVITY.name(),
         ScheduleEventType.OTHER.name()
@@ -1687,7 +1687,7 @@ class LicenceScheduleTimelineServiceTest {
         List.of(),
         true, false);
 
-    var form = new TimelineFilterForm();
+    var form = new ScheduleTimelineFilterForm();
     form.setEventTypes(List.of(
         ScheduleEventType.RATE.name(),
         ScheduleEventType.OTHER.name()
@@ -2000,7 +2000,7 @@ class LicenceScheduleTimelineServiceTest {
         List.of(),
         true, false);
 
-    var form = new TimelineFilterForm();
+    var form = new ScheduleTimelineFilterForm();
     form.setEventTypes(List.of(
         ScheduleEventType.RATE.name(),
         ScheduleEventType.WORK_PROGRAMME_ACTIVITY.name()
@@ -2283,7 +2283,7 @@ class LicenceScheduleTimelineServiceTest {
         List.of(),
         true, false);
 
-    var form = new TimelineFilterForm();
+    var form = new ScheduleTimelineFilterForm();
     form.setEventTypes(ScheduleEventType.getFilterDefaults());
 
     var user = ServiceUserDetailTestUtil.newBuilder().build();
@@ -2535,7 +2535,7 @@ class LicenceScheduleTimelineServiceTest {
         List.of(),
         true, false);
 
-    var form = new TimelineFilterForm();
+    var form = new ScheduleTimelineFilterForm();
     form.setEventTypes(ScheduleEventType.getFilterDefaults());
 
     var user = ServiceUserDetailTestUtil.newBuilder().build();
@@ -2647,7 +2647,7 @@ class LicenceScheduleTimelineServiceTest {
     when(otherScheduleEventService.getScheduleEventsByTermAndDateOption(term, OtherScheduleEventDateOption.WITHIN_A_TERM))
         .thenReturn(List.of());
 
-    var form = new TimelineFilterForm();
+    var form = new ScheduleTimelineFilterForm();
     form.setEventTypes(ScheduleEventType.getFilterDefaults());
 
     var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
@@ -2712,7 +2712,7 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
         .thenReturn(Map.of());
 
-    var form = new TimelineFilterForm();
+    var form = new ScheduleTimelineFilterForm();
     form.setEventTypes(ScheduleEventType.getFilterDefaults());
 
     var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of());

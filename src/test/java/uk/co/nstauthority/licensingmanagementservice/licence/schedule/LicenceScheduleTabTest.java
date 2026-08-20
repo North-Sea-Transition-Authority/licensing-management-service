@@ -5,7 +5,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.LicenceTabContext;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
@@ -39,7 +39,7 @@ class LicenceScheduleTabTest {
     var licence = LicenceTestUtil.builder().withId(1).build();
 
     assertThat(licenceScheduleTab.url(new LicenceTabContext(licence)))
-        .isEqualTo(ReverseRouter.route(on(LicenceOverviewController.class)
+        .isEqualTo(ReverseRouter.route(on(LicenceScheduleTabController.class)
             .renderLicenceOverview(licence.getId(), null, null, null)));
   }
 }

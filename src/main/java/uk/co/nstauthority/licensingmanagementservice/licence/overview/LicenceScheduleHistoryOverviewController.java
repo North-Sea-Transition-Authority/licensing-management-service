@@ -19,14 +19,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.TimelineFilterForm;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.TimelineSession;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleTimelineFilterForm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleTimelineSession;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/licence/schedule/{licenceScheduleDetailId}/overview")
-@SessionAttributes("timelineSession")
+@SessionAttributes("scheduleTimelineSession")
 public class LicenceScheduleHistoryOverviewController {
 
   private final LicenceScheduleTab licenceScheduleTab;
@@ -53,7 +53,7 @@ public class LicenceScheduleHistoryOverviewController {
   public ModelAndView renderLicenceOverview(
       @PathVariable UUID licenceScheduleDetailId,
       LicenceScheduleDetail licenceScheduleDetail,
-      @ModelAttribute("timelineSession") TimelineSession filterSession,
+      @ModelAttribute("scheduleTimelineSession") ScheduleTimelineSession filterSession,
       ServiceUserDetail user
   ) {
     var form = filterSession.getTimelineFilterForm();
@@ -64,19 +64,17 @@ public class LicenceScheduleHistoryOverviewController {
 
     var licence = licenceScheduleDetail.getLicenceSchedule().getLicence();
 
-    var modelAndView = new ModelAndView("lms/licence/licenceOverview");
+    var modelAndView = new ModelAndView("lms/licence/schedule/licencetab/licenceScheduleTab");
     tabbedLicencePageService.hydrateModel(modelAndView, licence, licenceScheduleTab, user);
 
     return modelAndView
         .addObject("form", form)
-        .addObject("licenceReference", licence.getLicenceReference())
-        .addObject("caption", licence.getType().getDisplayName())
+        .addObject("scheduleExists", true)
         .addObject("historyForm", licenceScheduleOverviewService.getScheduleHistoryForm(licenceScheduleDetail))
         .addObject("scheduleHistoryOptions", licenceScheduleDetailService.getScheduleDetailHistoryOptions(licence))
         .addObject("viewScheduleHistoryUrl", ReverseRouter.route(on(LicenceScheduleHistoryOverviewController.class)
             .viewScheduleHistory(licenceScheduleDetailId, null))
         )
-        .addObject("csRegisterUrl", licenceScheduleOverviewService.getCsRegisterlink(licence))
         .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .addObject("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions())
         .addObject("scheduleEventViews",
@@ -90,8 +88,8 @@ public class LicenceScheduleHistoryOverviewController {
   @PostMapping
   public ModelAndView filterTimeline(
       @PathVariable UUID licenceScheduleDetailId,
-      @ModelAttribute("form") TimelineFilterForm form,
-      @ModelAttribute("timelineSession") TimelineSession filterSession
+      @ModelAttribute("form") ScheduleTimelineFilterForm form,
+      @ModelAttribute("scheduleTimelineSession") ScheduleTimelineSession filterSession
   ) {
     filterSession.update(form);
     return ReverseRouter.redirect(on(LicenceScheduleHistoryOverviewController.class)
@@ -101,7 +99,7 @@ public class LicenceScheduleHistoryOverviewController {
   @GetMapping("/clear-filters")
   public ModelAndView clearFilters(
       @PathVariable UUID licenceScheduleDetailId,
-      @ModelAttribute("timelineSession") TimelineSession filterSession,
+      @ModelAttribute("scheduleTimelineSession") ScheduleTimelineSession filterSession,
       SessionStatus sessionStatus
   ) {
     sessionStatus.setComplete();
@@ -123,10 +121,10 @@ public class LicenceScheduleHistoryOverviewController {
         .renderLicenceOverview(UUID.fromString(form.getLicenceScheduleDetailId()), null, null, null));
   }
 
-  @ModelAttribute("timelineSession")
-  private TimelineSession getFilterSession(
-      @ModelAttribute("form") TimelineFilterForm form
+  @ModelAttribute("scheduleTimelineSession")
+  private ScheduleTimelineSession getFilterSession(
+      @ModelAttribute("form") ScheduleTimelineFilterForm form
   ) {
-    return new TimelineSession(form);
+    return new ScheduleTimelineSession(form);
   }
 }

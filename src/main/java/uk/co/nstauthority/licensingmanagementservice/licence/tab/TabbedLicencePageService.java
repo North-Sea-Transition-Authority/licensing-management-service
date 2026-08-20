@@ -7,6 +7,7 @@ import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.fds.tab.FdsBackendTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 
@@ -14,19 +15,26 @@ import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagSe
 public class TabbedLicencePageService {
 
   private final LicenceActionService licenceActionService;
+  private final LicenceOverviewService licenceOverviewService;
   private final List<LicenceTab> enabledLicenceTabs;
 
   TabbedLicencePageService(
       LicenceActionService licenceActionService,
+      LicenceOverviewService licenceOverviewService,
       FeatureFlagService featureFlagService,
       List<LicenceTab> licenceTabs
   ) {
     this.licenceActionService = licenceActionService;
+    this.licenceOverviewService = licenceOverviewService;
     this.enabledLicenceTabs = featureFlagService.filterEnabled(licenceTabs).stream()
         .sorted(Comparator.comparingInt(LicenceTab::displayOrder))
         .toList();
   }
 
+  /**
+   * Adds everything the {@code tabbedLicencePage} template needs to render the licence screen outside the tab content —
+   * the header, the tab list and the licence actions. Tabs only need to add their own content on top of this.
+   */
   public void hydrateModel(
       ModelAndView modelAndView,
       Licence licence,
@@ -41,6 +49,7 @@ public class TabbedLicencePageService {
     var licenceActionsForTab = licenceActionService.getLicenceActionItemsForTab(licence, user, currentTab);
 
     modelAndView
+        .addObject("licenceOverviewView", licenceOverviewService.getLicenceOverviewView(licence))
         .addObject("topLevelLicenceActions", topLevelLicenceActions)
         .addObject("tabs", tabs)
         .addObject("currentTab", FdsBackendTab.from(currentTab, context))

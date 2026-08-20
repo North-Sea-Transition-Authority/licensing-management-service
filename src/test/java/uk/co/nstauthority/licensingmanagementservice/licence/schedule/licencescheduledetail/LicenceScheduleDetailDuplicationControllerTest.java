@@ -19,7 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = LicenceScheduleDetailDuplicationController.class)
@@ -58,7 +58,7 @@ class LicenceScheduleDetailDuplicationControllerTest extends AbstractControllerT
         .andExpect(model().attribute("startUrl",
             ReverseRouter.route(on(LicenceScheduleDetailDuplicationController.class).createDraftScheduleUpdateAndRedirect(licence.getId(), null))))
         .andExpect(model().attribute("backUrl",
-            ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licence.getId(), null, null, null))));
+            ReverseRouter.route(on(LicenceScheduleTabController.class).renderLicenceOverview(licence.getId(), null, null, null))));
   }
 
   @Test

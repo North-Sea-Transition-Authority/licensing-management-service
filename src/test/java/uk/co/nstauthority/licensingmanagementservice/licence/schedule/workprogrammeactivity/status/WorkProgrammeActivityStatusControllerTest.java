@@ -23,7 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.internalapi.LicenceInternalApiRestController;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCategory;
@@ -97,7 +97,7 @@ class WorkProgrammeActivityStatusControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("licenceSearchUrl", SearchSelectorService.route(on(LicenceInternalApiRestController.class)
             .searchLicencesByReferenceAndType(licence.getType().getUrlSlug(), null)))
         )
-        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceOverviewController.class)
+        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceScheduleTabController.class)
             .renderLicenceOverview(licence.getId(), null, null, null)))
         );
   }
@@ -135,7 +135,7 @@ class WorkProgrammeActivityStatusControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("licenceSearchUrl", SearchSelectorService.route(on(LicenceInternalApiRestController.class)
             .searchLicencesByReferenceAndType(licence.getType().getUrlSlug(), null)))
         )
-        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceOverviewController.class)
+        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceScheduleTabController.class)
             .renderLicenceOverview(licence.getId(), null, null, null)))
         );
   }

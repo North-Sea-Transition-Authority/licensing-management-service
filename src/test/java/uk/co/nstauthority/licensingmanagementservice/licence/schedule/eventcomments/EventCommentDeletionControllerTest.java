@@ -20,7 +20,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -83,7 +83,7 @@ class EventCommentDeletionControllerTest extends AbstractControllerTest {
         .andExpect(view().name("lms/licence/schedule/deleteEventComment"))
         .andExpect(model().attribute("commentView", commentView))
         .andExpect(model().attribute("pageCaption", LICENCE_CAPTION))
-        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceOverviewController.class)
+        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceScheduleTabController.class)
             .renderLicenceOverview(eventComment.getScheduleEvent().getLicenceSchedule().getLicence().getId(), null, null, null))));
   }
 

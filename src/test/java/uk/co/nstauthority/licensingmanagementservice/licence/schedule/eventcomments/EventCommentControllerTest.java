@@ -24,7 +24,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.ScheduleEventRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -84,7 +84,7 @@ class EventCommentControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createEventComment"))
-        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceOverviewController.class)
+        .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceScheduleTabController.class)
             .renderLicenceOverview(scheduleEvent.getLicenceSchedule().getLicence().getId(), null, null, null))))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
   }

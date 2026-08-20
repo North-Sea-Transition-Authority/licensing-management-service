@@ -18,6 +18,8 @@ import uk.co.nstauthority.licensingmanagementservice.fds.tab.FdsBackendTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewView;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
@@ -29,7 +31,10 @@ class TabbedLicencePageServiceTest {
   private static final Licence LICENCE = LicenceTestUtil.builder()
       .withId(1)
       .withLicenceType(LicenceType.CARBON_STORAGE)
+      .withLicenceReference("CS001")
       .build();
+
+  private static final LicenceOverviewService LICENCE_OVERVIEW_SERVICE = new LicenceOverviewService();
 
   private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder().build();
 
@@ -131,6 +136,24 @@ class TabbedLicencePageServiceTest {
   }
 
   @Test
+  void hydrateModel_assertLicenceOverviewView() {
+    var tabbedLicencePageService = serviceWithTabs(List.of(SCHEDULE_TAB, TIMELINE_TAB));
+
+    var modelAndView = new ModelAndView("some/view");
+
+    tabbedLicencePageService.hydrateModel(modelAndView, LICENCE, TIMELINE_TAB, USER);
+
+    // every tab renders the same header, so it does not vary with the current tab
+    assertThat(modelAndView.getModel()).extractingByKey("licenceOverviewView")
+        .isEqualTo(LICENCE_OVERVIEW_SERVICE.getLicenceOverviewView(LICENCE))
+        .isEqualTo(new LicenceOverviewView(
+            "CS001",
+            LicenceType.CARBON_STORAGE.getDisplayName(),
+            "https://www.nstauthority.co.uk/regulatory-information/carbon-storage/carbon-storage-public-register/?section=CS001"
+        ));
+  }
+
+  @Test
   void hydrateModel_assertActionsRetrievedForCurrentTabOnly() {
     var tabbedLicencePageService = serviceWithTabs(List.of(SCHEDULE_TAB, TIMELINE_TAB));
 
@@ -177,7 +200,7 @@ class TabbedLicencePageServiceTest {
     assertThat(modelAndView.getViewName()).isEqualTo("some/view");
     assertThat(modelAndView.getModel())
         .containsEntry("existingAttribute", "existingValue")
-        .containsKeys("tabs", "currentTab", "topLevelLicenceActions", "currentTabLicenceActions");
+        .containsKeys("licenceOverviewView", "tabs", "currentTab", "topLevelLicenceActions", "currentTabLicenceActions");
   }
 
   @Test
@@ -214,7 +237,12 @@ class TabbedLicencePageServiceTest {
     var environment = new MockEnvironment();
     environment.setActiveProfiles(activeProfiles);
 
-    return new TabbedLicencePageService(licenceActionService, new FeatureFlagService(environment), licenceTabs);
+    return new TabbedLicencePageService(
+        licenceActionService,
+        LICENCE_OVERVIEW_SERVICE,
+        new FeatureFlagService(environment),
+        licenceTabs
+    );
   }
 
   private record TestLicenceTab(String displayName, int displayOrder, ReleaseFeature releaseFeature)

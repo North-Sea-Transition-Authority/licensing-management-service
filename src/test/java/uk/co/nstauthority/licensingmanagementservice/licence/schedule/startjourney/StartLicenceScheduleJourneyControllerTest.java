@@ -14,7 +14,7 @@ import org.springframework.test.context.ContextConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -48,7 +48,7 @@ class StartLicenceScheduleJourneyControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("startUrl",
             ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateForm(licenceId, null))))
         .andExpect(model().attribute("backUrl",
-            ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licenceId, null, null, null))));
+            ReverseRouter.route(on(LicenceScheduleTabController.class).renderLicenceOverview(licenceId, null, null, null))));
   }
 
   @Test

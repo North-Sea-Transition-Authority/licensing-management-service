@@ -3,17 +3,8 @@
 <#import '_licencePositionTimeLine.ftl' as licencePositionTimeLine>
 <#import '_licencePositionDetails.ftl' as licencePositionDetails>
 
-<#assign pageTitle>
-  <#if licencePositionPageView.hasPositions()>
-      ${licencePositionPageView.date()} (${licencePositionPageView.regulatorReference()})
-  <#else>
-      Licence positions
-  </#if>
-</#assign>
-
 <@tabbedLicencePage.page
-  heading=pageTitle
-  caption=pageCaption
+  licenceOverviewView=licenceOverviewView
   topLevelLicenceActions=topLevelLicenceActions
   tabs=tabs
   currentTab=currentTab
@@ -21,6 +12,9 @@
 >
 
     <#if licencePositionPageView.hasPositions()>
+      <h2 class="govuk-heading-m">
+        ${licencePositionPageView.date()} (${licencePositionPageView.regulatorReference()})
+      </h2>
       <@grid.gridRow>
         <@grid.threeQuarterColumn>
           <@licencePositionDetails.details
@@ -34,7 +28,7 @@
         </@grid.oneQuarterColumn>
       </@grid.gridRow>
     <#else>
-      <@fdsInsetText.insetText>No executed licence positions for this licence.</@fdsInsetText.insetText>
+      <@fdsInsetText.insetText>No timeline exists for this licence.</@fdsInsetText.insetText>
     </#if>
 
 </@tabbedLicencePage.page>

@@ -11,7 +11,7 @@ import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LicenceActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -48,7 +48,7 @@ public class LicenceScheduleDetailDuplicationController {
                 .createDraftScheduleUpdateAndRedirect(licenceId, null))
         )
         .addObject("backUrl",
-            ReverseRouter.route(on(LicenceOverviewController.class)
+            ReverseRouter.route(on(LicenceScheduleTabController.class)
                 .renderLicenceOverview(licenceId, null, null, null))
         );
   }

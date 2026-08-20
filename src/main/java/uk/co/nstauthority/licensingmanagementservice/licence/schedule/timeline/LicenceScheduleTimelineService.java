@@ -214,7 +214,7 @@ public class LicenceScheduleTimelineService {
 
   public List<TimelineTermView> getLicenceScheduleEventViewsForOverview(
       LicenceScheduleDetail licenceScheduleDetail,
-      TimelineFilterForm timelineFilterForm,
+      ScheduleTimelineFilterForm scheduleTimelineFilterForm,
       ServiceUserDetail userDetail
   ) {
     Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap = new HashMap<>();
@@ -243,7 +243,7 @@ public class LicenceScheduleTimelineService {
 
     return getLicenceScheduleEventViews(
         licenceScheduleDetail,
-        timelineFilterForm,
+        scheduleTimelineFilterForm,
         eventActions,
         eventRefWpStatusMap,
         eventRefCommentsMap,
@@ -262,7 +262,7 @@ public class LicenceScheduleTimelineService {
 
   List<TimelineTermView> getEditableLicenceScheduleEventViews(
       LicenceScheduleDetail licenceScheduleDetail,
-      TimelineFilterForm timelineFilterForm,
+      ScheduleTimelineFilterForm scheduleTimelineFilterForm,
       List<ScheduleEventAction> allowedActions
   ) {
     var eventRefWpStatusMap = getLatestWpStatusesForSchedule(licenceScheduleDetail);
@@ -271,7 +271,7 @@ public class LicenceScheduleTimelineService {
 
     return getLicenceScheduleEventViews(
         licenceScheduleDetail,
-        timelineFilterForm,
+        scheduleTimelineFilterForm,
         allowedActions,
         eventRefWpStatusMap,
         eventRefCommentsMap,
@@ -295,13 +295,13 @@ public class LicenceScheduleTimelineService {
 
   private List<TimelineTermView> getLicenceScheduleEventViews(
       LicenceScheduleDetail licenceScheduleDetail,
-      TimelineFilterForm timelineFilterForm,
+      ScheduleTimelineFilterForm scheduleTimelineFilterForm,
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
       LocalDate finalProgressDate
   ) {
-    var includedEventTypes = timelineFilterForm.getEventTypes().stream()
+    var includedEventTypes = scheduleTimelineFilterForm.getEventTypes().stream()
         .map(ScheduleEventType::valueOf)
         .toList();
 

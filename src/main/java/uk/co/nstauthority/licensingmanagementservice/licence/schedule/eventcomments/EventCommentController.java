@@ -19,7 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTea
 import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.ScheduleEvent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.ScheduleEventRepository;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -91,7 +91,7 @@ public class EventCommentController {
         .withHeadingContent("Comment added")
         .applyTo(redirectAttributes);
 
-    return ReverseRouter.redirect(on(LicenceOverviewController.class)
+    return ReverseRouter.redirect(on(LicenceScheduleTabController.class)
         .renderLicenceOverview(scheduleEvent.getLicenceSchedule().getLicence().getId(), null, null, null));
   }
 
@@ -105,7 +105,7 @@ public class EventCommentController {
 
     return new ModelAndView("lms/licence/schedule/createEventComment")
         .addObject("form", form)
-        .addObject("cancelUrl", ReverseRouter.route(on(LicenceOverviewController.class)
+        .addObject("cancelUrl", ReverseRouter.route(on(LicenceScheduleTabController.class)
             .renderLicenceOverview(licence.getId(), null, null, null)))
         .addObject("pageCaption", caption);
   }

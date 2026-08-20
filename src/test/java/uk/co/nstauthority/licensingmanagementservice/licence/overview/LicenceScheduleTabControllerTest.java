@@ -44,11 +44,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePa
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = {
-    LicenceOverviewController.class,
+    LicenceScheduleTabController.class,
     TabbedLicencePageService.class,
+    LicenceOverviewService.class,
     LicenceScheduleTab.class,
 })
-class LicenceOverviewControllerTest extends AbstractControllerTest {
+class LicenceScheduleTabControllerTest extends AbstractControllerTest {
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
 
   private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder()
@@ -61,8 +62,8 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
   @MockitoBean
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
 
-  @MockitoBean
-  private LicenceScheduleOverviewService licenceScheduleOverviewService;
+  @Autowired
+  private LicenceOverviewService licenceOverviewService;
 
   private Licence licence;
 
@@ -83,7 +84,7 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
 
     licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
 
-    viewOverviewUrl = ReverseRouter.route(on(LicenceOverviewController.class).renderLicenceOverview(licence.getId(), null, null, null));
+    viewOverviewUrl = ReverseRouter.route(on(LicenceScheduleTabController.class).renderLicenceOverview(licence.getId(), null, null, null));
   }
 
   @Test
@@ -107,27 +108,23 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
     when(licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(eq(licenceScheduleDetail), any(), any())).thenReturn(scheduleEventViews);
 
-    var csRegisterUrl = "https://www.nstauthority.co.uk/regulatory-information/carbon-storage/carbon-storage-public-register/?section=P1";
-    when(licenceScheduleOverviewService.getCsRegisterlink(licence)).thenReturn(csRegisterUrl);
-
     mockMvc.perform(
             get(viewOverviewUrl)
                 .with(user(USER))
         )
         .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/licenceOverview"))
-        .andExpect(model().attribute("licenceReference", licence.getLicenceReference()))
-        .andExpect(model().attribute("caption", licence.getType().getDisplayName()))
+        .andExpect(view().name("lms/licence/schedule/licencetab/licenceScheduleTab"))
+        .andExpect(model().attribute("licenceOverviewView", licenceOverviewService.getLicenceOverviewView(licence)))
+        .andExpect(model().attribute("scheduleExists", true))
         .andExpect(model().attributeExists("historyForm"))
         .andExpect(model().attribute("scheduleHistoryOptions", scheduleHistoryOptions))
-        .andExpect(model().attribute("viewScheduleHistoryUrl", ReverseRouter.route(on(LicenceOverviewController.class)
+        .andExpect(model().attribute("viewScheduleHistoryUrl", ReverseRouter.route(on(LicenceScheduleTabController.class)
             .viewScheduleHistory(licence.getId(), null)))
         )
-        .andExpect(model().attribute("csRegisterUrl", csRegisterUrl))
         .andExpect(model().attribute("timelineSummaryCardView", timelineSummaryCardView))
         .andExpect(model().attribute("scheduleEventViews", scheduleEventViews))
         .andExpect(model().attribute("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions()))
-        .andExpect(model().attribute("clearFilterUrl", ReverseRouter.route(on(LicenceOverviewController.class)
+        .andExpect(model().attribute("clearFilterUrl", ReverseRouter.route(on(LicenceScheduleTabController.class)
             .clearFilters(licence.getId(), null, null)))
         )
         .andExpect(model().attribute("topLevelLicenceActions", topLevelLicenceActions))
@@ -154,19 +151,15 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
     when(licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(eq(licenceScheduleDetail), any(), any())).thenReturn(scheduleEventViews);
 
-    var csRegisterUrl = "https://www.nstauthority.co.uk/regulatory-information/carbon-storage/carbon-storage-public-register/?section=P1";
-    when(licenceScheduleOverviewService.getCsRegisterlink(licence)).thenReturn(csRegisterUrl);
-
     mockMvc.perform(
             get(viewOverviewUrl)
                 .with(user(USER))
         )
         .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/licenceOverview"))
-        .andExpect(model().attribute("licenceReference", licence.getLicenceReference()))
-        .andExpect(model().attribute("caption", licence.getType().getDisplayName()))
+        .andExpect(view().name("lms/licence/schedule/licencetab/licenceScheduleTab"))
+        .andExpect(model().attribute("licenceOverviewView", licenceOverviewService.getLicenceOverviewView(licence)))
+        .andExpect(model().attribute("scheduleExists", false))
         .andExpect(model().attributeExists("historyForm"))
-        .andExpect(model().attribute("csRegisterUrl", csRegisterUrl))
         .andExpect(model().attribute("topLevelLicenceActions", topLevelLicenceActions))
         .andExpect(model().attribute("tabs", List.of(FdsBackendTab.from(licenceScheduleTab, licenceTabContext))))
         .andExpect(model().attribute("currentTab", FdsBackendTab.from(licenceScheduleTab, licenceTabContext)))
@@ -191,7 +184,7 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
   @Test
   void clearFilters() throws Exception {
     mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceOverviewController.class).clearFilters(licence.getId(), null, null)))
+            get(ReverseRouter.route(on(LicenceScheduleTabController.class).clearFilters(licence.getId(), null, null)))
                 .with(user(regulatorUser))
         )
         .andExpect(status().is3xxRedirection())
@@ -201,7 +194,7 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
   @Test
   void renderWorkProgrammesOnlyTimeline() throws Exception {
     mockMvc.perform(
-            get(ReverseRouter.route(on(LicenceOverviewController.class)
+            get(ReverseRouter.route(on(LicenceScheduleTabController.class)
                 .renderWorkProgrammesOnlyTimeline(licence.getId(), null)))
                 .with(user(regulatorUser))
         )
@@ -211,7 +204,7 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
 
   @Test
   void viewScheduleHistory_whenLicenceScheduleDetailIdProvided_redirectsToScheduleHistoryOverview() throws Exception {
-    var viewScheduleHistoryUrl = ReverseRouter.route(on(LicenceOverviewController.class)
+    var viewScheduleHistoryUrl = ReverseRouter.route(on(LicenceScheduleTabController.class)
         .viewScheduleHistory(licence.getId(), null));
 
     var expectedRedirectUrl = ReverseRouter.route(on(LicenceScheduleHistoryOverviewController.class)
@@ -229,7 +222,7 @@ class LicenceOverviewControllerTest extends AbstractControllerTest {
 
   @Test
   void viewScheduleHistory_whenLicenceScheduleDetailIdNotProvided_redirectsToOverview() throws Exception {
-    var viewScheduleHistoryUrl = ReverseRouter.route(on(LicenceOverviewController.class)
+    var viewScheduleHistoryUrl = ReverseRouter.route(on(LicenceScheduleTabController.class)
         .viewScheduleHistory(licence.getId(), null));
 
     mockMvc.perform(

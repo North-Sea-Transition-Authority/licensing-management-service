@@ -4,7 +4,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 
-public class TimelineFilterForm implements Serializable {
+public class ScheduleTimelineFilterForm implements Serializable {
 
   @Serial
   private static final long serialVersionUID = 8739049260187569611L;

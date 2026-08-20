@@ -29,7 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
 
 @Controller
 @RequestMapping("/licence/schedule/{licenceScheduleDetailId}")
-@SessionAttributes("timelineSession")
+@SessionAttributes("scheduleTimelineSession")
 @HasRolesInTeamType(value = {
     @RolesAndTeamType(
         roles = {Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR},
@@ -56,7 +56,7 @@ public class LicenceScheduleTimelineController {
   public ModelAndView renderLicenceScheduleTimeline(
       @PathVariable UUID licenceScheduleDetailId,
       LicenceScheduleDetail licenceScheduleDetail,
-      @ModelAttribute("timelineSession") TimelineSession filterSession,
+      @ModelAttribute("scheduleTimelineSession") ScheduleTimelineSession filterSession,
       ServiceUserDetail serviceUserDetail
   ) {
     var form = filterSession.getTimelineFilterForm();
@@ -76,8 +76,8 @@ public class LicenceScheduleTimelineController {
   @PostMapping
   public ModelAndView filterTimeline(
       @PathVariable UUID licenceScheduleDetailId,
-      @ModelAttribute("form") TimelineFilterForm form,
-      @ModelAttribute("timelineSession") TimelineSession filterSession
+      @ModelAttribute("form") ScheduleTimelineFilterForm form,
+      @ModelAttribute("scheduleTimelineSession") ScheduleTimelineSession filterSession
   ) {
     filterSession.update(form);
     return ReverseRouter.redirect(on(LicenceScheduleTimelineController.class)
@@ -87,7 +87,7 @@ public class LicenceScheduleTimelineController {
   @GetMapping("/clear-filters")
   public ModelAndView clearFilters(
       @PathVariable UUID licenceScheduleDetailId,
-      @ModelAttribute("timelineSession") TimelineSession filterSession,
+      @ModelAttribute("scheduleTimelineSession") ScheduleTimelineSession filterSession,
       SessionStatus sessionStatus
   ) {
     sessionStatus.setComplete();
@@ -95,23 +95,23 @@ public class LicenceScheduleTimelineController {
         .renderLicenceScheduleTimeline(licenceScheduleDetailId, null, null, null));
   }
 
-  @ModelAttribute("timelineSession")
-  private TimelineSession getFilterSession(
-      @ModelAttribute("form") TimelineFilterForm form
+  @ModelAttribute("scheduleTimelineSession")
+  private ScheduleTimelineSession getFilterSession(
+      @ModelAttribute("form") ScheduleTimelineFilterForm form
   ) {
-    return new TimelineSession(form);
+    return new ScheduleTimelineSession(form);
   }
   
   private ModelAndView getScheduleTimelineModelAndView(
       Licence licence,
       LicenceScheduleDetail licenceScheduleDetail,
-      TimelineFilterForm timelineFilterForm,
+      ScheduleTimelineFilterForm scheduleTimelineFilterForm,
       ServiceUserDetail serviceUserDetail
   ) {
     var allowedActions = licenceScheduleTimelineService.getAllowedEventActionsForUser(serviceUserDetail);
 
     var modelAndView = new ModelAndView("lms/licence/schedule/timeline/scheduleTimeline")
-        .addObject("form", timelineFilterForm)
+        .addObject("form", scheduleTimelineFilterForm)
         .addObject("pageTitle", PAGE_TITLE.formatted(licence.getLicenceReference()))
         .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .addObject("actions",
@@ -123,7 +123,7 @@ public class LicenceScheduleTimelineController {
         .addObject("scheduleEventViews",
             licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(
                 licenceScheduleDetail,
-                timelineFilterForm,
+                scheduleTimelineFilterForm,
                 allowedActions
             )
         )

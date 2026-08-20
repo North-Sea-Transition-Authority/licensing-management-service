@@ -1,30 +1,26 @@
 <#include '../layout/layout.ftl'>
 <#import '../component/actions/actionItems.ftl' as actionItems>
-<#import 'schedule/timeline/scheduleComponents.ftl' as scheduleTimeline>
-<#import '../component/inline/inlineInputAction.ftl' as inlineInputAction>
 
-<#-- @ftlvariable name="heading" type="String" -->
-<#-- @ftlvariable name="caption" type="String" -->
+<#-- @ftlvariable name="licenceOverviewView" type="uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewView" -->
 <#-- @ftlvariable name="topLevelLicenceActions" type="java.util.Collection<uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView>" -->
 <#-- @ftlvariable name="tabs" type="java.util.Collection<uk.co.nstauthority.licensingmanagementservice.fds.tab.FdsBackendTab>" -->
 <#-- @ftlvariable name="currentTab" type="uk.co.nstauthority.licensingmanagementservice.fds.tab.FdsBackendTab" -->
-<#-- @ftlvariable name="currentTabLicenceActions" type="java.util.Collection<uk.co.nstauthority.licensingmanagementservice.fds.tab.FdsBackendTab>" -->
-<#-- @ftlvariable name="csRegisterUrl" type="String" -->
+<#-- @ftlvariable name="currentTabLicenceActions" type="java.util.Collection<uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView>" -->
 
-<#macro page heading caption topLevelLicenceActions tabs currentTab currentTabLicenceActions>
+<#macro page licenceOverviewView topLevelLicenceActions tabs currentTab currentTabLicenceActions>
   <@defaultPage
-    htmlTitle=heading
-    pageHeading=heading
-    caption=caption
+    htmlTitle=licenceOverviewView.licenceReference()
+    pageHeading=licenceOverviewView.licenceReference()
+    caption=licenceOverviewView.caption()
     pageSize=PageSize.FULL_COLUMN
   >
-    <#if csRegisterUrl?has_content>
+    <#if licenceOverviewView.csRegisterUrl()?has_content>
       <p class="govuk-body">
-        <@fdsAction.link linkText="View in public register" linkUrl=csRegisterUrl openInNewTab=true/>
+        <@fdsAction.link linkText="View in public register" linkUrl=licenceOverviewView.csRegisterUrl() openInNewTab=true/>
       </p>
     </#if>
 
-    <@actionItems.actionItems actionItems=topLevelLicenceActions screenReaderText="Actions for ${heading}"/>
+    <@actionItems.actionItems actionItems=topLevelLicenceActions screenReaderText="Actions for ${licenceOverviewView.licenceReference()}"/>
 
     <@fdsBackendTabs.tabs tabsHeading="Licence tabs">
       <@fdsBackendTabs.tabList>

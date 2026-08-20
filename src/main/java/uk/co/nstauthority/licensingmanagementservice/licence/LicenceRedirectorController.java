@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -25,14 +25,14 @@ public class LicenceRedirectorController {
   @GetMapping("/schedule")
   public ModelAndView redirectToScheduleTimeline(@PathVariable String licenceReference) {
     var licence = licenceService.findByLicenceReferenceOrThrow(licenceReference);
-    return ReverseRouter.redirect(on(LicenceOverviewController.class)
+    return ReverseRouter.redirect(on(LicenceScheduleTabController.class)
         .renderLicenceOverview(licence.getId(), null, null, null));
   }
 
   @GetMapping("/work-programme")
   public ModelAndView redirectToWorkProgrammesTimeline(@PathVariable String licenceReference) {
     var licence = licenceService.findByLicenceReferenceOrThrow(licenceReference);
-    return ReverseRouter.redirect(on(LicenceOverviewController.class)
+    return ReverseRouter.redirect(on(LicenceScheduleTabController.class)
         .renderWorkProgrammesOnlyTimeline(licence.getId(), null));
   }
 }

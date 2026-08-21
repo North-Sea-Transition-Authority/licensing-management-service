@@ -140,5 +140,5 @@ Templates live under `src/main/resources/templates/`. The `lms/` subtree holds a
 - **Unit tests** use `@ExtendWith(MockitoExtension.class)` with strict stubs (the default). When stubbing `mock.getAttribute(X)` and the code also calls `mock.getAttribute(Y)` in the same method, stub both explicitly to avoid `PotentialStubbingProblem`.
 - **Integration tests** are annotated with `@IntegrationTest` (a meta-annotation that sets up `@SpringBootTest` with `development` + `integration-test` profiles and a Testcontainers PostgreSQL instance).
 - **Architecture tests** use ArchUnit in the `architecture` package.
-- Test method naming convention: `methodName_whenCondition_assertExpectedBehaviour`.
+- Test naming, structure, assertion and mocking conventions live in the `writing-tests` skill — consult it before writing or changing test code.
 - checkstyleTest Gradle task is not required

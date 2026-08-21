@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.ut
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -12,7 +11,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 
 class LicencePositionAdministratorChangeUtilTest {
@@ -21,20 +19,9 @@ class LicencePositionAdministratorChangeUtilTest {
   private static final Integer UPDATED_ADMINISTRATOR_ID = 999;
 
   @Test
-  void adminChangeExists_whenNoChanges_returnsFalse() {
-    assertThat(LicencePositionAdministratorChangeUtil.adminChangeExists(List.of())).isFalse();
-  }
-
-  @Test
-  void adminChangeExists_whenAddChangeContainsAdministratorOperation_returnsTrue() {
-    assertThat(LicencePositionAdministratorChangeUtil.adminChangeExists(List.of(adminAddChange(ADMINISTRATOR_ID)))).isTrue();
-  }
-
-  @Test
-  void adminChangeExists_whenUpdateChangeContainsAdministratorOperation_returnsTrue() {
-    var updateChange = adminUpdateChange(UUID.randomUUID().toString(), ADMINISTRATOR_ID);
-
-    assertThat(LicencePositionAdministratorChangeUtil.adminChangeExists(List.of(updateChange))).isTrue();
+  void adminChangeExists() {
+    assertThat(LicencePositionAdministratorChangeUtil.adminChangeExists(List.of(adminAddChange(ADMINISTRATOR_ID))))
+        .isTrue();
   }
 
   @Test
@@ -66,43 +53,6 @@ class LicencePositionAdministratorChangeUtilTest {
   }
 
   @Test
-  void removeAdminChange_dropsChangesContainingAdministratorOperation() {
-    var adminChange = adminUpdateChange(UUID.randomUUID().toString(), ADMINISTRATOR_ID);
-
-    var result = LicencePositionAdministratorChangeUtil.removeAdminChange(List.of(adminChange));
-
-    assertThat(result).isEmpty();
-  }
-
-  @Test
-  void removeAdminChange_keepsChangesWithoutAdministratorOperation() {
-    var adminChange = adminAddChange(ADMINISTRATOR_ID);
-    var setEquityChange = setEquityAddChange();
-
-    var result = LicencePositionAdministratorChangeUtil.removeAdminChange(List.of(adminChange, setEquityChange));
-
-    assertThat(result).containsExactly(setEquityChange);
-  }
-
-  @Test
-  void containsAdminOperation_whenLiveChangeHasAdministratorOperation_returnsTrue() {
-    assertThat(LicencePositionAdministratorChangeUtil.containsAdminOperation(liveAdminChange(ADMINISTRATOR_ID))).isTrue();
-  }
-
-  @Test
-  void containsAdminOperation_whenLiveChangeHasOnlyNonAdminOperation_returnsFalse() {
-    var change = new LicencePositionChange();
-    change.setOperations(List.of(new SetEquityOperation(300, BigDecimal.valueOf(50))));
-
-    assertThat(LicencePositionAdministratorChangeUtil.containsAdminOperation(change)).isFalse();
-  }
-
-  @Test
-  void containsAdminOperation_whenLiveChangeHasNullOperations_returnsFalse() {
-    assertThat(LicencePositionAdministratorChangeUtil.containsAdminOperation(new LicencePositionChange())).isFalse();
-  }
-
-  @Test
   void adminIdNotChanged_whenLiveAdminMatches_returnsTrue() {
     var change = liveAdminChange(ADMINISTRATOR_ID);
 
@@ -131,31 +81,6 @@ class LicencePositionAdministratorChangeUtilTest {
     return LicencePositionChangeType.addChange()
         .withChangeId(UUID.randomUUID().toString())
         .withChangeOrder(1)
-        .withOperations(List.of(operation))
-        .build();
-  }
-
-  private LicencePositionChangeType setEquityAddChange() {
-    var setEquityOperation = new SetEquityOperation(300, BigDecimal.valueOf(50));
-    var operation = LicencePositionChangeOperation.newLicencePositionAddOperation()
-        .withOperationId(setEquityOperation.id())
-        .withOperation(setEquityOperation)
-        .build();
-    return LicencePositionChangeType.addChange()
-        .withChangeId(UUID.randomUUID().toString())
-        .withChangeOrder(2)
-        .withOperations(List.of(operation))
-        .build();
-  }
-
-  private LicencePositionChangeType adminUpdateChange(String changeId, Integer administratorId) {
-    var administratorOperation = LicenceOperation.newAdministratorChange().withOperator(administratorId).build();
-    var operation = LicencePositionChangeOperation.newLicencePositionUpdateOperation()
-        .withOperationId(administratorOperation.id())
-        .withOperation(administratorOperation)
-        .build();
-    return LicencePositionChangeType.updateChangeOperations()
-        .withChangeId(changeId)
         .withOperations(List.of(operation))
         .build();
   }

@@ -4,9 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import java.util.List;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionUpdateOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -35,6 +33,10 @@ public sealed interface LicencePositionChangeType permits AddChange, UpdateChang
 
   String changeId();
 
+  default List<LicencePositionChangeOperation> operations() {
+    return List.of();
+  }
+
   static AddChange.Builder addChange() {
     return new AddChange.Builder();
   }
@@ -53,19 +55,8 @@ public sealed interface LicencePositionChangeType permits AddChange, UpdateChang
   }
 
   static List<LicenceOperation> operationsOf(LicencePositionChangeType change) {
-    return operationsFrom(change).stream()
-        .map(changeOperation -> switch (changeOperation) {
-          case LicencePositionAddOperation addOperation -> addOperation.operation();
-          case LicencePositionUpdateOperation updateOperation -> updateOperation.operation();
-        })
+    return change.operations().stream()
+        .map(LicencePositionChangeOperation::operation)
         .toList();
-  }
-
-  private static List<LicencePositionChangeOperation> operationsFrom(LicencePositionChangeType change) {
-    return switch (change) {
-      case AddChange addChange -> addChange.operations();
-      case UpdateChangeOperations updateChangeOperations -> updateChangeOperations.operations();
-      case RemoveChange ignored -> List.of();
-    };
   }
 }

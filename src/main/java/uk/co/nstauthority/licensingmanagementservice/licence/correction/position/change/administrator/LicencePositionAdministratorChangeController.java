@@ -19,8 +19,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.LicencePositionHasNoLiveAdministratorChange;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.ValidLicencePositionAdministratorChange;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
@@ -31,6 +31,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.AdministratorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
@@ -201,7 +202,7 @@ public class LicencePositionAdministratorChangeController {
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/correct-administrator-change")
   @LicencePositionChangeBelongsToPosition
-  @ValidLicencePositionAdministratorChange
+  @LicencePositionChangeIsOfType(AdministratorOperation.class)
   public ModelAndView renderForCorrectingChange(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
@@ -222,7 +223,7 @@ public class LicencePositionAdministratorChangeController {
 
   @PostMapping("/position/{licencePositionId}/change/{changeId}/correct-administrator-change")
   @LicencePositionChangeBelongsToPosition
-  @ValidLicencePositionAdministratorChange
+  @LicencePositionChangeIsOfType(AdministratorOperation.class)
   public ModelAndView submitForCorrectingChange(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,

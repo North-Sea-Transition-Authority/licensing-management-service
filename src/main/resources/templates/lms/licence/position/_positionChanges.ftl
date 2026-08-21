@@ -17,6 +17,32 @@
   </div>
 </#macro>
 
+<#macro changeCardActions screenReaderText correctUrl="" removeUrl="" undoUrl="">
+  <@fdsSummaryList.summaryListCardActionList>
+    <#if correctUrl?has_content>
+      <@fdsSummaryList.summaryListCardActionItem
+        itemUrl=springUrl(correctUrl)
+        itemText="Correct"
+        itemScreenReaderText=screenReaderText
+      />
+    </#if>
+    <#if removeUrl?has_content>
+      <@fdsSummaryList.summaryListCardActionItem
+        itemUrl=springUrl(removeUrl)
+        itemText="Remove"
+        itemScreenReaderText=screenReaderText
+      />
+    </#if>
+    <#if undoUrl?has_content>
+      <@fdsSummaryList.summaryListCardActionItem
+        itemUrl=springUrl(undoUrl)
+        itemText="Undo"
+        itemScreenReaderText=screenReaderText
+      />
+    </#if>
+  </@fdsSummaryList.summaryListCardActionList>
+</#macro>
+
 <#macro administratorChange change>
   <#assign removed>
     <@fdsTag.tag tagClass="govuk-tag--red">Removed</@fdsTag.tag>
@@ -33,29 +59,12 @@
   </#assign>
 
   <#assign cardActions>
-    <@fdsSummaryList.summaryListCardActionList>
-      <#if change.correctUrl()?has_content>
-        <@fdsSummaryList.summaryListCardActionItem
-          itemUrl=springUrl(change.correctUrl())
-          itemText="Correct"
-          itemScreenReaderText="licence administrator change"
-        />
-      </#if>
-      <#if change.removeUrl()?has_content>
-        <@fdsSummaryList.summaryListCardActionItem
-          itemUrl=springUrl(change.removeUrl())
-          itemText="Remove"
-          itemScreenReaderText="licence administrator change"
-        />
-      </#if>
-      <#if change.undoUrl()?has_content>
-        <@fdsSummaryList.summaryListCardActionItem
-          itemUrl=springUrl(change.undoUrl())
-          itemText="Undo"
-          itemScreenReaderText="licence administrator change"
-        />
-      </#if>
-    </@fdsSummaryList.summaryListCardActionList>
+    <@changeCardActions
+      screenReaderText="licence administrator change"
+      correctUrl=change.correctUrl()!''
+      removeUrl=change.removeUrl()!''
+      undoUrl=change.undoUrl()!''
+    />
   </#assign>
 
   <@fdsSummaryList.summaryListCard
@@ -178,7 +187,15 @@
     <@changeHeading change=change headingText="Partial surrender"/>
   </#assign>
 
-  <@fdsSummaryList.summaryListCard headingText=headingText summaryListId="partial-surrender">
+  <#assign cardActions>
+    <@changeCardActions screenReaderText="partial surrender" correctUrl=change.correctUrl()!''/>
+  </#assign>
+
+  <@fdsSummaryList.summaryListCard
+    headingText=headingText
+    summaryListId="partial-surrender"
+    cardActionsContent=cardActions
+  >
     <#if change.surrenderDate()??>
       <@fdsSummaryList.summaryListRowNoAction keyText="Date of surrender">
         ${change.surrenderDate()}
@@ -187,7 +204,7 @@
     <@fdsSummaryList.summaryListRowNoAction keyText="Blocks to surrender">
       <dl>
         <#list change.blockRows() as blockRow>
-          <dt style="white-space: nowrap;">${blockRow.blockLabel()} - ${blockRow.surrenderType()}</dt>
+          <dt style="white-space: nowrap;">${blockRow.blockLabel()}<#if blockRow.surrenderType()??> - ${blockRow.surrenderType()}</#if></dt>
         </#list>
       </dl>
     </@fdsSummaryList.summaryListRowNoAction>

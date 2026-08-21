@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -32,14 +33,31 @@ public class PartialSurrenderBlockSurrenderTypeSummarySectionService
 
   @Override
   public Optional<SummarySection> getSummarySection(PartialSurrenderSummaryContext context, ServiceUserDetail user) {
-    var licencePositionCorrection = context.licencePositionCorrection();
-    var surrender = partialSurrenderCorrectionService.getCommittedPartialSurrender(licencePositionCorrection).orElse(null);
+    return switch (context) {
+      case PartialSurrenderSummaryContext.Staged(var licencePositionCorrection) ->
+          partialSurrenderCorrectionService.getCommittedPartialSurrender(licencePositionCorrection)
+              .flatMap(surrender -> getSummarySection(
+                  surrender,
+                  partialSurrenderCorrectionService.getSurrenderableBlockFeatures(licencePositionCorrection),
+                  "correction %s".formatted(licencePositionCorrection.getId())));
+      case PartialSurrenderSummaryContext.LiveChange(var correction, var licencePosition, var changeId) ->
+          getSummarySection(
+              partialSurrenderCorrectionService
+                  .getSurrenderUnderCorrectionOrThrow(correction, licencePosition, changeId),
+              partialSurrenderCorrectionService.getSurrenderableBlockFeatures(licencePosition),
+              "change %s".formatted(changeId));
+    };
+  }
 
-    if (surrender == null || surrender.featureIds().isEmpty()) {
+  private Optional<SummarySection> getSummarySection(
+      PartialSurrenderOperation surrender,
+      List<Feature> surrenderableBlockFeatures,
+      String surrenderSource
+  ) {
+    if (surrender.featureIds().isEmpty()) {
       return Optional.empty();
     }
 
-    var surrenderableBlockFeatures = partialSurrenderCorrectionService.getSurrenderableBlockFeatures(licencePositionCorrection);
     var labelsById = LicenceBlockFeatureUtil.toBlockCheckboxOptions(
         surrenderableBlockFeatures
     );
@@ -51,8 +69,8 @@ public class PartialSurrenderBlockSurrenderTypeSummarySectionService
           var feature = featuresById.get(featureId);
           if (feature == null) {
             throw new IllegalStateException(
-                "Surrendered feature %s not resolvable as a surrenderable block on correction %s"
-                    .formatted(featureId, licencePositionCorrection.getId()));
+                "Surrendered feature %s not resolvable as a surrenderable block on %s"
+                    .formatted(featureId, surrenderSource));
           }
           return feature;
         })

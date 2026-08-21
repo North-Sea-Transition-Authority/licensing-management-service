@@ -19,6 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
@@ -46,7 +47,7 @@ class PartialSurrenderDetailsSummarySectionServiceTest {
         .thenReturn(Optional.empty());
 
     var result = partialSurrenderDetailsSummarySectionService.getSummarySection(
-        new PartialSurrenderSummaryContext(positionCorrection),
+        new PartialSurrenderSummaryContext.Staged(positionCorrection),
         null
     );
 
@@ -70,22 +71,42 @@ class PartialSurrenderDetailsSummarySectionServiceTest {
     when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(SURRENDER_DATE);
 
     var result = partialSurrenderDetailsSummarySectionService.getSummarySection(
-        new PartialSurrenderSummaryContext(positionCorrection),
+        new PartialSurrenderSummaryContext.Staged(positionCorrection),
         null
     );
 
-    var expected = new SummarySection(
+    assertThat(result).get().usingRecursiveComparison().isEqualTo(expectedSection("P/1"));
+  }
+
+  @Test
+  void getSummarySection_whenCorrectingALiveChange_thenSectionShowsLicenceAndPositionDate() {
+    var licence = LicenceTestUtil.builder().withLicenceReference("P/1").build();
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(licence).build();
+    var licencePosition = LicencePositionTestUtil.newBuilder().build();
+    var changeId = UUID.randomUUID().toString();
+
+    when(licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition))
+        .thenReturn(SURRENDER_DATE);
+
+    var result = partialSurrenderDetailsSummarySectionService.getSummarySection(
+        new PartialSurrenderSummaryContext.LiveChange(correction, licencePosition, changeId),
+        null
+    );
+
+    assertThat(result).get().usingRecursiveComparison().isEqualTo(expectedSection("P/1"));
+  }
+
+  private SummarySection expectedSection(String licenceReference) {
+    return new SummarySection(
         PartialSurrenderDetailsSummarySectionService.SECTION_ORDER,
         List.of(SummaryItem.withCard(
             PartialSurrenderDetailsSummarySectionService.SURRENDER_DETAILS,
             SummaryCard.simpleSummaryCard(SummaryDataView.newBuilder()
-                .addStringValue("Licence", "P/1")
+                .addStringValue("Licence", licenceReference)
                 .addStringValue("Surrender date", DateUtil.formatLongDate(SURRENDER_DATE))
                 .build()
             ))
         )
     );
-
-    assertThat(result).get().usingRecursiveComparison().isEqualTo(expected);
   }
 }

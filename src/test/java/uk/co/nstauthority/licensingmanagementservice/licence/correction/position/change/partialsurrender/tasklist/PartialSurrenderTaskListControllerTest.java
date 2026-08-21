@@ -1,9 +1,11 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
@@ -61,6 +63,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
+  private static final String LIVE_CHANGE_ID = UUID.randomUUID().toString();
 
   private static final LocalDate POSITION_DATE = LocalDate.of(2026, Month.JUNE, 5);
   private static final String POSITION_REGULATOR_REFERENCE = "TRANSACTION-REF";
@@ -68,6 +71,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
   private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder()
       .withId(POSITION_ID)
       .withLicence(LICENCE)
+      .withPositionDate(POSITION_DATE)
       .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder()
           .withRegulatorReference(POSITION_REGULATOR_REFERENCE)
           .build())
@@ -98,7 +102,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
         .thenReturn(SURRENDER);
     when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
     when(partialSurrenderTaskListService.getTaskListSections(
-        new PartialSurrenderTaskListContext(positionCorrection), regulatorUser)).thenReturn(SECTIONS);
+        new PartialSurrenderTaskListContext.Staged(positionCorrection), regulatorUser)).thenReturn(SECTIONS);
 
     mockMvc.perform(get(taskListUrl()).with(user(regulatorUser)))
         .andExpectAll(
@@ -114,6 +118,24 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void renderTaskList_whenTheStagedSurrenderCorrectsALiveChange_thenRedirectsToTheLiveChangeTaskList()
+      throws Exception {
+    var correction = givenCorrectionAllocatedToUser(LICENCE);
+    var positionCorrection = givenPositionCorrection(
+        correction, LicencePositionCorrectionChangeType.UPDATE_POSITION);
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionCorrection))
+        .thenReturn(SURRENDER);
+    when(partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection))
+        .thenReturn(Optional.of(LIVE_CHANGE_ID));
+
+    mockMvc.perform(get(taskListUrl()).with(user(regulatorUser)))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(correctingChangeTaskListUrl()));
+
+    verifyNoInteractions(partialSurrenderTaskListService);
+  }
+
+  @Test
   void renderTaskList_whenAddedPosition_thenBackLinkGoesToTheAddedPosition() throws Exception {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
     var positionCorrection = givenPositionCorrection(correction, LicencePositionCorrectionChangeType.ADD_POSITION);
@@ -121,7 +143,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
         .thenReturn(SURRENDER);
     when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
     when(partialSurrenderTaskListService.getTaskListSections(
-        new PartialSurrenderTaskListContext(positionCorrection), regulatorUser)).thenReturn(SECTIONS);
+        new PartialSurrenderTaskListContext.Staged(positionCorrection), regulatorUser)).thenReturn(SECTIONS);
 
     mockMvc.perform(get(taskListUrl()).with(user(regulatorUser)))
         .andExpectAll(
@@ -141,7 +163,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
         .thenReturn(SURRENDER);
     when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
     when(partialSurrenderTaskListService.getTaskListSections(
-        new PartialSurrenderTaskListContext(positionCorrection), regulatorUser)).thenReturn(SECTIONS);
+        new PartialSurrenderTaskListContext.Staged(positionCorrection), regulatorUser)).thenReturn(SECTIONS);
 
     assertThatThrownBy(() -> mockMvc.perform(get(taskListUrl()).with(user(regulatorUser))))
         .hasRootCauseInstanceOf(IllegalStateException.class)
@@ -179,6 +201,115 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void renderForCorrectingChange_thenRendersFromTheLiveChangeWithTheBackLinkToThePosition() throws Exception {
+    var correction = givenCorrectionAllocatedToUser(LICENCE);
+    givenPositionOnCorrectionLicence(correction);
+    when(partialSurrenderTaskListService.getTaskListSections(
+        new PartialSurrenderTaskListContext.LiveChange(correction, POSITION, LIVE_CHANGE_ID), regulatorUser))
+        .thenReturn(SECTIONS);
+
+    mockMvc.perform(get(correctingChangeTaskListUrl()).with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("pageTitle", PartialSurrenderTaskListController.TASK_LIST_PAGE_TITLE),
+            model().attribute("pageCaption", LICENCE.getLicenceReference()),
+            model().attribute("positionReference", POSITION_REGULATOR_REFERENCE),
+            model().attribute("positionDate", DateUtil.formatLongDate(POSITION_DATE)),
+            model().attribute("taskListSections", SECTIONS),
+            model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
+                .renderLicencePosition(CORRECTION_ID, POSITION_ID, null))));
+
+    verifyNoInteractions(partialSurrenderCorrectionService);
+  }
+
+  @Test
+  void renderForCorrectingChange_whenNotAllocated_thenForbidden() throws Exception {
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.empty());
+
+    mockMvc.perform(get(correctingChangeTaskListUrl()).with(user(regulatorUser)))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderForCorrectingChange_whenLicenceIsNotProduction_thenForbidden() throws Exception {
+    givenCorrectionAllocatedToUser(LicenceTestUtil.builder().withLicenceType(LicenceType.CARBON_STORAGE).build());
+
+    mockMvc.perform(get(correctingChangeTaskListUrl()).with(user(regulatorUser)))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderForCorrectingChange_whenPositionIsNotOnTheCorrectionLicence_thenNotFound() throws Exception {
+    var correction = givenCorrectionAllocatedToUser(LICENCE);
+    givenPositionNotOnCorrectionLicence(correction);
+
+    mockMvc.perform(get(correctingChangeTaskListUrl()).with(user(regulatorUser)))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void renderReviewAndSubmitForCorrectingChange() throws Exception {
+    var correction = givenCorrectionAllocatedToUser(LICENCE);
+    givenPositionOnCorrectionLicence(correction);
+    var summarySections = List.of(new SummarySection(10, List.of(SummaryItem.withCards("Surrender details", List.of()))));
+    when(partialSurrenderSummarySectionService.getSummarySections(
+        new PartialSurrenderSummaryContext.LiveChange(correction, POSITION, LIVE_CHANGE_ID), regulatorUser))
+        .thenReturn(summarySections);
+    var surrender = givenSurrenderUnderCorrection(correction);
+    when(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(surrender)).thenReturn(false);
+
+    mockMvc.perform(get(reviewAndSubmitForCorrectingChangeUrl())
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name("lms/licence/correction/change/partialSurrender/partialSurrenderReviewAndSubmit"),
+            model().attribute("pageTitle", PartialSurrenderTaskListController.REVIEW_AND_SUBMIT_PAGE_TITLE),
+            model().attribute("pageCaption", LICENCE.getLicenceReference()),
+            model().attribute("summarySections", summarySections),
+            model().attribute("allSurrenderedBlocksAreFull", false),
+            model().attribute("backLinkUrl", correctingChangeTaskListUrl())
+        );
+  }
+
+  @Test
+  void renderReviewAndSubmitForCorrectingChange_whenAllBlocksFullSurrender_thenValidationErrorFlagSet()
+      throws Exception {
+    var correction = givenCorrectionAllocatedToUser(LICENCE);
+    givenPositionOnCorrectionLicence(correction);
+    var summarySections = List.of(new SummarySection(10, List.of(SummaryItem.withCards("Surrender details", List.of()))));
+    when(partialSurrenderSummarySectionService.getSummarySections(
+        new PartialSurrenderSummaryContext.LiveChange(correction, POSITION, LIVE_CHANGE_ID), regulatorUser))
+        .thenReturn(summarySections);
+    var surrender = givenSurrenderUnderCorrection(correction);
+    when(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(surrender)).thenReturn(true);
+
+    mockMvc.perform(get(reviewAndSubmitForCorrectingChangeUrl())
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name("lms/licence/correction/change/partialSurrender/partialSurrenderReviewAndSubmit"),
+            model().attribute("pageTitle", PartialSurrenderTaskListController.REVIEW_AND_SUBMIT_PAGE_TITLE),
+            model().attribute("pageCaption", LICENCE.getLicenceReference()),
+            model().attribute("summarySections", summarySections),
+            model().attribute("allSurrenderedBlocksAreFull", true),
+            model().attribute("backLinkUrl", correctingChangeTaskListUrl())
+        );
+  }
+
+  @Test
+  void renderReviewAndSubmitForCorrectingChange_whenPositionIsNotOnTheCorrectionLicence_thenNotFound()
+      throws Exception {
+    var correction = givenCorrectionAllocatedToUser(LICENCE);
+    givenPositionNotOnCorrectionLicence(correction);
+
+    mockMvc.perform(get(reviewAndSubmitForCorrectingChangeUrl())
+            .with(user(regulatorUser)))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
   void renderReviewAndSubmit() throws Exception {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
     var positionCorrection = givenPositionCorrection(correction, LicencePositionCorrectionChangeType.UPDATE_POSITION);
@@ -188,7 +319,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
         )))
     );
     when(partialSurrenderSummarySectionService.getSummarySections(
-        new PartialSurrenderSummaryContext(positionCorrection), regulatorUser)).thenReturn(summarySections);
+        new PartialSurrenderSummaryContext.Staged(positionCorrection), regulatorUser)).thenReturn(summarySections);
 
     when(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(positionCorrection)).thenReturn(false);
 
@@ -209,7 +340,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
     var positionCorrection = givenPositionCorrection(correction, LicencePositionCorrectionChangeType.UPDATE_POSITION);
     when(partialSurrenderSummarySectionService.getSummarySections(
-        new PartialSurrenderSummaryContext(positionCorrection), regulatorUser)).thenReturn(List.of());
+        new PartialSurrenderSummaryContext.Staged(positionCorrection), regulatorUser)).thenReturn(List.of());
     when(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(positionCorrection)).thenReturn(true);
 
     mockMvc.perform(get(reviewAndSubmitUrl()).with(user(regulatorUser)))
@@ -236,6 +367,35 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
   private String taskListUrl() {
     return ReverseRouter.route(on(PartialSurrenderTaskListController.class)
         .renderTaskList(CORRECTION_ID, POSITION_CORRECTION_ID, null, null));
+  }
+
+  private String correctingChangeTaskListUrl() {
+    return ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+        .renderForCorrectingChange(CORRECTION_ID, POSITION_ID, LIVE_CHANGE_ID, null, null));
+  }
+
+  private PartialSurrenderOperation givenSurrenderUnderCorrection(LicenceCorrection correction) {
+    var surrender = LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(List.of(UUID.randomUUID()))
+        .build();
+    when(partialSurrenderCorrectionService.getSurrenderUnderCorrectionOrThrow(correction, POSITION, LIVE_CHANGE_ID))
+        .thenReturn(surrender);
+
+    return surrender;
+  }
+
+  private String reviewAndSubmitForCorrectingChangeUrl() {
+    return ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+        .renderReviewAndSubmitForCorrectingChange(CORRECTION_ID, POSITION_ID, LIVE_CHANGE_ID, null, null));
+  }
+
+  private void givenPositionOnCorrectionLicence(LicenceCorrection correction) {
+    when(licencePositionService.getPositionForLicence(correction.getLicence(), POSITION_ID)).thenReturn(POSITION);
+  }
+
+  private void givenPositionNotOnCorrectionLicence(LicenceCorrection correction) {
+    when(licencePositionService.getPositionForLicence(correction.getLicence(), POSITION_ID))
+        .thenThrow(new LmsEntityNotFoundException("licencePosition", POSITION_ID));
   }
 
   private LicenceCorrection givenCorrectionAllocatedToUser(Licence licence) {

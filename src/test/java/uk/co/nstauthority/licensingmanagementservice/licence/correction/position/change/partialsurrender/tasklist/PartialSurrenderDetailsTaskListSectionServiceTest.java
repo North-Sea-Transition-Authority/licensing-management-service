@@ -64,7 +64,7 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
   @Test
   void getSection_whenAddedPosition_thenLinksToTheAddedPositionSurrenderDetails() {
     var positionCorrection = positionCorrection(LicencePositionCorrectionChangeType.ADD_POSITION);
-    var context = new PartialSurrenderTaskListContext(positionCorrection);
+    var context = new PartialSurrenderTaskListContext.Staged(positionCorrection);
     givenSurrenderDetails(positionCorrection, List.of(BLOCK.getId()), List.of(BLOCK));
 
     var section = partialSurrenderDetailsTaskListSectionService.getSection(context, USER);
@@ -78,7 +78,7 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
   @Test
   void getSection_whenExecutedPosition_thenLinksToTheExecutedPositionSurrenderDetails() {
     var positionCorrection = positionCorrection(LicencePositionCorrectionChangeType.UPDATE_POSITION);
-    var context = new PartialSurrenderTaskListContext(positionCorrection);
+    var context = new PartialSurrenderTaskListContext.Staged(positionCorrection);
     givenSurrenderDetails(positionCorrection, List.of(BLOCK.getId()), List.of(BLOCK));
 
     var section = partialSurrenderDetailsTaskListSectionService.getSection(context, USER);
@@ -92,7 +92,7 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
   @Test
   void getSection_whenNoSurrenderStaged_thenNotComplete() {
     var positionCorrection = positionCorrection(LicencePositionCorrectionChangeType.UPDATE_POSITION);
-    var context = new PartialSurrenderTaskListContext(positionCorrection);
+    var context = new PartialSurrenderTaskListContext.Staged(positionCorrection);
     givenSurrenderDetails(positionCorrection, List.of(), List.of(BLOCK));
 
     var section = partialSurrenderDetailsTaskListSectionService.getSection(context, USER);
@@ -106,7 +106,7 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
   @Test
   void getSection_whenStagedBlockIsNoLongerSurrenderable_thenNotComplete() {
     var positionCorrection = positionCorrection(LicencePositionCorrectionChangeType.UPDATE_POSITION);
-    var context = new PartialSurrenderTaskListContext(positionCorrection);
+    var context = new PartialSurrenderTaskListContext.Staged(positionCorrection);
     givenSurrenderDetails(positionCorrection, List.of(BLOCK.getId()), List.of(OTHER_BLOCK));
 
     var section = partialSurrenderDetailsTaskListSectionService.getSection(context, USER);
@@ -118,8 +118,21 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
   }
 
   @Test
+  void getSection_whenCorrectingALiveChangeWithNothingStaged_thenLinksToTheCorrectChangePage() {
+    var liveChangeId = UUID.randomUUID().toString();
+    var context = new PartialSurrenderTaskListContext.LiveChange(CORRECTION, POSITION, liveChangeId);
+
+    var section = partialSurrenderDetailsTaskListSectionService.getSection(context, USER);
+
+    assertThat(section).contains(expectedSection(
+        TaskListLabel.COMPLETE,
+        ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
+            .renderForCorrectingChange(CORRECTION_ID, POSITION_ID, liveChangeId, null))));
+  }
+
+  @Test
   void getSection_whenPositionIsBeingRemoved_thenThrows() {
-    var context = new PartialSurrenderTaskListContext(
+    var context = new PartialSurrenderTaskListContext.Staged(
         positionCorrection(LicencePositionCorrectionChangeType.REMOVE_POSITION));
 
     assertThatThrownBy(() -> partialSurrenderDetailsTaskListSectionService.getSection(context, USER))

@@ -13,12 +13,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.feature.Feature;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
@@ -44,7 +46,7 @@ class PartialSurrenderBlockSurrenderTypeSummarySectionServiceTest {
         .thenReturn(Optional.empty());
 
     var result = partialSurrenderBlockSurrenderTypeSummarySectionService.getSummarySection(
-        new PartialSurrenderSummaryContext(positionCorrection),
+        new PartialSurrenderSummaryContext.Staged(positionCorrection),
         null
     );
 
@@ -66,7 +68,7 @@ class PartialSurrenderBlockSurrenderTypeSummarySectionServiceTest {
         .thenReturn(List.of(SECOND_BLOCK, FIRST_BLOCK));
 
     var result = partialSurrenderBlockSurrenderTypeSummarySectionService.getSummarySection(
-        new PartialSurrenderSummaryContext(positionCorrection),
+        new PartialSurrenderSummaryContext.Staged(positionCorrection),
         null
     );
 
@@ -93,7 +95,7 @@ class PartialSurrenderBlockSurrenderTypeSummarySectionServiceTest {
         .thenReturn(List.of(FIRST_BLOCK));
 
     var result = partialSurrenderBlockSurrenderTypeSummarySectionService.getSummarySection(
-        new PartialSurrenderSummaryContext(positionCorrection),
+        new PartialSurrenderSummaryContext.Staged(positionCorrection),
         null
     );
 
@@ -101,6 +103,36 @@ class PartialSurrenderBlockSurrenderTypeSummarySectionServiceTest {
         PartialSurrenderBlockSurrenderTypeSummarySectionService.SECTION_ORDER,
         List.of(expectedBlockItem(FIRST_BLOCK, null))
     );
+
+    assertThat(result).get().usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
+  void getSummarySection_whenCorrectingALiveChange_thenItemPerSurrenderedBlockShowingType() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
+    var licencePosition = LicencePositionTestUtil.newBuilder().build();
+    var changeId = UUID.randomUUID().toString();
+
+    when(partialSurrenderCorrectionService.getSurrenderUnderCorrectionOrThrow(correction, licencePosition, changeId))
+        .thenReturn(operation(
+            List.of(FIRST_BLOCK.getId(), SECOND_BLOCK.getId()),
+            Map.of(
+                FIRST_BLOCK.getId(), BlockSurrenderType.FULL_SURRENDER,
+                SECOND_BLOCK.getId(), BlockSurrenderType.PARTIAL_SURRENDER)));
+    when(partialSurrenderCorrectionService.getSurrenderableBlockFeatures(licencePosition))
+        .thenReturn(List.of(SECOND_BLOCK, FIRST_BLOCK));
+
+    var result = partialSurrenderBlockSurrenderTypeSummarySectionService.getSummarySection(
+        new PartialSurrenderSummaryContext.LiveChange(correction, licencePosition, changeId),
+        null
+    );
+
+    var expected = new SummarySection(
+        PartialSurrenderBlockSurrenderTypeSummarySectionService.SECTION_ORDER,
+        List.of(
+            expectedBlockItem(FIRST_BLOCK, BlockSurrenderType.FULL_SURRENDER),
+            expectedBlockItem(SECOND_BLOCK, BlockSurrenderType.PARTIAL_SURRENDER)
+        ));
 
     assertThat(result).get().usingRecursiveComparison().isEqualTo(expected);
   }

@@ -15,6 +15,8 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,11 +25,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -35,6 +40,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransaction;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionService;
@@ -58,6 +64,8 @@ class TestHarnessServiceTest {
   private static final LicenceTransaction PAIR_TRANSACTION_2 = LicenceTransactionTestUtil.newBuilder().build();
   private static final LicenceTransaction SAME_TRANSACTION = LicenceTransactionTestUtil.newBuilder().build();
   private static final LicenceTransaction CROSS_TRANSACTION = LicenceTransactionTestUtil.newBuilder().build();
+
+  private static final Feature SURRENDERED_BLOCK = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 7);
 
   @Mock
   private LicenceTransactionService licenceTransactionService;
@@ -118,7 +126,9 @@ class TestHarnessServiceTest {
     when(licenceTransactionService.createLicenceTransaction(anyString()))
         .thenReturn(TRANSACTION_1, TRANSACTION_2, TRANSACTION_3, TRANSACTION_4, TRANSACTION_5,
             PAIR_TRANSACTION_1, PAIR_TRANSACTION_2, SAME_TRANSACTION, CROSS_TRANSACTION);
-    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(buildPositions(5));
+    var positions = buildPositions(5);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
+    when(licencePositionService.getBlockFeatures(positions.get(3))).thenReturn(List.of(SURRENDERED_BLOCK));
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -154,17 +164,43 @@ class TestHarnessServiceTest {
     var secondaryLicence = carbonStorage(2);
     var positions = buildPositions(5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
+    when(licencePositionService.getBlockFeatures(positions.get(3))).thenReturn(List.of(SURRENDERED_BLOCK));
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionChangeService, times(2)).createLicencePositionChange(
+    verify(licencePositionChangeService, times(3)).createLicencePositionChange(
         positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
 
     // first = index 0 (Shell); non-final = index size - 3 = 2 (BP)
-    assertThat(positionCaptor.getAllValues()).containsExactly(positions.get(0), positions.get(2));
-    assertThat(operationsCaptor.getAllValues())
-        .extracting(operations -> ((AdministratorOperation) operations.getFirst()).operatorId())
+    assertThat(positionCaptor.getAllValues()).startsWith(positions.get(0), positions.get(2));
+    assertThat(operationsCaptor.getAllValues().stream().flatMap(List::stream))
+        .filteredOn(AdministratorOperation.class::isInstance)
+        .extracting(operation -> ((AdministratorOperation) operation).operatorId())
         .containsExactly(SHELL_PLC_ID, BP_EXPLORATION_ALPHA_LTD_ID);
+  }
+
+  @Test
+  void generateLicencePositions_whenPrimaryIsProduction_addsPartialSurrenderOnPenultimatePosition() {
+    var licence = production(1);
+    var secondaryLicence = carbonStorage(2);
+    var positions = buildPositions(5);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
+    when(licencePositionService.getBlockFeatures(positions.get(3))).thenReturn(List.of(SURRENDERED_BLOCK));
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    verify(licencePositionChangeService, times(3)).createLicencePositionChange(
+        positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
+
+    // penultimate = index size - 2 = 3
+    assertThat(positionCaptor.getAllValues().getLast()).isEqualTo(positions.get(3));
+
+    // no surrender date - the change takes the date of the position it sits on
+    var expectedSurrender = LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(List.of(SURRENDERED_BLOCK.getId()))
+        .withBlockSurrenderTypeByFeatureId(Map.of(SURRENDERED_BLOCK.getId(), BlockSurrenderType.FULL_SURRENDER))
+        .build();
+    assertThat(operationsCaptor.getAllValues().getLast()).containsExactly(expectedSurrender);
   }
 
   @Test
@@ -224,7 +260,8 @@ class TestHarnessServiceTest {
             tuple(SHELL_PLC_ID, PPRS_TRAINING_ORG, BigDecimal.valueOf(15)));
 
     assertThat(operationsCaptor.getAllValues().stream().flatMap(List::stream))
-        .noneMatch(AdministratorOperation.class::isInstance);
+        .noneMatch(AdministratorOperation.class::isInstance)
+        .noneMatch(PartialSurrenderOperation.class::isInstance);
   }
 
   private static Licence production(int id) {

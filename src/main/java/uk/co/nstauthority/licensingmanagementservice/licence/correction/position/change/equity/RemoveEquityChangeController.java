@@ -14,13 +14,15 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.equity.ValidLicencePositionEquityChange;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -50,7 +52,7 @@ public class RemoveEquityChangeController {
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/remove-equity-change")
   @LicencePositionChangeBelongsToPosition
-  @ValidLicencePositionEquityChange
+  @LicencePositionChangeIsOfType({SetEquityOperation.class, TransferEquityOperation.class})
   public ModelAndView renderRemoveExecutedEquityChange(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
@@ -64,7 +66,7 @@ public class RemoveEquityChangeController {
 
   @PostMapping("/position/{licencePositionId}/change/{changeId}/remove-equity-change")
   @LicencePositionChangeBelongsToPosition
-  @ValidLicencePositionEquityChange
+  @LicencePositionChangeIsOfType({SetEquityOperation.class, TransferEquityOperation.class})
   public ModelAndView removeEquityChange(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,

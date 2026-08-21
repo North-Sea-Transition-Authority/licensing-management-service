@@ -33,12 +33,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
@@ -1168,5 +1170,22 @@ class LicencePositionCorrectionServiceTest {
 
     assertThat(licencePositionCorrectionService.getEffectivePositionDate(LICENCE_CORRECTION, licencePosition))
         .isEqualTo(POSITION_DATE);
+  }
+
+  @Test
+  void getAddOperationsOfType_ignoresOperationsStagedAsCorrections() {
+    var added = LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(List.of(UUID.randomUUID()))
+        .build();
+    var changes = List.<LicencePositionChangeType>of(
+        AddChange.buildOperationsChange(List.of(added), 1),
+        UpdateChangeOperations.buildUpdateChange(
+            UUID.randomUUID().toString(),
+            LicenceOperation.newPartialSurrenderOperation()
+                .withFeatureIds(List.of(UUID.randomUUID()))
+                .build()));
+
+    assertThat(licencePositionCorrectionService.getAddOperationsOfType(changes, PartialSurrenderOperation.class))
+        .containsExactly(added);
   }
 }

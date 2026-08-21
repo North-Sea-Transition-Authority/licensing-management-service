@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -32,16 +33,20 @@ public class PartialSurrenderDetailsSummarySectionService implements SummarySect
 
   @Override
   public Optional<SummarySection> getSummarySection(PartialSurrenderSummaryContext context, ServiceUserDetail user) {
-    var licencePositionCorrection = context.licencePositionCorrection();
+    return switch (context) {
+      case PartialSurrenderSummaryContext.Staged(var licencePositionCorrection) ->
+          partialSurrenderCorrectionService.getCommittedPartialSurrender(licencePositionCorrection)
+              .map(surrender -> getSummarySection(
+                  licencePositionCorrection.getLicenceCorrection().getLicence().getLicenceReference(),
+                  licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection)));
+      case PartialSurrenderSummaryContext.LiveChange(var correction, var licencePosition, var ignored) ->
+          Optional.of(getSummarySection(
+              correction.getLicence().getLicenceReference(),
+              licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition)));
+    };
+  }
 
-    var surrender = partialSurrenderCorrectionService.getCommittedPartialSurrender(licencePositionCorrection);
-
-    if (surrender.isEmpty()) {
-      return Optional.empty();
-    }
-
-    var licenceReference = licencePositionCorrection.getLicenceCorrection().getLicence().getLicenceReference();
-    var surrenderDate = licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection);
+  private SummarySection getSummarySection(String licenceReference, LocalDate surrenderDate) {
     var summaryCard = SummaryCard.simpleSummaryCard(
         SummaryDataView.newBuilder()
             .addStringValue("Licence", licenceReference)
@@ -49,6 +54,6 @@ public class PartialSurrenderDetailsSummarySectionService implements SummarySect
             .build()
     );
 
-    return Optional.of(new SummarySection(SECTION_ORDER, List.of(SummaryItem.withCard(SURRENDER_DETAILS, summaryCard))));
+    return new SummarySection(SECTION_ORDER, List.of(SummaryItem.withCard(SURRENDER_DETAILS, summaryCard)));
   }
 }

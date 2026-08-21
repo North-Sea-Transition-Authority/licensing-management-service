@@ -163,13 +163,23 @@ public class LicencePositionViewService {
     var organisationNames = resolveOrganisationNames(allChronologicalPositions);
     var featureNames = resolveFeatureNames(allChronologicalPositions);
 
+    var stagedPositionCorrectionId = updatedCorrections.stream()
+        .filter(positionCorrection -> positionCorrection.getTargetLicencePosition().getId()
+            .equals(licencePosition.getId()))
+        .map(LicencePositionCorrection::getId)
+        .findFirst()
+        .orElse(null);
+
     var changeViews = LicencePositionChangeViewResolver.getChangeViews(
         licencePosition.getId(),
         allChronologicalPositions,
         resolvedStates,
         organisationNames,
         featureNames,
-        PositionChangeUrlContext.forExecutedPosition(licenceCorrection.getId(), licencePosition.getId())
+        PositionChangeUrlContext.forExecutedPosition(
+            licenceCorrection.getId(),
+            licencePosition.getId(),
+            stagedPositionCorrectionId)
     );
 
     var addUrl = ReverseRouter.route(on(LicencePositionAddChangeController.class)

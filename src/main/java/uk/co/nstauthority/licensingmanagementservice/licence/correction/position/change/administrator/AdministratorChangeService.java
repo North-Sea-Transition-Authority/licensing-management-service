@@ -16,6 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
@@ -70,12 +71,10 @@ public class AdministratorChangeService {
 
     } else {
       positionCorrection = new LicencePositionCorrection();
-      var administratorOperation = LicenceOperation.newAdministratorChange()
-          .withOperator(administratorId)
-          .build();
       var payload = LicencePositionPayload.newUpdateLicencePositionPayload()
           .withCorrectionReference(licenceCorrection.getCorrectionReference())
-          .withChanges(List.of(AddChange.buildOperationsChange(List.of(administratorOperation), 1)))
+          .withChanges(List.of(
+              AddChange.buildOperationsChange(List.of(administratorOperation(administratorId)), 1)))
           .build();
 
       positionCorrection.setLicenceCorrection(licenceCorrection);
@@ -109,7 +108,9 @@ public class AdministratorChangeService {
         changes = LicencePositionAdministratorChangeUtil.replaceAdminChange(payload.changes(), administratorId);
       } else {
         var updatedChanges = new ArrayList<>(payload.changes());
-        updatedChanges.add(UpdateChangeOperations.buildUpdateAdminChange(originalChangeId, administratorId));
+        updatedChanges.add(
+            UpdateChangeOperations.buildUpdateChange(originalChangeId, administratorOperation(administratorId))
+        );
         changes = updatedChanges;
       }
 
@@ -125,7 +126,9 @@ public class AdministratorChangeService {
       positionCorrection = new LicencePositionCorrection();
       var payload = LicencePositionPayload.newUpdateLicencePositionPayload()
           .withCorrectionReference(licenceCorrection.getCorrectionReference())
-          .withChanges(List.of(UpdateChangeOperations.buildUpdateAdminChange(originalChangeId, administratorId)))
+          .withChanges(List.of(UpdateChangeOperations
+              .buildUpdateChange(originalChangeId, administratorOperation(administratorId)))
+          )
           .build();
 
       positionCorrection.setLicenceCorrection(licenceCorrection);
@@ -226,5 +229,11 @@ public class AdministratorChangeService {
       return LicencePositionAdministratorChangeUtil.containsAdminOperation(liveChange);
     }
     return LicencePositionAdministratorChangeUtil.containsAdminOperation(change);
+  }
+
+  private static AdministratorOperation administratorOperation(Integer administratorId) {
+    return LicenceOperation.newAdministratorChange()
+        .withOperator(administratorId)
+        .build();
   }
 }

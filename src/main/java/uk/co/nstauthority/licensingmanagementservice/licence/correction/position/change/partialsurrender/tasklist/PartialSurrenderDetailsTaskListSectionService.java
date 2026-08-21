@@ -38,14 +38,20 @@ public class PartialSurrenderDetailsTaskListSectionService
 
   @Override
   public Optional<TaskListSection> getSection(PartialSurrenderTaskListContext context, ServiceUserDetail user) {
-    var positionCorrection = context.positionCorrection();
-
     var items = List.of(new TaskListItem(
         SURRENDER_DETAILS,
-        TaskListLabel.notStartedOrComplete(isSurrenderDetailsComplete(positionCorrection)),
-        surrenderDetailsUrl(positionCorrection)));
+        TaskListLabel.notStartedOrComplete(isSurrenderDetailsComplete(context)),
+        surrenderDetailsUrl(context)));
 
     return Optional.of(new TaskListSection(SURRENDER_DETAILS, SECTION_ORDER, items));
+  }
+
+  private boolean isSurrenderDetailsComplete(PartialSurrenderTaskListContext context) {
+    return switch (context) {
+      case PartialSurrenderTaskListContext.Staged(var positionCorrection) ->
+          isSurrenderDetailsComplete(positionCorrection);
+      case PartialSurrenderTaskListContext.LiveChange ignored -> true;
+    };
   }
 
   private boolean isSurrenderDetailsComplete(LicencePositionCorrection positionCorrection) {
@@ -55,6 +61,16 @@ public class PartialSurrenderDetailsTaskListSectionService
 
     return !partialSurrenderDetailsFormValidator.hasErrors(
         form, errors, partialSurrenderCorrectionService.getSurrenderableBlockFeatures(positionCorrection));
+  }
+
+  private String surrenderDetailsUrl(PartialSurrenderTaskListContext context) {
+    return switch (context) {
+      case PartialSurrenderTaskListContext.Staged(var positionCorrection) ->
+          surrenderDetailsUrl(positionCorrection);
+      case PartialSurrenderTaskListContext.LiveChange(var correction, var licencePosition, var changeId) ->
+          ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
+              .renderForCorrectingChange(correction.getId(), licencePosition.getId(), changeId, null));
+    };
   }
 
   private String surrenderDetailsUrl(LicencePositionCorrection positionCorrection) {

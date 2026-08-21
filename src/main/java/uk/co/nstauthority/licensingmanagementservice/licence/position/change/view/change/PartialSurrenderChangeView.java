@@ -6,11 +6,12 @@ import java.util.List;
 public record PartialSurrenderChangeView(
     @Nullable String surrenderDate,
     List<BlockRow> blockRows,
-    @Nullable String changeType
+    @Nullable String changeType,
+    @Nullable String correctUrl
 ) implements LicencePositionChangeView {
 
   public record BlockRow(
       String blockLabel,
-      String surrenderType
+      @Nullable String surrenderType
   ){}
 }

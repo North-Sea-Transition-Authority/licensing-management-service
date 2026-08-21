@@ -23,7 +23,7 @@ class PartialSurrenderTaskListServiceTest {
 
   private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder().build();
   private static final PartialSurrenderTaskListContext CONTEXT =
-      new PartialSurrenderTaskListContext(LicencePositionCorrectionTestUtil.newBuilder().build());
+      new PartialSurrenderTaskListContext.Staged(LicencePositionCorrectionTestUtil.newBuilder().build());
 
   private static final TaskListSection SURRENDER_DETAILS_SECTION = new TaskListSection("Surrender details", 10,
       List.of(new TaskListItem("Surrender details", TaskListLabel.COMPLETE, "/surrender-details")));

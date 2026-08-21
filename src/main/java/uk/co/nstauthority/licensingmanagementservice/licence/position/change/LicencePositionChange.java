@@ -80,9 +80,4 @@ public class LicencePositionChange {
   public static List<LicenceOperation> operationsOf(LicencePositionChange liveChange) {
     return liveChange.getOperations() == null ? List.of() : liveChange.getOperations();
   }
-
-  public static boolean containsEquityOperation(LicencePositionChange liveChange) {
-    return liveChange.getOperations() != null
-        && liveChange.getOperations().stream().anyMatch(LicenceOperation::isEquityOperation);
-  }
 }

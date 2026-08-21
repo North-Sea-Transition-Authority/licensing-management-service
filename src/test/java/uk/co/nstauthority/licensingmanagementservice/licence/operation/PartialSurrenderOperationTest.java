@@ -20,6 +20,28 @@ class PartialSurrenderOperationTest {
   private static final UUID SECOND_FEATURE_ID = UUID.randomUUID();
 
   @Test
+  void build_thenFixedOperationId() {
+    var operation = LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(List.of(FIRST_FEATURE_ID))
+        .build();
+
+    assertThat(operation.id()).isEqualTo(PartialSurrenderOperation.PARTIAL_SURRENDER_OPERATION_ID);
+  }
+
+  @Test
+  void build_whenSurrenderDateGiven_thenGivenDateUsed() {
+    var operation = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(SURRENDER_DATE)
+        .withFeatureIds(List.of(FIRST_FEATURE_ID))
+        .build();
+
+    var expected = new PartialSurrenderOperation(
+        PartialSurrenderOperation.PARTIAL_SURRENDER_OPERATION_ID, SURRENDER_DATE, List.of(FIRST_FEATURE_ID),
+        Map.of());
+    assertThat(operation).isEqualTo(expected);
+  }
+
+  @Test
   void type() {
     var operation = LicenceOperation.newPartialSurrenderOperation()
         .withFeatureIds(List.of(FIRST_FEATURE_ID))
@@ -72,6 +94,51 @@ class PartialSurrenderOperationTest {
 
     assertThat(operation.blockSurrenderTypeByFeatureId())
         .containsExactly(entry(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER));
+  }
+
+  @Test
+  void hasUpdateOccurred_whenTheSameBlocksInADifferentOrder_thenFalse() {
+    var live = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID), Map.of());
+    var corrected = new PartialSurrenderOperation(null, List.of(SECOND_FEATURE_ID, FIRST_FEATURE_ID), Map.of());
+
+    assertThat(corrected.hasUpdateOccurred(live)).isFalse();
+  }
+
+  @Test
+  void hasUpdateOccurred_whenABlockIsNoLongerSurrendered_thenTrue() {
+    var live = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID), Map.of());
+    var corrected = new PartialSurrenderOperation(null, List.of(FIRST_FEATURE_ID), Map.of());
+
+    assertThat(corrected.hasUpdateOccurred(live)).isTrue();
+  }
+
+  @Test
+  void hasUpdateOccurred_whenASurrenderTypeIsSet_thenTrue() {
+    var live = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID), Map.of());
+    var corrected = new PartialSurrenderOperation(null, List.of(FIRST_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER));
+
+    assertThat(corrected.hasUpdateOccurred(live)).isTrue();
+  }
+
+  @Test
+  void hasUpdateOccurred_whenASurrenderTypeChanges_thenTrue() {
+    var live = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER));
+    var corrected = new PartialSurrenderOperation(null, List.of(FIRST_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER));
+
+    assertThat(corrected.hasUpdateOccurred(live)).isTrue();
+  }
+
+  @Test
+  void hasUpdateOccurred_whenASurrenderTypeMatchesTheLiveSurrenderType_thenFalse() {
+    var live = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER));
+    var corrected = new PartialSurrenderOperation(null, List.of(FIRST_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER));
+
+    assertThat(corrected.hasUpdateOccurred(live)).isFalse();
   }
 
   @Test

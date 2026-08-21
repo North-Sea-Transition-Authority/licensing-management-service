@@ -12,10 +12,12 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCanBeReinstantiated;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.LicencePositionHasNoLiveAdministratorChange;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.ValidLicencePositionAdministratorChange;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.equity.ValidLicencePositionEquityChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -105,13 +107,13 @@ public class InterceptorRuleTestEndpoints {
     return ResponseEntity.ok("licence position change belongs to position test endpoint");
   }
 
-  @GetMapping("position/{licencePositionId}/change/{changeId}/valid-administrator-change")
-  @ValidLicencePositionAdministratorChange
-  public ResponseEntity<String> validLicencePositionAdministratorChange(
+  @GetMapping("position/{licencePositionId}/change/{changeId}/change-is-of-type")
+  @LicencePositionChangeIsOfType(AdministratorOperation.class)
+  public ResponseEntity<String> licencePositionChangeIsOfType(
       @PathVariable UUID licencePositionId,
       @PathVariable UUID changeId
   ) {
-    return ResponseEntity.ok("valid licence position administrator change test endpoint");
+    return ResponseEntity.ok("licence position change is of type test endpoint");
   }
 
   @GetMapping("position/{licencePositionId}/has-no-live-administrator-change")
@@ -139,7 +141,7 @@ public class InterceptorRuleTestEndpoints {
   }
 
   @GetMapping("position/{licencePositionId}/change/{changeId}/valid-equity-change")
-  @ValidLicencePositionEquityChange
+  @LicencePositionChangeIsOfType({SetEquityOperation.class, TransferEquityOperation.class})
   public ResponseEntity<String> validLicencePositionEquityChange(
       @PathVariable UUID licencePositionId,
       @PathVariable UUID changeId

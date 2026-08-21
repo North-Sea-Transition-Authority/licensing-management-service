@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender;
 
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.positionDateAndOrderUnchanged;
+
 import jakarta.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
@@ -16,27 +18,35 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
 
 @Service
 public class PartialSurrenderCorrectionService {
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final LicencePositionService licencePositionService;
+  private final LicencePositionChangeService licencePositionChangeService;
   private final FeatureService featureService;
 
   public PartialSurrenderCorrectionService(
       LicencePositionCorrectionService licencePositionCorrectionService,
       LicencePositionService licencePositionService,
+      LicencePositionChangeService licencePositionChangeService,
       FeatureService featureService
   ) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.licencePositionService = licencePositionService;
+    this.licencePositionChangeService = licencePositionChangeService;
     this.featureService = featureService;
   }
 
@@ -47,7 +57,7 @@ public class PartialSurrenderCorrectionService {
       return Optional.empty();
     }
 
-    return licencePositionCorrectionService.getAddOperationsOfType(
+    return LicencePositionChangeOperationUtil.findOperations(
             licencePositionCorrection.getPayload().changes(), PartialSurrenderOperation.class)
         .stream()
         .findFirst();
@@ -60,6 +70,32 @@ public class PartialSurrenderCorrectionService {
         .orElseThrow(() -> new LmsEntityNotFoundException(
             "No partial surrender staged on licence position correction %s"
                 .formatted(licencePositionCorrection.getId())));
+  }
+
+  public PartialSurrenderOperation getLiveSurrenderOrThrow(String liveChangeId) {
+    var liveChange = licencePositionChangeService.getByIdOrThrow(UUID.fromString(liveChangeId));
+
+    return LicencePositionChangeOperationUtil.findOperation(liveChange, PartialSurrenderOperation.class)
+        .orElseThrow(() -> new IllegalStateException(
+            "Change with id %s is not a partial surrender change".formatted(liveChangeId)));
+  }
+
+  public Optional<String> findCorrectedLiveChangeId(LicencePositionCorrection licencePositionCorrection) {
+    return LicencePositionChangeOperationUtil
+        .findChange(licencePositionCorrection.getPayload().changes(), PartialSurrenderOperation.class)
+        .filter(UpdateChangeOperations.class::isInstance)
+        .map(LicencePositionChangeType::changeId);
+  }
+
+  public PartialSurrenderOperation getSurrenderUnderCorrectionOrThrow(
+      LicenceCorrection licenceCorrection,
+      LicencePosition licencePosition,
+      String liveChangeId
+  ) {
+    return getCommittedPartialSurrender(
+            licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition)
+                .orElse(null))
+        .orElseGet(() -> getLiveSurrenderOrThrow(liveChangeId));
   }
 
   @Transactional
@@ -82,14 +118,45 @@ public class PartialSurrenderCorrectionService {
     return applyPartialSurrender(positionCorrection, operation);
   }
 
+  @Transactional
+  public void correctExistingPartialSurrender(
+      LicenceCorrection licenceCorrection,
+      LicencePosition licencePosition,
+      String originalChangeId,
+      PartialSurrenderOperation operation
+  ) {
+    var positionCorrection = licencePositionCorrectionService
+        .getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
+    var payload = positionCorrection.getPayload();
+
+    var changes = LicencePositionChangeOperationUtil.upsertUpdateChange(
+        payload.changes(), PartialSurrenderOperation.class, originalChangeId, operation);
+
+    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionCorrectionService.save(positionCorrection);
+  }
+
+  @Transactional
+  public void revertPartialSurrenderCorrection(
+      LicenceCorrection licenceCorrection,
+      LicencePosition licencePosition
+  ) {
+    licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition)
+        .ifPresent(this::removeStagedPartialSurrender);
+  }
+
   public boolean hasStagedPartialSurrender(LicencePositionCorrection licencePositionCorrection) {
     return getCommittedPartialSurrender(licencePositionCorrection).isPresent();
   }
 
   public boolean allSurrenderedBlocksAreFull(LicencePositionCorrection licencePositionCorrection) {
-    var operation = getCommittedPartialSurrender(licencePositionCorrection).orElse(null);
+    return getCommittedPartialSurrender(licencePositionCorrection)
+        .map(this::allSurrenderedBlocksAreFull)
+        .orElse(false);
+  }
 
-    if (operation == null || operation.featureIds().isEmpty()) {
+  public boolean allSurrenderedBlocksAreFull(PartialSurrenderOperation operation) {
+    if (operation.featureIds().isEmpty()) {
       return false;
     }
 
@@ -146,15 +213,22 @@ public class PartialSurrenderCorrectionService {
     };
   }
 
+  public List<Feature> getSurrenderableBlockFeatures(LicencePosition licencePosition) {
+    return licencePositionService.getBlockFeatures(licencePosition);
+  }
+
   public Feature getSurrenderedBlockFeatureOrThrow(
       LicencePositionCorrection licencePositionCorrection,
       UUID featureId
   ) {
-    var operation = getCommittedPartialSurrenderOrThrow(licencePositionCorrection);
+    return getSurrenderedBlockFeatureOrThrow(
+        getCommittedPartialSurrenderOrThrow(licencePositionCorrection), featureId);
+  }
+
+  public Feature getSurrenderedBlockFeatureOrThrow(PartialSurrenderOperation operation, UUID featureId) {
     if (!operation.featureIds().contains(featureId)) {
       throw new LmsEntityNotFoundException(
-          "Block %s is not staged for surrender on position correction %s"
-              .formatted(featureId, licencePositionCorrection.getId())
+          "Block %s is not surrendered by partial surrender %s".formatted(featureId, operation.id())
       );
     }
 
@@ -178,7 +252,26 @@ public class PartialSurrenderCorrectionService {
         .withBlockSurrenderTypeByFeatureId(blockSurrenderTypeByFeatureId)
         .build();
 
-    applyPartialSurrender(licencePositionCorrection, updatedOperation);
+    var payload = licencePositionCorrection.getPayload();
+    licencePositionCorrection.setPayload(LicencePositionPayload.withChanges(payload,
+        LicencePositionChangeOperationUtil.replaceOperation(
+            payload.changes(), PartialSurrenderOperation.class, updatedOperation)));
+
+    licencePositionCorrectionService.save(licencePositionCorrection);
+  }
+
+  private void removeStagedPartialSurrender(LicencePositionCorrection licencePositionCorrection) {
+    var payload = licencePositionCorrection.getPayload();
+    var remainingChanges = LicencePositionChangeOperationUtil.removeChangesOf(
+        payload.changes(), PartialSurrenderOperation.class);
+
+    if (remainingChanges.isEmpty() && positionDateAndOrderUnchanged(licencePositionCorrection)) {
+      licencePositionCorrectionService.delete(licencePositionCorrection);
+      return;
+    }
+
+    licencePositionCorrection.setPayload(LicencePositionPayload.withChanges(payload, remainingChanges));
+    licencePositionCorrectionService.save(licencePositionCorrection);
   }
 
   private LicencePositionCorrection applyPartialSurrender(

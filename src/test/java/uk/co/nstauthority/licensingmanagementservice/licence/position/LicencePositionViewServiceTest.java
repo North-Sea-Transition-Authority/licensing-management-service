@@ -24,6 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
@@ -36,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
@@ -64,6 +66,7 @@ class LicencePositionViewServiceTest {
 
   private static final Licence LICENCE = LicenceTestUtil.builder().build();
   private static final UUID POSITION_ID = UUID.randomUUID();
+  private static final Feature SURRENDERED_BLOCK = FeatureTestUtil.builder().withFeatureName("30/1a").build();
   private static final AdministratorOperation ADMINISTRATOR_OPERATION = LicenceOperation.newAdministratorChange()
       .withOperator(1)
       .build();
@@ -97,6 +100,77 @@ class LicencePositionViewServiceTest {
 
   @Captor
   private ArgumentCaptor<Boolean> isCarbonStorageCaptor;
+
+  @Test
+  void getCorrectionPositionPageView_whenPartialSurrenderIsUntouched_linksCorrectToTheTaskListForThatChange() {
+    var correctionId = UUID.randomUUID();
+    var changeId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().withId(correctionId).withLicence(LICENCE).build();
+    var executed = executedPosition();
+
+    var liveSurrenderChange = LicencePositionChangeTestUtil.newBuilder()
+        .withId(changeId)
+        .withLicencePosition(executed)
+        .withOperations(List.of(partialSurrenderOperation()))
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(executed)))
+        .thenReturn(List.of(liveSurrenderChange));
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
+    when(featureService.getFeaturesByIds(any())).thenReturn(List.of(SURRENDERED_BLOCK));
+
+    var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
+
+    var surrenderChange =
+        (PartialSurrenderChangeView) result.changeViewByType().get(LicenceOperation.PARTIAL_SURRENDER);
+    assertThat(surrenderChange.correctUrl())
+        .isEqualTo(ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+            .renderForCorrectingChange(correctionId, POSITION_ID, changeId.toString(), null, null)));
+  }
+
+  @Test
+  void getCorrectionPositionPageView_whenPartialSurrenderStagedOnThisCorrection_linksCorrectToTheStagedTaskList() {
+    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().withId(correctionId).withLicence(LICENCE).build();
+    var executed = executedPosition();
+
+    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(executed)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withChanges(List.of(AddChange.buildOperationsChange(List.of(partialSurrenderOperation()), 1)))
+            .build())
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of());
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(updateCorrection));
+    when(featureService.getFeaturesByIds(any())).thenReturn(List.of(SURRENDERED_BLOCK));
+
+    var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
+
+    var surrenderChange =
+        (PartialSurrenderChangeView) result.changeViewByType().get(LicenceOperation.PARTIAL_SURRENDER);
+    assertThat(surrenderChange.correctUrl())
+        .isEqualTo(ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+            .renderTaskList(correctionId, updateCorrection.getId(), null, null)));
+  }
+
+  private static LicencePosition executedPosition() {
+    return LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
+  }
+
+  private static PartialSurrenderOperation partialSurrenderOperation() {
+    return LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(List.of(SURRENDERED_BLOCK.getId()))
+        .withBlockSurrenderTypeByFeatureId(
+            Map.of(SURRENDERED_BLOCK.getId(), BlockSurrenderType.FULL_SURRENDER))
+        .build();
+  }
 
   @Test
   void getAdministratorChangeContext() {
@@ -731,6 +805,7 @@ class LicencePositionViewServiceTest {
         List.of(
             new PartialSurrenderChangeView.BlockRow(firstBlock.getFeatureName(), "Full surrender"),
             new PartialSurrenderChangeView.BlockRow(secondBlock.getFeatureName(), "Partial surrender")),
+        null,
         null);
     assertThat(result.changeViewByType())
         .containsOnly(entry(LicenceOperation.PARTIAL_SURRENDER, expected));

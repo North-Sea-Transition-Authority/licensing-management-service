@@ -4,12 +4,15 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
@@ -78,6 +81,37 @@ class TestHarnessService {
     // the positions were cleared above, so each licence is given a fresh set of blocks and subareas
     licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence);
     licencePositionFeatureTestHarnessService.createAndLinkFeatures(secondaryLicence);
+
+    // a surrender needs blocks to surrender, so it is seeded once the features above exist
+    if (licence.getType().isProduction()) {
+      generatePartialSurrenderPositionChange(licence);
+    }
+  }
+
+  private void generatePartialSurrenderPositionChange(Licence licence) {
+    var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
+
+    var penultimatePosition =
+        executedChronologicalLicencePositions.get(executedChronologicalLicencePositions.size() - 2);
+
+    var surrenderedBlock = licencePositionService.getBlockFeatures(penultimatePosition).getFirst();
+
+    createPartialSurrenderChange(penultimatePosition, surrenderedBlock);
+  }
+
+  private void createPartialSurrenderChange(LicencePosition licencePosition, Feature surrenderedBlock) {
+    // no surrender date - the change takes the date of the position it sits on
+    LicenceOperation partialSurrender = LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(List.of(surrenderedBlock.getId()))
+        .withBlockSurrenderTypeByFeatureId(Map.of(surrenderedBlock.getId(), BlockSurrenderType.FULL_SURRENDER))
+        .build();
+
+    licencePositionChangeService.createLicencePositionChange(
+        licencePosition,
+        List.of(partialSurrender),
+        1,
+        LicencePositionChangeStatus.CONSENTED
+    );
   }
 
   private void generateCarbonStorageBeneficialInterestPositionChanges(Licence licence) {

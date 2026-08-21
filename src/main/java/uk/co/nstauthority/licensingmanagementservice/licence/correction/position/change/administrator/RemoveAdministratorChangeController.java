@@ -14,7 +14,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.ValidLicencePositionAdministratorChange;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -55,7 +56,7 @@ public class RemoveAdministratorChangeController {
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/remove-administrator-change")
   @LicencePositionChangeBelongsToPosition
-  @ValidLicencePositionAdministratorChange
+  @LicencePositionChangeIsOfType(AdministratorOperation.class)
   public ModelAndView renderRemoveExecutedAdminChange(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
@@ -70,7 +71,7 @@ public class RemoveAdministratorChangeController {
 
   @PostMapping("/position/{licencePositionId}/change/{changeId}/remove-administrator-change")
   @LicencePositionChangeBelongsToPosition
-  @ValidLicencePositionAdministratorChange
+  @LicencePositionChangeIsOfType(AdministratorOperation.class)
   public ModelAndView removeAdministratorChange(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,

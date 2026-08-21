@@ -14,11 +14,10 @@ public record UpdateChangeOperations(
     return UPDATE_CHANGE_OPERATIONS;
   }
 
-  public static UpdateChangeOperations buildUpdateAdminChange(String originalChangeId, Integer administratorId) {
-    var administratorOperation = LicenceOperation.newAdministratorChange().withOperator(administratorId).build();
+  public static UpdateChangeOperations buildUpdateChange(String originalChangeId, LicenceOperation operation) {
     var updateOperation = LicencePositionChangeOperation.newLicencePositionUpdateOperation()
-        .withOperationId(administratorOperation.id())
-        .withOperation(administratorOperation)
+        .withOperationId(operation.id())
+        .withOperation(operation)
         .build();
 
     return LicencePositionChangeType.updateChangeOperations()

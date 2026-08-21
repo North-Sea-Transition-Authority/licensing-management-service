@@ -11,38 +11,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 
 class LicencePositionEquityChangeUtilTest {
 
   private static final int TRANSFER_TO_ID = 300;
   private static final int TRANSFER_FROM_ID = 301;
-
-  @Test
-  void containsEquityOperation_whenLiveChangeHasSetEquityOperation_returnsTrue() {
-    var change = liveChange(new SetEquityOperation(TRANSFER_TO_ID, BigDecimal.TEN));
-
-    assertThat(LicencePositionChange.containsEquityOperation(change)).isTrue();
-  }
-
-  @Test
-  void containsEquityOperation_whenLiveChangeHasTransferEquityOperation_returnsTrue() {
-    var change = liveChange(new TransferEquityOperation(TRANSFER_FROM_ID, TRANSFER_TO_ID, BigDecimal.TEN, null));
-
-    assertThat(LicencePositionChange.containsEquityOperation(change)).isTrue();
-  }
-
-  @Test
-  void containsEquityOperation_whenLiveChangeHasOnlyNonEquityOperation_returnsFalse() {
-    var change = liveChange(LicenceOperation.newAdministratorChange().withOperator(TRANSFER_TO_ID).build());
-
-    assertThat(LicencePositionChange.containsEquityOperation(change)).isFalse();
-  }
-
-  @Test
-  void containsEquityOperation_whenLiveChangeHasNullOperations_returnsFalse() {
-    assertThat(LicencePositionChange.containsEquityOperation(new LicencePositionChange())).isFalse();
-  }
 
   @Test
   void containsEquityOperation_whenAddChangeHasSetEquityOperation_returnsTrue() {
@@ -70,12 +43,6 @@ class LicencePositionEquityChangeUtilTest {
     var change = LicencePositionChangeType.removeChange().withChangeId(UUID.randomUUID().toString()).build();
 
     assertThat(LicencePositionChangeType.containsEquityOperation(change)).isFalse();
-  }
-
-  private LicencePositionChange liveChange(LicenceOperation operation) {
-    var change = new LicencePositionChange();
-    change.setOperations(List.of(operation));
-    return change;
   }
 
   private LicencePositionChangeType addChange(LicenceOperation operation) {

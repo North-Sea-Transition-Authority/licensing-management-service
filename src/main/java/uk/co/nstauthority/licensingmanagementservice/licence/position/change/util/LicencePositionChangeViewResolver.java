@@ -9,11 +9,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
@@ -112,7 +115,7 @@ public final class LicencePositionChangeViewResolver {
       case TransferEquityOperation transferEquityOperation ->
           buildTransferEquityChangeView(transferEquityOperation, change, previousState, organisationNames, urlContext);
       case PartialSurrenderOperation partialSurrenderOperation ->
-          buildPartialSurrenderChange(partialSurrenderOperation, change, currentPositionDate, featureNames);
+          buildPartialSurrenderChange(partialSurrenderOperation, change, currentPositionDate, featureNames, urlContext);
     };
   }
 
@@ -120,7 +123,8 @@ public final class LicencePositionChangeViewResolver {
       PartialSurrenderOperation operation,
       PositionChange change,
       @Nullable LocalDate currentPositionDate,
-      Map<UUID, String> featureNames
+      Map<UUID, String> featureNames,
+      @Nullable PositionChangeUrlContext urlContext
   ) {
     var surrenderDate = operation.surrenderDate() != null ? operation.surrenderDate() : currentPositionDate;
 
@@ -128,15 +132,27 @@ public final class LicencePositionChangeViewResolver {
         .stream()
         .map(featureId -> new PartialSurrenderChangeView.BlockRow(
             featureNames.getOrDefault(featureId, NOT_AVAILABLE),
-            operation.blockSurrenderTypeByFeatureId().get(featureId).getDisplayName()
+            surrenderTypeDisplayName(operation, featureId)
         ))
         .toList();
 
     return new PartialSurrenderChangeView(
         surrenderDate == null ? null : DateUtil.formatLongDate(surrenderDate),
         blockRows,
-        change.changeType()
+        change.changeType(),
+        partialSurrenderCorrectUrl(urlContext, change)
     );
+  }
+
+  /**
+   * A surrender type is chosen per block after the surrender itself is staged, so a block that has not reached that
+   * step yet has no type to show.
+   */
+  @Nullable
+  private static String surrenderTypeDisplayName(PartialSurrenderOperation operation, UUID featureId) {
+    return Optional.ofNullable(operation.blockSurrenderTypeByFeatureId().get(featureId))
+        .map(BlockSurrenderType::getDisplayName)
+        .orElse(null);
   }
 
   private static AdministratorChangeView buildAdministratorChange(
@@ -156,7 +172,7 @@ public final class LicencePositionChangeViewResolver {
         organisationNames.getOrDefault(joiningId, NOT_AVAILABLE),
         change.changeId(),
         change.changeType(),
-        correctChangeUrl(urlContext, change),
+        administratorCorrectChangeUrl(urlContext, change),
         removeChangeUrl(urlContext, change),
         undoChangeUrl(urlContext, change)
     );
@@ -264,25 +280,70 @@ public final class LicencePositionChangeViewResolver {
   }
 
   @Nullable
-  //TODO When other change types are added, we should adapt how the correct urls for change views are built
-  private static String correctChangeUrl(@Nullable PositionChangeUrlContext urlContext, PositionChange change) {
+  private static String administratorCorrectChangeUrl(
+      @Nullable PositionChangeUrlContext urlContext,
+      PositionChange change
+  ) {
     if (urlContext == null) {
       return null;
     }
-    if (urlContext.addedPosition()) {
-      return ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
-          .renderForAddedPosition(urlContext.correctionId(), urlContext.routingId(), null));
+
+    return correctChangeUrl(urlContext, change, new CorrectChangeRoutes(
+        ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
+            .renderForAddedPosition(urlContext.correctionId(), urlContext.routingId(), null)),
+        ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
+            .renderForExecutedPosition(urlContext.correctionId(), urlContext.routingId(), null)),
+        ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
+            .renderForCorrectingChange(urlContext.correctionId(), urlContext.routingId(), change.changeId(), null))));
+  }
+
+  @Nullable
+  private static String partialSurrenderCorrectUrl(
+      @Nullable PositionChangeUrlContext urlContext,
+      PositionChange change
+  ) {
+    if (urlContext == null) {
+      return null;
     }
 
+    var stagedTaskListUrl = stagedPartialSurrenderTaskListUrl(urlContext);
+    var correctingChangeUrl = LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS.equals(change.changeType())
+        ? stagedTaskListUrl
+        : ReverseRouter.route(on(PartialSurrenderTaskListController.class).renderForCorrectingChange(
+            urlContext.correctionId(), urlContext.routingId(), change.changeId(), null, null));
+
+    return correctChangeUrl(
+        urlContext, change, new CorrectChangeRoutes(stagedTaskListUrl, stagedTaskListUrl, correctingChangeUrl));
+  }
+
+  private static String stagedPartialSurrenderTaskListUrl(PositionChangeUrlContext urlContext) {
+    return ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+        .renderTaskList(urlContext.correctionId(), urlContext.positionCorrectionId(), null, null));
+  }
+
+  @Nullable
+  private static String correctChangeUrl(
+      PositionChangeUrlContext urlContext,
+      PositionChange change,
+      CorrectChangeRoutes routes
+  ) {
+    if (urlContext.addedPosition()) {
+      return routes.addedPosition();
+    }
     if (LicencePositionChangeType.ADD_CHANGE.equals(change.changeType())) {
-      return ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
-          .renderForExecutedPosition(urlContext.correctionId(), urlContext.routingId(), null));
+      return routes.executedPosition();
     }
     if (LicencePositionChangeType.REMOVE_CHANGE.equals(change.changeType())) {
       return null;
     }
-    return ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
-        .renderForCorrectingChange(urlContext.correctionId(), urlContext.routingId(), change.changeId(), null));
+    return routes.correctingChange();
+  }
+
+  private record CorrectChangeRoutes(
+      String addedPosition,
+      String executedPosition,
+      String correctingChange
+  ) {
   }
 
   @Nullable

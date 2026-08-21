@@ -20,18 +20,23 @@ public class PartialSurrenderReviewAndSubmitTaskListSectionService
 
   @Override
   public Optional<TaskListSection> getSection(PartialSurrenderTaskListContext context, ServiceUserDetail user) {
-    var positionCorrection = context.positionCorrection();
-
-    var items = List.of(new TaskListItem(
-        REVIEW_AND_SUBMIT,
-        ReverseRouter.route(on(PartialSurrenderTaskListController.class).renderReviewAndSubmit(
-            positionCorrection.getLicenceCorrection().getId(),
-            positionCorrection.getId(),
-            null,
-            null
-        ))
-    ));
+    var items = List.of(new TaskListItem(REVIEW_AND_SUBMIT, reviewAndSubmitUrl(context)));
 
     return Optional.of(new TaskListSection(REVIEW_AND_SUBMIT, SECTION_ORDER, items));
+  }
+
+  private String reviewAndSubmitUrl(PartialSurrenderTaskListContext context) {
+    return switch (context) {
+      case PartialSurrenderTaskListContext.Staged(var positionCorrection) ->
+          ReverseRouter.route(on(PartialSurrenderTaskListController.class).renderReviewAndSubmit(
+              positionCorrection.getLicenceCorrection().getId(),
+              positionCorrection.getId(),
+              null,
+              null));
+      case PartialSurrenderTaskListContext.LiveChange(var correction, var licencePosition, var changeId) ->
+          ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+              .renderReviewAndSubmitForCorrectingChange(
+                  correction.getId(), licencePosition.getId(), changeId, null, null));
+    };
   }
 }

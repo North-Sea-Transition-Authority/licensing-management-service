@@ -2,13 +2,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.ut
 
 import java.util.ArrayList;
 import java.util.List;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionUpdateOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
@@ -20,12 +15,15 @@ public final class LicencePositionAdministratorChangeUtil {
   }
 
   public static boolean adminChangeExists(List<LicencePositionChangeType> changes) {
-    return changes.stream().anyMatch(LicencePositionAdministratorChangeUtil::containsAdminOperation);
+    return LicencePositionChangeOperationUtil.changeExists(changes, AdministratorOperation.class);
   }
 
   public static boolean containsAdminOperation(LicencePositionChange liveChange) {
-    return liveChange.getOperations() != null
-        && liveChange.getOperations().stream().anyMatch(AdministratorOperation.class::isInstance);
+    return LicencePositionChangeOperationUtil.containsOperation(liveChange, AdministratorOperation.class);
+  }
+
+  public static boolean containsAdminOperation(LicencePositionChangeType change) {
+    return LicencePositionChangeOperationUtil.containsOperation(change, AdministratorOperation.class);
   }
 
   public static List<LicencePositionChangeType> upsertAddAdminChange(
@@ -42,15 +40,12 @@ public final class LicencePositionAdministratorChangeUtil {
   public static List<LicencePositionChangeType> replaceAdminChange(
       List<LicencePositionChangeType> changes, Integer administratorId
   ) {
-    return changes.stream()
-        .map(change -> containsAdminOperation(change) ? rebuildWithAdmin(change, administratorId) : change)
-        .toList();
+    return LicencePositionChangeOperationUtil.replaceOperation(
+        changes, AdministratorOperation.class, administratorOperation(administratorId));
   }
 
   public static List<LicencePositionChangeType> removeAdminChange(List<LicencePositionChangeType> changes) {
-    return changes.stream()
-        .filter(change -> !containsAdminOperation(change))
-        .toList();
+    return LicencePositionChangeOperationUtil.removeChangesOf(changes, AdministratorOperation.class);
   }
 
   public static boolean adminIdNotChanged(LicencePositionChange change, Integer administratorId) {
@@ -60,43 +55,13 @@ public final class LicencePositionAdministratorChangeUtil {
         .anyMatch(operatorId -> operatorId.equals(administratorId));
   }
 
-  public static List<LicencePositionChangeType> removeChangeById(List<LicencePositionChangeType> changes, String changeId) {
-    return LicencePositionChangeUtil.removeChangeById(changes, changeId);
-  }
-
-  public static boolean containsAdminOperation(LicencePositionChangeType change) {
-    return operationsOf(change).stream()
-        .map(changeOperation -> switch (changeOperation) {
-          case LicencePositionAddOperation addOperation -> addOperation.operation();
-          case LicencePositionUpdateOperation updateOperation -> updateOperation.operation();
-        })
-        .anyMatch(AdministratorOperation.class::isInstance);
-  }
-
-  private static LicencePositionChangeType rebuildWithAdmin(LicencePositionChangeType change, Integer administratorId) {
-    return switch (change) {
-      case AddChange addChange -> addAdminChange(administratorId, addChange.changeOrder());
-      case UpdateChangeOperations updateChange -> UpdateChangeOperations.buildUpdateAdminChange(
-          updateChange.changeId(),
-          administratorId
-      );
-      case RemoveChange ignored -> change;
-    };
-  }
-
   private static AddChange addAdminChange(Integer administratorId, int changeOrder) {
-    var administratorOperation = LicenceOperation.newAdministratorChange()
+    return AddChange.buildOperationsChange(List.of(administratorOperation(administratorId)), changeOrder);
+  }
+
+  private static AdministratorOperation administratorOperation(Integer administratorId) {
+    return LicenceOperation.newAdministratorChange()
         .withOperator(administratorId)
         .build();
-
-    return AddChange.buildOperationsChange(List.of(administratorOperation), changeOrder);
-  }
-
-  private static List<LicencePositionChangeOperation> operationsOf(LicencePositionChangeType change) {
-    return switch (change) {
-      case AddChange addChange -> addChange.operations();
-      case UpdateChangeOperations updateChangeOperations -> updateChangeOperations.operations();
-      case RemoveChange ignored -> List.of();
-    };
   }
 }

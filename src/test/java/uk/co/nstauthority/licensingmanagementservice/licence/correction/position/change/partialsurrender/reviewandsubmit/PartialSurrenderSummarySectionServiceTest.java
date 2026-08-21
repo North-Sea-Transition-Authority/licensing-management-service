@@ -27,7 +27,7 @@ class PartialSurrenderSummarySectionServiceTest {
 
   private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder().build();
   private static final PartialSurrenderSummaryContext CONTEXT =
-      new PartialSurrenderSummaryContext(LicencePositionCorrectionTestUtil.newBuilder().build());
+      new PartialSurrenderSummaryContext.Staged(LicencePositionCorrectionTestUtil.newBuilder().build());
   private static final SummarySection SURRENDER_DETAILS_SECTION = new SummarySection(10,
       List.of(SummaryItem.withCard("Surrender details", SummaryCard.simpleSummaryCard(
           SummaryDataView.newBuilder()

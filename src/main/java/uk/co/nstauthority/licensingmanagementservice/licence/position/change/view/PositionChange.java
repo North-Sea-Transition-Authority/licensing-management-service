@@ -4,9 +4,7 @@ import jakarta.annotation.Nullable;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionUpdateOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
@@ -87,15 +85,7 @@ public record PositionChange(
 
   private static List<LicenceOperation> toOperations(List<LicencePositionChangeOperation> changeOperations) {
     return changeOperations.stream()
-        .map(PositionChange::toOperation)
+        .map(LicencePositionChangeOperation::operation)
         .toList();
-  }
-
-  private static LicenceOperation toOperation(LicencePositionChangeOperation changeOperation) {
-    // TODO: update to handle other operation types
-    return switch (changeOperation) {
-      case LicencePositionAddOperation addOperation -> addOperation.operation();
-      case LicencePositionUpdateOperation updateOperation -> updateOperation.operation();
-    };
   }
 }

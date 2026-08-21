@@ -29,6 +29,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
@@ -43,6 +45,11 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withId(CORRECTION_ID)
       .build();
+  private static final UUID POSITION_ID = UUID.randomUUID();
+  private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder()
+      .withId(POSITION_ID)
+      .build();
+  private static final String LIVE_CHANGE_ID = UUID.randomUUID().toString();
   private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder().build();
   private static final Feature FIRST_BLOCK = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 1);
   private static final Feature SECOND_BLOCK = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 2);
@@ -57,7 +64,7 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
   @Test
   void getSection_whenNoSurrenderStaged_thenEmpty() {
     var positionCorrection = positionCorrection();
-    var context = new PartialSurrenderTaskListContext(positionCorrection);
+    var context = new PartialSurrenderTaskListContext.Staged(positionCorrection);
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .thenReturn(Optional.empty());
 
@@ -69,7 +76,7 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
   @Test
   void getSection_whenNoStagedBlockIsSurrenderable_thenEmpty() {
     var positionCorrection = positionCorrection();
-    var context = new PartialSurrenderTaskListContext(positionCorrection);
+    var context = new PartialSurrenderTaskListContext.Staged(positionCorrection);
     givenStagedSurrender(positionCorrection, operation(List.of(FIRST_BLOCK.getId()), Map.of()));
     when(partialSurrenderCorrectionService.getSurrenderableBlockFeatures(positionCorrection))
         .thenReturn(List.of(SECOND_BLOCK));
@@ -82,7 +89,7 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
   @Test
   void getSection_whenStagedBlocksSurrenderable_thenSectionItemsOrderedByBlock() {
     var positionCorrection = positionCorrection();
-    var context = new PartialSurrenderTaskListContext(positionCorrection);
+    var context = new PartialSurrenderTaskListContext.Staged(positionCorrection);
     givenStagedSurrender(positionCorrection,
         operation(List.of(FIRST_BLOCK.getId(), SECOND_BLOCK.getId()),
             Map.of(FIRST_BLOCK.getId(), BlockSurrenderType.FULL_SURRENDER)));
@@ -113,7 +120,7 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
       TaskListLabel expectedLabel
   ) {
     var positionCorrection = positionCorrection();
-    var context = new PartialSurrenderTaskListContext(positionCorrection);
+    var context = new PartialSurrenderTaskListContext.Staged(positionCorrection);
     givenStagedSurrender(positionCorrection,
         operation(List.of(FIRST_BLOCK.getId()), blockSurrenderTypeByFeatureId));
     when(partialSurrenderCorrectionService.getSurrenderableBlockFeatures(positionCorrection))
@@ -125,6 +132,71 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
         PartialSurrenderBlockSurrenderTypeTaskListSectionService.SURRENDERED_BLOCKS,
         PartialSurrenderBlockSurrenderTypeTaskListSectionService.SECTION_ORDER,
         List.of(expectedItem(positionCorrection, FIRST_BLOCK, expectedLabel))));
+  }
+
+  @Test
+  void getSection_whenCorrectingALiveChangeWithNothingStaged_thenSectionItemsFromTheLiveSurrender() {
+    var context = liveChangeContext();
+    givenSurrenderUnderCorrection(operation(
+        List.of(FIRST_BLOCK.getId()), Map.of(FIRST_BLOCK.getId(), BlockSurrenderType.FULL_SURRENDER)));
+    when(partialSurrenderCorrectionService.getSurrenderableBlockFeatures(POSITION))
+        .thenReturn(List.of(FIRST_BLOCK, SECOND_BLOCK));
+
+    var section = partialSurrenderBlockSurrenderTypeTaskListSectionService.getSection(context, USER);
+
+    assertThat(section).contains(new TaskListSection(
+        PartialSurrenderBlockSurrenderTypeTaskListSectionService.SURRENDERED_BLOCKS,
+        PartialSurrenderBlockSurrenderTypeTaskListSectionService.SECTION_ORDER,
+        List.of(expectedCorrectingChangeItem(FIRST_BLOCK, TaskListLabel.COMPLETE))));
+  }
+
+  @Test
+  void getSection_whenCorrectingALiveChangeWithBlocksStaged_thenSectionItemsOrderedByBlock() {
+    var context = liveChangeContext();
+    givenSurrenderUnderCorrection(operation(
+        List.of(SECOND_BLOCK.getId(), FIRST_BLOCK.getId()),
+        Map.of(FIRST_BLOCK.getId(), BlockSurrenderType.PARTIAL_SURRENDER)));
+    when(partialSurrenderCorrectionService.getSurrenderableBlockFeatures(POSITION))
+        .thenReturn(List.of(SECOND_BLOCK, FIRST_BLOCK));
+
+    var section = partialSurrenderBlockSurrenderTypeTaskListSectionService.getSection(context, USER);
+
+    assertThat(section).contains(new TaskListSection(
+        PartialSurrenderBlockSurrenderTypeTaskListSectionService.SURRENDERED_BLOCKS,
+        PartialSurrenderBlockSurrenderTypeTaskListSectionService.SECTION_ORDER,
+        List.of(
+            expectedCorrectingChangeItem(FIRST_BLOCK, TaskListLabel.NOT_COMPLETE),
+            expectedCorrectingChangeItem(SECOND_BLOCK, TaskListLabel.NOT_COMPLETE))));
+  }
+
+  @Test
+  void getSection_whenCorrectingALiveChangeAndTheBlockIsNoLongerOnThePosition_thenEmpty() {
+    var context = liveChangeContext();
+    givenSurrenderUnderCorrection(operation(List.of(FIRST_BLOCK.getId()), Map.of()));
+    when(partialSurrenderCorrectionService.getSurrenderableBlockFeatures(POSITION))
+        .thenReturn(List.of(SECOND_BLOCK));
+
+    var section = partialSurrenderBlockSurrenderTypeTaskListSectionService.getSection(context, USER);
+
+    assertThat(section).isEmpty();
+  }
+
+  private PartialSurrenderTaskListContext.LiveChange liveChangeContext() {
+    return new PartialSurrenderTaskListContext.LiveChange(CORRECTION, POSITION, LIVE_CHANGE_ID);
+  }
+
+  private void givenSurrenderUnderCorrection(PartialSurrenderOperation operation) {
+    when(partialSurrenderCorrectionService.getSurrenderUnderCorrectionOrThrow(CORRECTION, POSITION, LIVE_CHANGE_ID))
+        .thenReturn(operation);
+  }
+
+  private TaskListItem expectedCorrectingChangeItem(Feature block, TaskListLabel label) {
+    return new TaskListItem(
+        "Block %s".formatted(block.getFeatureName()),
+        label,
+        ReverseRouter.route(
+            on(BlockSurrenderTypeController.class).renderSurrenderTypeFormForCorrectingChange(
+                CORRECTION_ID, POSITION_ID, LIVE_CHANGE_ID, block.getId(), null)));
   }
 
   private void givenStagedSurrender(LicencePositionCorrection positionCorrection, PartialSurrenderOperation operation) {

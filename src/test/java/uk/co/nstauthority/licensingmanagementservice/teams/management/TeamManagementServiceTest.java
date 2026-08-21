@@ -421,8 +421,6 @@ class TeamManagementServiceTest {
     allowAllRolesFor(TeamType.LICENCE_MANAGEMENT);
     when(energyPortalUserService.findByWuaId(WebUserAccountId.from(1L), PORTAL_VALIDATE_USERS_LOOKUP_PURPOSE))
         .thenReturn(Optional.of(EnergyPortalUserJson.from(user1)));
-    when(teamRoleRepository.findByTeam(regTeam))
-        .thenReturn(List.of(regTeamUser1RoleManage)); // Make doesTeamHaveTeamManager() check return true
     when(teamRoleRepository.findAllByWuaId(1L)).thenReturn(List.of(new TeamRole()));
 
     teamManagementService.setUserTeamRoles(USER_1_WUA_ID, regTeam,
@@ -445,6 +443,7 @@ class TeamManagementServiceTest {
         Set.of(Role.MANAGE_TEAM.name(), Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM.name())
     );
     verify(energyPortalServiceAccessService, never()).addUser(anyLong());
+    verify(energyPortalServiceAccessService, never()).removeUser(anyLong());
   }
 
   @Test
@@ -452,10 +451,8 @@ class TeamManagementServiceTest {
     allowAllRolesFor(TeamType.LICENCE_MANAGEMENT);
     when(energyPortalUserService.findByWuaId(WebUserAccountId.from(USER_1_WUA_ID), PORTAL_VALIDATE_USERS_LOOKUP_PURPOSE))
         .thenReturn(Optional.of(EnergyPortalUserJson.from(user1)));
-    when(teamRoleRepository.findByTeam(regTeam))
-        .thenReturn(List.of(regTeamUser1RoleManage)); // Make doesTeamHaveTeamManager() check return true
     when(teamRoleRepository.findAllByWuaId(USER_1_WUA_ID))
-        .thenReturn(Collections.emptyList());
+        .thenReturn(List.of(), List.of(new TeamRole()));
 
     teamManagementService.setUserTeamRoles(USER_1_WUA_ID, regTeam,
         List.of(Role.MANAGE_TEAM, Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM), userDetail);
@@ -467,27 +464,21 @@ class TeamManagementServiceTest {
         Set.of(Role.MANAGE_TEAM.name(), Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM.name())
     );
     verify(energyPortalServiceAccessService).addUser(USER_1_WUA_ID);
+    verify(energyPortalServiceAccessService, never()).removeUser(anyLong());
   }
 
   @Test
-  void setUserTeamRoles_noTeamManagerLeft() {
+  void setUserTeamRoles_whenNoTeamRolesLeft_thenRemoveEpasAccess() {
     allowAllRolesFor(TeamType.LICENCE_MANAGEMENT);
-    when(energyPortalUserService.findByWuaId(WebUserAccountId.from(1L), PORTAL_VALIDATE_USERS_LOOKUP_PURPOSE))
+    when(energyPortalUserService.findByWuaId(WebUserAccountId.from(USER_1_WUA_ID), PORTAL_VALIDATE_USERS_LOOKUP_PURPOSE))
         .thenReturn(Optional.of(EnergyPortalUserJson.from(user1)));
+    when(teamRoleRepository.findAllByWuaId(USER_1_WUA_ID))
+        .thenReturn(List.of(new TeamRole()), List.of());
 
-    when(teamRoleRepository.findByTeam(regTeam))
-        .thenReturn(List.of()); // Make doesTeamHaveTeamManager() check return false
+    teamManagementService.setUserTeamRoles(USER_1_WUA_ID, regTeam, List.of(), userDetail);
 
-    var roleList = List.of(Role.CREATE_MANAGE_ANY_ORGANISATION_TEAM);
-    assertThatExceptionOfType(TeamManagementException.class)
-        .isThrownBy(() -> teamManagementService.setUserTeamRoles(USER_1_WUA_ID, regTeam, roleList, userDetail));
-
-    verify(energyPortalAccountsMessagePublishingService, never()).publishUsersRolesForTeam(
-        anyLong(),
-        any(),
-        any(),
-        any()
-    );
+    verify(energyPortalServiceAccessService).removeUser(USER_1_WUA_ID);
+    verify(energyPortalServiceAccessService, never()).addUser(anyLong());
   }
 
   @Test

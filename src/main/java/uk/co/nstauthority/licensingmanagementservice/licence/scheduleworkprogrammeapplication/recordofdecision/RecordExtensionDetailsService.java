@@ -47,6 +47,14 @@ public class RecordExtensionDetailsService {
     return recordOfDecisionExtensionRepository.existsByScheduleWorkProgrammeApplicationDetail(applicationDetail);
   }
 
+  public ThreeFieldDuration getTotalExtensionDuration(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
+    return ThreeFieldDuration.total(
+        recordOfDecisionExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail)
+            .stream()
+            .map(RecordOfDecisionExtension::getExtensionDuration)
+            .toList());
+  }
+
   private List<LicenceScheduleTermAndPhases> getExtendableTermAndPhases(
       ScheduleWorkProgrammeApplicationDetail applicationDetail
   ) {

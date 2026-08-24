@@ -54,6 +54,10 @@ public class LicenceService {
         .collect(Collectors.toSet());
   }
 
+  public List<Licence> getLicencesByIds(Collection<Integer> licenceIds) {
+    return licenceRepository.findAllById(licenceIds);
+  }
+
   /**
    * Returns the subset of the given licence references that already belong to a licence, of any type. Used by
    * migrations to avoid inserting a licence that has already been migrated.

@@ -77,6 +77,26 @@ class RecordExtensionDetailsServiceTest {
   }
 
   @Test
+  void getTotalExtensionDuration_whenNoExtensions_returnsZero() {
+    when(recordOfDecisionExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail))
+        .thenReturn(List.of());
+
+    assertThat(recordExtensionDetailsService.getTotalExtensionDuration(applicationDetail))
+        .isEqualTo(new ThreeFieldDuration(0, 0, 0));
+  }
+
+  @Test
+  void getTotalExtensionDuration_sumsEveryExtensionAndCarriesMonthsIntoYears() {
+    when(recordOfDecisionExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail))
+        .thenReturn(List.of(
+            extensionWithDuration(new ThreeFieldDuration(0, 8, 10)),
+            extensionWithDuration(new ThreeFieldDuration(1, 6, 5))));
+
+    assertThat(recordExtensionDetailsService.getTotalExtensionDuration(applicationDetail))
+        .isEqualTo(new ThreeFieldDuration(2, 2, 15));
+  }
+
+  @Test
   void getExtensionDetailsViews_buildsViewWithEndDateAndRequestedState() {
     mockExtendableTerm();
     when(recordOfDecisionExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail))
@@ -405,6 +425,12 @@ class RecordExtensionDetailsServiceTest {
                 phaseId.toString(),
                 PhaseType.PHASE_A.getDisplayName())))));
     when(licenceSchedulePhaseRepository.findById(phaseId)).thenReturn(Optional.of(phase));
+  }
+
+  private RecordOfDecisionExtension extensionWithDuration(ThreeFieldDuration duration) {
+    var extension = new RecordOfDecisionExtension();
+    extension.setExtensionDuration(duration);
+    return extension;
   }
 
   private ThreeFieldDurationInput durationInput(String years, String months, String days) {

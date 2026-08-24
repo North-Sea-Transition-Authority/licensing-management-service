@@ -94,6 +94,13 @@ public class ScheduleWorkProgrammeApplicationService {
         detail.getLicence(), LicenceScheduleDetailStatus.ACTIVE);
   }
 
+  public LicenceScheduleDetail getCurrentScheduleDetailFromApplicationDetail(
+      ScheduleWorkProgrammeApplicationDetail detail
+  ) {
+    return licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
+        detail.getLicence(), LicenceScheduleDetailStatus.ACTIVE);
+  }
+
   private ScheduleWorkProgrammeApplication createScheduleWorkProgrammeApplication(Licence licence) {
     var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
         licence,

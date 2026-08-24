@@ -112,6 +112,20 @@ class ScheduleWorkProgrammeApplicationServiceTest {
   }
 
   @Test
+  void getCurrentScheduleDetailFromApplicationDetail_whenSubmitted_returnsActiveDetailNotFrozenDetail() {
+    var frozenDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceScheduleDetail.getLicenceSchedule());
+    scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication()
+        .setSubmittedLicenceScheduleDetail(frozenDetail);
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(licenceScheduleDetail);
+
+    var result = scheduleWorkProgrammeApplicationService
+        .getCurrentScheduleDetailFromApplicationDetail(scheduleWorkProgrammeApplicationDetail);
+
+    assertThat(result).isEqualTo(licenceScheduleDetail);
+  }
+
+  @Test
   void getAllScheduleWorkProgrammeApplicationDetailsByStatuses() {
     scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(Set.of(ApplicationStatus.DRAFT));
 

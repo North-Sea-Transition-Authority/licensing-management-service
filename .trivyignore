@@ -151,6 +151,9 @@ CVE-2026-41853
 
 # org.springframework.data:spring-data-commons (app.jar)
 CVE-2026-41695
+CVE-2026-41711
+CVE-2026-41716
+CVE-2026-41721
 
 # io.micrometer:micrometer-core
 CVE-2026-40983
@@ -158,6 +161,14 @@ CVE-2026-40984
 
 # org.jsoup:jsoup
 CVE-2026-71497
+
+# org.springframework.security:spring-security-saml2-service-provider (app.jar)
+CVE-2026-40988
+CVE-2026-41003
+CVE-2026-41694
+
+# org.springframework.security:spring-security-web (app.jar)
+CVE-2026-41706
 
 # org.apache.logging.log4j:log4j-api (app.jar)
 CVE-2026-49844

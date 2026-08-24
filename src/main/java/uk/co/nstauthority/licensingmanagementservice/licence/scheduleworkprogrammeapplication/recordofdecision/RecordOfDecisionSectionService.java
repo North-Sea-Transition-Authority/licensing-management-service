@@ -22,12 +22,18 @@ public class RecordOfDecisionSectionService implements TaskListSectionService<Re
   static final String CORRESPONDING_REDUCTION_DETAILS = "Corresponding reduction details";
   static final String WORK_PROGRAMME_AMENDMENT_DETAILS = "Work programme amendment details";
 
-  private static final String URL = "#";
-
   private final RecordOfDecisionService recordOfDecisionService;
+  private final RecordReductionDetailsService recordReductionDetailsService;
+  private final RecordWorkProgrammeAmendmentDetailsService recordWorkProgrammeAmendmentDetailsService;
 
-  public RecordOfDecisionSectionService(RecordOfDecisionService recordOfDecisionService) {
+  public RecordOfDecisionSectionService(
+      RecordOfDecisionService recordOfDecisionService,
+      RecordReductionDetailsService recordReductionDetailsService,
+      RecordWorkProgrammeAmendmentDetailsService recordWorkProgrammeAmendmentDetailsService
+  ) {
     this.recordOfDecisionService = recordOfDecisionService;
+    this.recordReductionDetailsService = recordReductionDetailsService;
+    this.recordWorkProgrammeAmendmentDetailsService = recordWorkProgrammeAmendmentDetailsService;
   }
 
   @Override
@@ -53,13 +59,19 @@ public class RecordOfDecisionSectionService implements TaskListSectionService<Re
     }
 
     if (recordOfDecisionService.isExtensionDetailsSaved(applicationDetail)) {
-      // TODO LMS1-544: corresponding reduction details step sets visibility and completion
-      items.add(new TaskListItem(CORRESPONDING_REDUCTION_DETAILS, TaskListLabel.notStartedOrComplete(false), URL));
+      items.add(new TaskListItem(
+          CORRESPONDING_REDUCTION_DETAILS,
+          TaskListLabel.notStartedOrComplete(recordReductionDetailsService.isReductionComplete(applicationDetail)),
+          ReverseRouter.route(on(RecordReductionDetailsController.class).renderForm(applicationDetail.getId(), null))));
     }
 
     if (recordOfDecisionService.isWorkProgrammeAmendmentApproved(applicationDetail)) {
-      // TODO LMS1-545/546: work programme amendment step sets visibility and completion
-      items.add(new TaskListItem(WORK_PROGRAMME_AMENDMENT_DETAILS, TaskListLabel.notStartedOrComplete(false), URL));
+      items.add(new TaskListItem(
+          WORK_PROGRAMME_AMENDMENT_DETAILS,
+          TaskListLabel.notStartedOrComplete(
+              recordWorkProgrammeAmendmentDetailsService.hasAmendmentDetails(applicationDetail)),
+          ReverseRouter.route(on(SelectWorkProgrammeActivityController.class)
+              .renderForm(applicationDetail.getId(), null))));
     }
 
     return Optional.of(new TaskListSection(SECTION_NAME, SECTION_ORDER, items));

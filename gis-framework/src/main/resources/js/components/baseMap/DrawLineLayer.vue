@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { FeatureLike } from "ol/Feature";
 import type Map from "ol/Map";
-import type { LinePoint } from "../../grid-utils";
+import type { LinePoint, SnapPoint } from "../../grid-utils";
 import Feature from "ol/Feature";
 import LineString from "ol/geom/LineString";
 import MultiPoint from "ol/geom/MultiPoint";
@@ -13,7 +13,7 @@ import { isOrthogonalSegment } from "../../draw-line-utils";
 
 interface DrawLineLayerProps {
   olMap: { map?: Map },
-  hoveredSnapPoint?: LinePoint,
+  hoveredSnapPoint?: SnapPoint,
   requireOrthogonal?: boolean,
   // When provided, the line is drawn from these points (controlled mode, e.g. coordinate entry)
   // instead of from points selected by clicking snap points on the map.
@@ -27,10 +27,10 @@ const props = withDefaults(defineProps<DrawLineLayerProps>(), {
 });
 
 const emit = defineEmits<{
-  "update:points": [points: LinePoint[]],
+  "update:points": [points: SnapPoint[]],
 }>();
 
-const selectedPoints = ref<LinePoint[]>([]);
+const selectedPoints = ref<SnapPoint[]>([]);
 
 const vectorSource = new VectorSource();
 const lineFeature = new Feature({ geometry: new LineString([]) });
@@ -76,14 +76,21 @@ const vectorLayer = new VectorLayer({
   },
 });
 
-function addPoint(point: LinePoint): void {
-  selectedPoints.value = [...selectedPoints.value, point];
-  emit("update:points", selectedPoints.value);
+function setPoints(points: SnapPoint[]): void {
+  selectedPoints.value = points;
+  emit("update:points", points);
+}
+
+function addPoint(point: SnapPoint): void {
+  setPoints([...selectedPoints.value, point]);
+}
+
+function removeLastPoint(): void {
+  setPoints(selectedPoints.value.slice(0, -1));
 }
 
 function clear(): void {
-  selectedPoints.value = [];
-  emit("update:points", selectedPoints.value);
+  setPoints([]);
 }
 
 watch(() => props.refreshCounter, (newValue: number | undefined, oldValue: number | undefined) => {
@@ -141,5 +148,5 @@ watchEffect(() => {
   );
 });
 
-defineExpose({ addPoint, clear, selectedPoints });
+defineExpose({ addPoint, removeLastPoint, clear, selectedPoints });
 </script>

@@ -163,7 +163,7 @@ function createGridPointId(srsX: number, srsY: number, srsWkid: SupportedWkid): 
   return `${idX},${idY}`;
 }
 
-function getCoordinateDisplayName(lon: number, lat: number, srsWkid: SupportedWkid): string {
+export function getCoordinateDisplayName(lon: number, lat: number, srsWkid: SupportedWkid): string {
   if (isOffshore(srsWkid)) {
     return convertLatLonToDms(lat, lon);
   } else {

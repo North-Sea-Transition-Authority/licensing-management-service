@@ -2,6 +2,7 @@
   <div>
     <error-summary v-if="splitError" :description="splitError"/>
     <base-map
+      ref="baseMapRef"
       :srs-wkid="srsWkid"
       :features-url="featuresUrl"
       :outline-nodes-url="outlineNodesUrl"
@@ -23,15 +24,17 @@
       @action-error="splitError = $event"
     />
   </div>
+  <line-coordinate-stack :points="points" :srs-wkid="srsWkid" @undo-last-point="undoLastPoint"/>
 </template>
 
 <script setup lang="ts">
 import type { SupportedWkid } from "../../coordinate-system-utils";
-import type { LinePoint } from "../../grid-utils";
+import type { SnapPoint } from "../../grid-utils";
 import { computed, ref, watch } from "vue";
 import { splitFeature } from "../../api/split.api";
 import BaseMap from "../baseMap/BaseMap.vue";
 import ErrorSummary from "../gdsComponents/error/ErrorSummary.vue";
+import LineCoordinateStack from "../lineCoordinateStack/LineCoordinateStack.vue";
 import SplitActions from "./SplitActions.vue";
 
 interface SplitByPointAndClickPageProps {
@@ -54,7 +57,8 @@ const props = withDefaults(defineProps<SplitByPointAndClickPageProps>(), {
   includeNstaBlocks: true,
 });
 
-const points = ref<LinePoint[]>([]);
+const baseMapRef = ref<InstanceType<typeof BaseMap> | null>(null);
+const points = ref<SnapPoint[]>([]);
 const splitError = ref<string | null>(null);
 const autoSplitInProgress = ref(false);
 const refreshCounter = ref(0);
@@ -68,6 +72,10 @@ const outlineNodesUrl = computed(() => buildCommandJourneyUrl(props.outlineNodes
 const historyUrl = computed(() => buildCommandJourneyUrl(props.historyBaseUrl, props.commandJourneyId));
 const undoUrl = computed(() => buildCommandJourneyUrl(props.undoBaseUrl, props.commandJourneyId));
 const redoUrl = computed(() => buildCommandJourneyUrl(props.redoBaseUrl, props.commandJourneyId));
+
+function undoLastPoint() {
+  baseMapRef.value?.removeLastPoint();
+}
 
 function onSplitSuccess() {
   splitError.value = null;

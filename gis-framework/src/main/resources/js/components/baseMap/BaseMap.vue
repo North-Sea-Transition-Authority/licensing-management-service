@@ -19,6 +19,7 @@
     />
     <draw-line-layer
       v-if="mapRef && includeDrawLine"
+      ref="drawLineLayerRef"
       :ol-map="mapRef"
       :hovered-snap-point="hoveredSnapPoint"
       :require-orthogonal="true"
@@ -68,17 +69,26 @@ const props = withDefaults(defineProps<BaseMapProps>(), {
 });
 
 const emit = defineEmits<{
-  "update:points": [points: LinePoint[]],
+  "update:points": [points: SnapPoint[]],
 }>();
 
 // Allow openLayers to receive features in WGS84
 useGeographic();
 const mapRef = ref<InstanceType<typeof OlMap> | null>(null);
 const hoveredSnapPoint = ref<SnapPoint | undefined>(undefined);
+const drawLineLayerRef = ref<InstanceType<typeof DrawLineLayer> | null>(null);
+
+// The draw line layer owns the clicked points, so removal has to be delegated to it rather than done in a parent's copy
+function removeLastPoint(): void {
+  drawLineLayerRef.value?.removeLastPoint();
+}
+
 const mapStyle = computed<CSSProperties>(() => props.mapStyleOverride ?? ({
   width: "100%",
   maxWidth: "1000px",
   height: "clamp(18.75rem, 60vh, 31.25rem)",
   display: "block",
 }));
+
+defineExpose({ removeLastPoint });
 </script>

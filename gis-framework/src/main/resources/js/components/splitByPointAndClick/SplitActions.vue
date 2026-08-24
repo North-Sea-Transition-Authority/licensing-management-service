@@ -14,8 +14,8 @@ import type { JsonSplitHistoryStatus } from "../../api/split-history.api";
 import { onMounted, ref, watch } from "vue";
 import { getSplitHistoryStatus } from "../../api/split-history.api";
 import { redoSplit, undoSplit } from "../../api/split.api";
-import GvButton from "../govukVue/GvButton.vue";
-import GvButtonGroup from "../govukVue/GvButtonGroup.vue";
+import GvButton from "../govukVue/button/GvButton.vue";
+import GvButtonGroup from "../govukVue/button/GvButtonGroup.vue";
 
 interface SplitActionsProps {
   refreshCounter: number,

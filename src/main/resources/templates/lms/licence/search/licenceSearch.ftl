@@ -19,6 +19,9 @@ extendContainerWidth=true
         hasSearchBeenInvoked=hasSearchBeenInvoked
         clearFilterUrl=clearFilterUrl
         >
+            <@dataItemFilter.referenceFilter
+            form=form
+            />
             <@dataItemFilter.licenceTypeFilter
             form=form
             licenceTypes=licenceTypes
@@ -29,9 +32,6 @@ extendContainerWidth=true
                 licenceStatuses=licenceStatuses
                 />
             </#if>
-            <@dataItemFilter.referenceFilter
-            form=form
-            />
             <#if isRegulatorUser>
                 <@dataItemFilter.licenseeGroupFilter
                 form=form

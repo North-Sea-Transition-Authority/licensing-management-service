@@ -59,6 +59,7 @@ class LicenceSearchServiceTest {
   private static final Licence CARBON_STORAGE_LICENCE_2 = buildLicence(5, LicenceType.CARBON_STORAGE, "CS2", LicenceStatusType.EXTANT);
   private static final Licence GAS_STORAGE_LICENCE = buildLicence(3, LicenceType.GAS_STORAGE, "GS1", LicenceStatusType.EXPIRED);
   private static final Licence LANDWARD_PRODUCTION_LICENCE = buildLicence(4, LicenceType.LANDWARD_PRODUCTION, "PEDL1", LicenceStatusType.SURRENDERED);
+  private static final Licence UNKNOWN_TYPE_LICENCE = buildLicence(6, LicenceType.XL, "XL1", LicenceStatusType.EXTANT);
 
   private static final ServiceUserDetail serviceUserDetail = ServiceUserDetailTestUtil.newBuilder()
       .withWuaId(USER_WUA_ID)
@@ -154,6 +155,47 @@ class LicenceSearchServiceTest {
             buildSearchResultItem(CARBON_STORAGE_LICENCE, List.of()),
             buildSearchResultItem(CARBON_STORAGE_LICENCE_2, List.of()),
             buildSearchResultItem(LANDWARD_PRODUCTION_LICENCE, List.of())
+        ));
+  }
+
+  @Test
+  void getSearchResultItems_FilterByOtherLicenceType_ReturnsLicencesWithUnknownLicenceTypes() {
+    var licences = List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE, UNKNOWN_TYPE_LICENCE);
+    when(licenceService.getAllLicences())
+        .thenReturn(licences);
+    when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusMapFor(licences));
+
+    var filterForm = new LicenceSearchFilterForm();
+    filterForm.setLicenceTypes(List.of(LicenceTypeFilterUtil.OTHER_OPTION));
+
+    var result = licenceSearchService.getSearchResultItems(filterForm, serviceUserDetail);
+
+    assertThat(result)
+        .usingRecursiveComparison()
+        .ignoringCollectionOrder()
+        .isEqualTo(List.of(
+            buildSearchResultItem(UNKNOWN_TYPE_LICENCE, List.of())
+        ));
+  }
+
+  @Test
+  void getSearchResultItems_FilterByLicenceTypeAndOther_ReturnsBothKnownAndUnknownLicenceTypes() {
+    var licences = List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE, UNKNOWN_TYPE_LICENCE);
+    when(licenceService.getAllLicences())
+        .thenReturn(licences);
+    when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusMapFor(licences));
+
+    var filterForm = new LicenceSearchFilterForm();
+    filterForm.setLicenceTypes(List.of(LicenceType.CARBON_STORAGE.name(), LicenceTypeFilterUtil.OTHER_OPTION));
+
+    var result = licenceSearchService.getSearchResultItems(filterForm, serviceUserDetail);
+
+    assertThat(result)
+        .usingRecursiveComparison()
+        .ignoringCollectionOrder()
+        .isEqualTo(List.of(
+            buildSearchResultItem(CARBON_STORAGE_LICENCE, List.of()),
+            buildSearchResultItem(UNKNOWN_TYPE_LICENCE, List.of())
         ));
   }
 

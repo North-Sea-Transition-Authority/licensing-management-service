@@ -6,34 +6,37 @@ import java.util.List;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
 public enum LicenceType implements Displayable {
-  CARBON_STORAGE("Carbon storage", "CS", "carbon-storage", true),
-  GAS_STORAGE("Gas storage", "GS", "gas-storage", true),
-  LANDWARD_EXPLORATION("Landward exploration", "LX", "landward-exploration", true),
-  LANDWARD_PRODUCTION("Landward production", "PEDL", "landward-production", false),
-  METHANE_DRAINAGE("Methane drainage", "MDL", "methane-drainage", true),
-  SEAWARD_EXPLORATION("Seaward exploration", "E", "seaward-exploration", true),
-  SEAWARD_PRODUCTION("Seaward production", "P", "seaward-production", false),
+  CARBON_STORAGE("Carbon storage", 10, "CS", "carbon-storage", true),
+  GAS_STORAGE("Gas storage", 20, "GS", "gas-storage", true),
+  LANDWARD_EXPLORATION("Landward exploration", 30, "LX", "landward-exploration", true),
+  LANDWARD_PRODUCTION("Landward production", 40, "PEDL", "landward-production", false),
+  METHANE_DRAINAGE("Methane drainage", 50, "MDL", "methane-drainage", true),
+  SEAWARD_EXPLORATION("Seaward exploration", 60, "E", "seaward-exploration", true),
+  SEAWARD_PRODUCTION("Seaward production", 70, "P", "seaward-production", false),
   // Unknown mappings
-  A("", "A", "a", false),
-  AL("", "AL", "al", false),
-  B("", "B", "b", false),
-  CE("", "CE", "ce", false),
-  DL("", "DL", "dl", false),
-  NA("", "NA", "na", false),
-  XL("", "XL", "xl", false);
+  A("", 80, "A", "a", false),
+  AL("", 90, "AL", "al", false),
+  B("", 100, "B", "b", false),
+  CE("", 110, "CE", "ce", false),
+  DL("", 120, "DL", "dl", false),
+  NA("", 130, "NA", "na", false),
+  XL("", 140, "XL", "xl", false);
 
   private final String displayName;
+  private final int displayOrder;
   private final String prefix;
   private final String urlSlug;
   private final Boolean managedByLms;
 
   LicenceType(
       String displayName,
+      int displayOrder,
       String prefix,
       String urlSlug,
       Boolean managedByLms
   ) {
     this.displayName = displayName;
+    this.displayOrder = displayOrder;
     this.prefix = prefix;
     this.urlSlug = urlSlug;
     this.managedByLms = managedByLms;
@@ -42,6 +45,11 @@ public enum LicenceType implements Displayable {
   @Override
   public String getDisplayName() {
     return displayName;
+  }
+
+  @Override
+  public int getDisplayOrder() {
+    return displayOrder;
   }
 
   @Override
@@ -112,9 +120,12 @@ public enum LicenceType implements Displayable {
         .toList();
   }
 
-  public static List<String> getDisplayableLicenceTypesNames() {
-    return getDisplayableTypes().stream()
-        .map(Enum::name)
+  /**
+   * The licence types with no known display name, i.e. the unknown mappings.
+   */
+  public static List<LicenceType> getNonDisplayableTypes() {
+    return Arrays.stream(values())
+        .filter(lt -> lt.getDisplayName().isEmpty())
         .toList();
   }
 }

@@ -14,7 +14,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
-import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +25,6 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
@@ -72,8 +70,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("searchItems", List.of()))
         .andExpect(model().attribute("hasSearchBeenInvoked", false))
         .andExpect(model().attribute("clearFilterUrl", CLEARED_SEARCH_FILTERS_ROUTE))
-        .andExpect(model().attribute("licenceTypes",
-            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes())))
+        .andExpect(model().attribute("licenceTypes", LicenceTypeFilterUtil.getOptions()))
         .andExpect(model().attribute("licenceStatuses",
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatusType.class)))
         .andExpect(model().attribute("canCreateLicence", true))
@@ -83,9 +80,8 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
     verify(licenceSearchService, never()).getSearchResultItems(form, organisationUser);
 
     var renderedForm = (LicenceSearchFilterForm) result.getModelAndView().getModel().get("form");
-    assertThat(renderedForm.getLicenceTypes()).containsExactlyElementsOf(LicenceType.getDisplayableLicenceTypesNames());
-    assertThat(renderedForm.getLicenceStatuses())
-        .containsExactlyInAnyOrderElementsOf(Arrays.stream(LicenceStatusType.values()).map(Enum::name).toList());
+    assertThat(renderedForm.getLicenceTypes()).isNull();
+    assertThat(renderedForm.getLicenceStatuses()).isNull();
   }
 
   @Test
@@ -105,8 +101,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("searchItems", List.of()))
         .andExpect(model().attribute("hasSearchBeenInvoked", true))
         .andExpect(model().attribute("clearFilterUrl", CLEARED_SEARCH_FILTERS_ROUTE))
-        .andExpect(model().attribute("licenceTypes",
-            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes())))
+        .andExpect(model().attribute("licenceTypes", LicenceTypeFilterUtil.getOptions()))
         .andExpect(model().attribute("licenceStatuses",
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatusType.class)))
         .andExpect(model().attribute("canCreateLicence", true))

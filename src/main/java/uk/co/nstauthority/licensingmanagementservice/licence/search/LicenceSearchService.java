@@ -61,11 +61,12 @@ public class LicenceSearchService {
   ) {
     var allLicences = licenceService.getAllLicences();
     var currentStatusesByLicenceId = licenceStatusService.getCurrentStatusesByLicenceId(allLicences);
+    var licenceTypeNames = LicenceTypeFilterUtil.toLicenceTypeNames(filterForm.getLicenceTypes());
 
     // get all licenses and apply simple filtering
     var filteredLicenses = allLicences.stream()
         .filter(licence -> FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference()))
-        .filter(licence -> FilterUtil.matchesEnum(LicenceType.class, licence.getType(), filterForm.getLicenceTypes()))
+        .filter(licence -> FilterUtil.matchesEnum(LicenceType.class, licence.getType(), licenceTypeNames))
         .filter(licence -> FilterUtil.matchesEnum(
             LicenceStatusType.class, currentStatusesByLicenceId.get(licence.getId()), filterForm.getLicenceStatuses()))
         .toList();

@@ -14,6 +14,7 @@ public enum TeamType implements Displayable {
 
   LICENCE_MANAGEMENT(
       "Licence management",
+      1,
       "licence-management",
       false,
       false,
@@ -35,6 +36,7 @@ public enum TeamType implements Displayable {
   ),
   OFFSHORE_PRODUCTION_LICENSING(
       "Offshore production licensing",
+      2,
       "offshore-production-licensing",
       false,
       false,
@@ -54,6 +56,7 @@ public enum TeamType implements Displayable {
   ),
   ONSHORE_PRODUCTION_LICENSING(
       "Onshore production licensing",
+      3,
       "onshore-production-licensing",
       false,
       false,
@@ -67,7 +70,8 @@ public enum TeamType implements Displayable {
       true
   ),
   CARBON_STORAGE_LICENSING(
-      "Carbon Storage Licensing",
+      "Carbon storage licensing",
+      4,
       "carbon-storage-licensing",
       false,
       false,
@@ -84,7 +88,8 @@ public enum TeamType implements Displayable {
       true
   ),
   REGULATIONS_LICENSING(
-      "Regulations Licensing",
+      "Regulations licensing",
+      5,
       "regulations-licensing",
       false,
       false,
@@ -98,6 +103,7 @@ public enum TeamType implements Displayable {
   ),
   ORGANISATION(
       "Organisations",
+      6,
       "organisation",
       true,
       false,
@@ -110,6 +116,7 @@ public enum TeamType implements Displayable {
   ),
   EXTERNAL_CONTRIBUTORS(
       "External contributors",
+      100,
       "external-contributors",
       true,
       true,
@@ -119,6 +126,7 @@ public enum TeamType implements Displayable {
   );
 
   private final String displayName;
+  private final int displayOrder;
   private final String urlSlug;
   private final boolean isScoped;
   private final boolean isApplicationScoped;
@@ -127,7 +135,7 @@ public enum TeamType implements Displayable {
   private final boolean isRegulator;
 
   TeamType(
-      String displayName,
+      String displayName, int displayOrder,
       String urlSlug,
       boolean isScoped,
       boolean isApplicationScoped,
@@ -136,6 +144,7 @@ public enum TeamType implements Displayable {
       boolean isRegulator
   ) {
     this.displayName = displayName;
+    this.displayOrder = displayOrder;
     this.urlSlug = urlSlug;
     this.isScoped = isScoped;
     this.isApplicationScoped = isApplicationScoped;
@@ -147,6 +156,11 @@ public enum TeamType implements Displayable {
   @Override
   public String getDisplayName() {
     return displayName;
+  }
+
+  @Override
+  public int getDisplayOrder() {
+    return displayOrder;
   }
 
   public String getUrlSlug() {

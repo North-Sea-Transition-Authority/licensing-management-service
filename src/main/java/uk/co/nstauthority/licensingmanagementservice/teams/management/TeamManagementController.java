@@ -111,9 +111,10 @@ public class TeamManagementController {
     var teamTypeViews = teamTypes.stream()
         .map(teamType -> new TeamTypeView(
             teamType.getDisplayName(),
+            teamType.getDisplayOrder(),
             ReverseRouter.route(on(TeamManagementController.class).renderTeamsOfType(teamType.getUrlSlug(), user)))
         )
-        .sorted(Comparator.comparing(teamTypeView -> teamTypeView.teamTypeName().toLowerCase()))
+        .sorted(Comparator.comparing(TeamTypeView::displayOrder))
         .toList();
 
     return new ModelAndView("lms/teamManagement/teamTypes")

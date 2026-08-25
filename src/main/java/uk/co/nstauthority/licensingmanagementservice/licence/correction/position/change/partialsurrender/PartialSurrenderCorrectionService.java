@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.positionDateAndOrderUnchanged;
 
 import jakarta.annotation.Nullable;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -307,6 +308,42 @@ public class PartialSurrenderCorrectionService {
     var surrenderDetails = resolveSurrenderDetails(licencePositionCorrection, featureId, existing, blockSurrenderType);
 
     applyPartialSurrender(licencePositionCorrection, withSurrenderDetails(operation, featureId, surrenderDetails));
+  }
+
+  @Transactional
+  public void setSurrenderedFeatureIds(
+      LicencePositionCorrection licencePositionCorrection,
+      UUID featureId,
+      Collection<UUID> surrenderedFeatureIds
+  ) {
+    var partialSurrenderOperation = getCommittedPartialSurrenderOrThrow(licencePositionCorrection);
+    var existing = getSurrenderDetailsOrThrow(licencePositionCorrection, featureId);
+
+    var updated = new SurrenderDetails(
+        existing.type(),
+        existing.commandJourneyId(),
+        surrenderedFeatureIds.stream().toList()
+    );
+
+    applyPartialSurrender(licencePositionCorrection, withSurrenderDetails(partialSurrenderOperation, featureId, updated));
+  }
+
+  @Transactional
+  public void clearSurrenderedIds(
+      LicencePositionCorrection licencePositionCorrection,
+      UUID featureId,
+      Collection<UUID> activeFeatureIds
+  ) {
+    var partialSurrenderOperation = getCommittedPartialSurrenderOrThrow(licencePositionCorrection);
+    var existing = partialSurrenderOperation.featureIdToSurrenderDetails().get(featureId);
+    if (existing == null
+        || existing.surrenderedFeatureIds().isEmpty()
+        || activeFeatureIds.containsAll(existing.surrenderedFeatureIds())
+    ) {
+      return;
+    }
+    var cleared = new SurrenderDetails(existing.type(), existing.commandJourneyId(), List.of());
+    applyPartialSurrender(licencePositionCorrection, withSurrenderDetails(partialSurrenderOperation, featureId, cleared));
   }
 
   private SurrenderDetails resolveSurrenderDetails(

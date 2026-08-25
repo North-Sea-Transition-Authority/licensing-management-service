@@ -75,7 +75,8 @@ public record PartialSurrenderOperation(
 
     @JsonIgnore
     public boolean isComplete() {
-      return type == BlockSurrenderType.FULL_SURRENDER || !surrenderedFeatureIds.isEmpty();
+      // TODO: Change when criteria for complete partial surrender exists
+      return type == BlockSurrenderType.FULL_SURRENDER;
     }
   }
 

@@ -1,5 +1,10 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea;
 
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasProperty;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -13,12 +18,14 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.validation.BindingResult;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
@@ -35,9 +42,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
-@ContextConfiguration(classes = PartialSurrenderDefineAreaController.class)
+@ContextConfiguration(classes = {
+    PartialSurrenderDefineAreaController.class
+})
 @ActiveProfiles({"test"})
 class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
 
@@ -54,12 +64,25 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
   private static final UUID COMMAND_JOURNEY_ID = UUID.randomUUID();
   private static final int ED50_WKID = 4230;
   private static final String VIEW_NAME = "lms/licence/correction/change/partialSurrender/partialSurrenderDefineArea";
+  private static final String SELECT_AREAS_VIEW_NAME =
+      "lms/licence/correction/change/partialSurrender/partialSurrenderSelectAreas";
+  private static final Feature FIRST_AREA = FeatureTestUtil.builder()
+      .withFeatureName("30/1a_1")
+      .withCoordinateSystem(CoordinateSystem.ED50)
+      .build();
+  private static final Feature SECOND_AREA = FeatureTestUtil.builder()
+      .withFeatureName("30/1a_2")
+      .withCoordinateSystem(CoordinateSystem.ED50)
+      .build();
 
   @MockitoBean
   private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
   @MockitoBean
   private CommandJourneyService commandJourneyService;
+
+  @MockitoBean
+  private PartialSurrenderSelectAreasFormValidator partialSurrenderSelectAreasFormValidator;
 
   @MockitoBean
   private PartialSurrenderDefineAreaValidator partialSurrenderDefineAreaValidator;
@@ -90,7 +113,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
 
   @Test
   void renderDefineArea_rendersMapWithCommandJourneyAndSrsWkid() throws Exception {
-    givenBlockSurrenderWithActiveFeatures(1);
+    givenBlockSurrenderWithActiveFeatures();
 
     mockMvc.perform(get(defineAreaUrl())
             .with(user(regulatorUser)))
@@ -106,7 +129,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
 
   @Test
   void defineArea_whenBlockNotSplit_rendersFormWithError() throws Exception {
-    givenBlockSurrenderWithActiveFeatures(1);
+    givenBlockSurrenderWithActiveFeatures();
 
     when(partialSurrenderDefineAreaValidator.hasErrors(List.of(FEATURE))).thenReturn(true);
 
@@ -121,16 +144,87 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void defineArea_whenBlockSplit_redirectsToTaskList() throws Exception {
-    givenBlockSurrenderWithActiveFeatures(2);
+  void defineArea_whenBlockSplit_removesStaleIdsAndRedirectsToSelectAreas() throws Exception {
+    var positionCorrection = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
 
     mockMvc.perform(post(defineAreaUrl())
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(taskListUrl()));
+        .andExpect(redirectedUrl(selectAreasUrl()));
+
+    verify(partialSurrenderCorrectionService).clearSurrenderedIds(
+        positionCorrection, FEATURE_ID, List.of(FIRST_AREA.getId(), SECOND_AREA.getId()));
   }
 
-  private void givenBlockSurrenderWithActiveFeatures(int activeFeatureCount) {
+  @Test
+  void renderSelectAreas_rendersMapCheckboxesAndPreTicksExistingSelection() throws Exception {
+    givenBlockSurrender(List.of(FIRST_AREA.getId()), List.of(FIRST_AREA, SECOND_AREA));
+
+    mockMvc.perform(get(selectAreasUrl())
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(SELECT_AREAS_VIEW_NAME),
+            model().attribute("pageTitle", "Select the areas to surrender"),
+            model().attribute("pageCaption", LICENCE.getLicenceReference()),
+            model().attribute("srsWkid", ED50_WKID),
+            model().attribute("areaCheckboxOptions",
+                LicenceBlockFeatureUtil.toBlockCheckboxOptions(List.of(FIRST_AREA, SECOND_AREA))),
+            model().attribute("activeFeatureIds", List.of(FIRST_AREA.getId(), SECOND_AREA.getId())),
+            model().attribute("form", hasProperty("surrenderedFeatureIds", contains(FIRST_AREA.getId()))),
+            model().attribute("backLinkUrl", defineAreaUrl())
+        );
+  }
+
+  @Test
+  void selectAreas_whenValidSelection_savesAndRedirectsToTaskList() throws Exception {
+    var positionCorrection = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
+
+    when(partialSurrenderSelectAreasFormValidator.hasErrors(
+        any(PartialSurrenderSelectAreasForm.class),
+        any(BindingResult.class),
+        eq(List.of(FIRST_AREA, SECOND_AREA))
+    )).thenReturn(false);
+
+    mockMvc.perform(post(selectAreasUrl())
+            .param("surrenderedFeatureIds", FIRST_AREA.getId().toString())
+            .with(user(regulatorUser)).with(csrf()))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(taskListUrl()));
+
+    verify(partialSurrenderCorrectionService)
+        .setSurrenderedFeatureIds(positionCorrection, FEATURE_ID, Set.of(FIRST_AREA.getId()));
+  }
+
+  @Test
+  void selectAreas_whenInvalid_renderForm() throws Exception {
+    givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
+
+    when(partialSurrenderSelectAreasFormValidator.hasErrors(
+        any(PartialSurrenderSelectAreasForm.class),
+        any(BindingResult.class),
+        eq(List.of(FIRST_AREA, SECOND_AREA))
+    )).thenReturn(true);
+
+    mockMvc.perform(post(selectAreasUrl())
+            .with(user(regulatorUser)).with(csrf()))
+        .andExpectAll(
+            status().isOk(),
+            view().name(SELECT_AREAS_VIEW_NAME)
+        );
+  }
+
+  private void givenBlockSurrenderWithActiveFeatures() {
+    var activeFeatures = new ArrayList<Feature>();
+    for (var i = 0; i < 1; i++) {
+      activeFeatures.add(FEATURE);
+    }
+    givenBlockSurrender(List.of(), activeFeatures);
+  }
+
+  private LicencePositionCorrection givenBlockSurrender(
+      List<UUID> surrenderedFeatureIds, List<Feature> activeFeatures
+  ) {
     var correction = LicenceCorrectionTestUtil.newBuilder().withId(CORRECTION_ID).withLicence(LICENCE).build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
@@ -140,13 +234,11 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
         .thenReturn(positionCorrection);
 
     when(partialSurrenderCorrectionService.getSurrenderDetailsOrThrow(positionCorrection, FEATURE_ID))
-        .thenReturn(new SurrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, COMMAND_JOURNEY_ID, List.of()));
+        .thenReturn(new SurrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, COMMAND_JOURNEY_ID, surrenderedFeatureIds));
 
-    var activeFeatures = new ArrayList<Feature>();
-    for (var i = 0; i < activeFeatureCount; i++) {
-      activeFeatures.add(FEATURE);
-    }
     when(commandJourneyService.getActiveFeatures(COMMAND_JOURNEY_ID)).thenReturn(activeFeatures);
+
+    return positionCorrection;
   }
 
   private LicencePositionCorrection positionCorrection() {
@@ -158,6 +250,11 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
   private static String defineAreaUrl() {
     return ReverseRouter.route(on(PartialSurrenderDefineAreaController.class)
         .renderDefineArea(CORRECTION_ID, POSITION_CORRECTION_ID, FEATURE_ID, null));
+  }
+
+  private static String selectAreasUrl() {
+    return ReverseRouter.route(on(PartialSurrenderDefineAreaController.class)
+        .renderSelectAreas(CORRECTION_ID, POSITION_CORRECTION_ID, FEATURE_ID, null));
   }
 
   private static String surrenderTypeUrl() {

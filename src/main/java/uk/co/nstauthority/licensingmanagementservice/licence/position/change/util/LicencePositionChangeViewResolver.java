@@ -17,7 +17,6 @@ import java.util.stream.Collectors;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
@@ -167,10 +166,13 @@ public final class LicencePositionChangeViewResolver {
 
     var blockRows = operation.featureIds()
         .stream()
-        .map(featureId -> new PartialSurrenderChangeView.BlockRow(
-            featureNames.getOrDefault(featureId, NOT_AVAILABLE),
-            surrenderTypeDisplayName(operation, featureId)
-        ))
+        .map(featureId -> {
+          var blockSurrender = operation.featureIdToSurrenderDetails().get(featureId);
+          return new PartialSurrenderChangeView.BlockRow(
+              featureNames.getOrDefault(featureId, NOT_AVAILABLE),
+              blockSurrender != null ? blockSurrender.type().getDisplayName() : NOT_AVAILABLE
+          );
+        })
         .toList();
 
     return new PartialSurrenderChangeView(
@@ -179,17 +181,6 @@ public final class LicencePositionChangeViewResolver {
         change.changeType(),
         new ChangeViewUrls(partialSurrenderCorrectUrl(urlContext, change), null, null, correctChangeOrderUrl)
     );
-  }
-
-  /**
-   * A surrender type is chosen per block after the surrender itself is staged, so a block that has not reached that
-   * step yet has no type to show.
-   */
-  @Nullable
-  private static String surrenderTypeDisplayName(PartialSurrenderOperation operation, UUID featureId) {
-    return Optional.ofNullable(operation.blockSurrenderTypeByFeatureId().get(featureId))
-        .map(BlockSurrenderType::getDisplayName)
-        .orElse(null);
   }
 
   private static AdministratorChangeView buildAdministratorChange(

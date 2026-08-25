@@ -176,6 +176,15 @@ class FeatureJourneyStateServiceTest {
   }
 
   @Test
+  void deleteAllStatesForJourney() {
+    var commandJourney = CommandJourneyTestUtil.newBuilder().build();
+
+    featureJourneyStateService.deleteAllStatesForJourney(commandJourney);
+
+    verify(featureJourneyStateRepository).deleteAllByCommandJourney(commandJourney);
+  }
+
+  @Test
   void findFeatureWithNoJourneyStateOrThrow_whenFound_returnsFeature() {
     var feature = FeatureTestUtil.newBuilder().build();
     when(featureJourneyStateRepository.findFeaturesWithNoJourneyState(CoordinateSystem.ED50, Limit.of(1)))

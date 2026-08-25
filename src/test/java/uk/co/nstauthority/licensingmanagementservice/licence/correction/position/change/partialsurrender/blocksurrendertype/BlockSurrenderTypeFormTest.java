@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
@@ -40,9 +41,14 @@ class BlockSurrenderTypeFormTest {
   }
 
   private PartialSurrenderOperation operationWithTypes(Map<UUID, BlockSurrenderType> typesByFeatureId) {
+    var blockSurrenders = typesByFeatureId.entrySet().stream()
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            entry -> new PartialSurrenderOperation.SurrenderDetails(entry.getValue(), UUID.randomUUID(), List.of())));
+
     return LicenceOperation.newPartialSurrenderOperation()
         .withFeatureIds(List.of(FEATURE_ID, OTHER_FEATURE_ID))
-        .withBlockSurrenderTypeByFeatureId(typesByFeatureId)
+        .withSurrenderDetails(blockSurrenders)
         .build();
   }
 }

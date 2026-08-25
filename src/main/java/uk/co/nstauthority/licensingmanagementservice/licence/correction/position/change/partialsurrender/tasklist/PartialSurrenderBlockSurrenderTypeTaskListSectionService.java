@@ -14,7 +14,6 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -80,7 +79,8 @@ public class PartialSurrenderBlockSurrenderTypeTaskListSectionService
   }
 
   private boolean isBlockSurrenderComplete(PartialSurrenderOperation operation, UUID featureId) {
-    return operation.blockSurrenderTypeByFeatureId().get(featureId) == BlockSurrenderType.FULL_SURRENDER;
+    var blockSurrender = operation.featureIdToSurrenderDetails().get(featureId);
+    return blockSurrender != null && blockSurrender.isComplete();
   }
 
   private String blockSurrenderTypeUrl(LicencePositionCorrection positionCorrection, UUID featureId) {

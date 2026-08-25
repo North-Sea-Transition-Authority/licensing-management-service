@@ -1,5 +1,16 @@
 <template>
   <div>
+    <details-component summary="How can I split the block?">
+      <p class="govuk-body">
+        You can split the block by clicking the snap points on the map to draw a line.
+        Click split once you are done drawing the line.
+        You can only draw a single line at a time, but you can perform multiple splits.
+      </p>
+      <p class="govuk-body">
+        If you made a mistake, you can use the undo/redo split buttons to fix it.
+        You can also remove single line points before triggering a split.
+      </p>
+    </details-component>
     <error-summary v-if="splitError" :description="splitError"/>
     <base-map
       ref="baseMapRef"
@@ -34,6 +45,7 @@ import { computed, ref, watch } from "vue";
 import { splitFeature } from "../../api/split.api";
 import BaseMap from "../baseMap/BaseMap.vue";
 import ErrorSummary from "../gdsComponents/error/ErrorSummary.vue";
+import DetailsComponent from "../govukVue/details/GvDetails.vue";
 import LineCoordinateStack from "../lineCoordinateStack/LineCoordinateStack.vue";
 import SplitActions from "./SplitActions.vue";
 

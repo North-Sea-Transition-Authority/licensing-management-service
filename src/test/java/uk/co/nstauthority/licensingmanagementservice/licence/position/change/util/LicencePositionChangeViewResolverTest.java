@@ -10,6 +10,7 @@ import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
@@ -20,6 +21,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
@@ -693,9 +696,9 @@ class LicencePositionChangeViewResolverTest {
         currentLicencePosition,
         LicenceOperation.newPartialSurrenderOperation()
             .withFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
-            .withBlockSurrenderTypeByFeatureId(Map.of(
+            .withSurrenderDetails(blockSurrenders(Map.of(
                 FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER,
-                SECOND_FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER))
+                SECOND_FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER)))
             .build()
     );
 
@@ -721,7 +724,7 @@ class LicencePositionChangeViewResolverTest {
         currentLicencePosition,
         LicenceOperation.newPartialSurrenderOperation()
             .withFeatureIds(List.of(FIRST_FEATURE_ID))
-            .withBlockSurrenderTypeByFeatureId(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
+            .withSurrenderDetails(blockSurrenders(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER)))
             .build()
     );
 
@@ -742,7 +745,7 @@ class LicencePositionChangeViewResolverTest {
         currentLicencePosition,
         LicenceOperation.newPartialSurrenderOperation()
             .withFeatureIds(List.of(FIRST_FEATURE_ID))
-            .withBlockSurrenderTypeByFeatureId(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
+            .withSurrenderDetails(blockSurrenders(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER)))
             .build()
     );
 
@@ -763,7 +766,7 @@ class LicencePositionChangeViewResolverTest {
         LicenceOperation.newPartialSurrenderOperation()
             .withSurrenderDate(LocalDate.of(2026, Month.SEPTEMBER, 30))
             .withFeatureIds(List.of(FIRST_FEATURE_ID))
-            .withBlockSurrenderTypeByFeatureId(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
+            .withSurrenderDetails(blockSurrenders(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER)))
             .build()
     );
 
@@ -771,6 +774,14 @@ class LicencePositionChangeViewResolverTest {
 
     var partialSurrenderChangeView = (PartialSurrenderChangeView) result.get(LicenceOperation.PARTIAL_SURRENDER);
     assertThat(partialSurrenderChangeView.surrenderDate()).isEqualTo("30 September 2026");
+  }
+
+  private static Map<UUID, PartialSurrenderOperation.SurrenderDetails> blockSurrenders(
+      Map<UUID, BlockSurrenderType> typesByFeatureId) {
+    return typesByFeatureId.entrySet().stream()
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            entry -> new PartialSurrenderOperation.SurrenderDetails(entry.getValue(), UUID.randomUUID(), List.of())));
   }
 
   @Test
@@ -782,7 +793,7 @@ class LicencePositionChangeViewResolverTest {
         currentLicencePosition,
         LicenceOperation.newPartialSurrenderOperation()
             .withFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
-            .withBlockSurrenderTypeByFeatureId(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
+            .withSurrenderDetails(blockSurrenders(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER)))
             .build()
     );
 
@@ -792,7 +803,7 @@ class LicencePositionChangeViewResolverTest {
         .extracting(PartialSurrenderChangeView::blockRows)
         .isEqualTo(List.of(
             new PartialSurrenderChangeView.BlockRow(FEATURE_NAMES.get(FIRST_FEATURE_ID), "Full surrender"),
-            new PartialSurrenderChangeView.BlockRow(FEATURE_NAMES.get(SECOND_FEATURE_ID), null)));
+            new PartialSurrenderChangeView.BlockRow(FEATURE_NAMES.get(SECOND_FEATURE_ID), "Not available")));
   }
 
   @Test
@@ -804,7 +815,7 @@ class LicencePositionChangeViewResolverTest {
         currentLicencePosition,
         LicenceOperation.newPartialSurrenderOperation()
             .withFeatureIds(List.of(FIRST_FEATURE_ID))
-            .withBlockSurrenderTypeByFeatureId(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
+            .withSurrenderDetails(blockSurrenders(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER)))
             .build());
 
     var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
@@ -900,7 +911,7 @@ class LicencePositionChangeViewResolverTest {
   ) {
     var operation = LicenceOperation.newPartialSurrenderOperation()
         .withFeatureIds(List.of(FIRST_FEATURE_ID))
-        .withBlockSurrenderTypeByFeatureId(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
+        .withSurrenderDetails(blockSurrenders(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER)))
         .build();
     var positions = List.of(ChronologicalPositionTestUtil.newBuilder()
         .withId(positionId)
@@ -1069,7 +1080,11 @@ class LicencePositionChangeViewResolverTest {
     return new PositionChange(changeId, 3, changeType,
         List.of(LicenceOperation.newPartialSurrenderOperation()
             .withFeatureIds(List.of(FIRST_FEATURE_ID))
-            .withBlockSurrenderTypeByFeatureId(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
+            .withSurrenderDetails(Map.of(FIRST_FEATURE_ID, new SurrenderDetails(
+                BlockSurrenderType.FULL_SURRENDER,
+                UUID.randomUUID(),
+                List.of(FIRST_FEATURE_ID)
+            )))
             .build()));
   }
 }

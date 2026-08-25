@@ -13,8 +13,11 @@ public class BlockSurrenderTypeForm {
   ) {
     var form = new BlockSurrenderTypeForm();
 
-    if (operation != null && operation.blockSurrenderTypeByFeatureId().get(featureId) != null) {
-      form.setSurrenderType(operation.blockSurrenderTypeByFeatureId().get(featureId).name());
+    if (operation != null) {
+      var blockSurrender = operation.featureIdToSurrenderDetails().get(featureId);
+      if (blockSurrender != null) {
+        form.setSurrenderType(blockSurrender.type().name());
+      }
     }
 
     return form;

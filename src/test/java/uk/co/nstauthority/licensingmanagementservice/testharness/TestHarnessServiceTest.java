@@ -25,6 +25,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.command.CommandJourney;
+import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -66,6 +68,7 @@ class TestHarnessServiceTest {
   private static final LicenceTransaction CROSS_TRANSACTION = LicenceTransactionTestUtil.newBuilder().build();
 
   private static final Feature SURRENDERED_BLOCK = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 7);
+  private static final UUID SURRENDER_COMMAND_JOURNEY_ID = UUID.randomUUID();
 
   @Mock
   private LicenceTransactionService licenceTransactionService;
@@ -81,6 +84,9 @@ class TestHarnessServiceTest {
 
   @Mock
   private LicencePositionFeatureTestHarnessService licencePositionFeatureTestHarnessService;
+
+  @Mock
+  private CommandJourneyService commandJourneyService;
 
   private TestHarnessService testHarnessService;
 
@@ -103,7 +109,13 @@ class TestHarnessServiceTest {
   void setUp() {
     testHarnessService = new TestHarnessService(
         licenceTransactionService, licencePositionService, licencePositionTestHarnessService,
-        licencePositionChangeService, licencePositionFeatureTestHarnessService, CLOCK);
+        licencePositionChangeService, licencePositionFeatureTestHarnessService, commandJourneyService, CLOCK);
+  }
+
+  private void givenSurrenderCommandJourneyCreated() {
+    var commandJourney = new CommandJourney();
+    commandJourney.setId(SURRENDER_COMMAND_JOURNEY_ID);
+    when(commandJourneyService.createAndAssignCommandJourney(List.of(SURRENDERED_BLOCK))).thenReturn(commandJourney);
   }
 
   @Test
@@ -129,6 +141,7 @@ class TestHarnessServiceTest {
     var positions = buildPositions(5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
     when(licencePositionService.getBlockFeatures(positions.get(3))).thenReturn(List.of(SURRENDERED_BLOCK));
+    givenSurrenderCommandJourneyCreated();
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -165,6 +178,7 @@ class TestHarnessServiceTest {
     var positions = buildPositions(5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
     when(licencePositionService.getBlockFeatures(positions.get(3))).thenReturn(List.of(SURRENDERED_BLOCK));
+    givenSurrenderCommandJourneyCreated();
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -186,6 +200,7 @@ class TestHarnessServiceTest {
     var positions = buildPositions(5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
     when(licencePositionService.getBlockFeatures(positions.get(3))).thenReturn(List.of(SURRENDERED_BLOCK));
+    givenSurrenderCommandJourneyCreated();
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -198,7 +213,8 @@ class TestHarnessServiceTest {
     // no surrender date - the change takes the date of the position it sits on
     var expectedSurrender = LicenceOperation.newPartialSurrenderOperation()
         .withFeatureIds(List.of(SURRENDERED_BLOCK.getId()))
-        .withBlockSurrenderTypeByFeatureId(Map.of(SURRENDERED_BLOCK.getId(), BlockSurrenderType.FULL_SURRENDER))
+        .withSurrenderDetails(Map.of(SURRENDERED_BLOCK.getId(), new PartialSurrenderOperation.SurrenderDetails(
+            BlockSurrenderType.FULL_SURRENDER, SURRENDER_COMMAND_JOURNEY_ID, List.of(SURRENDERED_BLOCK.getId()))))
         .build();
     assertThat(operationsCaptor.getAllValues().getLast()).containsExactly(expectedSurrender);
   }

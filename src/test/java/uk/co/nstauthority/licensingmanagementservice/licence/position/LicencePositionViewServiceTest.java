@@ -169,8 +169,9 @@ class LicencePositionViewServiceTest {
   private static PartialSurrenderOperation partialSurrenderOperation() {
     return LicenceOperation.newPartialSurrenderOperation()
         .withFeatureIds(List.of(SURRENDERED_BLOCK.getId()))
-        .withBlockSurrenderTypeByFeatureId(
-            Map.of(SURRENDERED_BLOCK.getId(), BlockSurrenderType.FULL_SURRENDER))
+        .withSurrenderDetails(Map.of(SURRENDERED_BLOCK.getId(),
+            new PartialSurrenderOperation.SurrenderDetails(
+                BlockSurrenderType.FULL_SURRENDER, UUID.randomUUID(), List.of(SURRENDERED_BLOCK.getId()))))
         .build();
   }
 
@@ -836,8 +837,10 @@ class LicencePositionViewServiceTest {
     var partialSurrenderOp = new PartialSurrenderOperation(
         null, List.of(firstBlock.getId(), secondBlock.getId()),
         Map.of(
-            firstBlock.getId(), BlockSurrenderType.FULL_SURRENDER,
-            secondBlock.getId(), BlockSurrenderType.PARTIAL_SURRENDER));
+            firstBlock.getId(), new PartialSurrenderOperation.SurrenderDetails(
+                BlockSurrenderType.FULL_SURRENDER, UUID.randomUUID(), List.of()),
+            secondBlock.getId(), new PartialSurrenderOperation.SurrenderDetails(
+                BlockSurrenderType.PARTIAL_SURRENDER, UUID.randomUUID(), List.of())));
 
     var change = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(position)

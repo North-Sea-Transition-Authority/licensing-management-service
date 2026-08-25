@@ -170,6 +170,16 @@ class OperatorCommandServiceTest {
   }
 
   @Test
+  void getCommands() {
+    var journey = new CommandJourney();
+    var command = OperatorCommandTestUtil.newBuilder().build();
+
+    when(operatorCommandRepository.findAllByCommandJourney(journey)).thenReturn(List.of(command));
+
+    assertThat(operatorCommandService.getCommands(journey)).containsExactly(command);
+  }
+
+  @Test
   void deleteCommands_delegatesToRepository() {
     var command = OperatorCommandTestUtil.newBuilder().build();
 

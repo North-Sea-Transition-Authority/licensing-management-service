@@ -2,7 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.util.HashMap;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
@@ -24,8 +24,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -104,6 +104,11 @@ public class BlockSurrenderTypeController {
         BlockSurrenderType.valueOf(form.getSurrenderType())
     );
 
+    if (Objects.equals(form.getSurrenderType(), BlockSurrenderType.PARTIAL_SURRENDER.getEnumName())) {
+      return ReverseRouter.redirect(on(PartialSurrenderDefineAreaController.class)
+          .renderDefineArea(correctionId, licencePositionCorrectionId, featureId, null));
+    }
+
     NotificationBanner.newSuccessBannerWithHeader(SAVED_BANNER, redirectAttributes);
     return ReverseRouter.redirect(on(PartialSurrenderTaskListController.class)
         .renderTaskList(correctionId, licencePositionCorrectionId, null, null));
@@ -161,14 +166,19 @@ public class BlockSurrenderTypeController {
       );
     }
 
-    var blockSurrenderTypeByFeatureId = new HashMap<>(surrenderUnderCorrection.blockSurrenderTypeByFeatureId());
-    blockSurrenderTypeByFeatureId.put(featureId, BlockSurrenderType.valueOf(form.getSurrenderType()));
+    var blockSurrenderType = BlockSurrenderType.valueOf(form.getSurrenderType());
 
-    // the surrender date is deliberately omitted so that saving a type does not stage a date correction
-    var correctedSurrender = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(surrenderUnderCorrection.featureIds())
-        .withBlockSurrenderTypeByFeatureId(blockSurrenderTypeByFeatureId)
-        .build();
+    // the surrender date is deliberately omitted so that saving a type does not stage a date correction; the block's
+    // existing command journey is reused (a block can only carry one) so the correction points at the same splits
+    var correctedSurrender = partialSurrenderCorrectionService
+        .getOrCreatePartialSurrenderDetails(surrenderUnderCorrection, featureId, blockSurrenderType);
+
+    if (blockSurrenderType == BlockSurrenderType.PARTIAL_SURRENDER) {
+      var positionCorrection = partialSurrenderCorrectionService
+          .correctExistingPartialSurrender(correction, licencePosition, changeId, correctedSurrender);
+      return ReverseRouter.redirect(on(PartialSurrenderDefineAreaController.class)
+          .renderDefineArea(correctionId, positionCorrection.getId(), featureId, null));
+    }
 
     if (correctedSurrender.hasUpdateOccurred(partialSurrenderCorrectionService.getLiveSurrenderOrThrow(changeId))) {
       partialSurrenderCorrectionService.correctExistingPartialSurrender(

@@ -20,4 +20,6 @@ interface OperatorCommandRepository extends ListCrudRepository<OperatorCommand, 
                                                                                      CommandStatus status);
 
   List<OperatorCommand> findAllByCommandJourneyAndStatus(CommandJourney commandJourney, CommandStatus status);
+
+  List<OperatorCommand> findAllByCommandJourney(CommandJourney commandJourney);
 }

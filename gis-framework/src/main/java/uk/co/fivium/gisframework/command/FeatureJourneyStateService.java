@@ -99,6 +99,17 @@ public class FeatureJourneyStateService {
     return features;
   }
 
+
+  /**
+   * Hard-deletes the feature journey states associated to a command journey.
+   *
+   * @param commandJourney The commands journey whose feature journey states should be deleted
+   */
+  @Transactional
+  public void deleteAllStatesForJourney(CommandJourney commandJourney) {
+    featureJourneyStateRepository.deleteAllByCommandJourney(commandJourney);
+  }
+
   /**
    * Used only for the GIS test page, will remove in the future.
    */

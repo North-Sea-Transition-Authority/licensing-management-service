@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -208,9 +209,14 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
       List<UUID> featureIds,
       Map<UUID, BlockSurrenderType> blockSurrenderTypeByFeatureId
   ) {
+    var blockSurrenders = blockSurrenderTypeByFeatureId.entrySet().stream()
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            entry -> new PartialSurrenderOperation.SurrenderDetails(entry.getValue(), UUID.randomUUID(), List.of())));
+
     return LicenceOperation.newPartialSurrenderOperation()
         .withFeatureIds(featureIds)
-        .withBlockSurrenderTypeByFeatureId(blockSurrenderTypeByFeatureId)
+        .withSurrenderDetails(blockSurrenders)
         .build();
   }
 

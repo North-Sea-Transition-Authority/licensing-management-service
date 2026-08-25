@@ -29,10 +29,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -260,15 +260,15 @@ public class LicencePositionPartialSurrenderController {
       @Nullable PartialSurrenderOperation existing,
       PartialSurrenderDetailsForm form
   ) {
-    var blockSurrenderTypesByFeatureId = new HashMap<UUID, BlockSurrenderType>();
+    var blockSurrendersByFeatureId = new HashMap<UUID, SurrenderDetails>();
     if (existing != null) {
-      blockSurrenderTypesByFeatureId.putAll(existing.blockSurrenderTypeByFeatureId());
-      blockSurrenderTypesByFeatureId.keySet().retainAll(form.getFeatureIds());
+      blockSurrendersByFeatureId.putAll(existing.featureIdToSurrenderDetails());
+      blockSurrendersByFeatureId.keySet().retainAll(form.getFeatureIds());
     }
 
     return LicenceOperation.newPartialSurrenderOperation()
         .withFeatureIds(form.getFeatureIds())
-        .withBlockSurrenderTypeByFeatureId(blockSurrenderTypesByFeatureId)
+        .withSurrenderDetails(blockSurrendersByFeatureId)
         .build();
   }
 

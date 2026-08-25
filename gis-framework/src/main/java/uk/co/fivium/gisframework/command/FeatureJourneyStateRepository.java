@@ -31,4 +31,6 @@ interface FeatureJourneyStateRepository extends ListCrudRepository<FeatureJourne
   @Query("SELECT f FROM Feature f WHERE f.coordinateSystem = :coordinateSystem " +
       "AND NOT EXISTS (SELECT 1 FROM FeatureJourneyState state WHERE state.feature = f)")
   List<Feature> findFeaturesWithNoJourneyState(@Param("coordinateSystem") CoordinateSystem coordinateSystem, Limit limit);
+
+  void deleteAllByCommandJourney(CommandJourney commandJourney);
 }

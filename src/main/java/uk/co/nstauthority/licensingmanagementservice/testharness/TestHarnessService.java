@@ -9,11 +9,13 @@ import java.util.UUID;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
@@ -39,6 +41,7 @@ class TestHarnessService {
   private final LicencePositionTestHarnessService licencePositionTestHarnessService;
   private final LicencePositionChangeService licencePositionChangeService;
   private final LicencePositionFeatureTestHarnessService licencePositionFeatureTestHarnessService;
+  private final CommandJourneyService commandJourneyService;
   private final Clock clock;
 
   TestHarnessService(
@@ -47,6 +50,7 @@ class TestHarnessService {
       LicencePositionTestHarnessService licencePositionTestHarnessService,
       LicencePositionChangeService licencePositionChangeService,
       LicencePositionFeatureTestHarnessService licencePositionFeatureTestHarnessService,
+      CommandJourneyService commandJourneyService,
       Clock clock
   ) {
     this.licenceTransactionService = licenceTransactionService;
@@ -54,6 +58,7 @@ class TestHarnessService {
     this.licencePositionTestHarnessService = licencePositionTestHarnessService;
     this.licencePositionChangeService = licencePositionChangeService;
     this.licencePositionFeatureTestHarnessService = licencePositionFeatureTestHarnessService;
+    this.commandJourneyService = commandJourneyService;
     this.clock = clock;
   }
 
@@ -100,10 +105,14 @@ class TestHarnessService {
   }
 
   private void createPartialSurrenderChange(LicencePosition licencePosition, Feature surrenderedBlock) {
+    // a full surrender still carries a command journey (with no splits) so downstream processing is uniform
+    var commandJourneyId = commandJourneyService.createAndAssignCommandJourney(List.of(surrenderedBlock)).getId();
+
     // no surrender date - the change takes the date of the position it sits on
     LicenceOperation partialSurrender = LicenceOperation.newPartialSurrenderOperation()
         .withFeatureIds(List.of(surrenderedBlock.getId()))
-        .withBlockSurrenderTypeByFeatureId(Map.of(surrenderedBlock.getId(), BlockSurrenderType.FULL_SURRENDER))
+        .withSurrenderDetails(Map.of(surrenderedBlock.getId(), new SurrenderDetails(
+            BlockSurrenderType.FULL_SURRENDER, commandJourneyId, List.of(surrenderedBlock.getId()))))
         .build();
 
     licencePositionChangeService.createLicencePositionChange(

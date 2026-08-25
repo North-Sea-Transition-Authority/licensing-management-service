@@ -83,11 +83,12 @@ public class PartialSurrenderBlockSurrenderTypeSummarySectionService
   }
 
   private SummaryCard blockSurrenderTypeCard(PartialSurrenderOperation surrender, UUID featureId) {
-    var surrenderType = surrender.blockSurrenderTypeByFeatureId().get(featureId);
+    var blockSurrender = surrender.featureIdToSurrenderDetails().get(featureId);
+    var surrenderType = blockSurrender != null ? blockSurrender.type().getDisplayName() : null;
     return SummaryCard.simpleSummaryCard(
         SummaryDataView.newStringKeyValue(
             TYPE_OF_CHANGE,
-            surrenderType != null ? surrenderType.getDisplayName() : null
+            surrenderType
         )
     );
   }

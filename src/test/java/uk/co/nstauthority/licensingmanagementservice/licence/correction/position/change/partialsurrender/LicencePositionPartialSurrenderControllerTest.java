@@ -499,7 +499,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
         eq(correction), eq(licencePosition), eq(LIVE_CHANGE_ID), captor.capture());
     assertThat(captor.getValue())
         .usingRecursiveComparison()
-        .isEqualTo(new PartialSurrenderOperation(live.id(), null, List.of(BLOCK_30_2.getId()), Map.of()));
+        .isEqualTo(new PartialSurrenderOperation(null, List.of(BLOCK_30_2.getId()), Map.of()));
   }
 
   @Test
@@ -531,7 +531,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
         eq(correction), eq(licencePosition), eq(LIVE_CHANGE_ID), captor.capture());
     assertThat(captor.getValue())
         .usingRecursiveComparison()
-        .isEqualTo(new PartialSurrenderOperation(live.id(), null, List.of(BLOCK_30_2.getId()), Map.of()));
+        .isEqualTo(new PartialSurrenderOperation(null, List.of(BLOCK_30_2.getId()), Map.of()));
   }
 
   @Test
@@ -592,7 +592,9 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var licencePosition = executedPosition();
     var staged = LicenceOperation.newPartialSurrenderOperation()
         .withFeatureIds(List.of(BLOCK_30_1A.getId()))
-        .withBlockSurrenderTypeByFeatureId(Map.of(BLOCK_30_1A.getId(), BlockSurrenderType.FULL_SURRENDER))
+        .withSurrenderDetails(Map.of(BLOCK_30_1A.getId(),
+            new PartialSurrenderOperation.SurrenderDetails(
+                BlockSurrenderType.FULL_SURRENDER, UUID.randomUUID(), List.of(BLOCK_30_1A.getId()))))
         .build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenBlockFeaturesForExecutedPosition(licencePosition, BLOCK_FEATURES);

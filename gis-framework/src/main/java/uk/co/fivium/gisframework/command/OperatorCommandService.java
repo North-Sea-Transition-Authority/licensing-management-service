@@ -45,6 +45,16 @@ public class OperatorCommandService {
         commandJourney, CommandStatus.ACTIVE);
   }
 
+  /**
+   * Finds all commands for a command journey.
+   *
+   * @param commandJourney the journey to find all commands for.
+   * @return all operator commands for the journey.
+   */
+  public List<OperatorCommand> getCommands(CommandJourney commandJourney) {
+    return operatorCommandRepository.findAllByCommandJourney(commandJourney);
+  }
+
   @Transactional
   public void markUndone(OperatorCommand command) {
     command.setStatus(CommandStatus.UNDONE);

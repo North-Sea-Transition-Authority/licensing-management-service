@@ -26,8 +26,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
@@ -120,6 +122,9 @@ class LicenceScheduleTimelineServiceTest {
   @Mock
   private LicenceStatusService licenceStatusService;
 
+  @Mock
+  private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
+
   @InjectMocks
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
 
@@ -154,20 +159,28 @@ class LicenceScheduleTimelineServiceTest {
 
     when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(List.of(licence)))
+        .thenReturn(Map.of(licence, List.of(
+            new OrganisationUnit(2, "SHELL U.K. LIMITED"),
+            new OrganisationUnit(1, "BP EXPLORATION (ALPHA) LIMITED")
+        )));
+
     assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .extracting(
             TimelineSummaryCardView::licenceStartDate,
             TimelineSummaryCardView::licenceExpiryDate,
             TimelineSummaryCardView::showRoundIssuedOn,
             TimelineSummaryCardView::roundIssuedOn,
-            TimelineSummaryCardView::status
+            TimelineSummaryCardView::status,
+            TimelineSummaryCardView::licenseeNames
         )
         .containsExactly(
             DateFormatUtil.convertToDisplayText(licenceStartDate.getStartDate()),
             DateFormatUtil.convertToDisplayText(licenceExpiryDate.getExpiryDate()),
             true,
             licence.getRoundIssuedOn(),
-            LicenceStatusType.EXTANT.getDisplayName()
+            LicenceStatusType.EXTANT.getDisplayName(),
+            List.of("BP EXPLORATION (ALPHA) LIMITED", "SHELL U.K. LIMITED")
         );
   }
 
@@ -184,6 +197,9 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(true);
 
     when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(List.of(licence)))
+        .thenReturn(Map.of());
 
     assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .extracting(
@@ -217,6 +233,9 @@ class LicenceScheduleTimelineServiceTest {
 
     when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(List.of(licence)))
+        .thenReturn(Map.of());
+
     assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .extracting(TimelineSummaryCardView::licenceEndedDate)
         .isEqualTo("1 January 2027 (2 years 1 day)");
@@ -232,6 +251,9 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(false);
 
     when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(List.of(licence)))
+        .thenReturn(Map.of());
 
     assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .extracting(TimelineSummaryCardView::licenceEndedDate)
@@ -257,6 +279,9 @@ class LicenceScheduleTimelineServiceTest {
 
     when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(List.of(licence)))
+        .thenReturn(Map.of());
+
     assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .extracting(TimelineSummaryCardView::finalTermEndDate)
         .isEqualTo("1 January 2026 (1 year 1 day)");
@@ -273,6 +298,9 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
 
     when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(List.of(licence)))
+        .thenReturn(Map.of());
 
     assertThat(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
         .extracting(TimelineSummaryCardView::finalTermEndDate)

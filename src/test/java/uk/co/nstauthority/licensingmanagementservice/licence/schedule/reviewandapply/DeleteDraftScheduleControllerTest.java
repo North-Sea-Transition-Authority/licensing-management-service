@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,7 +61,7 @@ class DeleteDraftScheduleControllerTest extends AbstractControllerTest {
     ).thenReturn(true);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
-    var summaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", "status", "", "");
+    var summaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", "status", "", "", List.of());
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(summaryCardView);
 
     mockMvc.perform(

@@ -20,7 +20,9 @@ import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFi
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationDisplayUtil;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenseeUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.StartEndDates;
@@ -72,6 +74,7 @@ public class LicenceScheduleTimelineService {
   private final EventCommentService eventCommentService;
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
   private final LicenceStatusService licenceStatusService;
+  private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final Clock clock;
 
   public LicenceScheduleTimelineService(
@@ -88,6 +91,7 @@ public class LicenceScheduleTimelineService {
       EventCommentService eventCommentService,
       LicenceScheduleCalculationService licenceScheduleCalculationService,
       LicenceStatusService licenceStatusService,
+      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
       Clock clock
   ) {
     this.licenceStartDateService = licenceStartDateService;
@@ -103,6 +107,7 @@ public class LicenceScheduleTimelineService {
     this.eventCommentService = eventCommentService;
     this.licenceScheduleCalculationService = licenceScheduleCalculationService;
     this.licenceStatusService = licenceStatusService;
+    this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.clock = clock;
   }
 
@@ -123,7 +128,8 @@ public class LicenceScheduleTimelineService {
         licence.getRoundIssuedOn(),
         licenceStatusService.getCurrentStatus(licence).getDisplayName(),
         licenceEndDateString,
-        finalTermEndDateString
+        finalTermEndDateString,
+        LicenseeUtil.getLicenseeNames(licence, licenceResponsibleOrganisationService)
     );
   }
 

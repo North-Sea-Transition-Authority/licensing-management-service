@@ -2,18 +2,21 @@
 <#import '../component/actions/actionItems.ftl' as actionItems>
 
 <#-- @ftlvariable name="licenceOverviewView" type="uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewView" -->
+<#-- @ftlvariable name="licenceSummaryCardView" type="uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceSummaryCardView" -->
 <#-- @ftlvariable name="topLevelLicenceActions" type="java.util.Collection<uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView>" -->
 <#-- @ftlvariable name="tabs" type="java.util.Collection<uk.co.nstauthority.licensingmanagementservice.fds.tab.FdsBackendTab>" -->
 <#-- @ftlvariable name="currentTab" type="uk.co.nstauthority.licensingmanagementservice.fds.tab.FdsBackendTab" -->
 <#-- @ftlvariable name="currentTabLicenceActions" type="java.util.Collection<uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView>" -->
 
-<#macro page licenceOverviewView topLevelLicenceActions tabs currentTab currentTabLicenceActions>
+<#macro page licenceOverviewView topLevelLicenceActions tabs currentTab currentTabLicenceActions licenceSummaryCardView>
   <@defaultPage
     htmlTitle=licenceOverviewView.licenceReference()
     pageHeading=licenceOverviewView.licenceReference()
     caption=licenceOverviewView.caption()
     pageSize=PageSize.FULL_COLUMN
   >
+    <@licenceSummaryCard licenceSummaryCardView=licenceSummaryCardView/>
+
     <#if licenceOverviewView.csRegisterUrl()?has_content>
       <p class="govuk-body">
         <@fdsAction.link linkText="View in public register" linkUrl=licenceOverviewView.csRegisterUrl() openInNewTab=true/>
@@ -44,4 +47,30 @@
       </@fdsBackendTabs.tabContent>
     </@fdsBackendTabs.tabs>
   </@defaultPage>
+</#macro>
+
+<#macro licenceSummaryCard licenceSummaryCardView>
+    <#assign licenseeList>
+      <ul class="govuk-list">
+        <#list licenceSummaryCardView.licenseeNames() as licenseeName>
+          <li>${licenseeName}</li>
+        </#list>
+      </ul>
+    </#assign>
+
+    <@fdsSummaryList.summaryListCard headingText="Licence details" summaryListId="licence-summary-card-list">
+        <@fdsSummaryList.summaryListRowNoAction keyText="Status">
+            ${licenceSummaryCardView.status()!""}
+        </@fdsSummaryList.summaryListRowNoAction>
+
+        <@fdsSummaryList.summaryListRowNoAction keyText="Licensees">
+            ${licenseeList}
+        </@fdsSummaryList.summaryListRowNoAction>
+
+        <#if licenceSummaryCardView.showRoundIssuedOn()>
+            <@fdsSummaryList.summaryListRowNoAction keyText="Round number">
+                ${licenceSummaryCardView.roundIssuedOn()!""}
+            </@fdsSummaryList.summaryListRowNoAction>
+        </#if>
+    </@fdsSummaryList.summaryListCard>
 </#macro>

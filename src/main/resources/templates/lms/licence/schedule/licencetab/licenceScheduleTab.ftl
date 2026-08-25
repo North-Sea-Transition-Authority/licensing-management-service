@@ -5,6 +5,7 @@
 
 <@tabbedLicencePage.page
     licenceOverviewView=licenceOverviewView
+    licenceSummaryCardView=licenceSummaryCardView
     topLevelLicenceActions=topLevelLicenceActions
     tabs=tabs
     currentTab=currentTab
@@ -12,7 +13,7 @@
 >
     <#if scheduleExists>
         <#if timelineSummaryCardView?has_content>
-            <@scheduleTimeline.timelineSummaryCard timelineSummaryCardView=timelineSummaryCardView/>
+            <@scheduleTimeline.timelineSummaryCardReadOnly timelineSummaryCardView=timelineSummaryCardView/>
         </#if>
 
         <#if scheduleHistoryOptions?has_content>

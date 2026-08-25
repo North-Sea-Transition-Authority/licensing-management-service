@@ -87,6 +87,9 @@ class LicenceScheduleHistoryOverviewControllerTest extends AbstractControllerTes
 
     viewOverviewUrl = ReverseRouter.route(on(LicenceScheduleHistoryOverviewController.class)
         .renderLicenceOverview(licenceScheduleDetail.getId(), null, null, null));
+
+    when(licenceSummaryCardService.getLicenceSummaryCardView(licence))
+        .thenReturn(new LicenceSummaryCardView(LicenceStatusType.EXTANT.getDisplayName(), List.of(), true, "1"));
   }
 
   @Test
@@ -103,7 +106,7 @@ class LicenceScheduleHistoryOverviewControllerTest extends AbstractControllerTes
     var scheduleHistoryOptions = Map.of(licenceScheduleDetail.getId().toString(), "1 January 2024 10:00am");
     when(licenceScheduleDetailService.getScheduleDetailHistoryOptions(licence)).thenReturn(scheduleHistoryOptions);
 
-    var timelineSummaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatusType.EXTANT.getDisplayName(), "", "");
+    var timelineSummaryCardView = new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatusType.EXTANT.getDisplayName(), "", "", List.of());
     var scheduleEventViews = List.of(new TimelineTermView(List.of(), List.of(), TermType.INITIAL, "", "", "", "", "", true, List.of(), true, true));
 
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);

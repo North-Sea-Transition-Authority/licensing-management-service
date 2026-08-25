@@ -5,6 +5,7 @@
 
 <@tabbedLicencePage.page
   licenceOverviewView=licenceOverviewView
+  licenceSummaryCardView=licenceSummaryCardView
   topLevelLicenceActions=topLevelLicenceActions
   tabs=tabs
   currentTab=currentTab

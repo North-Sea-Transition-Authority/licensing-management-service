@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceSummaryCardView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
@@ -53,6 +54,8 @@ class LicencePositionControllerTest extends AbstractControllerTest {
   @BeforeEach
   void setUp() {
     when(licenceService.findLicenceByIdOrThrow(LICENCE_ID)).thenReturn(LICENCE);
+    when(licenceSummaryCardService.getLicenceSummaryCardView(LICENCE))
+        .thenReturn(new LicenceSummaryCardView("Extant", List.of(), false, null));
   }
 
   @Test

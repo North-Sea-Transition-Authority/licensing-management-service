@@ -42,6 +42,40 @@
                 ${timelineSummaryCardView.roundIssuedOn()!""}
             </@fdsSummaryList.summaryListRowNoAction>
         </#if>
+
+        <#assign licenseeList>
+          <ul class="govuk-list">
+            <#list timelineSummaryCardView.licenseeNames() as licenseeName>
+              <li>${licenseeName}</li>
+            </#list>
+          </ul>
+        </#assign>
+
+        <@fdsSummaryList.summaryListRowNoAction keyText="Licensees">
+            ${licenseeList}
+        </@fdsSummaryList.summaryListRowNoAction>
+    </@fdsSummaryList.summaryListCard>
+</#macro>
+
+<#macro timelineSummaryCardReadOnly timelineSummaryCardView>
+    <@fdsSummaryList.summaryListCard headingText="Schedule details" summaryListId="summary-card-list">
+        <@fdsSummaryList.summaryListRowNoAction keyText="Start date">
+            ${timelineSummaryCardView.licenceStartDate()}
+        </@fdsSummaryList.summaryListRowNoAction>
+
+        <@fdsSummaryList.summaryListRowNoAction keyText="Expiry date">
+            ${timelineSummaryCardView.licenceExpiryDate()!""}
+        </@fdsSummaryList.summaryListRowNoAction>
+
+        <#if timelineSummaryCardView.licenceEndedDate()?has_content>
+            <@fdsSummaryList.summaryListRowNoAction keyText="Licence ended on">
+                ${timelineSummaryCardView.licenceEndedDate()}
+            </@fdsSummaryList.summaryListRowNoAction>
+        <#else>
+            <@fdsSummaryList.summaryListRowNoAction keyText="Projected licence end date">
+                ${timelineSummaryCardView.finalTermEndDate()!""}
+            </@fdsSummaryList.summaryListRowNoAction>
+        </#if>
     </@fdsSummaryList.summaryListCard>
 </#macro>
 

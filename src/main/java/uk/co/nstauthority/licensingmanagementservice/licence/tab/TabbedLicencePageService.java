@@ -8,6 +8,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.fds.tab.FdsBackendTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceSummaryCardService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 
@@ -16,16 +17,19 @@ public class TabbedLicencePageService {
 
   private final LicenceActionService licenceActionService;
   private final LicenceOverviewService licenceOverviewService;
+  private final LicenceSummaryCardService licenceSummaryCardService;
   private final List<LicenceTab> enabledLicenceTabs;
 
   TabbedLicencePageService(
       LicenceActionService licenceActionService,
       LicenceOverviewService licenceOverviewService,
+      LicenceSummaryCardService licenceSummaryCardService,
       FeatureFlagService featureFlagService,
       List<LicenceTab> licenceTabs
   ) {
     this.licenceActionService = licenceActionService;
     this.licenceOverviewService = licenceOverviewService;
+    this.licenceSummaryCardService = licenceSummaryCardService;
     this.enabledLicenceTabs = featureFlagService.filterEnabled(licenceTabs).stream()
         .sorted(Comparator.comparingInt(LicenceTab::displayOrder))
         .toList();
@@ -50,6 +54,7 @@ public class TabbedLicencePageService {
 
     modelAndView
         .addObject("licenceOverviewView", licenceOverviewService.getLicenceOverviewView(licence))
+        .addObject("licenceSummaryCardView", licenceSummaryCardService.getLicenceSummaryCardView(licence))
         .addObject("topLevelLicenceActions", topLevelLicenceActions)
         .addObject("tabs", tabs)
         .addObject("currentTab", FdsBackendTab.from(currentTab, context))

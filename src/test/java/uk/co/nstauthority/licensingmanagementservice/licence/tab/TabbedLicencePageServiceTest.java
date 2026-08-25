@@ -20,6 +20,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewView;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceSummaryCardService;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceSummaryCardView;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
@@ -46,6 +48,9 @@ class TabbedLicencePageServiceTest {
 
   @Mock
   private LicenceActionService licenceActionService;
+
+  @Mock
+  private LicenceSummaryCardService licenceSummaryCardService;
 
   @Test
   void hydrateModel_assertTabsSortedByDisplayOrder() {
@@ -154,6 +159,20 @@ class TabbedLicencePageServiceTest {
   }
 
   @Test
+  void hydrateModel_assertLicenceSummaryCardView() {
+    var tabbedLicencePageService = serviceWithTabs(List.of(SCHEDULE_TAB, TIMELINE_TAB));
+
+    var licenceSummaryCardView = new LicenceSummaryCardView("Extant", List.of("SHELL U.K. LIMITED"), true, "Round 1");
+    when(licenceSummaryCardService.getLicenceSummaryCardView(LICENCE)).thenReturn(licenceSummaryCardView);
+
+    var modelAndView = new ModelAndView("some/view");
+
+    tabbedLicencePageService.hydrateModel(modelAndView, LICENCE, TIMELINE_TAB, USER);
+
+    assertThat(modelAndView.getModel()).containsEntry("licenceSummaryCardView", licenceSummaryCardView);
+  }
+
+  @Test
   void hydrateModel_assertActionsRetrievedForCurrentTabOnly() {
     var tabbedLicencePageService = serviceWithTabs(List.of(SCHEDULE_TAB, TIMELINE_TAB));
 
@@ -200,7 +219,10 @@ class TabbedLicencePageServiceTest {
     assertThat(modelAndView.getViewName()).isEqualTo("some/view");
     assertThat(modelAndView.getModel())
         .containsEntry("existingAttribute", "existingValue")
-        .containsKeys("licenceOverviewView", "tabs", "currentTab", "topLevelLicenceActions", "currentTabLicenceActions");
+        .containsKeys(
+            "licenceOverviewView", "licenceSummaryCardView", "tabs", "currentTab",
+            "topLevelLicenceActions", "currentTabLicenceActions"
+        );
   }
 
   @Test
@@ -240,6 +262,7 @@ class TabbedLicencePageServiceTest {
     return new TabbedLicencePageService(
         licenceActionService,
         LICENCE_OVERVIEW_SERVICE,
+        licenceSummaryCardService,
         new FeatureFlagService(environment),
         licenceTabs
     );

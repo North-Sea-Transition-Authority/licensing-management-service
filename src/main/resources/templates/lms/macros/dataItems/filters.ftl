@@ -69,7 +69,7 @@
 </#macro>
 
 <#macro noContactAssignedFilter form>
-    <@fdsSearch.searchFilterItem itemName="Contact" expanded=(form.noContactAssigned!false) == true>
+    <@fdsSearch.searchFilterItem itemName="No contact provided" expanded=(form.noContactAssigned!false) == true>
         <@fdsCheckbox.checkbox path="form.noContactAssigned" labelText="No contact provided" smallCheckboxes=true/>
     </@fdsSearch.searchFilterItem>
 </#macro>

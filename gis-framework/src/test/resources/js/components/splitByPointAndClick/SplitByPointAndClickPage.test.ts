@@ -53,6 +53,19 @@ const splitActionsStub = {
   `,
 };
 
+// Stubs TextualDescription entirely, exposing the props the page wires into it, so tests can assert the
+// command-journey wiring without exercising the real description fetch.
+const textualDescriptionStub = {
+  props: ["textualDescriptionUrl", "commandJourneyId", "refreshCounter"],
+  template: `
+    <div>
+      <p data-testid="description-url">{{ textualDescriptionUrl }}</p>
+      <p data-testid="description-journey">{{ commandJourneyId }}</p>
+      <p data-testid="description-refresh">{{ refreshCounter }}</p>
+    </div>
+  `,
+};
+
 const baseProps = {
   commandJourneyId: "journey-1",
   srsWkid: SupportedWkid.ED50_WKID,
@@ -62,6 +75,7 @@ const baseProps = {
   historyBaseUrl: "/api/gis-framework/split-history",
   undoBaseUrl: "/api/gis-framework/undo",
   redoBaseUrl: "/api/gis-framework/redo",
+  textualDescriptionUrl: "/api/gis-framework/command-journey-textual-description",
   csrfHeaderName: "X-CSRF-TOKEN",
   csrfToken: "csrf-token-1",
 };
@@ -69,7 +83,13 @@ const baseProps = {
 function renderPage() {
   return render(SplitByPointAndClickPage, {
     props: { ...baseProps },
-    global: { stubs: { BaseMap: baseMapStub, SplitActions: splitActionsStub } },
+    global: {
+      stubs: {
+        BaseMap: baseMapStub,
+        SplitActions: splitActionsStub,
+        TextualDescription: textualDescriptionStub,
+      },
+    },
   });
 }
 
@@ -83,6 +103,24 @@ describe("splitByPointAndClickPage", () => {
 
     expect(screen.getByTestId("features-url").textContent)
       .toBe("/api/gis-framework/features/journey-1");
+  });
+
+  it("passes the textual description url and command journey id to the description", () => {
+    renderPage();
+
+    expect(screen.getByTestId("description-url").textContent)
+      .toBe("/api/gis-framework/command-journey-textual-description");
+    expect(screen.getByTestId("description-journey").textContent).toBe("journey-1");
+  });
+
+  it("refreshes the description when split actions succeed", async () => {
+    renderPage();
+
+    await fireEvent.click(screen.getByTestId("emit-action-success"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("description-refresh").textContent).toBe("1");
+    });
   });
 
   it("builds the history, undo and redo urls from the given command journey id", () => {

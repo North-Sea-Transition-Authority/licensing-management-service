@@ -12,18 +12,30 @@
       </p>
     </details-component>
     <error-summary v-if="splitError" :description="splitError"/>
-    <base-map
-      ref="baseMapRef"
-      :srs-wkid="srsWkid"
-      :features-url="featuresUrl"
-      :outline-nodes-url="outlineNodesUrl"
-      :include-nsta-quadrants="includeNstaQuadrants"
-      :include-nsta-blocks="includeNstaBlocks"
-      :include-snap-points="true"
-      :include-draw-line="true"
-      :refresh-counter="refreshCounter"
-      @update:points="points = $event"
-    />
+    <div class="gis-split-layout">
+      <div class="gis-split-layout__map">
+        <base-map
+          ref="baseMapRef"
+          :srs-wkid="srsWkid"
+          :features-url="featuresUrl"
+          :outline-nodes-url="outlineNodesUrl"
+          :include-nsta-quadrants="includeNstaQuadrants"
+          :include-nsta-blocks="includeNstaBlocks"
+          :include-snap-points="true"
+          :include-draw-line="true"
+          :refresh-counter="refreshCounter"
+          :map-style-override="mapStyleOverride"
+          @update:points="points = $event"
+        />
+      </div>
+      <div class="gis-split-layout__description">
+        <textual-description
+          :textual-description-url="textualDescriptionUrl"
+          :command-journey-id="commandJourneyId"
+          :refresh-counter="refreshCounter"
+        />
+      </div>
+    </div>
     <split-actions
       :refresh-counter="refreshCounter"
       :history-url="historyUrl"
@@ -41,12 +53,13 @@
 <script setup lang="ts">
 import type { SupportedWkid } from "../../coordinate-system-utils";
 import type { SnapPoint } from "../../grid-utils";
-import { computed, ref, watch } from "vue";
+import { computed, CSSProperties, ref, watch } from "vue";
 import { splitFeature } from "../../api/split.api";
 import BaseMap from "../baseMap/BaseMap.vue";
 import ErrorSummary from "../gdsComponents/error/ErrorSummary.vue";
 import DetailsComponent from "../govukVue/details/GvDetails.vue";
 import LineCoordinateStack from "../lineCoordinateStack/LineCoordinateStack.vue";
+import TextualDescription from "../textualDescription/TextualDescription.vue";
 import SplitActions from "./SplitActions.vue";
 
 interface SplitByPointAndClickPageProps {
@@ -58,6 +71,7 @@ interface SplitByPointAndClickPageProps {
   historyBaseUrl: string,
   undoBaseUrl: string,
   redoBaseUrl: string,
+  textualDescriptionUrl: string,
   csrfHeaderName: string,
   csrfToken: string,
   includeNstaQuadrants?: boolean,
@@ -74,6 +88,13 @@ const points = ref<SnapPoint[]>([]);
 const splitError = ref<string | null>(null);
 const autoSplitInProgress = ref(false);
 const refreshCounter = ref(0);
+
+// Make the map fill its panel rather than use BaseMap's default clamped height.
+const mapStyleOverride: CSSProperties = {
+  width: "100%",
+  height: "100%",
+  display: "block",
+};
 
 function buildCommandJourneyUrl(baseUrl: string, commandJourney: string): string {
   return `${baseUrl}/${commandJourney}`;
@@ -121,3 +142,26 @@ watch(points, async () => {
   }
 });
 </script>
+
+<style scoped>
+.gis-split-layout {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+}
+
+.gis-split-layout__map,
+.gis-split-layout__description {
+  min-width: 0;
+  aspect-ratio: 1 / 1;
+}
+
+.gis-split-layout__map {
+  flex: 2 1 0;
+}
+
+.gis-split-layout__description {
+  flex: 1 1 0;
+  overflow: auto;
+}
+</style>

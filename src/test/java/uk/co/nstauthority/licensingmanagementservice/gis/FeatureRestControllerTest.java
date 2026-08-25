@@ -175,4 +175,26 @@ class FeatureRestControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(content().json(objectMapper.writeValueAsString(expected), JsonCompareMode.STRICT));
   }
+
+  @Test
+  void getCommandJourneyTextualDescription() throws Exception {
+    var commandJourneyId = UUID.randomUUID();
+    var feature = FeatureTestUtil.builder().build();
+
+    var description = String.join("\n",
+        "<div class=\"gis-textual-description\">",
+        "<div class=\"gis-textual-description__feature\">",
+        "<p>Subarea 30/1a is bounded by the following coordinates:</p>",
+        "</div>",
+        "</div>");
+    var expected = new JsonTextualDescription(description);
+
+    when(commandJourneyService.getActiveFeatures(commandJourneyId)).thenReturn(List.of(feature));
+    when(textualDescriptionService.getTextualDescription(List.of(feature))).thenReturn(description);
+
+    mockMvc.perform(get("/api/gis-framework/command-journey-textual-description/{commandJourneyId}", commandJourneyId)
+            .with(user(regulatorUser)))
+        .andExpect(status().isOk())
+        .andExpect(content().json(objectMapper.writeValueAsString(expected), JsonCompareMode.STRICT));
+  }
 }

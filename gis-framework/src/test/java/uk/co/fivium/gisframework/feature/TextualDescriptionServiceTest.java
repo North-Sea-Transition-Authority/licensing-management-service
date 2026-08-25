@@ -27,7 +27,7 @@ class TextualDescriptionServiceTest {
       <style>
       .gis-textual-description { font-family: "GDS Transport"; font-size: 16px }
       .gis-textual-description p { margin: 0 0 1em; }
-      .gis-textual-description .govuk-list--number { list-style-position: inside; }
+      .gis-textual-description .govuk-list--number { list-style-position: outside; padding-left: 2em; }
       </style>""";
 
   @Mock
@@ -515,11 +515,12 @@ class TextualDescriptionServiceTest {
   }
 
   private static String latLong(String latitude, String longitude) {
-    return "<li class=\"govuk-!-font-tabular-numbers\">%s %s</li>".formatted(latitude, longitude);
+    return "<li class=\"govuk-!-font-tabular-numbers\" style=\"padding-left:0.5em\">%s %s</li>"
+        .formatted(latitude, longitude);
   }
 
   private static String gridReference(String reference) {
-    return "<li class=\"govuk-!-font-tabular-numbers\">%s</li>".formatted(reference);
+    return "<li class=\"govuk-!-font-tabular-numbers\" style=\"padding-left:0.5em\">%s</li>".formatted(reference);
   }
 
   private static String note(String text) {

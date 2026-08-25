@@ -22,9 +22,9 @@
         data-gis-history-base-url="<@spring.url '/api/gis-framework/split-history'/>"
         data-gis-undo-base-url="<@spring.url '/api/gis-framework/undo'/>"
         data-gis-redo-base-url="<@spring.url '/api/gis-framework/redo'/>"
-        data-gis-csrf-header-name="${_csrf.headerName}"
-        data-gis-csrf-token="${_csrf.token}"
-     >
-    </div>
+        data-gis-textual-description-url="<@spring.url '/api/gis-framework/command-journey-textual-description'/>"
+      data-gis-csrf-header-name="${_csrf.headerName}"
+      data-gis-csrf-token="${_csrf.token}"
+   ></div>
   </div>
 </#macro>

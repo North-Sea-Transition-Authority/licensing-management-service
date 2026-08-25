@@ -70,4 +70,12 @@ class FeatureRestController {
     return ResponseEntity.ok(
         new JsonTextualDescription(textualDescriptionService.getTextualDescription(features)));
   }
+
+  @GetMapping("/command-journey-textual-description/{commandJourneyId}")
+  ResponseEntity<JsonTextualDescription> getCommandJourneyTextualDescription(@PathVariable UUID commandJourneyId) {
+    var features = commandJourneyService.getActiveFeatures(commandJourneyId);
+    return ResponseEntity.ok(
+        new JsonTextualDescription(textualDescriptionService.getTextualDescription(features))
+    );
+  }
 }

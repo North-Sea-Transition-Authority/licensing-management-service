@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/vue";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import TextualDescription from "../../../../../main/resources/js/components/textualDescription/TextualDescription.vue";
 
@@ -12,6 +12,10 @@ vi.mock("../../../../../main/resources/js/api/features.api", () => ({
 }));
 
 describe("textualDescription", () => {
+  beforeEach(() => {
+    getTextualDescriptionMock.mockReset();
+  });
+
   it("renders the fetched description as HTML", async () => {
     const description = `<style>.gis-textual-description { font-family: sans-serif; }</style>
 <div class="gis-textual-description">
@@ -44,5 +48,48 @@ The lines joining coordinates (1) to (2) are navigated as loxodromes.</p>
     expect(getTextualDescriptionMock).toHaveBeenCalledWith(
       "/api/gis-framework/textual-description?featureId=feature-1",
     );
+  });
+
+  it("builds the url from the command journey id when one is given", async () => {
+    getTextualDescriptionMock.mockResolvedValue("");
+
+    render(TextualDescription, {
+      props: {
+        textualDescriptionUrl: "/api/gis-framework/command-journey-textual-description",
+        commandJourneyId: "journey-1",
+      },
+    });
+
+    await waitFor(() => {
+      expect(getTextualDescriptionMock).toHaveBeenCalledWith(
+        "/api/gis-framework/command-journey-textual-description/journey-1",
+      );
+    });
+  });
+
+  it("refetches the description when the refresh counter changes", async () => {
+    getTextualDescriptionMock.mockResolvedValue("");
+
+    const { rerender } = render(TextualDescription, {
+      props: {
+        textualDescriptionUrl: "/api/gis-framework/command-journey-textual-description",
+        commandJourneyId: "journey-1",
+        refreshCounter: 0,
+      },
+    });
+
+    await waitFor(() => {
+      expect(getTextualDescriptionMock).toHaveBeenCalledTimes(1);
+    });
+
+    await rerender({
+      textualDescriptionUrl: "/api/gis-framework/command-journey-textual-description",
+      commandJourneyId: "journey-1",
+      refreshCounter: 1,
+    });
+
+    await waitFor(() => {
+      expect(getTextualDescriptionMock).toHaveBeenCalledTimes(2);
+    });
   });
 });

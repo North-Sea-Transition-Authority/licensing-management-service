@@ -28,7 +28,7 @@ public class TextualDescriptionService {
       <style>
       .gis-textual-description { font-family: "GDS Transport"; font-size: 16px }
       .gis-textual-description p { margin: 0 0 1em; }
-      .gis-textual-description .govuk-list--number { list-style-position: inside; }
+      .gis-textual-description .govuk-list--number { list-style-position: outside; padding-left: 2em; }
       </style>""";
 
   private final LineService lineService;
@@ -325,7 +325,7 @@ public class TextualDescriptionService {
   }
 
   private String formatCoordinateRow(CoordinateSystem coordinateSystem, NumberedNode node) {
-    return "<li class=\"govuk-!-font-tabular-numbers\">%s</li>"
+    return "<li class=\"govuk-!-font-tabular-numbers\" style=\"padding-left:0.5em\">%s</li>"
         .formatted(CoordinateFormatter.formatCoordinate(coordinateSystem, node.x(), node.y()));
   }
 

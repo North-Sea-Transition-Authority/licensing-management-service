@@ -2,12 +2,12 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import java.util.UUID;
 
-public record PositionMove(PositionMoveDirection direction, UUID targetPositionId) {
+public record PositionMove(PositionMoveDirection direction, UUID targetId) {
 
   private static final String SEPARATOR = ":";
 
   public String toFormValue() {
-    return direction.name() + SEPARATOR + targetPositionId;
+    return direction.name() + SEPARATOR + targetId;
   }
 
   public static PositionMove fromFormValue(String formValue) {

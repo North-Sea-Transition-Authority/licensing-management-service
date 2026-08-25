@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.util.IllegalUtilClassInstantiationException;
 
 public class PositionOrderingUtil {
@@ -11,10 +10,10 @@ public class PositionOrderingUtil {
     throw new IllegalUtilClassInstantiationException(this.getClass());
   }
 
-  public static List<UUID> moveRelativeTo(
-      List<UUID> orderedIds,
-      UUID movedId,
-      UUID targetId,
+  public static <T> List<T> moveRelativeTo(
+      List<T> orderedIds,
+      T movedId,
+      T targetId,
       PositionMoveDirection direction
   ) {
     var reordered = new ArrayList<>(orderedIds);

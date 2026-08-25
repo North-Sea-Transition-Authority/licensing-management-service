@@ -17,7 +17,11 @@
   </div>
 </#macro>
 
-<#macro changeCardActions screenReaderText correctUrl="" removeUrl="" undoUrl="">
+<#macro changeCardActions screenReaderText urls>
+  <#local correctUrl = urls.correct()!''>
+  <#local removeUrl = urls.remove()!''>
+  <#local undoUrl = urls.undo()!''>
+  <#local correctChangeOrderUrl = urls.correctChangeOrder()!''>
   <@fdsSummaryList.summaryListCardActionList>
     <#if correctUrl?has_content>
       <@fdsSummaryList.summaryListCardActionItem
@@ -40,6 +44,13 @@
         itemScreenReaderText=screenReaderText
       />
     </#if>
+    <#if correctChangeOrderUrl?has_content>
+      <@fdsSummaryList.summaryListCardActionItem
+        itemUrl=springUrl(correctChangeOrderUrl)
+        itemText="Change order"
+        itemScreenReaderText="of ${screenReaderText}"
+      />
+    </#if>
   </@fdsSummaryList.summaryListCardActionList>
 </#macro>
 
@@ -59,12 +70,7 @@
   </#assign>
 
   <#assign cardActions>
-    <@changeCardActions
-      screenReaderText="licence administrator change"
-      correctUrl=change.correctUrl()!''
-      removeUrl=change.removeUrl()!''
-      undoUrl=change.undoUrl()!''
-    />
+    <@changeCardActions screenReaderText="licence administrator change" urls=change.urls()/>
   </#assign>
 
   <@fdsSummaryList.summaryListCard
@@ -89,29 +95,7 @@
   </#assign>
 
   <#assign cardActions>
-    <@fdsSummaryList.summaryListCardActionList>
-      <#if change.updateUrl()?has_content>
-        <@fdsSummaryList.summaryListCardActionItem
-          itemUrl=springUrl(change.updateUrl())
-          itemText="Correct"
-          itemScreenReaderText="set equity change"
-        />
-      </#if>
-    <#if change.removeUrl()?has_content>
-                <@fdsSummaryList.summaryListCardActionItem
-                itemUrl=springUrl(change.removeUrl())
-                itemText="Remove"
-                itemScreenReaderText="set equity change"
-                />
-            </#if>
-            <#if change.undoUrl()?has_content>
-                <@fdsSummaryList.summaryListCardActionItem
-                itemUrl=springUrl(change.undoUrl())
-                itemText="Undo"
-                itemScreenReaderText="set equity change"
-                />
-            </#if>
-        </@fdsSummaryList.summaryListCardActionList>
+    <@changeCardActions screenReaderText="set equity change" urls=change.urls()/>
   </#assign>
 
   <@fdsSummaryList.summaryListCard headingText=headingText summaryListId="set-equity" cardActionsContent=cardActions>
@@ -129,29 +113,7 @@
   </#assign>
 
   <#assign cardActions>
-    <@fdsSummaryList.summaryListCardActionList>
-      <#if change.updateUrl()?has_content>
-        <@fdsSummaryList.summaryListCardActionItem
-        itemUrl=springUrl(change.updateUrl())
-        itemText="Correct"
-        itemScreenReaderText="equity transfer change"
-        />
-      </#if>
-    <#if change.removeUrl()?has_content>
-                <@fdsSummaryList.summaryListCardActionItem
-                itemUrl=springUrl(change.removeUrl())
-                itemText="Remove"
-                itemScreenReaderText="equity transfer change"
-                />
-            </#if>
-            <#if change.undoUrl()?has_content>
-                <@fdsSummaryList.summaryListCardActionItem
-                itemUrl=springUrl(change.undoUrl())
-                itemText="Undo"
-                itemScreenReaderText="equity transfer change"
-                />
-            </#if>
-        </@fdsSummaryList.summaryListCardActionList>
+    <@changeCardActions screenReaderText="equity transfer change" urls=change.urls()/>
   </#assign>
 
   <@fdsSummaryList.summaryListCard headingText=headingText summaryListId="transfer-equity" cardActionsContent=cardActions>
@@ -188,7 +150,7 @@
   </#assign>
 
   <#assign cardActions>
-    <@changeCardActions screenReaderText="partial surrender" correctUrl=change.correctUrl()!''/>
+    <@changeCardActions screenReaderText="partial surrender" urls=change.urls()/>
   </#assign>
 
   <@fdsSummaryList.summaryListCard

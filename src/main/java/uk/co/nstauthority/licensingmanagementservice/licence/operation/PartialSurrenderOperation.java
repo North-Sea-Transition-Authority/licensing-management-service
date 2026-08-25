@@ -58,6 +58,11 @@ public record PartialSurrenderOperation(
   }
 
   @Override
+  public String displayName() {
+    return "Partial surrender";
+  }
+
+  @Override
   public PositionValidationError validate(PositionValidationContext positionValidationContext) {
     //TODO EPGF-205: identify when a partial surrender results in an invalid licence position
     return null;

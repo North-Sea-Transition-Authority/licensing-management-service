@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator;
 
+import static java.util.function.Predicate.not;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -189,6 +191,7 @@ public class AdministratorChangeService {
     var payload = positionCorrection.getPayload();
 
     var changeToUndo = payload.changes().stream()
+        .filter(not(LicencePositionChangeType::isUpdateChangeOrder))
         .filter(change -> changeId.equals(change.changeId()))
         .findFirst()
         .orElseThrow(() -> new IllegalStateException(
@@ -202,7 +205,7 @@ public class AdministratorChangeService {
               .formatted(changeId));
     }
 
-    var remainingChanges = LicencePositionChangeUtil.removeChangeById(payload.changes(), changeId);
+    var remainingChanges = LicencePositionChangeType.removeChangesById(payload.changes(), changeId);
 
     if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.UPDATE_POSITION
         && remainingChanges.isEmpty()

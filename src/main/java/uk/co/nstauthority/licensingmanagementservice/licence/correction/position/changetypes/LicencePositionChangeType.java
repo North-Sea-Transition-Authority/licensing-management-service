@@ -1,8 +1,10 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import java.util.Collection;
 import java.util.List;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -21,13 +23,19 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
     @JsonSubTypes.Type(
         value = RemoveChange.class,
         name = LicencePositionChangeType.REMOVE_CHANGE
+    ),
+    @JsonSubTypes.Type(
+        value = UpdateChangeOrder.class,
+        name = LicencePositionChangeType.UPDATE_CHANGE_ORDER
     )
 })
-public sealed interface LicencePositionChangeType permits AddChange, UpdateChangeOperations, RemoveChange {
+public sealed interface LicencePositionChangeType
+    permits AddChange, UpdateChangeOperations, RemoveChange, UpdateChangeOrder {
 
   String ADD_CHANGE = "add-change";
   String UPDATE_CHANGE_OPERATIONS = "update-change-operations";
   String REMOVE_CHANGE = "remove-change";
+  String UPDATE_CHANGE_ORDER = "update-change-order";
 
   String type();
 
@@ -58,5 +66,23 @@ public sealed interface LicencePositionChangeType permits AddChange, UpdateChang
     return change.operations().stream()
         .map(LicencePositionChangeOperation::operation)
         .toList();
+  }
+
+  static UpdateChangeOrder.Builder updateChangeOrder() {
+    return new UpdateChangeOrder.Builder();
+  }
+
+  static List<LicencePositionChangeType> removeChangesById(
+      Collection<LicencePositionChangeType> changes,
+      String changeId
+  ) {
+    return changes.stream()
+        .filter(change -> !changeId.equals(change.changeId()) || change.isUpdateChangeOrder())
+        .toList();
+  }
+
+  @JsonIgnore
+  default boolean isUpdateChangeOrder() {
+    return this instanceof UpdateChangeOrder;
   }
 }

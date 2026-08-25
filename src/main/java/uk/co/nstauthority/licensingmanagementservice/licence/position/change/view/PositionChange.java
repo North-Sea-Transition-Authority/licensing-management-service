@@ -9,6 +9,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOrder;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
@@ -45,6 +46,10 @@ public record PositionChange(
         .toList();
   }
 
+  public boolean isOrderable() {
+    return !Objects.equals(changeType, LicencePositionChangeType.REMOVE_CHANGE) && !operations.isEmpty();
+  }
+
   public List<PositionValidationError> validate(PositionValidationContext positionValidationContext) {
     if (Objects.equals(changeType, LicencePositionChangeType.REMOVE_CHANGE)) {
       return List.of();
@@ -78,6 +83,12 @@ public record PositionChange(
           // as this is a remove change, this will be overwritten with the changeOrder of the existing change for display
           Integer.MAX_VALUE,
           removeChange.type(),
+          List.of()
+      );
+      case UpdateChangeOrder updateChangeOrder -> new PositionChange(
+          updateChangeOrder.changeId(),
+          updateChangeOrder.changeOrder(),
+          updateChangeOrder.type(),
           List.of()
       );
     };

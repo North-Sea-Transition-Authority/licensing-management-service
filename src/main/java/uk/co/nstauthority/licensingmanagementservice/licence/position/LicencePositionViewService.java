@@ -360,18 +360,6 @@ public class LicencePositionViewService {
     return chronologicalPositions;
   }
 
-  private List<PositionValidationError> validate(
-      List<ChronologicalPosition> allChronologicalPositions,
-      Set<UUID> removedPositionIds,
-      boolean carbonStorageLicence
-  ) {
-    var validationPositions = allChronologicalPositions.stream()
-        .filter(position -> !removedPositionIds.contains(position.id()))
-        .toList();
-    var validationStates = LicencePositionStateResolver.resolve(validationPositions);
-    return licencePositionValidationService.validate(validationPositions, validationStates, carbonStorageLicence);
-  }
-
   private static Set<UUID> invalidPositionIds(List<PositionValidationError> validationErrors) {
     return validationErrors.stream()
         .map(PositionValidationError::positionId)
@@ -465,25 +453,29 @@ public class LicencePositionViewService {
     );
 
     PositionChange.fromCorrectionChanges(correctionChanges).forEach(positionChange -> {
-      var liveChange = changesById.get(positionChange.changeId());
-      if (liveChange == null) {
+      var existingChange = changesById.get(positionChange.changeId());
+      if (existingChange == null) {
         changesById.put(positionChange.changeId(), positionChange);
       } else {
-        var isRemove = Objects.equals(positionChange.changeType(), LicencePositionChangeType.REMOVE_CHANGE);
-        changesById.put(positionChange.changeId(),
-            new PositionChange(
-                //TODO - will need to consider these when new change types are added (update change order)
-                liveChange.changeId(),
-                liveChange.changeOrder(),
-                positionChange.changeType(),
-                isRemove ? liveChange.operations() : positionChange.operations()
-            ));
+        changesById.put(positionChange.changeId(), mergeCorrectionOntoExisting(existingChange, positionChange));
       }
     });
 
     return changesById.values().stream()
-        .sorted(Comparator.comparing(PositionChange::changeOrder, Comparator.nullsLast(Comparator.naturalOrder())))
+        .sorted(Comparator.comparing(PositionChange::changeOrder, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(PositionChange::changeId))
         .toList();
+  }
+
+  private static PositionChange mergeCorrectionOntoExisting(PositionChange existing, PositionChange correction) {
+    return switch (correction.changeType()) {
+      case LicencePositionChangeType.REMOVE_CHANGE -> new PositionChange(
+          existing.changeId(), existing.changeOrder(), LicencePositionChangeType.REMOVE_CHANGE, existing.operations());
+      case LicencePositionChangeType.UPDATE_CHANGE_ORDER -> new PositionChange(
+          existing.changeId(), correction.changeOrder(), existing.changeType(), existing.operations());
+      default -> new PositionChange(
+          existing.changeId(), existing.changeOrder(), correction.changeType(), correction.operations());
+    };
   }
 
   private List<LicencePositionTimelineView> getReadOnlyTimelineView(List<LicencePosition> chronologicalLicencePositions) {

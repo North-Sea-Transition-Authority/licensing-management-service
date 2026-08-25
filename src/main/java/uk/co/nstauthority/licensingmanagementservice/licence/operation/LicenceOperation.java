@@ -41,6 +41,8 @@ public sealed interface LicenceOperation permits
 
   String type();
 
+  String displayName();
+
   UUID id();
 
   @Nullable

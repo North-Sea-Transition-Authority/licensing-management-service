@@ -5,7 +5,6 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,7 +23,6 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}/positions/{licencePositionId}/correct-position-order")
-@Profile("enable-lms2")
 @InvokingUserCanViewCorrection
 public class LicencePositionCorrectionOrderChangeController {
 
@@ -76,7 +74,7 @@ public class LicencePositionCorrectionOrderChangeController {
     var move = PositionMove.fromFormValue(form.getPositionMove().getInputValue());
 
     licencePositionCorrectionService.correctPositionOrder(
-        correction, licencePositionId, move.targetPositionId(), move.direction());
+        correction, licencePositionId, move.targetId(), move.direction());
 
     NotificationBanner.newSuccessBannerWithHeader("Licence position order updated", redirectAttributes);
 
@@ -114,7 +112,7 @@ public class LicencePositionCorrectionOrderChangeController {
     }
 
     var move = PositionMove.fromFormValue(moveOptions.keySet().iterator().next());
-    var targetReference = referenceOf(orderedPositions, move.targetPositionId());
+    var targetReference = referenceOf(orderedPositions, move.targetId());
     var direction = move.direction() == PositionMoveDirection.BEFORE ? "before" : "after";
 
     return "Do you want position %s to be moved %s %s?".formatted(movedReference, direction, targetReference);

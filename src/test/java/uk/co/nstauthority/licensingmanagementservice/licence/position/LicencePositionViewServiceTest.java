@@ -3,8 +3,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.assertj.core.api.InstanceOfAssertFactories.list;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -37,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
@@ -51,9 +52,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferE
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
@@ -124,7 +126,7 @@ class LicencePositionViewServiceTest {
 
     var surrenderChange =
         (PartialSurrenderChangeView) result.changeViewByType().get(LicenceOperation.PARTIAL_SURRENDER);
-    assertThat(surrenderChange.correctUrl())
+    assertThat(surrenderChange.urls().correct())
         .isEqualTo(ReverseRouter.route(on(PartialSurrenderTaskListController.class)
             .renderForCorrectingChange(correctionId, POSITION_ID, changeId.toString(), null, null)));
   }
@@ -153,7 +155,7 @@ class LicencePositionViewServiceTest {
 
     var surrenderChange =
         (PartialSurrenderChangeView) result.changeViewByType().get(LicenceOperation.PARTIAL_SURRENDER);
-    assertThat(surrenderChange.correctUrl())
+    assertThat(surrenderChange.urls().correct())
         .isEqualTo(ReverseRouter.route(on(PartialSurrenderTaskListController.class)
             .renderTaskList(correctionId, updateCorrection.getId(), null, null)));
   }
@@ -359,7 +361,7 @@ class LicencePositionViewServiceTest {
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
 
     var adminChange = (AdministratorChangeView) result.changeViewByType().get(LicenceOperation.LICENCE_ADMINISTRATOR);
-    assertThat(adminChange.correctUrl())
+    assertThat(adminChange.urls().correct())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
             .renderForExecutedPosition(correctionId, POSITION_ID, null)));
     // The page-level "Add change" action stays available even when an administrator change is present.
@@ -391,7 +393,7 @@ class LicencePositionViewServiceTest {
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
 
     var adminChange = (AdministratorChangeView) result.changeViewByType().get(LicenceOperation.LICENCE_ADMINISTRATOR);
-    assertThat(adminChange.correctUrl())
+    assertThat(adminChange.urls().correct())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
             .renderForCorrectingChange(correctionId, POSITION_ID, changeId.toString(), null)));
   }
@@ -430,8 +432,57 @@ class LicencePositionViewServiceTest {
     var adminChange = (AdministratorChangeView) result.changeViewByType().get(LicenceOperation.LICENCE_ADMINISTRATOR);
     assertThat(adminChange.joiningOrganisationName()).isEqualTo("Executed Admin Org");
     assertThat(adminChange.changeType()).isEqualTo(LicencePositionChangeType.REMOVE_CHANGE);
-    assertThat(adminChange.removeUrl()).isNull();
+    assertThat(adminChange.urls().remove()).isNull();
     assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of()));
+  }
+
+  @Test
+  void getCorrectedChronologicalPositions_whenChangeOrderCorrected_appliesNewOrderKeepingTypeAndOperations() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withId(UUID.randomUUID()).withLicence(LICENCE).build();
+    var adminChangeId = UUID.randomUUID();
+    var setEquityChangeId = UUID.randomUUID();
+
+    var executed = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
+
+    var liveAdminChange = LicencePositionChangeTestUtil.newBuilder()
+        .withId(adminChangeId).withLicencePosition(executed).withChangeOrder(1)
+        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(5).build()))
+        .build();
+    var liveSetEquityChange = LicencePositionChangeTestUtil.newBuilder()
+        .withId(setEquityChangeId).withLicencePosition(executed).withChangeOrder(2)
+        .withOperations(List.of(
+            LicenceOperation.newSetEquityOperation().withTransferTo(5).withEquity(BigDecimal.valueOf(100)).build()))
+        .build();
+
+    var orderCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(executed)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withChanges(List.of(
+                LicencePositionChangeType.updateChangeOrder()
+                    .withChangeId(setEquityChangeId.toString()).withChangeOrder(1).build(),
+                LicencePositionChangeType.updateChangeOrder()
+                    .withChangeId(adminChangeId.toString()).withChangeOrder(2).build()))
+            .build())
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(executed)))
+        .thenReturn(List.of(liveAdminChange, liveSetEquityChange));
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(orderCorrection));
+
+    var result = licencePositionViewService.getCorrectedChronologicalPositions(correction, POSITION_ID);
+
+    assertThat(result)
+        .singleElement()
+        .extracting(ChronologicalPosition::changes, list(PositionChange.class))
+        .extracting(PositionChange::changeId, PositionChange::changeOrder, PositionChange::changeType)
+        .containsExactly(
+            tuple(setEquityChangeId.toString(), 1, null),
+            tuple(adminChangeId.toString(), 2, null));
   }
 
   @Test
@@ -456,7 +507,7 @@ class LicencePositionViewServiceTest {
     var result = licencePositionViewService.getCorrectionAddedPositionPageView(correction, positionCorrection);
 
     var adminChange = (AdministratorChangeView) result.changeViewByType().get(LicenceOperation.LICENCE_ADMINISTRATOR);
-    assertThat(adminChange.correctUrl())
+    assertThat(adminChange.urls().correct())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
             .renderForAddedPosition(correctionId, positionCorrection.getId(), null)));
   }
@@ -806,7 +857,7 @@ class LicencePositionViewServiceTest {
             new PartialSurrenderChangeView.BlockRow(firstBlock.getFeatureName(), "Full surrender"),
             new PartialSurrenderChangeView.BlockRow(secondBlock.getFeatureName(), "Partial surrender")),
         null,
-        null);
+        ChangeViewUrls.none());
     assertThat(result.changeViewByType())
         .containsOnly(entry(LicenceOperation.PARTIAL_SURRENDER, expected));
   }

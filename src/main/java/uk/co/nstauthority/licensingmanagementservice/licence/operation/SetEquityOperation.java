@@ -23,6 +23,11 @@ public record SetEquityOperation(
   }
 
   @Override
+  public String displayName() {
+    return "Set equity";
+  }
+
+  @Override
   public UUID id() {
     return UUID.randomUUID();
   }

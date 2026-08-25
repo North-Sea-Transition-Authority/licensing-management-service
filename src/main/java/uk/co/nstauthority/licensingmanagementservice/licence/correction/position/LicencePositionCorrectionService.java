@@ -179,6 +179,17 @@ public class LicencePositionCorrectionService {
         .findByLicenceCorrectionAndChangeType(licenceCorrection, LicencePositionCorrectionChangeType.ADD_POSITION);
   }
 
+  public Optional<LicencePositionCorrection> findFirstAddedPositionCorrection(
+      LicenceCorrection licenceCorrection,
+      UUID licencePositionId
+  ) {
+    return getAddedLicencePositionCorrections(licenceCorrection)
+        .stream()
+        .filter(correction -> ((CreateLicencePositionPayload) correction.getPayload())
+            .licencePositionId().equals(licencePositionId.toString()))
+        .findFirst();
+  }
+
   public boolean isCorrectionReferenceInUse(LicenceCorrection licenceCorrection, String correctionReference) {
     return getAddedLicencePositionCorrections(licenceCorrection)
         .stream()

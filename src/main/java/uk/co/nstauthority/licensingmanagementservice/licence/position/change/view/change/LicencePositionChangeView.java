@@ -11,6 +11,8 @@ public sealed interface LicencePositionChangeView permits
   @Nullable
   String changeType();
 
+  ChangeViewUrls urls();
+
   default LicencePositionChangeView merge(LicencePositionChangeView other) {
     throw new UnsupportedOperationException(
         "merge is not supported for %s".formatted(getClass().getSimpleName()));

@@ -5,13 +5,15 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import jakarta.annotation.Nullable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
@@ -19,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -30,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityChangeView;
@@ -67,10 +71,17 @@ public final class LicencePositionChangeViewResolver {
         .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
         .toList();
 
-    var changeViews = new HashMap<String, LicencePositionChangeView>();
+    var hasMultipleChangeTypes = orderableChangeTypes(currentPositionChanges).size() > 1;
+
+    // LinkedHashMap so cards render in change-order sequence
+    var changeViews = new LinkedHashMap<String, LicencePositionChangeView>();
     var stateBeforeChange = stateBeforeCurrentPosition;
 
     for (var change : currentPositionChanges) {
+      var correctChangeOrderUrl = hasMultipleChangeTypes
+          ? correctChangeOrderUrl(urlContext, change, currentPositionId)
+          : null;
+
       for (var operation : change.operations()) {
         changeViews.merge(
             operation.type(),
@@ -78,7 +89,8 @@ public final class LicencePositionChangeViewResolver {
                 currentPositionDate,
                 organisationNames,
                 featureNames,
-                urlContext
+                urlContext,
+                correctChangeOrderUrl
             ),
             LicencePositionChangeView::merge
         );
@@ -87,6 +99,14 @@ public final class LicencePositionChangeViewResolver {
     }
 
     return changeViews;
+  }
+
+  private static Set<String> orderableChangeTypes(List<PositionChange> currentPositionChanges) {
+    return currentPositionChanges.stream()
+        .filter(PositionChange::isOrderable)
+        .flatMap(change -> change.operations().stream())
+        .map(LicenceOperation::type)
+        .collect(Collectors.toSet());
   }
 
   @Nullable
@@ -105,17 +125,33 @@ public final class LicencePositionChangeViewResolver {
       @Nullable LocalDate currentPositionDate,
       Map<Integer, String> organisationNames,
       Map<UUID, String> featureNames,
-      @Nullable PositionChangeUrlContext urlContext
+      @Nullable PositionChangeUrlContext urlContext,
+      @Nullable String correctChangeOrderUrl
   ) {
     return switch (operation) {
       case AdministratorOperation administratorChange ->
-          buildAdministratorChange(administratorChange, change, previousState, organisationNames, urlContext);
+          buildAdministratorChange(administratorChange, change, previousState, organisationNames, urlContext,
+              correctChangeOrderUrl);
       case SetEquityOperation setEquityOperation ->
-          buildSetEquityChangeView(setEquityOperation, change, organisationNames, urlContext);
+          buildSetEquityChangeView(setEquityOperation, change, organisationNames, urlContext, correctChangeOrderUrl);
       case TransferEquityOperation transferEquityOperation ->
-          buildTransferEquityChangeView(transferEquityOperation, change, previousState, organisationNames, urlContext);
+          buildTransferEquityChangeView(
+              transferEquityOperation,
+              change,
+              previousState,
+              organisationNames,
+              urlContext,
+              correctChangeOrderUrl
+          );
       case PartialSurrenderOperation partialSurrenderOperation ->
-          buildPartialSurrenderChange(partialSurrenderOperation, change, currentPositionDate, featureNames, urlContext);
+          buildPartialSurrenderChange(
+              partialSurrenderOperation,
+              change,
+              currentPositionDate,
+              featureNames,
+              urlContext,
+              correctChangeOrderUrl
+          );
     };
   }
 
@@ -124,7 +160,8 @@ public final class LicencePositionChangeViewResolver {
       PositionChange change,
       @Nullable LocalDate currentPositionDate,
       Map<UUID, String> featureNames,
-      @Nullable PositionChangeUrlContext urlContext
+      @Nullable PositionChangeUrlContext urlContext,
+      @Nullable String correctChangeOrderUrl
   ) {
     var surrenderDate = operation.surrenderDate() != null ? operation.surrenderDate() : currentPositionDate;
 
@@ -140,7 +177,7 @@ public final class LicencePositionChangeViewResolver {
         surrenderDate == null ? null : DateUtil.formatLongDate(surrenderDate),
         blockRows,
         change.changeType(),
-        partialSurrenderCorrectUrl(urlContext, change)
+        new ChangeViewUrls(partialSurrenderCorrectUrl(urlContext, change), null, null, correctChangeOrderUrl)
     );
   }
 
@@ -160,7 +197,8 @@ public final class LicencePositionChangeViewResolver {
       PositionChange change,
       LicencePositionState previousState,
       Map<Integer, String> organisationNames,
-      @Nullable PositionChangeUrlContext urlContext
+      @Nullable PositionChangeUrlContext urlContext,
+      @Nullable String correctChangeOrderUrl
   ) {
     var joiningId = operation.operatorId();
 
@@ -172,9 +210,12 @@ public final class LicencePositionChangeViewResolver {
         organisationNames.getOrDefault(joiningId, NOT_AVAILABLE),
         change.changeId(),
         change.changeType(),
-        administratorCorrectChangeUrl(urlContext, change),
-        removeChangeUrl(urlContext, change),
-        undoChangeUrl(urlContext, change)
+        new ChangeViewUrls(
+            administratorCorrectChangeUrl(urlContext, change),
+            removeChangeUrl(urlContext, change),
+            undoChangeUrl(urlContext, change),
+            correctChangeOrderUrl
+        )
     );
   }
 
@@ -182,20 +223,24 @@ public final class LicencePositionChangeViewResolver {
       SetEquityOperation operation,
       PositionChange change,
       Map<Integer, String> organisationNames,
-      @Nullable PositionChangeUrlContext urlContext
+      @Nullable PositionChangeUrlContext urlContext,
+      @Nullable String correctChangeOrderUrl
   ) {
     return new SetEquityChangeView(
         List.of(new SetEquityRow(organisationNames.getOrDefault(operation.transferTo(), NOT_AVAILABLE), operation.equity())),
         change.changeType(),
-        correctEquityChangeUrl(
-            urlContext,
-            change,
-            ctx -> ReverseRouter.route(on(LicencePositionSetEquityController.class)
-                .renderSummaryForAddedPosition(ctx.correctionId(), ctx.routingId(), null)),
-            ctx -> ReverseRouter.route(on(LicencePositionSetEquityController.class)
-                .renderSummaryForExecutedPosition(ctx.correctionId(), ctx.routingId(), null))),
-        removeEquityChangeUrl(urlContext, change),
-        undoEquityChangeUrl(urlContext, change)
+        new ChangeViewUrls(
+            correctEquityChangeUrl(
+                urlContext,
+                change,
+                ctx -> ReverseRouter.route(on(LicencePositionSetEquityController.class)
+                    .renderSummaryForAddedPosition(ctx.correctionId(), ctx.routingId(), null)),
+                ctx -> ReverseRouter.route(on(LicencePositionSetEquityController.class)
+                    .renderSummaryForExecutedPosition(ctx.correctionId(), ctx.routingId(), null))),
+            removeEquityChangeUrl(urlContext, change),
+            undoEquityChangeUrl(urlContext, change),
+            correctChangeOrderUrl
+        )
     );
   }
 
@@ -204,7 +249,8 @@ public final class LicencePositionChangeViewResolver {
       PositionChange change,
       LicencePositionState previousState,
       Map<Integer, String> organisationNames,
-      @Nullable PositionChangeUrlContext urlContext
+      @Nullable PositionChangeUrlContext urlContext,
+      @Nullable String correctChangeOrderUrl
   ) {
     var transferFrom = operation.transferFrom();
     var transferTo = operation.transferTo();
@@ -225,16 +271,19 @@ public final class LicencePositionChangeViewResolver {
             operation.retainBeneficialInterest()
         )),
         change.changeType(),
-        correctEquityChangeUrl(
-            urlContext,
-            change,
-            ctx -> ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-                .renderSummaryForAddedPosition(ctx.correctionId(), ctx.routingId(), null)),
-            ctx -> ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-                .renderSummaryForExecutedPosition(ctx.correctionId(), ctx.routingId(), null))
-        ),
-        removeEquityChangeUrl(urlContext, change),
-        undoEquityChangeUrl(urlContext, change)
+        new ChangeViewUrls(
+            correctEquityChangeUrl(
+                urlContext,
+                change,
+                ctx -> ReverseRouter.route(on(LicencePositionTransferEquityController.class)
+                    .renderSummaryForAddedPosition(ctx.correctionId(), ctx.routingId(), null)),
+                ctx -> ReverseRouter.route(on(LicencePositionTransferEquityController.class)
+                    .renderSummaryForExecutedPosition(ctx.correctionId(), ctx.routingId(), null))
+            ),
+            removeEquityChangeUrl(urlContext, change),
+            undoEquityChangeUrl(urlContext, change),
+            correctChangeOrderUrl
+        )
     );
   }
 
@@ -277,6 +326,19 @@ public final class LicencePositionChangeViewResolver {
     }
     return ReverseRouter.route(on(RemoveEquityChangeController.class)
         .renderUndoEquityChange(urlContext.correctionId(), change.changeId(), null));
+  }
+
+  @Nullable
+  private static String correctChangeOrderUrl(
+      @Nullable PositionChangeUrlContext urlContext,
+      PositionChange change,
+      UUID currentPositionId
+  ) {
+    if (urlContext == null || !change.isOrderable()) {
+      return null;
+    }
+    return ReverseRouter.route(on(CorrectChangeOrderController.class)
+        .renderCorrectChangeOrder(urlContext.correctionId(), currentPositionId, UUID.fromString(change.changeId()), null));
   }
 
   @Nullable

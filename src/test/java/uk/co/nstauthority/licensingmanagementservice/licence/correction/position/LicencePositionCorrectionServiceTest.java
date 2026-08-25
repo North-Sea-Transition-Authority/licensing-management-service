@@ -245,6 +245,29 @@ class LicencePositionCorrectionServiceTest {
         .containsExactly(addedCorrection);
   }
 
+  @Test
+  void findFirstAddedPositionCorrection_whenPositionWasAddedInCorrection_returnsThatCorrection() {
+    var licencePositionId = UUID.randomUUID();
+    var addedCorrection = addedCorrectionForPosition(licencePositionId);
+
+    when(licencePositionCorrectionRepository
+        .findByLicenceCorrectionAndChangeType(LICENCE_CORRECTION, LicencePositionCorrectionChangeType.ADD_POSITION))
+        .thenReturn(List.of(addedCorrectionForPosition(UUID.randomUUID()), addedCorrection));
+
+    assertThat(licencePositionCorrectionService.findFirstAddedPositionCorrection(LICENCE_CORRECTION, licencePositionId))
+        .contains(addedCorrection);
+  }
+
+  @Test
+  void findFirstAddedPositionCorrection_whenPositionNotAddedInCorrection_isEmpty() {
+    when(licencePositionCorrectionRepository
+        .findByLicenceCorrectionAndChangeType(LICENCE_CORRECTION, LicencePositionCorrectionChangeType.ADD_POSITION))
+        .thenReturn(List.of(addedCorrectionForPosition(UUID.randomUUID())));
+
+    assertThat(licencePositionCorrectionService.findFirstAddedPositionCorrection(LICENCE_CORRECTION, UUID.randomUUID()))
+        .isEmpty();
+  }
+
   @ParameterizedTest
   @ValueSource(strings = {"REF-1", "ref-1"})
   void isCorrectionReferenceInUse_whenReferenceMatchesExistingIgnoringCase_returnsTrue(String correctionReference) {
@@ -894,6 +917,15 @@ class LicencePositionCorrectionServiceTest {
     var payload = licencePositionCorrectionCaptor.getValue().getPayload();
     assertThat(payload).isInstanceOf(CreateLicencePositionPayload.class);
     return (CreateLicencePositionPayload) payload;
+  }
+
+  private LicencePositionCorrection addedCorrectionForPosition(UUID licencePositionId) {
+    return LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withLicencePositionId(licencePositionId.toString())
+            .build())
+        .build();
   }
 
   private LicencePositionCorrection addedCorrectionWithReference(String correctionReference) {

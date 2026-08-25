@@ -9,5 +9,5 @@ public record OrderablePosition(
     int effectiveDateOrder,
     String reference,
     boolean added
-) {
+) implements Orderable {
 }

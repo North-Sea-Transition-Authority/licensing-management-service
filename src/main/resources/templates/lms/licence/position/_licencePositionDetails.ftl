@@ -30,16 +30,16 @@
       </#list>
     </@fdsSummaryList.summaryListCard>
   </#if>
-  <#if !isCarbonStorage && licencePositionChanges["licence-administrator"]??>
-    <@positionChanges.administratorChange change=licencePositionChanges["licence-administrator"]/>
-  </#if>
-  <#if licencePositionChanges["set-equity"]??>
-    <@positionChanges.setEquityChange change=licencePositionChanges["set-equity"]/>
-  </#if>
-  <#if licencePositionChanges["transfer-equity"]??>
-      <@positionChanges.transferEquityChange change=licencePositionChanges["transfer-equity"]/>
-  </#if>
-  <#if licencePositionChanges["partial-surrender"]??>
-      <@positionChanges.partialSurrenderChange change=licencePositionChanges["partial-surrender"]/>
-  </#if>
+  <#list licencePositionChanges?keys?reverse as changeType>
+    <#local change = licencePositionChanges[changeType]>
+    <#if changeType == "licence-administrator" && !isCarbonStorage>
+      <@positionChanges.administratorChange change=change/>
+    <#elseif changeType == "set-equity">
+      <@positionChanges.setEquityChange change=change/>
+    <#elseif changeType == "transfer-equity">
+      <@positionChanges.transferEquityChange change=change/>
+    <#elseif changeType == "partial-surrender">
+      <@positionChanges.partialSurrenderChange change=change/>
+    </#if>
+  </#list>
 </#macro>

@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity;
 
+import static java.util.function.Predicate.not;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -72,7 +74,7 @@ public class EquityChangeService {
           "Change with id %s is not a beneficial interest change".formatted(changeId));
     }
 
-    var remainingChanges = LicencePositionChangeUtil.removeChangeById(payload.changes(), changeId);
+    var remainingChanges = LicencePositionChangeType.removeChangesById(payload.changes(), changeId);
 
     if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.UPDATE_POSITION
         && remainingChanges.isEmpty()
@@ -115,6 +117,7 @@ public class EquityChangeService {
 
   private LicencePositionChangeType findChange(LicencePositionCorrection positionCorrection, String changeId) {
     return positionCorrection.getPayload().changes().stream()
+        .filter(not(LicencePositionChangeType::isUpdateChangeOrder))
         .filter(change -> changeId.equals(change.changeId()))
         .findFirst()
         .orElseThrow(() -> new IllegalStateException(

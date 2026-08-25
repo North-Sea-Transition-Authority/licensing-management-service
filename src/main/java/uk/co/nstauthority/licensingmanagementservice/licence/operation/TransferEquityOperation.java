@@ -28,6 +28,11 @@ public record TransferEquityOperation(
   }
 
   @Override
+  public String displayName() {
+    return "Transfer equity";
+  }
+
+  @Override
   public UUID id() {
     return UUID.randomUUID();
   }

@@ -23,7 +23,7 @@ class PositionMoveTest {
     var move = PositionMove.fromFormValue("AFTER:" + targetPositionId);
 
     assertThat(move.direction()).isEqualTo(PositionMoveDirection.AFTER);
-    assertThat(move.targetPositionId()).isEqualTo(targetPositionId);
+    assertThat(move.targetId()).isEqualTo(targetPositionId);
   }
 
   @ParameterizedTest

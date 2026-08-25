@@ -8,6 +8,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOrder;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 
@@ -120,6 +121,7 @@ public final class LicencePositionChangeOperationUtil {
       case UpdateChangeOperations updateChange ->
           UpdateChangeOperations.buildUpdateChange(updateChange.changeId(), operation);
       case RemoveChange ignored -> change;
+      case UpdateChangeOrder ignored -> change;
     };
   }
 }

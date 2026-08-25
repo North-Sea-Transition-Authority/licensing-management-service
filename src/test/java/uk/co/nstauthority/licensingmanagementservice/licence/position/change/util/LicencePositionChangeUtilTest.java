@@ -46,6 +46,56 @@ class LicencePositionChangeUtilTest {
   }
 
   @Test
+  void removeChangeById_alsoDropsTheChangeOrderCorrection() {
+    var removedId = UUID.randomUUID().toString();
+    var edit = setEquityAddChange(removedId);
+    var order = LicencePositionChangeType.updateChangeOrder().withChangeId(removedId).withChangeOrder(2).build();
+
+    var result = LicencePositionChangeUtil.removeChangeById(List.of(edit, order), removedId);
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  void removeChangesById_keepsTheChangeOrderCorrectionForThatChange() {
+    var undoneId = UUID.randomUUID().toString();
+    var edit = setEquityAddChange(undoneId);
+    var order = LicencePositionChangeType.updateChangeOrder().withChangeId(undoneId).withChangeOrder(2).build();
+
+    var result = LicencePositionChangeType.removeChangesById(List.of(edit, order), undoneId);
+
+    assertThat(result).containsExactly(order);
+  }
+
+  @Test
+  void removeChangesById_keepsOtherChangesUntouched() {
+    var undoneId = UUID.randomUUID().toString();
+    var otherId = UUID.randomUUID().toString();
+    var otherEdit = setEquityAddChange(otherId);
+    var otherOrder = LicencePositionChangeType.updateChangeOrder().withChangeId(otherId).withChangeOrder(1).build();
+
+    var result = LicencePositionChangeType.removeChangesById(
+        List.of(setEquityAddChange(undoneId), otherEdit, otherOrder), undoneId);
+
+    assertThat(result).containsExactly(otherEdit, otherOrder);
+  }
+
+  @Test
+  void isUpdateChangeOrder_whenUpdateChangeOrder_isTrue() {
+    var change = LicencePositionChangeType.updateChangeOrder()
+        .withChangeId(UUID.randomUUID().toString())
+        .withChangeOrder(1)
+        .build();
+
+    assertThat(change.isUpdateChangeOrder()).isTrue();
+  }
+
+  @Test
+  void isUpdateChangeOrder_whenAddChange_isFalse() {
+    assertThat(setEquityAddChange(UUID.randomUUID().toString()).isUpdateChangeOrder()).isFalse();
+  }
+
+  @Test
   void positionDateAndOrderUnchanged_whenUpdatePositionWithNullDateAndOrder_returnsTrue() {
     var correction = updatePositionCorrection(null, null);
 

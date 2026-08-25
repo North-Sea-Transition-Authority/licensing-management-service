@@ -22,6 +22,11 @@ public record AdministratorOperation(
   }
 
   @Override
+  public String displayName() {
+    return "Licence administrator change";
+  }
+
+  @Override
   public PositionValidationError validate(PositionValidationContext positionValidationContext) {
     if (positionValidationContext.isCarbonStorage()) {
       return null;

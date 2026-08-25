@@ -33,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionPageView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTimelineView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
@@ -259,7 +260,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
                     new PartialSurrenderChangeView.BlockRow("30/1a", "Full surrender"),
                     new PartialSurrenderChangeView.BlockRow("30/2", "Partial surrender")),
                 LicencePositionChangeType.ADD_CHANGE,
-                "/correct")),
+                new ChangeViewUrls("/correct", null, null, null))),
         new LicencePositionStateView(new AdministratorStateView("Operator Ltd"), List.of()),
         position.getId(),
         LicencePositionPageView.Actions.none(),

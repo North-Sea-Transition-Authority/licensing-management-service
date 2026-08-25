@@ -11,11 +11,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
@@ -24,6 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityChangeView;
@@ -180,9 +183,9 @@ class LicencePositionChangeViewResolverTest {
         PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
     );
 
-    assertThat(view.correctUrl()).contains("correct-administrator-change");
-    assertThat(view.removeUrl()).contains("remove-administrator-change");
-    assertThat(view.undoUrl()).isNull();
+    assertThat(view.urls().correct()).contains("correct-administrator-change");
+    assertThat(view.urls().remove()).contains("remove-administrator-change");
+    assertThat(view.urls().undo()).isNull();
   }
 
   @Test
@@ -192,9 +195,9 @@ class LicencePositionChangeViewResolverTest {
         PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
     );
 
-    assertThat(view.correctUrl()).contains("correct-administrator-change");
-    assertThat(view.removeUrl()).isNull();
-    assertThat(view.undoUrl()).contains("undo-administrator-change");
+    assertThat(view.urls().correct()).contains("correct-administrator-change");
+    assertThat(view.urls().remove()).isNull();
+    assertThat(view.urls().undo()).contains("undo-administrator-change");
   }
 
   @Test
@@ -204,9 +207,9 @@ class LicencePositionChangeViewResolverTest {
         PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
     );
 
-    assertThat(view.correctUrl()).contains("add-administrator-change");
-    assertThat(view.removeUrl()).isNull();
-    assertThat(view.undoUrl()).contains("undo-administrator-change");
+    assertThat(view.urls().correct()).contains("add-administrator-change");
+    assertThat(view.urls().remove()).isNull();
+    assertThat(view.urls().undo()).contains("undo-administrator-change");
   }
 
   @Test
@@ -216,9 +219,9 @@ class LicencePositionChangeViewResolverTest {
         PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
     );
 
-    assertThat(view.correctUrl()).isNull();
-    assertThat(view.removeUrl()).isNull();
-    assertThat(view.undoUrl()).contains("undo-administrator-change");
+    assertThat(view.urls().correct()).isNull();
+    assertThat(view.urls().remove()).isNull();
+    assertThat(view.urls().undo()).contains("undo-administrator-change");
   }
 
   @Test
@@ -228,17 +231,17 @@ class LicencePositionChangeViewResolverTest {
         PositionChangeUrlContext.forAddedPosition(UUID.randomUUID(), UUID.randomUUID())
     );
 
-    assertThat(view.removeUrl()).isNull();
-    assertThat(view.undoUrl()).contains("undo-administrator-change");
+    assertThat(view.urls().remove()).isNull();
+    assertThat(view.urls().undo()).contains("undo-administrator-change");
   }
 
   @Test
   void buildAdministratorChange_whenNoUrlContext_hasNoUrls() {
     var view = adminChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, null);
 
-    assertThat(view.correctUrl()).isNull();
-    assertThat(view.removeUrl()).isNull();
-    assertThat(view.undoUrl()).isNull();
+    assertThat(view.urls().correct()).isNull();
+    assertThat(view.urls().remove()).isNull();
+    assertThat(view.urls().undo()).isNull();
   }
 
   private AdministratorChangeView adminChangeView(String changeType, PositionChangeUrlContext urlContext) {
@@ -295,9 +298,7 @@ class LicencePositionChangeViewResolverTest {
         .isEqualTo(new SetEquityChangeView(
             List.of(new SetEquityRow("Org", BigDecimal.valueOf(75))),
             null,
-            null,
-            null,
-            null
+            ChangeViewUrls.none()
         ));
   }
 
@@ -367,11 +368,14 @@ class LicencePositionChangeViewResolverTest {
     assertThat(view).isEqualTo(new SetEquityChangeView(
         List.of(new SetEquityRow(SET_EQUITY_ORG_NAME, BigDecimal.valueOf(75))),
         LicencePositionChangeType.ADD_CHANGE,
-        ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderSummaryForExecutedPosition(correctionId, licencePositionId, null)),
-        null,
-        ReverseRouter.route(on(RemoveEquityChangeController.class)
-            .renderUndoEquityChange(correctionId, changeId, null))
+        new ChangeViewUrls(
+            ReverseRouter.route(on(LicencePositionSetEquityController.class)
+                .renderSummaryForExecutedPosition(correctionId, licencePositionId, null)),
+            null,
+            ReverseRouter.route(on(RemoveEquityChangeController.class)
+                .renderUndoEquityChange(correctionId, changeId, null)),
+            null
+        )
     ));
   }
 
@@ -383,7 +387,7 @@ class LicencePositionChangeViewResolverTest {
 
     var view = setEquityChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, urlContext);
 
-    assertThat(view.updateUrl()).isEqualTo(ReverseRouter.route(on(LicencePositionSetEquityController.class)
+    assertThat(view.urls().correct()).isEqualTo(ReverseRouter.route(on(LicencePositionSetEquityController.class)
         .renderSummaryForExecutedPosition(correctionId, licencePositionId, null)));
   }
 
@@ -395,14 +399,14 @@ class LicencePositionChangeViewResolverTest {
 
     var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
 
-    assertThat(view.updateUrl()).isEqualTo(ReverseRouter.route(on(LicencePositionSetEquityController.class)
+    assertThat(view.urls().correct()).isEqualTo(ReverseRouter.route(on(LicencePositionSetEquityController.class)
         .renderSummaryForAddedPosition(correctionId, licencePositionCorrectionId, null)));
   }
 
   @Test
   void buildSetEquityChangeView_whenNoUrlContext_hasNoUpdateUrl() {
     var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, null);
-    assertThat(view.updateUrl()).isNull();
+    assertThat(view.urls().correct()).isNull();
   }
 
   @Test
@@ -410,7 +414,7 @@ class LicencePositionChangeViewResolverTest {
     var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), null);
     var view = setEquityChangeView(null, urlContext);
 
-    assertThat(view.updateUrl()).isNull();
+    assertThat(view.urls().correct()).isNull();
   }
 
   @Test
@@ -418,8 +422,8 @@ class LicencePositionChangeViewResolverTest {
     var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), null);
     var view = setEquityChangeView(null, urlContext);
 
-    assertThat(view.removeUrl()).contains("remove-equity-change");
-    assertThat(view.undoUrl()).isNull();
+    assertThat(view.urls().remove()).contains("remove-equity-change");
+    assertThat(view.urls().undo()).isNull();
   }
 
   @Test
@@ -427,8 +431,8 @@ class LicencePositionChangeViewResolverTest {
     var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
     var view = setEquityChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, urlContext);
 
-    assertThat(view.removeUrl()).isNull();
-    assertThat(view.undoUrl()).contains("undo-equity-change");
+    assertThat(view.urls().remove()).isNull();
+    assertThat(view.urls().undo()).contains("undo-equity-change");
   }
 
   @Test
@@ -436,8 +440,8 @@ class LicencePositionChangeViewResolverTest {
     var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
     var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
 
-    assertThat(view.removeUrl()).isNull();
-    assertThat(view.undoUrl()).contains("undo-equity-change");
+    assertThat(view.urls().remove()).isNull();
+    assertThat(view.urls().undo()).contains("undo-equity-change");
   }
 
   @Test
@@ -445,8 +449,8 @@ class LicencePositionChangeViewResolverTest {
     var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
     var view = setEquityChangeView(LicencePositionChangeType.REMOVE_CHANGE, urlContext);
 
-    assertThat(view.removeUrl()).isNull();
-    assertThat(view.undoUrl()).contains("undo-equity-change");
+    assertThat(view.urls().remove()).isNull();
+    assertThat(view.urls().undo()).contains("undo-equity-change");
   }
 
   @Test
@@ -454,16 +458,16 @@ class LicencePositionChangeViewResolverTest {
     var urlContext = PositionChangeUrlContext.forAddedPosition(UUID.randomUUID(), UUID.randomUUID());
     var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
 
-    assertThat(view.removeUrl()).isNull();
-    assertThat(view.undoUrl()).contains("undo-equity-change");
+    assertThat(view.urls().remove()).isNull();
+    assertThat(view.urls().undo()).contains("undo-equity-change");
   }
 
   @Test
   void buildSetEquityChangeView_whenNoUrlContext_hasNoRemoveOrUndoUrls() {
     var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, null);
 
-    assertThat(view.removeUrl()).isNull();
-    assertThat(view.undoUrl()).isNull();
+    assertThat(view.urls().remove()).isNull();
+    assertThat(view.urls().undo()).isNull();
   }
 
   @Test
@@ -501,9 +505,7 @@ class LicencePositionChangeViewResolverTest {
             TRANSFER_TO_NAME, BigDecimal.ZERO, BigDecimal.valueOf(30),
             BigDecimal.valueOf(30), null)),
         null,
-        null,
-        null,
-        null
+        ChangeViewUrls.none()
     );
 
     assertThat(view).isEqualTo(expected);
@@ -557,7 +559,7 @@ class LicencePositionChangeViewResolverTest {
 
     var view = transferEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext, null);
 
-    assertThat(view.updateUrl()).isEqualTo(ReverseRouter.route(on(LicencePositionTransferEquityController.class)
+    assertThat(view.urls().correct()).isEqualTo(ReverseRouter.route(on(LicencePositionTransferEquityController.class)
         .renderSummaryForExecutedPosition(correctionId, licencePositionId, null)));
   }
 
@@ -569,14 +571,14 @@ class LicencePositionChangeViewResolverTest {
 
     var view = transferEquityChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, urlContext, null);
 
-    assertThat(view.updateUrl()).isEqualTo(ReverseRouter.route(on(LicencePositionTransferEquityController.class)
+    assertThat(view.urls().correct()).isEqualTo(ReverseRouter.route(on(LicencePositionTransferEquityController.class)
         .renderSummaryForAddedPosition(correctionId, licencePositionCorrectionId, null)));
   }
 
   @Test
   void buildTransferEquityChangeView_whenNoUrlContext_hasNoUpdateUrl() {
     var view = transferEquityChangeView(LicencePositionChangeType.ADD_CHANGE, null, null);
-    assertThat(view.updateUrl()).isNull();
+    assertThat(view.urls().correct()).isNull();
   }
 
   @Test
@@ -584,7 +586,7 @@ class LicencePositionChangeViewResolverTest {
     var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), null);
     var view = transferEquityChangeView(null, urlContext, null);
 
-    assertThat(view.updateUrl()).isNull();
+    assertThat(view.urls().correct()).isNull();
   }
 
   @Test
@@ -592,8 +594,8 @@ class LicencePositionChangeViewResolverTest {
     var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), null);
     var view = transferEquityChangeView(null, urlContext, null);
 
-    assertThat(view.removeUrl()).contains("remove-equity-change");
-    assertThat(view.undoUrl()).isNull();
+    assertThat(view.urls().remove()).contains("remove-equity-change");
+    assertThat(view.urls().undo()).isNull();
   }
 
   @Test
@@ -601,8 +603,8 @@ class LicencePositionChangeViewResolverTest {
     var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
     var view = transferEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext, null);
 
-    assertThat(view.removeUrl()).isNull();
-    assertThat(view.undoUrl()).contains("undo-equity-change");
+    assertThat(view.urls().remove()).isNull();
+    assertThat(view.urls().undo()).contains("undo-equity-change");
   }
 
   private SetEquityChangeView setEquityChangeView(String changeType, PositionChangeUrlContext urlContext) {
@@ -808,7 +810,7 @@ class LicencePositionChangeViewResolverTest {
     var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
 
     assertThat((PartialSurrenderChangeView) result.get(LicenceOperation.PARTIAL_SURRENDER))
-        .extracting(PartialSurrenderChangeView::correctUrl)
+        .extracting(view -> view.urls().correct())
         .isNull();
   }
 
@@ -823,7 +825,7 @@ class LicencePositionChangeViewResolverTest {
         PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, null)
     );
 
-    assertThat(result.correctUrl()).isEqualTo(
+    assertThat(result.urls().correct()).isEqualTo(
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
             .renderForCorrectingChange(correctionId, positionId, changeId, null, null)));
   }
@@ -840,7 +842,7 @@ class LicencePositionChangeViewResolverTest {
         PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, positionCorrectionId)
     );
 
-    assertThat(result.correctUrl()).isEqualTo(
+    assertThat(result.urls().correct()).isEqualTo(
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
             .renderTaskList(correctionId, positionCorrectionId, null, null)));
   }
@@ -856,7 +858,7 @@ class LicencePositionChangeViewResolverTest {
         PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, positionCorrectionId)
     );
 
-    assertThat(result.correctUrl()).isEqualTo(
+    assertThat(result.urls().correct()).isEqualTo(
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
             .renderTaskList(correctionId, positionCorrectionId, null, null)));
   }
@@ -871,7 +873,7 @@ class LicencePositionChangeViewResolverTest {
         PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, UUID.randomUUID())
     );
 
-    assertThat(result.correctUrl()).isNull();
+    assertThat(result.urls().correct()).isNull();
   }
 
   @Test
@@ -885,7 +887,7 @@ class LicencePositionChangeViewResolverTest {
         PositionChangeUrlContext.forAddedPosition(correctionId, positionCorrectionId)
     );
 
-    assertThat(result.correctUrl()).isEqualTo(
+    assertThat(result.urls().correct()).isEqualTo(
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
             .renderTaskList(correctionId, positionCorrectionId, null, null)));
   }
@@ -932,5 +934,142 @@ class LicencePositionChangeViewResolverTest {
         featureNames,
         null
     );
+  }
+
+
+  @Test
+  void getChangeViews_whenMultipleOrderableChangeTypes_populatesCorrectChangeOrderUrlForEachChange() {
+    var correctionId = UUID.randomUUID();
+    var positionId = UUID.randomUUID();
+    var setEquityChangeId = UUID.randomUUID();
+    var partialSurrenderChangeId = UUID.randomUUID();
+
+    var result = changeOrderChangeViews(
+        positionId,
+        List.of(setEquityChange(setEquityChangeId.toString(), null),
+            partialSurrenderChange(partialSurrenderChangeId.toString(), null)),
+        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, null)
+    );
+
+    assertThat(result)
+        .extractingByKeys(LicenceOperation.SET_EQUITY, LicenceOperation.PARTIAL_SURRENDER)
+        .extracting(LicencePositionChangeView::urls)
+        .containsExactly(
+            new ChangeViewUrls(
+                null,
+                ReverseRouter.route(on(RemoveEquityChangeController.class).renderRemoveExecutedEquityChange(
+                    correctionId, positionId, setEquityChangeId.toString(), null)),
+                null,
+                ReverseRouter.route(on(CorrectChangeOrderController.class)
+                    .renderCorrectChangeOrder(correctionId, positionId, setEquityChangeId, null))),
+            new ChangeViewUrls(
+                ReverseRouter.route(on(PartialSurrenderTaskListController.class).renderForCorrectingChange(
+                    correctionId, positionId, partialSurrenderChangeId.toString(), null, null)),
+                null,
+                null,
+                ReverseRouter.route(on(CorrectChangeOrderController.class)
+                    .renderCorrectChangeOrder(correctionId, positionId, partialSurrenderChangeId, null))));
+  }
+
+  @Test
+  void getChangeViews_whenOnlyOneOrderableChangeType_hasNoCorrectChangeOrderUrl() {
+    var correctionId = UUID.randomUUID();
+    var positionId = UUID.randomUUID();
+    var changeId = UUID.randomUUID();
+
+    var result = changeOrderChangeViews(
+        positionId,
+        List.of(setEquityChange(changeId.toString(), null)),
+        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, null)
+    );
+
+    assertThat(result)
+        .extractingByKey(LicenceOperation.SET_EQUITY)
+        .extracting(LicencePositionChangeView::urls)
+        .isEqualTo(new ChangeViewUrls(
+            null,
+            ReverseRouter.route(on(RemoveEquityChangeController.class).renderRemoveExecutedEquityChange(
+                correctionId, positionId, changeId.toString(), null)),
+            null,
+            null));
+  }
+
+  @Test
+  void getChangeViews_whenChangeIsRemoved_hasNoCorrectChangeOrderUrlForThatChange() {
+    var correctionId = UUID.randomUUID();
+    var positionId = UUID.randomUUID();
+    var administratorChangeId = UUID.randomUUID();
+
+    var result = changeOrderChangeViews(
+        positionId,
+        List.of(setEquityChange(UUID.randomUUID().toString(), null),
+            partialSurrenderChange(UUID.randomUUID().toString(), null),
+            administratorChange(administratorChangeId.toString(), LicencePositionChangeType.REMOVE_CHANGE)),
+        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, null)
+    );
+
+    assertThat(result)
+        .extractingByKey(LicenceOperation.LICENCE_ADMINISTRATOR)
+        .extracting(LicencePositionChangeView::urls)
+        .isEqualTo(new ChangeViewUrls(
+            null,
+            null,
+            ReverseRouter.route(on(RemoveAdministratorChangeController.class)
+                .renderUndoAdminChange(correctionId, administratorChangeId.toString(), null)),
+            null));
+  }
+
+  @Test
+  void getChangeViews_whenNoUrlContext_hasNoCorrectChangeOrderUrl() {
+    var positionId = UUID.randomUUID();
+
+    var result = changeOrderChangeViews(
+        positionId,
+        List.of(setEquityChange(UUID.randomUUID().toString(), null),
+            partialSurrenderChange(UUID.randomUUID().toString(), null)),
+        null
+    );
+
+    assertThat(result)
+        .extractingByKeys(LicenceOperation.SET_EQUITY, LicenceOperation.PARTIAL_SURRENDER)
+        .extracting(LicencePositionChangeView::urls)
+        .containsOnly(ChangeViewUrls.none());
+  }
+
+  private static Map<String, LicencePositionChangeView> changeOrderChangeViews(
+      UUID positionId,
+      List<PositionChange> changes,
+      PositionChangeUrlContext urlContext
+  ) {
+    var positions = List.of(ChronologicalPositionTestUtil.newBuilder()
+        .withId(positionId)
+        .withChanges(changes)
+        .build());
+
+    return LicencePositionChangeViewResolver.getChangeViews(
+        positionId,
+        positions,
+        LicencePositionStateResolver.resolve(positions),
+        Map.of(JOINING_ID, JOINING_NAME, SET_EQUITY_ORG_ID, SET_EQUITY_ORG_NAME),
+        FEATURE_NAMES,
+        urlContext);
+  }
+
+  private static PositionChange administratorChange(String changeId, String changeType) {
+    return new PositionChange(changeId, 1, changeType,
+        List.of(LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build()));
+  }
+
+  private static PositionChange setEquityChange(String changeId, String changeType) {
+    return new PositionChange(changeId, 2, changeType,
+        List.of(new SetEquityOperation(SET_EQUITY_ORG_ID, BigDecimal.valueOf(75))));
+  }
+
+  private static PositionChange partialSurrenderChange(String changeId, String changeType) {
+    return new PositionChange(changeId, 3, changeType,
+        List.of(LicenceOperation.newPartialSurrenderOperation()
+            .withFeatureIds(List.of(FIRST_FEATURE_ID))
+            .withBlockSurrenderTypeByFeatureId(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
+            .build()));
   }
 }

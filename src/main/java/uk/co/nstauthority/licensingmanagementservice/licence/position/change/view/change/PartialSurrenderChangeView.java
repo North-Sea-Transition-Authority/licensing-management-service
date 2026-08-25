@@ -7,7 +7,7 @@ public record PartialSurrenderChangeView(
     @Nullable String surrenderDate,
     List<BlockRow> blockRows,
     @Nullable String changeType,
-    @Nullable String correctUrl
+    ChangeViewUrls urls
 ) implements LicencePositionChangeView {
 
   public record BlockRow(

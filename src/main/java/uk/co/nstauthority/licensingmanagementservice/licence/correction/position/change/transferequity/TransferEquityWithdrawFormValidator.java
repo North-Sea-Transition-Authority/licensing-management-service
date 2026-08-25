@@ -13,12 +13,12 @@ public class TransferEquityWithdrawFormValidator {
       Errors errors
   ) {
     ValidationUtils.rejectIfEmptyOrWhitespace(errors, "withdrawalDecision", "withdrawalDecision.required",
-        "Select whether the organisation is withdrawing from the licence position");
+        "Select whether the organisation should retain a beneficial interest in the licence");
 
     if (!errors.hasFieldErrors("withdrawalDecision")
         && EnumValidationUtil.isNotValidEnumValue(TransferEquityWithdrawalDecision.class, form.getWithdrawalDecision())) {
       errors.rejectValue("withdrawalDecision", "withdrawalDecision.invalid",
-          "Select whether the organisation is withdrawing from the licence position");
+          "Select whether the organisation should retain a beneficial interest in the licence");
     }
 
     return errors.hasErrors();

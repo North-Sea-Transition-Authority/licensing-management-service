@@ -18,8 +18,7 @@ class TransferEquityWithdrawalDecisionTest {
   void getOptions_returnsBothOptionsInDisplayOrderKeyedByName() {
     assertThat(TransferEquityWithdrawalDecision.getOptions())
         .containsExactly(
-            entry("WITHDRAW", "Yes, remove them from the position"),
-            entry("RETAIN",
-                "No, this organisation will retain a beneficial interest in the licence position despite holding no equity"));
+            entry("RETAIN", "Yes"),
+            entry("WITHDRAW", "No"));
   }
 }

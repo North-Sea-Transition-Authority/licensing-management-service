@@ -17,7 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 class TransferEquityWithdrawFormValidatorTest {
 
   private static final String REQUIRED_MESSAGE =
-      "Select whether the organisation is withdrawing from the licence position";
+      "Select whether the organisation should retain a beneficial interest in the licence";
 
   private TransferEquityWithdrawFormValidator validator;
   private TransferEquityWithdrawForm form;

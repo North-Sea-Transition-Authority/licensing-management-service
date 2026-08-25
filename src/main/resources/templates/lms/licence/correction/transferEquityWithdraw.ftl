@@ -1,9 +1,8 @@
 <#include '../../layout/layout.ftl'>
 
 <@defaultPage
-htmlTitle="Is ${organisationName} withdrawing?"
-pageHeading="Is ${organisationName} withdrawing?"
-caption=pageCaption
+htmlTitle="Withdrawal page"
+pageHeading="Should ${organisationName} retain a beneficial interest in the licence despite holding no equity?"
 backLinkUrl=springUrl(backLinkUrl)
 >
     <@fdsForm.htmlForm actionUrl=springUrl(submitUrl)>

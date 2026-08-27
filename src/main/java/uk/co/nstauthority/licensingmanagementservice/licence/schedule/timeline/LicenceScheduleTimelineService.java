@@ -345,33 +345,33 @@ public class LicenceScheduleTimelineService {
   ) {
     var allPhases = licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail);
     var phasesByTerm = allPhases.stream()
-        .collect(Collectors.groupingBy(LicenceSchedulePhase::getLicenceScheduleTerm));
+        .collect(Collectors.groupingBy(phase -> phase.getLicenceScheduleTerm().getId()));
 
     var allActivities = workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail);
     var withinTermActivities = allActivities.stream()
         .filter(activity -> activity.getDateOption() == WorkProgrammeActivityDateOption.WITHIN_A_TERM)
-        .collect(Collectors.groupingBy(WorkProgrammeActivity::getLicenceScheduleTerm));
+        .collect(Collectors.groupingBy(activity -> activity.getLicenceScheduleTerm().getId()));
     var withinPhaseActivities = allActivities.stream()
         .filter(activity -> activity.getDateOption() == WorkProgrammeActivityDateOption.WITHIN_A_PHASE)
-        .collect(Collectors.groupingBy(WorkProgrammeActivity::getLicenceSchedulePhase));
+        .collect(Collectors.groupingBy(activity -> activity.getLicenceSchedulePhase().getId()));
 
     var allOtherEvents = otherScheduleEventService.getOtherScheduleEvents(licenceScheduleDetail);
     var withinTermOtherEvents = allOtherEvents.stream()
         .filter(event -> event.getDateOption() == OtherScheduleEventDateOption.WITHIN_A_TERM)
-        .collect(Collectors.groupingBy(OtherScheduleEvent::getLicenceScheduleTerm));
+        .collect(Collectors.groupingBy(event -> event.getLicenceScheduleTerm().getId()));
     var withinPhaseOtherEvents = allOtherEvents.stream()
         .filter(event -> event.getDateOption() == OtherScheduleEventDateOption.WITHIN_A_PHASE)
-        .collect(Collectors.groupingBy(OtherScheduleEvent::getLicenceSchedulePhase));
+        .collect(Collectors.groupingBy(event -> event.getLicenceSchedulePhase().getId()));
 
     var termLinkedRatesByTerm = licenceScheduleRateService
         .getLicenceScheduleRatesForTermsAndDefinitionOption(terms, RateDefinitionOption.TERM)
         .stream()
-        .collect(Collectors.groupingBy(LicenceScheduleRate::getLicenceScheduleTerm));
+        .collect(Collectors.groupingBy(rate -> rate.getLicenceScheduleTerm().getId()));
 
     var phaseLinkedRatesByPhase = licenceScheduleRateService
         .getLicenceScheduleRatesForPhasesAndDefinitionOption(allPhases, RateDefinitionOption.PHASE)
         .stream()
-        .collect(Collectors.groupingBy(LicenceScheduleRate::getLicenceSchedulePhase));
+        .collect(Collectors.groupingBy(rate -> rate.getLicenceSchedulePhase().getId()));
 
     var allRates = licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail);
 
@@ -474,7 +474,7 @@ public class LicenceScheduleTimelineService {
       LocalDate finalProgressDate,
       ScheduleEventData scheduleEventData
   ) {
-    var phases = scheduleEventData.phasesByTerm().getOrDefault(licenceScheduleTerm, List.of());
+    var phases = scheduleEventData.phasesByTerm().getOrDefault(licenceScheduleTerm.getId(), List.of());
 
     var firstPhaseType = phases.stream()
         .min(Comparator.comparing(phase -> phase.getPhaseType().getDisplayOrder()))
@@ -497,7 +497,7 @@ public class LicenceScheduleTimelineService {
         .toList();
 
     if (!phaseViews.isEmpty()) {
-      var termRateViews = scheduleEventData.termLinkedRatesByTerm().getOrDefault(licenceScheduleTerm, List.of()).stream()
+      var termRateViews = scheduleEventData.termLinkedRatesByTerm().getOrDefault(licenceScheduleTerm.getId(), List.of()).stream()
           .map(licenceScheduleRate -> TimelineRateView.getScheduleEventFrom(
               licenceScheduleRate,
               rateDatesMap,
@@ -577,7 +577,7 @@ public class LicenceScheduleTimelineService {
       ScheduleEventData scheduleEventData
   ) {
     var workProgrammeActivities = scheduleEventData.withinTermActivities()
-        .getOrDefault(licenceScheduleTerm, List.of())
+        .getOrDefault(licenceScheduleTerm.getId(), List.of())
         .stream()
         .sorted(Comparator.comparing(WorkProgrammeActivity::getCategoryString))
         .map(workProgrammeActivity ->
@@ -590,7 +590,7 @@ public class LicenceScheduleTimelineService {
             ));
 
     var otherScheduleEvents = scheduleEventData.withinTermOtherEvents()
-        .getOrDefault(licenceScheduleTerm, List.of())
+        .getOrDefault(licenceScheduleTerm.getId(), List.of())
         .stream()
         .sorted(Comparator.comparing(OtherScheduleEvent::getCategoryString))
         .map(otherScheduleEvent ->
@@ -752,7 +752,7 @@ public class LicenceScheduleTimelineService {
       ScheduleEventData scheduleEventData
   ) {
     var workProgrammeActivities = scheduleEventData.withinPhaseActivities()
-        .getOrDefault(licenceSchedulePhase, List.of())
+        .getOrDefault(licenceSchedulePhase.getId(), List.of())
         .stream()
         .sorted(Comparator.comparing(WorkProgrammeActivity::getCategoryString))
         .map(workProgrammeActivity ->
@@ -765,7 +765,7 @@ public class LicenceScheduleTimelineService {
             ));
 
     var otherScheduleEvents = scheduleEventData.withinPhaseOtherEvents()
-        .getOrDefault(licenceSchedulePhase, List.of())
+        .getOrDefault(licenceSchedulePhase.getId(), List.of())
         .stream()
         .sorted(Comparator.comparing(OtherScheduleEvent::getCategoryString))
         .map(otherScheduleEvent ->
@@ -791,7 +791,7 @@ public class LicenceScheduleTimelineService {
       ScheduleEventData scheduleEventData,
       LicenceScheduleTerm licenceScheduleTerm
   ) {
-    var termLinkedRates = scheduleEventData.termLinkedRatesByTerm().getOrDefault(licenceScheduleTerm, List.of());
+    var termLinkedRates = scheduleEventData.termLinkedRatesByTerm().getOrDefault(licenceScheduleTerm.getId(), List.of());
 
     if (!termLinkedRates.isEmpty()) {
       return termLinkedRates;
@@ -815,14 +815,14 @@ public class LicenceScheduleTimelineService {
   ) {
     if (licenceSchedulePhase.getPhaseType().equals(firstPhaseType)) {
       var termLinkedRates = scheduleEventData.termLinkedRatesByTerm()
-          .getOrDefault(licenceSchedulePhase.getLicenceScheduleTerm(), List.of());
+          .getOrDefault(licenceSchedulePhase.getLicenceScheduleTerm().getId(), List.of());
 
       if (!termLinkedRates.isEmpty()) {
         return List.of();
       }
     }
 
-    var phaseLinkedRates = scheduleEventData.phaseLinkedRatesByPhase().getOrDefault(licenceSchedulePhase, List.of());
+    var phaseLinkedRates = scheduleEventData.phaseLinkedRatesByPhase().getOrDefault(licenceSchedulePhase.getId(), List.of());
 
     if (!phaseLinkedRates.isEmpty()) {
       return phaseLinkedRates;
@@ -859,15 +859,15 @@ public class LicenceScheduleTimelineService {
    * schedule detail instead of once per term/phase. See documentation/investigations/timeline-n-plus-one-plan.md.
    */
   private record ScheduleEventData(
-      Map<LicenceScheduleTerm, List<LicenceSchedulePhase>> phasesByTerm,
-      Map<LicenceScheduleTerm, List<WorkProgrammeActivity>> withinTermActivities,
-      Map<LicenceSchedulePhase, List<WorkProgrammeActivity>> withinPhaseActivities,
+      Map<UUID, List<LicenceSchedulePhase>> phasesByTerm,
+      Map<UUID, List<WorkProgrammeActivity>> withinTermActivities,
+      Map<UUID, List<WorkProgrammeActivity>> withinPhaseActivities,
       List<WorkProgrammeActivity> allActivities,
-      Map<LicenceScheduleTerm, List<OtherScheduleEvent>> withinTermOtherEvents,
-      Map<LicenceSchedulePhase, List<OtherScheduleEvent>> withinPhaseOtherEvents,
+      Map<UUID, List<OtherScheduleEvent>> withinTermOtherEvents,
+      Map<UUID, List<OtherScheduleEvent>> withinPhaseOtherEvents,
       List<OtherScheduleEvent> allOtherEvents,
-      Map<LicenceScheduleTerm, List<LicenceScheduleRate>> termLinkedRatesByTerm,
-      Map<LicenceSchedulePhase, List<LicenceScheduleRate>> phaseLinkedRatesByPhase,
+      Map<UUID, List<LicenceScheduleRate>> termLinkedRatesByTerm,
+      Map<UUID, List<LicenceScheduleRate>> phaseLinkedRatesByPhase,
       List<LicenceScheduleRate> allRates
   ) {
   }

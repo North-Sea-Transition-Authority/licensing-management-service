@@ -2749,6 +2749,71 @@ class LicenceScheduleTimelineServiceTest {
   }
 
   @Test
+  void getEditableLicenceScheduleEventViews_whenPhaseTermIsADifferentObjectInstanceWithSameId_thenPhaseStillDisplayed() {
+    // Regression test: with spring.jpa.open-in-view=false and no @Transactional spanning the call
+    // chain, licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail and
+    // licenceScheduleTermService.getTermsByLicenceScheduleDetail run in separate Hibernate sessions in
+    // production, so a phase's `licenceScheduleTerm` association is a *different* Java object than the
+    // matching entry in the terms list, even though it represents the same row. Grouping/looking up by
+    // entity reference (rather than by ID) would silently drop the phase from the timeline.
+    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
+    var termId = UUID.randomUUID();
+
+    var term = new LicenceScheduleTerm();
+    term.setId(termId);
+    term.setOriginalEventId(term.getId());
+    term.setLicenceScheduleDetail(licenceScheduleDetail);
+    term.setTermType(TermType.INITIAL);
+    term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
+    term.setStartDate(LocalDate.of(2025, 1, 1));
+    term.setEndDate(LocalDate.of(2025, 12, 31));
+
+    var termLoadedInAnotherSession = new LicenceScheduleTerm();
+    termLoadedInAnotherSession.setId(termId);
+    termLoadedInAnotherSession.setLicenceScheduleDetail(licenceScheduleDetail);
+    termLoadedInAnotherSession.setTermType(TermType.INITIAL);
+    termLoadedInAnotherSession.setStartDate(LocalDate.of(2025, 1, 1));
+    termLoadedInAnotherSession.setEndDate(LocalDate.of(2025, 12, 31));
+
+    var phase = new LicenceSchedulePhase();
+    phase.setId(UUID.randomUUID());
+    phase.setOriginalEventId(phase.getId());
+    phase.setLicenceScheduleDetail(licenceScheduleDetail);
+    phase.setLicenceScheduleTerm(termLoadedInAnotherSession);
+    phase.setPhaseType(PhaseType.PHASE_A);
+    phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
+    phase.setStartDate(LocalDate.of(2025, 1, 1));
+    phase.setEndDate(LocalDate.of(2025, 12, 31));
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));
+    when(workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(List.of());
+    when(otherScheduleEventService.getOtherScheduleEvents(licenceScheduleDetail)).thenReturn(List.of());
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermsAndDefinitionOption(List.of(term), RateDefinitionOption.TERM))
+        .thenReturn(List.of());
+    when(licenceScheduleRateService.getLicenceScheduleRatesForPhasesAndDefinitionOption(List.of(phase), RateDefinitionOption.PHASE))
+        .thenReturn(List.of());
+    when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
+        .thenReturn(Map.of());
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+        .thenReturn(Map.of());
+
+    var form = new ScheduleTimelineFilterForm();
+    form.setEventTypes(ScheduleEventType.getFilterDefaults());
+
+    var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of());
+
+    assertThat(result).hasSize(1);
+    var termView = result.getFirst();
+    assertThat(termView.hasPhases()).isTrue();
+    assertThat(termView.events())
+        .singleElement()
+        .isInstanceOfSatisfying(TimelinePhaseView.class, phaseView -> assertThat(phaseView.phaseType()).isEqualTo(PhaseType.PHASE_A));
+  }
+
+  @Test
   void getAllowedEventActionsForUser_whenUserHasBothRoles_thenBothActionsReturned() {
     var userDetail = ServiceUserDetailTestUtil.newBuilder().build();
 

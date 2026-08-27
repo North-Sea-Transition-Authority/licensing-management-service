@@ -8,6 +8,8 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.Temporal;
+import java.util.List;
+import java.util.function.Function;
 
 public final class DateUtil {
 
@@ -46,5 +48,19 @@ public final class DateUtil {
     }
 
     return dateTimeFormatter.format(temporal);
+  }
+
+  public static <T> List<T> filterByDateRange(
+      List<T> items,
+      Function<T, LocalDate> dateExtractor,
+      LocalDate startDate,
+      LocalDate endDate
+  ) {
+    return items.stream()
+        .filter(item -> {
+          var date = dateExtractor.apply(item);
+          return date != null && !date.isBefore(startDate) && !date.isAfter(endDate);
+        })
+        .toList();
   }
 }

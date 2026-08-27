@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -31,6 +32,16 @@ public interface LicenceScheduleRateRepository
 
   List<LicenceScheduleRate> findAllByLicenceSchedulePhaseAndRateDefinitionOption(
       LicenceSchedulePhase licenceSchedulePhase,
+      RateDefinitionOption rateDefinitionOption
+  );
+
+  List<LicenceScheduleRate> findAllByLicenceScheduleTermInAndRateDefinitionOption(
+      Collection<LicenceScheduleTerm> licenceScheduleTerms,
+      RateDefinitionOption rateDefinitionOption
+  );
+
+  List<LicenceScheduleRate> findAllByLicenceSchedulePhaseInAndRateDefinitionOption(
+      Collection<LicenceSchedulePhase> licenceSchedulePhases,
       RateDefinitionOption rateDefinitionOption
   );
 

@@ -597,6 +597,12 @@ class LicenceScheduleTimelineServiceTest {
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
 
+    endOfPhaseActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
+    endOfPhaseActivity.setLicenceSchedulePhase(phase);
+
+    endOfPhaseEvent.setDateOption(OtherScheduleEventDateOption.WITHIN_A_PHASE);
+    endOfPhaseEvent.setLicenceSchedulePhase(phase);
+
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
     phaseRate.setOriginalEventId(phaseRate.getId());
@@ -643,6 +649,8 @@ class LicenceScheduleTimelineServiceTest {
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
 
+    phase.setLicenceScheduleTerm(term);
+
     var termView = new TimelineTermView(
         List.of(phaseView),
         List.of(),
@@ -664,6 +672,12 @@ class LicenceScheduleTimelineServiceTest {
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
+
+    endOfTerm2Activity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
+    endOfTerm2Activity.setLicenceScheduleTerm(term2);
+
+    endOfTerm2Event.setDateOption(OtherScheduleEventDateOption.WITHIN_A_TERM);
+    endOfTerm2Event.setLicenceScheduleTerm(term2);
 
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
@@ -718,30 +732,17 @@ class LicenceScheduleTimelineServiceTest {
     );
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
-    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of(phase));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(phase)).thenReturn(List.of(midPhaseActivity));
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(term2)).thenReturn(List.of(midTerm2Activity));
+    when(otherScheduleEventService.getOtherScheduleEvents(licenceScheduleDetail))
+        .thenReturn(List.of(midPhaseEvent, endOfPhaseEvent, midTerm2Event, endOfTerm2Event));
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(phase, WorkProgrammeActivityDateOption.WITHIN_A_PHASE))
-        .thenReturn(List.of(endOfPhaseActivity));
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of());
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term2, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of(endOfTerm2Activity));
-
-    when(otherScheduleEventService.getScheduleEventsByDateRangeFor(phase)).thenReturn(List.of(midPhaseEvent));
-    when(otherScheduleEventService.getScheduleEventsByDateRangeFor(term2)).thenReturn(List.of(midTerm2Event));
-
-    when(otherScheduleEventService.getScheduleEventsByPhaseAndDateOption(phase, OtherScheduleEventDateOption.WITHIN_A_PHASE))
-        .thenReturn(List.of(endOfPhaseEvent));
-    when(otherScheduleEventService.getScheduleEventsByTermAndDateOption(term, OtherScheduleEventDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of());
-    when(otherScheduleEventService.getScheduleEventsByTermAndDateOption(term2, OtherScheduleEventDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of(endOfTerm2Event));
-
-    when(licenceScheduleRateService.getLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
-    when(licenceScheduleRateService.getLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermsAndDefinitionOption(List.of(term, term2), RateDefinitionOption.TERM))
+        .thenReturn(List.of(term2Rate));
+    when(licenceScheduleRateService.getLicenceScheduleRatesForPhasesAndDefinitionOption(List.of(phase), RateDefinitionOption.PHASE))
+        .thenReturn(List.of(phaseRate));
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
+        .thenReturn(List.of(phaseRate, term2Rate));
 
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
@@ -947,6 +948,12 @@ class LicenceScheduleTimelineServiceTest {
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
 
+    endOfPhaseActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
+    endOfPhaseActivity.setLicenceSchedulePhase(phase);
+
+    endOfPhaseEvent.setDateOption(OtherScheduleEventDateOption.WITHIN_A_PHASE);
+    endOfPhaseEvent.setLicenceSchedulePhase(phase);
+
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
     phaseRate.setOriginalEventId(phaseRate.getId());
@@ -991,6 +998,8 @@ class LicenceScheduleTimelineServiceTest {
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
 
+    phase.setLicenceScheduleTerm(term);
+
     var termView = new TimelineTermView(
         List.of(phaseView),
         List.of(),
@@ -1012,6 +1021,12 @@ class LicenceScheduleTimelineServiceTest {
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
+
+    endOfTerm2Activity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
+    endOfTerm2Activity.setLicenceScheduleTerm(term2);
+
+    endOfTerm2Event.setDateOption(OtherScheduleEventDateOption.WITHIN_A_TERM);
+    endOfTerm2Event.setLicenceScheduleTerm(term2);
 
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
@@ -1062,30 +1077,17 @@ class LicenceScheduleTimelineServiceTest {
     );
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
-    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of(phase));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(phase)).thenReturn(List.of(midPhaseActivity));
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(term2)).thenReturn(List.of(midTerm2Activity));
+    when(otherScheduleEventService.getOtherScheduleEvents(licenceScheduleDetail))
+        .thenReturn(List.of(midPhaseEvent, endOfPhaseEvent, midTerm2Event, endOfTerm2Event));
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(phase, WorkProgrammeActivityDateOption.WITHIN_A_PHASE))
-        .thenReturn(List.of(endOfPhaseActivity));
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of());
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term2, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of(endOfTerm2Activity));
-
-    when(otherScheduleEventService.getScheduleEventsByDateRangeFor(phase)).thenReturn(List.of(midPhaseEvent));
-    when(otherScheduleEventService.getScheduleEventsByDateRangeFor(term2)).thenReturn(List.of(midTerm2Event));
-
-    when(otherScheduleEventService.getScheduleEventsByPhaseAndDateOption(phase, OtherScheduleEventDateOption.WITHIN_A_PHASE))
-        .thenReturn(List.of(endOfPhaseEvent));
-    when(otherScheduleEventService.getScheduleEventsByTermAndDateOption(term, OtherScheduleEventDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of());
-    when(otherScheduleEventService.getScheduleEventsByTermAndDateOption(term2, OtherScheduleEventDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of(endOfTerm2Event));
-
-    when(licenceScheduleRateService.getLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
-    when(licenceScheduleRateService.getLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermsAndDefinitionOption(List.of(term, term2), RateDefinitionOption.TERM))
+        .thenReturn(List.of(term2Rate));
+    when(licenceScheduleRateService.getLicenceScheduleRatesForPhasesAndDefinitionOption(List.of(phase), RateDefinitionOption.PHASE))
+        .thenReturn(List.of(phaseRate));
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
+        .thenReturn(List.of(phaseRate, term2Rate));
 
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
@@ -1307,6 +1309,12 @@ class LicenceScheduleTimelineServiceTest {
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
 
+    endOfPhaseActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
+    endOfPhaseActivity.setLicenceSchedulePhase(phase);
+
+    endOfPhaseEvent.setDateOption(OtherScheduleEventDateOption.WITHIN_A_PHASE);
+    endOfPhaseEvent.setLicenceSchedulePhase(phase);
+
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
     phaseRate.setOriginalEventId(phaseRate.getId());
@@ -1339,6 +1347,8 @@ class LicenceScheduleTimelineServiceTest {
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
 
+    phase.setLicenceScheduleTerm(term);
+
     var termView = new TimelineTermView(
         List.of(phaseView),
         List.of(),
@@ -1360,6 +1370,12 @@ class LicenceScheduleTimelineServiceTest {
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
+
+    endOfTerm2Activity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
+    endOfTerm2Activity.setLicenceScheduleTerm(term2);
+
+    endOfTerm2Event.setDateOption(OtherScheduleEventDateOption.WITHIN_A_TERM);
+    endOfTerm2Event.setLicenceScheduleTerm(term2);
 
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
@@ -1403,30 +1419,17 @@ class LicenceScheduleTimelineServiceTest {
     );
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
-    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of(phase));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(phase)).thenReturn(List.of(midPhaseActivity));
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(term2)).thenReturn(List.of(midTerm2Activity));
+    when(otherScheduleEventService.getOtherScheduleEvents(licenceScheduleDetail))
+        .thenReturn(List.of(midPhaseEvent, endOfPhaseEvent, midTerm2Event, endOfTerm2Event));
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(phase, WorkProgrammeActivityDateOption.WITHIN_A_PHASE))
-        .thenReturn(List.of(endOfPhaseActivity));
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of());
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term2, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of(endOfTerm2Activity));
-
-    when(otherScheduleEventService.getScheduleEventsByDateRangeFor(phase)).thenReturn(List.of(midPhaseEvent));
-    when(otherScheduleEventService.getScheduleEventsByDateRangeFor(term2)).thenReturn(List.of(midTerm2Event));
-
-    when(otherScheduleEventService.getScheduleEventsByPhaseAndDateOption(phase, OtherScheduleEventDateOption.WITHIN_A_PHASE))
-        .thenReturn(List.of(endOfPhaseEvent));
-    when(otherScheduleEventService.getScheduleEventsByTermAndDateOption(term, OtherScheduleEventDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of());
-    when(otherScheduleEventService.getScheduleEventsByTermAndDateOption(term2, OtherScheduleEventDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of(endOfTerm2Event));
-
-    when(licenceScheduleRateService.getLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
-    when(licenceScheduleRateService.getLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermsAndDefinitionOption(List.of(term, term2), RateDefinitionOption.TERM))
+        .thenReturn(List.of(term2Rate));
+    when(licenceScheduleRateService.getLicenceScheduleRatesForPhasesAndDefinitionOption(List.of(phase), RateDefinitionOption.PHASE))
+        .thenReturn(List.of(phaseRate));
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
+        .thenReturn(List.of(phaseRate, term2Rate));
 
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
@@ -1584,6 +1587,12 @@ class LicenceScheduleTimelineServiceTest {
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
 
+    endOfPhaseActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
+    endOfPhaseActivity.setLicenceSchedulePhase(phase);
+
+    endOfPhaseEvent.setDateOption(OtherScheduleEventDateOption.WITHIN_A_PHASE);
+    endOfPhaseEvent.setLicenceSchedulePhase(phase);
+
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
     phaseRate.setOriginalEventId(phaseRate.getId());
@@ -1630,6 +1639,8 @@ class LicenceScheduleTimelineServiceTest {
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
 
+    phase.setLicenceScheduleTerm(term);
+
     var termView = new TimelineTermView(
         List.of(phaseView),
         List.of(),
@@ -1651,6 +1662,12 @@ class LicenceScheduleTimelineServiceTest {
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
+
+    endOfTerm2Activity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
+    endOfTerm2Activity.setLicenceScheduleTerm(term2);
+
+    endOfTerm2Event.setDateOption(OtherScheduleEventDateOption.WITHIN_A_TERM);
+    endOfTerm2Event.setLicenceScheduleTerm(term2);
 
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
@@ -1708,30 +1725,17 @@ class LicenceScheduleTimelineServiceTest {
     );
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
-    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of(phase));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(phase)).thenReturn(List.of(midPhaseActivity));
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(term2)).thenReturn(List.of(midTerm2Activity));
+    when(otherScheduleEventService.getOtherScheduleEvents(licenceScheduleDetail))
+        .thenReturn(List.of(midPhaseEvent, endOfPhaseEvent, midTerm2Event, endOfTerm2Event));
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(phase, WorkProgrammeActivityDateOption.WITHIN_A_PHASE))
-        .thenReturn(List.of(endOfPhaseActivity));
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of());
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term2, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of(endOfTerm2Activity));
-
-    when(otherScheduleEventService.getScheduleEventsByDateRangeFor(phase)).thenReturn(List.of(midPhaseEvent));
-    when(otherScheduleEventService.getScheduleEventsByDateRangeFor(term2)).thenReturn(List.of(midTerm2Event));
-
-    when(otherScheduleEventService.getScheduleEventsByPhaseAndDateOption(phase, OtherScheduleEventDateOption.WITHIN_A_PHASE))
-        .thenReturn(List.of(endOfPhaseEvent));
-    when(otherScheduleEventService.getScheduleEventsByTermAndDateOption(term, OtherScheduleEventDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of());
-    when(otherScheduleEventService.getScheduleEventsByTermAndDateOption(term2, OtherScheduleEventDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of(endOfTerm2Event));
-
-    when(licenceScheduleRateService.getLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
-    when(licenceScheduleRateService.getLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermsAndDefinitionOption(List.of(term, term2), RateDefinitionOption.TERM))
+        .thenReturn(List.of(term2Rate));
+    when(licenceScheduleRateService.getLicenceScheduleRatesForPhasesAndDefinitionOption(List.of(phase), RateDefinitionOption.PHASE))
+        .thenReturn(List.of(phaseRate));
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
+        .thenReturn(List.of(phaseRate, term2Rate));
 
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
@@ -1897,6 +1901,12 @@ class LicenceScheduleTimelineServiceTest {
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
 
+    endOfPhaseActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
+    endOfPhaseActivity.setLicenceSchedulePhase(phase);
+
+    endOfPhaseEvent.setDateOption(OtherScheduleEventDateOption.WITHIN_A_PHASE);
+    endOfPhaseEvent.setLicenceSchedulePhase(phase);
+
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
     phaseRate.setOriginalEventId(phaseRate.getId());
@@ -1943,6 +1953,8 @@ class LicenceScheduleTimelineServiceTest {
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
 
+    phase.setLicenceScheduleTerm(term);
+
     var termView = new TimelineTermView(
         List.of(phaseView),
         List.of(),
@@ -1964,6 +1976,12 @@ class LicenceScheduleTimelineServiceTest {
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
+
+    endOfTerm2Activity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
+    endOfTerm2Activity.setLicenceScheduleTerm(term2);
+
+    endOfTerm2Event.setDateOption(OtherScheduleEventDateOption.WITHIN_A_TERM);
+    endOfTerm2Event.setLicenceScheduleTerm(term2);
 
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
@@ -2021,30 +2039,17 @@ class LicenceScheduleTimelineServiceTest {
     );
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
-    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of(phase));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(phase)).thenReturn(List.of(midPhaseActivity));
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(term2)).thenReturn(List.of(midTerm2Activity));
+    when(otherScheduleEventService.getOtherScheduleEvents(licenceScheduleDetail))
+        .thenReturn(List.of(midPhaseEvent, endOfPhaseEvent, midTerm2Event, endOfTerm2Event));
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(phase, WorkProgrammeActivityDateOption.WITHIN_A_PHASE))
-        .thenReturn(List.of(endOfPhaseActivity));
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of());
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term2, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of(endOfTerm2Activity));
-
-    when(otherScheduleEventService.getScheduleEventsByDateRangeFor(phase)).thenReturn(List.of(midPhaseEvent));
-    when(otherScheduleEventService.getScheduleEventsByDateRangeFor(term2)).thenReturn(List.of(midTerm2Event));
-
-    when(otherScheduleEventService.getScheduleEventsByPhaseAndDateOption(phase, OtherScheduleEventDateOption.WITHIN_A_PHASE))
-        .thenReturn(List.of(endOfPhaseEvent));
-    when(otherScheduleEventService.getScheduleEventsByTermAndDateOption(term, OtherScheduleEventDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of());
-    when(otherScheduleEventService.getScheduleEventsByTermAndDateOption(term2, OtherScheduleEventDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of(endOfTerm2Event));
-
-    when(licenceScheduleRateService.getLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
-    when(licenceScheduleRateService.getLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermsAndDefinitionOption(List.of(term, term2), RateDefinitionOption.TERM))
+        .thenReturn(List.of(term2Rate));
+    when(licenceScheduleRateService.getLicenceScheduleRatesForPhasesAndDefinitionOption(List.of(phase), RateDefinitionOption.PHASE))
+        .thenReturn(List.of(phaseRate));
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
+        .thenReturn(List.of(phaseRate, term2Rate));
 
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
@@ -2184,6 +2189,9 @@ class LicenceScheduleTimelineServiceTest {
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
 
+    endOfPhaseActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
+    endOfPhaseActivity.setLicenceSchedulePhase(phase);
+
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
     phaseRate.setOriginalEventId(phaseRate.getId());
@@ -2228,6 +2236,8 @@ class LicenceScheduleTimelineServiceTest {
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
 
+    phase.setLicenceScheduleTerm(term);
+
     var termView = new TimelineTermView(
         List.of(phaseView),
         List.of(),
@@ -2249,6 +2259,9 @@ class LicenceScheduleTimelineServiceTest {
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
+
+    endOfTerm2Activity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
+    endOfTerm2Activity.setLicenceScheduleTerm(term2);
 
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
@@ -2307,20 +2320,14 @@ class LicenceScheduleTimelineServiceTest {
     );
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
-    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of(phase));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(phase)).thenReturn(List.of(midPhaseActivity));
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(term2)).thenReturn(List.of(midTerm2Activity));
-
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(phase, WorkProgrammeActivityDateOption.WITHIN_A_PHASE))
-        .thenReturn(List.of(endOfPhaseActivity));
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of());
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term2, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of(endOfTerm2Activity));
-
-    when(licenceScheduleRateService.getLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
-    when(licenceScheduleRateService.getLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermsAndDefinitionOption(List.of(term, term2), RateDefinitionOption.TERM))
+        .thenReturn(List.of(term2Rate));
+    when(licenceScheduleRateService.getLicenceScheduleRatesForPhasesAndDefinitionOption(List.of(phase), RateDefinitionOption.PHASE))
+        .thenReturn(List.of(phaseRate));
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
+        .thenReturn(List.of(phaseRate, term2Rate));
 
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
@@ -2436,6 +2443,9 @@ class LicenceScheduleTimelineServiceTest {
     phase.setStartDate(LocalDate.of(2025, 1, 1));
     phase.setEndDate(LocalDate.of(2025, 12, 31));
 
+    endOfPhaseActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
+    endOfPhaseActivity.setLicenceSchedulePhase(phase);
+
     var phaseRate = new LicenceScheduleRate();
     phaseRate.setId(UUID.randomUUID());
     phaseRate.setOriginalEventId(phaseRate.getId());
@@ -2480,6 +2490,8 @@ class LicenceScheduleTimelineServiceTest {
     term.setStartDate(LocalDate.of(2025, 1, 1));
     term.setEndDate(LocalDate.of(2025, 12, 31));
 
+    phase.setLicenceScheduleTerm(term);
+
     var termView = new TimelineTermView(
         List.of(phaseView),
         List.of(),
@@ -2501,6 +2513,9 @@ class LicenceScheduleTimelineServiceTest {
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     term2.setStartDate(LocalDate.of(2026, 1, 1));
     term2.setEndDate(LocalDate.of(2026, 12, 31));
+
+    endOfTerm2Activity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
+    endOfTerm2Activity.setLicenceScheduleTerm(term2);
 
     var term2Rate = new LicenceScheduleRate();
     term2Rate.setId(UUID.randomUUID());
@@ -2542,21 +2557,18 @@ class LicenceScheduleTimelineServiceTest {
 
     when(teamQueryService.userIsInRegulatorTeam(user.wuaId())).thenReturn(false);
 
+    var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
+    when(workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
+
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
-    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of(phase));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(phase)).thenReturn(List.of(midPhaseActivity));
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(term2)).thenReturn(List.of(midTerm2Activity));
-
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(phase, WorkProgrammeActivityDateOption.WITHIN_A_PHASE))
-        .thenReturn(List.of(endOfPhaseActivity));
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of());
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term2, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of(endOfTerm2Activity));
-
-    when(licenceScheduleRateService.getLicenceScheduleRatesByPhase(phase, PhaseType.PHASE_A)).thenReturn(List.of(phaseRate));
-    when(licenceScheduleRateService.getLicenceScheduleRatesByTerm(term2)).thenReturn(List.of(term2Rate));
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermsAndDefinitionOption(List.of(term, term2), RateDefinitionOption.TERM))
+        .thenReturn(List.of(term2Rate));
+    when(licenceScheduleRateService.getLicenceScheduleRatesForPhasesAndDefinitionOption(List.of(phase), RateDefinitionOption.PHASE))
+        .thenReturn(List.of(phaseRate));
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
+        .thenReturn(List.of(phaseRate, term2Rate));
 
     when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
         .thenReturn(Map.of(
@@ -2634,18 +2646,13 @@ class LicenceScheduleTimelineServiceTest {
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(term));
-    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of());
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
 
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(term))
-        .thenReturn(List.of(wpa));
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of());
+    when(otherScheduleEventService.getOtherScheduleEvents(licenceScheduleDetail)).thenReturn(List.of(otherEvent));
 
-    when(licenceScheduleRateService.getLicenceScheduleRatesByTerm(term)).thenReturn(List.of(rate));
-
-    when(otherScheduleEventService.getScheduleEventsByDateRangeFor(term)).thenReturn(List.of(otherEvent));
-    when(otherScheduleEventService.getScheduleEventsByTermAndDateOption(term, OtherScheduleEventDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of());
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermsAndDefinitionOption(List.of(term), RateDefinitionOption.TERM))
+        .thenReturn(List.of(rate));
+    when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate));
 
     var form = new ScheduleTimelineFilterForm();
     form.setEventTypes(ScheduleEventType.getFilterDefaults());
@@ -2695,17 +2702,7 @@ class LicenceScheduleTimelineServiceTest {
     term.setEndDate(LocalDate.of(2026, 12, 31));
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
-    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of());
-
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByDateRangeFor(term)).thenReturn(List.of());
-    when(workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(term, WorkProgrammeActivityDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of());
-
-    when(licenceScheduleRateService.getLicenceScheduleRatesByTerm(term)).thenReturn(List.of());
-
-    when(otherScheduleEventService.getScheduleEventsByDateRangeFor(term)).thenReturn(List.of());
-    when(otherScheduleEventService.getScheduleEventsByTermAndDateOption(term, OtherScheduleEventDateOption.WITHIN_A_TERM))
-        .thenReturn(List.of());
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
 
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());

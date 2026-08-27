@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
@@ -33,7 +34,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.RateDefinitionOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermDeletionController;
@@ -51,6 +54,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatu
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
+import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
 @Service
 public class LicenceScheduleTimelineService {
@@ -307,7 +311,10 @@ public class LicenceScheduleTimelineService {
 
     var rateDatesMap = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
 
-    return licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
+    var terms = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail);
+    var scheduleEventData = buildScheduleEventData(licenceScheduleDetail, terms);
+
+    return terms.stream()
         .sorted(Comparator.comparing(term -> term.getTermType().getDisplayOrder()))
         .map(term -> convertToTimelineTermView(
             term,
@@ -316,9 +323,64 @@ public class LicenceScheduleTimelineService {
             eventRefWpStatusMap,
             eventRefCommentsMap,
             rateDatesMap,
-            finalProgressDate
+            finalProgressDate,
+            scheduleEventData
         ))
         .toList();
+  }
+
+  /**
+   * Pre-fetches all child data for a licence schedule detail in a fixed number of queries, rather than
+   * querying per-term/per-phase as the timeline is built. See documentation/investigations/timeline-n-plus-one-plan.md.
+   */
+  private ScheduleEventData buildScheduleEventData(
+      LicenceScheduleDetail licenceScheduleDetail,
+      List<LicenceScheduleTerm> terms
+  ) {
+    var allPhases = licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail);
+    var phasesByTerm = allPhases.stream()
+        .collect(Collectors.groupingBy(LicenceSchedulePhase::getLicenceScheduleTerm));
+
+    var allActivities = workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail);
+    var withinTermActivities = allActivities.stream()
+        .filter(activity -> activity.getDateOption() == WorkProgrammeActivityDateOption.WITHIN_A_TERM)
+        .collect(Collectors.groupingBy(WorkProgrammeActivity::getLicenceScheduleTerm));
+    var withinPhaseActivities = allActivities.stream()
+        .filter(activity -> activity.getDateOption() == WorkProgrammeActivityDateOption.WITHIN_A_PHASE)
+        .collect(Collectors.groupingBy(WorkProgrammeActivity::getLicenceSchedulePhase));
+
+    var allOtherEvents = otherScheduleEventService.getOtherScheduleEvents(licenceScheduleDetail);
+    var withinTermOtherEvents = allOtherEvents.stream()
+        .filter(event -> event.getDateOption() == OtherScheduleEventDateOption.WITHIN_A_TERM)
+        .collect(Collectors.groupingBy(OtherScheduleEvent::getLicenceScheduleTerm));
+    var withinPhaseOtherEvents = allOtherEvents.stream()
+        .filter(event -> event.getDateOption() == OtherScheduleEventDateOption.WITHIN_A_PHASE)
+        .collect(Collectors.groupingBy(OtherScheduleEvent::getLicenceSchedulePhase));
+
+    var termLinkedRatesByTerm = licenceScheduleRateService
+        .getLicenceScheduleRatesForTermsAndDefinitionOption(terms, RateDefinitionOption.TERM)
+        .stream()
+        .collect(Collectors.groupingBy(LicenceScheduleRate::getLicenceScheduleTerm));
+
+    var phaseLinkedRatesByPhase = licenceScheduleRateService
+        .getLicenceScheduleRatesForPhasesAndDefinitionOption(allPhases, RateDefinitionOption.PHASE)
+        .stream()
+        .collect(Collectors.groupingBy(LicenceScheduleRate::getLicenceSchedulePhase));
+
+    var allRates = licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail);
+
+    return new ScheduleEventData(
+        phasesByTerm,
+        withinTermActivities,
+        withinPhaseActivities,
+        allActivities,
+        withinTermOtherEvents,
+        withinPhaseOtherEvents,
+        allOtherEvents,
+        termLinkedRatesByTerm,
+        phaseLinkedRatesByPhase,
+        allRates
+    );
   }
 
   private TimelineTermView convertToTimelineTermView(
@@ -328,7 +390,8 @@ public class LicenceScheduleTimelineService {
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
       Map<UUID, StartEndDates> rateDatesMap,
-      LocalDate finalProgressDate
+      LocalDate finalProgressDate,
+      ScheduleEventData scheduleEventData
   ) {
     var dateDurationString = getDateDurationString(
         licenceScheduleTerm.getStartDate(),
@@ -343,7 +406,8 @@ public class LicenceScheduleTimelineService {
         eventRefWpStatusMap,
         eventRefCommentsMap,
         rateDatesMap,
-        finalProgressDate
+        finalProgressDate,
+        scheduleEventData
     );
 
     var hasPhases = scheduleEvents.stream()
@@ -356,7 +420,8 @@ public class LicenceScheduleTimelineService {
         allowedActions,
         eventRefWpStatusMap,
         eventRefCommentsMap,
-        finalProgressDate
+        finalProgressDate,
+        scheduleEventData
     );
 
     var editUrl = allowedActions.contains(ScheduleEventAction.EDIT_SCHEDULE_EVENTS)
@@ -400,9 +465,10 @@ public class LicenceScheduleTimelineService {
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
       Map<UUID, StartEndDates> rateDatesMap,
-      LocalDate finalProgressDate
+      LocalDate finalProgressDate,
+      ScheduleEventData scheduleEventData
   ) {
-    var phases = licenceSchedulePhaseService.getPhasesByTerm(licenceScheduleTerm);
+    var phases = scheduleEventData.phasesByTerm().getOrDefault(licenceScheduleTerm, List.of());
 
     var firstPhaseType = phases.stream()
         .min(Comparator.comparing(phase -> phase.getPhaseType().getDisplayOrder()))
@@ -419,12 +485,13 @@ public class LicenceScheduleTimelineService {
             eventRefWpStatusMap,
             eventRefCommentsMap,
             rateDatesMap,
-            finalProgressDate
+            finalProgressDate,
+            scheduleEventData
         ))
         .toList();
 
     if (!phaseViews.isEmpty()) {
-      var termRateViews = licenceScheduleRateService.getLicenceScheduleRatesAttachedToTerm(licenceScheduleTerm).stream()
+      var termRateViews = scheduleEventData.termLinkedRatesByTerm().getOrDefault(licenceScheduleTerm, List.of()).stream()
           .map(licenceScheduleRate -> TimelineRateView.getScheduleEventFrom(
               licenceScheduleRate,
               rateDatesMap,
@@ -441,8 +508,12 @@ public class LicenceScheduleTimelineService {
           .toList();
     }
 
-    var workProgrammeActivities = workProgrammeActivityService
-        .getWorkProgrammeActivitiesByDateRangeFor(licenceScheduleTerm).stream()
+    var workProgrammeActivities = DateUtil.filterByDateRange(
+        scheduleEventData.allActivities(),
+        WorkProgrammeActivity::getDueDate,
+        licenceScheduleTerm.getStartDate(),
+        licenceScheduleTerm.getEndDate()
+    ).stream()
         .sorted(
             Comparator.comparing(WorkProgrammeActivity::getDueDate)
             .thenComparing(WorkProgrammeActivity::getCategoryString))
@@ -455,7 +526,7 @@ public class LicenceScheduleTimelineService {
                 finalProgressDate
             ));
 
-    var rates = licenceScheduleRateService.getLicenceScheduleRatesByTerm(licenceScheduleTerm)
+    var rates = resolveRatesForTerm(scheduleEventData, licenceScheduleTerm)
         .stream()
         .map(licenceScheduleRate -> TimelineRateView.getScheduleEventFrom(
             licenceScheduleRate,
@@ -465,8 +536,12 @@ public class LicenceScheduleTimelineService {
             finalProgressDate
         ));
 
-    var otherScheduleEvents = otherScheduleEventService
-        .getScheduleEventsByDateRangeFor(licenceScheduleTerm).stream()
+    var otherScheduleEvents = DateUtil.filterByDateRange(
+        scheduleEventData.allOtherEvents(),
+        OtherScheduleEvent::getEventDate,
+        licenceScheduleTerm.getStartDate(),
+        licenceScheduleTerm.getEndDate()
+    ).stream()
         .sorted(
             Comparator.comparing(OtherScheduleEvent::getEventDate)
                 .thenComparing(OtherScheduleEvent::getCategoryString))
@@ -492,12 +567,12 @@ public class LicenceScheduleTimelineService {
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
-      LocalDate finalProgressDate
+      LocalDate finalProgressDate,
+      ScheduleEventData scheduleEventData
   ) {
-    var workProgrammeActivities = workProgrammeActivityService.getWorkProgrammeActivitiesByTermAndDateOption(
-        licenceScheduleTerm,
-        WorkProgrammeActivityDateOption.WITHIN_A_TERM
-    ).stream()
+    var workProgrammeActivities = scheduleEventData.withinTermActivities()
+        .getOrDefault(licenceScheduleTerm, List.of())
+        .stream()
         .sorted(Comparator.comparing(WorkProgrammeActivity::getCategoryString))
         .map(workProgrammeActivity ->
             TimelineWorkProgrammeActivityView.getScheduleEventFrom(
@@ -508,10 +583,9 @@ public class LicenceScheduleTimelineService {
                 finalProgressDate
             ));
 
-    var otherScheduleEvents = otherScheduleEventService.getScheduleEventsByTermAndDateOption(
-        licenceScheduleTerm,
-        OtherScheduleEventDateOption.WITHIN_A_TERM
-    ).stream()
+    var otherScheduleEvents = scheduleEventData.withinTermOtherEvents()
+        .getOrDefault(licenceScheduleTerm, List.of())
+        .stream()
         .sorted(Comparator.comparing(OtherScheduleEvent::getCategoryString))
         .map(otherScheduleEvent ->
             TimelineOtherScheduleEventView.getScheduleEventFrom(
@@ -536,7 +610,8 @@ public class LicenceScheduleTimelineService {
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
       Map<UUID, StartEndDates> rateDatesMap,
-      LocalDate finalProgressDate
+      LocalDate finalProgressDate,
+      ScheduleEventData scheduleEventData
   ) {
     var dateDurationString = getDateDurationString(
         licenceSchedulePhase.getStartDate(),
@@ -572,7 +647,8 @@ public class LicenceScheduleTimelineService {
             eventRefWpStatusMap,
             eventRefCommentsMap,
             rateDatesMap,
-            finalProgressDate
+            finalProgressDate,
+            scheduleEventData
         ),
         getEndOfPhaseRequirementEvents(
             licenceSchedulePhase,
@@ -580,7 +656,8 @@ public class LicenceScheduleTimelineService {
             allowedActions,
             eventRefWpStatusMap,
             eventRefCommentsMap,
-            finalProgressDate
+            finalProgressDate,
+            scheduleEventData
         ),
         licenceSchedulePhase.getPhaseType(),
         licenceSchedulePhase.getStartDate(),
@@ -603,10 +680,15 @@ public class LicenceScheduleTimelineService {
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
       Map<UUID, StartEndDates> rateDatesMap,
-      LocalDate finalProgressDate
+      LocalDate finalProgressDate,
+      ScheduleEventData scheduleEventData
   ) {
-    var workProgrammeActivities = workProgrammeActivityService
-        .getWorkProgrammeActivitiesByDateRangeFor(licenceSchedulePhase).stream()
+    var workProgrammeActivities = DateUtil.filterByDateRange(
+        scheduleEventData.allActivities(),
+        WorkProgrammeActivity::getDueDate,
+        licenceSchedulePhase.getStartDate(),
+        licenceSchedulePhase.getEndDate()
+    ).stream()
         .sorted(
             Comparator.comparing(WorkProgrammeActivity::getDueDate)
                 .thenComparing(WorkProgrammeActivity::getCategoryString)
@@ -620,7 +702,7 @@ public class LicenceScheduleTimelineService {
                 finalProgressDate
             ));
 
-    var rates = licenceScheduleRateService.getLicenceScheduleRatesByPhase(licenceSchedulePhase, firstPhaseType).stream()
+    var rates = resolveRatesForPhase(scheduleEventData, licenceSchedulePhase, firstPhaseType).stream()
         .map(licenceScheduleRate -> TimelineRateView.getScheduleEventFrom(
             licenceScheduleRate,
             rateDatesMap,
@@ -629,8 +711,12 @@ public class LicenceScheduleTimelineService {
             finalProgressDate
         ));
 
-    var otherScheduleEvents = otherScheduleEventService
-        .getScheduleEventsByDateRangeFor(licenceSchedulePhase).stream()
+    var otherScheduleEvents = DateUtil.filterByDateRange(
+        scheduleEventData.allOtherEvents(),
+        OtherScheduleEvent::getEventDate,
+        licenceSchedulePhase.getStartDate(),
+        licenceSchedulePhase.getEndDate()
+    ).stream()
         .sorted(
             Comparator.comparing(OtherScheduleEvent::getEventDate)
                 .thenComparing(OtherScheduleEvent::getCategoryString))
@@ -656,12 +742,12 @@ public class LicenceScheduleTimelineService {
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
-      LocalDate finalProgressDate
+      LocalDate finalProgressDate,
+      ScheduleEventData scheduleEventData
   ) {
-    var workProgrammeActivities = workProgrammeActivityService.getWorkProgrammeActivitiesByPhaseAndDateOption(
-            licenceSchedulePhase,
-            WorkProgrammeActivityDateOption.WITHIN_A_PHASE
-        ).stream()
+    var workProgrammeActivities = scheduleEventData.withinPhaseActivities()
+        .getOrDefault(licenceSchedulePhase, List.of())
+        .stream()
         .sorted(Comparator.comparing(WorkProgrammeActivity::getCategoryString))
         .map(workProgrammeActivity ->
             TimelineWorkProgrammeActivityView.getScheduleEventFrom(
@@ -672,10 +758,9 @@ public class LicenceScheduleTimelineService {
                 finalProgressDate
             ));
 
-    var otherScheduleEvents = otherScheduleEventService.getScheduleEventsByPhaseAndDateOption(
-            licenceSchedulePhase,
-            OtherScheduleEventDateOption.WITHIN_A_PHASE
-        ).stream()
+    var otherScheduleEvents = scheduleEventData.withinPhaseOtherEvents()
+        .getOrDefault(licenceSchedulePhase, List.of())
+        .stream()
         .sorted(Comparator.comparing(OtherScheduleEvent::getCategoryString))
         .map(otherScheduleEvent ->
             TimelineOtherScheduleEventView.getScheduleEventFrom(
@@ -690,6 +775,59 @@ public class LicenceScheduleTimelineService {
         .filter(event -> includedEventTypes.contains(event.getEventType()))
         .sorted(Comparator.comparing(event -> event.getEventType().getEventTypeOrder()))
         .toList();
+  }
+
+  /**
+   * Replicates {@code LicenceScheduleRateService.getLicenceScheduleRatesByTerm} against pre-fetched data:
+   * TERM-linked rates take priority, falling back to rates whose start date falls within the term.
+   */
+  private List<LicenceScheduleRate> resolveRatesForTerm(
+      ScheduleEventData scheduleEventData,
+      LicenceScheduleTerm licenceScheduleTerm
+  ) {
+    var termLinkedRates = scheduleEventData.termLinkedRatesByTerm().getOrDefault(licenceScheduleTerm, List.of());
+
+    if (!termLinkedRates.isEmpty()) {
+      return termLinkedRates;
+    }
+
+    return DateUtil.filterByDateRange(
+        scheduleEventData.allRates(),
+        LicenceScheduleRate::getStartDate,
+        licenceScheduleTerm.getStartDate(),
+        licenceScheduleTerm.getEndDate()
+    );
+  }
+
+  /**
+   * Replicates {@code LicenceScheduleRateService.getLicenceScheduleRatesByPhase} against pre-fetched data.
+   */
+  private List<LicenceScheduleRate> resolveRatesForPhase(
+      ScheduleEventData scheduleEventData,
+      LicenceSchedulePhase licenceSchedulePhase,
+      PhaseType firstPhaseType
+  ) {
+    if (licenceSchedulePhase.getPhaseType().equals(firstPhaseType)) {
+      var termLinkedRates = scheduleEventData.termLinkedRatesByTerm()
+          .getOrDefault(licenceSchedulePhase.getLicenceScheduleTerm(), List.of());
+
+      if (!termLinkedRates.isEmpty()) {
+        return List.of();
+      }
+    }
+
+    var phaseLinkedRates = scheduleEventData.phaseLinkedRatesByPhase().getOrDefault(licenceSchedulePhase, List.of());
+
+    if (!phaseLinkedRates.isEmpty()) {
+      return phaseLinkedRates;
+    }
+
+    return DateUtil.filterByDateRange(
+        scheduleEventData.allRates(),
+        LicenceScheduleRate::getStartDate,
+        licenceSchedulePhase.getStartDate(),
+        licenceSchedulePhase.getEndDate()
+    );
   }
 
   private String getDateDurationString(
@@ -708,5 +846,23 @@ public class LicenceScheduleTimelineService {
     return workProgrammeActivityStatusService.getLatestStatusesFor(
         workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail)
     );
+  }
+
+  /**
+   * Holds every term/phase-scoped piece of schedule data needed to render the timeline, fetched once per
+   * schedule detail instead of once per term/phase. See documentation/investigations/timeline-n-plus-one-plan.md.
+   */
+  private record ScheduleEventData(
+      Map<LicenceScheduleTerm, List<LicenceSchedulePhase>> phasesByTerm,
+      Map<LicenceScheduleTerm, List<WorkProgrammeActivity>> withinTermActivities,
+      Map<LicenceSchedulePhase, List<WorkProgrammeActivity>> withinPhaseActivities,
+      List<WorkProgrammeActivity> allActivities,
+      Map<LicenceScheduleTerm, List<OtherScheduleEvent>> withinTermOtherEvents,
+      Map<LicenceSchedulePhase, List<OtherScheduleEvent>> withinPhaseOtherEvents,
+      List<OtherScheduleEvent> allOtherEvents,
+      Map<LicenceScheduleTerm, List<LicenceScheduleRate>> termLinkedRatesByTerm,
+      Map<LicenceSchedulePhase, List<LicenceScheduleRate>> phaseLinkedRatesByPhase,
+      List<LicenceScheduleRate> allRates
+  ) {
   }
 }

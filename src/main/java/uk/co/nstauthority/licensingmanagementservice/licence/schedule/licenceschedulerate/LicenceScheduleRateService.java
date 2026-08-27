@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesc
 
 import jakarta.transaction.Transactional;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -105,6 +106,26 @@ public class LicenceScheduleRateService {
   ) {
     return licenceScheduleRateRepository.findAllByLicenceSchedulePhaseAndRateDefinitionOption(
         licenceSchedulePhase,
+        rateDefinitionOption
+    );
+  }
+
+  public List<LicenceScheduleRate> getLicenceScheduleRatesForTermsAndDefinitionOption(
+      Collection<LicenceScheduleTerm> licenceScheduleTerms,
+      RateDefinitionOption rateDefinitionOption
+  ) {
+    return licenceScheduleRateRepository.findAllByLicenceScheduleTermInAndRateDefinitionOption(
+        licenceScheduleTerms,
+        rateDefinitionOption
+    );
+  }
+
+  public List<LicenceScheduleRate> getLicenceScheduleRatesForPhasesAndDefinitionOption(
+      Collection<LicenceSchedulePhase> licenceSchedulePhases,
+      RateDefinitionOption rateDefinitionOption
+  ) {
+    return licenceScheduleRateRepository.findAllByLicenceSchedulePhaseInAndRateDefinitionOption(
+        licenceSchedulePhases,
         rateDefinitionOption
     );
   }

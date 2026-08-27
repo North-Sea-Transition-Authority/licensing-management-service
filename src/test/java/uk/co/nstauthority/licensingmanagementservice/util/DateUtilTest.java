@@ -7,6 +7,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.ZoneOffset;
+import java.util.Arrays;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
 class DateUtilTest {
@@ -38,5 +40,23 @@ class DateUtilTest {
     Clock clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC);
     Instant actual = DateUtil.getEndOfYear(clock, 2020);
     assertThat(actual).isEqualTo(Instant.parse("2020-12-31T23:59:59.999999999Z"));
+  }
+
+  @Test
+  void filterByDateRange_includesBoundariesAndExcludesOutOfRangeAndNullDates() {
+    var startDate = LocalDate.of(2020, Month.JANUARY, 10);
+    var endDate = LocalDate.of(2020, Month.JANUARY, 20);
+
+    var beforeRange = LocalDate.of(2020, Month.JANUARY, 9);
+    var onStartDate = LocalDate.of(2020, Month.JANUARY, 10);
+    var withinRange = LocalDate.of(2020, Month.JANUARY, 15);
+    var onEndDate = LocalDate.of(2020, Month.JANUARY, 20);
+    var afterRange = LocalDate.of(2020, Month.JANUARY, 21);
+
+    var dates = Arrays.asList(beforeRange, onStartDate, withinRange, onEndDate, afterRange, null);
+
+    var result = DateUtil.filterByDateRange(dates, Function.identity(), startDate, endDate);
+
+    assertThat(result).containsExactly(onStartDate, withinRange, onEndDate);
   }
 }

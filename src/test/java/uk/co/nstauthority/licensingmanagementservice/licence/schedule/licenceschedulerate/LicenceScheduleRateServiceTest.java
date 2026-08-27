@@ -159,6 +159,26 @@ class LicenceScheduleRateServiceTest {
   }
 
   @Test
+  void getLicenceScheduleRatesForTermsAndDefinitionOption() {
+    licenceScheduleRateService.getLicenceScheduleRatesForTermsAndDefinitionOption(List.of(term), RateDefinitionOption.CUSTOM_PERIOD);
+
+    verify(licenceScheduleRateRepository).findAllByLicenceScheduleTermInAndRateDefinitionOption(
+        List.of(term),
+        RateDefinitionOption.CUSTOM_PERIOD
+    );
+  }
+
+  @Test
+  void getLicenceScheduleRatesForPhasesAndDefinitionOption() {
+    licenceScheduleRateService.getLicenceScheduleRatesForPhasesAndDefinitionOption(List.of(phase), RateDefinitionOption.CUSTOM_PERIOD);
+
+    verify(licenceScheduleRateRepository).findAllByLicenceSchedulePhaseInAndRateDefinitionOption(
+        List.of(phase),
+        RateDefinitionOption.CUSTOM_PERIOD
+    );
+  }
+
+  @Test
   void getRatesAfterDate() {
     var detail = new LicenceScheduleDetail();
     var date = LocalDate.of(2026, 1, 1);

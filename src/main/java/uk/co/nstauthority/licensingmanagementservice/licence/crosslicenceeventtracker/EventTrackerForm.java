@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.mockups.eventtracker;
+package uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker;
 
 import java.util.List;
 

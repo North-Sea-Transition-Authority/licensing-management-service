@@ -11,6 +11,9 @@ import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.EventTrackerApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.EventTrackerForm;
+import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.EventTrackerRequestType;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @Controller
@@ -38,7 +41,7 @@ public class EventTrackerController {
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
         .addObject("preSelectedLicenseeOrgUnit", Collections.emptyMap())
         .addObject("requestTypes", DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerRequestType.class))
-        .addObject("eventStatuses", DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerEventStatus.class));
+        .addObject("eventStatuses", DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerApplicationStatus.class));
   }
 
   @GetMapping("/single-table-design-industry")
@@ -50,7 +53,7 @@ public class EventTrackerController {
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
         .addObject("preSelectedLicenseeOrgUnit", Collections.emptyMap())
         .addObject("requestTypes", DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerRequestType.class))
-        .addObject("eventStatuses", EventTrackerEventStatus.getIndustryStatuses());
+        .addObject("eventStatuses", EventTrackerApplicationStatus.getIndustryStatuses());
   }
 
   @GetMapping("/accordion-design")

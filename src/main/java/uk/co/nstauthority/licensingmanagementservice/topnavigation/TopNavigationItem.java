@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Set;
 import uk.co.nstauthority.licensingmanagementservice.document.search.DocumentTemplateSearchController;
 import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactController;
+import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.CrossLicenceEventTrackerController;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleasePhase;
@@ -23,27 +24,33 @@ public enum TopNavigationItem implements Displayable {
       ReleasePhase.NOT_FLAGGED,
       ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))
   ),
-  LICENCES(
-      "Licences",
-      20,
-      ReleasePhase.LMS1,
-      ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null, null))
-  ),
   TEAMS(
       "Teams",
-      30,
+      20,
       ReleasePhase.NOT_FLAGGED,
       ReverseRouter.route(on(TeamManagementController.class).renderTeamTypeList(null))
   ),
+  LICENCES(
+      "Licences",
+      30,
+      ReleasePhase.LMS1,
+      ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null, null))
+  ),
+  EVENT_TRACKER(
+      "Event Tracker",
+      40,
+      ReleasePhase.LMS1,
+      ReverseRouter.route(on(CrossLicenceEventTrackerController.class).renderEventTracker())
+  ),
   LICENCE_CONTACTS(
       "Licence contacts",
-      40,
+      50,
       ReleasePhase.NOT_FLAGGED,
       ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null, null))
   ),
   DOCUMENT_LIBRARY(
       "Document library",
-      50,
+      60,
       ReleasePhase.LMS1,
       ReverseRouter.route(on(DocumentTemplateSearchController.class)
           .renderDocumentTemplateSearch(null, null, null)),

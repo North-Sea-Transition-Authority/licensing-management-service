@@ -59,8 +59,9 @@ class TopNavigationServiceTest {
 
     assertThat(topNavigationItems).containsExactly(
         TopNavigationItem.WORK_AREA,
-        TopNavigationItem.LICENCES,
         TopNavigationItem.TEAMS,
+        TopNavigationItem.LICENCES,
+        TopNavigationItem.EVENT_TRACKER,
         TopNavigationItem.LICENCE_CONTACTS,
         TopNavigationItem.DOCUMENT_LIBRARY
     );
@@ -76,8 +77,9 @@ class TopNavigationServiceTest {
 
     assertThat(topNavigationItems).containsExactly(
         TopNavigationItem.WORK_AREA,
-        TopNavigationItem.LICENCES,
         TopNavigationItem.TEAMS,
+        TopNavigationItem.LICENCES,
+        TopNavigationItem.EVENT_TRACKER,
         TopNavigationItem.LICENCE_CONTACTS
     );
   }
@@ -90,8 +92,9 @@ class TopNavigationServiceTest {
 
     assertThat(topNavigationItems).containsExactly(
         TopNavigationItem.WORK_AREA,
-        TopNavigationItem.LICENCES,
         TopNavigationItem.TEAMS,
+        TopNavigationItem.LICENCES,
+        TopNavigationItem.EVENT_TRACKER,
         TopNavigationItem.LICENCE_CONTACTS
     );
   }
@@ -121,8 +124,9 @@ class TopNavigationServiceTest {
 
     assertThat(topNavigationItems).containsExactly(
         TopNavigationItem.WORK_AREA,
-        TopNavigationItem.LICENCES,
         TopNavigationItem.TEAMS,
+        TopNavigationItem.LICENCES,
+        TopNavigationItem.EVENT_TRACKER,
         TopNavigationItem.LICENCE_CONTACTS,
         TopNavigationItem.DOCUMENT_LIBRARY
     );

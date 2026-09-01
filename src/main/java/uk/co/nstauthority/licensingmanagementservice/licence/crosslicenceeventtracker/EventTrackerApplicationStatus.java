@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.mockups.eventtracker;
+package uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -6,7 +6,7 @@ import java.util.Map;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
-public enum EventTrackerEventStatus implements Displayable {
+public enum EventTrackerApplicationStatus implements Displayable {
   REQUEST_PENDING("Request Pending", 10, false),
   REQUEST_SUBMITTED("Request Submitted", 20, false),
   FRAMING("Framing", 30, true),
@@ -19,7 +19,7 @@ public enum EventTrackerEventStatus implements Displayable {
   private final int displayOrder;
   private final boolean regulatorOnly;
 
-  EventTrackerEventStatus(String displayName, int displayOrder, boolean regulatorOnly) {
+  EventTrackerApplicationStatus(String displayName, int displayOrder, boolean regulatorOnly) {
     this.displayName = displayName;
     this.displayOrder = displayOrder;
     this.regulatorOnly = regulatorOnly;

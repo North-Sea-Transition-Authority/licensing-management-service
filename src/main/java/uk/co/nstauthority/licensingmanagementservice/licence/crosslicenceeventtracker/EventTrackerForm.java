@@ -9,6 +9,7 @@ public class EventTrackerForm {
   private String fromDate;
   private String toDate;
   private Integer licenseeOrgUnitId;
+  private Integer licenseeOrgGroupId;
   private List<String> eventStatuses;
 
   public List<String> getLicenceTypes() {
@@ -49,6 +50,14 @@ public class EventTrackerForm {
 
   public void setLicenseeOrgUnitId(Integer licenseeOrgUnitId) {
     this.licenseeOrgUnitId = licenseeOrgUnitId;
+  }
+
+  public Integer getLicenseeOrgGroupId() {
+    return licenseeOrgGroupId;
+  }
+
+  public void setLicenseeOrgGroupId(Integer licenseeOrgGroupId) {
+    this.licenseeOrgGroupId = licenseeOrgGroupId;
   }
 
   public List<String> getEventStatuses() {

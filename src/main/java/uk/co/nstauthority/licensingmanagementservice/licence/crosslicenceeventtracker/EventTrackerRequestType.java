@@ -4,8 +4,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
 public enum EventTrackerRequestType implements Displayable {
   CONTINUATION("Continuation", 10),
-  EXTENSION("Extension", 20),
-  RELINQUISHMENT("Relinquishment", 30)
+  EXTENSION("Extension", 20)
   ;
 
   private final String displayName;

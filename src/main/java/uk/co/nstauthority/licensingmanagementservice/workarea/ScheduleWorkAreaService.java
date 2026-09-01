@@ -10,13 +10,15 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
-import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
@@ -30,16 +32,19 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
 public class ScheduleWorkAreaService implements WorkAreaItemProvider {
 
   private final LicenceScheduleDetailService licenceScheduleDetailService;
-  private final LicenceSearchService licenceSearchService;
+  private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
+  private final OrganisationGroupQueryService organisationGroupQueryService;
   private final WorkAreaItemViewService workAreaItemViewService;
 
   public ScheduleWorkAreaService(
       LicenceScheduleDetailService licenceScheduleDetailService,
-      LicenceSearchService licenceSearchService,
+      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
+      OrganisationGroupQueryService organisationGroupQueryService,
       WorkAreaItemViewService workAreaItemViewService
   ) {
     this.licenceScheduleDetailService = licenceScheduleDetailService;
-    this.licenceSearchService = licenceSearchService;
+    this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
+    this.organisationGroupQueryService = organisationGroupQueryService;
     this.workAreaItemViewService = workAreaItemViewService;
   }
 
@@ -53,7 +58,18 @@ public class ScheduleWorkAreaService implements WorkAreaItemProvider {
       WorkAreaFilterForm workAreaFilterForm,
       ServiceUserDetail serviceUserDetail
   ) {
-    var licenceSchedules = licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail).stream()
+    var allDraftLicenceScheduleDetails = licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail);
+
+    var allLicences = allDraftLicenceScheduleDetails.stream()
+        .map(licenceScheduleDetail -> licenceScheduleDetail.getLicenceSchedule().getLicence())
+        .toList();
+
+    var responsibleOrganisations = licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(allLicences);
+    var licenseeGroupOrgUnitIds = workAreaFilterForm.getLicenseeOrgGroupId() == null
+        ? null
+        : organisationGroupQueryService.getOrganisationUnitIdsByOrganisationGroupId(workAreaFilterForm.getLicenseeOrgGroupId());
+
+    var licenceSchedules = allDraftLicenceScheduleDetails.stream()
         .filter(licenceScheduleDetail -> !workAreaFilterForm.hasApplicationFilterApplied())
         .filter(licenceScheduleDetail -> FilterUtil.matchesTextInput(
             licenceScheduleDetail.getLicenceSchedule().getLicence().getLicenceReference(),
@@ -64,13 +80,13 @@ public class ScheduleWorkAreaService implements WorkAreaItemProvider {
             licenceScheduleDetail.getLicenceSchedule().getLicence().getType(),
             workAreaFilterForm.getLicenceTypes()
         ))
+        .filter(licenceScheduleDetail -> matchesLicenseeFilter(
+            licenceScheduleDetail.getLicenceSchedule().getLicence(),
+            workAreaFilterForm,
+            responsibleOrganisations,
+            licenseeGroupOrgUnitIds
+        ))
         .toList();
-
-    var licences = licenceSchedules.stream()
-        .map(licenceScheduleDetail -> licenceScheduleDetail.getLicenceSchedule().getLicence())
-        .toList();
-
-    var responsibleOrganisationNames = licenceSearchService.getLicenceToResponsibleOrganisationNameMap(licences);
 
     var viewedItemIds = workAreaItemViewService.getWorkAreaItemLogsForUser(
             List.of(WorkAreaDataItemType.DRAFT_LICENCE_SCHEDULE),
@@ -82,24 +98,39 @@ public class ScheduleWorkAreaService implements WorkAreaItemProvider {
     return licenceSchedules.stream()
         .map(licenceScheduleDetail -> getScheduleWorkAreaItem(
             licenceScheduleDetail,
-            responsibleOrganisationNames,
+            responsibleOrganisations,
             viewedItemIds
         ))
         .toList();
   }
 
+  private boolean matchesLicenseeFilter(
+      Licence licence,
+      WorkAreaFilterForm filterForm,
+      Map<Licence, List<OrganisationUnit>> responsibleOrganisations,
+      List<Integer> licenseeGroupOrgUnitIds
+  ) {
+    var licenceUnitIds = licenceResponsibleOrganisationService
+        .getOrganisationUnitIdsFromLicenceOrgUnitMap(responsibleOrganisations, licence);
+
+    return FilterUtil.matchesIdList(licenceUnitIds, filterForm.getLicenseeOrgUnitId())
+        && FilterUtil.listMatchesIdList(licenceUnitIds, licenseeGroupOrgUnitIds);
+  }
+
   private SearchResultItem getScheduleWorkAreaItem(
       LicenceScheduleDetail licenceScheduleDetail,
-      Map<Licence, List<String>> responsibleOrganisationNamesByLicences,
+      Map<Licence, List<OrganisationUnit>> responsibleOrganisationsByLicences,
       Set<UUID> viewedItemIds
   ) {
     var licence = licenceScheduleDetail.getLicenceSchedule().getLicence();
     var createdDatetime = licenceScheduleDetail.getCreatedInstant();
-    var licensees = responsibleOrganisationNamesByLicences.getOrDefault(
+    var licensees = responsibleOrganisationsByLicences.getOrDefault(
             licence,
             List.of()
         )
         .stream()
+        .filter(Objects::nonNull)
+        .map(OrganisationUnit::organisationUnitName)
         .filter(Objects::nonNull)
         .toList();
 

@@ -11,6 +11,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -42,19 +43,22 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
   private final RegulatorRoleService regulatorRoleService;
   private final WorkAreaItemViewService workAreaItemViewService;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
+  private final OrganisationGroupQueryService organisationGroupQueryService;
 
   public ContinuationApplicationWorkAreaService(
       LicenceContinuationService licenceContinuationService,
       ApplicationAccessService applicationAccessService,
       RegulatorRoleService regulatorRoleService,
       WorkAreaItemViewService workAreaItemViewService,
-      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService
+      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
+      OrganisationGroupQueryService organisationGroupQueryService
   ) {
     this.licenceContinuationService = licenceContinuationService;
     this.applicationAccessService = applicationAccessService;
     this.regulatorRoleService = regulatorRoleService;
     this.workAreaItemViewService = workAreaItemViewService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
+    this.organisationGroupQueryService = organisationGroupQueryService;
   }
 
   @Override
@@ -85,6 +89,9 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
     var responsibleOrganisations = licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(licences);
     var orgUnitToGroupMap = licenceResponsibleOrganisationService
         .getOrgUnitToGroupIdMap(responsibleOrganisations, allApplicationDetails);
+    var licenseeGroupOrgUnitIds = workAreaFilterForm.getLicenseeOrgGroupId() == null
+        ? null
+        : organisationGroupQueryService.getOrganisationUnitIdsByOrganisationGroupId(workAreaFilterForm.getLicenseeOrgGroupId());
 
     var viewedItemIds = workAreaItemViewService.getWorkAreaItemLogsForUser(
             List.of(WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION),
@@ -101,6 +108,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
             serviceUserDetail,
             responsibleOrganisations,
             orgUnitToGroupMap,
+            licenseeGroupOrgUnitIds,
             isContinuationIssuer,
             isContinuationReviewer,
             isRegulator
@@ -144,13 +152,13 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       case DRAFT -> ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
           .getTaskList(applicationDetail.getId(), null, null));
 
-      case ApplicationStatus.ISSUE_DECISION -> isContinuationIssuer
-              ? ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
-                    ApplicationType.CONTINUATION_APPLICATION,
-                    applicationDetail.getLicenceContinuationApplication().getId()
-                ))
-              : ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class)
-                                    .renderOverview(applicationDetail.getId(), null, null, null));
+      case ApplicationStatus.ISSUE_DECISION -> ReverseRouter.route(isContinuationIssuer
+          ? on(ApplicationLetterController.class).renderEditLetterOverview(
+              ApplicationType.CONTINUATION_APPLICATION,
+              applicationDetail.getLicenceContinuationApplication().getId()
+          )
+          : on(LicenceContinuationApplicationOverviewController.class)
+              .renderOverview(applicationDetail.getId(), null, null, null));
 
       default -> ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class)
                                          .renderOverview(applicationDetail.getId(), null, null, null));
@@ -204,6 +212,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       ServiceUserDetail userDetail,
       Map<Licence, List<OrganisationUnit>> responsibleOrganisations,
       Map<Integer, Integer> orgUnitToGroupMap,
+      List<Integer> licenseeGroupOrgUnitIds,
       boolean isContinuationIssuer,
       boolean isContinuationReviewer,
       boolean isRegulator
@@ -237,6 +246,14 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
 
     var licenceUnitIds = licenceResponsibleOrganisationService
         .getOrganisationUnitIdsFromLicenceOrgUnitMap(responsibleOrganisations, licence);
+
+    if (!FilterUtil.matchesIdList(licenceUnitIds, filterForm.getLicenseeOrgUnitId())) {
+      return false;
+    }
+
+    if (!FilterUtil.listMatchesIdList(licenceUnitIds, licenseeGroupOrgUnitIds)) {
+      return false;
+    }
 
     var licenceOrgUnitGroupMap = licenceUnitIds.stream()
         .filter(orgUnitToGroupMap::containsKey)

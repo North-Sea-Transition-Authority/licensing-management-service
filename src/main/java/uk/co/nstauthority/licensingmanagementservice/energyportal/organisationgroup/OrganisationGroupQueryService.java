@@ -1,6 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.energyportal.starter.configuration.WellKnownOrganisationGroupsConfigurationProperties;
@@ -82,5 +84,30 @@ public class OrganisationGroupQueryService {
 
   public Optional<OrganisationGroupDto> getRegulatorOrganisationGroup() {
     return getOrganisationGroupById(wellKnownOrganisationGroups.nsta().idAsInteger());
+  }
+
+  /**
+   * Resolves the member organisation unit ids of a licensee group filter, for use with
+   * {@link uk.co.nstauthority.licensingmanagementservice.util.FilterUtil#listMatchesIdList(List, List)}.
+   * Returns {@code null} (meaning "no group filter applied") when no group id is given.
+   */
+  public List<Integer> getOrganisationUnitIdsByOrganisationGroupId(Integer organisationGroupId) {
+    if (organisationGroupId == null) {
+      return Collections.emptyList();
+    }
+
+    return getOrganisationUnitsByOrganisationGroupIds(List.of(organisationGroupId)).stream()
+        .map(OrganisationUnitJson::organisationUnitId)
+        .toList();
+  }
+
+  public Map<String, String> getOrganisationGroupSelectOption(Integer organisationGroupId) {
+    if (organisationGroupId == null) {
+      return Map.of();
+    }
+
+    return getOrganisationGroupById(organisationGroupId)
+        .map(group -> Map.of(group.getOrganisationGroupId().toString(), group.getOrganisationGroupName()))
+        .orElse(Map.of());
   }
 }

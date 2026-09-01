@@ -11,6 +11,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -42,19 +43,22 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
   private final WorkAreaItemViewService workAreaItemViewService;
   private final RegulatorRoleService regulatorRoleService;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
+  private final OrganisationGroupQueryService organisationGroupQueryService;
 
   public ScheduleAndWorkProgrammeApplicationWorkAreaService(
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
       ApplicationAccessService applicationAccessService,
       WorkAreaItemViewService workAreaItemViewService,
       RegulatorRoleService regulatorRoleService,
-      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService
+      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
+      OrganisationGroupQueryService organisationGroupQueryService
   ) {
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.applicationAccessService = applicationAccessService;
     this.workAreaItemViewService = workAreaItemViewService;
     this.regulatorRoleService = regulatorRoleService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
+    this.organisationGroupQueryService = organisationGroupQueryService;
   }
 
   @Override
@@ -86,6 +90,9 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
         responsibleOrganisations,
         allApplicationDetails
     );
+    var licenseeGroupOrgUnitIds = workAreaFilterForm.getLicenseeOrgGroupId() == null
+        ? null
+        : organisationGroupQueryService.getOrganisationUnitIdsByOrganisationGroupId(workAreaFilterForm.getLicenseeOrgGroupId());
 
     var viewedItemIds = workAreaItemViewService.getWorkAreaItemLogsForUser(
             List.of(WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION),
@@ -102,6 +109,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
             serviceUserDetail,
             responsibleOrganisations,
             orgUnitToGroupMap,
+            licenseeGroupOrgUnitIds,
             isRegulator
             )
         )
@@ -142,12 +150,12 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       case DRAFT -> ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
           .getTaskList(applicationDetail.getId(), null, null));
 
-      case ApplicationStatus.ISSUE_DECISION -> decisionIssuer
-          ? ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(
+      case ApplicationStatus.ISSUE_DECISION -> ReverseRouter.route(decisionIssuer
+          ? on(ApplicationLetterController.class).renderEditLetterOverview(
               ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
               applicationDetail.getScheduleWorkProgrammeApplication().getId()
-            ))
-          : ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+          )
+          : on(ScheduleWorkProgrammeApplicationOverviewController.class)
               .renderOverview(applicationDetail.getId(), null, null));
 
       default -> ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
@@ -193,6 +201,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       ServiceUserDetail userDetail,
       Map<Licence, List<OrganisationUnit>> responsibleOrganisations,
       Map<Integer, Integer> orgUnitToGroupMap,
+      List<Integer> licenseeGroupOrgUnitIds,
       boolean isRegulator
   ) {
     if (!FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
@@ -224,6 +233,14 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
 
     var licenceUnitIds = licenceResponsibleOrganisationService
         .getOrganisationUnitIdsFromLicenceOrgUnitMap(responsibleOrganisations, licence);
+
+    if (!FilterUtil.matchesIdList(licenceUnitIds, filterForm.getLicenseeOrgUnitId())) {
+      return false;
+    }
+
+    if (!FilterUtil.listMatchesIdList(licenceUnitIds, licenseeGroupOrgUnitIds)) {
+      return false;
+    }
 
     var licenceOrgUnitGroupMap = licenceUnitIds.stream()
         .filter(orgUnitToGroupMap::containsKey)

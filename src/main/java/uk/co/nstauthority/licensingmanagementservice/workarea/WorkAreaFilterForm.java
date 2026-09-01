@@ -16,6 +16,8 @@ public class WorkAreaFilterForm implements Serializable {
   private String applicationReference;
   private List<String> applicationTypes;
   private List<String> applicationStatuses;
+  private Integer licenseeOrgUnitId;
+  private Integer licenseeOrgGroupId;
 
   public String getLicenceReference() {
     return licenceReference;
@@ -57,6 +59,22 @@ public class WorkAreaFilterForm implements Serializable {
     this.applicationStatuses = applicationStatuses;
   }
 
+  public Integer getLicenseeOrgUnitId() {
+    return licenseeOrgUnitId;
+  }
+
+  public void setLicenseeOrgUnitId(Integer licenseeOrgUnitId) {
+    this.licenseeOrgUnitId = licenseeOrgUnitId;
+  }
+
+  public Integer getLicenseeOrgGroupId() {
+    return licenseeOrgGroupId;
+  }
+
+  public void setLicenseeOrgGroupId(Integer licenseeOrgGroupId) {
+    this.licenseeOrgGroupId = licenseeOrgGroupId;
+  }
+
   public boolean hasApplicationFilterApplied() {
     return StringUtils.isNotBlank(applicationReference)
         || !CollectionUtils.isEmpty(applicationTypes)
@@ -69,5 +87,7 @@ public class WorkAreaFilterForm implements Serializable {
     setApplicationReference(null);
     setApplicationTypes(null);
     setApplicationStatuses(null);
+    setLicenseeOrgUnitId(null);
+    setLicenseeOrgGroupId(null);
   }
 }

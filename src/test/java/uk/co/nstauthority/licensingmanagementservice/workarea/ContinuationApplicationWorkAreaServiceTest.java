@@ -24,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
@@ -60,6 +61,9 @@ class ContinuationApplicationWorkAreaServiceTest {
 
   @Mock
   private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
+
+  @Mock
+  private OrganisationGroupQueryService organisationGroupQueryService;
 
   @Mock
   private ApplicationAccessService applicationAccessService;
@@ -239,6 +243,60 @@ class ContinuationApplicationWorkAreaServiceTest {
     assertThat(workAreaItems)
         .extracting(SearchResultItem::id)
         .containsExactly(licenceContinuationApplicationDetail.getId().toString());
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByLicenseeOrgUnitId_matching() {
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
+        .thenReturn(Map.of(
+            licence1, List.of(new OrganisationUnit(1, "Org 1")),
+            licence2, List.of(new OrganisationUnit(2, "Org 2"))
+        ));
+    when(licenceResponsibleOrganisationService.getOrganisationUnitIdsFromLicenceOrgUnitMap(any(), eq(licence1)))
+        .thenReturn(List.of(1));
+    when(licenceResponsibleOrganisationService.getOrganisationUnitIdsFromLicenceOrgUnitMap(any(), eq(licence2)))
+        .thenReturn(List.of(2));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setLicenseeOrgUnitId(1);
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactly(licenceContinuationApplicationDetail.getId().toString());
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByLicenseeOrgGroupId_matching() {
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
+
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
+        .thenReturn(Map.of(
+            licence1, List.of(new OrganisationUnit(1, "Org 1")),
+            licence2, List.of(new OrganisationUnit(2, "Org 2"))
+        ));
+    when(licenceResponsibleOrganisationService.getOrganisationUnitIdsFromLicenceOrgUnitMap(any(), eq(licence1)))
+        .thenReturn(List.of(1));
+    when(licenceResponsibleOrganisationService.getOrganisationUnitIdsFromLicenceOrgUnitMap(any(), eq(licence2)))
+        .thenReturn(List.of(2));
+    when(organisationGroupQueryService.getOrganisationUnitIdsByOrganisationGroupId(99))
+        .thenReturn(List.of(2));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setLicenseeOrgGroupId(99);
+    var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactly(licenceContinuationApplicationDetail2.getId().toString());
   }
 
   @Test

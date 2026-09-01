@@ -5,11 +5,13 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.util.List;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
@@ -22,9 +24,17 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaItemProvid
 public class CorrectionWorkAreaService implements WorkAreaItemProvider {
 
   private final LicenceCorrectionService licenceCorrectionService;
+  private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
+  private final OrganisationGroupQueryService organisationGroupQueryService;
 
-  public CorrectionWorkAreaService(LicenceCorrectionService licenceCorrectionService) {
+  public CorrectionWorkAreaService(
+      LicenceCorrectionService licenceCorrectionService,
+      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
+      OrganisationGroupQueryService organisationGroupQueryService
+  ) {
     this.licenceCorrectionService = licenceCorrectionService;
+    this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
+    this.organisationGroupQueryService = organisationGroupQueryService;
   }
 
   @Override
@@ -37,9 +47,18 @@ public class CorrectionWorkAreaService implements WorkAreaItemProvider {
       WorkAreaFilterForm workAreaFilterForm,
       ServiceUserDetail serviceUserDetail
   ) {
-    return licenceCorrectionService
-        .getAllInProgressCorrectionsForUser(serviceUserDetail)
-        .stream()
+    var corrections = licenceCorrectionService.getAllInProgressCorrectionsForUser(serviceUserDetail);
+
+    var licences = corrections.stream()
+        .map(LicenceCorrection::getLicence)
+        .toList();
+
+    var responsibleOrganisations = licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(licences);
+    var licenseeGroupOrgUnitIds = workAreaFilterForm.getLicenseeOrgGroupId() == null
+        ? null
+        : organisationGroupQueryService.getOrganisationUnitIdsByOrganisationGroupId(workAreaFilterForm.getLicenseeOrgGroupId());
+
+    return corrections.stream()
         .filter(correction -> !workAreaFilterForm.hasApplicationFilterApplied())
         .filter(correction -> FilterUtil.matchesTextInput(
             correction.getLicence().getLicenceReference(),
@@ -50,6 +69,13 @@ public class CorrectionWorkAreaService implements WorkAreaItemProvider {
             correction.getLicence().getType(),
             workAreaFilterForm.getLicenceTypes()
         ))
+        .filter(correction -> {
+          var licenceUnitIds = licenceResponsibleOrganisationService
+              .getOrganisationUnitIdsFromLicenceOrgUnitMap(responsibleOrganisations, correction.getLicence());
+
+          return FilterUtil.matchesIdList(licenceUnitIds, workAreaFilterForm.getLicenseeOrgUnitId())
+              && FilterUtil.listMatchesIdList(licenceUnitIds, licenseeGroupOrgUnitIds);
+        })
         .map(this::getCorrectionWorkAreaItem)
         .toList();
   }

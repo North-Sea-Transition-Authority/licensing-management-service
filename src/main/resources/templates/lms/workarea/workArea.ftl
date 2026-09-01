@@ -35,5 +35,17 @@
     form=form
     applicationStatuses=applicationStatuses
     />
+    <@dataItemFilter.licenseeOrgUnitFilter
+    form=form
+    licenseeOrgUnitUrl=licenseeOrgUnitUrl
+    preSelectedLicenseeOrgUnit=preSelectedLicenseeOrgUnit
+    />
+    <#if isRegulatorUser>
+        <@dataItemFilter.licenseeGroupFilter
+        form=form
+        licenseeGroupOrgUnitUrl=licenseeGroupOrgUnitUrl
+        preSelectedLicenseeGroup=preSelectedLicenseeGroupOrgUnit
+        />
+    </#if>
   </@search.standardSearch>
 </@defaultPage>

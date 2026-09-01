@@ -15,20 +15,32 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupRestController;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
+import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
+import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 
 @ContextConfiguration(classes = WorkAreaController.class)
 class WorkAreaControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private WorkAreaService workAreaService;
+
+  @MockitoBean
+  private RegulatorRoleService regulatorRoleService;
+
+  @MockitoBean
+  private OrganisationUnitQueryService organisationUnitQueryService;
 
   @Test
   void getWorkArea_whenNotLoggedIn_thenRedirectToLoginUrl() throws Exception {
@@ -128,6 +140,54 @@ class WorkAreaControllerTest extends AbstractControllerTest {
         .getModelAndView();
 
     assertThat(modelAndView).isNotNull();
+  }
+
+  @Test
+  void getWorkArea_whenRegulatorUser_isRegulatorUserIsTrue() throws Exception {
+    when(regulatorRoleService.isRegulator(regulatorUser)).thenReturn(true);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("isRegulatorUser", true));
+  }
+
+  @Test
+  void getWorkArea_whenNonRegulatorUser_isRegulatorUserIsFalse() throws Exception {
+    when(regulatorRoleService.isRegulator(regulatorUser)).thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("isRegulatorUser", false));
+  }
+
+  @Test
+  void getWorkArea_exposesLicenseeFilterUrlsAndPreselectedItems() throws Exception {
+    when(organisationUnitQueryService.getOrganisationUnitSelectOption("1")).thenReturn(Map.of("1", "Org One"));
+    when(organisationGroupQueryService.getOrganisationGroupSelectOption(2)).thenReturn(Map.of("2", "Group Two"));
+
+    var form = new WorkAreaFilterForm();
+    form.setLicenseeOrgUnitId(1);
+    form.setLicenseeOrgGroupId(2);
+    var workAreaSession = new WorkAreaSession(form);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)))
+                .with(user(regulatorUser))
+                .flashAttr("workAreaSession", workAreaSession)
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("licenseeOrgUnitUrl",
+            SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))))
+        .andExpect(model().attribute("preSelectedLicenseeOrgUnit", Map.of("1", "Org One")))
+        .andExpect(model().attribute("licenseeGroupOrgUnitUrl",
+            SearchSelectorService.route(on(OrganisationGroupRestController.class).getOrganisationGroupSearchResults(null))))
+        .andExpect(model().attribute("preSelectedLicenseeGroupOrgUnit", Map.of("2", "Group Two")));
   }
 
   @Test

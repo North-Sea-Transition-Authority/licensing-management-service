@@ -12,6 +12,11 @@ import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupRestController;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
+import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
@@ -20,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectA
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
+import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @Controller
@@ -31,15 +37,24 @@ public class WorkAreaController {
   private final WorkAreaService workAreaService;
   private final ApplicationAccessService applicationAccessService;
   private final FeatureFlagService featureFlagService;
+  private final RegulatorRoleService regulatorRoleService;
+  private final OrganisationUnitQueryService organisationUnitQueryService;
+  private final OrganisationGroupQueryService organisationGroupQueryService;
 
   public WorkAreaController(
       WorkAreaService workAreaService,
       ApplicationAccessService applicationAccessService,
-      FeatureFlagService featureFlagService
+      FeatureFlagService featureFlagService,
+      RegulatorRoleService regulatorRoleService,
+      OrganisationUnitQueryService organisationUnitQueryService,
+      OrganisationGroupQueryService organisationGroupQueryService
   ) {
     this.workAreaService = workAreaService;
     this.applicationAccessService = applicationAccessService;
     this.featureFlagService = featureFlagService;
+    this.regulatorRoleService = regulatorRoleService;
+    this.organisationUnitQueryService = organisationUnitQueryService;
+    this.organisationGroupQueryService = organisationGroupQueryService;
   }
 
   @GetMapping
@@ -82,6 +97,15 @@ public class WorkAreaController {
         .addObject("applicationTypes", DisplayableEnumOptionUtil.getDisplayableOptions(ApplicationType.class))
         .addObject("applicationStatuses", DisplayableEnumOptionUtil.getDisplayableOptions(
             ApplicationStatus.getSearchableStatuses()))
+        .addObject("isRegulatorUser", regulatorRoleService.isRegulator(user))
+        .addObject("licenseeOrgUnitUrl",
+            SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
+        .addObject("preSelectedLicenseeOrgUnit", organisationUnitQueryService.getOrganisationUnitSelectOption(
+            form.getLicenseeOrgUnitId() == null ? null : form.getLicenseeOrgUnitId().toString()))
+        .addObject("licenseeGroupOrgUnitUrl",
+            SearchSelectorService.route(on(OrganisationGroupRestController.class).getOrganisationGroupSearchResults(null)))
+        .addObject("preSelectedLicenseeGroupOrgUnit",
+            organisationGroupQueryService.getOrganisationGroupSelectOption(form.getLicenseeOrgGroupId()))
         .addObject("clearFilterUrl",
         ReverseRouter.route(on(WorkAreaController.class).clearWorkAreaFilters(null, null)));
   }

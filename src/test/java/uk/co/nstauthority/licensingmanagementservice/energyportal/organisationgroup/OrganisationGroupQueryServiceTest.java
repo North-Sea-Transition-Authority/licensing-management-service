@@ -12,11 +12,13 @@ import static uk.co.nstauthority.licensingmanagementservice.energyportal.organis
 import static uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupTestUtil.ORGANISATION_GROUP_2_WITH_EMPTY_ORGANISATION_UNITS;
 import static uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupTestUtil.ORGANISATION_GROUP_ID_1;
 import static uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupTestUtil.ORGANISATION_GROUP_ID_2;
+import static uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupTestUtil.ORGANISATION_GROUP_NAME_1;
 import static uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitTestUtil.ORG_UNIT_1_JSON;
 import static uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitTestUtil.ORG_UNIT_2_JSON;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -285,6 +287,68 @@ class OrganisationGroupQueryServiceTest {
 
     assertThat(returnedOrganisationUnitJsons)
         .isEqualTo(Collections.emptyList());
+  }
+
+  @Test
+  void getOrganisationUnitIdsByOrganisationGroupId_whenNoGroupId_returnsEmptyList() {
+    var result = organisationGroupQueryService.getOrganisationUnitIdsByOrganisationGroupId(null);
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  void getOrganisationUnitIdsByOrganisationGroupId_whenGroupIdGiven_returnsMemberOrgUnitIds() {
+    when(organisationApi.getAllOrganisationGroupsByIds(
+        eq(List.of(ORGANISATION_GROUP_ID_1)),
+        any(OrganisationGroupsProjectionRoot.class),
+        any(RequestPurpose.class)))
+        .thenReturn(List.of(ORGANISATION_GROUP_1));
+
+    var result = organisationGroupQueryService.getOrganisationUnitIdsByOrganisationGroupId(ORGANISATION_GROUP_ID_1);
+
+    assertThat(result).containsExactly(ORG_UNIT_1_JSON.organisationUnitId());
+  }
+
+  @Test
+  void getOrganisationGroupSelectOption_whenNoGroupId_returnsEmptyMap() {
+    var result = organisationGroupQueryService.getOrganisationGroupSelectOption(null);
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  void getOrganisationGroupSelectOption_whenGroupFound_returnsIdToNameMap() {
+    var organisationGroup = new OrganisationGroup(
+        ORGANISATION_GROUP_ID_1,
+        ORGANISATION_GROUP_NAME_1,
+        "Shell",
+        "shell.com",
+        "ACTIVE",
+        Collections.emptyList(),
+        Collections.emptyList());
+
+    when(organisationApi.findOrganisationGroup(
+        eq(ORGANISATION_GROUP_ID_1),
+        any(OrganisationGroupProjectionRoot.class),
+        any(RequestPurpose.class)))
+        .thenReturn(Optional.of(organisationGroup));
+
+    var result = organisationGroupQueryService.getOrganisationGroupSelectOption(ORGANISATION_GROUP_ID_1);
+
+    assertThat(result).isEqualTo(Map.of(ORGANISATION_GROUP_ID_1.toString(), ORGANISATION_GROUP_NAME_1));
+  }
+
+  @Test
+  void getOrganisationGroupSelectOption_whenGroupNotFound_returnsEmptyMap() {
+    when(organisationApi.findOrganisationGroup(
+        eq(ORGANISATION_GROUP_ID_1),
+        any(OrganisationGroupProjectionRoot.class),
+        any(RequestPurpose.class)))
+        .thenReturn(Optional.empty());
+
+    var result = organisationGroupQueryService.getOrganisationGroupSelectOption(ORGANISATION_GROUP_ID_1);
+
+    assertThat(result).isEmpty();
   }
 
   @Test

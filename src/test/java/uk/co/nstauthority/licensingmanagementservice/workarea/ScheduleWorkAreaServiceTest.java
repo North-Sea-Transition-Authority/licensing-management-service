@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.workarea;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -22,15 +23,17 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineController;
-import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
@@ -45,7 +48,10 @@ class ScheduleWorkAreaServiceTest {
   LicenceScheduleDetailService licenceScheduleDetailService;
 
   @Mock
-  LicenceSearchService licenceSearchService;
+  LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
+
+  @Mock
+  OrganisationGroupQueryService organisationGroupQueryService;
 
   @Mock
   WorkAreaItemViewService workAreaItemViewService;
@@ -91,10 +97,10 @@ class ScheduleWorkAreaServiceTest {
     var org2 = "Org 2";
     var orgList1 = List.of(org1, org2);
     var orgList2 = List.of(org1);
-    var licenceResponsibleOrgMap = Map.of(licence1, orgList1, licence2, orgList2);
-    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence1, licence2))).thenReturn(
-        licenceResponsibleOrgMap
-    );
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any())).thenReturn(Map.of(
+        licence1, List.of(new OrganisationUnit(1, org1), new OrganisationUnit(2, org2)),
+        licence2, List.of(new OrganisationUnit(3, org1))
+    ));
 
     var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
@@ -131,6 +137,7 @@ class ScheduleWorkAreaServiceTest {
             )
         );
   }
+
   @Test
   void getWorkAreaItems_filteredByLicenceReference() {
     var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
@@ -164,10 +171,8 @@ class ScheduleWorkAreaServiceTest {
     when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
 
     var org1 = "Org 1";
-    var licenceResponsibleOrgMap = Map.of(licence2, List.of(org1));
-    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence2))).thenReturn(
-        licenceResponsibleOrgMap
-    );
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
+        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, org1))));
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setLicenceReference("2");
@@ -227,9 +232,8 @@ class ScheduleWorkAreaServiceTest {
         List.of(licenceScheduleDetail1, licenceScheduleDetail2)
     );
     when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
-    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence2))).thenReturn(
-        Map.of(licence2, List.of())
-    );
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
+        .thenReturn(Map.of(licence2, List.of()));
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setLicenceTypes(List.of(LicenceType.SEAWARD_PRODUCTION.name()));
@@ -238,6 +242,78 @@ class ScheduleWorkAreaServiceTest {
     assertThat(workAreaItems)
         .extracting(SearchResultItem::id)
         .containsExactly(licenceScheduleDetail2.getId().toString());
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByLicenseeOrgUnitId_matching() {
+    var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
+    var testInstant = Instant.now(clock);
+
+    var licence1 = LicenceTestUtil.builder().withId(1).withLicenceType(LicenceType.CARBON_STORAGE).withLicenceReference("CS001").build();
+    var licenceScheduleDetail1 = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(LicenceScheduleTestUtil.createLicenceSchedule(licence1))
+        .withId(UUID.randomUUID()).withCreatedInstant(testInstant).build();
+
+    var licence2 = LicenceTestUtil.builder().withId(2).withLicenceType(LicenceType.CARBON_STORAGE).withLicenceReference("CS002").build();
+    var licenceScheduleDetail2 = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(LicenceScheduleTestUtil.createLicenceSchedule(licence2))
+        .withId(UUID.randomUUID()).withCreatedInstant(testInstant).build();
+
+    when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail)).thenReturn(
+        List.of(licenceScheduleDetail1, licenceScheduleDetail2)
+    );
+    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any())).thenReturn(Map.of(
+        licence1, List.of(new OrganisationUnit(1, "Org 1")),
+        licence2, List.of(new OrganisationUnit(2, "Org 2"))
+    ));
+    when(licenceResponsibleOrganisationService.getOrganisationUnitIdsFromLicenceOrgUnitMap(any(), eq(licence1)))
+        .thenReturn(List.of(1));
+    when(licenceResponsibleOrganisationService.getOrganisationUnitIdsFromLicenceOrgUnitMap(any(), eq(licence2)))
+        .thenReturn(List.of(2));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setLicenseeOrgUnitId(2);
+    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactly(licenceScheduleDetail2.getId().toString());
+  }
+
+  @Test
+  void getWorkAreaItems_filteredByLicenseeOrgGroupId_matching() {
+    var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
+    var testInstant = Instant.now(clock);
+
+    var licence1 = LicenceTestUtil.builder().withId(1).withLicenceType(LicenceType.CARBON_STORAGE).withLicenceReference("CS001").build();
+    var licenceScheduleDetail1 = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(LicenceScheduleTestUtil.createLicenceSchedule(licence1))
+        .withId(UUID.randomUUID()).withCreatedInstant(testInstant).build();
+
+    var licence2 = LicenceTestUtil.builder().withId(2).withLicenceType(LicenceType.CARBON_STORAGE).withLicenceReference("CS002").build();
+    var licenceScheduleDetail2 = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(LicenceScheduleTestUtil.createLicenceSchedule(licence2))
+        .withId(UUID.randomUUID()).withCreatedInstant(testInstant).build();
+
+    when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail)).thenReturn(
+        List.of(licenceScheduleDetail1, licenceScheduleDetail2)
+    );
+    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any())).thenReturn(Map.of(
+        licence1, List.of(new OrganisationUnit(1, "Org 1")),
+        licence2, List.of(new OrganisationUnit(2, "Org 2"))
+    ));
+    when(licenceResponsibleOrganisationService.getOrganisationUnitIdsFromLicenceOrgUnitMap(any(), eq(licence1)))
+        .thenReturn(List.of(1));
+    when(licenceResponsibleOrganisationService.getOrganisationUnitIdsFromLicenceOrgUnitMap(any(), eq(licence2)))
+        .thenReturn(List.of(2));
+    when(organisationGroupQueryService.getOrganisationUnitIdsByOrganisationGroupId(99))
+        .thenReturn(List.of(1));
+
+    var workAreaFilter = new WorkAreaFilterForm();
+    workAreaFilter.setLicenseeOrgGroupId(99);
+    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactly(licenceScheduleDetail1.getId().toString());
   }
 
   @Test
@@ -298,7 +374,7 @@ class ScheduleWorkAreaServiceTest {
 
     when(licenceScheduleDetailService.getAllDraftLicenceScheduleDetailsForUser(serviceUserDetail)).thenReturn(List.of(detail));
     when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
-    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence))).thenReturn(Map.of(licence, List.of()));
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any())).thenReturn(Map.of(licence, List.of()));
 
     var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
@@ -326,7 +402,7 @@ class ScheduleWorkAreaServiceTest {
             WorkAreaDataItemType.DRAFT_LICENCE_SCHEDULE,
             serviceUserDetail.wuaId()
         )));
-    when(licenceSearchService.getLicenceToResponsibleOrganisationNameMap(List.of(licence))).thenReturn(Map.of(licence, List.of()));
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any())).thenReturn(Map.of(licence, List.of()));
 
     var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 

@@ -100,6 +100,16 @@ public record PartialSurrenderOperation(
   private record SurrenderState(BlockSurrenderType type, Set<UUID> surrenderedFeatureIds) {
   }
 
+  /**
+   * A surrender type is chosen per block after the surrender itself is staged, so a block that has not reached that
+   * step yet has no type to show.
+   */
+  @Nullable
+  public String surrenderTypeDisplayName(UUID featureId) {
+    var surrenderDetails = featureIdToSurrenderDetails.get(featureId);
+    return surrenderDetails == null ? null : surrenderDetails.type().getDisplayName();
+  }
+
   @Override
   public String type() {
     return PARTIAL_SURRENDER;

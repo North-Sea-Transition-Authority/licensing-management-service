@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.util;
 
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
+
 import jakarta.annotation.Nullable;
 import java.math.BigDecimal;
 import java.util.Comparator;
@@ -47,7 +49,7 @@ public final class LicencePositionStateViewResolver {
   ) {
     return equityByOrganisationId.entrySet().stream()
         .map(entry -> new BeneficialInterestView(
-            organisationNames.getOrDefault(entry.getKey(), "Not available"),
+            organisationNames.getOrDefault(entry.getKey(), NOT_AVAILABLE),
             entry.getValue()
         ))
         .sorted(Comparator.comparing(BeneficialInterestView::organisationName, String.CASE_INSENSITIVE_ORDER))

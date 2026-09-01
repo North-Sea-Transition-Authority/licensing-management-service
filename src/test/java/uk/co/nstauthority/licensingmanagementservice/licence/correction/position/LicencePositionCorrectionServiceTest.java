@@ -1016,6 +1016,51 @@ class LicencePositionCorrectionServiceTest {
   }
 
   @Test
+  void stageRemovalOfExecutedChange_whenNothingIsStagedAgainstTheChange_thenStagesARemoveChange() {
+    var changeId = UUID.randomUUID().toString();
+    var otherChange = AddChange.buildOperationsChange(
+        List.of(LicenceOperation.newAdministratorChange().withOperator(ADMINISTRATOR_ID).build()), 1);
+    givenUpdatePositionCorrection(List.of(otherChange));
+
+    licencePositionCorrectionService.stageRemovalOfExecutedChange(LICENCE_CORRECTION, LICENCE_POSITION, changeId);
+
+    verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
+    assertThat(licencePositionCorrectionCaptor.getValue().getPayload().changes()).containsExactly(
+        otherChange,
+        LicencePositionChangeType.removeChange().withChangeId(changeId).build());
+  }
+
+  @Test
+  void stageRemovalOfExecutedChange_whenTheChangeIsAlreadyCorrected_thenReplacesTheCorrectionWithARemoveChange() {
+    var changeId = UUID.randomUUID().toString();
+    var otherChange = AddChange.buildOperationsChange(
+        List.of(LicenceOperation.newAdministratorChange().withOperator(ADMINISTRATOR_ID).build()), 1);
+    givenUpdatePositionCorrection(List.of(
+        UpdateChangeOperations.buildUpdateChange(changeId,
+            LicenceOperation.newAdministratorChange().withOperator(ADMINISTRATOR_ID).build()),
+        otherChange));
+
+    licencePositionCorrectionService.stageRemovalOfExecutedChange(LICENCE_CORRECTION, LICENCE_POSITION, changeId);
+
+    verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
+    assertThat(licencePositionCorrectionCaptor.getValue().getPayload().changes()).containsExactly(
+        otherChange,
+        LicencePositionChangeType.removeChange().withChangeId(changeId).build());
+  }
+
+  private void givenUpdatePositionCorrection(List<LicencePositionChangeType> changes) {
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(LICENCE_POSITION)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().withChanges(changes).build())
+        .build();
+
+    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
+        .thenReturn(Optional.of(positionCorrection));
+  }
+
+  @Test
   void replaceAddChangeFor_whenUpdatePayload_rebuildsAsUpdatePayloadPreservingType() {
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().withChanges(List.of()).build())

@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender;
 
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
 import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.positionDateAndOrderUnchanged;
 
 import jakarta.annotation.Nullable;
@@ -33,9 +34,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 
 @Service
 public class PartialSurrenderCorrectionService {
+
+  private static final String NOT_A_PARTIAL_SURRENDER = "Change with id %s is not a partial surrender change";
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final LicencePositionService licencePositionService;
@@ -83,8 +87,7 @@ public class PartialSurrenderCorrectionService {
     var liveChange = licencePositionChangeService.getByIdOrThrow(UUID.fromString(liveChangeId));
 
     return LicencePositionChangeOperationUtil.findOperation(liveChange, PartialSurrenderOperation.class)
-        .orElseThrow(() -> new IllegalStateException(
-            "Change with id %s is not a partial surrender change".formatted(liveChangeId)));
+        .orElseThrow(() -> new IllegalStateException(NOT_A_PARTIAL_SURRENDER.formatted(liveChangeId)));
   }
 
   public Optional<String> findCorrectedLiveChangeId(LicencePositionCorrection licencePositionCorrection) {
@@ -179,6 +182,27 @@ public class PartialSurrenderCorrectionService {
   ) {
     licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition)
         .ifPresent(this::removeStagedPartialSurrender);
+  }
+
+  @Transactional
+  public void removeExistingPartialSurrender(
+      LicencePosition licencePosition,
+      LicenceCorrection licenceCorrection,
+      String changeId
+  ) {
+    licencePositionCorrectionService.stageRemovalOfExecutedChange(licenceCorrection, licencePosition, changeId);
+  }
+
+  public List<PartialSurrenderChangeView.BlockRow> getBlockRows(PartialSurrenderOperation surrender) {
+    var blockNamesById = featureService.getFeaturesByIds(surrender.featureIds())
+        .stream()
+        .collect(Collectors.toMap(Feature::getId, Feature::getFeatureName));
+
+    return surrender.featureIds().stream()
+        .map(featureId -> new PartialSurrenderChangeView.BlockRow(
+            blockNamesById.getOrDefault(featureId, NOT_AVAILABLE),
+            surrender.surrenderTypeDisplayName(featureId)))
+        .toList();
   }
 
   public boolean hasStagedPartialSurrender(LicencePositionCorrection licencePositionCorrection) {

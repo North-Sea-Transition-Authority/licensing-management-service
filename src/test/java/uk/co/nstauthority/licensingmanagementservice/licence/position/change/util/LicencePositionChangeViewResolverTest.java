@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.RemovePartialSurrenderChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
@@ -903,6 +904,31 @@ class LicencePositionChangeViewResolverTest {
             .renderTaskList(correctionId, positionCorrectionId, null, null)));
   }
 
+  @Test
+  void getChangeViews_whenPartialSurrenderIsAnUntouchedLiveChange_populatesRemoveUrl() {
+    var correctionId = UUID.randomUUID();
+    var positionId = UUID.randomUUID();
+    var changeId = UUID.randomUUID().toString();
+
+    var result = partialSurrenderChangeView(
+        positionId, changeId, null,
+        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, null)
+    );
+
+    assertThat(result.urls().remove()).isEqualTo(
+        ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+            .renderRemoveExecutedPartialSurrender(correctionId, positionId, changeId, null)));
+  }
+
+  @Test
+  void getChangeViews_whenNoUrlContext_partialSurrenderHasNoRemoveUrl() {
+    var positionId = UUID.randomUUID();
+
+    var result = partialSurrenderChangeView(positionId, UUID.randomUUID().toString(), null, null);
+
+    assertThat(result.urls().remove()).isNull();
+  }
+
   private static PartialSurrenderChangeView partialSurrenderChangeView(
       UUID positionId,
       String changeId,
@@ -976,7 +1002,9 @@ class LicencePositionChangeViewResolverTest {
             new ChangeViewUrls(
                 ReverseRouter.route(on(PartialSurrenderTaskListController.class).renderForCorrectingChange(
                     correctionId, positionId, partialSurrenderChangeId.toString(), null, null)),
-                null,
+                ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+                    .renderRemoveExecutedPartialSurrender(
+                        correctionId, positionId, partialSurrenderChangeId.toString(), null)),
                 null,
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
                     .renderCorrectChangeOrder(correctionId, positionId, partialSurrenderChangeId, null))));

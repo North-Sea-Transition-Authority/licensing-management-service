@@ -254,6 +254,26 @@ public class LicencePositionCorrectionService {
   }
 
   /**
+   * Stages the removal of an executed change, replacing any correction this licence correction had already
+   * staged against that same change. A staged change order for the removed change is left in place.
+   */
+  @Transactional
+  public void stageRemovalOfExecutedChange(
+      LicenceCorrection licenceCorrection,
+      LicencePosition licencePosition,
+      String changeId
+  ) {
+    var positionCorrection = getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
+    var payload = positionCorrection.getPayload();
+
+    var changes = new ArrayList<>(LicencePositionChangeType.removeChangesById(payload.changes(), changeId));
+    changes.add(LicencePositionChangeType.removeChange().withChangeId(changeId).build());
+
+    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionCorrectionRepository.save(positionCorrection);
+  }
+
+  /**
    * The date a change staged against this position correction takes effect. A partial surrender does
    * not record its own date on a correction - it takes the position date, so correcting that date
    * later moves the surrender with it.

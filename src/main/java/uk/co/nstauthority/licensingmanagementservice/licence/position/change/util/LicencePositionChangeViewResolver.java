@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.util;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
 
 import jakarta.annotation.Nullable;
 import java.math.BigDecimal;
@@ -9,7 +10,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.RemovePartialSurrenderChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
@@ -43,8 +44,6 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
 public final class LicencePositionChangeViewResolver {
-
-  private static final String NOT_AVAILABLE = "Not available";
 
   private LicencePositionChangeViewResolver() {
     throw new IllegalStateException("Utility class should not be instantiated.");
@@ -166,20 +165,25 @@ public final class LicencePositionChangeViewResolver {
 
     var blockRows = operation.featureIds()
         .stream()
-        .map(featureId -> {
-          var blockSurrender = operation.featureIdToSurrenderDetails().get(featureId);
-          return new PartialSurrenderChangeView.BlockRow(
-              featureNames.getOrDefault(featureId, NOT_AVAILABLE),
-              blockSurrender != null ? blockSurrender.type().getDisplayName() : NOT_AVAILABLE
-          );
-        })
+        .map(featureId -> new PartialSurrenderChangeView.BlockRow(
+            featureNames.getOrDefault(featureId, NOT_AVAILABLE),
+            Objects.requireNonNullElse(operation.surrenderTypeDisplayName(featureId), NOT_AVAILABLE)
+        ))
         .toList();
 
     return new PartialSurrenderChangeView(
         surrenderDate == null ? null : DateUtil.formatLongDate(surrenderDate),
         blockRows,
         change.changeType(),
-        new ChangeViewUrls(partialSurrenderCorrectUrl(urlContext, change), null, null, correctChangeOrderUrl)
+        new ChangeViewUrls(
+            partialSurrenderCorrectUrl(urlContext, change),
+            removeChangeUrl(urlContext, change,
+                ctx -> ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+                    .renderRemoveExecutedPartialSurrender(
+                        ctx.correctionId(), ctx.routingId(), change.changeId(), null))),
+            null,
+            correctChangeOrderUrl
+        )
     );
   }
 
@@ -203,7 +207,10 @@ public final class LicencePositionChangeViewResolver {
         change.changeType(),
         new ChangeViewUrls(
             administratorCorrectChangeUrl(urlContext, change),
-            removeChangeUrl(urlContext, change),
+            removeChangeUrl(urlContext, change,
+                ctx -> ReverseRouter.route(on(RemoveAdministratorChangeController.class)
+                    .renderRemoveExecutedAdminChange(
+                        ctx.correctionId(), ctx.routingId(), change.changeId(), null))),
             undoChangeUrl(urlContext, change),
             correctChangeOrderUrl
         )
@@ -303,11 +310,12 @@ public final class LicencePositionChangeViewResolver {
 
   @Nullable
   private static String removeEquityChangeUrl(@Nullable PositionChangeUrlContext urlContext, PositionChange change) {
-    if (urlContext == null || urlContext.addedPosition() || change.changeType() != null) {
-      return null;
-    }
-    return ReverseRouter.route(on(RemoveEquityChangeController.class)
-        .renderRemoveExecutedEquityChange(urlContext.correctionId(), urlContext.routingId(), change.changeId(), null));
+    return removeChangeUrl(
+        urlContext,
+        change,
+        ctx -> ReverseRouter.route(on(RemoveEquityChangeController.class)
+            .renderRemoveExecutedEquityChange(ctx.correctionId(), ctx.routingId(), change.changeId(), null))
+    );
   }
 
   @Nullable
@@ -399,18 +407,20 @@ public final class LicencePositionChangeViewResolver {
   ) {
   }
 
+  /**
+   * Only a live change left untouched by this correction can be removed, and only from the position that holds it.
+   */
   @Nullable
-  //TODO LMS2-133: When other change types are added, we should adapt how the remove urls for change views are built
-  private static String removeChangeUrl(@Nullable PositionChangeUrlContext urlContext, PositionChange change) {
-    if (urlContext == null || urlContext.addedPosition()) {
+  private static String removeChangeUrl(
+      @Nullable PositionChangeUrlContext urlContext,
+      PositionChange change,
+      Function<PositionChangeUrlContext, String> removeUrl
+  ) {
+    if (urlContext == null || urlContext.addedPosition() || change.changeType() != null) {
       return null;
     }
 
-    if (change.changeType() != null) {
-      return null;
-    }
-    return ReverseRouter.route(on(RemoveAdministratorChangeController.class)
-        .renderRemoveExecutedAdminChange(urlContext.correctionId(), urlContext.routingId(), change.changeId(), null));
+    return removeUrl.apply(urlContext);
   }
 
   @Nullable

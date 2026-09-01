@@ -49,6 +49,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 
 @ExtendWith(MockitoExtension.class)
@@ -623,6 +624,50 @@ class PartialSurrenderCorrectionServiceTest {
         AddChange.buildOperationsChange(List.of(partialSurrender(FIRST_FEATURE_ID)), 1)));
 
     assertThat(partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection)).isEmpty();
+  }
+
+  @Test
+  void removeExistingPartialSurrender() {
+    partialSurrenderCorrectionService
+        .removeExistingPartialSurrender(LICENCE_POSITION, LICENCE_CORRECTION, LIVE_CHANGE_ID);
+
+    verify(licencePositionCorrectionService)
+        .stageRemovalOfExecutedChange(LICENCE_CORRECTION, LICENCE_POSITION, LIVE_CHANGE_ID);
+  }
+
+  @Test
+  void getBlockRows() {
+    var surrender = LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
+        .withSurrenderDetails(Map.of(FIRST_FEATURE_ID,
+            surrenderDetails(BlockSurrenderType.FULL_SURRENDER, FIRST_COMMAND_JOURNEY_ID)))
+        .build();
+    when(featureService.getFeaturesByIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))).thenReturn(List.of(
+        FeatureTestUtil.blockFeature(FIRST_FEATURE_ID, "30", 1),
+        FeatureTestUtil.blockFeature(SECOND_FEATURE_ID, "30", 2)));
+
+    var result = partialSurrenderCorrectionService.getBlockRows(surrender);
+
+    assertThat(result).containsExactly(
+        new PartialSurrenderChangeView.BlockRow("SHAPE 1", BlockSurrenderType.FULL_SURRENDER.getDisplayName()),
+        new PartialSurrenderChangeView.BlockRow("SHAPE 2", null));
+  }
+
+  @Test
+  void getBlockRows_whenAFeatureCannotBeResolved_thenTheBlockLabelIsNotAvailable() {
+    var surrender = LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
+        .withSurrenderDetails(Map.of(FIRST_FEATURE_ID,
+            surrenderDetails(BlockSurrenderType.FULL_SURRENDER, FIRST_COMMAND_JOURNEY_ID)))
+        .build();
+    when(featureService.getFeaturesByIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID)))
+        .thenReturn(List.of(FeatureTestUtil.blockFeature(FIRST_FEATURE_ID, "30", 1)));
+
+    var result = partialSurrenderCorrectionService.getBlockRows(surrender);
+
+    assertThat(result).containsExactly(
+        new PartialSurrenderChangeView.BlockRow("SHAPE 1", BlockSurrenderType.FULL_SURRENDER.getDisplayName()),
+        new PartialSurrenderChangeView.BlockRow("Not available", null));
   }
 
   private void givenLiveSurrenderChange(PartialSurrenderOperation liveSurrender) {

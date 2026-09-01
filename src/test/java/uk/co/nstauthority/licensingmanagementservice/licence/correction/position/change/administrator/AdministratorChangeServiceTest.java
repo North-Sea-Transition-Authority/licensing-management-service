@@ -33,7 +33,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionUpdateOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
@@ -253,7 +252,7 @@ class AdministratorChangeServiceTest {
   }
 
   @Test
-  void removeExistingAdministratorChange_whenNoExistingUpdateCorrection_createsNewCorrectionWithRemoveChange() {
+  void removeExistingAdministratorChange_whenNoExistingUpdateCorrection_thenOnlyStagesTheRemoval() {
     var licencePosition = LicencePositionTestUtil.newBuilder().build();
     var originalChangeId = UUID.randomUUID().toString();
 
@@ -263,22 +262,13 @@ class AdministratorChangeServiceTest {
     administratorChangeService
         .removeExistingAdministratorChange(licencePosition, LICENCE_CORRECTION, originalChangeId);
 
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var saved = licencePositionCorrectionCaptor.getValue();
-
-    assertThat(saved.getLicenceCorrection()).isEqualTo(LICENCE_CORRECTION);
-    assertThat(saved.getChangeType()).isEqualTo(LicencePositionCorrectionChangeType.UPDATE_POSITION);
-    assertThat(saved.getTargetLicencePosition()).isEqualTo(licencePosition);
-
-    var payload = (UpdateLicencePositionPayload) saved.getPayload();
-    assertThat(payload.changes()).hasSize(1);
-    var change = payload.changes().getFirst();
-    assertThat(change).isInstanceOf(RemoveChange.class);
-    assertThat(change.changeId()).isEqualTo(originalChangeId);
+    verify(licencePositionCorrectionService)
+        .stageRemovalOfExecutedChange(LICENCE_CORRECTION, licencePosition, originalChangeId);
+    verify(licencePositionCorrectionService, never()).save(any());
   }
 
   @Test
-  void removeExistingAdministratorChange_whenExistingUpdateCorrectionWithAdminChange_dropsAdminChangeAndAppendsRemoveChange() {
+  void removeExistingAdministratorChange_whenExistingUpdateCorrectionWithAdminChange_thenDropsAdminChangeAndStagesTheRemoval() {
     var licencePosition = LicencePositionTestUtil.newBuilder().build();
     var originalChangeId = UUID.randomUUID().toString();
     var existing = LicencePositionCorrectionTestUtil.newBuilder()
@@ -296,10 +286,9 @@ class AdministratorChangeServiceTest {
     verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
     var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
 
-    assertThat(payload.changes()).hasSize(1);
-    var change = payload.changes().getFirst();
-    assertThat(change).isInstanceOf(RemoveChange.class);
-    assertThat(change.changeId()).isEqualTo(originalChangeId);
+    assertThat(payload.changes()).isEmpty();
+    verify(licencePositionCorrectionService)
+        .stageRemovalOfExecutedChange(LICENCE_CORRECTION, licencePosition, originalChangeId);
   }
 
   @Test

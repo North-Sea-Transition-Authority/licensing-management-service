@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static java.util.function.Predicate.not;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -49,16 +48,7 @@ public class EquityChangeService {
       LicenceCorrection licenceCorrection,
       String changeId
   ) {
-    var positionCorrection = licencePositionCorrectionService
-        .getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
-
-    var payload = positionCorrection.getPayload();
-
-    var changes = new ArrayList<>(LicencePositionChangeUtil.removeChangeById(payload.changes(), changeId));
-    changes.add(LicencePositionChangeType.removeChange().withChangeId(changeId).build());
-
-    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
-    licencePositionCorrectionService.save(positionCorrection);
+    licencePositionCorrectionService.stageRemovalOfExecutedChange(licenceCorrection, licencePosition, changeId);
   }
 
   @Transactional

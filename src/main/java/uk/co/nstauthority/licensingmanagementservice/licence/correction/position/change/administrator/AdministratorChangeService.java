@@ -149,34 +149,18 @@ public class AdministratorChangeService {
       LicenceCorrection licenceCorrection,
       String originalChangeId
   ) {
-    var existingPositionCorrection = licencePositionCorrectionService
-        .findUpdatePositionCorrection(licenceCorrection, licencePosition);
+    licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition)
+        .ifPresent(this::removeStagedAdministratorChange);
 
-    LicencePositionCorrection positionCorrection;
+    licencePositionCorrectionService
+        .stageRemovalOfExecutedChange(licenceCorrection, licencePosition, originalChangeId);
+  }
 
-    if (existingPositionCorrection.isPresent()) {
-      positionCorrection = existingPositionCorrection.get();
-      var payload = (UpdateLicencePositionPayload) positionCorrection.getPayload();
+  private void removeStagedAdministratorChange(LicencePositionCorrection positionCorrection) {
+    var payload = positionCorrection.getPayload();
+    var changes = LicencePositionAdministratorChangeUtil.removeAdminChange(payload.changes());
 
-      var changes = new ArrayList<>(LicencePositionAdministratorChangeUtil.removeAdminChange(payload.changes()));
-      changes.add(LicencePositionChangeType.removeChange().withChangeId(originalChangeId).build());
-
-      positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
-
-    } else {
-      positionCorrection = new LicencePositionCorrection();
-      var payload = LicencePositionPayload.newUpdateLicencePositionPayload()
-          .withCorrectionReference(licenceCorrection.getCorrectionReference())
-          .withChanges(List.of(LicencePositionChangeType.removeChange().withChangeId(originalChangeId).build()))
-          .build();
-
-      positionCorrection.setLicenceCorrection(licenceCorrection);
-      positionCorrection.setChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION);
-      positionCorrection.setTargetLicencePosition(licencePosition);
-      positionCorrection.setPayload(payload);
-
-    }
-
+    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
     licencePositionCorrectionService.save(positionCorrection);
   }
 

@@ -77,46 +77,13 @@ class EquityChangeServiceTest {
   private ArgumentCaptor<LicencePositionCorrection> licencePositionCorrectionCaptor;
 
   @Test
-  void removeExistingEquityChange_removesTargetChangeAndStagesRemoveChange() {
+  void removeExistingEquityChange() {
     var changeId = UUID.randomUUID().toString();
-    var otherChange = setEquityAddChange(UUID.randomUUID().toString());
-    var payload = new UpdateLicencePositionPayload(null, null, CORRECTION_REFERENCE,
-        List.of(setEquityAddChange(changeId), otherChange));
-    var correction = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
-        .withTargetLicencePosition(LICENCE_POSITION)
-        .withPayload(payload)
-        .build();
-
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
-        .thenReturn(correction);
 
     equityChangeService.removeExistingEquityChange(LICENCE_POSITION, LICENCE_CORRECTION, changeId);
 
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    assertThat(licencePositionCorrectionCaptor.getValue().getPayload().changes())
-        .containsExactly(otherChange, LicencePositionChangeType.removeChange().withChangeId(changeId).build());
-  }
-
-  @Test
-  void removeExistingEquityChange_whenExecutedChangeNotInPayload_keepsOtherChangesAndStagesRemoveChange() {
-    var changeId = UUID.randomUUID().toString();
-    var otherChange = setEquityAddChange(UUID.randomUUID().toString());
-    var payload = new UpdateLicencePositionPayload(null, null, CORRECTION_REFERENCE, List.of(otherChange));
-    var correction = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
-        .withTargetLicencePosition(LICENCE_POSITION)
-        .withPayload(payload)
-        .build();
-
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
-        .thenReturn(correction);
-
-    equityChangeService.removeExistingEquityChange(LICENCE_POSITION, LICENCE_CORRECTION, changeId);
-
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    assertThat(licencePositionCorrectionCaptor.getValue().getPayload().changes())
-        .containsExactly(otherChange, LicencePositionChangeType.removeChange().withChangeId(changeId).build());
+    verify(licencePositionCorrectionService)
+        .stageRemovalOfExecutedChange(LICENCE_CORRECTION, LICENCE_POSITION, changeId);
   }
 
   @Test

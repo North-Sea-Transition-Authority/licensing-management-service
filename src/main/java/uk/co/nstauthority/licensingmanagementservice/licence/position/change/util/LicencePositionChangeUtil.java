@@ -8,6 +8,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 
 public final class LicencePositionChangeUtil {
 
+  public static final String NOT_AVAILABLE = "Not available";
+
   private LicencePositionChangeUtil() {
     throw new IllegalStateException("Utility class should not be instantiated.");
   }

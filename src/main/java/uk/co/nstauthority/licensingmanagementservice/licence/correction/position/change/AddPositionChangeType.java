@@ -4,10 +4,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
 public enum AddPositionChangeType implements Displayable {
-  ADMINISTRATOR_CHANGE(10, "Administrator change"),
+  ADMINISTRATOR(10, "Administrator change"),
   SET_EQUITY(20, "Set equity"),
   TRANSFER_EQUITY(30, "Transfer equity"),
-  PARTIAL_SURRENDER(40, "Partial surrender");
+  PARTIAL_SURRENDER(40, "Partial surrender"),
+  SUBAREA(50, "Subarea change"),
+  ;
 
   private final int displayOrder;
   private final String displayName;
@@ -29,9 +31,8 @@ public enum AddPositionChangeType implements Displayable {
 
   public boolean isAvailableFor(LicenceType licenceType) {
     return switch (this) {
-      case ADMINISTRATOR_CHANGE -> !LicenceType.CARBON_STORAGE.equals(licenceType);
+      case ADMINISTRATOR, PARTIAL_SURRENDER, SUBAREA -> licenceType.isProduction();
       case SET_EQUITY, TRANSFER_EQUITY -> LicenceType.CARBON_STORAGE.equals(licenceType);
-      case PARTIAL_SURRENDER -> licenceType != null && licenceType.isProduction();
     };
   }
 }

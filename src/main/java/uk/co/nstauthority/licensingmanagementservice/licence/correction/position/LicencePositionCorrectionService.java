@@ -23,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
 
 @Service
 public class LicencePositionCorrectionService {
@@ -437,6 +438,20 @@ public class LicencePositionCorrectionService {
         .filter(operationType::isInstance)
         .map(operationType::cast)
         .toList();
+  }
+
+  public <T extends LicenceOperation> Optional<T> getCommittedChangeOfType(
+      @Nullable LicencePositionCorrection licencePositionCorrection,
+      Class<T> operationType
+  ) {
+    if (licencePositionCorrection == null) {
+      return Optional.empty();
+    }
+
+    return LicencePositionChangeOperationUtil.findOperations(
+            licencePositionCorrection.getPayload().changes(), operationType)
+        .stream()
+        .findFirst();
   }
 
   private boolean hasAddOperationOfType(

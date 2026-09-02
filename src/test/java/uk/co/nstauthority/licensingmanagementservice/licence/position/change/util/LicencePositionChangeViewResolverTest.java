@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
@@ -35,6 +36,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityRow;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SubareaChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityChangeHoldingView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityChangeView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -954,6 +956,37 @@ class LicencePositionChangeViewResolverTest {
         urlContext);
 
     return (PartialSurrenderChangeView) result.get(LicenceOperation.PARTIAL_SURRENDER);
+  }
+
+  @Test
+  void getChangeViews_buildsSubareaChangeView() {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
+
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        new SubareaOperation(FIRST_FEATURE_ID));
+
+    var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
+
+    assertThat(result)
+        .extractingByKey(LicenceOperation.SUBAREA)
+        .isInstanceOf(SubareaChangeView.class)
+        .extracting(view -> ((SubareaChangeView) view).featureName())
+        .isEqualTo(FEATURE_NAMES.get(FIRST_FEATURE_ID));
+  }
+
+  @Test
+  void getChangeViews_whenSubareaBlockNameNotFound_usesNotAvailable() {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
+
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        new SubareaOperation(FIRST_FEATURE_ID));
+
+    var result = changeViewsFor(currentLicencePosition.getId(), Map.of(), currentChronologicalPosition);
+
+    var subareaChangeView = (SubareaChangeView) result.get(LicenceOperation.SUBAREA);
+    assertThat(subareaChangeView.featureName()).isEqualTo("Not available");
   }
 
   private static Map<String, LicencePositionChangeView> changeViewsFor(

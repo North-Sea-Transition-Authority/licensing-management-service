@@ -23,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -79,13 +80,15 @@ public class LicencePositionAddChangeController {
     }
 
     return switch (AddPositionChangeType.valueOf(form.getChangeType())) {
-      case ADMINISTRATOR_CHANGE -> ReverseRouter.redirect(on(LicencePositionAdministratorChangeController.class)
+      case ADMINISTRATOR -> ReverseRouter.redirect(on(LicencePositionAdministratorChangeController.class)
           .renderForExecutedPosition(correctionId, licencePositionId, null));
       case SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSetEquityController.class)
           .renderForExecutedPosition(correctionId, licencePositionId, null));
       case TRANSFER_EQUITY -> ReverseRouter.redirect(on(LicencePositionTransferEquityController.class)
           .renderForExecutedPosition(correctionId, licencePositionId, null));
       case PARTIAL_SURRENDER -> ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
+          .renderForExecutedPosition(correctionId, licencePositionId, null));
+      case SUBAREA -> ReverseRouter.redirect(on(LicencePositionSubareaChangeStartController.class)
           .renderForExecutedPosition(correctionId, licencePositionId, null));
     };
   }
@@ -116,13 +119,15 @@ public class LicencePositionAddChangeController {
     }
 
     return switch (AddPositionChangeType.valueOf(form.getChangeType())) {
-      case ADMINISTRATOR_CHANGE -> ReverseRouter.redirect(on(LicencePositionAdministratorChangeController.class)
+      case ADMINISTRATOR -> ReverseRouter.redirect(on(LicencePositionAdministratorChangeController.class)
           .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
       case SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSetEquityController.class)
           .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
       case TRANSFER_EQUITY -> ReverseRouter.redirect(on(LicencePositionTransferEquityController.class)
           .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
       case PARTIAL_SURRENDER -> ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
+          .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
+      case SUBAREA -> ReverseRouter.redirect(on(LicencePositionSubareaChangeStartController.class)
           .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
     };
   }

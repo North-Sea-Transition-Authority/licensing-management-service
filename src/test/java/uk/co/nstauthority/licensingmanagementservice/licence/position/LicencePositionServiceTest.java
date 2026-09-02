@@ -29,6 +29,11 @@ import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 
@@ -279,6 +284,40 @@ class LicencePositionServiceTest {
 
     assertThat(licencePositionService.getBlockFeaturesOnLicenceOnOrBefore(LICENCE, FEBRUARY, 2))
         .containsExactly(BLOCK_30_2);
+  }
+
+  @Test
+  void getBlockFeaturesForCorrection_whenAddedPosition_returnsBlocksHeldAsAtEffectiveDate() {
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build())
+        .withTargetLicencePosition(null)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withEffectiveDate(FEBRUARY)
+            .withEffectiveDateOrder(2)
+            .build())
+        .build();
+    when(licencePositionRepository.findByLicence(LICENCE)).thenReturn(List.of(
+        position(JANUARY, 1, BLOCK_30_1),
+        position(FEBRUARY, 1, BLOCK_30_2),
+        position(FEBRUARY, 3, SUBAREA)));
+    givenFeaturesAreResolved(BLOCK_30_2);
+
+    assertThat(licencePositionService.getBlockFeaturesForCorrection(positionCorrection))
+        .containsExactly(BLOCK_30_2);
+  }
+
+  @Test
+  void getBlockFeaturesForCorrection_whenExecutedPosition_returnsBlocksHeldByTargetPosition() {
+    var targetPosition = position(JANUARY, 1, BLOCK_30_1, SUBAREA);
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(targetPosition)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().withChanges(List.of()).build())
+        .build();
+    givenFeaturesAreResolved(BLOCK_30_1, SUBAREA);
+
+    assertThat(licencePositionService.getBlockFeaturesForCorrection(positionCorrection))
+        .containsExactly(BLOCK_30_1);
   }
 
   @Test

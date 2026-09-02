@@ -16,6 +16,9 @@ import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransaction;
 
@@ -114,6 +117,17 @@ public class LicencePositionService {
     return findPositionOnLicenceOnOrBefore(licence, positionDate, positionDateOrder)
         .map(this::getBlockFeatures)
         .orElseGet(List::of);
+  }
+
+  public List<Feature> getBlockFeaturesForCorrection(LicencePositionCorrection licencePositionCorrection) {
+    return switch (licencePositionCorrection.getPayload()) {
+      case CreateLicencePositionPayload create -> getBlockFeaturesOnLicenceOnOrBefore(
+          licencePositionCorrection.getLicenceCorrection().getLicence(),
+          create.effectiveDate(),
+          create.effectiveDateOrder());
+      case UpdateLicencePositionPayload ignored -> getBlockFeatures(
+          licencePositionCorrection.getTargetLicencePosition());
+    };
   }
 
   private Optional<LicencePosition> findPositionOnLicenceOnOrBefore(

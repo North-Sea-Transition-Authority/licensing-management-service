@@ -33,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -111,7 +112,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForExecutedPosition_whenProduction_offersAdministratorAndPartialSurrender() throws Exception {
+  void renderForExecutedPosition_whenProduction_offersAdministratorPartialSurrenderAndSubarea() throws Exception {
     givenCorrectionAllocatedToUser();
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
@@ -121,12 +122,13 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("changeTypeOptions", Map.of(
-                "ADMINISTRATOR_CHANGE", "Administrator change",
-                "PARTIAL_SURRENDER", "Partial surrender")));
+                "ADMINISTRATOR", "Administrator change",
+                "PARTIAL_SURRENDER", "Partial surrender",
+                "SUBAREA", "Subarea change")));
   }
 
   @Test
-  void renderForExecutedPosition_whenExploration_offersAdministratorOnly() throws Exception {
+  void renderForExecutedPosition_whenExploration_offersNothing() throws Exception {
     givenCorrectionAllocatedToUser(EXPLORATION_LICENCE);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
@@ -135,7 +137,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .andExpectAll(
             status().isOk(),
             view().name(VIEW_NAME),
-            model().attribute("changeTypeOptions", Map.of("ADMINISTRATOR_CHANGE", "Administrator change")));
+            model().attribute("changeTypeOptions", Map.of()));
   }
 
   @Test
@@ -172,7 +174,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .thenReturn(positionCorrection);
 
     var form = new AddPositionChangeForm();
-    form.setChangeType(AddPositionChangeType.ADMINISTRATOR_CHANGE.name());
+    form.setChangeType(AddPositionChangeType.ADMINISTRATOR.name());
     when(addPositionChangeFormValidator.hasErrors(
         eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection)))
         .thenReturn(false);
@@ -268,7 +270,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForAddedPosition_whenProduction_offersAdministratorAndPartialSurrender() throws Exception {
+  void renderForAddedPosition_whenProduction_offersAdministratorPartialSurrenderAndSubarea() throws Exception {
     givenCorrectionAllocatedToUser();
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
@@ -278,12 +280,13 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("changeTypeOptions", Map.of(
-                "ADMINISTRATOR_CHANGE", "Administrator change",
-                "PARTIAL_SURRENDER", "Partial surrender")));
+                "ADMINISTRATOR", "Administrator change",
+                "PARTIAL_SURRENDER", "Partial surrender",
+                "SUBAREA", "Subarea change")));
   }
 
   @Test
-  void renderForAddedPosition_whenExploration_offersAdministratorOnly() throws Exception {
+  void renderForAddedPosition_whenExploration_offersNothing() throws Exception {
     givenCorrectionAllocatedToUser(EXPLORATION_LICENCE);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
@@ -292,7 +295,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .andExpectAll(
             status().isOk(),
             view().name(VIEW_NAME),
-            model().attribute("changeTypeOptions", Map.of("ADMINISTRATOR_CHANGE", "Administrator change")));
+            model().attribute("changeTypeOptions", Map.of()));
   }
 
   @Test
@@ -325,7 +328,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .thenReturn(positionCorrection);
 
     var form = new AddPositionChangeForm();
-    form.setChangeType(AddPositionChangeType.ADMINISTRATOR_CHANGE.name());
+    form.setChangeType(AddPositionChangeType.ADMINISTRATOR.name());
     when(addPositionChangeFormValidator.hasErrors(
         eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection)))
         .thenReturn(false);
@@ -386,6 +389,30 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void submitForExecutedPosition_whenSubarea_redirectsToSubareaChangeStartForm() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var licencePosition = executedPosition();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
+        .thenReturn(positionCorrection);
+
+    var form = new AddPositionChangeForm();
+    form.setChangeType(AddPositionChangeType.SUBAREA.name());
+    when(addPositionChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection)))
+        .thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
+            .submitForExecutedPosition(CORRECTION_ID, POSITION_ID, null, null, null)))
+            .with(user(regulatorUser)).with(csrf())
+            .flashAttr("form", form))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
+            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null))));
+  }
+
+  @Test
   void submitForAddedPosition_whenPartialSurrender_redirectsToSurrenderDetailsForm() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
@@ -404,6 +431,28 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
+            .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null))));
+  }
+
+  @Test
+  void submitForAddedPosition_whenSubarea_redirectsToSubareaChangeStartForm() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
+        .thenReturn(positionCorrection);
+
+    var form = new AddPositionChangeForm();
+    form.setChangeType(AddPositionChangeType.SUBAREA.name());
+    when(addPositionChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection)))
+        .thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
+            .submitForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null, null, null)))
+            .with(user(regulatorUser)).with(csrf())
+            .flashAttr("form", form))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
             .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null))));
   }
 

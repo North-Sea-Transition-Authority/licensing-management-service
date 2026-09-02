@@ -40,6 +40,8 @@
       <@positionChanges.transferEquityChange change=change/>
     <#elseif changeType == "partial-surrender">
       <@positionChanges.partialSurrenderChange change=change/>
+    <#elseif changeType == "subarea">
+      <@positionChanges.subAreaChange change=change/>
     </#if>
   </#list>
 </#macro>

@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.Administr
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
@@ -371,14 +373,7 @@ public class LicencePositionViewService {
   }
 
   private Map<Integer, String> resolveOrganisationNames(List<ChronologicalPosition> chronologicalPositions) {
-    var organisationIds = chronologicalPositions.stream()
-        .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
-        .flatMap(change -> change.operations().stream())
-        .map(LicencePositionViewService::organisationIds)
-        .flatMap(List::stream)
-        .filter(Objects::nonNull)
-        .distinct()
-        .toList();
+    var organisationIds = resolveIds(chronologicalPositions, LicencePositionViewService::organisationIds);
 
     if (organisationIds.isEmpty()) {
       return Collections.emptyMap();
@@ -388,14 +383,7 @@ public class LicencePositionViewService {
   }
 
   private Map<UUID, String> resolveFeatureNames(List<ChronologicalPosition> chronologicalPositions) {
-    var featureIds = chronologicalPositions.stream()
-        .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
-        .flatMap(change -> change.operations().stream())
-        .filter(PartialSurrenderOperation.class::isInstance)
-        .map(PartialSurrenderOperation.class::cast)
-        .flatMap(operation -> operation.featureIds().stream())
-        .distinct()
-        .toList();
+    var featureIds = resolveIds(chronologicalPositions, LicencePositionViewService::featureIds);
 
     if (featureIds.isEmpty()) {
       return Collections.emptyMap();
@@ -406,12 +394,37 @@ public class LicencePositionViewService {
         .collect(Collectors.toMap(Feature::getId, Feature::getFeatureName));
   }
 
+  private static <I> List<I> resolveIds(
+      List<ChronologicalPosition> chronologicalPositions,
+      Function<LicenceOperation, List<I>> idExtractor
+  ) {
+    return chronologicalPositions.stream()
+        .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
+        .flatMap(change -> change.operations().stream())
+        .map(idExtractor)
+        .flatMap(List::stream)
+        .filter(Objects::nonNull)
+        .distinct()
+        .toList();
+  }
+
+  private static List<UUID> featureIds(LicenceOperation operation) {
+    return switch (operation) {
+      case PartialSurrenderOperation partialSurrender -> partialSurrender.featureIds();
+      case SubareaOperation subarea -> List.of(subarea.featureId());
+      case AdministratorOperation ignored -> List.of();
+      case SetEquityOperation ignored -> List.of();
+      case TransferEquityOperation ignored -> List.of();
+    };
+  }
+
   private static List<Integer> organisationIds(LicenceOperation operation) {
     return switch (operation) {
       case AdministratorOperation administratorOperation -> List.of(administratorOperation.operatorId());
       case SetEquityOperation setEquityOperation -> List.of(setEquityOperation.transferTo());
       case TransferEquityOperation transfer -> List.of(transfer.transferFrom(), transfer.transferTo());
       case PartialSurrenderOperation ignored -> List.of();
+      case SubareaOperation ignored -> List.of();
     };
   }
 

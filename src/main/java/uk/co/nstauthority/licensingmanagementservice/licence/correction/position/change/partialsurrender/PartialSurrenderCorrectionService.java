@@ -24,9 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
@@ -64,14 +62,7 @@ public class PartialSurrenderCorrectionService {
   public Optional<PartialSurrenderOperation> getCommittedPartialSurrender(
       @Nullable LicencePositionCorrection licencePositionCorrection
   ) {
-    if (licencePositionCorrection == null) {
-      return Optional.empty();
-    }
-
-    return LicencePositionChangeOperationUtil.findOperations(
-            licencePositionCorrection.getPayload().changes(), PartialSurrenderOperation.class)
-        .stream()
-        .findFirst();
+    return licencePositionCorrectionService.getCommittedChangeOfType(licencePositionCorrection, PartialSurrenderOperation.class);
   }
 
   public PartialSurrenderOperation getCommittedPartialSurrenderOrThrow(
@@ -271,14 +262,7 @@ public class PartialSurrenderCorrectionService {
   }
 
   public List<Feature> getSurrenderableBlockFeatures(LicencePositionCorrection licencePositionCorrection) {
-    return switch (licencePositionCorrection.getPayload()) {
-      case CreateLicencePositionPayload create -> licencePositionService.getBlockFeaturesOnLicenceOnOrBefore(
-          licencePositionCorrection.getLicenceCorrection().getLicence(),
-          create.effectiveDate(),
-          create.effectiveDateOrder());
-      case UpdateLicencePositionPayload ignored -> licencePositionService.getBlockFeatures(
-          licencePositionCorrection.getTargetLicencePosition());
-    };
+    return licencePositionService.getBlockFeaturesForCorrection(licencePositionCorrection);
   }
 
   public List<Feature> getSurrenderableBlockFeatures(LicencePosition licencePosition) {

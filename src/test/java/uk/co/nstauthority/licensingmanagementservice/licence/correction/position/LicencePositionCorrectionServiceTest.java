@@ -1250,6 +1250,37 @@ class LicencePositionCorrectionServiceTest {
   }
 
   @Test
+  void getCommittedChangeOfType_whenNoPositionCorrection_returnsEmpty() {
+    assertThat(licencePositionCorrectionService.getCommittedChangeOfType(null, PartialSurrenderOperation.class))
+        .isEmpty();
+  }
+
+  @Test
+  void getCommittedChangeOfType_whenChangeOfTypeStaged_returnsTheOperation() {
+    var operation = LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(List.of(UUID.randomUUID()))
+        .build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withChanges(List.of(AddChange.buildOperationsChange(List.of(operation), 1)))
+            .build())
+        .build();
+
+    assertThat(licencePositionCorrectionService.getCommittedChangeOfType(positionCorrection, PartialSurrenderOperation.class))
+        .contains(operation);
+  }
+
+  @Test
+  void getCommittedChangeOfType_whenNoChangeOfType_returnsEmpty() {
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(List.of()).build())
+        .build();
+
+    assertThat(licencePositionCorrectionService.getCommittedChangeOfType(positionCorrection, PartialSurrenderOperation.class))
+        .isEmpty();
+  }
+
+  @Test
   void getAddOperationsOfType_ignoresOperationsStagedAsCorrections() {
     var added = LicenceOperation.newPartialSurrenderOperation()
         .withFeatureIds(List.of(UUID.randomUUID()))

@@ -48,6 +48,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.Administr
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
@@ -57,6 +58,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SubareaChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
@@ -894,6 +896,32 @@ class LicencePositionViewServiceTest {
         ChangeViewUrls.none());
     assertThat(result.changeViewByType())
         .containsOnly(entry(LicenceOperation.PARTIAL_SURRENDER, expected));
+  }
+
+  @Test
+  void getPositionPageView_whenSubarea_resolvesFeatureNamesIntoTheChangeView() {
+    var position = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF").build())
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true).build();
+
+    var subarea = FeatureTestUtil.subareaFeature(UUID.randomUUID(), "Subarea A");
+    var subareaOp = new SubareaOperation(subarea.getId());
+
+    var change = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(position)
+        .withOperations(List.of(subareaOp))
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
+    when(featureService.getFeaturesByIds(List.of(subarea.getId()))).thenReturn(List.of(subarea));
+
+    var result = licencePositionViewService.getPositionPageView(position);
+
+    var expected = new SubareaChangeView(subarea.getFeatureName(), null, ChangeViewUrls.none());
+    assertThat(result.changeViewByType())
+        .containsOnly(entry(LicenceOperation.SUBAREA, expected));
   }
 
   @Test

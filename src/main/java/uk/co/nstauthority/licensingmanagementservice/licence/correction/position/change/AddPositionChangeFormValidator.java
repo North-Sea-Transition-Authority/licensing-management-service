@@ -6,9 +6,11 @@ import org.springframework.validation.ValidationUtils;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.SubareaChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 
@@ -17,13 +19,15 @@ public class AddPositionChangeFormValidator {
 
   private final LicencePositionChangeService licencePositionChangeService;
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
+  private final SubareaChangeService subareaChangeService;
 
   public AddPositionChangeFormValidator(
       LicencePositionChangeService licencePositionChangeService,
-      PartialSurrenderCorrectionService partialSurrenderCorrectionService
-  ) {
+      PartialSurrenderCorrectionService partialSurrenderCorrectionService,
+      SubareaChangeService subareaChangeService) {
     this.licencePositionChangeService = licencePositionChangeService;
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
+    this.subareaChangeService = subareaChangeService;
   }
 
   public boolean hasErrors(
@@ -64,13 +68,15 @@ public class AddPositionChangeFormValidator {
         ? positionCorrection.getTargetLicencePosition().getId()
         : null;
     return switch (selected) {
-      case ADMINISTRATOR_CHANGE ->
+      case ADMINISTRATOR ->
           licencePositionChangeService.changeExists(livePositionId, AdministratorOperation.class);
       case SET_EQUITY -> licencePositionChangeService.changeExists(livePositionId, SetEquityOperation.class);
       case TRANSFER_EQUITY -> licencePositionChangeService.changeExists(livePositionId, TransferEquityOperation.class);
       case PARTIAL_SURRENDER ->
           licencePositionChangeService.changeExists(livePositionId, PartialSurrenderOperation.class)
               || partialSurrenderCorrectionService.hasStagedPartialSurrender(positionCorrection);
+      case SUBAREA -> licencePositionChangeService.changeExists(livePositionId, SubareaOperation.class)
+              || subareaChangeService.hasStagedSubareaChange(positionCorrection);
     };
   }
 }

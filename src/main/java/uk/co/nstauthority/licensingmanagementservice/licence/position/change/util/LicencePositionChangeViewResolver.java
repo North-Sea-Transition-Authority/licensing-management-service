@@ -27,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.Administr
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
@@ -38,6 +39,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityRow;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SubareaChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityChangeHoldingView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityChangeView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -150,7 +152,22 @@ public final class LicencePositionChangeViewResolver {
               urlContext,
               correctChangeOrderUrl
           );
+      case SubareaOperation subareaOperation ->
+          buildSubareaChange(subareaOperation, change, featureNames, correctChangeOrderUrl);
     };
+  }
+
+  private static SubareaChangeView buildSubareaChange(
+      SubareaOperation operation,
+      PositionChange change,
+      Map<UUID, String> featureNames,
+      @Nullable String correctChangeOrderUrl
+  ) {
+    return new SubareaChangeView(
+        featureNames.getOrDefault(operation.featureId(), NOT_AVAILABLE),
+        change.changeType(),
+        new ChangeViewUrls(null, null, null, correctChangeOrderUrl)
+    );
   }
 
   private static PartialSurrenderChangeView buildPartialSurrenderChange(

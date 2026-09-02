@@ -172,3 +172,23 @@
     </@fdsSummaryList.summaryListRowNoAction>
   </@fdsSummaryList.summaryListCard>
 </#macro>
+
+<#macro subAreaChange change>
+    <#assign headingText>
+        <@changeHeading change=change headingText="Subarea change"/>
+    </#assign>
+
+    <#assign cardActions>
+        <@changeCardActions screenReaderText="subarea change" urls=change.urls()/>
+    </#assign>
+
+    <@fdsSummaryList.summaryListCard
+    headingText=headingText
+    summaryListId="subarea-change"
+    cardActionsContent=cardActions
+    >
+      <@fdsSummaryList.summaryListRowNoAction keyText="Subarea to change">
+        ${change.featureName()}
+      </@fdsSummaryList.summaryListRowNoAction>
+    </@fdsSummaryList.summaryListCard>
+</#macro>

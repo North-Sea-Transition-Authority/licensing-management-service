@@ -38,7 +38,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
@@ -114,6 +113,14 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
   }
 
+  private void givenCommittedPartialSurrender(
+      LicencePositionCorrection positionCorrection,
+      PartialSurrenderOperation operation
+  ) {
+    when(licencePositionCorrectionService.getCommittedChangeOfType(positionCorrection, PartialSurrenderOperation.class))
+        .thenReturn(Optional.of(operation));
+  }
+
   private void givenPositionCorrection(LicencePositionCorrection positionCorrection) {
     when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
         .thenReturn(positionCorrection);
@@ -158,6 +165,7 @@ class PartialSurrenderCorrectionServiceTest {
     var operation = partialSurrender(FIRST_FEATURE_ID, SECOND_FEATURE_ID);
     var positionCorrection = positionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(operation), 1)));
+    givenCommittedPartialSurrender(positionCorrection, operation);
 
     assertThat(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .contains(operation);
@@ -173,6 +181,7 @@ class PartialSurrenderCorrectionServiceTest {
     var operation = partialSurrender(FIRST_FEATURE_ID);
     var positionCorrection = positionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(operation), 1)));
+    givenCommittedPartialSurrender(positionCorrection, operation);
 
     assertThat(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionCorrection))
         .isEqualTo(operation);
@@ -198,6 +207,7 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
     var positionCorrection = positionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(operation), 1)));
+    givenCommittedPartialSurrender(positionCorrection, operation);
 
     assertThat(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(positionCorrection)).isTrue();
   }
@@ -212,6 +222,7 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
     var positionCorrection = positionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(operation), 1)));
+    givenCommittedPartialSurrender(positionCorrection, operation);
 
     assertThat(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(positionCorrection)).isFalse();
   }
@@ -382,8 +393,10 @@ class PartialSurrenderCorrectionServiceTest {
 
   @Test
   void hasStagedPartialSurrender_whenStaged_returnsTrue() {
+    var operation = partialSurrender(FIRST_FEATURE_ID);
     var positionCorrection = positionCorrection(
-        List.of(AddChange.buildOperationsChange(List.of(partialSurrender(FIRST_FEATURE_ID)), 1)));
+        List.of(AddChange.buildOperationsChange(List.of(operation), 1)));
+    givenCommittedPartialSurrender(positionCorrection, operation);
 
     assertThat(partialSurrenderCorrectionService.hasStagedPartialSurrender(positionCorrection)).isTrue();
   }
@@ -408,7 +421,8 @@ class PartialSurrenderCorrectionServiceTest {
     var surrender = partialSurrender(FIRST_FEATURE_ID, SECOND_FEATURE_ID);
     var positionCorrection = executedPositionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(surrender), 1)));
-    when(licencePositionService.getBlockFeatures(LICENCE_POSITION)).thenReturn(List.of(
+    givenCommittedPartialSurrender(positionCorrection, surrender);
+    when(licencePositionService.getBlockFeaturesForCorrection(positionCorrection)).thenReturn(List.of(
         FeatureTestUtil.builder().withId(FIRST_FEATURE_ID).build(),
         FeatureTestUtil.builder().withId(SECOND_FEATURE_ID).build()
     ));
@@ -424,7 +438,8 @@ class PartialSurrenderCorrectionServiceTest {
     var surrender = partialSurrender(FIRST_FEATURE_ID, SECOND_FEATURE_ID);
     var positionCorrection = executedPositionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(surrender), 1)));
-    when(licencePositionService.getBlockFeatures(LICENCE_POSITION)).thenReturn(List.of(
+    givenCommittedPartialSurrender(positionCorrection, surrender);
+    when(licencePositionService.getBlockFeaturesForCorrection(positionCorrection)).thenReturn(List.of(
         FeatureTestUtil.builder().withId(FIRST_FEATURE_ID).build()
     ));
 
@@ -450,7 +465,8 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
     var positionCorrection = executedPositionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(surrender), 1)));
-    when(licencePositionService.getBlockFeatures(LICENCE_POSITION)).thenReturn(List.of(
+    givenCommittedPartialSurrender(positionCorrection, surrender);
+    when(licencePositionService.getBlockFeaturesForCorrection(positionCorrection)).thenReturn(List.of(
         FeatureTestUtil.builder().withId(FIRST_FEATURE_ID).build()
     ));
 
@@ -472,7 +488,8 @@ class PartialSurrenderCorrectionServiceTest {
     var surrender = partialSurrender(FIRST_FEATURE_ID, SECOND_FEATURE_ID);
     var positionCorrection = executedPositionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(surrender), 1)));
-    when(licencePositionService.getBlockFeatures(LICENCE_POSITION)).thenReturn(List.of(
+    givenCommittedPartialSurrender(positionCorrection, surrender);
+    when(licencePositionService.getBlockFeaturesForCorrection(positionCorrection)).thenReturn(List.of(
         FeatureTestUtil.builder().withId(UUID.randomUUID()).build()
     ));
 
@@ -483,24 +500,12 @@ class PartialSurrenderCorrectionServiceTest {
   }
 
   @Test
-  void getSurrenderableBlockFeatures_whenAddedPosition_returnsTheBlocksHeldAsAtTheEffectiveDate() {
+  void getSurrenderableBlockFeatures_returnsTheBlockFeaturesForTheCorrection() {
     var positionCorrection = addedPositionCorrection();
-    var payload = (CreateLicencePositionPayload) positionCorrection.getPayload();
     var blockFeatures = List.of(FeatureTestUtil.builder().withId(FIRST_FEATURE_ID).build());
-    when(licencePositionService.getBlockFeaturesOnLicenceOnOrBefore(
-        LICENCE, payload.effectiveDate(), payload.effectiveDateOrder()))
-        .thenReturn(blockFeatures);
+    when(licencePositionService.getBlockFeaturesForCorrection(positionCorrection)).thenReturn(blockFeatures);
 
     assertThat(partialSurrenderCorrectionService.getSurrenderableBlockFeatures(positionCorrection))
-        .isEqualTo(blockFeatures);
-  }
-
-  @Test
-  void getSurrenderableBlockFeatures_whenExecutedPosition_returnsTheBlocksHeldByThatPosition() {
-    var blockFeatures = List.of(FeatureTestUtil.builder().withId(FIRST_FEATURE_ID).build());
-    when(licencePositionService.getBlockFeatures(LICENCE_POSITION)).thenReturn(blockFeatures);
-
-    assertThat(partialSurrenderCorrectionService.getSurrenderableBlockFeatures(executedPositionCorrection()))
         .isEqualTo(blockFeatures);
   }
 
@@ -512,6 +517,7 @@ class PartialSurrenderCorrectionServiceTest {
     var positionCorrection = positionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(operation), 1)));
     var feature = FeatureTestUtil.builder().withId(FIRST_FEATURE_ID).build();
+    givenCommittedPartialSurrender(positionCorrection, operation);
     when(featureService.getFeatureOrThrow(FIRST_FEATURE_ID)).thenReturn(feature);
 
     assertThat(partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(positionCorrection, FIRST_FEATURE_ID))
@@ -525,6 +531,7 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
     var positionCorrection = positionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(operation), 1)));
+    givenCommittedPartialSurrender(positionCorrection, operation);
 
     assertThatThrownBy(() ->
         partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(positionCorrection, SECOND_FEATURE_ID))
@@ -542,6 +549,7 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
     var positionCorrection = positionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(existingOperation), 1)));
+    givenCommittedPartialSurrender(positionCorrection, existingOperation);
     var secondFeature = FeatureTestUtil.builder().withId(SECOND_FEATURE_ID).build();
     when(featureService.getFeatureOrThrow(SECOND_FEATURE_ID)).thenReturn(secondFeature);
     var createdJourney = new CommandJourney();
@@ -572,9 +580,11 @@ class PartialSurrenderCorrectionServiceTest {
   @Test
   void getSurrenderUnderCorrectionOrThrow_whenStagedOnThisCorrection_returnsTheStagedSurrender() {
     var staged = partialSurrender(FIRST_FEATURE_ID);
+    var positionCorrection = updatePositionCorrection(
+        List.of(UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, staged)));
     when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
-        .thenReturn(Optional.of(updatePositionCorrection(
-            List.of(UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, staged)))));
+        .thenReturn(Optional.of(positionCorrection));
+    givenCommittedPartialSurrender(positionCorrection, staged);
 
     assertThat(partialSurrenderCorrectionService.getSurrenderUnderCorrectionOrThrow(
         LICENCE_CORRECTION, LICENCE_POSITION, LIVE_CHANGE_ID))
@@ -688,6 +698,7 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
     var positionCorrection = positionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(existingOperation), 1)));
+    givenCommittedPartialSurrender(positionCorrection, existingOperation);
 
     partialSurrenderCorrectionService.setBlockSurrenderType(
         positionCorrection, FIRST_FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER);
@@ -713,6 +724,7 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
     var positionCorrection = positionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(existingOperation), 1)));
+    givenCommittedPartialSurrender(positionCorrection, existingOperation);
     var feature = FeatureTestUtil.builder().withId(FIRST_FEATURE_ID).build();
     var createdJourney = new CommandJourney();
     createdJourney.setId(SECOND_COMMAND_JOURNEY_ID);
@@ -744,6 +756,7 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
     var positionCorrection = positionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(operation), 1)));
+    givenCommittedPartialSurrender(positionCorrection, operation);
 
     assertThat(partialSurrenderCorrectionService.getSurrenderDetailsOrThrow(positionCorrection, FIRST_FEATURE_ID))
         .isEqualTo(surrenderDetails);
@@ -761,6 +774,7 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
     var positionCorrection = positionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(existingOperation), 1)));
+    givenCommittedPartialSurrender(positionCorrection, existingOperation);
 
     partialSurrenderCorrectionService.setSurrenderedFeatureIds(
         positionCorrection, FIRST_FEATURE_ID, List.of(firstSurrenderedId, secondSurrenderedId));
@@ -789,6 +803,7 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
     var positionCorrection = positionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(existingOperation), 1)));
+    givenCommittedPartialSurrender(positionCorrection, existingOperation);
 
     partialSurrenderCorrectionService.clearSurrenderedIds(
         positionCorrection, FIRST_FEATURE_ID, List.of(UUID.randomUUID()));
@@ -814,6 +829,7 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
     var positionCorrection = positionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(existingOperation), 1)));
+    givenCommittedPartialSurrender(positionCorrection, existingOperation);
 
     partialSurrenderCorrectionService.clearSurrenderedIds(
         positionCorrection, FIRST_FEATURE_ID, List.of(surrenderedId, UUID.randomUUID()));
@@ -832,6 +848,7 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
     var positionCorrection = positionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(existingOperation), 1)));
+    givenCommittedPartialSurrender(positionCorrection, existingOperation);
 
     partialSurrenderCorrectionService.clearSurrenderedIds(
         positionCorrection, FIRST_FEATURE_ID, List.of(UUID.randomUUID()));
@@ -847,6 +864,7 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
     var positionCorrection = positionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(existingOperation), 1)));
+    givenCommittedPartialSurrender(positionCorrection, existingOperation);
 
     partialSurrenderCorrectionService.clearSurrenderedIds(
         positionCorrection, FIRST_FEATURE_ID, List.of(UUID.randomUUID()));
@@ -862,6 +880,7 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
     var positionCorrection = positionCorrection(
         List.of(AddChange.buildOperationsChange(List.of(operation), 1)));
+    givenCommittedPartialSurrender(positionCorrection, operation);
 
     assertThatThrownBy(() ->
         partialSurrenderCorrectionService.getSurrenderDetailsOrThrow(positionCorrection, FIRST_FEATURE_ID))

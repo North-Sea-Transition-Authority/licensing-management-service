@@ -14,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.Administr
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
@@ -101,6 +102,7 @@ public final class LicencePositionStateResolver {
           applyTransferEquity(state, transferEquityOperation);
       case SetEquityOperation setEquityOperation -> state;
       case PartialSurrenderOperation partialSurrenderOperation -> state;
+      case SubareaOperation subareaOperation -> state;
     };
   }
 

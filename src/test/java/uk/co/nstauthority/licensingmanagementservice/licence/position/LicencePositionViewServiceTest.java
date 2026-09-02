@@ -599,6 +599,37 @@ class LicencePositionViewServiceTest {
   }
 
   @Test
+  void getCorrectionPositionPageView_whenPositionRemovedInThisCorrection_omitsChangeActionUrlsAndAddChangeAction() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withId(UUID.randomUUID()).withLicence(LICENCE).build();
+
+    var removed = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
+
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withId(UUID.randomUUID()).withLicencePosition(removed)
+        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(5).build()))
+        .build();
+
+    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+        .withTargetLicencePosition(removed)
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(removed));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(removed))).thenReturn(List.of(liveChange));
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(removeCorrection));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(any())).thenReturn(Map.of(5, "Executed Admin Org"));
+
+    var result = licencePositionViewService.getCorrectionPositionPageView(correction, removed);
+
+    var adminChange = (AdministratorChangeView) result.changeViewByType().get(LicenceOperation.LICENCE_ADMINISTRATOR);
+    assertThat(adminChange.urls()).isEqualTo(new ChangeViewUrls(null, null, null, null));
+    assertThat(result.actions()).isEqualTo(LicencePositionPageView.Actions.none());
+  }
+
+  @Test
   void getCorrectionPositionPageView_whenViewingRemovedPosition_excludedFromValidationAndValidationStates() {
     var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
 

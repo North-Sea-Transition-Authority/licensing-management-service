@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
@@ -50,6 +51,7 @@ public class LicencePositionAddChangeController {
   }
 
   @GetMapping("/position/{licencePositionId}/add-change")
+  @LicencePositionIsNotRemovedInCorrection
   public ModelAndView renderForExecutedPosition(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
@@ -60,6 +62,7 @@ public class LicencePositionAddChangeController {
   }
 
   @PostMapping("/position/{licencePositionId}/add-change")
+  @LicencePositionIsNotRemovedInCorrection
   public ModelAndView submitForExecutedPosition(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,

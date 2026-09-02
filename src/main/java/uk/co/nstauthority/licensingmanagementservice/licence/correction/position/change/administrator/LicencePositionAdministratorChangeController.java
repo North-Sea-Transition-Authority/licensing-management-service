@@ -18,6 +18,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.LicencePositionHasNoLiveAdministratorChange;
@@ -72,6 +73,7 @@ public class LicencePositionAdministratorChangeController {
 
   @GetMapping("/position/{licencePositionId}/add-administrator-change")
   @LicencePositionHasNoLiveAdministratorChange
+  @LicencePositionIsNotRemovedInCorrection
   public ModelAndView renderForExecutedPosition(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
@@ -98,6 +100,7 @@ public class LicencePositionAdministratorChangeController {
   }
 
   @PostMapping("/position/{licencePositionId}/add-administrator-change")
+  @LicencePositionIsNotRemovedInCorrection
   @LicencePositionHasNoLiveAdministratorChange
   public ModelAndView submitForExecutedPosition(
       @PathVariable UUID correctionId,
@@ -202,6 +205,7 @@ public class LicencePositionAdministratorChangeController {
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/correct-administrator-change")
   @LicencePositionChangeBelongsToPosition
+  @LicencePositionIsNotRemovedInCorrection
   @LicencePositionChangeIsOfType(AdministratorOperation.class)
   public ModelAndView renderForCorrectingChange(
       @PathVariable UUID correctionId,
@@ -222,6 +226,7 @@ public class LicencePositionAdministratorChangeController {
   }
 
   @PostMapping("/position/{licencePositionId}/change/{changeId}/correct-administrator-change")
+  @LicencePositionIsNotRemovedInCorrection
   @LicencePositionChangeBelongsToPosition
   @LicencePositionChangeIsOfType(AdministratorOperation.class)
   public ModelAndView submitForCorrectingChange(

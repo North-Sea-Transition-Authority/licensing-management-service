@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
@@ -55,6 +56,7 @@ public class RemoveAdministratorChangeController {
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/remove-administrator-change")
+  @LicencePositionIsNotRemovedInCorrection
   @LicencePositionChangeBelongsToPosition
   @LicencePositionChangeIsOfType(AdministratorOperation.class)
   public ModelAndView renderRemoveExecutedAdminChange(
@@ -70,6 +72,7 @@ public class RemoveAdministratorChangeController {
   }
 
   @PostMapping("/position/{licencePositionId}/change/{changeId}/remove-administrator-change")
+  @LicencePositionIsNotRemovedInCorrection
   @LicencePositionChangeBelongsToPosition
   @LicencePositionChangeIsOfType(AdministratorOperation.class)
   public ModelAndView removeAdministratorChange(

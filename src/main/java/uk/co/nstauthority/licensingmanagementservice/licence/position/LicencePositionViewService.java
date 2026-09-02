@@ -170,22 +170,26 @@ public class LicencePositionViewService {
         .findFirst()
         .orElse(null);
 
+    var urlContext = currentPositionRemoved
+        ? null
+        : PositionChangeUrlContext.forExecutedPosition(
+            licenceCorrection.getId(),
+            licencePosition.getId(),
+            stagedPositionCorrectionId);
+
     var changeViews = LicencePositionChangeViewResolver.getChangeViews(
         licencePosition.getId(),
         allChronologicalPositions,
         resolvedStates,
         organisationNames,
         featureNames,
-        PositionChangeUrlContext.forExecutedPosition(
-            licenceCorrection.getId(),
-            licencePosition.getId(),
-            stagedPositionCorrectionId)
+        urlContext
     );
 
-    var addUrl = ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForExecutedPosition(licenceCorrection.getId(), licencePosition.getId(), null));
-
-    var actions = new LicencePositionPageView.Actions(addUrl);
+    var actions = currentPositionRemoved
+        ? LicencePositionPageView.Actions.none()
+        : new LicencePositionPageView.Actions(ReverseRouter.route(on(LicencePositionAddChangeController.class)
+          .renderForExecutedPosition(licenceCorrection.getId(), licencePosition.getId(), null)));
 
     var validationPositions = currentPositionRemoved
         ? allChronologicalPositions.stream()

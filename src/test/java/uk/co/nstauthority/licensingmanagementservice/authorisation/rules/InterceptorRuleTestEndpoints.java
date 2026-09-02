@@ -11,6 +11,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanRemoveLicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCanBeReinstantiated;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.LicencePositionHasNoLiveAdministratorChange;
@@ -147,5 +148,11 @@ public class InterceptorRuleTestEndpoints {
       @PathVariable UUID changeId
   ) {
     return ResponseEntity.ok("valid licence position equity change test endpoint");
+  }
+
+  @GetMapping("licence-position-is-not-removed-in-correction")
+  @LicencePositionIsNotRemovedInCorrection
+  public ResponseEntity<String> licencePositionIsNotRemovedInCorrection() {
+    return ResponseEntity.ok("licence position is not removed in correction test endpoint");
   }
 }

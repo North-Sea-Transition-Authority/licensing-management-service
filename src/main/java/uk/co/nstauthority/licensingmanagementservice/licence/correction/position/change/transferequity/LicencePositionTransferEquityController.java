@@ -21,6 +21,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
@@ -68,6 +69,7 @@ public class LicencePositionTransferEquityController {
   }
 
   @GetMapping("/position/{licencePositionId}/transfer-equity")
+  @LicencePositionIsNotRemovedInCorrection
   public ModelAndView renderForExecutedPosition(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
@@ -80,6 +82,7 @@ public class LicencePositionTransferEquityController {
   }
 
   @PostMapping("/position/{licencePositionId}/transfer-equity")
+  @LicencePositionIsNotRemovedInCorrection
   public ModelAndView submitForExecutedPosition(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
@@ -113,6 +116,7 @@ public class LicencePositionTransferEquityController {
   }
 
   @GetMapping("/position/{licencePositionId}/transfer-equity/withdraw")
+  @LicencePositionIsNotRemovedInCorrection
   public ModelAndView renderWithdrawForExecutedPosition(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
@@ -138,6 +142,7 @@ public class LicencePositionTransferEquityController {
   }
 
   @PostMapping("/position/{licencePositionId}/transfer-equity/withdraw")
+  @LicencePositionIsNotRemovedInCorrection
   public ModelAndView submitWithdrawForExecutedPosition(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
@@ -174,6 +179,7 @@ public class LicencePositionTransferEquityController {
   }
 
   @GetMapping("/position/{licencePositionId}/transfer-equity/summary")
+  @LicencePositionIsNotRemovedInCorrection
   public ModelAndView renderSummaryForExecutedPosition(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
@@ -205,6 +211,7 @@ public class LicencePositionTransferEquityController {
   }
 
   @PostMapping("/position/{licencePositionId}/transfer-equity/remove")
+  @LicencePositionIsNotRemovedInCorrection
   public ModelAndView removeForExecutedPosition(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,

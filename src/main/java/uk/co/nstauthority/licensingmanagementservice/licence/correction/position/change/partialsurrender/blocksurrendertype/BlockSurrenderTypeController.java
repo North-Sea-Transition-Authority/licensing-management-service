@@ -17,6 +17,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
@@ -116,6 +117,7 @@ public class BlockSurrenderTypeController {
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/partial-surrender/block/{featureId}/correct-surrender-type")
   @LicencePositionChangeBelongsToPosition
+  @LicencePositionIsNotRemovedInCorrection
   @LicencePositionChangeIsOfType(PartialSurrenderOperation.class)
   public ModelAndView renderSurrenderTypeFormForCorrectingChange(
       @PathVariable UUID correctionId,
@@ -140,6 +142,7 @@ public class BlockSurrenderTypeController {
 
   @PostMapping("/position/{licencePositionId}/change/{changeId}/partial-surrender/block/{featureId}/correct-surrender-type")
   @LicencePositionChangeBelongsToPosition
+  @LicencePositionIsNotRemovedInCorrection
   @LicencePositionChangeIsOfType(PartialSurrenderOperation.class)
   public ModelAndView submitSurrenderTypeFormForCorrectingChange(
       @PathVariable UUID correctionId,

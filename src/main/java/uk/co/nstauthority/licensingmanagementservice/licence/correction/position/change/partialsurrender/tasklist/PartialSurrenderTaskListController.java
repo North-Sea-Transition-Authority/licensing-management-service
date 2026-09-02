@@ -14,6 +14,7 @@ import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -95,6 +96,7 @@ public class PartialSurrenderTaskListController {
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/partial-surrender/task-list")
+  @LicencePositionIsNotRemovedInCorrection
   @LicencePositionChangeBelongsToPosition
   @LicencePositionChangeIsOfType(PartialSurrenderOperation.class)
   public ModelAndView renderForCorrectingChange(
@@ -140,6 +142,7 @@ public class PartialSurrenderTaskListController {
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/partial-surrender/review-and-submit")
+  @LicencePositionIsNotRemovedInCorrection
   @LicencePositionChangeBelongsToPosition
   @LicencePositionChangeIsOfType(PartialSurrenderOperation.class)
   public ModelAndView renderReviewAndSubmitForCorrectingChange(

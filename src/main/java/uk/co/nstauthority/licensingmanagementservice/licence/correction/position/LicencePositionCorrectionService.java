@@ -114,8 +114,11 @@ public class LicencePositionCorrectionService {
   }
 
   public boolean canRemovePosition(LicenceCorrection licenceCorrection, LicencePosition licencePosition) {
-    return licencePosition.isExecuted()
-        && !licencePositionCorrectionRepository
+    return licencePosition.isExecuted() && !isPositionRemovedInCorrection(licenceCorrection, licencePosition);
+  }
+
+  public boolean isPositionRemovedInCorrection(LicenceCorrection licenceCorrection, LicencePosition licencePosition) {
+    return licencePositionCorrectionRepository
         .existsByLicenceCorrectionAndTargetLicencePositionAndChangeType(
             licenceCorrection,
             licencePosition,
@@ -148,12 +151,7 @@ public class LicencePositionCorrectionService {
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition
   ) {
-    return licencePositionCorrectionRepository
-        .existsByLicenceCorrectionAndTargetLicencePositionAndChangeType(
-            licenceCorrection,
-            licencePosition,
-            LicencePositionCorrectionChangeType.REMOVE_POSITION
-        );
+    return isPositionRemovedInCorrection(licenceCorrection, licencePosition);
   }
 
   public LicencePositionCorrection getPositionCorrectionForCorrection(

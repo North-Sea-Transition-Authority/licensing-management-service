@@ -20,6 +20,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
@@ -65,6 +66,7 @@ public class LicencePositionSetEquityController {
   }
 
   @GetMapping("/position/{licencePositionId}/set-equity")
+  @LicencePositionIsNotRemovedInCorrection
   public ModelAndView renderForExecutedPosition(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
@@ -77,6 +79,7 @@ public class LicencePositionSetEquityController {
   }
 
   @PostMapping("/position/{licencePositionId}/set-equity")
+  @LicencePositionIsNotRemovedInCorrection
   public ModelAndView submitForExecutedPosition(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
@@ -102,6 +105,7 @@ public class LicencePositionSetEquityController {
   }
 
   @GetMapping("/position/{licencePositionId}/set-equity/summary")
+  @LicencePositionIsNotRemovedInCorrection
   public ModelAndView renderSummaryForExecutedPosition(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
@@ -125,6 +129,7 @@ public class LicencePositionSetEquityController {
   }
 
   @PostMapping("/position/{licencePositionId}/set-equity/summary")
+  @LicencePositionIsNotRemovedInCorrection
   public ModelAndView submitSummaryForExecutedPosition(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
@@ -134,6 +139,7 @@ public class LicencePositionSetEquityController {
         .renderLicencePosition(correctionId, licencePositionId, null));
   }
 
+  @LicencePositionIsNotRemovedInCorrection
   @PostMapping("/position/{licencePositionId}/set-equity/remove")
   public ModelAndView removeForExecutedPosition(
       @PathVariable UUID correctionId,

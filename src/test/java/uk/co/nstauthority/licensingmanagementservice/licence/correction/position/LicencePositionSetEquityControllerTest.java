@@ -401,7 +401,7 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
             .renderLicencePosition(CORRECTION_ID, POSITION_ID, null))));
 
-    verifyNoInteractions(licencePositionCorrectionService, setEquityCorrectionService, licencePositionService);
+    verifyNoInteractions(setEquityCorrectionService);
   }
 
 }

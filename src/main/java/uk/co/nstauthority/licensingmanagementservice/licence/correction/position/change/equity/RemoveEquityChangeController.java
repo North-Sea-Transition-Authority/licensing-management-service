@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
@@ -51,6 +52,7 @@ public class RemoveEquityChangeController {
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/remove-equity-change")
+  @LicencePositionIsNotRemovedInCorrection
   @LicencePositionChangeBelongsToPosition
   @LicencePositionChangeIsOfType({SetEquityOperation.class, TransferEquityOperation.class})
   public ModelAndView renderRemoveExecutedEquityChange(
@@ -66,6 +68,7 @@ public class RemoveEquityChangeController {
 
   @PostMapping("/position/{licencePositionId}/change/{changeId}/remove-equity-change")
   @LicencePositionChangeBelongsToPosition
+  @LicencePositionIsNotRemovedInCorrection
   @LicencePositionChangeIsOfType({SetEquityOperation.class, TransferEquityOperation.class})
   public ModelAndView removeEquityChange(
       @PathVariable UUID correctionId,

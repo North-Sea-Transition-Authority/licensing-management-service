@@ -33,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.Licence
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemViewInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatusInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplicationInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatusInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsTypeRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanRemoveLicencePositionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
@@ -134,6 +135,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
     InvokingUserCanViewCorrectionInterceptorRule.class,
     InvokingUserCanRemoveLicencePositionInterceptorRule.class,
     LicencePositionCanBeReinstantiatedRule.class,
+    CorrectionHasStatusInterceptorRule.class,
     CorrectionLicenceIsTypeRule.class,
     LicencePositionIsNotRemovedInCorrectionRule.class
 })

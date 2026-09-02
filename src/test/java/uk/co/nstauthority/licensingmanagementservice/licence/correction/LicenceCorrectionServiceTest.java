@@ -186,12 +186,14 @@ class LicenceCorrectionServiceTest {
     var correction = LicenceCorrectionTestUtil.newBuilder()
         .withCorrectionReference("OLD-REF")
         .withReason("Old reason")
+        .withAllocatedToWuaId(1L)
         .build();
 
-    licenceCorrectionService.updateGeneralDetails(correction, "NEW-REF", "New reason");
+    licenceCorrectionService.updateGeneralDetails(correction, "NEW-REF", "New reason", 42L);
 
     verify(licenceCorrectionRepository).save(correction);
     assertThat(correction.getCorrectionReference()).isEqualTo("NEW-REF");
     assertThat(correction.getReason()).isEqualTo("New reason");
+    assertThat(correction.getAllocatedToWuaId()).isEqualTo(42L);
   }
 }

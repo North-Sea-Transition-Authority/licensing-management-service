@@ -60,9 +60,15 @@ public class LicenceCorrectionService {
   }
 
   @Transactional
-  public void updateGeneralDetails(LicenceCorrection licenceCorrection, String correctionReference, String reason) {
+  public void updateGeneralDetails(
+      LicenceCorrection licenceCorrection,
+      String correctionReference,
+      String reason,
+      long allocatedToWuaId
+  ) {
     licenceCorrection.setCorrectionReference(correctionReference);
     licenceCorrection.setReason(reason);
+    licenceCorrection.setAllocatedToWuaId(allocatedToWuaId);
     licenceCorrectionRepository.save(licenceCorrection);
   }
 

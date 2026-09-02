@@ -9,6 +9,11 @@
     <@fdsForm.htmlForm>
         <@fdsTextInput.textInput path="form.correctionReference.inputValue" labelText="Correction reference"/>
         <@fdsTextarea.textarea path="form.reason.inputValue" labelText="Reason for correction"/>
+        <@fdsSelect.select
+          path="form.allocatedToWuaId"
+          options=allocatableUsers
+          labelText="Allocated to"
+        />
         <@fdsAction.submitButtons
           primaryButtonText="Save and continue"
           secondaryLinkText="Cancel"

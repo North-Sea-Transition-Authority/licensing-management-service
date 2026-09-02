@@ -34,6 +34,9 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaFilterForm;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemView;
+import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemViewService;
 
 @ExtendWith(MockitoExtension.class)
 class CorrectionWorkAreaServiceTest {
@@ -49,6 +52,9 @@ class CorrectionWorkAreaServiceTest {
   @Mock
   private OrganisationGroupQueryService organisationGroupQueryService;
 
+  @Mock
+  private WorkAreaItemViewService workAreaItemViewService;
+
   private CorrectionWorkAreaService correctionWorkAreaService;
 
   private ServiceUserDetail user;
@@ -58,7 +64,8 @@ class CorrectionWorkAreaServiceTest {
     correctionWorkAreaService = new CorrectionWorkAreaService(
         licenceCorrectionService,
         licenceResponsibleOrganisationService,
-        organisationGroupQueryService
+        organisationGroupQueryService,
+        workAreaItemViewService
     );
     user = ServiceUserDetailTestUtil.newBuilder().withWuaId(WUA_ID).build();
   }
@@ -97,7 +104,7 @@ class CorrectionWorkAreaServiceTest {
 
     var expected = SearchResultItem.newBuilder()
         .withId(matchingId.toString())
-        .withLinkHeadingText("P1234")
+        .withLinkHeadingText("P1234 - licence correction")
         .withLinkHeadingUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
             .renderCorrection(matchingId, null)))
         .withCaptionText(String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(createdInstant)))
@@ -105,9 +112,30 @@ class CorrectionWorkAreaServiceTest {
             .addStringValue("Correction reference", "COR-1")
             .build())
         .withTransactionDatetime(createdInstant)
+        .withNewLabel()
         .build();
 
     assertThat(result).usingRecursiveComparison().isEqualTo(List.of(expected));
+  }
+
+  @Test
+  void getWorkAreaItems_whenCorrectionAlreadyViewedByUser_thenNoNewLabel() {
+    var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
+    var correctionId = UUID.randomUUID();
+    var correction = correction(correctionId, "P1234", "COR-1", createdInstant);
+
+    when(licenceCorrectionService.getAllInProgressCorrectionsForUser(user))
+        .thenReturn(List.of(correction));
+    when(workAreaItemViewService.getWorkAreaItemLogsForUser(
+        List.of(WorkAreaDataItemType.LICENCE_CORRECTION),
+        WUA_ID
+    )).thenReturn(List.of(
+        new WorkAreaItemView(correctionId, WorkAreaDataItemType.LICENCE_CORRECTION, WUA_ID)
+    ));
+
+    var result = correctionWorkAreaService.getWorkAreaItems(filterForm(null), user);
+
+    assertThat(result).extracting(SearchResultItem::hasNewLabel).containsExactly(false);
   }
 
   @Test

@@ -104,8 +104,13 @@ public class LicencePositionPartialSurrenderController {
         .findUpdatePositionCorrection(correction, licencePosition)
         .orElse(null);
     var existing = partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection).orElse(null);
+    var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        licencePosition,
+        positionCorrection,
+        partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionCorrection).orElse(null)
+    );
 
-    if (partialSurrenderDetailsFormValidator.hasErrors(form, bindingResult, blockFeatures)) {
+    if (partialSurrenderDetailsFormValidator.hasErrors(form, bindingResult, blockFeatures, featureIdsAlreadyOperatedOn)) {
       return surrenderDetailsModelAndView(
           correction,
           form,
@@ -153,8 +158,12 @@ public class LicencePositionPartialSurrenderController {
         .getPositionCorrectionForCorrection(licencePositionCorrectionId, correction);
     var blockFeatures = partialSurrenderCorrectionService.getSurrenderableBlockFeatures(positionCorrection);
     var existing = partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection).orElse(null);
+    var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForAddedPosition(
+        positionCorrection,
+        partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionCorrection).orElse(null)
+    );
 
-    if (partialSurrenderDetailsFormValidator.hasErrors(form, bindingResult, blockFeatures)) {
+    if (partialSurrenderDetailsFormValidator.hasErrors(form, bindingResult, blockFeatures, featureIdsAlreadyOperatedOn)) {
       return surrenderDetailsModelAndView(
           correction,
           form,
@@ -218,8 +227,13 @@ public class LicencePositionPartialSurrenderController {
         .orElse(null);
     var stagedSurrender = partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection)
         .orElse(null);
+    var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        licencePosition,
+        positionCorrection,
+        changeId
+    );
 
-    if (partialSurrenderDetailsFormValidator.hasErrors(form, bindingResult, blockFeatures)) {
+    if (partialSurrenderDetailsFormValidator.hasErrors(form, bindingResult, blockFeatures, featureIdsAlreadyOperatedOn)) {
       var backLinkUrl = getBackLinkUrl(correctionId, positionCorrection, stagedSurrender,
           correctingChangeTaskListUrl(correctionId, licencePositionId, changeId));
 

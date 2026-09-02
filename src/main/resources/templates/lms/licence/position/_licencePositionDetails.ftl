@@ -30,17 +30,16 @@
       </#list>
     </@fdsSummaryList.summaryListCard>
   </#if>
-  <#list licencePositionChanges?keys?reverse as changeType>
-    <#local change = licencePositionChanges[changeType]>
-    <#if changeType == "licence-administrator" && !isCarbonStorage>
+  <#list licencePositionChanges?reverse as change>
+    <#if change.type() == "licence-administrator" && !isCarbonStorage>
       <@positionChanges.administratorChange change=change/>
-    <#elseif changeType == "set-equity">
+    <#elseif change.type() == "set-equity">
       <@positionChanges.setEquityChange change=change/>
-    <#elseif changeType == "transfer-equity">
+    <#elseif change.type() == "transfer-equity">
       <@positionChanges.transferEquityChange change=change/>
-    <#elseif changeType == "partial-surrender">
+    <#elseif change.type() == "partial-surrender">
       <@positionChanges.partialSurrenderChange change=change/>
-    <#elseif changeType == "subarea">
+    <#elseif change.type() == "subarea">
       <@positionChanges.subAreaChange change=change/>
     </#if>
   </#list>

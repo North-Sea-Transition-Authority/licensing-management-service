@@ -1,11 +1,17 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 
@@ -18,11 +24,6 @@ public class SubareaChangeService {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
   }
 
-  public boolean hasStagedSubareaChange(LicencePositionCorrection licencePositionCorrection) {
-    return licencePositionCorrectionService
-        .getCommittedChangeOfType(licencePositionCorrection, SubareaOperation.class).isPresent();
-  }
-
   @Transactional
   public void commitSubareaChangeForExecutedPosition(
       LicenceCorrection licenceCorrection,
@@ -32,7 +33,7 @@ public class SubareaChangeService {
     var positionCorrection = licencePositionCorrectionService
         .getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
 
-    applySubareaChange(positionCorrection, operation);
+    replaceAddSubareaChangeForBlock(positionCorrection, operation);
   }
 
   @Transactional
@@ -40,17 +41,27 @@ public class SubareaChangeService {
       LicencePositionCorrection licencePositionCorrection,
       SubareaOperation operation
   ) {
-    applySubareaChange(licencePositionCorrection, operation);
+    replaceAddSubareaChangeForBlock(licencePositionCorrection, operation);
   }
 
-  private void applySubareaChange(
+  private void replaceAddSubareaChangeForBlock(
       LicencePositionCorrection licencePositionCorrection,
       SubareaOperation operation
   ) {
-    licencePositionCorrectionService.replaceAddChangeFor(
-        licencePositionCorrection,
-        SubareaOperation.class,
-        List.of(operation)
-    );
+    var payload = licencePositionCorrection.getPayload();
+
+    var changes = payload.changes().stream()
+        .filter(change -> !isAddSubareaChangeForBlock(change, operation.featureId()))
+        .collect(Collectors.toCollection(ArrayList::new));
+
+    changes.add(AddChange.buildOperationsChange(List.of(operation), licencePositionCorrectionService.nextChangeOrder(changes)));
+
+    licencePositionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionCorrectionService.save(licencePositionCorrection);
+  }
+
+  private boolean isAddSubareaChangeForBlock(LicencePositionChangeType change, UUID blockFeatureId) {
+    return licencePositionCorrectionService.getAddOperationsOfType(List.of(change), SubareaOperation.class).stream()
+        .anyMatch(op -> blockFeatureId.equals(op.featureId()));
   }
 }

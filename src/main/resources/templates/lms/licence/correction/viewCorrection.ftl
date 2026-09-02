@@ -56,7 +56,7 @@
         <@grid.threeQuarterColumn>
           <@licencePositionDetails.details
             licencePositionState=licencePositionPageView.stateView()
-            licencePositionChanges=licencePositionPageView.changeViewByType()
+            licencePositionChanges=licencePositionPageView.orderedChangeViews()
             actions=licencePositionPageView.actions()
             canEdit=licencePositionPageView.canEdit()
             isCarbonStorage=licencePositionPageView.isCarbonStorage()

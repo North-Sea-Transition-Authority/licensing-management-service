@@ -43,6 +43,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityHoldingView;
@@ -71,6 +72,9 @@ class TransferEquityCorrectionServiceTest {
   @Mock
   private LicencePositionViewService licencePositionViewService;
 
+  @Mock
+  private LicencePositionChangeService licencePositionChangeService;
+
   @Captor
   private ArgumentCaptor<LicencePositionCorrection> licencePositionCorrectionCaptor;
 
@@ -80,7 +84,8 @@ class TransferEquityCorrectionServiceTest {
   void setUp() {
     var licencePositionCorrectionService = new LicencePositionCorrectionService(
         licencePositionCorrectionRepository,
-        licencePositionRepository
+        licencePositionRepository,
+        licencePositionChangeService
     );
     transferEquityCorrectionService = new TransferEquityCorrectionService(
         licencePositionCorrectionRepository,

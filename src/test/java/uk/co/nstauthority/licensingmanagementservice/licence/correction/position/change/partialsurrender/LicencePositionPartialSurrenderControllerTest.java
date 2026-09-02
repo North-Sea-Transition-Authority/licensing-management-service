@@ -23,6 +23,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -80,6 +81,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
   private static final Map<String, String> BLOCK_OPTIONS = Map.of(
       BLOCK_30_1A.getId().toString(), "Block 30/1a",
       BLOCK_30_2.getId().toString(), "Block 30/2");
+  private static final Set<UUID> ALREADY_OPERATED_ON = Set.of(UUID.randomUUID());
 
   @MockitoBean
   private PartialSurrenderDetailsFormValidator validator;
@@ -172,7 +174,11 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     givenNoUpdatePositionCorrection(correction, licencePosition);
     when(licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition))
         .thenReturn(POSITION_DATE);
-    when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class), eq(BLOCK_FEATURES)))
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        licencePosition, null, null))
+        .thenReturn(ALREADY_OPERATED_ON);
+    when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class),
+        eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON)))
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
@@ -195,13 +201,17 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenBlockFeaturesForExecutedPosition(licencePosition, BLOCK_FEATURES);
-    givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition,
+    var positionCorrection = givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition,
         LicenceOperation.newPartialSurrenderOperation()
             .withFeatureIds(List.of(BLOCK_30_1A.getId()))
             .build());
     when(licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition))
         .thenReturn(POSITION_DATE);
-    when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class), eq(BLOCK_FEATURES)))
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        licencePosition, positionCorrection, null))
+        .thenReturn(ALREADY_OPERATED_ON);
+    when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class),
+        eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON)))
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
@@ -223,8 +233,11 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     when(partialSurrenderCorrectionService.commitPartialSurrenderForExecutedPosition(
         eq(correction), eq(licencePosition), any(PartialSurrenderOperation.class)))
         .thenReturn(updatePositionCorrection(licencePosition));
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        licencePosition, null, null))
+        .thenReturn(ALREADY_OPERATED_ON);
     when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class),
-        eq(BLOCK_FEATURES))).thenReturn(false);
+        eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON))).thenReturn(false);
 
     var form = new PartialSurrenderDetailsForm();
     form.setFeatureIds(new LinkedHashSet<>(List.of(BLOCK_30_1A.getId())));
@@ -325,7 +338,10 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .thenReturn(Optional.empty());
     when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
-    when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class), eq(BLOCK_FEATURES)))
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForAddedPosition(positionCorrection, null))
+        .thenReturn(ALREADY_OPERATED_ON);
+    when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class),
+        eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON)))
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
@@ -352,7 +368,10 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
             .withFeatureIds(List.of(BLOCK_30_1A.getId()))
             .build()));
     when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
-    when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class), eq(BLOCK_FEATURES)))
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForAddedPosition(positionCorrection, null))
+        .thenReturn(ALREADY_OPERATED_ON);
+    when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class),
+        eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON)))
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
@@ -371,8 +390,10 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
         .thenReturn(positionCorrection);
     givenBlockFeaturesForAddedPosition(positionCorrection, BLOCK_FEATURES);
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForAddedPosition(positionCorrection, null))
+        .thenReturn(ALREADY_OPERATED_ON);
     when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class),
-        eq(BLOCK_FEATURES))).thenReturn(false);
+        eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON))).thenReturn(false);
 
     var form = new PartialSurrenderDetailsForm();
     form.setFeatureIds(new LinkedHashSet<>(List.of(BLOCK_30_1A.getId(), BLOCK_30_2.getId())));
@@ -453,7 +474,11 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     givenNoUpdatePositionCorrection(correction, licencePosition);
     when(licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition))
         .thenReturn(POSITION_DATE);
-    when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class), eq(BLOCK_FEATURES)))
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        licencePosition, null, LIVE_CHANGE_ID))
+        .thenReturn(ALREADY_OPERATED_ON);
+    when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class),
+        eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON)))
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
@@ -481,8 +506,11 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     givenBlockFeaturesForExecutedPosition(licencePosition, BLOCK_FEATURES);
     givenNoUpdatePositionCorrection(correction, licencePosition);
     givenLiveSurrender(live);
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        licencePosition, null, LIVE_CHANGE_ID))
+        .thenReturn(ALREADY_OPERATED_ON);
     when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class),
-        eq(BLOCK_FEATURES))).thenReturn(false);
+        eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON))).thenReturn(false);
 
     var form = new PartialSurrenderDetailsForm();
     form.setFeatureIds(new LinkedHashSet<>(List.of(BLOCK_30_2.getId())));
@@ -514,8 +542,11 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     givenBlockFeaturesForExecutedPosition(licencePosition, BLOCK_FEATURES);
     givenNoUpdatePositionCorrection(correction, licencePosition);
     givenLiveSurrender(live);
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        licencePosition, null, LIVE_CHANGE_ID))
+        .thenReturn(ALREADY_OPERATED_ON);
     when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class),
-        eq(BLOCK_FEATURES))).thenReturn(false);
+        eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON))).thenReturn(false);
 
     var form = new PartialSurrenderDetailsForm();
     form.setFeatureIds(new LinkedHashSet<>(List.of(BLOCK_30_2.getId())));
@@ -567,8 +598,11 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
         .withFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build());
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        licencePosition, null, LIVE_CHANGE_ID))
+        .thenReturn(ALREADY_OPERATED_ON);
     when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class),
-        eq(BLOCK_FEATURES))).thenReturn(false);
+        eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON))).thenReturn(false);
 
     var form = new PartialSurrenderDetailsForm();
     form.setFeatureIds(new LinkedHashSet<>(List.of(BLOCK_30_1A.getId())));
@@ -598,12 +632,15 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
         .build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenBlockFeaturesForExecutedPosition(licencePosition, BLOCK_FEATURES);
-    givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition, staged);
+    var positionCorrection = givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition, staged);
     givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
         .withFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build());
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        licencePosition, positionCorrection, LIVE_CHANGE_ID))
+        .thenReturn(ALREADY_OPERATED_ON);
     when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class),
-        eq(BLOCK_FEATURES))).thenReturn(false);
+        eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON))).thenReturn(false);
 
     var form = new PartialSurrenderDetailsForm();
     form.setFeatureIds(new LinkedHashSet<>(List.of(BLOCK_30_1A.getId())));
@@ -629,12 +666,15 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
         .build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenBlockFeaturesForExecutedPosition(licencePosition, BLOCK_FEATURES);
-    givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition, staged);
+    var positionCorrection = givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition, staged);
     givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
         .withFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build());
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        licencePosition, positionCorrection, LIVE_CHANGE_ID))
+        .thenReturn(ALREADY_OPERATED_ON);
     when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class),
-        eq(BLOCK_FEATURES))).thenReturn(false);
+        eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON))).thenReturn(false);
 
     var form = new PartialSurrenderDetailsForm();
     form.setFeatureIds(new LinkedHashSet<>(List.of(BLOCK_30_1A.getId())));
@@ -661,12 +701,15 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
         .build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenBlockFeaturesForExecutedPosition(licencePosition, BLOCK_FEATURES);
-    givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition, staged);
+    var positionCorrection = givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition, staged);
     givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
         .withFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build());
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        licencePosition, positionCorrection, LIVE_CHANGE_ID))
+        .thenReturn(ALREADY_OPERATED_ON);
     when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class),
-        eq(BLOCK_FEATURES))).thenReturn(false);
+        eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON))).thenReturn(false);
 
     var form = new PartialSurrenderDetailsForm();
     form.setFeatureIds(new LinkedHashSet<>(List.of(BLOCK_30_2.getId())));
@@ -679,6 +722,40 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
         .andExpect(redirectedUrl(correctingChangeTaskListUrl()));
 
     verify(partialSurrenderCorrectionService, never()).revertPartialSurrenderCorrection(any(), any());
+  }
+
+  @Test
+  void submitForCorrectingChange_whenResubmittingItsOwnBlocks_excludesTheEditedChangeSoNoAlreadyOperatedError()
+      throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var licencePosition = executedPosition();
+    var live = LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+        .build();
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    givenBlockFeaturesForExecutedPosition(licencePosition, BLOCK_FEATURES);
+    givenNoUpdatePositionCorrection(correction, licencePosition);
+    givenLiveSurrender(live);
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        licencePosition, null, LIVE_CHANGE_ID))
+        .thenReturn(ALREADY_OPERATED_ON);
+    when(validator.hasErrors(any(PartialSurrenderDetailsForm.class), any(BindingResult.class),
+        eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON))).thenReturn(false);
+
+    var form = new PartialSurrenderDetailsForm();
+    form.setFeatureIds(new LinkedHashSet<>(List.of(BLOCK_30_1A.getId(), BLOCK_30_2.getId())));
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
+            .submitForCorrectingChange(CORRECTION_ID, POSITION_ID, LIVE_CHANGE_ID, null, null, null, null)))
+            .with(user(regulatorUser)).with(csrf())
+            .flashAttr("form", form))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(correctingChangeTaskListUrl()));
+
+    verify(licencePositionCorrectionService)
+        .blockFeatureIdsAlreadyOperatedOnForExecutedPosition(licencePosition, null, LIVE_CHANGE_ID);
+    verify(partialSurrenderCorrectionService).correctExistingPartialSurrender(
+        eq(correction), eq(licencePosition), eq(LIVE_CHANGE_ID), any(PartialSurrenderOperation.class));
   }
 
   private void givenLiveSurrender(PartialSurrenderOperation liveSurrender) {
@@ -736,7 +813,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
         .thenReturn(Optional.empty());
   }
 
-  private void givenStagedSurrenderOnUpdatePositionCorrection(
+  private LicencePositionCorrection givenStagedSurrenderOnUpdatePositionCorrection(
       LicenceCorrection correction,
       LicencePosition licencePosition,
       PartialSurrenderOperation staged
@@ -746,6 +823,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
         .thenReturn(Optional.of(positionCorrection));
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .thenReturn(Optional.of(staged));
+    return positionCorrection;
   }
 
   private static String addChangeUrlForExecutedPosition() {

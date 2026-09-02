@@ -177,6 +177,25 @@ class PartialSurrenderCorrectionServiceTest {
   }
 
   @Test
+  void getCommittedPartialSurrenderChangeId_whenSurrenderStaged_returnsTheStagedChangeId() {
+    var change = AddChange.buildOperationsChange(List.of(partialSurrender(FIRST_FEATURE_ID)), 1);
+    var positionCorrection = positionCorrection(List.of(change));
+
+    assertThat(partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionCorrection))
+        .contains(change.changeId());
+  }
+
+  @Test
+  void getCommittedPartialSurrenderChangeId_whenNoPositionCorrection_returnsEmpty() {
+    assertThat(partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(null)).isEmpty();
+  }
+
+  @Test
+  void getCommittedPartialSurrenderChangeId_whenNoSurrenderStaged_returnsEmpty() {
+    assertThat(partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionCorrection())).isEmpty();
+  }
+
+  @Test
   void getCommittedPartialSurrenderOrThrow_whenStaged_returnsTheOperation() {
     var operation = partialSurrender(FIRST_FEATURE_ID);
     var positionCorrection = positionCorrection(

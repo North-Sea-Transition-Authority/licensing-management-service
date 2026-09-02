@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.entry;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ class PartialSurrenderDetailsFormValidatorTest {
   private static final UUID UNLINKED_FEATURE_ID = UUID.randomUUID();
   private static final List<Feature> SURRENDERABLE_BLOCKS = List.of(FIRST_BLOCK, SECOND_BLOCK);
   private static final String SELECT_BLOCKS = "Select the licence blocks being surrendered";
+  private static final String BLOCKS_ALREADY_CHANGED = "Select licence blocks that do not already have a change";
 
   private final PartialSurrenderDetailsFormValidator partialSurrenderDetailsFormValidator =
       new PartialSurrenderDetailsFormValidator();
@@ -39,7 +41,7 @@ class PartialSurrenderDetailsFormValidatorTest {
 
   @Test
   void hasErrors_whenNoBlocksSelected_thenErrorWithMessage() {
-    var result = partialSurrenderDetailsFormValidator.hasErrors(form, errors, SURRENDERABLE_BLOCKS);
+    var result = partialSurrenderDetailsFormValidator.hasErrors(form, errors, SURRENDERABLE_BLOCKS, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -50,7 +52,7 @@ class PartialSurrenderDetailsFormValidatorTest {
   void hasErrors_whenBlockNotOnPosition_thenErrorWithMessage() {
     form.setFeatureIds(new LinkedHashSet<>(List.of(FIRST_FEATURE_ID, UNLINKED_FEATURE_ID)));
 
-    var result = partialSurrenderDetailsFormValidator.hasErrors(form, errors, SURRENDERABLE_BLOCKS);
+    var result = partialSurrenderDetailsFormValidator.hasErrors(form, errors, SURRENDERABLE_BLOCKS, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -61,7 +63,7 @@ class PartialSurrenderDetailsFormValidatorTest {
   void hasErrors_whenNoBlocksOnPosition_thenErrorWithMessage() {
     form.setFeatureIds(new LinkedHashSet<>(List.of(FIRST_FEATURE_ID)));
 
-    var result = partialSurrenderDetailsFormValidator.hasErrors(form, errors, List.of());
+    var result = partialSurrenderDetailsFormValidator.hasErrors(form, errors, List.of(), Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -69,10 +71,33 @@ class PartialSurrenderDetailsFormValidatorTest {
   }
 
   @Test
+  void hasErrors_whenSelectedBlockAlreadyOperatedOn_thenErrorWithMessage() {
+    form.setFeatureIds(new LinkedHashSet<>(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID)));
+
+    var result = partialSurrenderDetailsFormValidator.hasErrors(
+        form, errors, SURRENDERABLE_BLOCKS, Set.of(FIRST_FEATURE_ID));
+
+    assertThat(result).isTrue();
+    assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
+        .containsOnly(entry("featureIds", Collections.singletonList(BLOCKS_ALREADY_CHANGED)));
+  }
+
+  @Test
+  void hasErrors_whenSelectedBlocksDisjointFromAlreadyOperatedOn_thenNoErrors() {
+    form.setFeatureIds(new LinkedHashSet<>(List.of(FIRST_FEATURE_ID)));
+
+    var result = partialSurrenderDetailsFormValidator.hasErrors(
+        form, errors, SURRENDERABLE_BLOCKS, Set.of(SECOND_FEATURE_ID));
+
+    assertThat(result).isFalse();
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
   void hasErrors_whenAllSelectedBlocksOnPosition_thenNoErrors() {
     form.setFeatureIds(new LinkedHashSet<>(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID)));
 
-    var result = partialSurrenderDetailsFormValidator.hasErrors(form, errors, SURRENDERABLE_BLOCKS);
+    var result = partialSurrenderDetailsFormValidator.hasErrors(form, errors, SURRENDERABLE_BLOCKS, Set.of());
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();

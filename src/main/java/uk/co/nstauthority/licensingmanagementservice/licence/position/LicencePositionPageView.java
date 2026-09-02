@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
 import jakarta.annotation.Nullable;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -21,7 +20,7 @@ public record LicencePositionPageView(
     List<LicencePositionTimelineView> timelineViews,
     String date,
     String regulatorReference,
-    Map<String, LicencePositionChangeView> changeViewByType,
+    List<LicencePositionChangeView> orderedChangeViews,
     @Nullable LicencePositionStateView stateView,
     boolean canEdit,
     UUID selectedPositionId,
@@ -50,7 +49,7 @@ public record LicencePositionPageView(
         List.of(),
         null,
         null,
-        Map.of(),
+        List.of(),
         null,
         false,
         null,
@@ -65,7 +64,7 @@ public record LicencePositionPageView(
       List<LicencePositionTimelineView> timelineViews,
       String date,
       String regulatorReference,
-      Map<String, LicencePositionChangeView> changeViewByType,
+      List<LicencePositionChangeView> orderedChangeViews,
       LicencePositionStateView stateView,
       UUID selectedPositionId,
       LicenceType licenceType
@@ -74,7 +73,7 @@ public record LicencePositionPageView(
         timelineViews,
         date,
         regulatorReference,
-        changeViewByType,
+        orderedChangeViews,
         stateView,
         false,
         selectedPositionId,
@@ -89,7 +88,7 @@ public record LicencePositionPageView(
       List<LicencePositionTimelineView> timelineViews,
       String date,
       String regulatorReference,
-      Map<String, LicencePositionChangeView> changeViewByType,
+      List<LicencePositionChangeView> orderedChangeViews,
       LicencePositionStateView stateView,
       UUID selectedPositionId,
       Actions actions,
@@ -100,7 +99,7 @@ public record LicencePositionPageView(
         timelineViews,
         date,
         regulatorReference,
-        changeViewByType,
+        orderedChangeViews,
         stateView,
         true,
         selectedPositionId,
@@ -115,7 +114,7 @@ public record LicencePositionPageView(
       List<LicencePositionTimelineView> timelineViews,
       String date,
       String regulatorReference,
-      Map<String, LicencePositionChangeView> changeViewByType,
+      List<LicencePositionChangeView> orderedChangeViews,
       LicencePositionStateView stateView,
       UUID selectedPositionId,
       Actions actions,
@@ -126,7 +125,7 @@ public record LicencePositionPageView(
         timelineViews,
         date,
         regulatorReference,
-        changeViewByType,
+        orderedChangeViews,
         stateView,
         true,
         selectedPositionId,

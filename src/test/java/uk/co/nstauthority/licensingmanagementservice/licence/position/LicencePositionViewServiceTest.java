@@ -57,6 +57,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SubareaChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
@@ -127,7 +128,7 @@ class LicencePositionViewServiceTest {
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
 
     var surrenderChange =
-        (PartialSurrenderChangeView) result.changeViewByType().get(LicenceOperation.PARTIAL_SURRENDER);
+        (PartialSurrenderChangeView) changeViewOfType(result, LicenceOperation.PARTIAL_SURRENDER);
     assertThat(surrenderChange.urls().correct())
         .isEqualTo(ReverseRouter.route(on(PartialSurrenderTaskListController.class)
             .renderForCorrectingChange(correctionId, POSITION_ID, changeId.toString(), null, null)));
@@ -156,7 +157,7 @@ class LicencePositionViewServiceTest {
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
 
     var surrenderChange =
-        (PartialSurrenderChangeView) result.changeViewByType().get(LicenceOperation.PARTIAL_SURRENDER);
+        (PartialSurrenderChangeView) changeViewOfType(result, LicenceOperation.PARTIAL_SURRENDER);
     assertThat(surrenderChange.urls().correct())
         .isEqualTo(ReverseRouter.route(on(PartialSurrenderTaskListController.class)
             .renderTaskList(correctionId, updateCorrection.getId(), null, null)));
@@ -259,7 +260,7 @@ class LicencePositionViewServiceTest {
         .extracting(LicencePositionTimelineView::regulatorReference)
         .containsExactly("REF-1");
     // the queried position has no change of its own, so its resolved change/state are empty
-    assertThat(result.changeViewByType()).isEmpty();
+    assertThat(result.orderedChangeViews()).isEmpty();
     assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of()));
     assertThat(result.licenceType()).isEqualTo(LICENCE.getType());
   }
@@ -329,7 +330,7 @@ class LicencePositionViewServiceTest {
     assertThat(result.actions().addChangeUrl())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAddChangeController.class)
             .renderForAddedPosition(correction.getId(), positionCorrection.getId(), null)));
-    assertThat(result.changeViewByType()).isEmpty();
+    assertThat(result.orderedChangeViews()).isEmpty();
     assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of()));
     assertThat(result.canEdit()).isTrue();
     assertThat(result.selectedPositionId()).isEqualTo(addedPositionId);
@@ -363,7 +364,7 @@ class LicencePositionViewServiceTest {
 
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
 
-    var adminChange = (AdministratorChangeView) result.changeViewByType().get(LicenceOperation.LICENCE_ADMINISTRATOR);
+    var adminChange = (AdministratorChangeView) changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR);
     assertThat(adminChange.urls().correct())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
             .renderForExecutedPosition(correctionId, POSITION_ID, null)));
@@ -395,7 +396,7 @@ class LicencePositionViewServiceTest {
 
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
 
-    var adminChange = (AdministratorChangeView) result.changeViewByType().get(LicenceOperation.LICENCE_ADMINISTRATOR);
+    var adminChange = (AdministratorChangeView) changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR);
     assertThat(adminChange.urls().correct())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
             .renderForCorrectingChange(correctionId, POSITION_ID, changeId.toString(), null)));
@@ -432,7 +433,7 @@ class LicencePositionViewServiceTest {
 
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
 
-    var adminChange = (AdministratorChangeView) result.changeViewByType().get(LicenceOperation.LICENCE_ADMINISTRATOR);
+    var adminChange = (AdministratorChangeView) changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR);
     assertThat(adminChange.joiningOrganisationName()).isEqualTo("Executed Admin Org");
     assertThat(adminChange.changeType()).isEqualTo(LicencePositionChangeType.REMOVE_CHANGE);
     assertThat(adminChange.urls().remove()).isNull();
@@ -509,7 +510,7 @@ class LicencePositionViewServiceTest {
 
     var result = licencePositionViewService.getCorrectionAddedPositionPageView(correction, positionCorrection);
 
-    var adminChange = (AdministratorChangeView) result.changeViewByType().get(LicenceOperation.LICENCE_ADMINISTRATOR);
+    var adminChange = (AdministratorChangeView) changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR);
     assertThat(adminChange.urls().correct())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
             .renderForAddedPosition(correctionId, positionCorrection.getId(), null)));
@@ -626,7 +627,7 @@ class LicencePositionViewServiceTest {
 
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, removed);
 
-    var adminChange = (AdministratorChangeView) result.changeViewByType().get(LicenceOperation.LICENCE_ADMINISTRATOR);
+    var adminChange = (AdministratorChangeView) changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR);
     assertThat(adminChange.urls()).isEqualTo(new ChangeViewUrls(null, null, null, null));
     assertThat(result.actions()).isEqualTo(LicencePositionPageView.Actions.none());
   }
@@ -838,13 +839,20 @@ class LicencePositionViewServiceTest {
     var transferEquityOp = new TransferEquityOperation(
         1, 3, BigDecimal.TEN, true);
 
-    var change = LicencePositionChangeTestUtil.newBuilder()
+    var setEquityChange = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(position)
-        .withOperations(List.of(setEquityOp, transferEquityOp))
+        .withChangeOrder(1)
+        .withOperations(List.of(setEquityOp))
+        .build();
+    var transferEquityChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(position)
+        .withChangeOrder(2)
+        .withOperations(List.of(transferEquityOp))
         .build();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
-    when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position)))
+        .thenReturn(List.of(setEquityChange, transferEquityChange));
     when(organisationUnitQueryService.getOrganisationUnitNamesByIds(any())).thenReturn(Map.of());
 
     licencePositionViewService.getPositionPageView(position);
@@ -894,8 +902,8 @@ class LicencePositionViewServiceTest {
             new PartialSurrenderChangeView.BlockRow(secondBlock.getFeatureName(), "Partial surrender")),
         null,
         ChangeViewUrls.none());
-    assertThat(result.changeViewByType())
-        .containsOnly(entry(LicenceOperation.PARTIAL_SURRENDER, expected));
+    assertThat(result.orderedChangeViews())
+        .containsExactly(expected);
   }
 
   @Test
@@ -920,8 +928,79 @@ class LicencePositionViewServiceTest {
     var result = licencePositionViewService.getPositionPageView(position);
 
     var expected = new SubareaChangeView(subarea.getFeatureName(), null, ChangeViewUrls.none());
-    assertThat(result.changeViewByType())
-        .containsOnly(entry(LicenceOperation.SUBAREA, expected));
+    assertThat(result.orderedChangeViews())
+        .containsExactly(expected);
+  }
+
+  @Test
+  void getOrderableChangeLabels_whenTwoSubareaChangesOnDifferentBlocks_labelsEachByChangeIdWithFeatureName() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var positionId = UUID.randomUUID();
+    var position = LicencePositionTestUtil.newBuilder()
+        .withId(positionId)
+        .withLicence(LICENCE)
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true)
+        .build();
+
+    var firstBlock = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 1);
+    var secondBlock = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 2);
+
+    var firstChangeId = UUID.randomUUID();
+    var firstChange = LicencePositionChangeTestUtil.newBuilder()
+        .withId(firstChangeId)
+        .withLicencePosition(position)
+        .withChangeOrder(1)
+        .withOperations(List.of(new SubareaOperation(firstBlock.getId())))
+        .build();
+
+    var secondChangeId = UUID.randomUUID();
+    var secondChange = LicencePositionChangeTestUtil.newBuilder()
+        .withId(secondChangeId)
+        .withLicencePosition(position)
+        .withChangeOrder(2)
+        .withOperations(List.of(new SubareaOperation(secondBlock.getId())))
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position)))
+        .thenReturn(List.of(firstChange, secondChange));
+    when(featureService.getFeaturesByIds(List.of(firstBlock.getId(), secondBlock.getId())))
+        .thenReturn(List.of(firstBlock, secondBlock));
+
+    var result = licencePositionViewService.getOrderableChangeLabels(correction, positionId);
+
+    assertThat(result).containsExactly(
+        entry(firstChangeId, "Subarea change – %s".formatted(firstBlock.getFeatureName())),
+        entry(secondChangeId, "Subarea change – %s".formatted(secondBlock.getFeatureName())));
+  }
+
+  @Test
+  void getOrderableChangeLabels_whenNonSubareaChange_labelsByDisplayNameWithoutFeature() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var positionId = UUID.randomUUID();
+    var position = LicencePositionTestUtil.newBuilder()
+        .withId(positionId)
+        .withLicence(LICENCE)
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true)
+        .build();
+
+    var changeId = UUID.randomUUID();
+    var change = LicencePositionChangeTestUtil.newBuilder()
+        .withId(changeId)
+        .withLicencePosition(position)
+        .withChangeOrder(1)
+        .withOperations(List.of(ADMINISTRATOR_OPERATION))
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
+
+    var result = licencePositionViewService.getOrderableChangeLabels(correction, positionId);
+
+    assertThat(result).containsExactly(entry(changeId, ADMINISTRATOR_OPERATION.displayName()));
+    verifyNoInteractions(featureService);
   }
 
   @Test
@@ -1032,5 +1111,12 @@ class LicencePositionViewServiceTest {
             .withCorrectionReference(correctionReference)
             .build())
         .build();
+  }
+
+  private static LicencePositionChangeView changeViewOfType(LicencePositionPageView pageView, String type) {
+    return pageView.orderedChangeViews().stream()
+        .filter(view -> view.type().equals(type))
+        .findFirst()
+        .orElseThrow();
   }
 }

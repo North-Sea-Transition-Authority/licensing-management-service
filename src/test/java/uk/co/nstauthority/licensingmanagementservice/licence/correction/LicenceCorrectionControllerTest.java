@@ -13,7 +13,6 @@ import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLog
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -29,7 +28,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionPageView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTimelineView;
@@ -194,7 +192,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         List.of(),
         "1 Jan 2026",
         "REF-1",
-        Map.of(),
+        List.of(),
         null,
         position.getId(),
         LicencePositionPageView.Actions.none(),
@@ -254,7 +252,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
             .build()),
         "1 Jan 2026",
         "REF-1",
-        Map.of(LicenceOperation.PARTIAL_SURRENDER,
+        List.of(
             new PartialSurrenderChangeView("1 August 2026",
                 List.of(
                     new PartialSurrenderChangeView.BlockRow("30/1a", "Full surrender"),
@@ -314,7 +312,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         List.of(),
         "1 Jan 2026",
         "REF-1",
-        Map.of(),
+        List.of(),
         null,
         POSITION_CORRECTION_ID,
         LicencePositionPageView.Actions.none(),

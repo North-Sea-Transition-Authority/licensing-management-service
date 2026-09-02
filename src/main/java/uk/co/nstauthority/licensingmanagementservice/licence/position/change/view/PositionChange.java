@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.vi
 
 import jakarta.annotation.Nullable;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
@@ -61,6 +62,42 @@ public record PositionChange(
         .map(positionValidationError -> positionValidationError.withChangeId(changeId))
         .distinct()
         .toList();
+  }
+
+  public static List<PositionChange> foldChanges(
+      List<LicencePositionChange> liveChanges,
+      List<LicencePositionChangeType> correctionChanges
+  ) {
+    var changesById = new HashMap<String, PositionChange>();
+
+    PositionChange.fromLicencePositionChanges(liveChanges).forEach(positionChange ->
+        changesById.put(positionChange.changeId(), positionChange)
+    );
+
+    PositionChange.fromCorrectionChanges(correctionChanges).forEach(positionChange -> {
+      var existingChange = changesById.get(positionChange.changeId());
+      if (existingChange == null) {
+        changesById.put(positionChange.changeId(), positionChange);
+      } else {
+        changesById.put(positionChange.changeId(), mergeCorrectionOntoExisting(existingChange, positionChange));
+      }
+    });
+
+    return changesById.values().stream()
+        .sorted(Comparator.comparing(PositionChange::changeOrder, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(PositionChange::changeId))
+        .toList();
+  }
+
+  private static PositionChange mergeCorrectionOntoExisting(PositionChange existing, PositionChange correction) {
+    return switch (correction.changeType()) {
+      case LicencePositionChangeType.REMOVE_CHANGE -> new PositionChange(
+          existing.changeId(), existing.changeOrder(), LicencePositionChangeType.REMOVE_CHANGE, existing.operations());
+      case LicencePositionChangeType.UPDATE_CHANGE_ORDER -> new PositionChange(
+          existing.changeId(), correction.changeOrder(), existing.changeType(), existing.operations());
+      default -> new PositionChange(
+          existing.changeId(), existing.changeOrder(), correction.changeType(), correction.operations());
+    };
   }
 
   private static PositionChange fromCorrectionChange(LicencePositionChangeType change) {

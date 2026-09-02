@@ -14,16 +14,21 @@ public class SubareaChangeStartFormValidator {
 
   private static final String FEATURE_ID_FIELD = "featureId";
   private static final String FEATURE_ID_ERROR = "Select the licence block to change";
+  private static final String FEATURE_ID_ALREADY_USED =
+      "Select a licence block that does not already have a change";
 
   public boolean hasErrors(
       SubareaChangeStartForm form,
       Errors errors,
-      List<Feature> blockFeatures
+      List<Feature> blockFeatures,
+      Set<UUID> featureIdsAlreadyOperatedOn
   ) {
     if (StringUtils.isBlank(form.getFeatureId())) {
       errors.rejectValue(FEATURE_ID_FIELD, "featureId.required", FEATURE_ID_ERROR);
     } else if (!blockFeatureIds(blockFeatures).contains(form.getFeatureId())) {
       errors.rejectValue(FEATURE_ID_FIELD, "featureId.invalid", FEATURE_ID_ERROR);
+    } else if (featureIdsAlreadyOperatedOn.contains(UUID.fromString(form.getFeatureId()))) {
+      errors.rejectValue(FEATURE_ID_FIELD, "featureId.alreadyOperated", FEATURE_ID_ALREADY_USED);
     }
 
     return errors.hasErrors();

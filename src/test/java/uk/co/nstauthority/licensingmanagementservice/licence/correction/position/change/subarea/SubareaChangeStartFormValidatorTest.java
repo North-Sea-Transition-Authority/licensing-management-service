@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.entry;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ class SubareaChangeStartFormValidatorTest {
   private static final Feature SECOND_BLOCK = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 2);
   private static final List<Feature> BLOCK_FEATURES = List.of(FIRST_BLOCK, SECOND_BLOCK);
   private static final String SELECT_BLOCK = "Select the licence block to change";
+  private static final String BLOCK_ALREADY_CHANGED = "Select a licence block that does not already have a change";
 
   private final SubareaChangeStartFormValidator subareaChangeStartFormValidator =
       new SubareaChangeStartFormValidator();
@@ -35,7 +37,7 @@ class SubareaChangeStartFormValidatorTest {
 
   @Test
   void hasErrors_whenNoBlockSelected_thenErrorWithMessage() {
-    var result = subareaChangeStartFormValidator.hasErrors(form, errors, BLOCK_FEATURES);
+    var result = subareaChangeStartFormValidator.hasErrors(form, errors, BLOCK_FEATURES, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -46,7 +48,7 @@ class SubareaChangeStartFormValidatorTest {
   void hasErrors_whenBlockNotOnPosition_thenErrorWithMessage() {
     form.setFeatureId(UUID.randomUUID().toString());
 
-    var result = subareaChangeStartFormValidator.hasErrors(form, errors, BLOCK_FEATURES);
+    var result = subareaChangeStartFormValidator.hasErrors(form, errors, BLOCK_FEATURES, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -54,10 +56,22 @@ class SubareaChangeStartFormValidatorTest {
   }
 
   @Test
+  void hasErrors_whenSelectedBlockAlreadyOperatedOn_thenErrorWithMessage() {
+    form.setFeatureId(FIRST_BLOCK.getId().toString());
+
+    var result = subareaChangeStartFormValidator.hasErrors(
+        form, errors, BLOCK_FEATURES, Set.of(FIRST_BLOCK.getId()));
+
+    assertThat(result).isTrue();
+    assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
+        .containsOnly(entry("featureId", Collections.singletonList(BLOCK_ALREADY_CHANGED)));
+  }
+
+  @Test
   void hasErrors_whenSelectedBlockOnPosition_thenNoErrors() {
     form.setFeatureId(FIRST_BLOCK.getId().toString());
 
-    var result = subareaChangeStartFormValidator.hasErrors(form, errors, BLOCK_FEATURES);
+    var result = subareaChangeStartFormValidator.hasErrors(form, errors, BLOCK_FEATURES, Set.of());
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();

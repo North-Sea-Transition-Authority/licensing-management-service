@@ -42,9 +42,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 
 @ExtendWith(MockitoExtension.class)
@@ -67,6 +72,9 @@ class LicencePositionCorrectionServiceTest {
 
   @Mock
   private LicencePositionRepository licencePositionRepository;
+
+  @Mock
+  private LicencePositionChangeService licencePositionChangeService;
 
   @InjectMocks
   private LicencePositionCorrectionService licencePositionCorrectionService;
@@ -1295,5 +1303,180 @@ class LicencePositionCorrectionServiceTest {
 
     assertThat(licencePositionCorrectionService.getAddOperationsOfType(changes, PartialSurrenderOperation.class))
         .containsExactly(added);
+  }
+
+  @Test
+  void getChangesForExecutedPosition_whenNoUpdateCorrection_foldsLiveChangesOnly() {
+    var operation = new SubareaOperation(UUID.randomUUID());
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(LICENCE_POSITION)
+        .withChangeOrder(1)
+        .withOperations(List.of(operation))
+        .build();
+
+    when(licencePositionChangeService.findByLicencePositionId(LICENCE_POSITION.getId()))
+        .thenReturn(List.of(liveChange));
+
+    var result = licencePositionCorrectionService.getChangesForExecutedPosition(LICENCE_POSITION, null);
+
+    assertThat(result).containsExactly(
+        new PositionChange(liveChange.getId().toString(), 1, null, List.of(operation)));
+  }
+
+  @Test
+  void getChangesForExecutedPosition_whenUpdateCorrectionPresent_foldsLiveAndStagedChanges() {
+    var liveOperation = new SubareaOperation(UUID.randomUUID());
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(LICENCE_POSITION)
+        .withChangeOrder(1)
+        .withOperations(List.of(liveOperation))
+        .build();
+
+    var stagedOperation = new SubareaOperation(UUID.randomUUID());
+    var stagedChange = AddChange.buildOperationsChange(List.of(stagedOperation), 2);
+    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withChanges(List.of(stagedChange))
+            .build())
+        .build();
+
+    when(licencePositionChangeService.findByLicencePositionId(LICENCE_POSITION.getId()))
+        .thenReturn(List.of(liveChange));
+
+    var result = licencePositionCorrectionService.getChangesForExecutedPosition(LICENCE_POSITION, updateCorrection);
+
+    assertThat(result).containsExactly(
+        new PositionChange(liveChange.getId().toString(), 1, null, List.of(liveOperation)),
+        new PositionChange(stagedChange.changeId(), 2, LicencePositionChangeType.ADD_CHANGE, List.of(stagedOperation)));
+  }
+
+  @Test
+  void getChangesForAddedPosition_foldsAddedCorrectionChanges() {
+    var operation = new SubareaOperation(UUID.randomUUID());
+    var addChange = AddChange.buildOperationsChange(List.of(operation), 1);
+    var addedCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withChanges(List.of(addChange))
+            .build())
+        .build();
+
+    var result = licencePositionCorrectionService.getChangesForAddedPosition(addedCorrection);
+
+    assertThat(result).containsExactly(
+        new PositionChange(addChange.changeId(), 1, LicencePositionChangeType.ADD_CHANGE, List.of(operation)));
+  }
+
+  @Test
+  void blockFeatureIdsAlreadyOperatedOnForExecutedPosition_collectsFeatureIdsFromLiveAndStagedChanges() {
+    var liveFeatureId = UUID.randomUUID();
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(LICENCE_POSITION)
+        .withChangeOrder(1)
+        .withOperations(List.of(new SubareaOperation(liveFeatureId)))
+        .build();
+
+    var stagedFeatureId = UUID.randomUUID();
+    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withChanges(List.of(AddChange.buildOperationsChange(List.of(new SubareaOperation(stagedFeatureId)), 2)))
+            .build())
+        .build();
+
+    when(licencePositionChangeService.findByLicencePositionId(LICENCE_POSITION.getId()))
+        .thenReturn(List.of(liveChange));
+
+    var result = licencePositionCorrectionService
+        .blockFeatureIdsAlreadyOperatedOnForExecutedPosition(LICENCE_POSITION, updateCorrection);
+
+    assertThat(result).containsExactlyInAnyOrder(liveFeatureId, stagedFeatureId);
+  }
+
+  @Test
+  void blockFeatureIdsAlreadyOperatedOnForExecutedPosition_whenChangeStagedForRemoval_excludesItsFeatureIds() {
+    var liveFeatureId = UUID.randomUUID();
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(LICENCE_POSITION)
+        .withChangeOrder(1)
+        .withOperations(List.of(new SubareaOperation(liveFeatureId)))
+        .build();
+
+    var removalCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withChanges(List.of(LicencePositionChangeType.removeChange()
+                .withChangeId(liveChange.getId().toString())
+                .build()))
+            .build())
+        .build();
+
+    when(licencePositionChangeService.findByLicencePositionId(LICENCE_POSITION.getId()))
+        .thenReturn(List.of(liveChange));
+
+    var result = licencePositionCorrectionService
+        .blockFeatureIdsAlreadyOperatedOnForExecutedPosition(LICENCE_POSITION, removalCorrection);
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  void blockFeatureIdsAlreadyOperatedOnForExecutedPosition_whenChangeIdExcluded_omitsThatChangesFeatureIds() {
+    var excludedFeatureId = UUID.randomUUID();
+    var excludedChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(LICENCE_POSITION)
+        .withChangeOrder(1)
+        .withOperations(List.of(new SubareaOperation(excludedFeatureId)))
+        .build();
+
+    var retainedFeatureId = UUID.randomUUID();
+    var retainedChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(LICENCE_POSITION)
+        .withChangeOrder(2)
+        .withOperations(List.of(new SubareaOperation(retainedFeatureId)))
+        .build();
+
+    when(licencePositionChangeService.findByLicencePositionId(LICENCE_POSITION.getId()))
+        .thenReturn(List.of(excludedChange, retainedChange));
+
+    var result = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        LICENCE_POSITION, null, excludedChange.getId().toString());
+
+    assertThat(result).containsExactly(retainedFeatureId);
+  }
+
+  @Test
+  void blockFeatureIdsAlreadyOperatedOnForAddedPosition_collectsFeatureIdsAcrossOperationTypes() {
+    var subareaFeatureId = UUID.randomUUID();
+    var surrenderFeatureIdOne = UUID.randomUUID();
+    var surrenderFeatureIdTwo = UUID.randomUUID();
+    var addedCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withChanges(List.of(
+                AddChange.buildOperationsChange(List.of(new SubareaOperation(subareaFeatureId)), 1),
+                AddChange.buildOperationsChange(List.of(
+                    new PartialSurrenderOperation(
+                        null, List.of(surrenderFeatureIdOne, surrenderFeatureIdTwo), null)), 2)))
+            .build())
+        .build();
+
+    var result = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForAddedPosition(addedCorrection);
+
+    assertThat(result).containsExactlyInAnyOrder(subareaFeatureId, surrenderFeatureIdOne, surrenderFeatureIdTwo);
+  }
+
+  @Test
+  void blockFeatureIdsAlreadyOperatedOnForAddedPosition_whenChangeIdExcluded_omitsThatChangesFeatureIds() {
+    var excludedFeatureId = UUID.randomUUID();
+    var excludedChange = AddChange.buildOperationsChange(List.of(new SubareaOperation(excludedFeatureId)), 1);
+    var retainedFeatureId = UUID.randomUUID();
+    var retainedChange = AddChange.buildOperationsChange(List.of(new SubareaOperation(retainedFeatureId)), 2);
+    var addedCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withChanges(List.of(excludedChange, retainedChange))
+            .build())
+        .build();
+
+    var result = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForAddedPosition(
+        addedCorrection, excludedChange.changeId());
+
+    assertThat(result).containsExactly(retainedFeatureId);
   }
 }

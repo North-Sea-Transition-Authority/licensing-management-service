@@ -19,6 +19,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -62,6 +63,7 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
   private static final Map<String, String> BLOCK_OPTIONS = Map.of(
       BLOCK_30_1.getId().toString(), "Block 30/1",
       BLOCK_30_2.getId().toString(), "Block 30/2");
+  private static final Set<UUID> ALREADY_OPERATED_ON = Set.of(UUID.randomUUID());
 
   @MockitoBean
   private SubareaChangeService subareaChangeService;
@@ -123,15 +125,10 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
   }
 
   @Test
-  void renderForExecutedPosition_whenChangeAlreadyStaged_prefillsSelectedBlock() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
+  void renderForExecutedPosition_whenChangeAlreadyStaged_rendersEmptyFormForAnotherChange() throws Exception {
+    givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(correction, licencePosition))
-        .thenReturn(Optional.of(positionCorrection));
-    when(licencePositionCorrectionService.getCommittedChangeOfType(positionCorrection, SubareaOperation.class))
-        .thenReturn(Optional.of(new SubareaOperation(BLOCK_30_1.getId())));
     when(licencePositionService.getBlockFeatures(licencePosition)).thenReturn(BLOCK_FEATURES);
 
     var result = mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
@@ -141,7 +138,7 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
         .andReturn();
 
     var form = (SubareaChangeStartForm) result.getModelAndView().getModel().get("form");
-    assertThat(form.getFeatureId()).isEqualTo(BLOCK_30_1.getId().toString());
+    assertThat(form.getFeatureId()).isNull();
   }
 
   @Test
@@ -150,8 +147,10 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     when(licencePositionService.getBlockFeatures(licencePosition)).thenReturn(BLOCK_FEATURES);
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(licencePosition, null))
+        .thenReturn(ALREADY_OPERATED_ON);
     when(subareaChangeStartFormValidator.hasErrors(
-        any(SubareaChangeStartForm.class), any(BindingResult.class), eq(BLOCK_FEATURES)))
+        any(SubareaChangeStartForm.class), any(BindingResult.class), eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON)))
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
@@ -172,8 +171,10 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     when(licencePositionService.getBlockFeatures(licencePosition)).thenReturn(BLOCK_FEATURES);
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(licencePosition, null))
+        .thenReturn(ALREADY_OPERATED_ON);
     when(subareaChangeStartFormValidator.hasErrors(
-        any(SubareaChangeStartForm.class), any(BindingResult.class), eq(BLOCK_FEATURES)))
+        any(SubareaChangeStartForm.class), any(BindingResult.class), eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON)))
         .thenReturn(false);
 
     var form = new SubareaChangeStartForm();
@@ -222,8 +223,10 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
         .thenReturn(positionCorrection);
     when(licencePositionService.getBlockFeaturesForCorrection(positionCorrection)).thenReturn(BLOCK_FEATURES);
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForAddedPosition(positionCorrection))
+        .thenReturn(ALREADY_OPERATED_ON);
     when(subareaChangeStartFormValidator.hasErrors(
-        any(SubareaChangeStartForm.class), any(BindingResult.class), eq(BLOCK_FEATURES)))
+        any(SubareaChangeStartForm.class), any(BindingResult.class), eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON)))
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
@@ -245,8 +248,10 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
         .thenReturn(positionCorrection);
     when(licencePositionService.getBlockFeaturesForCorrection(positionCorrection)).thenReturn(BLOCK_FEATURES);
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForAddedPosition(positionCorrection))
+        .thenReturn(ALREADY_OPERATED_ON);
     when(subareaChangeStartFormValidator.hasErrors(
-        any(SubareaChangeStartForm.class), any(BindingResult.class), eq(BLOCK_FEATURES)))
+        any(SubareaChangeStartForm.class), any(BindingResult.class), eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON)))
         .thenReturn(false);
 
     var form = new SubareaChangeStartForm();

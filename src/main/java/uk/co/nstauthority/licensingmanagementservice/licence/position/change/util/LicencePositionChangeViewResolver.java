@@ -6,14 +6,13 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.position.cha
 import jakarta.annotation.Nullable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
@@ -51,7 +50,7 @@ public final class LicencePositionChangeViewResolver {
     throw new IllegalStateException("Utility class should not be instantiated.");
   }
 
-  public static Map<String, LicencePositionChangeView> getChangeViews(
+  public static List<LicencePositionChangeView> getChangeViews(
       UUID currentPositionId,
       List<ChronologicalPosition> chronologicalPositions,
       ResolvedStates resolvedStates,
@@ -71,42 +70,57 @@ public final class LicencePositionChangeViewResolver {
         .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
         .toList();
 
-    var hasMultipleChangeTypes = orderableChangeTypes(currentPositionChanges).size() > 1;
+    var canReorder = currentPositionChanges.stream().filter(PositionChange::isOrderable).count() > 1;
 
-    // LinkedHashMap so cards render in change-order sequence
-    var changeViews = new LinkedHashMap<String, LicencePositionChangeView>();
+    var changeViews = new ArrayList<LicencePositionChangeView>();
     var stateBeforeChange = stateBeforeCurrentPosition;
 
     for (var change : currentPositionChanges) {
-      var correctChangeOrderUrl = hasMultipleChangeTypes
+      var correctChangeOrderUrl = canReorder
           ? correctChangeOrderUrl(urlContext, change, currentPositionId)
           : null;
+      var stateForChange = stateBeforeChange;
 
+      // Merge a change's operations of the same type into one card, keeping distinct types as separate cards.
+      var viewsByType = new LinkedHashMap<String, LicencePositionChangeView>();
       for (var operation : change.operations()) {
-        changeViews.merge(
-            operation.type(),
-            toView(operation, change, stateBeforeChange,
-                currentPositionDate,
-                organisationNames,
-                featureNames,
-                urlContext,
-                correctChangeOrderUrl
-            ),
-            LicencePositionChangeView::merge
+        var view = toView(operation, change, stateForChange,
+            currentPositionDate,
+            organisationNames,
+            featureNames,
+            urlContext,
+            correctChangeOrderUrl
         );
+        viewsByType.merge(view.type(), view, LicencePositionChangeView::merge);
       }
+      changeViews.addAll(viewsByType.values());
+
       stateBeforeChange = LicencePositionStateResolver.applyChange(stateBeforeChange, change);
     }
 
     return changeViews;
   }
 
-  private static Set<String> orderableChangeTypes(List<PositionChange> currentPositionChanges) {
-    return currentPositionChanges.stream()
+  public static Map<UUID, String> getOrderableChangeLabels(
+      List<PositionChange> changes,
+      Map<UUID, String> featureNames
+  ) {
+    var labels = new LinkedHashMap<UUID, String>();
+    changes.stream()
         .filter(PositionChange::isOrderable)
-        .flatMap(change -> change.operations().stream())
-        .map(LicenceOperation::type)
-        .collect(Collectors.toSet());
+        .forEach(positionChange -> labels.put(
+            UUID.fromString(positionChange.changeId()),
+            orderableChangeLabel(positionChange, featureNames))
+        );
+    return labels;
+  }
+
+  private static String orderableChangeLabel(PositionChange change, Map<UUID, String> featureNames) {
+    var operation = change.operations().getFirst();
+    if (operation instanceof SubareaOperation subarea) {
+      return "%s – %s".formatted(operation.displayName(), featureNames.getOrDefault(subarea.featureId(), NOT_AVAILABLE));
+    }
+    return operation.displayName();
   }
 
   @Nullable

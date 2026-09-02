@@ -22,11 +22,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.SubareaChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 
@@ -40,9 +38,6 @@ class AddPositionChangeFormValidatorTest {
 
   @Mock
   private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
-
-  @Mock
-  private SubareaChangeService subareaChangeService;
 
   @InjectMocks
   private AddPositionChangeFormValidator addPositionChangeFormValidator;
@@ -240,47 +235,10 @@ class AddPositionChangeFormValidatorTest {
         .containsOnly(entry("changeType", Collections.singletonList(SELECT_A_CHANGE_TYPE)));
   }
 
-  @Test
-  void hasErrors_whenSubareaAlreadyExecutedOnPosition_thenErrorWithMessage() {
-    form.setChangeType(AddPositionChangeType.SUBAREA.name());
-    when(licencePositionChangeService.changeExists(
-        positionCorrection.getTargetLicencePosition().getId(), SubareaOperation.class))
-        .thenReturn(true);
-
-    var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection);
-
-    assertThat(result).isTrue();
-    assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
-        .containsOnly(entry("changeType",
-            Collections.singletonList("Subarea change has already been added to this position")));
-  }
-
-  @Test
-  void hasErrors_whenSubareaAlreadyStagedInThisCorrection_thenErrorWithMessage() {
-    form.setChangeType(AddPositionChangeType.SUBAREA.name());
-    when(licencePositionChangeService.changeExists(
-        positionCorrection.getTargetLicencePosition().getId(), SubareaOperation.class))
-        .thenReturn(false);
-    when(subareaChangeService.hasStagedSubareaChange(positionCorrection)).thenReturn(true);
-
-    var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection);
-
-    assertThat(result).isTrue();
-    assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
-        .containsOnly(entry("changeType",
-            Collections.singletonList("Subarea change has already been added to this position")));
-  }
-
   @ParameterizedTest
   @EnumSource(value = LicenceType.class, names = {"SEAWARD_PRODUCTION", "LANDWARD_PRODUCTION" })
-  void hasErrors_whenSubareaDoesNotExistForPosition_thenNoErrors(LicenceType licenceType) {
+  void hasErrors_whenSubareaAndLicenceProduction_thenAlwaysAddableWithNoErrors(LicenceType licenceType) {
     form.setChangeType(AddPositionChangeType.SUBAREA.name());
-    when(licencePositionChangeService.changeExists(
-        positionCorrection.getTargetLicencePosition().getId(), SubareaOperation.class))
-        .thenReturn(false);
-    when(subareaChangeService.hasStagedSubareaChange(positionCorrection)).thenReturn(false);
 
     var result = addPositionChangeFormValidator.hasErrors(
         form, errors, correctionForLicenceType(licenceType), positionCorrection);

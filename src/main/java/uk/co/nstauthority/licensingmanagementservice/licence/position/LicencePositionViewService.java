@@ -7,7 +7,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -32,17 +31,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.RemoveExecutedLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.UndoLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicencePositionValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeViewResolver;
@@ -305,7 +298,7 @@ public class LicencePositionViewService {
             licencePosition,
             licencePosition.getPositionDate(),
             licencePosition.getPositionDateOrder(),
-            foldChanges(liveChangesByPositionId.getOrDefault(licencePosition.getId(), List.of()), List.of()))
+            PositionChange.foldChanges(liveChangesByPositionId.getOrDefault(licencePosition.getId(), List.of()), List.of()))
         ).sorted(CHRONOLOGICAL_POSITION_COMPARATOR)
         .toList();
   }
@@ -323,6 +316,19 @@ public class LicencePositionViewService {
         correctionsOfType(positionCorrections, LicencePositionCorrectionChangeType.UPDATE_POSITION),
         correctionsOfType(positionCorrections, LicencePositionCorrectionChangeType.ADD_POSITION),
         currentLicencePositionId
+    );
+  }
+
+  public Map<UUID, String> getOrderableChangeLabels(LicenceCorrection licenceCorrection, UUID licencePositionId) {
+    var chronologicalPositions = getCorrectedChronologicalPositions(licenceCorrection, licencePositionId);
+    var currentChanges = chronologicalPositions.stream()
+        .filter(chronologicalPosition -> chronologicalPosition.id().equals(licencePositionId))
+        .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
+        .toList();
+
+    return LicencePositionChangeViewResolver.getOrderableChangeLabels(
+        currentChanges,
+        resolveFeatureNames(chronologicalPositions)
     );
   }
 
@@ -346,7 +352,7 @@ public class LicencePositionViewService {
             || !removedPositionIds.contains(position.getId()))
         .forEach(position -> {
           var correctedPayload = correctedPayloadsByPositionId.get(position.getId());
-          var changes = foldChanges(
+          var changes = PositionChange.foldChanges(
               liveChangesByPositionId.getOrDefault(position.getId(), List.of()),
               correctedPayload != null ? correctedPayload.changes() : List.of()
           );
@@ -373,7 +379,7 @@ public class LicencePositionViewService {
   }
 
   private Map<Integer, String> resolveOrganisationNames(List<ChronologicalPosition> chronologicalPositions) {
-    var organisationIds = resolveIds(chronologicalPositions, LicencePositionViewService::organisationIds);
+    var organisationIds = resolveIds(chronologicalPositions, LicenceOperation::organisationIds);
 
     if (organisationIds.isEmpty()) {
       return Collections.emptyMap();
@@ -383,7 +389,7 @@ public class LicencePositionViewService {
   }
 
   private Map<UUID, String> resolveFeatureNames(List<ChronologicalPosition> chronologicalPositions) {
-    var featureIds = resolveIds(chronologicalPositions, LicencePositionViewService::featureIds);
+    var featureIds = resolveIds(chronologicalPositions, LicenceOperation::featureIds);
 
     if (featureIds.isEmpty()) {
       return Collections.emptyMap();
@@ -406,26 +412,6 @@ public class LicencePositionViewService {
         .filter(Objects::nonNull)
         .distinct()
         .toList();
-  }
-
-  private static List<UUID> featureIds(LicenceOperation operation) {
-    return switch (operation) {
-      case PartialSurrenderOperation partialSurrender -> partialSurrender.featureIds();
-      case SubareaOperation subarea -> List.of(subarea.featureId());
-      case AdministratorOperation ignored -> List.of();
-      case SetEquityOperation ignored -> List.of();
-      case TransferEquityOperation ignored -> List.of();
-    };
-  }
-
-  private static List<Integer> organisationIds(LicenceOperation operation) {
-    return switch (operation) {
-      case AdministratorOperation administratorOperation -> List.of(administratorOperation.operatorId());
-      case SetEquityOperation setEquityOperation -> List.of(setEquityOperation.transferTo());
-      case TransferEquityOperation transfer -> List.of(transfer.transferFrom(), transfer.transferTo());
-      case PartialSurrenderOperation ignored -> List.of();
-      case SubareaOperation ignored -> List.of();
-    };
   }
 
   private static Set<UUID> removedPositionIds(List<LicencePositionCorrection> positionCorrections) {
@@ -457,42 +443,6 @@ public class LicencePositionViewService {
   private Map<UUID, List<LicencePositionChange>> getLiveChangesByPositionId(List<LicencePosition> licencePositions) {
     return licencePositionChangeService.findByLicencePositionIn(licencePositions).stream()
         .collect(Collectors.groupingBy(change -> change.getLicencePosition().getId()));
-  }
-
-  private static List<PositionChange> foldChanges(
-      List<LicencePositionChange> liveChanges,
-      List<LicencePositionChangeType> correctionChanges
-  ) {
-    var changesById = new HashMap<String, PositionChange>();
-
-    PositionChange.fromLicencePositionChanges(liveChanges).forEach(positionChange ->
-        changesById.put(positionChange.changeId(), positionChange)
-    );
-
-    PositionChange.fromCorrectionChanges(correctionChanges).forEach(positionChange -> {
-      var existingChange = changesById.get(positionChange.changeId());
-      if (existingChange == null) {
-        changesById.put(positionChange.changeId(), positionChange);
-      } else {
-        changesById.put(positionChange.changeId(), mergeCorrectionOntoExisting(existingChange, positionChange));
-      }
-    });
-
-    return changesById.values().stream()
-        .sorted(Comparator.comparing(PositionChange::changeOrder, Comparator.nullsLast(Comparator.naturalOrder()))
-            .thenComparing(PositionChange::changeId))
-        .toList();
-  }
-
-  private static PositionChange mergeCorrectionOntoExisting(PositionChange existing, PositionChange correction) {
-    return switch (correction.changeType()) {
-      case LicencePositionChangeType.REMOVE_CHANGE -> new PositionChange(
-          existing.changeId(), existing.changeOrder(), LicencePositionChangeType.REMOVE_CHANGE, existing.operations());
-      case LicencePositionChangeType.UPDATE_CHANGE_ORDER -> new PositionChange(
-          existing.changeId(), correction.changeOrder(), existing.changeType(), existing.operations());
-      default -> new PositionChange(
-          existing.changeId(), existing.changeOrder(), correction.changeType(), correction.operations());
-    };
   }
 
   private List<LicencePositionTimelineView> getReadOnlyTimelineView(List<LicencePosition> chronologicalLicencePositions) {

@@ -65,6 +65,17 @@ public class PartialSurrenderCorrectionService {
     return licencePositionCorrectionService.getCommittedChangeOfType(licencePositionCorrection, PartialSurrenderOperation.class);
   }
 
+  public Optional<String> getCommittedPartialSurrenderChangeId(
+      @Nullable LicencePositionCorrection licencePositionCorrection
+  ) {
+    if (licencePositionCorrection == null) {
+      return Optional.empty();
+    }
+    return LicencePositionChangeOperationUtil
+        .findChange(licencePositionCorrection.getPayload().changes(), PartialSurrenderOperation.class)
+        .map(LicencePositionChangeType::changeId);
+  }
+
   public PartialSurrenderOperation getCommittedPartialSurrenderOrThrow(
       LicencePositionCorrection licencePositionCorrection
   ) {

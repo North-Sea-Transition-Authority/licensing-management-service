@@ -20,7 +20,7 @@
         <@grid.threeQuarterColumn>
           <@licencePositionDetails.details
             licencePositionState=licencePositionPageView.stateView()
-            licencePositionChanges=licencePositionPageView.changeViewByType()
+            licencePositionChanges=licencePositionPageView.orderedChangeViews()
             isCarbonStorage=licencePositionPageView.isCarbonStorage()
           />
         </@grid.threeQuarterColumn>

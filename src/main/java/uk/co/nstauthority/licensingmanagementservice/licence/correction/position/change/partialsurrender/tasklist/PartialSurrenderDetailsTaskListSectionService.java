@@ -4,6 +4,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
@@ -60,7 +61,7 @@ public class PartialSurrenderDetailsTaskListSectionService
     var errors = new BeanPropertyBindingResult(form, "form");
 
     return !partialSurrenderDetailsFormValidator.hasErrors(
-        form, errors, partialSurrenderCorrectionService.getSurrenderableBlockFeatures(positionCorrection));
+        form, errors, partialSurrenderCorrectionService.getSurrenderableBlockFeatures(positionCorrection), Set.of());
   }
 
   private String surrenderDetailsUrl(PartialSurrenderTaskListContext context) {

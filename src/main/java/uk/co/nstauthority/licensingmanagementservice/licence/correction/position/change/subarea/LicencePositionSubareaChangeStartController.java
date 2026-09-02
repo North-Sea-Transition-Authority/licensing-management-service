@@ -64,15 +64,10 @@ public class LicencePositionSubareaChangeStartController {
       @RequestAttribute("validatedCorrection") LicenceCorrection correction
   ) {
     var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
-    var positionCorrection = licencePositionCorrectionService
-        .findUpdatePositionCorrection(correction, licencePosition)
-        .orElse(null);
-    var existing = licencePositionCorrectionService.getCommittedChangeOfType(positionCorrection, SubareaOperation.class)
-        .orElse(null);
 
     return getSubareaChangeModelAndView(
         correction,
-        SubareaChangeStartForm.from(existing),
+        new SubareaChangeStartForm(),
         //TODO - EPGF-239: The features available to use will depend on the output of previous changes
         licencePositionService.getBlockFeatures(licencePosition),
         executedChangeUrl(correctionId, licencePositionId)
@@ -90,10 +85,22 @@ public class LicencePositionSubareaChangeStartController {
       RedirectAttributes redirectAttributes
   ) {
     var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
+    var positionCorrection = licencePositionCorrectionService
+        .findUpdatePositionCorrection(correction, licencePosition)
+        .orElse(null);
     //TODO - EPGF-239: The features available to use will depend on the output of previous changes
     var blockFeatures = licencePositionService.getBlockFeatures(licencePosition);
+    var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        licencePosition,
+        positionCorrection
+    );
 
-    if (subareaChangeStartFormValidator.hasErrors(form, bindingResult, blockFeatures)) {
+    if (subareaChangeStartFormValidator.hasErrors(
+        form,
+        bindingResult,
+        blockFeatures,
+        featureIdsAlreadyOperatedOn
+    )) {
       return getSubareaChangeModelAndView(
           correction,
           form,
@@ -117,12 +124,10 @@ public class LicencePositionSubareaChangeStartController {
   ) {
     var positionCorrection = licencePositionCorrectionService
         .getPositionCorrectionForCorrection(licencePositionCorrectionId, correction);
-    var existing = licencePositionCorrectionService.getCommittedChangeOfType(positionCorrection, SubareaOperation.class)
-        .orElse(null);
 
     return getSubareaChangeModelAndView(
         correction,
-        SubareaChangeStartForm.from(existing),
+        new SubareaChangeStartForm(),
         //TODO - EPGF-239: The features available to use will depend on the output of previous changes
         licencePositionService.getBlockFeaturesForCorrection(positionCorrection),
         addedChangeUrl(correctionId, licencePositionCorrectionId)
@@ -142,8 +147,11 @@ public class LicencePositionSubareaChangeStartController {
         .getPositionCorrectionForCorrection(licencePositionCorrectionId, correction);
     //TODO - EPGF-239: The features available to use will depend on the output of previous changes
     var blockFeatures = licencePositionService.getBlockFeaturesForCorrection(positionCorrection);
+    var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForAddedPosition(
+        positionCorrection
+    );
 
-    if (subareaChangeStartFormValidator.hasErrors(form, bindingResult, blockFeatures)) {
+    if (subareaChangeStartFormValidator.hasErrors(form, bindingResult, blockFeatures, featureIdsAlreadyOperatedOn)) {
       return getSubareaChangeModelAndView(
           correction,
           form,

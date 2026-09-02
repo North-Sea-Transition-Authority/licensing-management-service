@@ -5,7 +5,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -24,7 +23,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 
 @Service
 public class CorrectChangeOrderService {
@@ -46,9 +44,10 @@ public class CorrectChangeOrderService {
     this.licencePositionChangeService = licencePositionChangeService;
   }
 
-  public List<OrderableChange> getOrderableChanges(LicenceCorrection licenceCorrection, UUID licencePositionId) {
-    return orderableChangeTypeGroups(licenceCorrection, licencePositionId).stream()
-        .map(typeGroup -> new OrderableChange(typeGroup.representativeChangeId(), typeGroup.typeName()))
+  public List<OrderableChange> getOrderableChanges(LicenceCorrection licenceCorrection, UUID positionId) {
+    return licencePositionViewService.getOrderableChangeLabels(licenceCorrection, positionId)
+        .entrySet().stream()
+        .map(entry -> new OrderableChange(entry.getKey(), entry.getValue()))
         .toList();
   }
 
@@ -60,63 +59,35 @@ public class CorrectChangeOrderService {
       UUID targetChangeId,
       PositionMoveDirection direction
   ) {
-    var typeGroups = orderableChangeTypeGroups(licenceCorrection, licencePositionId);
+    var changes = getOrderableChanges(licenceCorrection, licencePositionId);
 
-    var movedGroup = findChangeWithId(typeGroups, movedChangeId)
-        .orElseThrow(() -> new IllegalArgumentException(
+    var moved = changes.stream()
+        .filter(orderableChange -> orderableChange.id().equals(movedChangeId))
+        .findFirst().orElseThrow(() -> new IllegalArgumentException(
             "Cannot move change %s as it is not on licence position %s".formatted(movedChangeId, licencePositionId)));
 
-    var targetGroup = findChangeWithId(typeGroups, targetChangeId)
-        .orElseThrow(() -> new IllegalArgumentException(
+    var target = changes.stream()
+        .filter(orderableChange -> orderableChange.id().equals(targetChangeId))
+        .findFirst().orElseThrow(() -> new IllegalArgumentException(
             "Cannot move change %s relative to change %s as they are not on the same licence position %s"
-                .formatted(movedChangeId, targetChangeId, licencePositionId)));
-
-    if (movedGroup.equals(targetGroup)) {
-      throw new IllegalArgumentException(
-          "Cannot move change %s relative to change %s as both are part of the same change type: %s"
-              .formatted(movedChangeId, targetChangeId, movedGroup.typeName()));
-    }
+                .formatted(movedChangeId, targetChangeId, licencePositionId)
+        ));
 
     var newChangeOrders = newChangeOrders(
-        PositionOrderingUtil.moveRelativeTo(typeGroups, movedGroup, targetGroup, direction));
+        PositionOrderingUtil.moveRelativeTo(changes, moved, target, direction)
+    );
 
     licencePositionCorrectionService.findFirstAddedPositionCorrection(licenceCorrection, licencePositionId).ifPresentOrElse(
         addedPositionCorrection -> reorderAddedPositionChanges(addedPositionCorrection, newChangeOrders),
         () -> reorderExecutedPositionChanges(licenceCorrection, licencePositionId, newChangeOrders));
   }
 
-  private static Map<String, Integer> newChangeOrders(List<ChangeTypeGroup> reorderedTypeGroups) {
+  private static Map<String, Integer> newChangeOrders(List<OrderableChange> reorderedChanges) {
     var newChangeOrders = new LinkedHashMap<String, Integer>();
-    for (var changeId : reorderedTypeGroups.stream().flatMap(group -> group.changeIds().stream()).toList()) {
-      newChangeOrders.put(changeId.toString(), newChangeOrders.size() + 1);
+    for (var change : reorderedChanges) {
+      newChangeOrders.put(change.id().toString(), newChangeOrders.size() + 1);
     }
     return newChangeOrders;
-  }
-
-  private List<ChangeTypeGroup> orderableChangeTypeGroups(
-      LicenceCorrection licenceCorrection,
-      UUID licencePositionId
-  ) {
-    var changesByOperationType = orderableChanges(licenceCorrection, licencePositionId)
-        .stream()
-        .collect(Collectors.groupingBy(
-            change -> change.operations().getFirst().type(),
-            LinkedHashMap::new,
-            Collectors.toList()
-        ));
-
-    return changesByOperationType.values().stream()
-        .map(ChangeTypeGroup::fromChangesOfOneType)
-        .toList();
-  }
-
-  private List<PositionChange> orderableChanges(LicenceCorrection licenceCorrection, UUID licencePositionId) {
-    return licencePositionViewService.getCorrectedChronologicalPositions(licenceCorrection, licencePositionId)
-        .stream()
-        .filter(chronologicalPosition -> chronologicalPosition.id().equals(licencePositionId))
-        .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
-        .filter(PositionChange::isOrderable)
-        .toList();
   }
 
   private void reorderExecutedPositionChanges(
@@ -189,12 +160,6 @@ public class CorrectChangeOrderService {
             LicencePositionChange::getChangeOrder));
   }
 
-  private static Optional<ChangeTypeGroup> findChangeWithId(List<ChangeTypeGroup> typeGroups, UUID changeId) {
-    return typeGroups.stream()
-        .filter(typeGroup -> typeGroup.contains(changeId))
-        .findFirst();
-  }
-
   private static LicencePositionChangeType withNewOrderIfAddChange(
       LicencePositionChangeType change,
       Map<String, Integer> newChangeOrders
@@ -203,23 +168,5 @@ public class CorrectChangeOrderService {
       return new AddChange(addChange.changeId(), newChangeOrders.get(addChange.changeId()), addChange.operations());
     }
     return change;
-  }
-
-  private record ChangeTypeGroup(String typeName, List<UUID> changeIds) {
-
-    static ChangeTypeGroup fromChangesOfOneType(List<PositionChange> changes) {
-      return new ChangeTypeGroup(
-          changes.getFirst().operations().getFirst().displayName(),
-          changes.stream().map(change -> UUID.fromString(change.changeId())).toList()
-      );
-    }
-
-    UUID representativeChangeId() {
-      return changeIds.getFirst();
-    }
-
-    boolean contains(UUID changeId) {
-      return changeIds.contains(changeId);
-    }
   }
 }

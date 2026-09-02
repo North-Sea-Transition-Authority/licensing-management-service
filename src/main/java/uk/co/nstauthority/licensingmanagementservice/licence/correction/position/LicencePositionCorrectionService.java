@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -23,20 +24,25 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 
 @Service
 public class LicencePositionCorrectionService {
 
   private final LicencePositionCorrectionRepository licencePositionCorrectionRepository;
   private final LicencePositionRepository licencePositionRepository;
+  private final LicencePositionChangeService licencePositionChangeService;
 
   public LicencePositionCorrectionService(
       LicencePositionCorrectionRepository licencePositionCorrectionRepository,
-      LicencePositionRepository licencePositionRepository
+      LicencePositionRepository licencePositionRepository,
+      LicencePositionChangeService licencePositionChangeService
   ) {
     this.licencePositionCorrectionRepository = licencePositionCorrectionRepository;
     this.licencePositionRepository = licencePositionRepository;
+    this.licencePositionChangeService = licencePositionChangeService;
   }
 
   public Optional<LicencePositionCorrection> findUpdatePositionCorrection(
@@ -452,6 +458,60 @@ public class LicencePositionCorrectionService {
             licencePositionCorrection.getPayload().changes(), operationType)
         .stream()
         .findFirst();
+  }
+
+  //TODO - LMS2-202: There are occurrences in the codebase when all positions are fetched when the change
+  // information for only one is needed. In the future, methods could be refactored to use these instead.
+  public List<PositionChange> getChangesForExecutedPosition(
+      LicencePosition licencePosition,
+      @Nullable LicencePositionCorrection updateCorrection
+  ) {
+    var liveChanges = licencePositionChangeService.findByLicencePositionId(licencePosition.getId());
+    var stagedChanges = updateCorrection == null ? List.<LicencePositionChangeType>of()
+        : updateCorrection.getPayload().changes();
+
+    return PositionChange.foldChanges(liveChanges, stagedChanges);
+  }
+
+  public List<PositionChange> getChangesForAddedPosition(LicencePositionCorrection addedCorrection) {
+    return PositionChange.foldChanges(List.of(), addedCorrection.getPayload().changes());
+  }
+
+  public Set<UUID> blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+      LicencePosition licencePosition,
+      @Nullable LicencePositionCorrection updateCorrection
+  ) {
+    return blockFeatureIdsAlreadyOperatedOnForExecutedPosition(licencePosition, updateCorrection, null);
+  }
+
+  public Set<UUID> blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+      LicencePosition licencePosition,
+      @Nullable LicencePositionCorrection updateCorrection,
+      @Nullable String changeIdToExclude
+  ) {
+    return featureIdsFromFold(getChangesForExecutedPosition(licencePosition, updateCorrection), changeIdToExclude);
+  }
+
+  public Set<UUID> blockFeatureIdsAlreadyOperatedOnForAddedPosition(
+      LicencePositionCorrection addedCorrection
+  ) {
+    return blockFeatureIdsAlreadyOperatedOnForAddedPosition(addedCorrection, null);
+  }
+
+  public Set<UUID> blockFeatureIdsAlreadyOperatedOnForAddedPosition(
+      LicencePositionCorrection addedCorrection,
+      @Nullable String changeIdToExclude
+  ) {
+    return featureIdsFromFold(getChangesForAddedPosition(addedCorrection), changeIdToExclude);
+  }
+
+  private static Set<UUID> featureIdsFromFold(List<PositionChange> changes, @Nullable String changeIdToExclude) {
+    return changes.stream()
+        .filter(positionChange -> !LicencePositionChangeType.REMOVE_CHANGE.equals(positionChange.changeType()))
+        .filter(positionChange -> !positionChange.changeId().equals(changeIdToExclude))
+        .flatMap(positionChange -> positionChange.operations().stream())
+        .flatMap(licenceOperation -> LicenceOperation.featureIds(licenceOperation).stream())
+        .collect(Collectors.toSet());
   }
 
   private boolean hasAddOperationOfType(

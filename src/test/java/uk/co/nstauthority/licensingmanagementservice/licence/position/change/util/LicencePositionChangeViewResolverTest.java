@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
@@ -26,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSu
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
@@ -109,8 +111,7 @@ class LicencePositionChangeViewResolverTest {
     );
 
     assertThat(result)
-        .hasSize(1)
-        .extractingByKey(LicenceOperation.LICENCE_ADMINISTRATOR)
+        .singleElement()
         .isInstanceOf(AdministratorChangeView.class)
         .extracting(
             licencePositionChangeView -> ((AdministratorChangeView) licencePositionChangeView).withdrawingOrganisationName(),
@@ -139,8 +140,7 @@ class LicencePositionChangeViewResolverTest {
     );
 
     assertThat(result)
-        .hasSize(1)
-        .extractingByKey(LicenceOperation.LICENCE_ADMINISTRATOR)
+        .singleElement()
         .isInstanceOf(AdministratorChangeView.class)
         .extracting(
             licencePositionChangeView -> ((AdministratorChangeView) licencePositionChangeView).withdrawingOrganisationName(),
@@ -176,7 +176,7 @@ class LicencePositionChangeViewResolverTest {
     );
 
     assertThat(result)
-        .extractingByKey(LicenceOperation.LICENCE_ADMINISTRATOR)
+        .singleElement()
         .isInstanceOf(AdministratorChangeView.class)
         .extracting(LicencePositionChangeView::changeType)
         .isEqualTo(LicencePositionChangeType.ADD_CHANGE);
@@ -275,7 +275,7 @@ class LicencePositionChangeViewResolverTest {
         urlContext
     );
 
-    return (AdministratorChangeView) result.get(LicenceOperation.LICENCE_ADMINISTRATOR);
+    return (AdministratorChangeView) byType(result, LicenceOperation.LICENCE_ADMINISTRATOR);
   }
 
   @Test
@@ -297,7 +297,7 @@ class LicencePositionChangeViewResolverTest {
         null
     );
 
-    var setEquityChangeView = (SetEquityChangeView) result.get(LicenceOperation.SET_EQUITY);
+    var setEquityChangeView = (SetEquityChangeView) byType(result, LicenceOperation.SET_EQUITY);
     assertThat(setEquityChangeView)
         .usingRecursiveComparison()
         .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
@@ -328,12 +328,37 @@ class LicencePositionChangeViewResolverTest {
         null
     );
 
-    var setEquityChangeView = (SetEquityChangeView) result.get(LicenceOperation.SET_EQUITY);
+    var setEquityChangeView = (SetEquityChangeView) byType(result, LicenceOperation.SET_EQUITY);
     assertThat(setEquityChangeView.rows())
         .extracting(SetEquityRow::organisationName, SetEquityRow::equity)
         .containsExactly(
             tuple("Org", BigDecimal.valueOf(40)),
             tuple("Org2", BigDecimal.valueOf(60)));
+  }
+
+  @Test
+  void getChangeViews_whenChangeMixesSetAndTransferEquity_buildsSeparateCardsPerType() {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
+
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        new SetEquityOperation(300, BigDecimal.valueOf(75)),
+        new TransferEquityOperation(400, 500, BigDecimal.TEN, true)
+    );
+
+    var chronologicalPositions = List.of(currentChronologicalPosition);
+    var result = LicencePositionChangeViewResolver.getChangeViews(
+        currentLicencePosition.getId(),
+        chronologicalPositions,
+        LicencePositionStateResolver.resolve(chronologicalPositions),
+        Map.of(300, "Set Org", 400, "From Org", 500, "To Org"),
+        Map.of(),
+        null
+    );
+
+    assertThat(result)
+        .extracting(LicencePositionChangeView::type)
+        .containsExactly(LicenceOperation.SET_EQUITY, LicenceOperation.TRANSFER_EQUITY);
   }
 
   @Test
@@ -355,7 +380,7 @@ class LicencePositionChangeViewResolverTest {
         null
     );
 
-    var setEquityChangeView = (SetEquityChangeView) result.get(LicenceOperation.SET_EQUITY);
+    var setEquityChangeView = (SetEquityChangeView) byType(result, LicenceOperation.SET_EQUITY);
     assertThat(setEquityChangeView.rows())
         .singleElement()
         .extracting(SetEquityRow::organisationName)
@@ -503,7 +528,7 @@ class LicencePositionChangeViewResolverTest {
         urlContext
     );
 
-    var view = (TransferEquityChangeView) result.get(LicenceOperation.TRANSFER_EQUITY);
+    var view = (TransferEquityChangeView) byType(result, LicenceOperation.TRANSFER_EQUITY);
 
     var expected = new TransferEquityChangeView(
         List.of(new TransferEquityChangeHoldingView(
@@ -550,7 +575,7 @@ class LicencePositionChangeViewResolverTest {
         urlContext
     );
 
-    var view = (TransferEquityChangeView) result.get(LicenceOperation.TRANSFER_EQUITY);
+    var view = (TransferEquityChangeView) byType(result, LicenceOperation.TRANSFER_EQUITY);
 
     var holding = view.holdings().getFirst();
     assertThat(holding.transferFromOrganisationName()).isEqualTo("Not available");
@@ -645,7 +670,7 @@ class LicencePositionChangeViewResolverTest {
         urlContext
     );
 
-    return (SetEquityChangeView) result.get(LicenceOperation.SET_EQUITY);
+    return (SetEquityChangeView) byType(result, LicenceOperation.SET_EQUITY);
   }
 
   private TransferEquityChangeView transferEquityChangeView(
@@ -686,7 +711,7 @@ class LicencePositionChangeViewResolverTest {
         urlContext
     );
 
-    return (TransferEquityChangeView) result.get(LicenceOperation.TRANSFER_EQUITY);
+    return (TransferEquityChangeView) byType(result, LicenceOperation.TRANSFER_EQUITY);
   }
 
   @Test
@@ -708,10 +733,10 @@ class LicencePositionChangeViewResolverTest {
     var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
 
     assertThat(result)
-        .extractingByKey(LicenceOperation.PARTIAL_SURRENDER)
+        .singleElement()
         .isInstanceOf(PartialSurrenderChangeView.class);
 
-    var partialSurrenderChangeView = (PartialSurrenderChangeView) result.get(LicenceOperation.PARTIAL_SURRENDER);
+    var partialSurrenderChangeView = (PartialSurrenderChangeView) byType(result, LicenceOperation.PARTIAL_SURRENDER);
     assertThat(partialSurrenderChangeView.blockRows()).containsExactly(
         new PartialSurrenderChangeView.BlockRow("30/1a", "Full surrender"),
         new PartialSurrenderChangeView.BlockRow("30/2", "Partial surrender"));
@@ -733,7 +758,7 @@ class LicencePositionChangeViewResolverTest {
 
     var result = changeViewsFor(currentLicencePosition.getId(), Map.of(), currentChronologicalPosition);
 
-    var partialSurrenderChangeView = (PartialSurrenderChangeView) result.get(LicenceOperation.PARTIAL_SURRENDER);
+    var partialSurrenderChangeView = (PartialSurrenderChangeView) byType(result, LicenceOperation.PARTIAL_SURRENDER);
     assertThat(partialSurrenderChangeView.blockRows())
         .containsExactly(new PartialSurrenderChangeView.BlockRow("Not available", "Full surrender"));
   }
@@ -754,7 +779,7 @@ class LicencePositionChangeViewResolverTest {
 
     var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
 
-    var partialSurrenderChangeView = (PartialSurrenderChangeView) result.get(LicenceOperation.PARTIAL_SURRENDER);
+    var partialSurrenderChangeView = (PartialSurrenderChangeView) byType(result, LicenceOperation.PARTIAL_SURRENDER);
     assertThat(partialSurrenderChangeView.surrenderDate()).isEqualTo("1 August 2026");
   }
 
@@ -775,7 +800,7 @@ class LicencePositionChangeViewResolverTest {
 
     var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
 
-    var partialSurrenderChangeView = (PartialSurrenderChangeView) result.get(LicenceOperation.PARTIAL_SURRENDER);
+    var partialSurrenderChangeView = (PartialSurrenderChangeView) byType(result, LicenceOperation.PARTIAL_SURRENDER);
     assertThat(partialSurrenderChangeView.surrenderDate()).isEqualTo("30 September 2026");
   }
 
@@ -802,7 +827,7 @@ class LicencePositionChangeViewResolverTest {
 
     var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
 
-    assertThat((PartialSurrenderChangeView) result.get(LicenceOperation.PARTIAL_SURRENDER))
+    assertThat((PartialSurrenderChangeView) byType(result, LicenceOperation.PARTIAL_SURRENDER))
         .extracting(PartialSurrenderChangeView::blockRows)
         .isEqualTo(List.of(
             new PartialSurrenderChangeView.BlockRow(FEATURE_NAMES.get(FIRST_FEATURE_ID), "Full surrender"),
@@ -823,7 +848,7 @@ class LicencePositionChangeViewResolverTest {
 
     var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
 
-    assertThat((PartialSurrenderChangeView) result.get(LicenceOperation.PARTIAL_SURRENDER))
+    assertThat((PartialSurrenderChangeView) byType(result, LicenceOperation.PARTIAL_SURRENDER))
         .extracting(view -> view.urls().correct())
         .isNull();
   }
@@ -955,7 +980,7 @@ class LicencePositionChangeViewResolverTest {
         FEATURE_NAMES,
         urlContext);
 
-    return (PartialSurrenderChangeView) result.get(LicenceOperation.PARTIAL_SURRENDER);
+    return (PartialSurrenderChangeView) byType(result, LicenceOperation.PARTIAL_SURRENDER);
   }
 
   @Test
@@ -969,7 +994,7 @@ class LicencePositionChangeViewResolverTest {
     var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
 
     assertThat(result)
-        .extractingByKey(LicenceOperation.SUBAREA)
+        .singleElement()
         .isInstanceOf(SubareaChangeView.class)
         .extracting(view -> ((SubareaChangeView) view).featureName())
         .isEqualTo(FEATURE_NAMES.get(FIRST_FEATURE_ID));
@@ -985,11 +1010,11 @@ class LicencePositionChangeViewResolverTest {
 
     var result = changeViewsFor(currentLicencePosition.getId(), Map.of(), currentChronologicalPosition);
 
-    var subareaChangeView = (SubareaChangeView) result.get(LicenceOperation.SUBAREA);
+    var subareaChangeView = (SubareaChangeView) byType(result, LicenceOperation.SUBAREA);
     assertThat(subareaChangeView.featureName()).isEqualTo("Not available");
   }
 
-  private static Map<String, LicencePositionChangeView> changeViewsFor(
+  private static List<LicencePositionChangeView> changeViewsFor(
       UUID currentPositionId,
       Map<UUID, String> featureNames,
       ChronologicalPosition... chronologicalPositions
@@ -1022,7 +1047,6 @@ class LicencePositionChangeViewResolverTest {
     );
 
     assertThat(result)
-        .extractingByKeys(LicenceOperation.SET_EQUITY, LicenceOperation.PARTIAL_SURRENDER)
         .extracting(LicencePositionChangeView::urls)
         .containsExactly(
             new ChangeViewUrls(
@@ -1044,6 +1068,33 @@ class LicencePositionChangeViewResolverTest {
   }
 
   @Test
+  void getChangeViews_whenTwoSubareaChanges_retainsBothCardsInOrderWithOwnReorderUrls() {
+    var correctionId = UUID.randomUUID();
+    var positionId = UUID.randomUUID();
+    var firstChangeId = UUID.randomUUID();
+    var secondChangeId = UUID.randomUUID();
+
+    var result = changeOrderChangeViews(
+        positionId,
+        List.of(
+            new PositionChange(firstChangeId.toString(), 1, null, List.of(new SubareaOperation(FIRST_FEATURE_ID))),
+            new PositionChange(secondChangeId.toString(), 2, null, List.of(new SubareaOperation(SECOND_FEATURE_ID)))
+        ),
+        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, null)
+    );
+
+    assertThat(result)
+        .extracting(LicencePositionChangeView::type, LicencePositionChangeView::urls)
+        .containsExactly(
+            tuple(LicenceOperation.SUBAREA, new ChangeViewUrls(null, null, null,
+                ReverseRouter.route(on(CorrectChangeOrderController.class)
+                    .renderCorrectChangeOrder(correctionId, positionId, firstChangeId, null)))),
+            tuple(LicenceOperation.SUBAREA, new ChangeViewUrls(null, null, null,
+                ReverseRouter.route(on(CorrectChangeOrderController.class)
+                    .renderCorrectChangeOrder(correctionId, positionId, secondChangeId, null)))));
+  }
+
+  @Test
   void getChangeViews_whenOnlyOneOrderableChangeType_hasNoCorrectChangeOrderUrl() {
     var correctionId = UUID.randomUUID();
     var positionId = UUID.randomUUID();
@@ -1056,7 +1107,7 @@ class LicencePositionChangeViewResolverTest {
     );
 
     assertThat(result)
-        .extractingByKey(LicenceOperation.SET_EQUITY)
+        .singleElement()
         .extracting(LicencePositionChangeView::urls)
         .isEqualTo(new ChangeViewUrls(
             null,
@@ -1081,7 +1132,8 @@ class LicencePositionChangeViewResolverTest {
     );
 
     assertThat(result)
-        .extractingByKey(LicenceOperation.LICENCE_ADMINISTRATOR)
+        .filteredOn(view -> view.type().equals(LicenceOperation.LICENCE_ADMINISTRATOR))
+        .singleElement()
         .extracting(LicencePositionChangeView::urls)
         .isEqualTo(new ChangeViewUrls(
             null,
@@ -1103,12 +1155,11 @@ class LicencePositionChangeViewResolverTest {
     );
 
     assertThat(result)
-        .extractingByKeys(LicenceOperation.SET_EQUITY, LicenceOperation.PARTIAL_SURRENDER)
         .extracting(LicencePositionChangeView::urls)
         .containsOnly(ChangeViewUrls.none());
   }
 
-  private static Map<String, LicencePositionChangeView> changeOrderChangeViews(
+  private static List<LicencePositionChangeView> changeOrderChangeViews(
       UUID positionId,
       List<PositionChange> changes,
       PositionChangeUrlContext urlContext
@@ -1147,5 +1198,60 @@ class LicencePositionChangeViewResolverTest {
                 List.of(FIRST_FEATURE_ID)
             )))
             .build()));
+  }
+
+  private static LicencePositionChangeView byType(List<LicencePositionChangeView> views, String type) {
+    return views.stream()
+        .filter(view -> view.type().equals(type))
+        .findFirst()
+        .orElseThrow();
+  }
+
+  @Test
+  void getOrderableChangeLabels_labelsSubareaByFeatureNameAndOtherChangesByDisplayName() {
+    var subareaChangeId = UUID.randomUUID();
+    var subareaChange = new PositionChange(
+        subareaChangeId.toString(), 1, null, List.of(new SubareaOperation(FIRST_FEATURE_ID)));
+
+    var administratorOperation = LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build();
+    var administratorChangeId = UUID.randomUUID();
+    var administratorChange = new PositionChange(
+        administratorChangeId.toString(), 2, null, List.of(administratorOperation));
+
+    var result = LicencePositionChangeViewResolver.getOrderableChangeLabels(
+        List.of(subareaChange, administratorChange), FEATURE_NAMES);
+
+    assertThat(result).containsExactly(
+        entry(subareaChangeId, "Subarea change – 30/1a"),
+        entry(administratorChangeId, administratorOperation.displayName()));
+  }
+
+  @Test
+  void getOrderableChangeLabels_whenSubareaFeatureNameMissing_usesNotAvailable() {
+    var changeId = UUID.randomUUID();
+    var change = new PositionChange(
+        changeId.toString(), 1, null, List.of(new SubareaOperation(UUID.randomUUID())));
+
+    var result = LicencePositionChangeViewResolver.getOrderableChangeLabels(List.of(change), Map.of());
+
+    assertThat(result).containsExactly(entry(changeId, "Subarea change – Not available"));
+  }
+
+  @Test
+  void getOrderableChangeLabels_excludesNonOrderableChanges() {
+    var orderableChangeId = UUID.randomUUID();
+    var orderableChange = new PositionChange(
+        orderableChangeId.toString(), 1, null, List.of(new SubareaOperation(FIRST_FEATURE_ID)));
+
+    var removedChange = new PositionChange(
+        UUID.randomUUID().toString(), 2, LicencePositionChangeType.REMOVE_CHANGE,
+        List.of(new SubareaOperation(SECOND_FEATURE_ID)));
+
+    var emptyChange = new PositionChange(UUID.randomUUID().toString(), 3, null, List.of());
+
+    var result = LicencePositionChangeViewResolver.getOrderableChangeLabels(
+        List.of(orderableChange, removedChange, emptyChange), FEATURE_NAMES);
+
+    assertThat(result).containsExactly(entry(orderableChangeId, "Subarea change – 30/1a"));
   }
 }

@@ -13,7 +13,6 @@ import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLog
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -109,7 +108,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
             POSITION_ID, "url1", "REF-2", "5 June 2026", false, null, false, null, null, false, null, null, false)),
         position.getFormattedPositionDate(),
         position.getLicence().getLicenceReference(),
-        Map.of(),
+        List.of(),
         new LicencePositionStateView(
             new AdministratorStateView("admin organisation"),
             List.of()

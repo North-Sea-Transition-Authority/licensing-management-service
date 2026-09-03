@@ -72,6 +72,7 @@ public class SwpApplicationRequestPurposeService {
     return licenceScheduleStateService.hasCurrentWorkProgrammeActivities(scheduleDetail);
   }
 
+  @Transactional
   public void applyDefaultRequestPurposeIfNotApplicable(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
     if (hasAmendableWorkProgrammeActivities(applicationDetail)) {
       return;
@@ -84,12 +85,18 @@ public class SwpApplicationRequestPurposeService {
     if (availablePurposes.size() == 1) {
       var form = new SwpApplicationRequestPurposeForm();
       form.setRequestPurposes(availablePurposes);
-      saveOrUpdateRequestPurpose(applicationDetail, form);
+      persistRequestPurpose(applicationDetail, form);
     }
   }
 
   @Transactional
   public SwpApplicationRequestPurpose saveOrUpdateRequestPurpose(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail,
+      SwpApplicationRequestPurposeForm form) {
+    return persistRequestPurpose(applicationDetail, form);
+  }
+
+  private SwpApplicationRequestPurpose persistRequestPurpose(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
       SwpApplicationRequestPurposeForm form) {
 

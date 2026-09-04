@@ -21,22 +21,22 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping(
-    "licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/extension-decision-details")
+    "licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/duration-changes")
 @ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.ISSUE_DECISION)
 @InvokingUserCanAccessScheduleApplication
-public class RecordExtensionDetailsController {
+public class RecordDurationChangesController {
 
-  static final String PAGE_TITLE = "Extension decision details";
+  static final String PAGE_TITLE = "Term and phase durations";
 
-  private final RecordExtensionDetailsService recordExtensionDetailsService;
-  private final RecordExtensionDetailsFormValidator recordExtensionDetailsFormValidator;
+  private final RecordDurationChangesService recordDurationChangesService;
+  private final RecordDurationChangesFormValidator recordDurationChangesFormValidator;
 
-  public RecordExtensionDetailsController(
-      RecordExtensionDetailsService recordExtensionDetailsService,
-      RecordExtensionDetailsFormValidator recordExtensionDetailsFormValidator
+  public RecordDurationChangesController(
+      RecordDurationChangesService recordDurationChangesService,
+      RecordDurationChangesFormValidator recordDurationChangesFormValidator
   ) {
-    this.recordExtensionDetailsService = recordExtensionDetailsService;
-    this.recordExtensionDetailsFormValidator = recordExtensionDetailsFormValidator;
+    this.recordDurationChangesService = recordDurationChangesService;
+    this.recordDurationChangesFormValidator = recordDurationChangesFormValidator;
   }
 
   @GetMapping
@@ -44,7 +44,7 @@ public class RecordExtensionDetailsController {
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
     return getModelAndView(
-        recordExtensionDetailsService.getFilledForm(scheduleWorkProgrammeApplicationDetail),
+        recordDurationChangesService.getFilledForm(scheduleWorkProgrammeApplicationDetail),
         scheduleWorkProgrammeApplicationDetail);
   }
 
@@ -52,24 +52,22 @@ public class RecordExtensionDetailsController {
   public ModelAndView submitForm(
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
-      @ModelAttribute("form") RecordExtensionDetailsForm form,
+      @ModelAttribute("form") RecordDurationChangesForm form,
       BindingResult bindingResult) {
-    if (!recordExtensionDetailsFormValidator.isValid(form, bindingResult, scheduleWorkProgrammeApplicationDetail)) {
+    if (!recordDurationChangesFormValidator.isValid(
+        form, bindingResult, scheduleWorkProgrammeApplicationDetail)) {
       return getModelAndView(form, scheduleWorkProgrammeApplicationDetail);
     }
 
-    recordExtensionDetailsService.saveExtensionDetails(form, scheduleWorkProgrammeApplicationDetail);
+    recordDurationChangesService.saveDurationChanges(form, scheduleWorkProgrammeApplicationDetail);
 
     return ReverseRouter.redirect(on(RecordOfDecisionTaskListController.class)
         .getTaskList(scheduleWorkProgrammeApplicationDetailId, null, null));
   }
 
   private ModelAndView getModelAndView(
-      RecordExtensionDetailsForm form,
+      RecordDurationChangesForm form,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
-
-    var extensionDetailsViews = recordExtensionDetailsService
-        .getExtensionDetailsViews(scheduleWorkProgrammeApplicationDetail);
 
     var taskListUrl = ReverseRouter.route(on(RecordOfDecisionTaskListController.class)
         .getTaskList(scheduleWorkProgrammeApplicationDetail.getId(), null, null));
@@ -79,11 +77,12 @@ public class RecordExtensionDetailsController {
         .addTaskListBreadcrumb(taskListUrl)
         .build();
 
-    var modelAndView = new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/recordExtensionDetails")
+    var modelAndView = new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/recordDurationChanges")
         .addObject("form", form)
         .addObject("pageTitle", PAGE_TITLE)
-        .addObject("extensionDetailsViews", extensionDetailsViews)
-        .addObject("canExtendMoreThanOneOption", extensionDetailsViews.size() > 1)
+        .addObject("durationChangeViews",
+            recordDurationChangesService.getDurationChangeViews(scheduleWorkProgrammeApplicationDetail))
+        .addObject("changeTypeOptions", DurationChangeType.getOptions())
         .addObject("cancelUrl", taskListUrl);
 
     BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);

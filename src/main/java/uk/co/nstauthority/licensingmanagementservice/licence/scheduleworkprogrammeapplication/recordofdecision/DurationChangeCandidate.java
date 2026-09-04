@@ -1,13 +1,14 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision;
 
+import java.time.LocalDate;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 
-public record RecordReductionDetailsView(
+record DurationChangeCandidate(
     String id,
     String displayName,
-    String endDate,
-    boolean isPhase,
-    boolean isSelected,
-    ThreeFieldDuration duration
-){
+    LocalDate startDate,
+    LocalDate endDate,
+    ThreeFieldDuration duration,
+    boolean isPhase
+) {
 }

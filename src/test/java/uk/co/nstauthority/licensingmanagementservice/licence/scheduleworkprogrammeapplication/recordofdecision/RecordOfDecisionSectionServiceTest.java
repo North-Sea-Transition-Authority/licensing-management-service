@@ -27,7 +27,7 @@ class RecordOfDecisionSectionServiceTest {
   private RecordOfDecisionService recordOfDecisionService;
 
   @Mock
-  private RecordReductionDetailsService recordReductionDetailsService;
+  private RecordDurationChangesService recordDurationChangesService;
 
   @Mock
   private RecordWorkProgrammeAmendmentDetailsService recordWorkProgrammeAmendmentDetailsService;
@@ -51,18 +51,16 @@ class RecordOfDecisionSectionServiceTest {
   private void mockDecisions(
       Optional<RecordOfDecision> recordOfDecision,
       boolean extensionApproved,
-      boolean extensionDetailsSaved,
       boolean workProgrammeAmendmentApproved) {
     when(recordOfDecisionService.findByApplicationDetail(applicationDetail)).thenReturn(recordOfDecision);
     when(recordOfDecisionService.isExtensionApproved(applicationDetail)).thenReturn(extensionApproved);
-    when(recordOfDecisionService.isExtensionDetailsSaved(applicationDetail)).thenReturn(extensionDetailsSaved);
     when(recordOfDecisionService.isWorkProgrammeAmendmentApproved(applicationDetail))
         .thenReturn(workProgrammeAmendmentApproved);
   }
 
   @Test
   void getSection_returnsRecordOfDecisionSectionNameAndOrder() {
-    mockDecisions(Optional.empty(), false, false, false);
+    mockDecisions(Optional.empty(), false, false);
 
     var section = recordOfDecisionSectionService.getSection(context, user).orElseThrow();
 
@@ -72,7 +70,7 @@ class RecordOfDecisionSectionServiceTest {
 
   @Test
   void getSection_whenNothingApproved_showsOnlyWhatIsTheDecision() {
-    mockDecisions(Optional.empty(), false, false, false);
+    mockDecisions(Optional.empty(), false, false);
 
     var section = recordOfDecisionSectionService.getSection(context, user).orElseThrow();
 
@@ -82,8 +80,8 @@ class RecordOfDecisionSectionServiceTest {
   }
 
   @Test
-  void getSection_whenExtensionApproved_showsExtensionTask() {
-    mockDecisions(Optional.empty(), true, false, false);
+  void getSection_whenExtensionApproved_showsDurationsTask() {
+    mockDecisions(Optional.empty(), true, false);
 
     var section = recordOfDecisionSectionService.getSection(context, user).orElseThrow();
 
@@ -91,52 +89,38 @@ class RecordOfDecisionSectionServiceTest {
         .extracting(TaskListItem::displayName)
         .containsExactly(
             RecordOfDecisionSectionService.WHAT_IS_THE_DECISION,
-            RecordOfDecisionSectionService.EXTENSION_DECISION_DETAILS);
+            RecordOfDecisionSectionService.TERM_AND_PHASE_DURATIONS);
   }
 
   @Test
-  void getSection_whenExtensionDetailsSaved_showsCorrespondingReductionTask() {
-    mockDecisions(Optional.empty(), true, true, false);
+  void getSection_whenReductionBalancesTheExtension_marksDurationsTaskComplete() {
+    mockDecisions(Optional.empty(), true, false);
+    when(recordDurationChangesService.isComplete(applicationDetail)).thenReturn(true);
 
     var section = recordOfDecisionSectionService.getSection(context, user).orElseThrow();
 
     assertThat(section.items())
-        .extracting(TaskListItem::displayName)
-        .containsExactly(
-            RecordOfDecisionSectionService.WHAT_IS_THE_DECISION,
-            RecordOfDecisionSectionService.EXTENSION_DECISION_DETAILS,
-            RecordOfDecisionSectionService.CORRESPONDING_REDUCTION_DETAILS);
-  }
-
-  @Test
-  void getSection_whenReductionBalancesTheExtension_marksCorrespondingReductionComplete() {
-    mockDecisions(Optional.empty(), true, true, false);
-    when(recordReductionDetailsService.isReductionComplete(applicationDetail)).thenReturn(true);
-
-    var section = recordOfDecisionSectionService.getSection(context, user).orElseThrow();
-
-    assertThat(section.items())
-        .filteredOn(item -> item.displayName().equals(RecordOfDecisionSectionService.CORRESPONDING_REDUCTION_DETAILS))
+        .filteredOn(item -> item.displayName().equals(RecordOfDecisionSectionService.TERM_AND_PHASE_DURATIONS))
         .extracting(TaskListItem::label)
         .containsExactly(TaskListLabel.COMPLETE);
   }
 
   @Test
-  void getSection_whenReductionNoLongerBalancesTheExtension_marksCorrespondingReductionNotComplete() {
-    mockDecisions(Optional.empty(), true, true, false);
-    when(recordReductionDetailsService.isReductionComplete(applicationDetail)).thenReturn(false);
+  void getSection_whenReductionDoesNotBalanceTheExtension_marksDurationsTaskNotComplete() {
+    mockDecisions(Optional.empty(), true, false);
+    when(recordDurationChangesService.isComplete(applicationDetail)).thenReturn(false);
 
     var section = recordOfDecisionSectionService.getSection(context, user).orElseThrow();
 
     assertThat(section.items())
-        .filteredOn(item -> item.displayName().equals(RecordOfDecisionSectionService.CORRESPONDING_REDUCTION_DETAILS))
+        .filteredOn(item -> item.displayName().equals(RecordOfDecisionSectionService.TERM_AND_PHASE_DURATIONS))
         .extracting(TaskListItem::label)
         .containsExactly(TaskListLabel.NOT_COMPLETE);
   }
 
   @Test
   void getSection_whenWorkProgrammeAmendmentApproved_showsWorkProgrammeTask() {
-    mockDecisions(Optional.empty(), false, false, true);
+    mockDecisions(Optional.empty(), false, true);
 
     var section = recordOfDecisionSectionService.getSection(context, user).orElseThrow();
 
@@ -149,7 +133,7 @@ class RecordOfDecisionSectionServiceTest {
 
   @Test
   void getSection_whenWorkProgrammeAmendmentRecorded_marksWorkProgrammeTaskComplete() {
-    mockDecisions(Optional.empty(), false, false, true);
+    mockDecisions(Optional.empty(), false, true);
     when(recordWorkProgrammeAmendmentDetailsService.hasAmendmentDetails(applicationDetail)).thenReturn(true);
 
     var section = recordOfDecisionSectionService.getSection(context, user).orElseThrow();
@@ -163,7 +147,7 @@ class RecordOfDecisionSectionServiceTest {
 
   @Test
   void getSection_whenNoWorkProgrammeAmendmentRecorded_marksWorkProgrammeTaskNotComplete() {
-    mockDecisions(Optional.empty(), false, false, true);
+    mockDecisions(Optional.empty(), false, true);
     when(recordWorkProgrammeAmendmentDetailsService.hasAmendmentDetails(applicationDetail)).thenReturn(false);
 
     var section = recordOfDecisionSectionService.getSection(context, user).orElseThrow();
@@ -177,7 +161,7 @@ class RecordOfDecisionSectionServiceTest {
 
   @Test
   void getSection_whenWorkProgrammeAmendmentApproved_linksToSelectWorkProgrammeActivity() {
-    mockDecisions(Optional.empty(), false, false, true);
+    mockDecisions(Optional.empty(), false, true);
 
     var section = recordOfDecisionSectionService.getSection(context, user).orElseThrow();
 
@@ -191,7 +175,7 @@ class RecordOfDecisionSectionServiceTest {
 
   @Test
   void getSection_whenEverythingApproved_showsTasksInAcceptanceCriteriaOrder() {
-    mockDecisions(Optional.empty(), true, true, true);
+    mockDecisions(Optional.empty(), true, true);
 
     var section = recordOfDecisionSectionService.getSection(context, user).orElseThrow();
 
@@ -199,8 +183,7 @@ class RecordOfDecisionSectionServiceTest {
         .extracting(TaskListItem::displayName)
         .containsExactly(
             RecordOfDecisionSectionService.WHAT_IS_THE_DECISION,
-            RecordOfDecisionSectionService.EXTENSION_DECISION_DETAILS,
-            RecordOfDecisionSectionService.CORRESPONDING_REDUCTION_DETAILS,
+            RecordOfDecisionSectionService.TERM_AND_PHASE_DURATIONS,
             RecordOfDecisionSectionService.WORK_PROGRAMME_AMENDMENT_DETAILS);
   }
 
@@ -209,7 +192,7 @@ class RecordOfDecisionSectionServiceTest {
     var recordOfDecision = new RecordOfDecision();
     recordOfDecision.setExtensionDecision(RecordOfDecisionResponse.REJECTED);
     recordOfDecision.setWorkProgrammeDecision(RecordOfDecisionResponse.NOT_REQUESTED);
-    mockDecisions(Optional.of(recordOfDecision), false, false, false);
+    mockDecisions(Optional.of(recordOfDecision), false, false);
 
     var section = recordOfDecisionSectionService.getSection(context, user).orElseThrow();
 
@@ -218,7 +201,7 @@ class RecordOfDecisionSectionServiceTest {
 
   @Test
   void getSection_whenDecisionNotAnswered_marksWhatIsTheDecisionNotComplete() {
-    mockDecisions(Optional.empty(), false, false, false);
+    mockDecisions(Optional.empty(), false, false);
 
     var section = recordOfDecisionSectionService.getSection(context, user).orElseThrow();
 

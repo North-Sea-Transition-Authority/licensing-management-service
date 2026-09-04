@@ -18,21 +18,20 @@ public class RecordOfDecisionSectionService implements TaskListSectionService<Re
   static final String SECTION_NAME = "Record of decision";
   static final int SECTION_ORDER = 10;
   static final String WHAT_IS_THE_DECISION = "What is the decision?";
-  static final String EXTENSION_DECISION_DETAILS = "Extension decision details";
-  static final String CORRESPONDING_REDUCTION_DETAILS = "Corresponding reduction details";
+  static final String TERM_AND_PHASE_DURATIONS = "Term and phase durations";
   static final String WORK_PROGRAMME_AMENDMENT_DETAILS = "Work programme amendment details";
 
   private final RecordOfDecisionService recordOfDecisionService;
-  private final RecordReductionDetailsService recordReductionDetailsService;
+  private final RecordDurationChangesService recordDurationChangesService;
   private final RecordWorkProgrammeAmendmentDetailsService recordWorkProgrammeAmendmentDetailsService;
 
   public RecordOfDecisionSectionService(
       RecordOfDecisionService recordOfDecisionService,
-      RecordReductionDetailsService recordReductionDetailsService,
+      RecordDurationChangesService recordDurationChangesService,
       RecordWorkProgrammeAmendmentDetailsService recordWorkProgrammeAmendmentDetailsService
   ) {
     this.recordOfDecisionService = recordOfDecisionService;
-    this.recordReductionDetailsService = recordReductionDetailsService;
+    this.recordDurationChangesService = recordDurationChangesService;
     this.recordWorkProgrammeAmendmentDetailsService = recordWorkProgrammeAmendmentDetailsService;
   }
 
@@ -53,16 +52,9 @@ public class RecordOfDecisionSectionService implements TaskListSectionService<Re
 
     if (recordOfDecisionService.isExtensionApproved(applicationDetail)) {
       items.add(new TaskListItem(
-          EXTENSION_DECISION_DETAILS,
-          TaskListLabel.notStartedOrComplete(recordOfDecisionService.isExtensionDetailsSaved(applicationDetail)),
-          ReverseRouter.route(on(RecordExtensionDetailsController.class).renderForm(applicationDetail.getId(), null))));
-    }
-
-    if (recordOfDecisionService.isExtensionDetailsSaved(applicationDetail)) {
-      items.add(new TaskListItem(
-          CORRESPONDING_REDUCTION_DETAILS,
-          TaskListLabel.notStartedOrComplete(recordReductionDetailsService.isReductionComplete(applicationDetail)),
-          ReverseRouter.route(on(RecordReductionDetailsController.class).renderForm(applicationDetail.getId(), null))));
+          TERM_AND_PHASE_DURATIONS,
+          TaskListLabel.notStartedOrComplete(recordDurationChangesService.isComplete(applicationDetail)),
+          ReverseRouter.route(on(RecordDurationChangesController.class).renderForm(applicationDetail.getId(), null))));
     }
 
     if (recordOfDecisionService.isWorkProgrammeAmendmentApproved(applicationDetail)) {

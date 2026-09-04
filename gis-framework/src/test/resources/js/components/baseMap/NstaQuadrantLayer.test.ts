@@ -1,7 +1,7 @@
 import type OlMap from "vue3-openlayers/map/OlMap";
 import { render } from "@testing-library/vue";
 import { describe, expect, it, vi } from "vitest";
-import NstaQuadrantLayer from "../../../../../main/resources/js/components/baseMap/NstaQuadrantLayer.vue";
+import NstaQuadrantLayer from "@/components/baseMap/NstaQuadrantLayer.vue";
 
 const mocks = vi.hoisted(() => {
   const quadrantLayer = { layer: "quadrants" };
@@ -40,7 +40,7 @@ vi.mock("ol/style", () => ({
   Style: mocks.styleConstructor,
 }));
 
-vi.mock("../../../../../main/resources/js/nsta-data-source", () => ({
+vi.mock("@/nsta-data-source", () => ({
   buildServiceUrl: mocks.buildServiceUrl,
   createPaginatedVectorSource: mocks.createPaginatedVectorSource,
 }));

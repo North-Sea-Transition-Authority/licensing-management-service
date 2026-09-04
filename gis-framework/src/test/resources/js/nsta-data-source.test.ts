@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildServiceUrl, createPaginatedVectorSource } from "../../../main/resources/js/nsta-data-source";
+import { buildServiceUrl, createPaginatedVectorSource } from "@/nsta-data-source";
 
 // Interface to use with mocks, and to verify we pass the right options to the VectorSource.
 interface VectorSourceOptions {

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/vue";
 import { describe, expect, it } from "vitest";
-import PointCard from "../../../../../main/resources/js/components/coordinateInput/PointCard.vue";
-import { SupportedWkid } from "../../../../../main/resources/js/coordinate-system-utils";
+import PointCard from "@/components/coordinateInput/PointCard.vue";
+import { SupportedWkid } from "@/coordinate-system-utils";
 
 function renderCard(srsWkid: SupportedWkid, index = 0) {
   return render(PointCard, {

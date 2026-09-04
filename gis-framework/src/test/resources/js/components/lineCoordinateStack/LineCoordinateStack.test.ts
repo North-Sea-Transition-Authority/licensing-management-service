@@ -1,8 +1,8 @@
-import type { SnapPoint } from "../../../../../main/resources/js/grid-utils";
+import type { SnapPoint } from "@/grid-utils";
 import { fireEvent, render, screen } from "@testing-library/vue";
 import { describe, expect, it } from "vitest";
-import LineCoordinateStack from "../../../../../main/resources/js/components/lineCoordinateStack/LineCoordinateStack.vue";
-import { SupportedWkid } from "../../../../../main/resources/js/coordinate-system-utils";
+import LineCoordinateStack from "@/components/lineCoordinateStack/LineCoordinateStack.vue";
+import { SupportedWkid } from "@/coordinate-system-utils";
 
 function renderCard(srsWkid: SupportedWkid, points: SnapPoint[] = []) {
   return render(LineCoordinateStack, {

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/vue";
 import { describe, expect, it } from "vitest";
-import GvSummaryListRow from "../../../../../../main/resources/js/components/govukVue/summary-list/GvSummaryListRow.vue";
-import GvSummaryListRowAction from "../../../../../../main/resources/js/components/govukVue/summary-list/GvSummaryListRowAction.vue";
+import GvSummaryListRow from "@/components/govukVue/summary-list/GvSummaryListRow.vue";
+import GvSummaryListRowAction from "@/components/govukVue/summary-list/GvSummaryListRowAction.vue";
 
 describe("gvSummaryListRow", () => {
   it("renders the key and value text props", () => {

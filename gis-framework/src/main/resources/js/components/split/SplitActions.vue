@@ -1,5 +1,8 @@
 <template>
   <gv-button-group>
+    <gv-button v-if="showSplitButton" :disabled="isProcessing || points.length < 2" @click="split">
+      Split
+    </gv-button>
     <gv-button variant="secondary" :disabled="!historyStatus?.canUndo || isProcessing" @click="undo">
       Undo split
     </gv-button>
@@ -11,9 +14,10 @@
 
 <script setup lang="ts">
 import type { JsonSplitHistoryStatus } from "../../api/split-history.api";
+import type { LinePoint } from "../../grid-utils";
 import { onMounted, ref, watch } from "vue";
 import { getSplitHistoryStatus } from "../../api/split-history.api";
-import { redoSplit, undoSplit } from "../../api/split.api";
+import { redoSplit, splitFeature, undoSplit } from "../../api/split.api";
 import GvButton from "../govukVue/button/GvButton.vue";
 import GvButtonGroup from "../govukVue/button/GvButtonGroup.vue";
 
@@ -24,6 +28,11 @@ interface SplitActionsProps {
   redoUrl: string,
   csrfHeaderName: string,
   csrfToken: string,
+  points: LinePoint[],
+  splitUrl: string,
+  commandJourneyId: string,
+  showSplitButton?: boolean,
+  autoSplit?: boolean,
 }
 
 const props = defineProps<SplitActionsProps>();
@@ -46,6 +55,40 @@ async function fetchHistoryStatus() {
 
 onMounted(fetchHistoryStatus);
 watch(() => props.refreshCounter, fetchHistoryStatus);
+
+watch(() => props.points, () => {
+  if (props.autoSplit && !isProcessing.value) {
+    split();
+  }
+});
+
+async function split() {
+  if (props.points.length < 2) {
+    return;
+  }
+
+  isProcessing.value = true;
+  try {
+    const splitResponse = await splitFeature(
+      props.splitUrl,
+      props.points,
+      props.commandJourneyId,
+      props.csrfHeaderName,
+      props.csrfToken,
+    );
+    if (splitResponse.outputFeatureIds.length > 0) {
+      emit("action-success");
+    } else {
+      props.autoSplit
+        ? console.warn("No split took place. Make sure your line crosses the feature boundary.")
+        : emit("action-error", "No split took place. Make sure your line crosses the feature boundary.");
+    }
+  } catch {
+    emit("action-error", "An error occurred while attempting to split the feature. Please try again.");
+  } finally {
+    isProcessing.value = false;
+  }
+}
 
 async function undo() {
   isProcessing.value = true;

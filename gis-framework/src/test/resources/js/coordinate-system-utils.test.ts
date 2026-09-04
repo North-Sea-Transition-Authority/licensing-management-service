@@ -10,7 +10,7 @@ import {
   wgs84ToBng,
   wgs84ToEd50,
   wgs84ToEtrs89,
-} from "../../../main/resources/js/coordinate-system-utils";
+} from "@/coordinate-system-utils";
 
 describe("coordinateSystemUtils", () => {
   it("exports the supported spatial reference WKIDs", () => {

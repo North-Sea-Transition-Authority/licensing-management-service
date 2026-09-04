@@ -1,7 +1,7 @@
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { dirname, join, normalize, sep } from "node:path";
+import { dirname, join, normalize, resolve, sep } from "node:path";
 import vue from "@vitejs/plugin-vue";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
@@ -43,6 +43,11 @@ const viewport = { width: 1280, height: 1024 };
 export default defineConfig({
   plugins: [vue(), govukAssets()],
   publicDir: "public-test",
+  resolve: {
+    alias: {
+      "@": resolve(__dirname, "src/main/resources/js"),
+    },
+  },
   define: {
     "process.env.NODE_ENV": JSON.stringify("test"),
   },

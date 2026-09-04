@@ -2,13 +2,13 @@ import { render, screen, waitFor } from "@testing-library/vue";
 import { describe, expect, it, vi } from "vitest";
 
 import MapWithTextualDescription
-  from "../../../../../main/resources/js/components/textualDescription/MapWithTextualDescription.vue";
+  from "@/components/textualDescription/MapWithTextualDescription.vue";
 
 const { getTextualDescriptionMock } = vi.hoisted(() => ({
   getTextualDescriptionMock: vi.fn(),
 }));
 
-vi.mock("../../../../../main/resources/js/api/features.api", () => ({
+vi.mock("@/api/features.api", () => ({
   getTextualDescription: getTextualDescriptionMock,
 }));
 

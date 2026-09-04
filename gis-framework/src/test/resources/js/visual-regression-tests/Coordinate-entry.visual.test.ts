@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-vue";
 import { page } from "vitest/browser";
 import OpenLayersMap from "vue3-openlayers";
-import SplitByCoordinateEntryPage from "../../../../main/resources/js/components/coordinateInput/SplitByCoordinateEntryPage.vue";
-import { SupportedWkid } from "../../../../main/resources/js/coordinate-system-utils";
+import { SupportedWkid } from "@/coordinate-system-utils";
+import SplitByCoordinateEntryPage from "@/pages/SplitByCoordinateEntryPage.vue";
 import singleBlockEd50 from "../fixtures/singleBlockEd50.esriJson.json";
 import { worker } from "./setup";
 import { settleForScreenshot, waitForMapFullyLoaded } from "./visual-test-util";
@@ -43,15 +43,25 @@ async function settle(): Promise<void> {
 describe("coordinate entry page", () => {
   it("draws a line from coordinates typed into the offshore (DMS) form", async () => {
     worker.use(
-      http.get("/api/features", () => HttpResponse.json(singleBlockEd50)),
-      http.get("/api/outline-nodes", () => HttpResponse.json({ featureOutlineNodes: [] })),
+      http.get("/api/features/1", () => HttpResponse.json(singleBlockEd50)),
+      http.get("/api/outline-nodes/1", () => HttpResponse.json({ featureOutlineNodes: [] })),
+      http.get("/api/split-history/1", () => HttpResponse.json({ canUndo: false, canRedo: false })),
+      http.get("/api/textual-description/1", () => HttpResponse.text("")),
     );
 
     const screen = render(SplitByCoordinateEntryPage, {
       props: {
+        commandJourneyId: "1",
         srsWkid: SupportedWkid.ED50_WKID,
-        featuresUrl: "/api/features",
-        outlineNodesUrl: "/api/outline-nodes?featureId=1",
+        featuresBaseUrl: "/api/features",
+        outlineNodesBaseUrl: "/api/outline-nodes",
+        splitUrl: "/api/split",
+        historyBaseUrl: "/api/split-history",
+        undoBaseUrl: "/api/undo",
+        redoBaseUrl: "/api/redo",
+        textualDescriptionUrl: "/api/textual-description",
+        csrfHeaderName: "X-CSRF-TOKEN",
+        csrfToken: "csrf-token",
         coordinatePrecision: 3,
         includeNstaQuadrants: false,
         includeNstaBlocks: false,

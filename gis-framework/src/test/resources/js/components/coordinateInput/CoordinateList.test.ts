@@ -1,8 +1,8 @@
-import type { EditablePoint } from "../../../../../main/resources/js/components/coordinateInput/CoordinateList.vue";
+import type { EditablePoint } from "@/components/coordinateInput/CoordinateList.vue";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/vue";
 import { describe, expect, it } from "vitest";
-import CoordinateList from "../../../../../main/resources/js/components/coordinateInput/CoordinateList.vue";
-import { SupportedWkid } from "../../../../../main/resources/js/coordinate-system-utils";
+import CoordinateList from "@/components/coordinateInput/CoordinateList.vue";
+import { SupportedWkid } from "@/coordinate-system-utils";
 
 function renderList(initial: EditablePoint[], srsWkid: SupportedWkid = SupportedWkid.BNG_WKID) {
   let model = initial;

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/vue";
 import { describe, expect, it } from "vitest";
-import CoordinateDmsInput from "../../../../../main/resources/js/components/coordinateInput/CoordinateDmsInput.vue";
+import CoordinateDmsInput from "@/components/coordinateInput/CoordinateDmsInput.vue";
 
 function renderInput(secondsPrecision?: number, latitude: number = 0, longitude: number = 0) {
   const latEmits: number[] = [];

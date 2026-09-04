@@ -1,6 +1,6 @@
-import type { JsonOutlineNode } from "../../../main/resources/js/api/features.api";
+import type { JsonOutlineNode } from "@/api/features.api";
 import { describe, expect, it } from "vitest";
-import { jsonFeatureNodesToTextPoints } from "../../../main/resources/js/textual-description-utils";
+import { jsonFeatureNodesToTextPoints } from "@/textual-description-utils";
 
 function node(
   polygonId: string,

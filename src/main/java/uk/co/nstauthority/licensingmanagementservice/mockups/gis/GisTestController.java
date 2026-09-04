@@ -57,8 +57,9 @@ public class GisTestController {
       @PathVariable("coordinateSystem") CoordinateSystem coordinateSystem,
       @RequestParam(name = "precision", defaultValue = "4") int precision) {
     var feature = featureJourneyStateService.findFeatureWithNoJourneyStateOrThrow(coordinateSystem);
+    var commandJourney = commandJourneyService.createAndAssignCommandJourney(List.of(feature));
     return new ModelAndView("lms/mockups/gis/splitByCoordinateEntryTester")
-        .addObject("featureIds", List.of(feature.getId().toString()))
+        .addObject("commandJourneyId", commandJourney.getId().toString())
         .addObject(SRS_WKID_MODEL_NAME, CoordinateSystemUtils.getWkid(coordinateSystem))
         .addObject("precision", precision);
   }

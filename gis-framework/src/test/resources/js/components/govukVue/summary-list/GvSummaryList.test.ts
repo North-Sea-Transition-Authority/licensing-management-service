@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/vue";
 import { describe, expect, it } from "vitest";
-import GvSummaryList from "../../../../../../main/resources/js/components/govukVue/summary-list/GvSummaryList.vue";
-import GvSummaryListRow from "../../../../../../main/resources/js/components/govukVue/summary-list/GvSummaryListRow.vue";
+import GvSummaryList from "@/components/govukVue/summary-list/GvSummaryList.vue";
+import GvSummaryListRow from "@/components/govukVue/summary-list/GvSummaryListRow.vue";
 
 const globalComponents = {
   global: { components: { GvSummaryListRow } },

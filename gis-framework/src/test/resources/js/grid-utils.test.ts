@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { SupportedWkid } from "../../../main/resources/js/coordinate-system-utils";
-import { generateSnapPoints, getSpacingForZoom } from "../../../main/resources/js/grid-utils";
+import { SupportedWkid } from "@/coordinate-system-utils";
+import { generateSnapPoints, getSpacingForZoom } from "@/grid-utils";
 
 describe("generateSnapPoints", () => {
   it("generates snap points for a ED50 grid", () => {

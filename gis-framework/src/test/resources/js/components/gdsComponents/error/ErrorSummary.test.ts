@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import ErrorSummary from "../../../../../../main/resources/js/components/gdsComponents/error/ErrorSummary.vue";
+import ErrorSummary from "@/components/gdsComponents/error/ErrorSummary.vue";
 
 describe("errorSummary", () => {
   afterEach(() => {

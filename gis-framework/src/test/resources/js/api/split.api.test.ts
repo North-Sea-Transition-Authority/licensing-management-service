@@ -1,6 +1,6 @@
-import type { LinePoint } from "../../../../main/resources/js/grid-utils";
+import type { LinePoint } from "@/grid-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { redoSplit, splitFeature, undoSplit } from "../../../../main/resources/js/api/split.api";
+import { redoSplit, splitFeature, undoSplit } from "@/api/split.api";
 
 function point(originalSrsCoordinates: [number, number]): LinePoint {
   return { coordinates: [0, 0], originalSrsCoordinates };

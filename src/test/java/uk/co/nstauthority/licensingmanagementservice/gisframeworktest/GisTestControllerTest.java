@@ -78,15 +78,19 @@ class GisTestControllerTest extends AbstractControllerTest {
   void renderSplitByCoordinateEntry_assertModelProperties() throws Exception {
     UUID ed50Id = UUID.randomUUID();
     var ed50Feature = getMockFeature(ed50Id);
+    var commandJourneyId = UUID.randomUUID();
+    var commandJourney = mock(CommandJourney.class);
+    when(commandJourney.getId()).thenReturn(commandJourneyId);
 
     when(featureJourneyStateService.findFeatureWithNoJourneyStateOrThrow(CoordinateSystem.ED50)).thenReturn(ed50Feature);
+    when(commandJourneyService.createAndAssignCommandJourney(List.of(ed50Feature))).thenReturn(commandJourney);
 
     mockMvc.perform(get(ReverseRouter.route(
                 on(GisTestController.class).renderSplitByCoordinateEntry(CoordinateSystem.ED50, 4)))
             .with(user(regulatorUser)))
         .andExpect(status().isOk())
         .andExpect(view().name("lms/mockups/gis/splitByCoordinateEntryTester"))
-        .andExpect(model().attribute("featureIds", List.of(ed50Id.toString())))
+        .andExpect(model().attribute("commandJourneyId", commandJourneyId.toString()))
         .andExpect(model().attribute("srsWkid", 4230))
         .andExpect(model().attribute("precision", 4));
   }

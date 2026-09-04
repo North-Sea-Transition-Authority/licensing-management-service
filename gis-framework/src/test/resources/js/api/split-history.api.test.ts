@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getSplitHistoryStatus } from "../../../../main/resources/js/api/split-history.api";
+import { getSplitHistoryStatus } from "@/api/split-history.api";
 
 describe("splitHistoryApi", () => {
   afterEach(() => {

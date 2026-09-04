@@ -1,13 +1,13 @@
 import { render, screen, waitFor } from "@testing-library/vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import TextualDescription from "../../../../../main/resources/js/components/textualDescription/TextualDescription.vue";
+import TextualDescription from "@/components/textualDescription/TextualDescription.vue";
 
 const { getTextualDescriptionMock } = vi.hoisted(() => ({
   getTextualDescriptionMock: vi.fn(),
 }));
 
-vi.mock("../../../../../main/resources/js/api/features.api", () => ({
+vi.mock("@/api/features.api", () => ({
   getTextualDescription: getTextualDescriptionMock,
 }));
 

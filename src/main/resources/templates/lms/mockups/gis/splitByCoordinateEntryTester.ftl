@@ -3,7 +3,7 @@
 
 <@defaultPage htmlTitle="Split by coordinate entry tester" pageSize=PageSize.FULL_COLUMN>
     <@coordinateEntry.splitByCoordinateEntryPage
-        featureIds=featureIds
+        commandJourneyId=commandJourneyId
         srsWkid=srsWkid
         precision=precision
     />

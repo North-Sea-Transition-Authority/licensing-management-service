@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/vue";
 import { describe, expect, it, vi } from "vitest";
-import GvSummaryListRowAction from "../../../../../../main/resources/js/components/govukVue/summary-list/GvSummaryListRowAction.vue";
+import GvSummaryListRowAction from "@/components/govukVue/summary-list/GvSummaryListRowAction.vue";
 
 describe("gvSummaryListRowAction", () => {
   it("renders a link with the text prop and href", () => {

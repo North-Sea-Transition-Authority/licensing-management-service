@@ -1,16 +1,16 @@
 import type Map from "ol/Map";
-import type { SnapPoint } from "../../../../../main/resources/js/grid-utils";
+import type { SnapPoint } from "@/grid-utils";
 import { render, waitFor } from "@testing-library/vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import SnapPointsLayer from "../../../../../main/resources/js/components/baseMap/SnapPointsLayer.vue";
-import { SupportedWkid } from "../../../../../main/resources/js/coordinate-system-utils";
+import SnapPointsLayer from "@/components/baseMap/SnapPointsLayer.vue";
+import { SupportedWkid } from "@/coordinate-system-utils";
 
 const mocks = vi.hoisted(() => ({
   generateSnapPoints: vi.fn(() => [] as SnapPoint[]),
 }));
 
-vi.mock("../../../../../main/resources/js/grid-utils", async (importOriginal) => {
-  const original = await importOriginal<typeof import("../../../../../main/resources/js/grid-utils")>();
+vi.mock("@/grid-utils", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/grid-utils")>();
   return {
     ...original,
     generateSnapPoints: mocks.generateSnapPoints,

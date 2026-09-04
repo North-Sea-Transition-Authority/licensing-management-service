@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getOutlineNodes, getTextualDescription } from "../../../../main/resources/js/api/features.api";
+import { getOutlineNodes, getTextualDescription } from "@/api/features.api";
 
 describe("featuresApi", () => {
   afterEach(() => {

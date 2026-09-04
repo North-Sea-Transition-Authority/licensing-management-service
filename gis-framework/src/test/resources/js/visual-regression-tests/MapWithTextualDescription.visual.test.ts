@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-vue";
 import OpenLayersMap from "vue3-openlayers";
 import MapWithTextualDescription
-  from "../../../../main/resources/js/components/textualDescription/MapWithTextualDescription.vue";
-import { SupportedWkid } from "../../../../main/resources/js/coordinate-system-utils";
+  from "@/components/textualDescription/MapWithTextualDescription.vue";
+import { SupportedWkid } from "@/coordinate-system-utils";
 import singleBlockEd50 from "../fixtures/singleBlockEd50.esriJson.json";
 import { worker } from "./setup";
 import { waitForMapFullyLoaded } from "./visual-test-util";

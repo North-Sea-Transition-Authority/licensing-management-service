@@ -1,6 +1,6 @@
-import type { LinePoint } from "../../../main/resources/js/grid-utils";
+import type { LinePoint } from "@/grid-utils";
 import { describe, expect, it } from "vitest";
-import { isOrthogonalSegment } from "../../../main/resources/js/draw-line-utils";
+import { isOrthogonalSegment } from "@/draw-line-utils";
 
 describe("isOrthogonalSegment", () => {
   it("returns true for points on the same X axis", () => {

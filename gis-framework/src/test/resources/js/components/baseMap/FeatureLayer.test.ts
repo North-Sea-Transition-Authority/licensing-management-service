@@ -3,7 +3,7 @@ import type OlMap from "vue3-openlayers/map/OlMap";
 import { render, screen, waitFor } from "@testing-library/vue";
 import { describe, expect, it, vi } from "vitest";
 import { defineComponent, h, onMounted } from "vue";
-import FeatureLayer from "../../../../../main/resources/js/components/baseMap/FeatureLayer.vue";
+import FeatureLayer from "@/components/baseMap/FeatureLayer.vue";
 
 const mocks = vi.hoisted(() => {
   const esriJson = { format: "esri-json" };

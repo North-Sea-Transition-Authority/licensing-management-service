@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/vue";
 import { describe, expect, it } from "vitest";
-import GvDetails from "../../../../../../main/resources/js/components/govukVue/details/GvDetails.vue";
+import GvDetails from "@/components/govukVue/details/GvDetails.vue";
 
 describe("gvDetails", () => {
   it("renders the summary and text props", () => {

@@ -37,6 +37,10 @@
       </div>
     </div>
     <split-actions
+      :auto-split="true"
+      :points="points"
+      :split-url="splitUrl"
+      :command-journey-id="commandJourneyId"
       :refresh-counter="refreshCounter"
       :history-url="historyUrl"
       :undo-url="undoUrl"
@@ -51,16 +55,15 @@
 </template>
 
 <script setup lang="ts">
-import type { SupportedWkid } from "../../coordinate-system-utils";
-import type { SnapPoint } from "../../grid-utils";
-import { computed, CSSProperties, ref, watch } from "vue";
-import { splitFeature } from "../../api/split.api";
-import BaseMap from "../baseMap/BaseMap.vue";
-import ErrorSummary from "../gdsComponents/error/ErrorSummary.vue";
-import DetailsComponent from "../govukVue/details/GvDetails.vue";
-import LineCoordinateStack from "../lineCoordinateStack/LineCoordinateStack.vue";
-import TextualDescription from "../textualDescription/TextualDescription.vue";
-import SplitActions from "./SplitActions.vue";
+import type { SupportedWkid } from "../coordinate-system-utils";
+import type { SnapPoint } from "../grid-utils";
+import { computed, CSSProperties, ref } from "vue";
+import BaseMap from "../components/baseMap/BaseMap.vue";
+import ErrorSummary from "../components/gdsComponents/error/ErrorSummary.vue";
+import DetailsComponent from "../components/govukVue/details/GvDetails.vue";
+import LineCoordinateStack from "../components/lineCoordinateStack/LineCoordinateStack.vue";
+import SplitActions from "../components/split/SplitActions.vue";
+import TextualDescription from "../components/textualDescription/TextualDescription.vue";
 
 interface SplitByPointAndClickPageProps {
   commandJourneyId: string,
@@ -86,7 +89,6 @@ const props = withDefaults(defineProps<SplitByPointAndClickPageProps>(), {
 const baseMapRef = ref<InstanceType<typeof BaseMap> | null>(null);
 const points = ref<SnapPoint[]>([]);
 const splitError = ref<string | null>(null);
-const autoSplitInProgress = ref(false);
 const refreshCounter = ref(0);
 
 // Make the map fill its panel rather than use BaseMap's default clamped height.
@@ -115,32 +117,6 @@ function onSplitSuccess() {
   refreshCounter.value++;
   points.value = [];
 }
-
-watch(points, async () => {
-  if (autoSplitInProgress.value || points.value.length < 2) {
-    return;
-  }
-
-  autoSplitInProgress.value = true;
-  try {
-    const splitResponse = await splitFeature(
-      props.splitUrl,
-      points.value,
-      props.commandJourneyId,
-      props.csrfHeaderName,
-      props.csrfToken,
-    );
-    if (splitResponse.outputFeatureIds.length > 0) {
-      onSplitSuccess();
-    } else {
-      console.warn("No split took place. Make sure your line crosses the feature boundary.");
-    }
-  } catch {
-    splitError.value = "An error occurred while attempting to split the feature. Please try again.";
-  } finally {
-    autoSplitInProgress.value = false;
-  }
-});
 </script>
 
 <style scoped>

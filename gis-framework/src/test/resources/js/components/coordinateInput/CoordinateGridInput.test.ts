@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/vue";
 import { describe, expect, it } from "vitest";
-import CoordinateGridInput from "../../../../../main/resources/js/components/coordinateInput/CoordinateGridInput.vue";
-import { SupportedWkid } from "../../../../../main/resources/js/coordinate-system-utils";
+import CoordinateGridInput from "@/components/coordinateInput/CoordinateGridInput.vue";
+import { SupportedWkid } from "@/coordinate-system-utils";
 
 // TQ 389 773 (100 m resolution) parses to these BNG metres (SW corner of the 100 m square).
 const TQ_389_773_EASTING = 538900;

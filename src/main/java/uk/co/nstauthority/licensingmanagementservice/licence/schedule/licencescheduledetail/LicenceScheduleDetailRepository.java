@@ -43,6 +43,7 @@ public interface LicenceScheduleDetailRepository extends JpaRepository<LicenceSc
       )
       """
   )
+  @EntityGraph(attributePaths = "licenceSchedule.licence")
   List<LicenceScheduleDetail> searchByLicenceReferenceLicenceTypesAndStatus(
       String searchTerm, List<LicenceType> licenceTypes, LicenceScheduleDetailStatus status);
 }

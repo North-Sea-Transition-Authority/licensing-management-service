@@ -17,6 +17,7 @@ public interface WorkProgrammeActivityRepository
     extends JpaRepository<WorkProgrammeActivity, UUID>, DuplicationSource<LicenceScheduleDetail> {
 
   @DuplicateThisOnUpdate
+  @EntityGraph(attributePaths = {"licenceSchedulePhase.licenceScheduleTerm", "licenceScheduleTerm"})
   List<WorkProgrammeActivity> findAllByLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail);
 
   List<WorkProgrammeActivity> findAllByLicenceScheduleTermAndDateOption(

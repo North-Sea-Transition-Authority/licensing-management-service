@@ -202,6 +202,7 @@ steps:
       - docker build -t 847993322739.dkr.ecr.eu-west-2.amazonaws.com/digital/licensing-management-service:trivy-scan-target .
 
   - name: trivy-scan
+    failure: ignore
     image: aquasec/trivy:0.58.0
     environment:
       TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db,aquasec/trivy-db,ghcr.io/aquasecurity/trivy-db

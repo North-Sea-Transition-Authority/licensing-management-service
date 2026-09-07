@@ -7,40 +7,23 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 
 @Configuration
 @ConditionalOnPearsDataSource
 class PearsConfiguration {
 
-  // These are still needed, otherwise Spring doesn't set these up because it sees the Oracle pears.* beans below
-  @Bean
-  @Primary
-  @ConfigurationProperties("spring.datasource")
-  public DataSourceProperties primaryDataSourceProperties() {
-    return new DataSourceProperties();
-  }
-
-  @Bean
-  @Primary
-  @ConfigurationProperties("spring.datasource.hikari")
-  public DataSource primaryDataSource(DataSourceProperties primaryDataSourceProperties) {
-    return primaryDataSourceProperties
-        .initializeDataSourceBuilder()
-        .type(HikariDataSource.class)
-        .build();
-  }
-
-  @Bean
+  // named for PEARS rather than Oracle: gis-framework's OracleDatasourceConfiguration owns the
+  // oracleDataSource* names for its own, separate Oracle schema
+  @Bean(defaultCandidate = false)
   @ConfigurationProperties("pears.datasource")
-  DataSourceProperties oracleDataSourceProperties() {
+  DataSourceProperties pearsDataSourceProperties() {
     return new DataSourceProperties();
   }
 
-  @Bean
+  @Bean(defaultCandidate = false)
   @ConfigurationProperties("pears.datasource.hikari")
-  DataSource oracleDataSource(@Qualifier("oracleDataSourceProperties") DataSourceProperties oracleDatasourceProperties) {
-    return oracleDatasourceProperties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
+  DataSource pearsDataSource(@Qualifier("pearsDataSourceProperties") DataSourceProperties pearsDataSourceProperties) {
+    return pearsDataSourceProperties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
   }
 
 }

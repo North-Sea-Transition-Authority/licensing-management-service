@@ -27,8 +27,8 @@ class PearsLicenceService {
 
   private final DataSource dataSource;
 
-  PearsLicenceService(@Qualifier("oracleDataSource") DataSource oracleDataSource) {
-    this.dataSource = oracleDataSource;
+  PearsLicenceService(@Qualifier("pearsDataSource") DataSource pearsDataSource) {
+    this.dataSource = pearsDataSource;
   }
 
   /**

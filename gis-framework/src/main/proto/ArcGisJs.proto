@@ -30,6 +30,12 @@ import "calculateArea/CalculateAreaRequest.proto";
 import "calculateArea/CalculateAreaResponse.proto";
 import "coordinatesToPolyline/CoordinatesToPolylineRequest.proto";
 import "coordinatesToPolyline/CoordinatesToPolylineResponse.proto";
+import "mergePolygons/MergePolygonsRequest.proto";
+import "mergePolygons/MergePolygonsResponse.proto";
+import "generalizePolygon/GeneralizePolygonRequest.proto";
+import "generalizePolygon/GeneralizePolygonResponse.proto";
+import "mergeAndGeneralizeLines/MergeAndGeneralizeLinesRequest.proto";
+import "mergeAndGeneralizeLines/MergeAndGeneralizeLinesResponse.proto";
 
 option java_multiple_files = true;
 option java_outer_classname = "ArcGisServiceProto";
@@ -49,4 +55,7 @@ service ArcGisService {
   rpc migrateReferenceBlock (MigrateReferenceBlockRequest) returns (MigrateReferenceBlockResponse) {};
   rpc validateReferenceBlock (ReferenceBlockValidationRequest) returns (ValidationResponse) {};
   rpc coordinatesToPolyline (CoordinatesToPolylineRequest) returns (CoordinatesToPolylineResponse) {};
+  rpc mergePolygons (MergePolygonsRequest) returns (MergePolygonsResponse) {};
+  rpc generalizePolygon (GeneralizePolygonRequest) returns (GeneralizePolygonResponse) {};
+  rpc mergeAndGeneralizeLines (MergeAndGeneralizeLinesRequest) returns (MergeAndGeneralizeLinesResponse) {};
 }

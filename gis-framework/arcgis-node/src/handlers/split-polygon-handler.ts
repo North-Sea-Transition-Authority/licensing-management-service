@@ -1,4 +1,4 @@
-import type { ArcGisServiceHandlers } from "../../generated/uk/co/fivium/grpc/gis/ArcGisService";
+import type { SplitPolygonHandler } from "./handler-types";
 import { logger } from "../config/logger";
 import { splitPolygon } from "../geometric-operators/split-operator";
 import { esriJsonToPolygon, esriJsonToPolyline } from "../util/esrijson-util";
@@ -9,7 +9,7 @@ import { toGrpcInternalError } from "./grpc-error";
  * @param call GRPC call with a target polygon and a cutter line.
  * @param callback Response callback. Contains output polygons resulting from the split, returned as Esri JSON strings.
  */
-export const splitPolygonHandler: ArcGisServiceHandlers["splitPolygon"] = (call, callback) => {
+export const splitPolygonHandler: SplitPolygonHandler = (call, callback) => {
   try {
     const target = esriJsonToPolygon(call.request.esriJsonPolygonTarget);
     const cutterLine = esriJsonToPolyline(call.request.esriJsonLineCutter);

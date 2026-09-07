@@ -1,4 +1,4 @@
-import type { ArcGisServiceHandlers } from "../../generated/uk/co/fivium/grpc/gis/ArcGisService";
+import type { CoordinatesToPolylineHandler } from "./handler-types";
 import { coordinatesToPolyline } from "../geometric-operators/coordinates-to-polyline";
 import { toGrpcInternalError } from "./grpc-error";
 
@@ -7,7 +7,7 @@ import { toGrpcInternalError } from "./grpc-error";
  * @param call the coordinates to build the polyline from, and the coordinate system they are expressed in.
  * @param callback Response callback. Contains the EsriJSON of the built polyline.
  */
-export const coordinatesToPolylineHandler: ArcGisServiceHandlers["coordinatesToPolyline"] = (call, callback) => {
+export const coordinatesToPolylineHandler: CoordinatesToPolylineHandler = (call, callback) => {
   try {
     const polylineEsriJson = coordinatesToPolyline(call.request.coordinates, call.request.srsWkid);
     callback(null, { polylineEsriJson });

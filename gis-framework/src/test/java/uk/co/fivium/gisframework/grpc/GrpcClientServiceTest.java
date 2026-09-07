@@ -50,6 +50,8 @@ import uk.co.fivium.grpc.gis.FindNorthwestMostLineRequest;
 import uk.co.fivium.grpc.gis.FindNorthwestMostLineResponse;
 import uk.co.fivium.grpc.gis.FindParentLinesRequest;
 import uk.co.fivium.grpc.gis.FindParentLinesResponse;
+import uk.co.fivium.grpc.gis.GeneralizePolygonRequest;
+import uk.co.fivium.grpc.gis.GeneralizePolygonResponse;
 import uk.co.fivium.grpc.gis.GeoJsonLineWrapper;
 import uk.co.fivium.grpc.gis.GetLineStartAndEndPointsRequest;
 import uk.co.fivium.grpc.gis.GetLineStartAndEndPointsResponse;
@@ -57,6 +59,10 @@ import uk.co.fivium.grpc.gis.LineNavigationType;
 import uk.co.fivium.grpc.gis.LineWithId;
 import uk.co.fivium.grpc.gis.LineWithNavigationType;
 import uk.co.fivium.grpc.gis.LineWithStartAndEndPoint;
+import uk.co.fivium.grpc.gis.MergeAndGeneralizeLinesRequest;
+import uk.co.fivium.grpc.gis.MergeAndGeneralizeLinesResponse;
+import uk.co.fivium.grpc.gis.MergePolygonsRequest;
+import uk.co.fivium.grpc.gis.MergePolygonsResponse;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaRequest;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockRequest;
@@ -659,6 +665,53 @@ class GrpcClientServiceTest {
     assertThat(grpcClientService.validateReferenceBlock(refBlockFeature, List.of(licenceBlockFeature))).isEqualTo(response);
 
     verify(arcgisClient).validateReferenceBlock(expectedRequest.build());
+  }
+
+  @Test
+  void mergePolygons_verifyServiceClientCall() {
+    var polygon1 = "dummy esriJson polygon 1";
+    var polygon2 = "dummy esriJson polygon 2";
+
+    var expectedRequest = MergePolygonsRequest.newBuilder()
+        .setInputPolygon1(polygon1)
+        .setInputPolygon2(polygon2)
+        .build();
+    var expectedResponse = MergePolygonsResponse.newBuilder()
+        .setResultPolygon("dummy esriJson merged polygon")
+        .build();
+
+    when(arcgisClient.mergePolygons(expectedRequest)).thenReturn(expectedResponse);
+    assertThat(grpcClientService.mergePolygons(polygon1, polygon2)).isEqualTo("dummy esriJson merged polygon");
+  }
+
+  @Test
+  void generalizePolygon_verifyServiceClientCall() {
+    var polygon = "dummy esriJson polygon";
+
+    var expectedRequest = GeneralizePolygonRequest.newBuilder()
+        .setEsriPolygon(polygon)
+        .build();
+    var expectedResponse = GeneralizePolygonResponse.newBuilder()
+        .setEsriPolygon("dummy esriJson generalized polygon")
+        .build();
+
+    when(arcgisClient.generalizePolygon(expectedRequest)).thenReturn(expectedResponse);
+    assertThat(grpcClientService.generalizePolygon(polygon)).isEqualTo("dummy esriJson generalized polygon");
+  }
+
+  @Test
+  void mergeAndGeneralizeLines_verifyServiceClientCall() {
+    var polylines = List.of("dummy esriJson polyline 1", "dummy esriJson polyline 2");
+
+    var expectedRequest = MergeAndGeneralizeLinesRequest.newBuilder()
+        .addAllEsriPolylines(polylines)
+        .build();
+    var expectedResponse = MergeAndGeneralizeLinesResponse.newBuilder()
+        .setEsriPolyline("dummy esriJson merged polyline")
+        .build();
+
+    when(arcgisClient.mergeAndGeneralizeLines(expectedRequest)).thenReturn(expectedResponse);
+    assertThat(grpcClientService.mergeAndGeneralizeLines(polylines)).isEqualTo("dummy esriJson merged polyline");
   }
 
   @Test

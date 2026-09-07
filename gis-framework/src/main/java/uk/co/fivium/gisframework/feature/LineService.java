@@ -163,6 +163,11 @@ public class LineService {
   }
 
   @Transactional
+  public void deleteLines(Collection<Line> lines) {
+    lineRepository.deleteAll(lines);
+  }
+
+  @Transactional
   public void deleteAll() {
     lineRepository.deleteAll();
   }

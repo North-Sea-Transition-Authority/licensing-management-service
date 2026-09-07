@@ -1,4 +1,4 @@
-import type { ArcGisServiceHandlers } from "../../generated/uk/co/fivium/grpc/gis/ArcGisService";
+import type { ValidatePolygonReconstructionFromPolylinesHandler } from "./handler-types";
 import { logger } from "../config/logger";
 import {
   validatePolygonReconstructionFromPolylines,
@@ -11,7 +11,7 @@ import { toGrpcInternalError } from "./grpc-error";
  * @param call GRPC call with a list of polylines and the original polygon.
  * @param callback Response callback. Contains a boolean indicating whether the polygon can be reconstructed.
  */
-export const validatePolygonReconstructionFromPolylinesHandler: ArcGisServiceHandlers["validatePolygonReconstructionFromPolylines"]
+export const validatePolygonReconstructionFromPolylinesHandler: ValidatePolygonReconstructionFromPolylinesHandler
   = (call, callback) => {
     try {
       const polylines = call.request.esriJsonPolylines.map(esriJsonPolyline => (esriJsonToPolyline(esriJsonPolyline)));

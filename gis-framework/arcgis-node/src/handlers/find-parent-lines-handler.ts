@@ -1,6 +1,6 @@
 import type Polyline from "@arcgis/core/geometry/Polyline.js";
-import type { ArcGisServiceHandlers } from "../../generated/uk/co/fivium/grpc/gis/ArcGisService";
 import type { ParentLine } from "../geometric-operators/find-parent-lines";
+import type { FindParentLinesHandler } from "./handler-types";
 import { logger } from "../config/logger";
 import { findParentLines } from "../geometric-operators/find-parent-lines";
 import { esriJsonToPolyline } from "../util/esrijson-util";
@@ -11,7 +11,7 @@ import { toGrpcInternalError } from "./grpc-error";
  * @param call GRPC call with a list of parent lines and a list of child lines.
  * @param callback Response callback. Contains the parent lines and orphaned child lines, returned as Esri JSON strings.
  */
-export const findParentLinesHandler: ArcGisServiceHandlers["findParentLines"] = (call, callback) => {
+export const findParentLinesHandler: FindParentLinesHandler = (call, callback) => {
   try {
     const parentLines: ParentLine[] = call.request.parentLines.map((parentLine) => {
       return {

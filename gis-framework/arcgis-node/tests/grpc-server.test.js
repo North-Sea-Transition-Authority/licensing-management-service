@@ -10,7 +10,10 @@ import {coordinatesToPolylineHandler} from "../src/handlers/coordinates-to-polyl
 import {explodePolygonHandler} from "../src/handlers/explode-polygon-handler.ts";
 import {findNorthwestMostLineHandler} from "../src/handlers/find-northwest-most-line-handler.ts";
 import {findParentLinesHandler} from "../src/handlers/find-parent-lines-handler.ts";
+import {generalizePolygonHandler} from "../src/handlers/generalize-polygon-handler.ts";
 import {getLineStartAndEndPointsHandler} from "../src/handlers/get-line-start-and-end-points-handler.ts";
+import {mergeAndGeneralizeLinesHandler} from "../src/handlers/merge-and-generalize-lines-handler.ts";
+import {mergePolygonsHandler} from "../src/handlers/merge-polygons-handler.ts";
 import {splitPolygonHandler} from "../src/handlers/split-polygon-handler.ts";
 import {
   validatePolygonReconstructionFromPolylinesHandler,
@@ -127,6 +130,9 @@ describe("main()", () => {
         validateTopologicallyEqual,
         migrateReferenceBlock: migrateReferenceBlockHandler,
         validateReferenceBlock,
+        mergePolygons: mergePolygonsHandler,
+        generalizePolygon: generalizePolygonHandler,
+        mergeAndGeneralizeLines: mergeAndGeneralizeLinesHandler,
       });
     });
 

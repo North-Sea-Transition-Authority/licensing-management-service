@@ -259,6 +259,15 @@ class LineServiceTest {
   }
 
   @Test
+  void deleteLines() {
+    var lines = List.of(LINE_1, LINE_2);
+
+    lineService.deleteLines(lines);
+
+    verify(lineRepository).deleteAll(lines);
+  }
+
+  @Test
   void deleteAll() {
     lineService.deleteAll();
     verify(lineRepository).deleteAll();

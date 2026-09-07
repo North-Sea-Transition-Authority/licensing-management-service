@@ -29,11 +29,14 @@ import uk.co.fivium.grpc.gis.EsriJsonPolygonLines;
 import uk.co.fivium.grpc.gis.ExplodePolygonRequest;
 import uk.co.fivium.grpc.gis.FindNorthwestMostLineRequest;
 import uk.co.fivium.grpc.gis.FindParentLinesRequest;
+import uk.co.fivium.grpc.gis.GeneralizePolygonRequest;
 import uk.co.fivium.grpc.gis.GeoJsonLineWrapper;
 import uk.co.fivium.grpc.gis.GetLineStartAndEndPointsRequest;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 import uk.co.fivium.grpc.gis.LineWithId;
 import uk.co.fivium.grpc.gis.LineWithNavigationType;
+import uk.co.fivium.grpc.gis.MergeAndGeneralizeLinesRequest;
+import uk.co.fivium.grpc.gis.MergePolygonsRequest;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaRequest;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockRequest;
@@ -151,6 +154,47 @@ public class GrpcClientService {
 
     var response = arcgisClient.validatePolygonReconstructionFromPolylines(request);
     return response.getIsValid();
+  }
+
+  /**
+   * Merge 2 polygons using the ArcGis JS unionOperator.
+   * @param polygon1 EsriJson polygon to union
+   * @param polygon2 EsriJson polygon to union
+   * @return The merged polygon esriJson
+   */
+  public String mergePolygons(String polygon1, String polygon2) {
+    var request = MergePolygonsRequest.newBuilder()
+        .setInputPolygon1(polygon1)
+        .setInputPolygon2(polygon2)
+        .build();
+
+    var response = arcgisClient.mergePolygons(request);
+    return response.getResultPolygon();
+  }
+
+  /**
+   * Remove redundant vertices on a polygon using the ArcGis generalizeOperator.
+   * @param polygon Polygon to generalise as EsriJson.
+   * @return Generalized polygon as EsriJson.
+   */
+  public String generalizePolygon(String polygon) {
+    var request = GeneralizePolygonRequest.newBuilder()
+        .setEsriPolygon(polygon)
+        .build();
+    var response = arcgisClient.generalizePolygon(request);
+    return response.getEsriPolygon();
+  }
+
+  /**
+   * Merge multiple polylines into a single line.
+   * The resulting line is generalised to remove redundant vertices.
+   */
+  public String mergeAndGeneralizeLines(List<String> polylinesEsriJson) {
+    var request = MergeAndGeneralizeLinesRequest.newBuilder()
+        .addAllEsriPolylines(polylinesEsriJson)
+        .build();
+    var response = arcgisClient.mergeAndGeneralizeLines(request);
+    return response.getEsriPolyline();
   }
 
   public MigrationResponseDto migrateBlockOrSubarea(

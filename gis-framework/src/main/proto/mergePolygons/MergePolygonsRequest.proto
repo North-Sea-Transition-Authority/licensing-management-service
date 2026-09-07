@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "MergePolygonsRequestProto";
+
+message MergePolygonsRequest {
+  string inputPolygon1 = 1;
+  string inputPolygon2 = 2;
+}

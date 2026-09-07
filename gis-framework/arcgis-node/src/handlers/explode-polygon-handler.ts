@@ -1,4 +1,4 @@
-import type { ArcGisServiceHandlers } from "../../generated/uk/co/fivium/grpc/gis/ArcGisService";
+import type { ExplodePolygonHandler } from "./handler-types";
 import { logger } from "../config/logger";
 import { explodePolygon } from "../geometric-operators/explode-polygon";
 import { esriJsonToPolygon } from "../util/esrijson-util";
@@ -10,7 +10,7 @@ import { toGrpcInternalError } from "./grpc-error";
  * @param call GRPC call with a polygon to explode.
  * @param callback Response callback. Contains the exploded polylines, returned as Esri JSON strings.
  */
-export const explodePolygonHandler: ArcGisServiceHandlers["explodePolygon"] = (call, callback) => {
+export const explodePolygonHandler: ExplodePolygonHandler = (call, callback) => {
   try {
     const polygon = esriJsonToPolygon(call.request.esriJsonPolygon);
     const polylines = explodePolygon(polygon);

@@ -10,13 +10,12 @@ import * as proximityOperator from "@arcgis/core/geometry/operators/proximityOpe
 import Polyline from "@arcgis/core/geometry/Polyline";
 import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
 import { logger } from "../../config/logger";
+import { GENERALIZE_TOLERANCE_DEGREES } from "../../geometric-operators/generalize-polygon";
 import { findLoxodromeThatConnectsToPointOnSetBearing, SetBearing } from "../types/line-with-bearing-wrapper";
 
 // 1 second in degrees (arc second) == 1° (degree) / 60'(minutes) / 60" (seconds)
 export const ONE_ARC_SECOND = 1 / 3600;
 export const GEODESIC_DENSE_POINT_METERS_INTERVAL = 100;
-// Tolerance for generalizing line geometries in degrees (~1 mm on ED50).
-export const GENERALIZE_TOLERANCE_DEGREES = 0.00000001;
 
 /**
  * Finds the nearest points on a line for two given points. Intended to find the nearest start/end points on a parent line,

@@ -1,6 +1,6 @@
-import type { ArcGisServiceHandlers } from "../../generated/uk/co/fivium/grpc/gis/ArcGisService";
 import type { CalculateAreaResponse } from "../../generated/uk/co/fivium/grpc/gis/CalculateAreaResponse";
 import type { LineWithNavigationType } from "../geometric-operators/calculate-area-operator";
+import type { CalculateAreaHandler } from "./handler-types";
 import { densifyLoxodromesAndCalculateArea } from "../geometric-operators/calculate-area-operator";
 import { esriJsonToPolyline } from "../util/esrijson-util";
 import { asyncHandler } from "./async-handler";
@@ -11,7 +11,7 @@ import { asyncHandler } from "./async-handler";
  * @param call GRPC call with a list of lines and the coordinate system of the feature.
  * @param callback Response callback. Contains the area of the feature.
  */
-export const calculateAreaHandler: ArcGisServiceHandlers["calculateArea"] = asyncHandler(async (call): Promise<CalculateAreaResponse> => {
+export const calculateAreaHandler: CalculateAreaHandler = asyncHandler(async (call): Promise<CalculateAreaResponse> => {
   const linesWithNavigationType: LineWithNavigationType[] = call.request.linesWithNavigationType.map(line => ({
     line: esriJsonToPolyline(line.esriJsonPolyline),
     navigationType: line.lineNavigationType,

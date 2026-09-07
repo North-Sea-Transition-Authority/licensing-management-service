@@ -13,7 +13,10 @@ import { coordinatesToPolylineHandler } from "./handlers/coordinates-to-polyline
 import { explodePolygonHandler } from "./handlers/explode-polygon-handler";
 import { findNorthwestMostLineHandler } from "./handlers/find-northwest-most-line-handler";
 import { findParentLinesHandler } from "./handlers/find-parent-lines-handler";
+import { generalizePolygonHandler } from "./handlers/generalize-polygon-handler";
 import { getLineStartAndEndPointsHandler } from "./handlers/get-line-start-and-end-points-handler";
+import { mergeAndGeneralizeLinesHandler } from "./handlers/merge-and-generalize-lines-handler";
+import { mergePolygonsHandler } from "./handlers/merge-polygons-handler";
 import { splitPolygonHandler } from "./handlers/split-polygon-handler";
 import {
   validatePolygonReconstructionFromPolylinesHandler,
@@ -82,6 +85,9 @@ function startGrpcServer(arcGisJsProto: ProtoGrpcType["uk"]["co"]["fivium"]["grp
     validateTopologicallyEqual,
     migrateReferenceBlock: migrateReferenceBlockHandler,
     validateReferenceBlock,
+    mergePolygons: mergePolygonsHandler,
+    generalizePolygon: generalizePolygonHandler,
+    mergeAndGeneralizeLines: mergeAndGeneralizeLinesHandler,
   });
 
   server.bindAsync(GRPC_BIND_ADDRESS, grpc.ServerCredentials.createInsecure(), (error) => {

@@ -21,11 +21,8 @@ public class RegulatorRoleService {
   }
 
   public boolean isContinuationReviewer(ServiceUserDetail userDetail) {
-    return teamQueryService.userHasAtLeastOneStaticRole(
-        userDetail.wuaId(),
-        TeamType.OFFSHORE_PRODUCTION_LICENSING,
-        CONTINUATION_REVIEWER_ROLES
-    );
+    return teamQueryService.getTeamRolesForUser(userDetail.wuaId()).stream()
+        .anyMatch(teamRole -> CONTINUATION_REVIEWER_ROLES.contains(teamRole.getRole()));
   }
 
   public boolean isContinuationIssuer(ServiceUserDetail userDetail) {

@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.teams;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
-import static uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService.CONTINUATION_REVIEWER_ROLES;
 
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -39,17 +38,28 @@ class RegulatorRoleServiceTest {
   }
 
   @Test
-  void isContinuationReviewer_whenUserHasRole_returnsTrue() {
-    when(teamQueryService.userHasAtLeastOneStaticRole(USER.wuaId(), TeamType.OFFSHORE_PRODUCTION_LICENSING, CONTINUATION_REVIEWER_ROLES))
-        .thenReturn(true);
+  void isContinuationReviewer_whenUserHasOffshoreRole_returnsTrue() {
+    var teamRole = new TeamRole();
+    teamRole.setRole(Role.CONTINUATION_REVIEWER_OFFSHORE);
+    when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of(teamRole));
 
     assertThat(regulatorRoleService.isContinuationReviewer(USER)).isTrue();
   }
 
   @Test
-  void isContinuationReviewer_whenUserDoesNotHaveRole_returnsFalse() {
-    when(teamQueryService.userHasAtLeastOneStaticRole(USER.wuaId(), TeamType.OFFSHORE_PRODUCTION_LICENSING, CONTINUATION_REVIEWER_ROLES))
-        .thenReturn(false);
+  void isContinuationReviewer_whenUserHasOnshoreRole_returnsTrue() {
+    var teamRole = new TeamRole();
+    teamRole.setRole(Role.CONTINUATION_REVIEWER_ONSHORE);
+    when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of(teamRole));
+
+    assertThat(regulatorRoleService.isContinuationReviewer(USER)).isTrue();
+  }
+
+  @Test
+  void isContinuationReviewer_whenUserHasNoContinuationReviewerRole_returnsFalse() {
+    var teamRole = new TeamRole();
+    teamRole.setRole(Role.CASE_MANAGER_CARBON_STORAGE);
+    when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of(teamRole));
 
     assertThat(regulatorRoleService.isContinuationReviewer(USER)).isFalse();
   }

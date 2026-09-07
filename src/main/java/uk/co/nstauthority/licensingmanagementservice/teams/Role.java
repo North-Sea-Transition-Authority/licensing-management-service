@@ -96,89 +96,59 @@ public enum Role implements PhaseGated {
       "Grants permission to make corrections to historical data on Carbon Storage licences",
       ReleaseFeature.TEAM_ROLE
   ),
-  CASE_MANAGER_NEW_VENTURES(
-      "Case manager (New Ventures)",
-      "Receive and manage extension and amendment applications for licences in the initial term",
+  CASE_MANAGER_OFFSHORE(
+      "Case manager (Offshore production)",
+      "Receive and manage extension and amendment applications for offshore production licences",
       ReleaseFeature.TEAM_ROLE
   ),
-  CASE_MANAGER_OPERATIONS(
-      "Case manager (Operations)",
-      "Receive and manage extension and amendment applications for licences post initial term",
+  STEWARD_OFFSHORE(
+      "Steward (Offshore production)",
+      "Frame, consult and prepare decision support paper for offshore production licences",
       ReleaseFeature.TEAM_ROLE
   ),
-  STEWARD_NEW_VENTURES(
-      "Steward (New Ventures)",
-      "Frame, consult and prepare decision support paper for licences in the initial term",
+  DECISION_ISSUER_OFFSHORE(
+      "Decision issuer (Offshore production)",
+      "Issue the final decision to the applicant for offshore production licences",
       ReleaseFeature.TEAM_ROLE
   ),
-  STEWARD_OPERATIONS(
-      "Steward (Operations)",
-      "Frame, consult and prepare decision support paper for licences post initial term",
+  CONTINUATION_REVIEWER_OFFSHORE(
+      "Continuation reviewer (Offshore production)",
+      "Review continuation requests for offshore production licences",
       ReleaseFeature.TEAM_ROLE
   ),
-  DECISION_ISSUER_NEW_VENTURES(
-      "Decision issuer (New Ventures)",
-      "Issue the final decision to the applicant for licences in the initial term",
+  CASE_MANAGER_CARBON_STORAGE(
+      "Case manager (Carbon storage)",
+      "Receive and manage extension and amendment applications for carbon storage licences",
       ReleaseFeature.TEAM_ROLE
   ),
-  DECISION_ISSUER_OPERATIONS(
-      "Decision issuer (Operations)",
-      "Issue the final decision to the applicant for licences post initial term",
+  STEWARD_CARBON_STORAGE(
+      "Steward (Carbon storage)",
+      "Frame, consult and prepare decision support paper for carbon storage licences",
       ReleaseFeature.TEAM_ROLE
   ),
-  CONTINUATION_REVIEWER_NEW_VENTURES(
-      "Continuation reviewer (New Ventures)",
-      "Review continuation requests for licences in the initial term",
-      ReleaseFeature.TEAM_ROLE
-  ),
-  CONTINUATION_REVIEWER_OPERATIONS(
-      "Continuation reviewer (Operations)",
-      "Review continuation requests for licences post initial term",
-      ReleaseFeature.TEAM_ROLE
-  ),
-  CASE_MANAGER_CS_NEW_VENTURES(
-      "Case manager (New Ventures)",
-      "Receive and manage extension and amendment applications for licences in appraise phase",
-      ReleaseFeature.TEAM_ROLE
-  ),
-  CASE_MANAGER_CS_CTS(
-      "Case manager (Carbon Transport and Storage)",
-      "Receive and manage extension and amendment applications for licences post appraise phase",
-      ReleaseFeature.TEAM_ROLE
-  ),
-  STEWARD_CS_NEW_VENTURES(
-      "Steward (New Ventures)",
-      "Frame, consult and prepare decision support paper for licences in appraise phase",
-      ReleaseFeature.TEAM_ROLE
-  ),
-  STEWARD_CS_CTS(
-      "Steward (Carbon Transport and Storage)",
-      "Frame, consult and prepare decision support paper for licences post appraise phase",
-      ReleaseFeature.TEAM_ROLE
-  ),
-  DECISION_ISSUER_CS_NEW_VENTURES(
-      "Decision issuer (New Ventures)",
-      "Issue the final decision to the applicant for licences in appraise phase",
-      ReleaseFeature.TEAM_ROLE
-  ),
-  DECISION_ISSUER_CS_CTS(
-      "Decision issuer (Carbon Transport and Storage)",
-      "Issue the final decision to the applicant for licences post appraise phase",
+  DECISION_ISSUER_CARBON_STORAGE(
+      "Decision issuer (Carbon storage)",
+      "Issue the final decision to the applicant for carbon storage licences",
       ReleaseFeature.TEAM_ROLE
   ),
   CASE_MANAGER_ONSHORE(
-      "Case manager",
+      "Case manager (Onshore production)",
       "Receive and manage extension and amendment applications for onshore production licences",
       ReleaseFeature.TEAM_ROLE
   ),
   STEWARD_ONSHORE(
-      "Steward",
+      "Steward (Onshore production)",
       "Frame, consult and prepare decision support paper for onshore production licences",
       ReleaseFeature.TEAM_ROLE
   ),
   DECISION_ISSUER_ONSHORE(
-      "Decision issuer",
+      "Decision issuer (Onshore production)",
       "Issue the final decision to the applicant for onshore production licences",
+      ReleaseFeature.TEAM_ROLE
+  ),
+  CONTINUATION_REVIEWER_ONSHORE(
+      "Continuation reviewer (Onshore production)",
+      "Review continuation requests for onshore production licences",
       ReleaseFeature.TEAM_ROLE
   ),
   CONTINUATION_ISSUER(

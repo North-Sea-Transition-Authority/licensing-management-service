@@ -42,14 +42,10 @@ public enum TeamType implements Displayable {
       false,
       List.of(
           Role.MANAGE_TEAM,
-          Role.CASE_MANAGER_NEW_VENTURES,
-          Role.CASE_MANAGER_OPERATIONS,
-          Role.STEWARD_NEW_VENTURES,
-          Role.STEWARD_OPERATIONS,
-          Role.DECISION_ISSUER_NEW_VENTURES,
-          Role.DECISION_ISSUER_OPERATIONS,
-          Role.CONTINUATION_REVIEWER_NEW_VENTURES,
-          Role.CONTINUATION_REVIEWER_OPERATIONS
+          Role.CASE_MANAGER_OFFSHORE,
+          Role.STEWARD_OFFSHORE,
+          Role.DECISION_ISSUER_OFFSHORE,
+          Role.CONTINUATION_REVIEWER_OFFSHORE
       ),
       null,
       true
@@ -64,7 +60,8 @@ public enum TeamType implements Displayable {
           Role.MANAGE_TEAM,
           Role.CASE_MANAGER_ONSHORE,
           Role.STEWARD_ONSHORE,
-          Role.DECISION_ISSUER_ONSHORE
+          Role.DECISION_ISSUER_ONSHORE,
+          Role.CONTINUATION_REVIEWER_ONSHORE
       ),
       null,
       true
@@ -77,12 +74,9 @@ public enum TeamType implements Displayable {
       false,
       List.of(
           Role.MANAGE_TEAM,
-          Role.CASE_MANAGER_CS_NEW_VENTURES,
-          Role.CASE_MANAGER_CS_CTS,
-          Role.STEWARD_CS_NEW_VENTURES,
-          Role.STEWARD_CS_CTS,
-          Role.DECISION_ISSUER_CS_NEW_VENTURES,
-          Role.DECISION_ISSUER_CS_CTS
+          Role.CASE_MANAGER_CARBON_STORAGE,
+          Role.STEWARD_CARBON_STORAGE,
+          Role.DECISION_ISSUER_CARBON_STORAGE
       ),
       null,
       true

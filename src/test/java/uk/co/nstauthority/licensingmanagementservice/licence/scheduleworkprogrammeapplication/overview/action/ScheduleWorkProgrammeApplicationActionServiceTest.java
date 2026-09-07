@@ -50,7 +50,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()
-        .withRole(Role.STEWARD_OPERATIONS)
+        .withRole(Role.STEWARD_OFFSHORE)
         .withTeam(new Team())
         .withWuaId(USER_WUA_ID)
         .build();
@@ -69,7 +69,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()
-        .withRole(Role.STEWARD_OPERATIONS)
+        .withRole(Role.STEWARD_OFFSHORE)
         .withTeam(new Team())
         .withWuaId(USER_WUA_ID)
         .build();
@@ -107,7 +107,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
         .build();
 
     var teamRole = TeamRoleTestUtil.newBuilder()
-        .withRole(Role.CASE_MANAGER_CS_CTS)
+        .withRole(Role.CASE_MANAGER_CARBON_STORAGE)
         .withTeam(new Team())
         .withWuaId(USER_WUA_ID)
         .build();
@@ -127,7 +127,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
     applicationDetail.getScheduleWorkProgrammeApplication().setStewardWuaId(USER_WUA_ID);
 
     var teamRole = TeamRoleTestUtil.newBuilder()
-        .withRole(Role.STEWARD_OPERATIONS)
+        .withRole(Role.STEWARD_OFFSHORE)
         .withTeam(new Team())
         .withWuaId(USER_WUA_ID)
         .build();
@@ -146,7 +146,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
         .build();
 
     var teamRole = TeamRoleTestUtil.newBuilder()
-        .withRole(Role.STEWARD_OPERATIONS)
+        .withRole(Role.STEWARD_OFFSHORE)
         .withTeam(new Team())
         .withWuaId(USER_WUA_ID)
         .build();
@@ -165,7 +165,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
         .build();
 
     var teamRole = TeamRoleTestUtil.newBuilder()
-        .withRole(Role.CASE_MANAGER_CS_CTS)
+        .withRole(Role.CASE_MANAGER_CARBON_STORAGE)
         .withTeam(new Team())
         .withWuaId(USER_WUA_ID)
         .build();
@@ -184,7 +184,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()
-        .withRole(Role.CASE_MANAGER_CS_CTS)
+        .withRole(Role.CASE_MANAGER_CARBON_STORAGE)
         .withTeam(new Team())
         .withWuaId(USER_WUA_ID)
         .build();

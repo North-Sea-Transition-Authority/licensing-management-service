@@ -90,31 +90,25 @@ class EnergyPortalDataServiceTest {
 
     var offshoreProductionLicensingRoleDtos = Set.of(
         createServiceRoleDto(Role.MANAGE_TEAM, true),
-        createServiceRoleDto(Role.CASE_MANAGER_NEW_VENTURES, false),
-        createServiceRoleDto(Role.CASE_MANAGER_OPERATIONS, false),
-        createServiceRoleDto(Role.STEWARD_NEW_VENTURES, false),
-        createServiceRoleDto(Role.STEWARD_OPERATIONS, false),
-        createServiceRoleDto(Role.DECISION_ISSUER_NEW_VENTURES, false),
-        createServiceRoleDto(Role.DECISION_ISSUER_OPERATIONS, false),
-        createServiceRoleDto(Role.CONTINUATION_REVIEWER_NEW_VENTURES, false),
-        createServiceRoleDto(Role.CONTINUATION_REVIEWER_OPERATIONS, false)
+        createServiceRoleDto(Role.CASE_MANAGER_OFFSHORE, false),
+        createServiceRoleDto(Role.STEWARD_OFFSHORE, false),
+        createServiceRoleDto(Role.DECISION_ISSUER_OFFSHORE, false),
+        createServiceRoleDto(Role.CONTINUATION_REVIEWER_OFFSHORE, false)
     );
 
     var carbonStorageLicensingRoleDtos = Set.of(
         createServiceRoleDto(Role.MANAGE_TEAM, true),
-        createServiceRoleDto(Role.CASE_MANAGER_CS_NEW_VENTURES, false),
-        createServiceRoleDto(Role.CASE_MANAGER_CS_CTS, false),
-        createServiceRoleDto(Role.STEWARD_CS_NEW_VENTURES, false),
-        createServiceRoleDto(Role.STEWARD_CS_CTS, false),
-        createServiceRoleDto(Role.DECISION_ISSUER_CS_NEW_VENTURES, false),
-        createServiceRoleDto(Role.DECISION_ISSUER_CS_CTS, false)
+        createServiceRoleDto(Role.CASE_MANAGER_CARBON_STORAGE, false),
+        createServiceRoleDto(Role.STEWARD_CARBON_STORAGE, false),
+        createServiceRoleDto(Role.DECISION_ISSUER_CARBON_STORAGE, false)
     );
 
     var onshoreProductionLicensingRoleDtos = Set.of(
         createServiceRoleDto(Role.MANAGE_TEAM, true),
         createServiceRoleDto(Role.CASE_MANAGER_ONSHORE, false),
         createServiceRoleDto(Role.STEWARD_ONSHORE, false),
-        createServiceRoleDto(Role.DECISION_ISSUER_ONSHORE, false)
+        createServiceRoleDto(Role.DECISION_ISSUER_ONSHORE, false),
+        createServiceRoleDto(Role.CONTINUATION_REVIEWER_ONSHORE, false)
     );
 
     var regulationsLicensingRoleDtos = Set.of(

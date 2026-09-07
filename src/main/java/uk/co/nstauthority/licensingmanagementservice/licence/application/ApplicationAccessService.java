@@ -28,28 +28,22 @@ public class ApplicationAccessService {
   private final TeamQueryService teamQueryService;
   private final Set<Role> editorSubmitterRoles = Set.of(Role.APPLICATION_EDITOR, Role.APPLICATION_SUBMITTER);
   public static final Set<Role> STEWARD_ROLES = EnumSet.of(
-      Role.STEWARD_NEW_VENTURES,
-      Role.STEWARD_OPERATIONS,
-      Role.STEWARD_CS_NEW_VENTURES,
-      Role.STEWARD_CS_CTS,
+      Role.STEWARD_OFFSHORE,
+      Role.STEWARD_CARBON_STORAGE,
       Role.STEWARD_ONSHORE
   );
   public static final Set<Role> CASE_MANAGER_ROLES = EnumSet.of(
-      Role.CASE_MANAGER_CS_CTS,
-      Role.CASE_MANAGER_CS_NEW_VENTURES,
-      Role.CASE_MANAGER_NEW_VENTURES,
-      Role.CASE_MANAGER_ONSHORE,
-      Role.CASE_MANAGER_OPERATIONS
+      Role.CASE_MANAGER_OFFSHORE,
+      Role.CASE_MANAGER_CARBON_STORAGE,
+      Role.CASE_MANAGER_ONSHORE
   );
   public static final Set<Role> CONTINUATION_REVIEWER_ROLES = EnumSet.of(
-      Role.CONTINUATION_REVIEWER_OPERATIONS,
-      Role.CONTINUATION_REVIEWER_NEW_VENTURES
+      Role.CONTINUATION_REVIEWER_OFFSHORE,
+      Role.CONTINUATION_REVIEWER_ONSHORE
   );
   public static final Set<Role> DECISION_ISSUER_ROLES = EnumSet.of(
-      Role.DECISION_ISSUER_NEW_VENTURES,
-      Role.DECISION_ISSUER_OPERATIONS,
-      Role.DECISION_ISSUER_CS_NEW_VENTURES,
-      Role.DECISION_ISSUER_CS_CTS,
+      Role.DECISION_ISSUER_OFFSHORE,
+      Role.DECISION_ISSUER_CARBON_STORAGE,
       Role.DECISION_ISSUER_ONSHORE
   );
 

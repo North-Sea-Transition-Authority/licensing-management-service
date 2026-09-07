@@ -49,7 +49,7 @@ class LicenceContinuationActionServiceTest {
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()
-        .withRole(Role.CONTINUATION_REVIEWER_OPERATIONS)
+        .withRole(Role.CONTINUATION_REVIEWER_OFFSHORE)
         .withTeam(new Team())
         .withWuaId(USER_WUA_ID)
         .build();
@@ -71,7 +71,7 @@ class LicenceContinuationActionServiceTest {
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()
-        .withRole(Role.CONTINUATION_REVIEWER_OPERATIONS)
+        .withRole(Role.CONTINUATION_REVIEWER_OFFSHORE)
         .withTeam(new Team())
         .withWuaId(USER_WUA_ID)
         .build();
@@ -115,7 +115,7 @@ class LicenceContinuationActionServiceTest {
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()
-        .withRole(Role.CONTINUATION_REVIEWER_OPERATIONS)
+        .withRole(Role.CONTINUATION_REVIEWER_OFFSHORE)
         .withTeam(new Team())
         .withWuaId(USER_WUA_ID)
         .build();

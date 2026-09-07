@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.internalonly;
 import jakarta.persistence.EntityManager;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,24 +70,17 @@ public class DataBootstrapper {
 
     var offshoreProductionLicensingUserMap = new HashMap<Role, String>();
     offshoreProductionLicensingUserMap.put(Role.MANAGE_TEAM, "administrator@lms.co.uk");
-    offshoreProductionLicensingUserMap.put(Role.CASE_MANAGER_NEW_VENTURES, "casemanager.nv@lms.co.uk");
-    offshoreProductionLicensingUserMap.put(Role.CASE_MANAGER_OPERATIONS, "casemanager.ops@lms.co.uk");
-    offshoreProductionLicensingUserMap.put(Role.STEWARD_NEW_VENTURES, "steward.nv@lms.co.uk");
-    offshoreProductionLicensingUserMap.put(Role.STEWARD_OPERATIONS, "steward.ops@lms.co.uk");
-    offshoreProductionLicensingUserMap.put(Role.DECISION_ISSUER_NEW_VENTURES, "decision.issuer.nv@lms.co.uk");
-    offshoreProductionLicensingUserMap.put(Role.DECISION_ISSUER_OPERATIONS, "decision.issuer.ops@lms.co.uk");
-    offshoreProductionLicensingUserMap.put(Role.CONTINUATION_REVIEWER_NEW_VENTURES, "continuation.reviewer.nv@lms.co.uk");
-    offshoreProductionLicensingUserMap.put(Role.CONTINUATION_REVIEWER_OPERATIONS, "continuation.reviewer.ops@lms.co.uk");
+    offshoreProductionLicensingUserMap.put(Role.CASE_MANAGER_OFFSHORE, "casemanager.offshore@lms.co.uk");
+    offshoreProductionLicensingUserMap.put(Role.STEWARD_OFFSHORE, "steward.offshore@lms.co.uk");
+    offshoreProductionLicensingUserMap.put(Role.DECISION_ISSUER_OFFSHORE, "decision.issuer.offshore@lms.co.uk");
+    offshoreProductionLicensingUserMap.put(Role.CONTINUATION_REVIEWER_OFFSHORE, "continuation.reviewer.offshore@lms.co.uk");
     regulatorTeamUsers.put(TeamType.OFFSHORE_PRODUCTION_LICENSING, offshoreProductionLicensingUserMap);
 
     var carbonStorageLicensingUserMap = new HashMap<Role, String>();
     carbonStorageLicensingUserMap.put(Role.MANAGE_TEAM, "administrator@lms.co.uk");
-    carbonStorageLicensingUserMap.put(Role.CASE_MANAGER_CS_NEW_VENTURES, "casemanager.cs.nv@lms.co.uk");
-    carbonStorageLicensingUserMap.put(Role.STEWARD_CS_NEW_VENTURES, "steward.cs.nv@lms.co.uk");
-    carbonStorageLicensingUserMap.put(Role.DECISION_ISSUER_CS_NEW_VENTURES, "decision.issuer.cs.nv@lms.co.uk");
-    carbonStorageLicensingUserMap.put(Role.CASE_MANAGER_CS_CTS, "casemanager.cs.cts@lms.co.uk");
-    carbonStorageLicensingUserMap.put(Role.STEWARD_CS_CTS, "steward.cs.cts@lms.co.uk");
-    carbonStorageLicensingUserMap.put(Role.DECISION_ISSUER_CS_CTS, "decision.issuer.cs.cts@lms.co.uk");
+    carbonStorageLicensingUserMap.put(Role.CASE_MANAGER_CARBON_STORAGE, "casemanager.carbonstorage@lms.co.uk");
+    carbonStorageLicensingUserMap.put(Role.STEWARD_CARBON_STORAGE, "steward.carbonstorage@lms.co.uk");
+    carbonStorageLicensingUserMap.put(Role.DECISION_ISSUER_CARBON_STORAGE, "decision.issuer.carbonstorage@lms.co.uk");
     regulatorTeamUsers.put(TeamType.CARBON_STORAGE_LICENSING, carbonStorageLicensingUserMap);
 
     var onshoreProductionLicensingUserMap = new HashMap<Role, String>();
@@ -94,6 +88,7 @@ public class DataBootstrapper {
     onshoreProductionLicensingUserMap.put(Role.CASE_MANAGER_ONSHORE, "casemanager.onshore@lms.co.uk");
     onshoreProductionLicensingUserMap.put(Role.STEWARD_ONSHORE, "steward.onshore@lms.co.uk");
     onshoreProductionLicensingUserMap.put(Role.DECISION_ISSUER_ONSHORE, "decision.issuer.onshore@lms.co.uk");
+    onshoreProductionLicensingUserMap.put(Role.CONTINUATION_REVIEWER_ONSHORE, "continuation.reviewer.onshore@lms.co.uk");
     regulatorTeamUsers.put(TeamType.ONSHORE_PRODUCTION_LICENSING, onshoreProductionLicensingUserMap);
 
     var regulationsLicensingUserMap = new HashMap<Role, String>();
@@ -158,9 +153,9 @@ public class DataBootstrapper {
       }
 
       LOGGER.info("Bootstrapping industry {}", role.getName());
-      var industryUser = findFirstUserByEmail(role, industryTeamUsers.get(role));
 
-      createTeamRole(role, industryTeam, industryUser);
+      findFirstUserByEmail(role, industryTeamUsers.get(role))
+          .ifPresent(industryUser -> createTeamRole(role, industryTeam, industryUser));
     }
   }
 
@@ -182,21 +177,27 @@ public class DataBootstrapper {
 
         LOGGER.info("Bootstrapping {} {}", teamType.getDisplayName(), role.getName());
 
-        var regulatorUser = findFirstUserByEmail(role, roleUserMap.get(role));
         var regulatorTeam = teamQueryService.getStaticTeam(teamType);
 
-        createTeamRole(role, regulatorTeam, regulatorUser);
+        findFirstUserByEmail(role, roleUserMap.get(role))
+            .ifPresent(regulatorUser -> createTeamRole(role, regulatorTeam, regulatorUser));
       }
     }
 
   }
 
-  private EnergyPortalUserJson findFirstUserByEmail(Role role, String emailAddress) {
-    return energyPortalUserService.findUsersByEmail(
-            emailAddress,
-            String.format("Bootstrapping LMS %s for test environment", role.getName())
-        )
-        .getFirst();
+  private Optional<EnergyPortalUserJson> findFirstUserByEmail(Role role, String emailAddress) {
+    var users = energyPortalUserService.findUsersByEmail(
+        emailAddress,
+        String.format("Bootstrapping LMS %s for test environment", role.getName())
+    );
+
+    if (users.isEmpty()) {
+      LOGGER.warn("No Energy Portal user found for email {} while bootstrapping role {}, skipping", emailAddress, role.getName());
+      return Optional.empty();
+    }
+
+    return Optional.of(users.getFirst());
   }
 
   private void createTeamRole(Role role, Team team, EnergyPortalUserJson userJson) {

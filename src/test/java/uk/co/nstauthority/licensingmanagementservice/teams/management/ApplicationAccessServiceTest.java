@@ -302,10 +302,9 @@ class ApplicationAccessServiceTest {
 
   @ParameterizedTest
   @EnumSource(value = Role.class, names = {
-      "STEWARD_NEW_VENTURES",
-      "STEWARD_OPERATIONS",
-      "STEWARD_CS_NEW_VENTURES",
-      "STEWARD_CS_CTS"
+      "STEWARD_OFFSHORE",
+      "STEWARD_CARBON_STORAGE",
+      "STEWARD_ONSHORE"
   })
   void userHasAccessToApplication_whenUserIsSteward_returnsTrue(Role stewardRole) {
     var irrelevantTeam = buildTeam(TeamType.LICENCE_MANAGEMENT);
@@ -320,10 +319,8 @@ class ApplicationAccessServiceTest {
 
   @ParameterizedTest
   @EnumSource(value = Role.class, names = {
-      "CASE_MANAGER_NEW_VENTURES",
-      "CASE_MANAGER_CS_NEW_VENTURES",
-      "CASE_MANAGER_OPERATIONS",
-      "CASE_MANAGER_CS_CTS",
+      "CASE_MANAGER_OFFSHORE",
+      "CASE_MANAGER_CARBON_STORAGE",
       "CASE_MANAGER_ONSHORE"
   })
   void userHasAccessToApplication_whenUserIsCaseManager_returnsTrue(Role caseManagerRole) {
@@ -341,8 +338,8 @@ class ApplicationAccessServiceTest {
 
   @ParameterizedTest
   @EnumSource(value = Role.class, names = {
-      "CONTINUATION_REVIEWER_OPERATIONS",
-      "CONTINUATION_REVIEWER_NEW_VENTURES"
+      "CONTINUATION_REVIEWER_OFFSHORE",
+      "CONTINUATION_REVIEWER_ONSHORE"
   })
   void userHasAccessToApplication_whenUserIsContinuationReviewer_returnsTrue(Role continuationReviewerRole) {
     var irrelevantTeam = buildTeam(TeamType.LICENCE_MANAGEMENT);
@@ -357,10 +354,8 @@ class ApplicationAccessServiceTest {
 
   @ParameterizedTest
   @EnumSource(value = Role.class, names = {
-      "DECISION_ISSUER_NEW_VENTURES",
-      "DECISION_ISSUER_OPERATIONS",
-      "DECISION_ISSUER_CS_NEW_VENTURES",
-      "DECISION_ISSUER_CS_CTS",
+      "DECISION_ISSUER_OFFSHORE",
+      "DECISION_ISSUER_CARBON_STORAGE",
       "DECISION_ISSUER_ONSHORE"
   })
   void userHasAccessToApplication_whenUserIsDecisionIssuer_returnsTrue(Role decisionIssuerRole) {
@@ -377,7 +372,7 @@ class ApplicationAccessServiceTest {
   @Test
   void userHasAccessToApplication_whenDraft_andUserIsSteward_returnsFalse() {
     var stewardTeam = buildTeam(TeamType.LICENCE_MANAGEMENT);
-    var role = buildTeamRole(Role.STEWARD_NEW_VENTURES, stewardTeam);
+    var role = buildTeamRole(Role.STEWARD_OFFSHORE, stewardTeam);
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
 
@@ -389,7 +384,7 @@ class ApplicationAccessServiceTest {
   @Test
   void userHasAccessToApplication_whenUserIsContinuationReviewer_andAppIsNotContinuation_returnsFalse() {
     var team = buildTeam(TeamType.LICENCE_MANAGEMENT);
-    var role = buildTeamRole(Role.CONTINUATION_REVIEWER_OPERATIONS, team);
+    var role = buildTeamRole(Role.CONTINUATION_REVIEWER_OFFSHORE, team);
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
 

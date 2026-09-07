@@ -59,7 +59,7 @@ class AllocateStewardServiceTest {
     var wuaId = 100L;
     var teamRole = new TeamRole();
     teamRole.setWuaId(wuaId);
-    teamRole.setRole(Role.STEWARD_NEW_VENTURES);
+    teamRole.setRole(Role.STEWARD_OFFSHORE);
 
     var user = new EnergyPortalUserJson(wuaId, null, "Jane", "Doe", null, null, true, null, false);
 
@@ -81,11 +81,11 @@ class AllocateStewardServiceTest {
 
     var teamRole1 = new TeamRole();
     teamRole1.setWuaId(wuaId);
-    teamRole1.setRole(Role.STEWARD_NEW_VENTURES);
+    teamRole1.setRole(Role.STEWARD_OFFSHORE);
 
     var teamRole2 = new TeamRole();
     teamRole2.setWuaId(wuaId);
-    teamRole2.setRole(Role.STEWARD_OPERATIONS);
+    teamRole2.setRole(Role.STEWARD_ONSHORE);
 
     var user = new EnergyPortalUserJson(wuaId, null, "Jane", "Doe", null, null, true, null, false);
 

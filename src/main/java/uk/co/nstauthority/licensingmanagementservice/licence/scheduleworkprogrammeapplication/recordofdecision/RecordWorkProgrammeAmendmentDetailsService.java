@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationDisplayUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.internalapi.LicenceJson;
@@ -76,6 +77,35 @@ public class RecordWorkProgrammeAmendmentDetailsService {
         .stream()
         .filter(view -> !alreadyRecordedIds.contains(view.id()))
         .toList();
+  }
+
+  public List<RecordWorkProgrammeAmendmentSummaryView> getRecordedAmendmentViews(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail
+  ) {
+    return recordOfDecisionWorkProgrammeRepository.findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail)
+        .stream()
+        .map(this::toSummaryView)
+        .toList();
+  }
+
+  private RecordWorkProgrammeAmendmentSummaryView toSummaryView(RecordOfDecisionWorkProgramme workProgramme) {
+    var activityView = workProgrammeActivityService
+        .createWorkProgrammeActivityView(workProgramme.getWorkProgrammeActivity());
+
+    var amendedDuration = Boolean.TRUE.equals(workProgramme.getAmendDuration())
+        ? ThreeFieldDurationDisplayUtil.convertToDisplayText(workProgramme.getAmendedDuration())
+        : null;
+
+    var amendedText = Boolean.TRUE.equals(workProgramme.getAmendText())
+        ? workProgramme.getAmendedText()
+        : null;
+
+    return new RecordWorkProgrammeAmendmentSummaryView(
+        workProgramme.getWorkProgrammeActivity().getDescription(),
+        activityView.dueDate(),
+        workProgramme.getDecision().getDisplayName(),
+        amendedDuration,
+        amendedText);
   }
 
   public RecordWorkProgrammeAmendmentDetailsForm getFilledForm(

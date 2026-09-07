@@ -24,7 +24,6 @@ public class RecordOfDecision {
   @JoinColumn(name = "schedule_work_programme_application_detail_id")
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail;
 
-  // TODO LMS1-542: these get set by the what is the decision step
   @Enumerated(EnumType.STRING)
   @Column
   private RecordOfDecisionResponse extensionDecision;
@@ -32,6 +31,10 @@ public class RecordOfDecision {
   @Enumerated(EnumType.STRING)
   @Column
   private RecordOfDecisionResponse workProgrammeDecision;
+
+  @Enumerated(EnumType.STRING)
+  @Column
+  private RecordWorkProgrammeAmendmentSummaryOptions workProgrammeSummaryOption;
 
   public UUID getId() {
     return id;
@@ -64,5 +67,13 @@ public class RecordOfDecision {
 
   public void setWorkProgrammeDecision(RecordOfDecisionResponse workProgrammeDecision) {
     this.workProgrammeDecision = workProgrammeDecision;
+  }
+
+  public RecordWorkProgrammeAmendmentSummaryOptions getWorkProgrammeSummaryOption() {
+    return workProgrammeSummaryOption;
+  }
+
+  public void setWorkProgrammeSummaryOption(RecordWorkProgrammeAmendmentSummaryOptions workProgrammeSummaryOption) {
+    this.workProgrammeSummaryOption = workProgrammeSummaryOption;
   }
 }

@@ -34,15 +34,45 @@ public class RecordOfDecisionService {
 
   @Transactional
   public void saveDecision(ScheduleWorkProgrammeApplicationDetail applicationDetail, RecordDecisionForm form) {
-    var recordOfDecision = findByApplicationDetail(applicationDetail)
+    var recordOfDecision = getOrCreate(applicationDetail);
+    recordOfDecision.setExtensionDecision(form.getExtensionDecision());
+    recordOfDecision.setWorkProgrammeDecision(form.getWorkProgrammeDecision());
+    recordOfDecisionRepository.save(recordOfDecision);
+  }
+
+  public RecordWorkProgrammeAmendmentSummaryForm getFilledWorkProgrammeSummaryForm(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail
+  ) {
+    var form = new RecordWorkProgrammeAmendmentSummaryForm();
+    findByApplicationDetail(applicationDetail).ifPresent(recordOfDecision ->
+        form.setRecordWorkProgrammeAmendmentSummaryOptions(recordOfDecision.getWorkProgrammeSummaryOption()));
+    return form;
+  }
+
+  @Transactional
+  public void saveWorkProgrammeSummaryOption(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail,
+      RecordWorkProgrammeAmendmentSummaryForm form
+  ) {
+    var recordOfDecision = getOrCreate(applicationDetail);
+    recordOfDecision.setWorkProgrammeSummaryOption(form.getRecordWorkProgrammeAmendmentSummaryOptions());
+    recordOfDecisionRepository.save(recordOfDecision);
+  }
+
+  public boolean isWorkProgrammeAmendmentDetailsComplete(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
+    return findByApplicationDetail(applicationDetail)
+        .map(recordOfDecision -> recordOfDecision.getWorkProgrammeSummaryOption()
+            == RecordWorkProgrammeAmendmentSummaryOptions.NO_ALL_ADDED)
+        .orElse(false);
+  }
+
+  private RecordOfDecision getOrCreate(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
+    return findByApplicationDetail(applicationDetail)
         .orElseGet(() -> {
           var newRecordOfDecision = new RecordOfDecision();
           newRecordOfDecision.setScheduleWorkProgrammeApplicationDetail(applicationDetail);
           return newRecordOfDecision;
         });
-    recordOfDecision.setExtensionDecision(form.getExtensionDecision());
-    recordOfDecision.setWorkProgrammeDecision(form.getWorkProgrammeDecision());
-    recordOfDecisionRepository.save(recordOfDecision);
   }
 
   public boolean isExtensionApproved(ScheduleWorkProgrammeApplicationDetail applicationDetail) {

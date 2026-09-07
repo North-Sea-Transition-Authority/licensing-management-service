@@ -29,9 +29,6 @@ class RecordOfDecisionSectionServiceTest {
   @Mock
   private RecordDurationChangesService recordDurationChangesService;
 
-  @Mock
-  private RecordWorkProgrammeAmendmentDetailsService recordWorkProgrammeAmendmentDetailsService;
-
   @InjectMocks
   private RecordOfDecisionSectionService recordOfDecisionSectionService;
 
@@ -132,9 +129,9 @@ class RecordOfDecisionSectionServiceTest {
   }
 
   @Test
-  void getSection_whenWorkProgrammeAmendmentRecorded_marksWorkProgrammeTaskComplete() {
+  void getSection_whenAllWorkProgrammesAdded_marksWorkProgrammeTaskComplete() {
     mockDecisions(Optional.empty(), false, true);
-    when(recordWorkProgrammeAmendmentDetailsService.hasAmendmentDetails(applicationDetail)).thenReturn(true);
+    when(recordOfDecisionService.isWorkProgrammeAmendmentDetailsComplete(applicationDetail)).thenReturn(true);
 
     var section = recordOfDecisionSectionService.getSection(context, user).orElseThrow();
 
@@ -146,9 +143,9 @@ class RecordOfDecisionSectionServiceTest {
   }
 
   @Test
-  void getSection_whenNoWorkProgrammeAmendmentRecorded_marksWorkProgrammeTaskNotComplete() {
+  void getSection_whenMoreWorkProgrammesToAdd_marksWorkProgrammeTaskNotComplete() {
     mockDecisions(Optional.empty(), false, true);
-    when(recordWorkProgrammeAmendmentDetailsService.hasAmendmentDetails(applicationDetail)).thenReturn(false);
+    when(recordOfDecisionService.isWorkProgrammeAmendmentDetailsComplete(applicationDetail)).thenReturn(false);
 
     var section = recordOfDecisionSectionService.getSection(context, user).orElseThrow();
 
@@ -160,7 +157,7 @@ class RecordOfDecisionSectionServiceTest {
   }
 
   @Test
-  void getSection_whenWorkProgrammeAmendmentApproved_linksToSelectWorkProgrammeActivity() {
+  void getSection_whenWorkProgrammeAmendmentApproved_linksToWorkProgrammeAmendmentSummary() {
     mockDecisions(Optional.empty(), false, true);
 
     var section = recordOfDecisionSectionService.getSection(context, user).orElseThrow();
@@ -169,7 +166,7 @@ class RecordOfDecisionSectionServiceTest {
         .filteredOn(item -> item.displayName().equals(
             RecordOfDecisionSectionService.WORK_PROGRAMME_AMENDMENT_DETAILS))
         .extracting(TaskListItem::actionUrl)
-        .containsExactly(ReverseRouter.route(on(SelectWorkProgrammeActivityController.class)
+        .containsExactly(ReverseRouter.route(on(RecordWorkProgrammeAmendmentSummaryController.class)
             .renderForm(applicationDetail.getId(), null)));
   }
 

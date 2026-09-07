@@ -145,7 +145,7 @@ class RecordWorkProgrammeAmendmentDetailsControllerTest extends AbstractControll
   }
 
   @Test
-  void submitForm_validForm_savesAndRedirectsToTaskList() throws Exception {
+  void submitForm_validForm_savesAndRedirectsToAmendmentSummary() throws Exception {
     setupPassingInterceptors();
     when(recordWorkProgrammeAmendmentDetailsFormValidator.isValid(
         any(RecordWorkProgrammeAmendmentDetailsForm.class), any(BindingResult.class)))
@@ -157,8 +157,8 @@ class RecordWorkProgrammeAmendmentDetailsControllerTest extends AbstractControll
                 .with(user(USER))
                 .with(csrf()))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(RecordOfDecisionTaskListController.class)
-            .getTaskList(applicationDetailId, null, null))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(RecordWorkProgrammeAmendmentSummaryController.class)
+            .renderForm(applicationDetailId, null))));
 
     verify(recordWorkProgrammeAmendmentDetailsService).saveAmendmentDetails(
         any(RecordWorkProgrammeAmendmentDetailsForm.class), eq(applicationDetail), eq(workProgrammeActivity));

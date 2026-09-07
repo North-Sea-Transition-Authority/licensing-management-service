@@ -23,16 +23,13 @@ public class RecordOfDecisionSectionService implements TaskListSectionService<Re
 
   private final RecordOfDecisionService recordOfDecisionService;
   private final RecordDurationChangesService recordDurationChangesService;
-  private final RecordWorkProgrammeAmendmentDetailsService recordWorkProgrammeAmendmentDetailsService;
 
   public RecordOfDecisionSectionService(
       RecordOfDecisionService recordOfDecisionService,
-      RecordDurationChangesService recordDurationChangesService,
-      RecordWorkProgrammeAmendmentDetailsService recordWorkProgrammeAmendmentDetailsService
+      RecordDurationChangesService recordDurationChangesService
   ) {
     this.recordOfDecisionService = recordOfDecisionService;
     this.recordDurationChangesService = recordDurationChangesService;
-    this.recordWorkProgrammeAmendmentDetailsService = recordWorkProgrammeAmendmentDetailsService;
   }
 
   @Override
@@ -61,8 +58,8 @@ public class RecordOfDecisionSectionService implements TaskListSectionService<Re
       items.add(new TaskListItem(
           WORK_PROGRAMME_AMENDMENT_DETAILS,
           TaskListLabel.notStartedOrComplete(
-              recordWorkProgrammeAmendmentDetailsService.hasAmendmentDetails(applicationDetail)),
-          ReverseRouter.route(on(SelectWorkProgrammeActivityController.class)
+              recordOfDecisionService.isWorkProgrammeAmendmentDetailsComplete(applicationDetail)),
+          ReverseRouter.route(on(RecordWorkProgrammeAmendmentSummaryController.class)
               .renderForm(applicationDetail.getId(), null))));
     }
 

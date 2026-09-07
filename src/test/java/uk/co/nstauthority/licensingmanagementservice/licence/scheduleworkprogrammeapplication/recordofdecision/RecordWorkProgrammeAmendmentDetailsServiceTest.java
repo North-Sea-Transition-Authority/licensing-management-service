@@ -401,6 +401,67 @@ class RecordWorkProgrammeAmendmentDetailsServiceTest {
     verify(recordOfDecisionWorkProgrammeLicenceRepository).saveAll(List.of());
   }
 
+  @Test
+  void getRecordedAmendmentViews_returnsTheRecordedDetailsForEachDecision() {
+    var waivedActivity = buildActivity(UUID.randomUUID(), "Acquire 3D seismic data");
+    var amended = workProgrammeWithActivity(workProgrammeActivity);
+    amended.setDecision(WorkProgrammeAmendmentDecision.AMEND);
+    amended.setAmendDuration(true);
+    amended.setAmendedDuration(new ThreeFieldDuration(0, 6, 0));
+    amended.setAmendText(true);
+    amended.setAmendedText("Revised well commitment wording");
+    var waived = workProgrammeWithActivity(waivedActivity);
+    waived.setDecision(WorkProgrammeAmendmentDecision.WAIVE);
+    mockRecordedWorkProgrammes(amended, waived);
+    mockActivityView(workProgrammeActivity, "Drill well to 3,000m");
+    mockActivityView(waivedActivity, "Acquire 3D seismic data");
+
+    var views = recordWorkProgrammeAmendmentDetailsService.getRecordedAmendmentViews(applicationDetail);
+
+    assertThat(views).containsExactly(
+        new RecordWorkProgrammeAmendmentSummaryView(
+            "Drill well to 3,000m",
+            "27 July 2026",
+            WorkProgrammeAmendmentDecision.AMEND.getDisplayName(),
+            "6 months",
+            "Revised well commitment wording"),
+        new RecordWorkProgrammeAmendmentSummaryView(
+            "Acquire 3D seismic data",
+            "27 July 2026",
+            WorkProgrammeAmendmentDecision.WAIVE.getDisplayName(),
+            null,
+            null));
+  }
+
+  @Test
+  void getRecordedAmendmentViews_whenTheAmendmentBoxesAreNotTicked_omitsTheAmendedValues() {
+    var amended = workProgrammeWithActivity(workProgrammeActivity);
+    amended.setDecision(WorkProgrammeAmendmentDecision.AMEND);
+    amended.setAmendDuration(false);
+    amended.setAmendedDuration(new ThreeFieldDuration(0, 6, 0));
+    amended.setAmendText(false);
+    amended.setAmendedText("Wording that was never confirmed");
+    mockRecordedWorkProgrammes(amended);
+    mockActivityView(workProgrammeActivity, "Drill well to 3,000m");
+
+    var views = recordWorkProgrammeAmendmentDetailsService.getRecordedAmendmentViews(applicationDetail);
+
+    assertThat(views).containsExactly(
+        new RecordWorkProgrammeAmendmentSummaryView(
+            "Drill well to 3,000m",
+            "27 July 2026",
+            WorkProgrammeAmendmentDecision.AMEND.getDisplayName(),
+            null,
+            null));
+  }
+
+  @Test
+  void getRecordedAmendmentViews_whenNoDecisionsRecorded_returnsEmptyList() {
+    mockRecordedWorkProgrammes();
+
+    assertThat(recordWorkProgrammeAmendmentDetailsService.getRecordedAmendmentViews(applicationDetail)).isEmpty();
+  }
+
   private void mockScheduleActivityViews(WorkProgrammeActivityView... views) {
     when(scheduleWorkProgrammeApplicationService.getCurrentScheduleDetailFromApplicationDetail(applicationDetail))
         .thenReturn(licenceScheduleDetail);
@@ -445,6 +506,11 @@ class RecordWorkProgrammeAmendmentDetailsServiceTest {
     workProgrammeLicence.setRecordOfDecisionWorkProgramme(workProgramme);
     workProgrammeLicence.setLicence(licence);
     return workProgrammeLicence;
+  }
+
+  private void mockActivityView(WorkProgrammeActivity activity, String description) {
+    when(workProgrammeActivityService.createWorkProgrammeActivityView(activity))
+        .thenReturn(buildActivityView(activity.getId().toString(), description));
   }
 
   private WorkProgrammeActivityView buildActivityView(String id, String description) {

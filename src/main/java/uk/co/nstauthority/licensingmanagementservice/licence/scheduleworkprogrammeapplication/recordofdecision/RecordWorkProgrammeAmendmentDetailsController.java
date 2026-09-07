@@ -75,8 +75,8 @@ public class RecordWorkProgrammeAmendmentDetailsController {
     recordWorkProgrammeAmendmentDetailsService.saveAmendmentDetails(
         form, scheduleWorkProgrammeApplicationDetail, workProgrammeActivity);
 
-    return ReverseRouter.redirect(on(RecordOfDecisionTaskListController.class)
-        .getTaskList(scheduleWorkProgrammeApplicationDetailId, null, null));
+    return ReverseRouter.redirect(on(RecordWorkProgrammeAmendmentSummaryController.class)
+        .renderForm(scheduleWorkProgrammeApplicationDetailId, null));
   }
 
   private ModelAndView getModelAndView(

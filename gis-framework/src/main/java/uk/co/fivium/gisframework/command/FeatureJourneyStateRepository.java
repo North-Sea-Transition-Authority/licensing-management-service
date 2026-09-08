@@ -23,6 +23,8 @@ interface FeatureJourneyStateRepository extends ListCrudRepository<FeatureJourne
 
   List<FeatureJourneyState> findAllByCreatedByCommandIn(Collection<OperatorCommand> createdByCommands);
 
+  List<FeatureJourneyState> findAllByCommandJourneyAndFeature_IdIn(CommandJourney commandJourney, Set<UUID> featureIds);
+
   List<FeatureJourneyState> findAllByFeature_IdIn(Set<UUID> featureIds);
 
   /**

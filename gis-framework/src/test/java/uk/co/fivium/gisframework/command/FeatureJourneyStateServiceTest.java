@@ -68,13 +68,15 @@ class FeatureJourneyStateServiceTest {
 
   @Test
   void deactivateFeatures_setsExistingStatesInactive() {
+    var commandJourney = CommandJourneyTestUtil.newBuilder().build();
     var feature = FeatureTestUtil.newBuilder().build();
     var state = FeatureJourneyStateTestUtil.newBuilder().withFeature(feature).withActive(true).build();
 
-    when(featureJourneyStateRepository.findAllByFeature_IdIn(Set.of(feature.getId()))).thenReturn(List.of(state));
+    when(featureJourneyStateRepository.findAllByCommandJourneyAndFeature_IdIn(commandJourney, Set.of(feature.getId())))
+        .thenReturn(List.of(state));
     when(featureJourneyStateRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-    featureJourneyStateService.deactivateFeatures(List.of(feature));
+    featureJourneyStateService.deactivateFeatures(commandJourney, List.of(feature));
 
     assertThat(state.isActive()).isFalse();
     verify(featureJourneyStateRepository).saveAll(List.of(state));
@@ -82,13 +84,15 @@ class FeatureJourneyStateServiceTest {
 
   @Test
   void activateFeatures_setsExistingStatesActive() {
+    var commandJourney = CommandJourneyTestUtil.newBuilder().build();
     var feature = FeatureTestUtil.newBuilder().build();
     var state = FeatureJourneyStateTestUtil.newBuilder().withFeature(feature).withActive(false).build();
 
-    when(featureJourneyStateRepository.findAllByFeature_IdIn(Set.of(feature.getId()))).thenReturn(List.of(state));
+    when(featureJourneyStateRepository.findAllByCommandJourneyAndFeature_IdIn(commandJourney, Set.of(feature.getId())))
+        .thenReturn(List.of(state));
     when(featureJourneyStateRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-    featureJourneyStateService.activateFeatures(List.of(feature));
+    featureJourneyStateService.activateFeatures(commandJourney, List.of(feature));
 
     verify(featureJourneyStateRepository).saveAll(statesCaptor.capture());
     assertThat(statesCaptor.getValue())
@@ -159,7 +163,7 @@ class FeatureJourneyStateServiceTest {
   }
 
   @Test
-  void deleteFeatureJourneyStatesCreatedByCommands_deletesStatesAndReturnsFeatures() {
+  void deleteFeatureJourneyStatesCreatedByCommands_whenNoJourneyHoldsTheFeature_thenStatesDeletedAndFeatureReturned() {
     var command = OperatorCommandTestUtil.newBuilder().build();
     var feature = FeatureTestUtil.newBuilder().build();
     var state = FeatureJourneyStateTestUtil.newBuilder()
@@ -168,11 +172,54 @@ class FeatureJourneyStateServiceTest {
         .build();
 
     when(featureJourneyStateRepository.findAllByCreatedByCommandIn(List.of(command))).thenReturn(List.of(state));
+    when(featureJourneyStateRepository.findAllByFeature_IdIn(Set.of(feature.getId()))).thenReturn(List.of());
 
     var result = featureJourneyStateService.deleteFeatureJourneyStatesCreatedByCommands(List.of(command));
 
     assertThat(result).containsExactly(feature);
     verify(featureJourneyStateRepository).deleteAll(List.of(state));
+  }
+
+  @Test
+  void deleteFeatureJourneyStatesCreatedByCommands_whenAnotherJourneyStillHoldsTheFeature_thenFeatureNotReturned() {
+    var command = OperatorCommandTestUtil.newBuilder().build();
+    var orphanedFeature = FeatureTestUtil.newBuilder().build();
+    var sharedFeature = FeatureTestUtil.newBuilder().build();
+    var orphanedState = FeatureJourneyStateTestUtil.newBuilder()
+        .withFeature(orphanedFeature)
+        .withCreatedByCommand(command)
+        .build();
+    var sharedState = FeatureJourneyStateTestUtil.newBuilder()
+        .withFeature(sharedFeature)
+        .withCreatedByCommand(command)
+        .build();
+    var stateInOtherJourney = FeatureJourneyStateTestUtil.newBuilder()
+        .withFeature(sharedFeature)
+        .withCommandJourney(CommandJourneyTestUtil.newBuilder().build())
+        .build();
+
+    when(featureJourneyStateRepository.findAllByCreatedByCommandIn(List.of(command)))
+        .thenReturn(List.of(orphanedState, sharedState));
+    when(featureJourneyStateRepository.findAllByFeature_IdIn(
+        Set.of(orphanedFeature.getId(), sharedFeature.getId())))
+        .thenReturn(List.of(stateInOtherJourney));
+
+    var result = featureJourneyStateService.deleteFeatureJourneyStatesCreatedByCommands(List.of(command));
+
+    assertThat(result).containsExactly(orphanedFeature);
+    verify(featureJourneyStateRepository).deleteAll(List.of(orphanedState, sharedState));
+  }
+
+  @Test
+  void deleteFeatureJourneyStatesCreatedByCommands_whenNoStatesFound_thenNoFeaturesReturned() {
+    var command = OperatorCommandTestUtil.newBuilder().build();
+
+    when(featureJourneyStateRepository.findAllByCreatedByCommandIn(List.of(command))).thenReturn(List.of());
+
+    var result = featureJourneyStateService.deleteFeatureJourneyStatesCreatedByCommands(List.of(command));
+
+    assertThat(result).isEmpty();
+    verify(featureJourneyStateRepository).deleteAll(List.of());
   }
 
   @Test

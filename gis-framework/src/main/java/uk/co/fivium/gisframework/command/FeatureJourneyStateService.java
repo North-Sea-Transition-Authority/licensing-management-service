@@ -31,17 +31,17 @@ public class FeatureJourneyStateService {
   }
 
   @Transactional
-  public void deactivateFeatures(List<Feature> features) {
+  public void deactivateFeatures(CommandJourney commandJourney, List<Feature> features) {
     var featureIds = features.stream().map(Feature::getId).collect(Collectors.toSet());
-    var states = featureJourneyStateRepository.findAllByFeature_IdIn(featureIds);
+    var states = featureJourneyStateRepository.findAllByCommandJourneyAndFeature_IdIn(commandJourney, featureIds);
     states.forEach(state -> state.setActive(false));
     featureJourneyStateRepository.saveAll(states);
   }
 
   @Transactional
-  public void activateFeatures(List<Feature> features) {
+  public void activateFeatures(CommandJourney commandJourney, List<Feature> features) {
     var featureIds = features.stream().map(Feature::getId).collect(Collectors.toSet());
-    var states = featureJourneyStateRepository.findAllByFeature_IdIn(featureIds);
+    var states = featureJourneyStateRepository.findAllByCommandJourneyAndFeature_IdIn(commandJourney, featureIds);
     states.forEach(state -> state.setActive(true));
     featureJourneyStateRepository.saveAll(states);
   }
@@ -89,14 +89,30 @@ public class FeatureJourneyStateService {
    * so their now-orphaned geometry and the features themselves can also be hard-deleted.
    *
    * @param createdByCommands The commands whose output feature journey states should be deleted
-   * @return The features the deleted states were for
+   * @return The features the deleted states were for that no journey holds any longer
    */
   @Transactional
   public List<Feature> deleteFeatureJourneyStatesCreatedByCommands(List<OperatorCommand> createdByCommands) {
     var states = featureJourneyStateRepository.findAllByCreatedByCommandIn(createdByCommands);
-    var features = states.stream().map(FeatureJourneyState::getFeature).toList();
     featureJourneyStateRepository.deleteAll(states);
-    return features;
+
+    var featureIds = states.stream()
+        .map(state -> state.getFeature().getId())
+        .collect(Collectors.toSet());
+
+    if (featureIds.isEmpty()) {
+      return List.of();
+    }
+
+    var featureIdsHeldByAnotherJourney = featureJourneyStateRepository.findAllByFeature_IdIn(featureIds).stream()
+        .map(state -> state.getFeature().getId())
+        .collect(Collectors.toSet());
+
+    return states.stream()
+        .map(FeatureJourneyState::getFeature)
+        .filter(feature -> !featureIdsHeldByAnotherJourney.contains(feature.getId()))
+        .distinct()
+        .toList();
   }
 
 

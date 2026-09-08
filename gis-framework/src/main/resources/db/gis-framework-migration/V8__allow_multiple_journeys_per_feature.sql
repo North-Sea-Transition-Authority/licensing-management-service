@@ -1,0 +1,2 @@
+ALTER TABLE gis_framework_feature_journey_states
+  DROP CONSTRAINT gis_framework_feature_journey_states_feature_id_uk;

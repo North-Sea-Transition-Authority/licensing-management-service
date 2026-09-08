@@ -88,7 +88,7 @@ class OperatorCommandReceiverTest {
 
     assertThat(result).containsExactly(outputFeature1, outputFeature2);
 
-    verify(featureJourneyStateService).deactivateFeatures(List.of(inputFeature));
+    verify(featureJourneyStateService).deactivateFeatures(commandJourney, List.of(inputFeature));
     verify(featureJourneyStateService)
         .createFeatureJourneyStatesForCommandOutput(commandJourney, command, List.of(outputFeature1, outputFeature2));
   }
@@ -170,7 +170,7 @@ class OperatorCommandReceiverTest {
 
     assertThat(result).isEmpty();
     verify(operatorCommandService, never()).createOperatorCommand(any(), any(), any());
-    verify(featureJourneyStateService, never()).deactivateFeatures(any());
+    verify(featureJourneyStateService, never()).deactivateFeatures(any(), any());
     verify(featureJourneyStateService, never()).createFeatureJourneyStatesForCommandOutput(any(), any(), any());
   }
 
@@ -189,7 +189,7 @@ class OperatorCommandReceiverTest {
 
     assertThat(result).containsExactly(inputFeature);
     verify(featureJourneyStateService).deactivateFeaturesCreatedByCommand(activeCommand);
-    verify(featureJourneyStateService).activateFeatures(List.of(inputFeature));
+    verify(featureJourneyStateService).activateFeatures(commandJourney, List.of(inputFeature));
     verify(operatorCommandService).markUndone(activeCommand);
   }
 
@@ -203,7 +203,7 @@ class OperatorCommandReceiverTest {
 
     assertThat(result).isEmpty();
     verify(featureJourneyStateService, never()).deactivateFeaturesCreatedByCommand(any());
-    verify(featureJourneyStateService, never()).activateFeatures(any());
+    verify(featureJourneyStateService, never()).activateFeatures(any(), any());
     verify(operatorCommandService, never()).markUndone(any());
     verifyNoInteractions(featureService);
   }
@@ -224,7 +224,7 @@ class OperatorCommandReceiverTest {
     var result = operatorCommandReceiver.redo(commandJourney);
 
     assertThat(result).containsExactly(outputFeature);
-    verify(featureJourneyStateService).deactivateFeatures(List.of(inputFeature));
+    verify(featureJourneyStateService).deactivateFeatures(commandJourney, List.of(inputFeature));
     verify(featureJourneyStateService).activateFeaturesCreatedByCommand(undoneCommand);
     verify(operatorCommandService).markRedone(undoneCommand);
   }
@@ -238,7 +238,7 @@ class OperatorCommandReceiverTest {
     var result = operatorCommandReceiver.redo(commandJourney);
 
     assertThat(result).isEmpty();
-    verify(featureJourneyStateService, never()).deactivateFeatures(any());
+    verify(featureJourneyStateService, never()).deactivateFeatures(any(), any());
     verify(featureJourneyStateService, never()).activateFeaturesCreatedByCommand(any());
     verify(operatorCommandService, never()).markRedone(any());
     verifyNoInteractions(featureService);

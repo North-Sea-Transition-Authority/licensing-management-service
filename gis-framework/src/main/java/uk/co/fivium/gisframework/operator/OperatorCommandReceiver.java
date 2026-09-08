@@ -81,7 +81,7 @@ public class OperatorCommandReceiver {
     var command = operatorCommandService.createOperatorCommand(commandJourney, affectedInputFeatureIds,
         TransformationType.SPLIT);
 
-    featureJourneyStateService.deactivateFeatures(affectedInputFeatures);
+    featureJourneyStateService.deactivateFeatures(commandJourney, affectedInputFeatures);
     featureJourneyStateService.createFeatureJourneyStatesForCommandOutput(commandJourney, command, outputFeatures);
 
     return outputFeatures;
@@ -107,7 +107,7 @@ public class OperatorCommandReceiver {
     featureJourneyStateService.deactivateFeaturesCreatedByCommand(currentActiveCommand);
 
     var inputFeatures = featureService.getFeaturesByIds(currentActiveCommand.getInputFeatureIds());
-    featureJourneyStateService.activateFeatures(inputFeatures);
+    featureJourneyStateService.activateFeatures(commandJourney, inputFeatures);
 
     operatorCommandService.markUndone(currentActiveCommand);
 
@@ -131,7 +131,7 @@ public class OperatorCommandReceiver {
 
     var nextRedoCommand = nextRedoCommandOpt.get();
     var inputFeatures = featureService.getFeaturesByIds(nextRedoCommand.getInputFeatureIds());
-    featureJourneyStateService.deactivateFeatures(inputFeatures);
+    featureJourneyStateService.deactivateFeatures(commandJourney, inputFeatures);
     var outputFeatures = featureJourneyStateService.activateFeaturesCreatedByCommand(nextRedoCommand);
     operatorCommandService.markRedone(nextRedoCommand);
     return outputFeatures;

@@ -9,6 +9,9 @@ import * as unionOperator from "@arcgis/core/geometry/operators/unionOperator.js
 import Polyline from "@arcgis/core/geometry/Polyline.js";
 import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
 import { logger } from "../../config/logger";
+import {
+  GENERALIZE_TOLERANCE_DEGREES,
+} from "../../geometric-operators/generalize-polygon";
 import { asyncHandler } from "../../handlers/async-handler";
 import { getCoordinateSystemWkid } from "../../util/coordinate-system-utils";
 import { esriJsonToPolyline } from "../../util/esrijson-util";
@@ -22,7 +25,6 @@ import {
 import {
   findLineConnectingToPointNotOnBearing,
   findPointOfIntersectionBetweenChildPointOnBearingAndParentLine,
-  GENERALIZE_TOLERANCE_DEGREES,
   GEODESIC_DENSE_POINT_METERS_INTERVAL,
   getIndexOfPointOnLine,
   isApproximatelyEqual,

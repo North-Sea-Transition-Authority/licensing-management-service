@@ -9,7 +9,8 @@
     "copy:core": "cpx \"node_modules/@arcgis/core/assets/**/*.*\" ./public/assets",
     "setup": "run-p copy:core proto-gen",
     "lint": "cd .. && eslint arcgis-node",
-    "lint:fix": "cd .. && eslint arcgis-node --fix"
+    "lint:fix": "cd .. && eslint arcgis-node --fix",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@arcgis/core": "5.0.15",

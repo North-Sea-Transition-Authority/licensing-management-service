@@ -42,6 +42,7 @@ steps:
       - npm install
       - npm run copy:core
       - npm run proto-gen
+      - npm run typecheck
       - npm test
 
   - name: gis-frontend-visual-tests
@@ -339,6 +340,7 @@ steps:
       - npm install
       - npm run copy:core
       - npm run proto-gen
+      - npm run typecheck
       - npm test
 
   - name: gis-frontend-visual-tests

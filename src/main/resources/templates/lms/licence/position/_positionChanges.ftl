@@ -187,7 +187,7 @@
     summaryListId="subarea-change"
     cardActionsContent=cardActions
     >
-      <@fdsSummaryList.summaryListRowNoAction keyText="Subarea to change">
+      <@fdsSummaryList.summaryListRowNoAction keyText="Licence block">
         ${change.featureName()}
       </@fdsSummaryList.summaryListRowNoAction>
     </@fdsSummaryList.summaryListCard>

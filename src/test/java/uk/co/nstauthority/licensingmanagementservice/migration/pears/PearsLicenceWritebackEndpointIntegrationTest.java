@@ -10,8 +10,6 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -198,13 +196,12 @@ class PearsLicenceWritebackEndpointIntegrationTest {
             LicencePosition::getPositionDate,
             LicencePosition::getPositionDateOrder,
             LicencePosition::isExecuted,
-            position -> position.getLicenceTransaction().getRegulatorReference(),
-            LicencePosition::getFeatureIds
+            position -> position.getLicenceTransaction().getRegulatorReference()
         )
         .containsExactlyInAnyOrder(
-            tuple(FIRST_POSITION_DATE, 1, true, "XPT/1", Set.of()),
-            tuple(FIRST_POSITION_DATE, 2, true, "XPT/2", Set.of()),
-            tuple(LAST_POSITION_DATE, 1, true, "XPT/3", Set.of())
+            tuple(FIRST_POSITION_DATE, 1, true, "XPT/1"),
+            tuple(FIRST_POSITION_DATE, 2, true, "XPT/2"),
+            tuple(LAST_POSITION_DATE, 1, true, "XPT/3")
         );
 
     assertThat(licencePositionChangeRepository.findAll())
@@ -244,10 +241,9 @@ class PearsLicenceWritebackEndpointIntegrationTest {
             LicencePosition::getPositionDate,
             LicencePosition::getPositionDateOrder,
             LicencePosition::isExecuted,
-            position -> position.getLicenceTransaction().getRegulatorReference(),
-            LicencePosition::getFeatureIds
+            position -> position.getLicenceTransaction().getRegulatorReference()
         )
-        .containsExactly(tuple(LAST_POSITION_DATE, 1, true, "XPT/4", Set.of()));
+        .containsExactly(tuple(LAST_POSITION_DATE, 1, true, "XPT/4"));
 
     assertThat(licencePositionRepository.findByLicence(licence))
         .extracting(LicencePosition::getId)
@@ -360,7 +356,6 @@ class PearsLicenceWritebackEndpointIntegrationTest {
         .withPositionDate(positionDate)
         .withPositionOrder(positionDateOrder)
         .withIsExecuted(isExecuted)
-        .withFeatureIds(Set.of(UUID.randomUUID()))
         .build();
   }
 

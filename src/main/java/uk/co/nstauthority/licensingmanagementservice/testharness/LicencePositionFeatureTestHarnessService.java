@@ -5,11 +5,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.IntStream;
-import org.apache.commons.collections.CollectionUtils;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.Layer;
@@ -20,7 +21,16 @@ import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureAttribute;
 
 @Service
@@ -28,9 +38,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.Fe
 class LicencePositionFeatureTestHarnessService {
 
   private static final String QUADRANT_NUMBER = "30";
-  private static final int BLOCKS_PER_POSITION = 2;
+  private static final int BLOCKS_PER_LICENCE = 4;
   private static final int SUBAREAS_PER_BLOCK = 2;
   private static final int SHAPES_PER_BLOCK = 1 + SUBAREAS_PER_BLOCK;
+  private static final int FIRST_CHANGE_ORDER = 1;
 
   private static final CoordinateSystem COORDINATE_SYSTEM = CoordinateSystem.ED50;
   private static final int RING_NUMBER = 1;
@@ -53,75 +64,135 @@ class LicencePositionFeatureTestHarnessService {
   private final PolygonService polygonService;
   private final LineService lineService;
   private final LicencePositionService licencePositionService;
+  private final LicencePositionChangeService licencePositionChangeService;
+  private final CommandJourneyService commandJourneyService;
 
   LicencePositionFeatureTestHarnessService(
       FeatureService featureService,
       PolygonService polygonService,
       LineService lineService,
-      LicencePositionService licencePositionService
+      LicencePositionService licencePositionService,
+      LicencePositionChangeService licencePositionChangeService,
+      CommandJourneyService commandJourneyService
   ) {
     this.featureService = featureService;
     this.polygonService = polygonService;
     this.lineService = lineService;
     this.licencePositionService = licencePositionService;
+    this.licencePositionChangeService = licencePositionChangeService;
+    this.commandJourneyService = commandJourneyService;
   }
 
   public LicencePositionFeatureSeedState getSeedState(Licence licence) {
     var licencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
 
-    return new LicencePositionFeatureSeedState(
-        licencePositions.size(),
-        licencePositions.stream().anyMatch(licencePosition -> CollectionUtils.isNotEmpty(licencePosition.getFeatureIds()))
-    );
+    var hasSeededFeatures = licencePositionChangeService.findByLicencePositionIn(licencePositions)
+        .stream()
+        .map(change -> LicencePositionChangeOperationUtil.findOperation(change, PartialSurrenderOperation.class))
+        .flatMap(Optional::stream)
+        .anyMatch(partialSurrender -> !partialSurrender.outputFeatureIds().isEmpty());
+
+    return new LicencePositionFeatureSeedState(licencePositions.size(), hasSeededFeatures);
   }
 
   /**
-   * Creates and links the spatial data of every position on a licence - two blocks per position, and a
-   * fixed number of subareas within each of those blocks. The features belong to the one position, so each
-   * position holds its own blocks rather than inheriting those of the position before it.
+   * Creates the spatial data a licence holds and anchors it to the timeline with a spatial operation on the earliest
+   * position, from which every later position derives its own features. That operation is a partial surrender because
+   * it is the only spatial operation that exists so far - in time it will be a block create. A surrender has to
+   * surrender something, so one extra block is created and fully surrendered by the seed operation, leaving the licence
+   * holding the rest.
    *
-   * @return the number of features created
+   * @return the features created and the blocks the licence is left holding
    */
   @Transactional
-  public int createAndLinkFeatures(Licence licence) {
+  public SeededFeatures createAndLinkFeatures(Licence licence) {
     Objects.requireNonNull(licence);
 
     var licencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
-    var createdFeatureCount = 0;
-
-    for (var positionIndex = 1; positionIndex <= licencePositions.size(); positionIndex++) {
-      var features = createFeaturesForPosition(licence, positionIndex);
-
-      licencePositionService.setFeatures(licencePositions.get(positionIndex - 1), features);
-      createdFeatureCount += features.size();
+    if (licencePositions.isEmpty()) {
+      return new SeededFeatures(List.of(), List.of());
     }
 
-    return createdFeatureCount;
+    var seededFeatures = createFeaturesForLicence(licence);
+    var seedPosition = licencePositions.getFirst();
+
+    licencePositionChangeService.createLicencePositionChange(
+        seedPosition,
+        List.of(seedSpatialOperation(seededFeatures.surrenderedBlock(), seededFeatures.retainedBlocks())),
+        nextChangeOrder(seedPosition),
+        LicencePositionChangeStatus.CONSENTED
+    );
+
+    return seededFeatures;
   }
 
-  private List<Feature> createFeaturesForPosition(Licence licence, int positionIndex) {
-    var features = new ArrayList<Feature>();
+  /**
+   * The seed shares its position with whatever the rest of the harness has already put there, so it is appended rather
+   * than assuming an order is free. Appending is safe spatially: the other seeded operations leave the features
+   * untouched, so where the seed sits within the position makes no difference to what is derived from it.
+   */
+  private int nextChangeOrder(LicencePosition licencePosition) {
+    var highestExistingOrder = licencePositionChangeService.findByLicencePositionId(licencePosition.getId())
+        .stream()
+        .mapToInt(LicencePositionChange::getChangeOrder)
+        .max();
 
-    for (var blockIndex = 1; blockIndex <= BLOCKS_PER_POSITION; blockIndex++) {
-      var blockNumber = (positionIndex - 1) * BLOCKS_PER_POSITION + blockIndex;
+    return highestExistingOrder.isPresent() ? highestExistingOrder.getAsInt() + 1 : FIRST_CHANGE_ORDER;
+  }
+
+  private LicenceOperation seedSpatialOperation(Feature surrenderedBlock, List<Feature> retainedBlocks) {
+    // a full surrender still carries a command journey (with no splits) so downstream processing is uniform
+    var commandJourneyId = commandJourneyService.createAndAssignCommandJourney(List.of(surrenderedBlock)).getId();
+
+    // no surrender date - the change takes the date of the position it sits on
+    return LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(List.of(surrenderedBlock.getId()))
+        .withSurrenderDetails(Map.of(surrenderedBlock.getId(), new SurrenderDetails(
+            BlockSurrenderType.FULL_SURRENDER, commandJourneyId, List.of(surrenderedBlock.getId()))))
+        .withOutputFeatureIds(retainedBlocks.stream().map(Feature::getId).toList())
+        .build();
+  }
+
+  private SeededFeatures createFeaturesForLicence(Licence licence) {
+    var blocks = new ArrayList<Feature>();
+    var subareas = new ArrayList<Feature>();
+
+    for (var blockIndex = 1; blockIndex <= BLOCKS_PER_LICENCE; blockIndex++) {
       var shapeIndex = (blockIndex - 1) * SHAPES_PER_BLOCK + 1;
 
-      var block = createFeature(licence, positionIndex, shapeIndex, blockAttributes(blockNumber), null);
-      features.add(block);
+      var block = createFeature(licence, shapeIndex, blockAttributes(blockIndex), null);
+      blocks.add(block);
 
       for (var subareaIndex = 1; subareaIndex <= SUBAREAS_PER_BLOCK; subareaIndex++) {
-        var subarea = createFeature(
+        subareas.add(createFeature(
             licence,
-            positionIndex,
             shapeIndex + subareaIndex,
-            subareaAttributes(blockNumber, subareaIndex),
+            subareaAttributes(blockIndex, subareaIndex),
             block
-        );
-        features.add(subarea);
+        ));
       }
     }
 
-    return features;
+    return new SeededFeatures(blocks, subareas);
+  }
+
+  /**
+   * The blocks are kept apart from their subareas because only the blocks are named by the seed operation. The seed
+   * operation fully surrenders the first block, so the licence is left holding the rest.
+   */
+  record SeededFeatures(List<Feature> blocks, List<Feature> subareas) {
+
+    int count() {
+      return blocks.size() + subareas.size();
+    }
+
+    Feature surrenderedBlock() {
+      return blocks.getFirst();
+    }
+
+    List<Feature> retainedBlocks() {
+      return blocks.stream().skip(1).toList();
+    }
   }
 
   /**
@@ -130,17 +201,12 @@ class LicencePositionFeatureTestHarnessService {
    */
   private Feature createFeature(
       Licence licence,
-      int positionIndex,
       int shapeIndex,
       Map<String, String> attributes,
       Feature parentFeature
   ) {
     var feature = new Feature();
-    feature.setFeatureName("test harness for %s %s.%s".formatted(
-        licence.getLicenceReference(),
-        positionIndex,
-        shapeIndex
-    ));
+    feature.setFeatureName("test harness for %s %s".formatted(licence.getLicenceReference(), shapeIndex));
     feature.setCoordinateSystem(COORDINATE_SYSTEM);
     feature.setFeatureArea(FEATURE_AREA);
     feature.setAttributes(attributes);

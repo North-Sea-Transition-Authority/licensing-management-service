@@ -12,6 +12,7 @@ import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import org.hibernate.type.SqlTypes;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 
@@ -47,6 +48,16 @@ public class LicencePositionCorrection {
 
   public UUID getId() {
     return id;
+  }
+
+  /**
+   * The position this correction acts on, whether that is a position it adds or an executed one it targets.
+   */
+  public UUID getPositionId() {
+    if (payload instanceof CreateLicencePositionPayload create) {
+      return UUID.fromString(create.licencePositionId());
+    }
+    return targetLicencePosition.getId();
   }
 
   public LicenceCorrection getLicenceCorrection() {

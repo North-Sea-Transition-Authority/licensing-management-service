@@ -18,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
@@ -32,11 +33,14 @@ public class PartialSurrenderBlockSurrenderTypeTaskListSectionService
   static final int SECTION_ORDER = 20;
 
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
+  private final LicencePositionSpatialService licencePositionSpatialService;
 
   public PartialSurrenderBlockSurrenderTypeTaskListSectionService(
-      PartialSurrenderCorrectionService partialSurrenderCorrectionService
+      PartialSurrenderCorrectionService partialSurrenderCorrectionService,
+      LicencePositionSpatialService licencePositionSpatialService
   ) {
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
+    this.licencePositionSpatialService = licencePositionSpatialService;
   }
 
   @Override
@@ -44,12 +48,14 @@ public class PartialSurrenderBlockSurrenderTypeTaskListSectionService
     return switch (context) {
       case PartialSurrenderTaskListContext.Staged(var positionCorrection) -> getSection(
           partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection).orElse(null),
-          partialSurrenderCorrectionService.getSurrenderableBlockFeatures(positionCorrection),
+          licencePositionSpatialService.getBlockFeaturesGoingIntoChange(
+              positionCorrection,
+              partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionCorrection).orElse(null)),
           featureId -> blockSurrenderTypeUrl(positionCorrection, featureId));
       case PartialSurrenderTaskListContext.LiveChange(var correction, var licencePosition, var changeId) -> getSection(
           partialSurrenderCorrectionService
               .getSurrenderUnderCorrectionOrThrow(correction, licencePosition, changeId),
-          partialSurrenderCorrectionService.getSurrenderableBlockFeatures(licencePosition),
+          licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition, changeId),
           featureId -> correctingChangeBlockSurrenderTypeUrl(correction, licencePosition, changeId, featureId));
     };
   }

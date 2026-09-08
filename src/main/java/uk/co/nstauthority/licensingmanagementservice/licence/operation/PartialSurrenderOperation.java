@@ -26,12 +26,20 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
  *                   yet had their surrender detail (type/journey) chosen.
  * @param featureIdToSurrenderDetails The per-block surrender detail, keyed by the original block feature id. A featureId present
  *                                    in {@code featureIds} but absent here means "surrender type not yet chosen".
+ * @param outputFeatureIds The licence blocks held once this surrender has been submitted, and so the input feature set
+ *                         for whatever spatial operation comes next. This is the point the surrender journey is
+ *                         complete, not the point the correction carrying it is applied, so a surrender staged on an
+ *                         earlier position takes effect on the positions after it straight away. Only blocks are
+ *                         recorded: the subareas a licence holds
+ *                         follow from the blocks it holds and the subareas' own start and end dates, so a surrendered
+ *                         block's subareas remain reachable through the position that still held the block.
  */
 public record PartialSurrenderOperation(
     UUID id,
     @Nullable LocalDate surrenderDate,
     List<UUID> featureIds,
-    Map<UUID, SurrenderDetails> featureIdToSurrenderDetails
+    Map<UUID, SurrenderDetails> featureIdToSurrenderDetails,
+    List<UUID> outputFeatureIds
 ) implements LicenceOperation {
 
   // Fixed, as a position only ever carries one partial surrender.
@@ -43,14 +51,28 @@ public record PartialSurrenderOperation(
       throw new IllegalArgumentException("featureIds must not be null or empty");
     }
     featureIdToSurrenderDetails = featureIdToSurrenderDetails == null ? Map.of() : Map.copyOf(featureIdToSurrenderDetails);
+    // operations persisted before output features existed have no such field, so absent reads as "no outputs yet"
+    outputFeatureIds = outputFeatureIds == null ? List.of() : List.copyOf(outputFeatureIds);
   }
 
   public PartialSurrenderOperation(
       @Nullable LocalDate surrenderDate,
       List<UUID> featureIds,
+      @Nullable Map<UUID, SurrenderDetails> featureIdToSurrenderDetails,
+      @Nullable List<UUID> outputFeatureIds
+  ) {
+    this(PARTIAL_SURRENDER_OPERATION_ID, surrenderDate, featureIds, featureIdToSurrenderDetails, outputFeatureIds);
+  }
+
+  /**
+   * A surrender that has not yet produced output features, which is how one starts out before it is complete.
+   */
+  public PartialSurrenderOperation(
+      @Nullable LocalDate surrenderDate,
+      List<UUID> featureIds,
       @Nullable Map<UUID, SurrenderDetails> featureIdToSurrenderDetails
   ) {
-    this(PARTIAL_SURRENDER_OPERATION_ID, surrenderDate, featureIds, featureIdToSurrenderDetails);
+    this(surrenderDate, featureIds, featureIdToSurrenderDetails, List.of());
   }
 
   /**
@@ -75,7 +97,7 @@ public record PartialSurrenderOperation(
 
     @JsonIgnore
     public boolean isComplete() {
-      // TODO: Change when criteria for complete partial surrender exists
+      // TODO EPGF-192: Change when criteria for complete partial surrender exists
       return type == BlockSurrenderType.FULL_SURRENDER;
     }
   }
@@ -83,7 +105,8 @@ public record PartialSurrenderOperation(
   /**
    * Whether this surrender differs from the one currently live on the position, so a correction of a live change knows
    * whether anything actually needs staging. The command journey id is deliberately excluded: it is recreated whenever a
-   * type is (re)chosen, so it never reflects a meaningful change to the surrender itself.
+   * type is (re)chosen, so it never reflects a meaningful change to the surrender itself. The output features are
+   * excluded for the same reason: they are derived from the inputs and per-block state compared here.
    */
   public boolean hasUpdateOccurred(PartialSurrenderOperation liveSurrender) {
     return !Set.copyOf(liveSurrender.featureIds()).equals(Set.copyOf(featureIds))
@@ -131,6 +154,7 @@ public record PartialSurrenderOperation(
     private LocalDate surrenderDate;
     private Collection<UUID> featureIds;
     private Map<UUID, SurrenderDetails> featureIdToSurrenderDetails;
+    private Collection<UUID> outputFeatureIds;
 
     public Builder withSurrenderDate(@Nullable LocalDate surrenderDate) {
       this.surrenderDate = surrenderDate;
@@ -147,12 +171,18 @@ public record PartialSurrenderOperation(
       return this;
     }
 
+    public Builder withOutputFeatureIds(Collection<UUID> outputFeatureIds) {
+      this.outputFeatureIds = outputFeatureIds;
+      return this;
+    }
+
     public PartialSurrenderOperation build() {
       return new PartialSurrenderOperation(
           PARTIAL_SURRENDER_OPERATION_ID,
           surrenderDate,
           featureIds == null ? List.of() : featureIds.stream().distinct().toList(),
-          featureIdToSurrenderDetails == null ? Map.of() : featureIdToSurrenderDetails
+          featureIdToSurrenderDetails == null ? Map.of() : featureIdToSurrenderDetails,
+          outputFeatureIds == null ? List.of() : outputFeatureIds.stream().distinct().toList()
       );
     }
   }

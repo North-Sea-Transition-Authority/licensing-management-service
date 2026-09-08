@@ -2,13 +2,13 @@ package uk.co.nstauthority.licensingmanagementservice.testharness;
 
 
 /**
- * Record holding the number of positions on a licence and whether any of those positions are linked to features.
+ * Record holding the number of positions on a licence and whether its spatial data has already been seeded.
  *
- * @param positionCount     the number of positions to give features to
- * @param hasLinkedFeatures true if any of those positions already hold features
+ * @param positionCount     the number of positions the seeded features are derived across
+ * @param hasSeededFeatures true if a surrender on the licence already carries output features
  */
 record LicencePositionFeatureSeedState(
     int positionCount,
-    boolean hasLinkedFeatures
+    boolean hasSeededFeatures
 ) {
 }

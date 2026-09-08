@@ -4,12 +4,16 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.position.cha
 import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.positionDateAndOrderUnchanged;
 
 import jakarta.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -29,10 +33,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 
 @Service
 public class PartialSurrenderCorrectionService {
@@ -40,21 +48,24 @@ public class PartialSurrenderCorrectionService {
   private static final String NOT_A_PARTIAL_SURRENDER = "Change with id %s is not a partial surrender change";
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
-  private final LicencePositionService licencePositionService;
+  private final LicencePositionSpatialService licencePositionSpatialService;
   private final LicencePositionChangeService licencePositionChangeService;
+  private final LicencePositionViewService licencePositionViewService;
   private final FeatureService featureService;
   private final CommandJourneyService commandJourneyService;
 
   public PartialSurrenderCorrectionService(
       LicencePositionCorrectionService licencePositionCorrectionService,
-      LicencePositionService licencePositionService,
+      LicencePositionSpatialService licencePositionSpatialService,
       LicencePositionChangeService licencePositionChangeService,
+      LicencePositionViewService licencePositionViewService,
       FeatureService featureService,
       CommandJourneyService commandJourneyService
   ) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
-    this.licencePositionService = licencePositionService;
+    this.licencePositionSpatialService = licencePositionSpatialService;
     this.licencePositionChangeService = licencePositionChangeService;
+    this.licencePositionViewService = licencePositionViewService;
     this.featureService = featureService;
     this.commandJourneyService = commandJourneyService;
   }
@@ -142,10 +153,18 @@ public class PartialSurrenderCorrectionService {
     var payload = positionCorrection.getPayload();
 
     var changes = LicencePositionChangeOperationUtil.upsertUpdateChange(
-        payload.changes(), PartialSurrenderOperation.class, originalChangeId, operation);
+        payload.changes(),
+        PartialSurrenderOperation.class,
+        originalChangeId,
+        withRecalculatedOutputs(positionCorrection, operation, originalChangeId));
 
     positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
-    return licencePositionCorrectionService.save(positionCorrection);
+    var saved = licencePositionCorrectionService.save(positionCorrection);
+
+    recalculateOutputsAfter(
+        licenceCorrection, licencePosition.getId(), getCommittedPartialSurrenderChangeId(saved).orElse(null));
+
+    return saved;
   }
 
   public PartialSurrenderOperation getOrCreatePartialSurrenderDetails(
@@ -182,8 +201,13 @@ public class PartialSurrenderCorrectionService {
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition
   ) {
-    licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition)
-        .ifPresent(this::removeStagedPartialSurrender);
+    var positionCorrection =
+        licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition);
+    var correctedLiveChangeId = positionCorrection.flatMap(this::findCorrectedLiveChangeId);
+
+    positionCorrection.ifPresent(this::removeStagedPartialSurrender);
+
+    recalculateOutputsAfter(licenceCorrection, licencePosition.getId(), correctedLiveChangeId.orElse(null));
   }
 
   @Transactional
@@ -193,6 +217,8 @@ public class PartialSurrenderCorrectionService {
       String changeId
   ) {
     licencePositionCorrectionService.stageRemovalOfExecutedChange(licenceCorrection, licencePosition, changeId);
+
+    recalculateOutputsAfter(licenceCorrection, licencePosition.getId(), changeId);
   }
 
   public List<PartialSurrenderChangeView.BlockRow> getBlockRows(PartialSurrenderOperation surrender) {
@@ -236,7 +262,11 @@ public class PartialSurrenderCorrectionService {
       return;
     }
 
-    var surrenderableIds = getSurrenderableBlockFeatures(licencePositionCorrection).stream()
+    var surrenderableIds = licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(
+            licencePositionCorrection,
+            getCommittedPartialSurrenderChangeId(licencePositionCorrection).orElse(null))
+        .stream()
         .map(Feature::getId)
         .collect(Collectors.toSet());
 
@@ -259,25 +289,22 @@ public class PartialSurrenderCorrectionService {
 
     var operations = retainedIds.isEmpty()
         ? List.<PartialSurrenderOperation>of()
-        : List.of(LicenceOperation.newPartialSurrenderOperation()
+        : List.of(withRecalculatedOutputs(licencePositionCorrection, LicenceOperation.newPartialSurrenderOperation()
             .withSurrenderDate(committedPartialSurrender.get().surrenderDate())
             .withFeatureIds(retainedIds)
             .withSurrenderDetails(retainedSurrenderDetails)
-            .build());
+            .build(), null));
 
-    licencePositionCorrectionService.replaceAddChangeFor(
+    var saved = licencePositionCorrectionService.replaceAddChangeFor(
         licencePositionCorrection,
         PartialSurrenderOperation.class,
         operations
     );
-  }
 
-  public List<Feature> getSurrenderableBlockFeatures(LicencePositionCorrection licencePositionCorrection) {
-    return licencePositionService.getBlockFeaturesForCorrection(licencePositionCorrection);
-  }
-
-  public List<Feature> getSurrenderableBlockFeatures(LicencePosition licencePosition) {
-    return licencePositionService.getBlockFeatures(licencePosition);
+    recalculateOutputsAfter(
+        licencePositionCorrection.getLicenceCorrection(),
+        licencePositionCorrection.getPositionId(),
+        getCommittedPartialSurrenderChangeId(saved).orElse(null));
   }
 
   public Feature getSurrenderedBlockFeatureOrThrow(
@@ -442,8 +469,190 @@ public class PartialSurrenderCorrectionService {
   ) {
     deleteOrphanedCommandJourneys(licencePositionCorrection, operation);
 
-    return licencePositionCorrectionService.replaceAddChangeFor(
-        licencePositionCorrection, PartialSurrenderOperation.class, List.of(operation));
+    var saved = licencePositionCorrectionService.replaceAddChangeFor(
+        licencePositionCorrection,
+        PartialSurrenderOperation.class,
+        List.of(withRecalculatedOutputs(licencePositionCorrection, operation, null)));
+
+    recalculateOutputsAfter(
+        licencePositionCorrection.getLicenceCorrection(),
+        licencePositionCorrection.getPositionId(),
+        getCommittedPartialSurrenderChangeId(saved).orElse(null));
+
+    return saved;
+  }
+
+  /**
+   * A surrender's outputs are the input features of whatever spatial change comes next, so writing one leaves every
+   * later surrender's outputs stale. Positions are walked in chronological order and each is saved before the next is
+   * resolved, so a recomputed set feeds into the surrender that follows it.
+   *
+   * <p>On the changed position itself only the changes ordered after {@code changeId} are restaged - the caller has
+   * already recalculated the change it wrote, and anything before that change is unaffected by it.
+   */
+  private void recalculateOutputsAfter(
+      LicenceCorrection licenceCorrection,
+      UUID positionId,
+      @Nullable String changeId
+  ) {
+    var chronologicalPositions =
+        licencePositionViewService.getCorrectedChronologicalPositions(licenceCorrection, positionId);
+
+    var reachedChangedPosition = false;
+
+    for (var position : chronologicalPositions) {
+      if (!reachedChangedPosition) {
+        reachedChangedPosition = position.id().equals(positionId);
+
+        if (reachedChangedPosition) {
+          recalculateOutputsFor(licenceCorrection, position, changesAfter(position, changeId));
+        }
+
+        continue;
+      }
+
+      recalculateOutputsFor(licenceCorrection, position, position.changes());
+    }
+  }
+
+  private static List<PositionChange> changesAfter(ChronologicalPosition position, @Nullable String changeId) {
+    if (changeId == null) {
+      return List.of();
+    }
+
+    var changesAfter = new ArrayList<PositionChange>();
+    var reachedChange = false;
+
+    for (var change : position.changes()) {
+      if (reachedChange) {
+        changesAfter.add(change);
+        continue;
+      }
+
+      reachedChange = Objects.equals(change.changeId(), changeId);
+    }
+
+    return changesAfter;
+  }
+
+  private void recalculateOutputsFor(
+      LicenceCorrection licenceCorrection,
+      ChronologicalPosition position,
+      List<PositionChange> changes
+  ) {
+    if (changes.isEmpty()) {
+      return;
+    }
+
+    var liveChangesById = licencePositionChangeService.findByLicencePositionId(position.id())
+        .stream()
+        .collect(Collectors.toMap(liveChange -> liveChange.getId().toString(), Function.identity()));
+
+    changes.stream()
+        .filter(change -> !LicencePositionChangeType.REMOVE_CHANGE.equals(change.changeType()))
+        .forEach(change -> change.operations().stream()
+            .filter(PartialSurrenderOperation.class::isInstance)
+            .map(PartialSurrenderOperation.class::cast)
+            .forEach(surrender -> restageOutputs(
+                licenceCorrection, position.id(), change.changeId(), surrender, liveChangesById)));
+  }
+
+  private void restageOutputs(
+      LicenceCorrection licenceCorrection,
+      UUID positionId,
+      String changeId,
+      PartialSurrenderOperation surrender,
+      Map<String, LicencePositionChange> liveChangesById
+  ) {
+    var recalculated = withRecalculatedOutputs(licenceCorrection, positionId, changeId, surrender);
+
+    if (new HashSet<>(recalculated.outputFeatureIds()).equals(new HashSet<>(surrender.outputFeatureIds()))) {
+      return;
+    }
+
+    var liveChange = liveChangesById.get(changeId);
+    // An executed change is corrected by staging an update change against it, whereas one this correction added is
+    // already held on a position correction and so is updated in place.
+    var positionCorrection = liveChange != null
+        ? licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(
+            licenceCorrection, liveChange.getLicencePosition())
+        : licencePositionCorrectionService.getPositionCorrectionContainingChange(licenceCorrection, changeId);
+
+    var payload = positionCorrection.getPayload();
+    var changes = LicencePositionChangeOperationUtil.upsertUpdateChange(
+        payload.changes(),
+        PartialSurrenderOperation.class,
+        changeId,
+        recalculated);
+
+    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionCorrectionService.save(positionCorrection);
+  }
+
+  /**
+   * Recalculates the blocks the licence is left holding once this surrender has been applied. These are what the next
+   * spatial change works from, so they are recomputed on every write rather than being maintained incrementally.
+   */
+  private PartialSurrenderOperation withRecalculatedOutputs(
+      LicencePositionCorrection licencePositionCorrection,
+      PartialSurrenderOperation operation,
+      @Nullable String executedChangeId
+  ) {
+    // TODO EPGF-192: Change when criteria for complete partial surrender exists - see SurrenderDetails#isComplete
+    if (!allSurrenderedBlocksAreFull(operation)) {
+      return withOutputFeatureIds(operation, List.of());
+    }
+
+    var changeId = getCommittedPartialSurrenderChangeId(licencePositionCorrection)
+        .orElse(executedChangeId);
+
+    return withOutputsFrom(
+        operation, licencePositionSpatialService.getBlockFeaturesGoingIntoChange(licencePositionCorrection, changeId));
+  }
+
+  private PartialSurrenderOperation withRecalculatedOutputs(
+      LicenceCorrection licenceCorrection,
+      UUID positionId,
+      String changeId,
+      PartialSurrenderOperation operation
+  ) {
+    // TODO EPGF-192: Change when criteria for complete partial surrender exists - see SurrenderDetails#isComplete
+    if (!allSurrenderedBlocksAreFull(operation)) {
+      return withOutputFeatureIds(operation, List.of());
+    }
+
+    return withOutputsFrom(
+        operation,
+        licencePositionSpatialService.getBlockFeaturesGoingIntoChange(licenceCorrection, positionId, changeId));
+  }
+
+  /**
+   * Only blocks are recorded. The subareas a licence holds follow from the blocks it holds and the subareas' own start
+   * and end dates, so a surrendered block's subareas need no recording here to stay reachable: they remain linked to
+   * the block, which the position before this surrender still held.
+   */
+  private static PartialSurrenderOperation withOutputsFrom(
+      PartialSurrenderOperation operation,
+      List<Feature> blocksGoingIntoTheSurrender
+  ) {
+    var surrenderedFeatureIds = new HashSet<>(operation.featureIds());
+
+    return withOutputFeatureIds(operation, blocksGoingIntoTheSurrender.stream()
+        .map(Feature::getId)
+        .filter(featureId -> !surrenderedFeatureIds.contains(featureId))
+        .toList());
+  }
+
+  private static PartialSurrenderOperation withOutputFeatureIds(
+      PartialSurrenderOperation operation,
+      List<UUID> outputFeatureIds
+  ) {
+    return LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(operation.surrenderDate())
+        .withFeatureIds(operation.featureIds())
+        .withSurrenderDetails(operation.featureIdToSurrenderDetails())
+        .withOutputFeatureIds(outputFeatureIds)
+        .build();
   }
 
   private void deleteOrphanedCommandJourneys(

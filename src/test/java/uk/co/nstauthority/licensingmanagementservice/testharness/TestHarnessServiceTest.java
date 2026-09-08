@@ -46,6 +46,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.Fe
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransaction;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionService;
+import uk.co.nstauthority.licensingmanagementservice.testharness.LicencePositionFeatureTestHarnessService.SeededFeatures;
 
 @ExtendWith(MockitoExtension.class)
 class TestHarnessServiceTest {
@@ -67,7 +68,9 @@ class TestHarnessServiceTest {
   private static final LicenceTransaction SAME_TRANSACTION = LicenceTransactionTestUtil.newBuilder().build();
   private static final LicenceTransaction CROSS_TRANSACTION = LicenceTransactionTestUtil.newBuilder().build();
 
+  private static final Feature SEED_SURRENDERED_BLOCK = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 6);
   private static final Feature SURRENDERED_BLOCK = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 7);
+  private static final Feature RETAINED_BLOCK = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 8);
   private static final UUID SURRENDER_COMMAND_JOURNEY_ID = UUID.randomUUID();
 
   @Mock
@@ -112,6 +115,12 @@ class TestHarnessServiceTest {
         licencePositionChangeService, licencePositionFeatureTestHarnessService, commandJourneyService, CLOCK);
   }
 
+  // the seed surrenders the first of the blocks it creates, leaving the licence holding the other two
+  private void givenSeededBlocks(Licence licence) {
+    when(licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence)).thenReturn(new SeededFeatures(
+        List.of(SEED_SURRENDERED_BLOCK, SURRENDERED_BLOCK, RETAINED_BLOCK), List.of()));
+  }
+
   private void givenSurrenderCommandJourneyCreated() {
     var commandJourney = new CommandJourney();
     commandJourney.setId(SURRENDER_COMMAND_JOURNEY_ID);
@@ -140,7 +149,7 @@ class TestHarnessServiceTest {
             PAIR_TRANSACTION_1, PAIR_TRANSACTION_2, SAME_TRANSACTION, CROSS_TRANSACTION);
     var positions = buildPositions(5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
-    when(licencePositionService.getBlockFeatures(positions.get(3))).thenReturn(List.of(SURRENDERED_BLOCK));
+    givenSeededBlocks(licence);
     givenSurrenderCommandJourneyCreated();
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
@@ -177,7 +186,7 @@ class TestHarnessServiceTest {
     var secondaryLicence = carbonStorage(2);
     var positions = buildPositions(5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
-    when(licencePositionService.getBlockFeatures(positions.get(3))).thenReturn(List.of(SURRENDERED_BLOCK));
+    givenSeededBlocks(licence);
     givenSurrenderCommandJourneyCreated();
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
@@ -199,7 +208,7 @@ class TestHarnessServiceTest {
     var secondaryLicence = carbonStorage(2);
     var positions = buildPositions(5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
-    when(licencePositionService.getBlockFeatures(positions.get(3))).thenReturn(List.of(SURRENDERED_BLOCK));
+    givenSeededBlocks(licence);
     givenSurrenderCommandJourneyCreated();
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
@@ -215,6 +224,7 @@ class TestHarnessServiceTest {
         .withFeatureIds(List.of(SURRENDERED_BLOCK.getId()))
         .withSurrenderDetails(Map.of(SURRENDERED_BLOCK.getId(), new PartialSurrenderOperation.SurrenderDetails(
             BlockSurrenderType.FULL_SURRENDER, SURRENDER_COMMAND_JOURNEY_ID, List.of(SURRENDERED_BLOCK.getId()))))
+        .withOutputFeatureIds(List.of(RETAINED_BLOCK.getId()))
         .build();
     assertThat(operationsCaptor.getAllValues().getLast()).containsExactly(expectedSurrender);
   }

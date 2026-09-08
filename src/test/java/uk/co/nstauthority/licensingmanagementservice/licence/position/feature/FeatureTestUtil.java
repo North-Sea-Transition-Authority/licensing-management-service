@@ -3,7 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.feature;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
-import org.springframework.test.util.ReflectionTestUtils;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.Layer;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
@@ -76,7 +75,7 @@ public class FeatureTestUtil {
 
     public Feature build() {
       var feature = new Feature();
-      ReflectionTestUtils.setField(feature, "id", id);
+      feature.setId(id);
       feature.setFeatureName(featureName);
       feature.setAttributes(attributes);
       feature.setCoordinateSystem(coordinateSystem);

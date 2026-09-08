@@ -18,16 +18,19 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.util.NotificationBannerTestUtil.notificationBanner;
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
+import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.validation.BindingResult;
+import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.testharness.LicencePositionFeatureTestHarnessService.SeededFeatures;
 
 @ContextConfiguration(classes = TestHarnessController.class)
 @ActiveProfiles({"test", "test-harness"})
@@ -178,7 +181,8 @@ class TestHarnessControllerTest extends AbstractControllerTest {
   void linkLicencePositionFeatures() throws Exception {
     when(licenceService.findLicenceByIdOrThrow(LICENCE_ID)).thenReturn(LICENCE);
     when(licencePositionFeatureTestHarnessService.getSeedState(LICENCE)).thenReturn(SEED_STATE);
-    when(licencePositionFeatureTestHarnessService.createAndLinkFeatures(LICENCE)).thenReturn(12);
+    when(licencePositionFeatureTestHarnessService.createAndLinkFeatures(LICENCE))
+        .thenReturn(new SeededFeatures(Collections.nCopies(4, new Feature()), Collections.nCopies(8, new Feature())));
 
     var form = new LicencePositionFeatureTestHarnessForm();
     form.getLicenceId().setInputValue(LICENCE_ID.toString());
@@ -192,7 +196,7 @@ class TestHarnessControllerTest extends AbstractControllerTest {
             status().is3xxRedirection(),
             redirectedUrl(ReverseRouter.route(on(TestHarnessController.class).renderTestHarness())),
             notificationBanner(NotificationBanner.newSuccessBanner()
-                .withHeadingContent("12 features created and linked across 3 positions on licence P1")
+                .withHeadingContent("12 features created and seeded on licence P1")
                 .build())
         );
 

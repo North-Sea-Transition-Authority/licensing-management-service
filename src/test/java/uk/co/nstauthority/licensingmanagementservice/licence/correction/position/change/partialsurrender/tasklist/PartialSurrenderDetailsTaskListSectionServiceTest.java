@@ -24,10 +24,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderDetailsFormValidator;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
@@ -53,12 +55,15 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
   @Mock
   private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
+  @Mock
+  private LicencePositionSpatialService licencePositionSpatialService;
+
   private PartialSurrenderDetailsTaskListSectionService partialSurrenderDetailsTaskListSectionService;
 
   @BeforeEach
   void setUp() {
     partialSurrenderDetailsTaskListSectionService = new PartialSurrenderDetailsTaskListSectionService(
-        partialSurrenderCorrectionService, new PartialSurrenderDetailsFormValidator());
+        partialSurrenderCorrectionService, new PartialSurrenderDetailsFormValidator(), licencePositionSpatialService);
   }
 
   @Test
@@ -145,13 +150,24 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
       List<UUID> stagedFeatureIds,
       List<Feature> surrenderableBlockFeatures
   ) {
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection)).thenReturn(
-        stagedFeatureIds.isEmpty()
-            ? Optional.empty()
-            : Optional.of(LicenceOperation.newPartialSurrenderOperation()
-                .withFeatureIds(stagedFeatureIds)
-                .build()));
-    when(partialSurrenderCorrectionService.getSurrenderableBlockFeatures(positionCorrection))
+    if (stagedFeatureIds.isEmpty()) {
+      when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
+          .thenReturn(Optional.empty());
+      when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, null))
+          .thenReturn(surrenderableBlockFeatures);
+      return;
+    }
+
+    var staged = LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(stagedFeatureIds)
+        .build();
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
+        .thenReturn(Optional.of(staged));
+
+    var stagedChange = AddChange.buildOperationsChange(List.of(staged), 1);
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionCorrection))
+        .thenReturn(Optional.of(stagedChange.changeId()));
+    when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, stagedChange.changeId()))
         .thenReturn(surrenderableBlockFeatures);
   }
 

@@ -51,7 +51,7 @@ class LicencePositionFeatureTestHarnessFormValidatorTest {
   }
 
   @Test
-  void hasErrors_whenLicencePositionsAlreadyHoldFeatures() {
+  void hasErrors_whenLicenceFeaturesAlreadySeeded() {
     form.getLicenceId().setInputValue("1");
 
     var hasErrors = licencePositionFeatureTestHarnessFormValidator.hasErrors(
@@ -61,8 +61,8 @@ class LicencePositionFeatureTestHarnessFormValidatorTest {
         .extracting(FieldError::getField, FieldError::getDefaultMessage, FieldError::getCode)
         .containsExactly(tuple(
             "licenceId.inputValue",
-            "Select a licence that has no features linked to its positions yet",
-            "licenceId.hasLinkedFeatures"));
+            "Select a licence that has no features seeded against it yet",
+            "licenceId.hasSeededFeatures"));
 
     assertThat(hasErrors).isTrue();
   }

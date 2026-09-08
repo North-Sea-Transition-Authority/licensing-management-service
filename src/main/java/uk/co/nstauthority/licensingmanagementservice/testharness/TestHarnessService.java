@@ -29,6 +29,7 @@ class TestHarnessService {
   private static final int BP_EXPLORATION_ALPHA_LTD_ID = 304;
   private static final int SHELL_PLC_ID = 9205;
   private static final int PPRS_TRAINING_ORG = 12845;
+  private static final int SURRENDER_CHANGE_ORDER = 1;
 
   private static final BigDecimal SHELL_INITIAL_EQUITY = BigDecimal.valueOf(60);
   private static final BigDecimal BP_INITIAL_EQUITY = BigDecimal.valueOf(40);
@@ -84,41 +85,58 @@ class TestHarnessService {
     }
 
     // the positions were cleared above, so each licence is given a fresh set of blocks and subareas
-    licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence);
+    var seededFeatures = licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence);
     licencePositionFeatureTestHarnessService.createAndLinkFeatures(secondaryLicence);
 
     // a surrender needs blocks to surrender, so it is seeded once the features above exist
     if (licence.getType().isProduction()) {
-      generatePartialSurrenderPositionChange(licence);
+      generatePartialSurrenderPositionChange(licence, seededFeatures.retainedBlocks());
     }
   }
 
-  private void generatePartialSurrenderPositionChange(Licence licence) {
+  /**
+   * The seed operation above is the only spatial operation on the licence, so the blocks it retained are the blocks
+   * going into every later position.
+   */
+  private void generatePartialSurrenderPositionChange(Licence licence, List<Feature> retainedBlocks) {
+    if (retainedBlocks.isEmpty()) {
+      return;
+    }
+
     var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
 
     var penultimatePosition =
         executedChronologicalLicencePositions.get(executedChronologicalLicencePositions.size() - 2);
 
-    var surrenderedBlock = licencePositionService.getBlockFeatures(penultimatePosition).getFirst();
-
-    createPartialSurrenderChange(penultimatePosition, surrenderedBlock);
+    createPartialSurrenderChange(penultimatePosition, retainedBlocks);
   }
 
-  private void createPartialSurrenderChange(LicencePosition licencePosition, Feature surrenderedBlock) {
+  private void createPartialSurrenderChange(
+      LicencePosition licencePosition,
+      List<Feature> incomingBlocks
+  ) {
+    var surrenderedBlock = incomingBlocks.getFirst();
+
     // a full surrender still carries a command journey (with no splits) so downstream processing is uniform
     var commandJourneyId = commandJourneyService.createAndAssignCommandJourney(List.of(surrenderedBlock)).getId();
+
+    var outputFeatureIds = incomingBlocks.stream()
+        .map(Feature::getId)
+        .filter(featureId -> !featureId.equals(surrenderedBlock.getId()))
+        .toList();
 
     // no surrender date - the change takes the date of the position it sits on
     LicenceOperation partialSurrender = LicenceOperation.newPartialSurrenderOperation()
         .withFeatureIds(List.of(surrenderedBlock.getId()))
         .withSurrenderDetails(Map.of(surrenderedBlock.getId(), new SurrenderDetails(
             BlockSurrenderType.FULL_SURRENDER, commandJourneyId, List.of(surrenderedBlock.getId()))))
+        .withOutputFeatureIds(outputFeatureIds)
         .build();
 
     licencePositionChangeService.createLicencePositionChange(
         licencePosition,
         List.of(partialSurrender),
-        1,
+        SURRENDER_CHANGE_ORDER,
         LicencePositionChangeStatus.CONSENTED
     );
   }

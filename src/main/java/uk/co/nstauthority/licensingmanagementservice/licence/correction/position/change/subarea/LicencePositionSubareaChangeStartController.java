@@ -28,6 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -40,17 +41,20 @@ public class LicencePositionSubareaChangeStartController {
   private static final String SAVED_BANNER = "Subarea change saved";
 
   private final LicencePositionService licencePositionService;
+  private final LicencePositionSpatialService licencePositionSpatialService;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final SubareaChangeService subareaChangeService;
   private final SubareaChangeStartFormValidator subareaChangeStartFormValidator;
 
   public LicencePositionSubareaChangeStartController(
       LicencePositionService licencePositionService,
+      LicencePositionSpatialService licencePositionSpatialService,
       LicencePositionCorrectionService licencePositionCorrectionService,
       SubareaChangeService subareaChangeService,
       SubareaChangeStartFormValidator subareaChangeStartFormValidator
   ) {
     this.licencePositionService = licencePositionService;
+    this.licencePositionSpatialService = licencePositionSpatialService;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.subareaChangeService = subareaChangeService;
     this.subareaChangeStartFormValidator = subareaChangeStartFormValidator;
@@ -68,8 +72,7 @@ public class LicencePositionSubareaChangeStartController {
     return getSubareaChangeModelAndView(
         correction,
         new SubareaChangeStartForm(),
-        //TODO - EPGF-239: The features available to use will depend on the output of previous changes
-        licencePositionService.getBlockFeatures(licencePosition),
+        licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition, null),
         executedChangeUrl(correctionId, licencePositionId)
     );
   }
@@ -88,8 +91,7 @@ public class LicencePositionSubareaChangeStartController {
     var positionCorrection = licencePositionCorrectionService
         .findUpdatePositionCorrection(correction, licencePosition)
         .orElse(null);
-    //TODO - EPGF-239: The features available to use will depend on the output of previous changes
-    var blockFeatures = licencePositionService.getBlockFeatures(licencePosition);
+    var blockFeatures = licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition, null);
     var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
         licencePosition,
         positionCorrection
@@ -128,8 +130,7 @@ public class LicencePositionSubareaChangeStartController {
     return getSubareaChangeModelAndView(
         correction,
         new SubareaChangeStartForm(),
-        //TODO - EPGF-239: The features available to use will depend on the output of previous changes
-        licencePositionService.getBlockFeaturesForCorrection(positionCorrection),
+        licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, null),
         addedChangeUrl(correctionId, licencePositionCorrectionId)
     );
   }
@@ -145,8 +146,7 @@ public class LicencePositionSubareaChangeStartController {
   ) {
     var positionCorrection = licencePositionCorrectionService
         .getPositionCorrectionForCorrection(licencePositionCorrectionId, correction);
-    //TODO - EPGF-239: The features available to use will depend on the output of previous changes
-    var blockFeatures = licencePositionService.getBlockFeaturesForCorrection(positionCorrection);
+    var blockFeatures = licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, null);
     var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForAddedPosition(
         positionCorrection
     );

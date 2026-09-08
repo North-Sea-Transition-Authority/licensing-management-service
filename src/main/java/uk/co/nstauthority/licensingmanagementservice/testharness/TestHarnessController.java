@@ -109,12 +109,12 @@ public class TestHarnessController {
       return licencePositionFeatureTestHarnessModelAndView(form);
     }
 
-    var createdFeatureCount = licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence);
+    var createdFeatureCount = licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence)
+        .count();
 
     NotificationBanner.newSuccessBanner()
-        .withHeadingContent("%s features created and linked across %s positions on licence %s".formatted(
+        .withHeadingContent("%s features created and seeded on licence %s".formatted(
             createdFeatureCount,
-            seedState.positionCount(),
             licence.getLicenceReference()
         ))
         .applyTo(redirectAttributes);

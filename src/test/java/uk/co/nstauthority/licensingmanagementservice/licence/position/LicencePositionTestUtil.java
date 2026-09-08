@@ -1,7 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
 import java.time.LocalDate;
-import java.util.Set;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -16,7 +15,6 @@ public class LicencePositionTestUtil {
   private LocalDate positionDate = LocalDate.of(2026, 1, 1);
   private int positionOrder = 1;
   private boolean isExecuted = true;
-  private Set<UUID> featureIds = Set.of();
 
   public static LicencePositionTestUtil newBuilder() {
     return new LicencePositionTestUtil();
@@ -52,11 +50,6 @@ public class LicencePositionTestUtil {
     return this;
   }
 
-  public LicencePositionTestUtil withFeatureIds(Set<UUID> featureIds) {
-    this.featureIds = featureIds;
-    return this;
-  }
-
   public LicencePosition build() {
     var licencePosition = new LicencePosition(id);
     licencePosition.setLicence(licence);
@@ -64,7 +57,6 @@ public class LicencePositionTestUtil {
     licencePosition.setPositionDate(positionDate);
     licencePosition.setPositionDateOrder(positionOrder);
     licencePosition.setExecuted(isExecuted);
-    licencePosition.setFeatureIds(featureIds);
 
     return licencePosition;
   }

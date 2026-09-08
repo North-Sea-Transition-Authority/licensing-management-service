@@ -148,7 +148,7 @@ class PartialSurrenderOperationTest {
   }
 
   @Test
-  void featureIds() {
+  void build_whenFeatureIdsGiven_thenMatchesConstructor() {
     var operation = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderDate(SURRENDER_DATE)
         .withFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
@@ -156,5 +156,32 @@ class PartialSurrenderOperationTest {
 
     var expected = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID), Map.of());
     assertThat(operation).isEqualTo(expected);
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  void constructor_whenOutputFeatureIdsNullOrEmpty_thenEmpty(List<UUID> outputFeatureIds) {
+    var operation = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID), Map.of(), outputFeatureIds);
+
+    assertThat(operation.outputFeatureIds()).isEmpty();
+  }
+
+  @Test
+  void build_whenOutputFeatureIdsGiven_thenDuplicatesAreCollapsed() {
+    var operation = LicenceOperation.newPartialSurrenderOperation()
+        .withFeatureIds(List.of(FIRST_FEATURE_ID))
+        .withOutputFeatureIds(List.of(SECOND_FEATURE_ID, SECOND_FEATURE_ID))
+        .build();
+
+    var expected = new PartialSurrenderOperation(null, List.of(FIRST_FEATURE_ID), Map.of(), List.of(SECOND_FEATURE_ID));
+    assertThat(operation).isEqualTo(expected);
+  }
+
+  @Test
+  void hasUpdateOccurred_whenOnlyTheOutputFeaturesDiffer_thenFalse() {
+    var live = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID), Map.of(), List.of(SECOND_FEATURE_ID));
+    var corrected = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID), Map.of(), List.of());
+
+    assertThat(corrected.hasUpdateOccurred(live)).isFalse();
   }
 }

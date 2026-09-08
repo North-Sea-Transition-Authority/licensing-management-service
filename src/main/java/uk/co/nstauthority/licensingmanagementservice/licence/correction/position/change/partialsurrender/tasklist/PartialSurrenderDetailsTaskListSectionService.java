@@ -13,6 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderDetailsForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderDetailsFormValidator;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
@@ -28,13 +29,16 @@ public class PartialSurrenderDetailsTaskListSectionService
 
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
   private final PartialSurrenderDetailsFormValidator partialSurrenderDetailsFormValidator;
+  private final LicencePositionSpatialService licencePositionSpatialService;
 
   public PartialSurrenderDetailsTaskListSectionService(
       PartialSurrenderCorrectionService partialSurrenderCorrectionService,
-      PartialSurrenderDetailsFormValidator partialSurrenderDetailsFormValidator
+      PartialSurrenderDetailsFormValidator partialSurrenderDetailsFormValidator,
+      LicencePositionSpatialService licencePositionSpatialService
   ) {
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
     this.partialSurrenderDetailsFormValidator = partialSurrenderDetailsFormValidator;
+    this.licencePositionSpatialService = licencePositionSpatialService;
   }
 
   @Override
@@ -59,9 +63,12 @@ public class PartialSurrenderDetailsTaskListSectionService
     var form = PartialSurrenderDetailsForm.from(
         partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection).orElse(null));
     var errors = new BeanPropertyBindingResult(form, "form");
+    var stagedChangeId = partialSurrenderCorrectionService
+        .getCommittedPartialSurrenderChangeId(positionCorrection)
+        .orElse(null);
+    var blockFeatures = licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, stagedChangeId);
 
-    return !partialSurrenderDetailsFormValidator.hasErrors(
-        form, errors, partialSurrenderCorrectionService.getSurrenderableBlockFeatures(positionCorrection), Set.of());
+    return !partialSurrenderDetailsFormValidator.hasErrors(form, errors, blockFeatures, Set.of());
   }
 
   private String surrenderDetailsUrl(PartialSurrenderTaskListContext context) {

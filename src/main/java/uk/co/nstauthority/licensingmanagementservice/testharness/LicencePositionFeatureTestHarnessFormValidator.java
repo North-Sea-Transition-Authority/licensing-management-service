@@ -30,11 +30,11 @@ class LicencePositionFeatureTestHarnessFormValidator {
           "licenceId.noPositions",
           "Select a licence that has positions to link features to"
       );
-    } else if (seedState.hasLinkedFeatures()) {
+    } else if (seedState.hasSeededFeatures()) {
       errors.rejectValue(
           LICENCE_ID_FIELD,
-          "licenceId.hasLinkedFeatures",
-          "Select a licence that has no features linked to its positions yet"
+          "licenceId.hasSeededFeatures",
+          "Select a licence that has no features seeded against it yet"
       );
     }
 

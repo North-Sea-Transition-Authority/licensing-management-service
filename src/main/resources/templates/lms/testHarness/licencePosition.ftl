@@ -16,6 +16,8 @@ pageSize=PageSize.TWO_THIRDS_COLUMN
       <li>Two positions will be associated with the same transaction but on different dates</li>
       <li>One will be created for the secondary licence, but for a transaction also used on the original licence</li>
     </ul>
+    <p>Both licences will also have four blocks (each with two subareas), with the first position fully surrendering
+      one block and leaving the licence holding the rest.</p>
     <p>If a production licence is selected:</p>
     <ul class="govuk-list govuk-list--bullet">
       <li>
@@ -25,6 +27,7 @@ pageSize=PageSize.TWO_THIRDS_COLUMN
           <li>Another licence position other than the final position</li>
         </ul>
       </li>
+      <li>Another position will partially surrender a further block</li>
     </ul>
     <p>If a carbon storage licence is selected, beneficial interest position changes will be generated for:</p>
     <ul class="govuk-list govuk-list--bullet">

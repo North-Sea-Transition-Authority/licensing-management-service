@@ -61,6 +61,11 @@ public class Feature {
     return id;
   }
 
+  @VisibleForTesting
+  public void setId(UUID id) {
+    this.id = id;
+  }
+
   public String getFeatureName() {
     return featureName;
   }

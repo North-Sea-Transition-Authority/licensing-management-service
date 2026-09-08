@@ -302,7 +302,7 @@ public class LicencePositionPartialSurrenderController {
     }
 
     return LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(form.getFeatureIds())
+        .withSurrenderedFeatureIds(form.getFeatureIds())
         .withSurrenderDetails(blockSurrendersByFeatureId)
         .build();
   }

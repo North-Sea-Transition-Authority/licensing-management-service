@@ -240,7 +240,7 @@ class LicencePositionViewServiceTest {
 
   private static PartialSurrenderOperation partialSurrenderOperation() {
     return LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(SURRENDERED_BLOCK.getId()))
+        .withSurrenderedFeatureIds(List.of(SURRENDERED_BLOCK.getId()))
         .withSurrenderDetails(Map.of(SURRENDERED_BLOCK.getId(),
             new PartialSurrenderOperation.SurrenderDetails(
                 BlockSurrenderType.FULL_SURRENDER, UUID.randomUUID(), List.of(SURRENDERED_BLOCK.getId()))))

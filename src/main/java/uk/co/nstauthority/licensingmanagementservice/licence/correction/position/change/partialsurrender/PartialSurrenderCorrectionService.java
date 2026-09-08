@@ -222,11 +222,11 @@ public class PartialSurrenderCorrectionService {
   }
 
   public List<PartialSurrenderChangeView.BlockRow> getBlockRows(PartialSurrenderOperation surrender) {
-    var blockNamesById = featureService.getFeaturesByIds(surrender.featureIds())
+    var blockNamesById = featureService.getFeaturesByIds(surrender.surrenderedFeatureIds())
         .stream()
         .collect(Collectors.toMap(Feature::getId, Feature::getFeatureName));
 
-    return surrender.featureIds().stream()
+    return surrender.surrenderedFeatureIds().stream()
         .map(featureId -> new PartialSurrenderChangeView.BlockRow(
             blockNamesById.getOrDefault(featureId, NOT_AVAILABLE),
             surrender.surrenderTypeDisplayName(featureId)))
@@ -244,11 +244,11 @@ public class PartialSurrenderCorrectionService {
   }
 
   public boolean allSurrenderedBlocksAreFull(PartialSurrenderOperation operation) {
-    if (operation.featureIds().isEmpty()) {
+    if (operation.surrenderedFeatureIds().isEmpty()) {
       return false;
     }
 
-    return operation.featureIds().stream()
+    return operation.surrenderedFeatureIds().stream()
         .allMatch(id -> {
           var surrenderDetails = operation.featureIdToSurrenderDetails().get(id);
           return surrenderDetails != null && surrenderDetails.type() == BlockSurrenderType.FULL_SURRENDER;
@@ -270,11 +270,11 @@ public class PartialSurrenderCorrectionService {
         .map(Feature::getId)
         .collect(Collectors.toSet());
 
-    var retainedIds = committedPartialSurrender.get().featureIds().stream()
+    var retainedIds = committedPartialSurrender.get().surrenderedFeatureIds().stream()
         .filter(surrenderableIds::contains)
         .toList();
 
-    if (retainedIds.size() == committedPartialSurrender.get().featureIds().size()) {
+    if (retainedIds.size() == committedPartialSurrender.get().surrenderedFeatureIds().size()) {
       return;
     }
 
@@ -291,7 +291,7 @@ public class PartialSurrenderCorrectionService {
         ? List.<PartialSurrenderOperation>of()
         : List.of(withRecalculatedOutputs(licencePositionCorrection, LicenceOperation.newPartialSurrenderOperation()
             .withSurrenderDate(committedPartialSurrender.get().surrenderDate())
-            .withFeatureIds(retainedIds)
+            .withSurrenderedFeatureIds(retainedIds)
             .withSurrenderDetails(retainedSurrenderDetails)
             .build(), null));
 
@@ -316,7 +316,7 @@ public class PartialSurrenderCorrectionService {
   }
 
   public Feature getSurrenderedBlockFeatureOrThrow(PartialSurrenderOperation operation, UUID featureId) {
-    if (!operation.featureIds().contains(featureId)) {
+    if (!operation.surrenderedFeatureIds().contains(featureId)) {
       throw new LmsEntityNotFoundException(
           "Block %s is not surrendered by partial surrender %s".formatted(featureId, operation.id())
       );
@@ -444,7 +444,7 @@ public class PartialSurrenderCorrectionService {
 
     return LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderDate(operation.surrenderDate())
-        .withFeatureIds(operation.featureIds())
+        .withSurrenderedFeatureIds(operation.surrenderedFeatureIds())
         .withSurrenderDetails(featureIdToSurrenderDetails)
         .build();
   }
@@ -635,7 +635,7 @@ public class PartialSurrenderCorrectionService {
       PartialSurrenderOperation operation,
       List<Feature> blocksGoingIntoTheSurrender
   ) {
-    var surrenderedFeatureIds = new HashSet<>(operation.featureIds());
+    var surrenderedFeatureIds = new HashSet<>(operation.surrenderedFeatureIds());
 
     return withOutputFeatureIds(operation, blocksGoingIntoTheSurrender.stream()
         .map(Feature::getId)
@@ -649,7 +649,7 @@ public class PartialSurrenderCorrectionService {
   ) {
     return LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderDate(operation.surrenderDate())
-        .withFeatureIds(operation.featureIds())
+        .withSurrenderedFeatureIds(operation.surrenderedFeatureIds())
         .withSurrenderDetails(operation.featureIdToSurrenderDetails())
         .withOutputFeatureIds(outputFeatureIds)
         .build();

@@ -77,7 +77,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
           .build())
       .build();
   private static final PartialSurrenderOperation SURRENDER = LicenceOperation.newPartialSurrenderOperation()
-      .withFeatureIds(List.of(FeatureTestUtil.builder().build().getId()))
+      .withSurrenderedFeatureIds(List.of(FeatureTestUtil.builder().build().getId()))
       .build();
   private static final List<TaskListSection> SECTIONS = List.of(new TaskListSection("Surrender details", 10,
       List.of(new TaskListItem("Surrender details", TaskListLabel.COMPLETE, "/surrender-details"))));
@@ -376,7 +376,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
 
   private PartialSurrenderOperation givenSurrenderUnderCorrection(LicenceCorrection correction) {
     var surrender = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(UUID.randomUUID()))
+        .withSurrenderedFeatureIds(List.of(UUID.randomUUID()))
         .build();
     when(partialSurrenderCorrectionService.getSurrenderUnderCorrectionOrThrow(correction, POSITION, LIVE_CHANGE_ID))
         .thenReturn(surrender);

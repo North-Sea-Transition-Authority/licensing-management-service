@@ -65,7 +65,7 @@ class LicencePositionChangeIsOfTypeRuleTest extends AbstractInterceptorRuleTest 
   @Test
   void check_whenChangeCarriesNoOperationOfTheAnnotatedType_thenNotFound() throws NoSuchMethodException {
     givenChangeWithOperations(LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(UUID.randomUUID()))
+        .withSurrenderedFeatureIds(List.of(UUID.randomUUID()))
         .build());
 
     var interceptorResult = rule.check(annotation(), request, response);

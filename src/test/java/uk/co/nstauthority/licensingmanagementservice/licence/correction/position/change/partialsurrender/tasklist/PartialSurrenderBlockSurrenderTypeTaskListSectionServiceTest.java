@@ -225,7 +225,7 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
             entry -> new PartialSurrenderOperation.SurrenderDetails(entry.getValue(), UUID.randomUUID(), List.of())));
 
     return LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(featureIds)
+        .withSurrenderedFeatureIds(featureIds)
         .withSurrenderDetails(blockSurrenders)
         .build();
   }

@@ -723,7 +723,7 @@ class LicencePositionChangeViewResolverTest {
     var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
         currentLicencePosition,
         LicenceOperation.newPartialSurrenderOperation()
-            .withFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
+            .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
             .withSurrenderDetails(blockSurrenders(Map.of(
                 FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER,
                 SECOND_FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER)))
@@ -751,7 +751,7 @@ class LicencePositionChangeViewResolverTest {
     var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
         currentLicencePosition,
         LicenceOperation.newPartialSurrenderOperation()
-            .withFeatureIds(List.of(FIRST_FEATURE_ID))
+            .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
             .withSurrenderDetails(blockSurrenders(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER)))
             .build()
     );
@@ -772,7 +772,7 @@ class LicencePositionChangeViewResolverTest {
     var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
         currentLicencePosition,
         LicenceOperation.newPartialSurrenderOperation()
-            .withFeatureIds(List.of(FIRST_FEATURE_ID))
+            .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
             .withSurrenderDetails(blockSurrenders(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER)))
             .build()
     );
@@ -793,7 +793,7 @@ class LicencePositionChangeViewResolverTest {
         currentLicencePosition,
         LicenceOperation.newPartialSurrenderOperation()
             .withSurrenderDate(LocalDate.of(2026, Month.SEPTEMBER, 30))
-            .withFeatureIds(List.of(FIRST_FEATURE_ID))
+            .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
             .withSurrenderDetails(blockSurrenders(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER)))
             .build()
     );
@@ -820,7 +820,7 @@ class LicencePositionChangeViewResolverTest {
     var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
         currentLicencePosition,
         LicenceOperation.newPartialSurrenderOperation()
-            .withFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
+            .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
             .withSurrenderDetails(blockSurrenders(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER)))
             .build()
     );
@@ -842,7 +842,7 @@ class LicencePositionChangeViewResolverTest {
     var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
         currentLicencePosition,
         LicenceOperation.newPartialSurrenderOperation()
-            .withFeatureIds(List.of(FIRST_FEATURE_ID))
+            .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
             .withSurrenderDetails(blockSurrenders(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER)))
             .build());
 
@@ -963,7 +963,7 @@ class LicencePositionChangeViewResolverTest {
       PositionChangeUrlContext urlContext
   ) {
     var operation = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(FIRST_FEATURE_ID))
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
         .withSurrenderDetails(blockSurrenders(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER)))
         .build();
     var positions = List.of(ChronologicalPositionTestUtil.newBuilder()
@@ -1191,7 +1191,7 @@ class LicencePositionChangeViewResolverTest {
   private static PositionChange partialSurrenderChange(String changeId, String changeType) {
     return new PositionChange(changeId, 3, changeType,
         List.of(LicenceOperation.newPartialSurrenderOperation()
-            .withFeatureIds(List.of(FIRST_FEATURE_ID))
+            .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
             .withSurrenderDetails(Map.of(FIRST_FEATURE_ID, new SurrenderDetails(
                 BlockSurrenderType.FULL_SURRENDER,
                 UUID.randomUUID(),

@@ -194,7 +194,7 @@ public final class LicencePositionChangeViewResolver {
   ) {
     var surrenderDate = operation.surrenderDate() != null ? operation.surrenderDate() : currentPositionDate;
 
-    var blockRows = operation.featureIds()
+    var blockRows = operation.surrenderedFeatureIds()
         .stream()
         .map(featureId -> new PartialSurrenderChangeView.BlockRow(
             featureNames.getOrDefault(featureId, NOT_AVAILABLE),

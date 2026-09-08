@@ -173,7 +173,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
   private void givenExecutedSurrender(@Nullable LocalDate surrenderDate) {
     var surrender = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderDate(surrenderDate)
-        .withFeatureIds(List.of(UUID.randomUUID()))
+        .withSurrenderedFeatureIds(List.of(UUID.randomUUID()))
         .build();
 
     when(partialSurrenderCorrectionService.getLiveSurrenderOrThrow(CHANGE_ID)).thenReturn(surrender);

@@ -232,7 +232,7 @@ class LicencePositionChangeOperationUtilTest {
 
   private static PartialSurrenderOperation partialSurrender(UUID featureId) {
     return LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(featureId))
+        .withSurrenderedFeatureIds(List.of(featureId))
         .build();
   }
 

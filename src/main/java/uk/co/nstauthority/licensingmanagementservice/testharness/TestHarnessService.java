@@ -127,7 +127,7 @@ class TestHarnessService {
 
     // no surrender date - the change takes the date of the position it sits on
     LicenceOperation partialSurrender = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(surrenderedBlock.getId()))
+        .withSurrenderedFeatureIds(List.of(surrenderedBlock.getId()))
         .withSurrenderDetails(Map.of(surrenderedBlock.getId(), new SurrenderDetails(
             BlockSurrenderType.FULL_SURRENDER, commandJourneyId, List.of(surrenderedBlock.getId()))))
         .withOutputFeatureIds(outputFeatureIds)

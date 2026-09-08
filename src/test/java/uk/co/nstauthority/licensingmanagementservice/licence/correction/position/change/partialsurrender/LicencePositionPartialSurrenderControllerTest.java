@@ -151,7 +151,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     var staged = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(BLOCK_30_1A.getId(), BLOCK_30_2.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId(), BLOCK_30_2.getId()))
         .build();
     var positionCorrection = givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition, staged);
     var stagedChangeId = givenStagedSurrenderChangeId(positionCorrection, staged);
@@ -178,7 +178,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     var staged = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build();
     var positionCorrection = givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition, staged);
     var stagedChangeId = givenStagedSurrenderChangeId(positionCorrection, staged);
@@ -234,7 +234,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     var staged = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build();
     var positionCorrection = givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition, staged);
     var stagedChangeId = givenStagedSurrenderChangeId(positionCorrection, staged);
@@ -348,7 +348,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
         .thenReturn(positionCorrection);
     var staged = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build();
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .thenReturn(Optional.of(staged));
@@ -371,7 +371,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
         .thenReturn(positionCorrection);
     var staged = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build();
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .thenReturn(Optional.of(staged));
@@ -425,7 +425,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
         .thenReturn(positionCorrection);
     var staged = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build();
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .thenReturn(Optional.of(staged));
@@ -485,7 +485,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     givenBlockFeaturesForCorrectingChange(correction, licencePosition, BLOCK_FEATURES);
     givenNoUpdatePositionCorrection(correction, licencePosition);
     givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(BLOCK_30_2.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_2.getId()))
         .build());
     when(licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition))
         .thenReturn(POSITION_DATE);
@@ -512,7 +512,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     givenBlockFeaturesForCorrectingChange(correction, licencePosition, BLOCK_FEATURES);
     givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition,
         LicenceOperation.newPartialSurrenderOperation()
-            .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+            .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
             .build());
     when(licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition))
         .thenReturn(POSITION_DATE);
@@ -565,7 +565,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var licencePosition = executedPosition();
     var live = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderDate(POSITION_DATE)
-        .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenBlockFeaturesForCorrectingChange(correction, licencePosition, BLOCK_FEATURES);
@@ -601,7 +601,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var licencePosition = executedPosition();
     var live = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderDate(POSITION_DATE.minusYears(1))
-        .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenBlockFeaturesForCorrectingChange(correction, licencePosition, BLOCK_FEATURES);
@@ -639,7 +639,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     givenNoUpdatePositionCorrection(correction, licencePosition);
     givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderDate(POSITION_DATE.minusYears(1))
-        .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build());
     when(licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition))
         .thenReturn(POSITION_DATE);
@@ -661,7 +661,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     givenBlockFeaturesForCorrectingChange(correction, licencePosition, BLOCK_FEATURES);
     givenNoUpdatePositionCorrection(correction, licencePosition);
     givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build());
     when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
         licencePosition, null, LIVE_CHANGE_ID))
@@ -690,7 +690,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     var staged = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
         .withSurrenderDetails(Map.of(BLOCK_30_1A.getId(),
             new PartialSurrenderOperation.SurrenderDetails(
                 BlockSurrenderType.FULL_SURRENDER, UUID.randomUUID(), List.of(BLOCK_30_1A.getId()))))
@@ -699,7 +699,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     givenBlockFeaturesForCorrectingChange(correction, licencePosition, BLOCK_FEATURES);
     var positionCorrection = givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition, staged);
     givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build());
     when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
         licencePosition, positionCorrection, LIVE_CHANGE_ID))
@@ -727,13 +727,13 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     var staged = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(BLOCK_30_2.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_2.getId()))
         .build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenBlockFeaturesForCorrectingChange(correction, licencePosition, BLOCK_FEATURES);
     var positionCorrection = givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition, staged);
     givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build());
     when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
         licencePosition, positionCorrection, LIVE_CHANGE_ID))
@@ -762,13 +762,13 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     var staged = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(BLOCK_30_2.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_2.getId()))
         .build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenBlockFeaturesForCorrectingChange(correction, licencePosition, BLOCK_FEATURES);
     var positionCorrection = givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition, staged);
     givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build());
     when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
         licencePosition, positionCorrection, LIVE_CHANGE_ID))
@@ -795,7 +795,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     var live = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(BLOCK_30_1A.getId()))
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenBlockFeaturesForCorrectingChange(correction, licencePosition, BLOCK_FEATURES);

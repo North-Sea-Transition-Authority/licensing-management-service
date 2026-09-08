@@ -65,11 +65,11 @@ public class PartialSurrenderBlockSurrenderTypeTaskListSectionService
       List<Feature> surrenderableBlockFeatures,
       Function<UUID, String> blockSurrenderTypeUrl
   ) {
-    if (operation == null || operation.featureIds().isEmpty()) {
+    if (operation == null || operation.surrenderedFeatureIds().isEmpty()) {
       return Optional.empty();
     }
 
-    var surrenderedIds = new HashSet<>(operation.featureIds());
+    var surrenderedIds = new HashSet<>(operation.surrenderedFeatureIds());
     var items = surrenderableBlockFeatures.stream()
         .filter(feature -> surrenderedIds.contains(feature.getId()))
         .sorted(LicenceBlockFeatureUtil.BLOCK_ORDER)

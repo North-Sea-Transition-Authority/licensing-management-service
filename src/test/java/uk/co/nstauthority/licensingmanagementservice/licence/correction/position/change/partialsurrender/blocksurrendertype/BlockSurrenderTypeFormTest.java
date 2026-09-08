@@ -47,7 +47,7 @@ class BlockSurrenderTypeFormTest {
             entry -> new PartialSurrenderOperation.SurrenderDetails(entry.getValue(), UUID.randomUUID(), List.of())));
 
     return LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(FEATURE_ID, OTHER_FEATURE_ID))
+        .withSurrenderedFeatureIds(List.of(FEATURE_ID, OTHER_FEATURE_ID))
         .withSurrenderDetails(blockSurrenders)
         .build();
   }

@@ -63,7 +63,7 @@ class PartialSurrenderDetailsSummarySectionServiceTest {
         .build();
 
     var surrender = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(UUID.randomUUID()))
+        .withSurrenderedFeatureIds(List.of(UUID.randomUUID()))
         .build();
 
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))

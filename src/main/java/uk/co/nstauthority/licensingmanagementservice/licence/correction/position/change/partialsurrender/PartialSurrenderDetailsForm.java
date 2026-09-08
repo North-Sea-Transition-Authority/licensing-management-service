@@ -14,7 +14,7 @@ public class PartialSurrenderDetailsForm {
     var form = new PartialSurrenderDetailsForm();
 
     if (committedPartialSurrender != null) {
-      form.setFeatureIds(new LinkedHashSet<>(committedPartialSurrender.featureIds()));
+      form.setFeatureIds(new LinkedHashSet<>(committedPartialSurrender.surrenderedFeatureIds()));
     }
 
     return form;

@@ -23,7 +23,7 @@ class PartialSurrenderDetailsFormTest {
   @Test
   void from_whenCommittedPartialSurrender_thenTheSurrenderedBlocksArePrefilled() {
     var committedPartialSurrender = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
         .build();
 
     var form = PartialSurrenderDetailsForm.from(committedPartialSurrender);

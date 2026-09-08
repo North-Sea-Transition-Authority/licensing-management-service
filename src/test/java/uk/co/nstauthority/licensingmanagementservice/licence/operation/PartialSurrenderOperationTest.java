@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +29,7 @@ class PartialSurrenderOperationTest {
   @Test
   void build_thenFixedOperationId() {
     var operation = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(FIRST_FEATURE_ID))
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
         .build();
 
     assertThat(operation.id()).isEqualTo(PartialSurrenderOperation.PARTIAL_SURRENDER_OPERATION_ID);
@@ -38,7 +39,7 @@ class PartialSurrenderOperationTest {
   void build_whenSurrenderDateGiven_thenGivenDateUsed() {
     var operation = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderDate(SURRENDER_DATE)
-        .withFeatureIds(List.of(FIRST_FEATURE_ID))
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
         .build();
 
     var expected = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID), Map.of());
@@ -48,7 +49,7 @@ class PartialSurrenderOperationTest {
   @Test
   void type() {
     var operation = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(FIRST_FEATURE_ID))
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
         .build();
 
     assertThat(operation.type()).isEqualTo(LicenceOperation.PARTIAL_SURRENDER);
@@ -56,28 +57,28 @@ class PartialSurrenderOperationTest {
 
   @ParameterizedTest
   @NullAndEmptySource
-  void constructor_whenFeatureIdsNullOrEmpty_thenThrows(List<UUID> featureIds) {
-    assertThatThrownBy(() -> new PartialSurrenderOperation(SURRENDER_DATE, featureIds, Map.of()))
+  void constructor_whenSurrenderedFeatureIdsNullOrEmpty_thenThrows(List<UUID> surrenderedFeatureIds) {
+    assertThatThrownBy(() -> new PartialSurrenderOperation(SURRENDER_DATE, surrenderedFeatureIds, Map.of()))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("featureIds must not be null or empty");
+        .hasMessage("surrenderedFeatureIds must not be null or empty");
   }
 
   @ParameterizedTest
   @NullAndEmptySource
-  void build_whenFeatureIdsNullOrEmpty_thenThrows(List<UUID> featureIds) {
+  void build_whenSurrenderedFeatureIdsNullOrEmpty_thenThrows(List<UUID> surrenderedFeatureIds) {
     var builder = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(featureIds);
+        .withSurrenderedFeatureIds(surrenderedFeatureIds);
 
     assertThatThrownBy(builder::build)
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("featureIds must not be null or empty");
+        .hasMessage("surrenderedFeatureIds must not be null or empty");
   }
 
   @Test
   void build_whenFeatureIdRepeated_thenDeduplicated() {
     var operation = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderDate(SURRENDER_DATE)
-        .withFeatureIds(List.of(FIRST_FEATURE_ID, FIRST_FEATURE_ID))
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, FIRST_FEATURE_ID))
         .build();
 
     var expected = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID), Map.of());
@@ -148,10 +149,10 @@ class PartialSurrenderOperationTest {
   }
 
   @Test
-  void build_whenFeatureIdsGiven_thenMatchesConstructor() {
+  void build_whenSurrenderedFeatureIdsGiven_thenMatchesConstructor() {
     var operation = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderDate(SURRENDER_DATE)
-        .withFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
         .build();
 
     var expected = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID), Map.of());
@@ -169,7 +170,7 @@ class PartialSurrenderOperationTest {
   @Test
   void build_whenOutputFeatureIdsGiven_thenDuplicatesAreCollapsed() {
     var operation = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(FIRST_FEATURE_ID))
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
         .withOutputFeatureIds(List.of(SECOND_FEATURE_ID, SECOND_FEATURE_ID))
         .build();
 
@@ -183,5 +184,21 @@ class PartialSurrenderOperationTest {
     var corrected = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID), Map.of(), List.of());
 
     assertThat(corrected.hasUpdateOccurred(live)).isFalse();
+  }
+
+  @Test
+  void deserialise_whenPersistedUnderTheFormerFeatureIdsProperty_thenReadAsSurrenderedFeatureIds() throws Exception {
+    var json = """
+        {
+          "type": "partial-surrender",
+          "id": "00000000-0000-0000-0000-000000000001",
+          "surrenderDate": "2026-08-01",
+          "featureIds": ["%s"]
+        }""".formatted(FIRST_FEATURE_ID);
+
+    var operation = new ObjectMapper().findAndRegisterModules().readValue(json, LicenceOperation.class);
+
+    var expected = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID), Map.of(), List.of());
+    assertThat(operation).isEqualTo(expected);
   }
 }

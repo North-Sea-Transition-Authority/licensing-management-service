@@ -391,7 +391,7 @@ class LicencePositionSpatialServiceTest {
 
   private static LicenceOperation surrenderOutputting(Set<UUID> outputFeatureIds) {
     return LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(UUID.randomUUID()))
+        .withSurrenderedFeatureIds(List.of(UUID.randomUUID()))
         .withOutputFeatureIds(outputFeatureIds)
         .build();
   }
@@ -402,7 +402,7 @@ class LicencePositionSpatialServiceTest {
 
   private static LicenceOperation incompleteSurrender() {
     return LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(UUID.randomUUID()))
+        .withSurrenderedFeatureIds(List.of(UUID.randomUUID()))
         .build();
   }
 

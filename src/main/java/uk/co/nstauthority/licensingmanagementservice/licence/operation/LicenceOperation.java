@@ -82,7 +82,7 @@ public sealed interface LicenceOperation permits
 
   static List<UUID> featureIds(LicenceOperation operation) {
     return switch (operation) {
-      case PartialSurrenderOperation partialSurrender -> partialSurrender.featureIds();
+      case PartialSurrenderOperation partialSurrender -> partialSurrender.surrenderedFeatureIds();
       case SubareaOperation subarea -> List.of(subarea.featureId());
       case AdministratorOperation ignored -> List.of();
       case SetEquityOperation ignored -> List.of();

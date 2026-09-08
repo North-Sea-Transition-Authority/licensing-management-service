@@ -150,7 +150,7 @@ class LicencePositionFeatureTestHarnessServiceTest {
     var retainedBlockIds = blocks.stream().skip(1).map(Feature::getId).toList();
 
     var expectedOperation = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(surrenderedBlock.getId()))
+        .withSurrenderedFeatureIds(List.of(surrenderedBlock.getId()))
         .withSurrenderDetails(Map.of(surrenderedBlock.getId(), new SurrenderDetails(
             BlockSurrenderType.FULL_SURRENDER, COMMAND_JOURNEY_ID, List.of(surrenderedBlock.getId()))))
         .withOutputFeatureIds(retainedBlockIds)
@@ -275,7 +275,7 @@ class LicencePositionFeatureTestHarnessServiceTest {
   private void givenSeedOperationWithOutputs(List<UUID> outputFeatureIds) {
     var licencePosition = LicencePositionTestUtil.newBuilder().build();
     var operation = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(List.of(UUID.randomUUID()))
+        .withSurrenderedFeatureIds(List.of(UUID.randomUUID()))
         .withOutputFeatureIds(outputFeatureIds)
         .build();
 

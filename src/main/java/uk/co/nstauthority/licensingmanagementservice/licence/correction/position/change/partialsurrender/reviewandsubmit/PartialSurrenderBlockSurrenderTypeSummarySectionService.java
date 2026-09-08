@@ -62,7 +62,7 @@ public class PartialSurrenderBlockSurrenderTypeSummarySectionService
       List<Feature> surrenderableBlockFeatures,
       String surrenderSource
   ) {
-    if (surrender.featureIds().isEmpty()) {
+    if (surrender.surrenderedFeatureIds().isEmpty()) {
       return Optional.empty();
     }
 
@@ -72,7 +72,7 @@ public class PartialSurrenderBlockSurrenderTypeSummarySectionService
     var featuresById = surrenderableBlockFeatures.stream()
         .collect(Collectors.toMap(Feature::getId, feature -> feature));
 
-    var blockItems = surrender.featureIds().stream()
+    var blockItems = surrender.surrenderedFeatureIds().stream()
         .map(featureId -> {
           var feature = featuresById.get(featureId);
           if (feature == null) {

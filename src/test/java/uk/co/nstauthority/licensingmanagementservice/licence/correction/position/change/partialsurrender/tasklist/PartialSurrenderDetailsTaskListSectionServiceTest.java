@@ -159,7 +159,7 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
     }
 
     var staged = LicenceOperation.newPartialSurrenderOperation()
-        .withFeatureIds(stagedFeatureIds)
+        .withSurrenderedFeatureIds(stagedFeatureIds)
         .build();
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .thenReturn(Optional.of(staged));

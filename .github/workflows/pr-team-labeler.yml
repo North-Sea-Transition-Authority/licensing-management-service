@@ -1,0 +1,42 @@
+name: Label PR by author's team
+
+on:
+  pull_request:
+    types: [opened, reopened]
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Apply team label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const TEAM_LABELS = {
+              'dgrinbergs': 'Venn',
+              'mattyboy-19': 'Venn',
+              'GeorgeOG34': 'Venn',
+              'YigitCengiz-7': 'Venn',
+              'FernandoRamirez-De-Aguilar': 'Venn',
+              'nischalmalla-euclid': 'Euclid',
+              'harshid-fiv': 'Euclid',
+              'Lauren-M-Fivium': 'Euclid',
+              'dannybetts': 'Euclid',
+            };
+
+            const author = context.payload.pull_request.user.login;
+            const label = TEAM_LABELS[author];
+
+            if (!label) {
+              console.log(`No team mapping for ${author}, skipping`);
+              return;
+            }
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              labels: [label],
+            });

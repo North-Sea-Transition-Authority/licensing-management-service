@@ -19,7 +19,7 @@ public class LicenceScheduleMockupController {
 
   public static final String PAGE_URL = "/mockups/licence-schedule";
 
-  private static final String PAGE_TITLE = "P2500 - Licence schedule and work programme";
+  private static final String PAGE_TITLE = "P2411 - Licence schedule and work programme";
 
   @GetMapping
   ModelAndView renderLicenceScheduleMockup() {

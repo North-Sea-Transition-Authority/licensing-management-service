@@ -79,11 +79,12 @@ class LicenceScheduleMockupData {
             ""
         ),
         new ScheduleCommentView(
-            "Alternative work programme for reprocessing seismic activity to be completed under licence P100.",
+            "Alternative work programme for drill one exploration well to a minimum depth of 3,000m below " +
+                "mean sea level to be completed under licence P2500.",
             "John Smith",
             "3 March 2025 08:57:16",
             MOCK_URL,
-            "P100",
+            "P2500",
             MOCK_URL
         )
     );

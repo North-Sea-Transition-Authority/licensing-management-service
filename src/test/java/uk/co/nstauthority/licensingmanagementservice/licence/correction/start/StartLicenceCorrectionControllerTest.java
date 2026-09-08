@@ -36,7 +36,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePa
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = StartLicenceCorrectionController.class)
-@ActiveProfiles({"test", "enable-lms2"})
+@ActiveProfiles("test")
 class StartLicenceCorrectionControllerTest extends AbstractControllerTest {
 
   @MockitoBean

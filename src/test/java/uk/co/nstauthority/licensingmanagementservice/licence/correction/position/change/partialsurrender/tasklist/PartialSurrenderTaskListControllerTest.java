@@ -53,7 +53,7 @@ import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
 @ContextConfiguration(classes = PartialSurrenderTaskListController.class)
-@ActiveProfiles({"test", "enable-lms2"})
+@ActiveProfiles("test")
 class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
 
   private static final Licence LICENCE = LicenceTestUtil.builder()

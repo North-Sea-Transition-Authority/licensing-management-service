@@ -51,7 +51,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = LicencePositionTransferEquityController.class)
-@ActiveProfiles({"test", "enable-lms2"})
+@ActiveProfiles("test")
 class LicencePositionTransferEquityControllerTest extends AbstractControllerTest {
 
   @MockitoBean

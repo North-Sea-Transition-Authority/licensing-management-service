@@ -44,7 +44,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = RemovePartialSurrenderChangeController.class)
-@ActiveProfiles({"test", "enable-lms2"})
+@ActiveProfiles("test")
 class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest {
 
   private static final Licence LICENCE = LicenceTestUtil.builder()

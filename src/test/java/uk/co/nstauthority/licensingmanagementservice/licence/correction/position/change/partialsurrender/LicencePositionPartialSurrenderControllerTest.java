@@ -57,7 +57,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
 @ContextConfiguration(classes = LicencePositionPartialSurrenderController.class)
-@ActiveProfiles({"test", "enable-lms2"})
+@ActiveProfiles("test")
 class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTest {
 
   private static final Integer LICENCE_ID = 116;

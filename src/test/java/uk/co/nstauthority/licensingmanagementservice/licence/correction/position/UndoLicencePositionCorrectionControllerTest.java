@@ -34,7 +34,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
 @ContextConfiguration(classes = UndoLicencePositionCorrectionController.class)
-@ActiveProfiles({"test", "enable-lms2"})
+@ActiveProfiles("test")
 class UndoLicencePositionCorrectionControllerTest extends AbstractControllerTest {
 
   private static final Licence LICENCE = LicenceTestUtil.builder().build();

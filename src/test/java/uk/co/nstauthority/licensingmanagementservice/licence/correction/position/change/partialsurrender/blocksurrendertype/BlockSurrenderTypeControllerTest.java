@@ -49,7 +49,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.Fe
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = BlockSurrenderTypeController.class)
-@ActiveProfiles({"test", "enable-lms2"})
+@ActiveProfiles("test")
 class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
 
   private static final Licence LICENCE = LicenceTestUtil.builder()

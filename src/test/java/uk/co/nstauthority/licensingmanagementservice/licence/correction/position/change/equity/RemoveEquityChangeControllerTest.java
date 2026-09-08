@@ -39,7 +39,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = RemoveEquityChangeController.class)
-@ActiveProfiles({"test", "enable-lms2"})
+@ActiveProfiles("test")
 class RemoveEquityChangeControllerTest extends AbstractControllerTest {
 
   @MockitoBean
@@ -167,7 +167,6 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(position)
         .build();
-    var setEquityRows = List.of(new SetEquityRow("Org Ltd", BigDecimal.TEN));
 
     when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
         .thenReturn(positionCorrection);

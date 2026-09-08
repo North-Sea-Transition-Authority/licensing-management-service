@@ -35,7 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = RemoveAdministratorChangeController.class)
-@ActiveProfiles({"test", "enable-lms2"})
+@ActiveProfiles("test")
 class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
 
   @MockitoBean

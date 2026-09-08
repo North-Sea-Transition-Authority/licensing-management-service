@@ -39,7 +39,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUtil;
 
 @ContextConfiguration(classes = LicenceCorrectionController.class)
-@ActiveProfiles({"test", "enable-lms2"})
+@ActiveProfiles("test")
 class LicenceCorrectionControllerTest extends AbstractControllerTest {
 
   @MockitoBean

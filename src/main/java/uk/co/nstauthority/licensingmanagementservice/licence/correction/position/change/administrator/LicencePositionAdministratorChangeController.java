@@ -5,7 +5,6 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.util.Map;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,7 +40,6 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}")
-@Profile("enable-lms2")
 @InvokingUserCanViewCorrection
 @CorrectionLicenceIsType({LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION})
 public class LicencePositionAdministratorChangeController {

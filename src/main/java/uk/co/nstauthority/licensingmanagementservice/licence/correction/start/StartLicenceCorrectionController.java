@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.start;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,7 +24,6 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @Controller
 @RequestMapping("licences/{licenceId}/correction/start")
 @LicenceActionEndPointInterceptorRule.ActionEndPoint(LicenceActionItem.START_CORRECTION)
-@Profile("enable-lms2")
 public class StartLicenceCorrectionController {
 
   private static final String PAGE_TITLE = "Start a licence correction";

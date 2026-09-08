@@ -26,7 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePa
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = LicenceCorrectionCancelController.class)
-@ActiveProfiles({"test", "enable-lms2"})
+@ActiveProfiles("test")
 class LicenceCorrectionCancelControllerTest extends AbstractControllerTest {
 
   private static final String DEFAULT_TAB_URL = "/licences/1/default-tab";

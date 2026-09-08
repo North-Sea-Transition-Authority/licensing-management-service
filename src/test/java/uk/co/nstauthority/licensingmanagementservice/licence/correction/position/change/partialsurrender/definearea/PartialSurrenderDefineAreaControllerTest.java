@@ -48,7 +48,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @ContextConfiguration(classes = {
     PartialSurrenderDefineAreaController.class
 })
-@ActiveProfiles({"test"})
+@ActiveProfiles("test")
 class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
 
   private static final Licence LICENCE = LicenceTestUtil.builder()

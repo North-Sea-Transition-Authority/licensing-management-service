@@ -36,7 +36,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
     LicenceOverviewService.class,
     LicenceTimelinePositionTab.class
 })
-@ActiveProfiles({"test", "enable-lms2"})
+@ActiveProfiles("test")
 class LicencePositionControllerTest extends AbstractControllerTest {
 
   private static final Integer LICENCE_ID = 1;

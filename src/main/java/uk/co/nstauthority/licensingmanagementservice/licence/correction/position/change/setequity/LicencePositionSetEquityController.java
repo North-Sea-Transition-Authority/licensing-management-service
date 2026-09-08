@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,7 +37,6 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}")
-@Profile("enable-lms2")
 @InvokingUserCanViewCorrection
 @CorrectionLicenceIsType(LicenceType.CARBON_STORAGE)
 public class LicencePositionSetEquityController {

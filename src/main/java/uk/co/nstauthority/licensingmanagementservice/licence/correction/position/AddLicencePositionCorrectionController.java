@@ -3,7 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.UUID;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,7 +21,6 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}/add-position")
-@Profile("enable-lms2")
 @InvokingUserCanViewCorrection
 public class AddLicencePositionCorrectionController {
 

@@ -4,7 +4,6 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.util.List;
 import java.util.UUID;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,7 +35,6 @@ import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}")
-@Profile("enable-lms2")
 @InvokingUserCanViewCorrection
 @CorrectionLicenceIsType({LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION})
 public class PartialSurrenderTaskListController {

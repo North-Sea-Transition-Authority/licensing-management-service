@@ -38,7 +38,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ContextConfiguration(classes = UpdateCorrectionGeneralDetailsController.class)
-@ActiveProfiles({"test", "enable-lms2"})
+@ActiveProfiles("test")
 class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTest {
 
   private static final UUID CORRECTION_ID = UUID.randomUUID();

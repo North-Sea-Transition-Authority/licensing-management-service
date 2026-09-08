@@ -36,7 +36,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = AddLicencePositionCorrectionController.class)
-@ActiveProfiles({"test", "enable-lms2"})
+@ActiveProfiles("test")
 class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest {
 
   @MockitoBean

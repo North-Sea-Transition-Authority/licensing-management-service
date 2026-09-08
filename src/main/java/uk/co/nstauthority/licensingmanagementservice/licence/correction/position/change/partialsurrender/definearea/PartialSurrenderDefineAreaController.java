@@ -36,7 +36,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
         "/{licencePositionCorrectionId}/partial-surrender/{featureId}"
 )
 @InvokingUserCanViewCorrection
-@CorrectionLicenceIsType({LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION})
+@CorrectionLicenceIsType({LicenceType.CARBON_STORAGE, LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION})
 public class PartialSurrenderDefineAreaController {
 
   private static final String DEFINE_AREA_PAGE_TITLE = "Define area to surrender";

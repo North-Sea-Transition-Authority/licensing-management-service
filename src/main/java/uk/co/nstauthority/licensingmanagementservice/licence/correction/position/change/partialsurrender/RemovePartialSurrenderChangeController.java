@@ -35,7 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}")
 @InvokingUserCanViewCorrection
-@CorrectionLicenceIsType({LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION})
+@CorrectionLicenceIsType({LicenceType.CARBON_STORAGE, LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION})
 public class RemovePartialSurrenderChangeController {
 
   private static final String REMOVE_PAGE_TITLE = "Are you sure you want to remove this partial surrender?";

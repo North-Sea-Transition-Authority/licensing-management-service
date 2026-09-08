@@ -34,7 +34,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}")
 @InvokingUserCanViewCorrection
-@CorrectionLicenceIsType({LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION})
+@CorrectionLicenceIsType({LicenceType.CARBON_STORAGE, LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION})
 public class BlockSurrenderTypeController {
 
   private static final String SAVED_BANNER = "Partial surrender type saved";

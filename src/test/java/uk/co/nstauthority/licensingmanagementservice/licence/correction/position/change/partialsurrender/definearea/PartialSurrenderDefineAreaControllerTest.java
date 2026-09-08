@@ -22,6 +22,8 @@ import java.util.Set;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -98,12 +100,12 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderDefineArea_whenLicenceIsNotProduction_forbidden() throws Exception {
-    var carbonStorageLicence = LicenceTestUtil.builder().withLicenceType(LicenceType.CARBON_STORAGE).build();
+  void renderDefineArea_whenLicenceTypeIsNotAllowed_forbidden() throws Exception {
+    var notAllowedLicence = LicenceTestUtil.builder().withLicenceType(LicenceType.GAS_STORAGE).build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(LicenceCorrectionTestUtil.newBuilder()
             .withId(CORRECTION_ID)
-            .withLicence(carbonStorageLicence)
+            .withLicence(notAllowedLicence)
             .build()));
 
     mockMvc.perform(get(defineAreaUrl())
@@ -111,9 +113,12 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
         .andExpect(status().isForbidden());
   }
 
-  @Test
-  void renderDefineArea_rendersMapWithCommandJourneyAndSrsWkid() throws Exception {
-    givenBlockSurrenderWithActiveFeatures();
+  @ParameterizedTest
+  @EnumSource(value = LicenceType.class,
+      names = {"CARBON_STORAGE", "SEAWARD_PRODUCTION", "LANDWARD_PRODUCTION"})
+  void renderDefineArea_rendersMapWithCommandJourneyAndSrsWkid(LicenceType licenceType) throws Exception {
+    var licence = LicenceTestUtil.builder().withLicenceType(licenceType).withLicenceReference("P/1").build();
+    givenBlockSurrenderWithActiveFeatures(licence);
 
     mockMvc.perform(get(defineAreaUrl())
             .with(user(regulatorUser)))
@@ -122,7 +127,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
             view().name(VIEW_NAME),
             model().attribute("commandJourneyId", COMMAND_JOURNEY_ID),
             model().attribute("srsWkid", ED50_WKID),
-            model().attribute("pageCaption", LICENCE.getLicenceReference()),
+            model().attribute("pageCaption", licence.getLicenceReference()),
             model().attribute("pageTitle", "Define area to surrender"),
             model().attribute("backLinkUrl", surrenderTypeUrl()));
   }
@@ -215,17 +220,27 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
   }
 
   private void givenBlockSurrenderWithActiveFeatures() {
+    givenBlockSurrenderWithActiveFeatures(LICENCE);
+  }
+
+  private void givenBlockSurrenderWithActiveFeatures(Licence licence) {
     var activeFeatures = new ArrayList<Feature>();
     for (var i = 0; i < 1; i++) {
       activeFeatures.add(FEATURE);
     }
-    givenBlockSurrender(List.of(), activeFeatures);
+    givenBlockSurrender(licence, List.of(), activeFeatures);
   }
 
   private LicencePositionCorrection givenBlockSurrender(
       List<UUID> surrenderedFeatureIds, List<Feature> activeFeatures
   ) {
-    var correction = LicenceCorrectionTestUtil.newBuilder().withId(CORRECTION_ID).withLicence(LICENCE).build();
+    return givenBlockSurrender(LICENCE, surrenderedFeatureIds, activeFeatures);
+  }
+
+  private LicencePositionCorrection givenBlockSurrender(
+      Licence licence, List<UUID> surrenderedFeatureIds, List<Feature> activeFeatures
+  ) {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withId(CORRECTION_ID).withLicence(licence).build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
 

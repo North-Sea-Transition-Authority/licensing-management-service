@@ -92,7 +92,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForExecutedPosition_whenCarbonStorage_offersSetEquityAndTransferEquity() throws Exception {
+  void renderForExecutedPosition_whenCarbonStorage_offersSetEquityTransferEquityAndPartialSurrender()
+      throws Exception {
     givenCorrectionAllocatedToUser(CARBON_STORAGE_LICENCE);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
@@ -106,7 +107,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             model().attribute("pageCaption", CARBON_STORAGE_LICENCE.getLicenceReference()),
             model().attribute("changeTypeOptions", Map.of(
                 "SET_EQUITY", "Set equity",
-                "TRANSFER_EQUITY", "Transfer equity")),
+                "TRANSFER_EQUITY", "Transfer equity",
+                "PARTIAL_SURRENDER", "Partial surrender")),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
                 .renderLicencePosition(CORRECTION_ID, POSITION_ID, null))));
   }
@@ -250,7 +252,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForAddedPosition_whenCarbonStorage_offersSetEquityAndTransferEquity() throws Exception {
+  void renderForAddedPosition_whenCarbonStorage_offersSetEquityTransferEquityAndPartialSurrender()
+      throws Exception {
     givenCorrectionAllocatedToUser(CARBON_STORAGE_LICENCE);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
@@ -264,7 +267,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             model().attribute("pageCaption", CARBON_STORAGE_LICENCE.getLicenceReference()),
             model().attribute("changeTypeOptions", Map.of(
                 "SET_EQUITY", "Set equity",
-                "TRANSFER_EQUITY", "Transfer equity")),
+                "TRANSFER_EQUITY", "Transfer equity",
+                "PARTIAL_SURRENDER", "Partial surrender")),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
                 .renderAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null))));
   }

@@ -27,6 +27,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -106,19 +108,47 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
         .andExpect(status().isForbidden());
   }
 
-  @Test
-  void renderForExecutedPosition_whenLicenceIsNotProduction_forbidden() throws Exception {
-    var carbonStorageLicence = LicenceTestUtil.builder().withLicenceType(LicenceType.CARBON_STORAGE).build();
+  @ParameterizedTest
+  @EnumSource(value = LicenceType.class, mode = EnumSource.Mode.EXCLUDE, names = {"CARBON_STORAGE", "LANDWARD_PRODUCTION", "SEAWARD_PRODUCTION" })
+  void renderForExecutedPosition_whenLicenceTypeIsNotAllowed_forbidden(LicenceType licenceType) throws Exception {
+    var notAllowedLicence = LicenceTestUtil.builder().withLicenceType(licenceType).build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(LicenceCorrectionTestUtil.newBuilder()
             .withId(CORRECTION_ID)
-            .withLicence(carbonStorageLicence)
+            .withLicence(notAllowedLicence)
             .build()));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
             .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = LicenceType.class, mode = EnumSource.Mode.INCLUDE, names = {"CARBON_STORAGE", "LANDWARD_PRODUCTION", "SEAWARD_PRODUCTION" })
+  void renderForExecutedPosition_whenLicenceTypeIsAllowed_thenOk(LicenceType licenceType) throws Exception {
+    var allowedLicence = LicenceTestUtil.builder().withLicenceType(licenceType).build();
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withLicence(allowedLicence)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    var licencePosition = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withLicence(allowedLicence)
+        .withPositionDate(POSITION_DATE)
+        .build();
+    when(licencePositionService.getPositionForLicence(allowedLicence, POSITION_ID)).thenReturn(licencePosition);
+    givenBlockFeaturesForExecutedPosition(correction, licencePosition, BLOCK_FEATURES, null);
+    givenNoUpdatePositionCorrection(correction, licencePosition);
+    when(licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition))
+        .thenReturn(POSITION_DATE);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
+            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isOk());
   }
 
   @Test

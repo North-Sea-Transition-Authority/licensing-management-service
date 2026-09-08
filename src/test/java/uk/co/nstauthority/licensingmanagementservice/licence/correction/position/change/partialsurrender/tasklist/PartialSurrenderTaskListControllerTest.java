@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -192,12 +194,33 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
         .andExpect(status().isForbidden());
   }
 
-  @Test
-  void renderTaskList_whenLicenceIsNotProduction_thenForbidden() throws Exception {
-    givenCorrectionAllocatedToUser(LicenceTestUtil.builder().withLicenceType(LicenceType.CARBON_STORAGE).build());
+  @ParameterizedTest
+  @EnumSource(value = LicenceType.class, mode = EnumSource.Mode.EXCLUDE, names = {"CARBON_STORAGE", "LANDWARD_PRODUCTION", "SEAWARD_PRODUCTION" })
+  void renderTaskList_whenLicenceTypeIsNotAllowed_thenForbidden(LicenceType licenceType) throws Exception {
+    givenCorrectionAllocatedToUser(LicenceTestUtil.builder().withLicenceType(licenceType).build());
 
     mockMvc.perform(get(taskListUrl()).with(user(regulatorUser)))
         .andExpect(status().isForbidden());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = LicenceType.class, mode = EnumSource.Mode.INCLUDE, names = {"CARBON_STORAGE", "LANDWARD_PRODUCTION", "SEAWARD_PRODUCTION" })
+  void renderTaskList_whenLicenceTypeIsAllowed_thenOk(LicenceType licenceType) throws Exception {
+    var allowedLicence = LicenceTestUtil.builder()
+        .withLicenceType(licenceType)
+        .withLicenceReference("P/1")
+        .build();
+    var correction = givenCorrectionAllocatedToUser(allowedLicence);
+    var positionCorrection = givenPositionCorrection(
+        correction, LicencePositionCorrectionChangeType.UPDATE_POSITION);
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionCorrection))
+        .thenReturn(SURRENDER);
+    when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
+    when(partialSurrenderTaskListService.getTaskListSections(
+        new PartialSurrenderTaskListContext.Staged(positionCorrection), regulatorUser)).thenReturn(SECTIONS);
+
+    mockMvc.perform(get(taskListUrl()).with(user(regulatorUser)))
+        .andExpect(status().isOk());
   }
 
   @Test
@@ -233,8 +256,8 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForCorrectingChange_whenLicenceIsNotProduction_thenForbidden() throws Exception {
-    givenCorrectionAllocatedToUser(LicenceTestUtil.builder().withLicenceType(LicenceType.CARBON_STORAGE).build());
+  void renderForCorrectingChange_whenLicenceTypeIsNotAllowed_thenForbidden() throws Exception {
+    givenCorrectionAllocatedToUser(LicenceTestUtil.builder().withLicenceType(LicenceType.GAS_STORAGE).build());
 
     mockMvc.perform(get(correctingChangeTaskListUrl()).with(user(regulatorUser)))
         .andExpect(status().isForbidden());

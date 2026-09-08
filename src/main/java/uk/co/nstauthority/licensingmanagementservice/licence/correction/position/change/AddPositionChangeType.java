@@ -31,7 +31,8 @@ public enum AddPositionChangeType implements Displayable {
 
   public boolean isAvailableFor(LicenceType licenceType) {
     return switch (this) {
-      case ADMINISTRATOR, PARTIAL_SURRENDER, SUBAREA -> licenceType.isProduction();
+      case ADMINISTRATOR, SUBAREA -> licenceType.isProduction();
+      case PARTIAL_SURRENDER -> licenceType.isProduction() || LicenceType.CARBON_STORAGE == licenceType;
       case SET_EQUITY, TRANSFER_EQUITY -> LicenceType.CARBON_STORAGE.equals(licenceType);
     };
   }

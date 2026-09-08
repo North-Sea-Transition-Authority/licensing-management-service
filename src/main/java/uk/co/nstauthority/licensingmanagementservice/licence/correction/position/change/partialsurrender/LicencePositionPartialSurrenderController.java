@@ -42,7 +42,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}")
 @InvokingUserCanViewCorrection
-@CorrectionLicenceIsType({LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION})
+@CorrectionLicenceIsType({LicenceType.CARBON_STORAGE, LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION})
 public class LicencePositionPartialSurrenderController {
 
   private static final String PAGE_TITLE = "Surrender details";

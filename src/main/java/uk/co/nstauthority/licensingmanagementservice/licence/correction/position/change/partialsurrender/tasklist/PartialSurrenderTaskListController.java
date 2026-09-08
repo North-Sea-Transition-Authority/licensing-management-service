@@ -36,7 +36,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}")
 @InvokingUserCanViewCorrection
-@CorrectionLicenceIsType({LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION})
+@CorrectionLicenceIsType({LicenceType.CARBON_STORAGE, LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION})
 public class PartialSurrenderTaskListController {
 
   public static final String TASK_LIST_PAGE_TITLE = "Partial surrender";

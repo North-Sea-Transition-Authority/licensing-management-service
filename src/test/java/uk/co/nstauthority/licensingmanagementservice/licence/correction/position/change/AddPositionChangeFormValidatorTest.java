@@ -162,8 +162,9 @@ class AddPositionChangeFormValidatorTest {
   }
 
   @ParameterizedTest
-  @EnumSource(value = LicenceType.class, names = {"SEAWARD_PRODUCTION", "LANDWARD_PRODUCTION" }, mode = EnumSource.Mode.EXCLUDE)
-  void hasErrors_whenPartialSurrenderAndLicenceNotProduction_thenErrorWithMessage(LicenceType licenceType) {
+  @EnumSource(value = LicenceType.class,
+      names = {"SEAWARD_PRODUCTION", "LANDWARD_PRODUCTION", "CARBON_STORAGE" }, mode = EnumSource.Mode.EXCLUDE)
+  void hasErrors_whenPartialSurrenderAndLicenceTypeNotAllowed_thenErrorWithMessage(LicenceType licenceType) {
     form.setChangeType(AddPositionChangeType.PARTIAL_SURRENDER.name());
 
     var result = addPositionChangeFormValidator.hasErrors(
@@ -207,8 +208,9 @@ class AddPositionChangeFormValidatorTest {
             Collections.singletonList("Partial surrender has already been added to this position")));
   }
 
-  @Test
-  void hasErrors_whenPartialSurrenderDoesNotExistForPosition_thenNoErrors() {
+  @ParameterizedTest
+  @EnumSource(value = LicenceType.class, names = {"SEAWARD_PRODUCTION", "LANDWARD_PRODUCTION", "CARBON_STORAGE"})
+  void hasErrors_whenPartialSurrenderDoesNotExistForPosition_thenNoErrors(LicenceType licenceType) {
     form.setChangeType(AddPositionChangeType.PARTIAL_SURRENDER.name());
     when(licencePositionChangeService.changeExists(
         positionCorrection.getTargetLicencePosition().getId(), PartialSurrenderOperation.class))
@@ -216,7 +218,7 @@ class AddPositionChangeFormValidatorTest {
     when(partialSurrenderCorrectionService.hasStagedPartialSurrender(positionCorrection)).thenReturn(false);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.LANDWARD_PRODUCTION), positionCorrection);
+        form, errors, correctionForLicenceType(licenceType), positionCorrection);
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();

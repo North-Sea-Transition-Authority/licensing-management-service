@@ -16,6 +16,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,8 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -91,6 +94,7 @@ class LicenceControllerTest extends AbstractControllerTest {
 
     when(newLicenceValidator.isValid(any(), any())).thenReturn(true);
     when(licenceFormService.saveNewLicenceFromForm(any())).thenReturn(licence);
+    when(licenceCorrectionService.startCorrectionForNewLicence(licence, organisationUser)).thenReturn(Optional.empty());
     when(tabbedLicencePageService.getDefaultTabUrl(licence)).thenReturn(DEFAULT_TAB_URL);
     when(teamQueryService.userHasRoleInTeamType(
         organisationUser.wuaId(),
@@ -99,7 +103,7 @@ class LicenceControllerTest extends AbstractControllerTest {
     ).thenReturn(true);
 
     mockMvc.perform(
-        post(ReverseRouter.route(on(LicenceController.class).saveNewLicence(null, null)))
+        post(ReverseRouter.route(on(LicenceController.class).saveNewLicence(null, null, null)))
             .with(user(organisationUser))
             .with(csrf())
     )
@@ -107,6 +111,36 @@ class LicenceControllerTest extends AbstractControllerTest {
     .andExpect(redirectedUrl(DEFAULT_TAB_URL));
 
     verify(licenceFormService).saveNewLicenceFromForm(any());
+  }
+
+  @Test
+  void saveNewLicence_whenCorrectionStartedForNewLicence_thenRedirectToCorrection() throws Exception {
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withLicence(licence)
+        .build();
+
+    when(newLicenceValidator.isValid(any(), any())).thenReturn(true);
+    when(licenceFormService.saveNewLicenceFromForm(any())).thenReturn(licence);
+    when(licenceCorrectionService.startCorrectionForNewLicence(licence, organisationUser))
+        .thenReturn(Optional.of(correction));
+    when(teamQueryService.userHasRoleInTeamType(
+        organisationUser.wuaId(),
+        TeamType.LICENCE_MANAGEMENT,
+        Set.of(Role.OFFLINE_LICENCE_ADMINISTRATOR))
+    ).thenReturn(true);
+
+    mockMvc.perform(
+        post(ReverseRouter.route(on(LicenceController.class).saveNewLicence(null, null, null)))
+            .with(user(organisationUser))
+            .with(csrf())
+    )
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
+            .renderCorrection(correction.getId(), null))));
   }
 
   @Test
@@ -120,7 +154,7 @@ class LicenceControllerTest extends AbstractControllerTest {
     ).thenReturn(true);
 
     mockMvc.perform(
-        post(ReverseRouter.route(on(LicenceController.class).saveNewLicence(null, null)))
+        post(ReverseRouter.route(on(LicenceController.class).saveNewLicence(null, null, null)))
             .with(user(organisationUser))
             .with(csrf())
     )

@@ -11,16 +11,40 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 
 @Service
 public class LicenceCorrectionService {
 
   private final LicenceCorrectionRepository licenceCorrectionRepository;
+  private final FeatureFlagService featureFlagService;
   private final Clock clock;
 
-  public LicenceCorrectionService(LicenceCorrectionRepository licenceCorrectionRepository, Clock clock) {
+  public LicenceCorrectionService(
+      LicenceCorrectionRepository licenceCorrectionRepository,
+      FeatureFlagService featureFlagService,
+      Clock clock
+  ) {
     this.licenceCorrectionRepository = licenceCorrectionRepository;
+    this.featureFlagService = featureFlagService;
     this.clock = clock;
+  }
+
+  @Transactional
+  public Optional<LicenceCorrection> startCorrectionForNewLicence(Licence licence, ServiceUserDetail user) {
+    if (LicenceType.CARBON_STORAGE != licence.getType()
+        || !featureFlagService.isEnabled(ReleaseFeature.START_CORRECTION)) {
+      return Optional.empty();
+    }
+
+    return Optional.of(startCorrection(
+        licence,
+        "New Carbon Storage licence",
+        "Manual addition of a new Carbon Storage licence",
+        user
+    ));
   }
 
   @Transactional

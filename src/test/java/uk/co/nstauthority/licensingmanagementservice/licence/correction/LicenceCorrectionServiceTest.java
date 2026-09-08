@@ -16,6 +16,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -26,6 +28,9 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceCorrectionServiceTest {
@@ -39,6 +44,9 @@ class LicenceCorrectionServiceTest {
   @Mock
   private LicenceCorrectionRepository licenceCorrectionRepository;
 
+  @Mock
+  private FeatureFlagService featureFlagService;
+
   private LicenceCorrectionService licenceCorrectionService;
 
   @Captor
@@ -46,7 +54,60 @@ class LicenceCorrectionServiceTest {
 
   @BeforeEach
   void setUp() {
-    licenceCorrectionService = new LicenceCorrectionService(licenceCorrectionRepository, CLOCK);
+    licenceCorrectionService = new LicenceCorrectionService(licenceCorrectionRepository, featureFlagService, CLOCK);
+  }
+
+  @Test
+  void startCorrectionForNewLicence_whenCarbonStorageLicence() {
+    var carbonStorageLicence = LicenceTestUtil.builder()
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+
+    when(featureFlagService.isEnabled(ReleaseFeature.START_CORRECTION)).thenReturn(true);
+    when(licenceCorrectionRepository.existsByLicenceAndStatus(carbonStorageLicence, LicenceCorrectionStatus.IN_PROGRESS))
+        .thenReturn(false);
+    when(licenceCorrectionRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    var expectedCorrection = LicenceCorrectionTestUtil.newBuilder()
+        .withId(null)
+        .withLicence(carbonStorageLicence)
+        .withCorrectionReference("New Carbon Storage licence")
+        .withReason("Manual addition of a new Carbon Storage licence")
+        .withStatus(LicenceCorrectionStatus.IN_PROGRESS)
+        .withAllocatedToWuaId(USER.wuaId())
+        .withCreatedInstant(CLOCK.instant())
+        .build();
+
+    var result = licenceCorrectionService.startCorrectionForNewLicence(carbonStorageLicence, USER);
+
+    assertThat(result).get().usingRecursiveComparison().isEqualTo(expectedCorrection);
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = LicenceType.class, names = "CARBON_STORAGE", mode = EnumSource.Mode.EXCLUDE)
+  void startCorrectionForNewLicence_whenNotCarbonStorageLicence(LicenceType licenceType) {
+    var licence = LicenceTestUtil.builder()
+        .withLicenceType(licenceType)
+        .build();
+
+    var result = licenceCorrectionService.startCorrectionForNewLicence(licence, USER);
+
+    assertThat(result).isEmpty();
+    verify(licenceCorrectionRepository, never()).saveAndFlush(any());
+  }
+
+  @Test
+  void startCorrectionForNewLicence_whenCorrectionsNotReleased() {
+    var carbonStorageLicence = LicenceTestUtil.builder()
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+
+    when(featureFlagService.isEnabled(ReleaseFeature.START_CORRECTION)).thenReturn(false);
+
+    var result = licenceCorrectionService.startCorrectionForNewLicence(carbonStorageLicence, USER);
+
+    assertThat(result).isEmpty();
+    verify(licenceCorrectionRepository, never()).saveAndFlush(any());
   }
 
   @Test

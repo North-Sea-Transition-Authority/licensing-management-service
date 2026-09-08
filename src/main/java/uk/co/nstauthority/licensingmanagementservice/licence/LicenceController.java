@@ -13,11 +13,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTeamType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -38,17 +41,20 @@ public class LicenceController {
   private final NewLicenceValidator newLicenceValidator;
   private final EditLicenceDetailsValidator editLicenceDetailsValidator;
   private final TabbedLicencePageService tabbedLicencePageService;
+  private final LicenceCorrectionService licenceCorrectionService;
 
   public LicenceController(
       LicenceFormService licenceFormService,
       NewLicenceValidator newLicenceValidator,
       EditLicenceDetailsValidator editLicenceDetailsValidator,
-      TabbedLicencePageService tabbedLicencePageService
+      TabbedLicencePageService tabbedLicencePageService,
+      LicenceCorrectionService licenceCorrectionService
   ) {
     this.licenceFormService = licenceFormService;
     this.newLicenceValidator = newLicenceValidator;
     this.editLicenceDetailsValidator = editLicenceDetailsValidator;
     this.tabbedLicencePageService = tabbedLicencePageService;
+    this.licenceCorrectionService = licenceCorrectionService;
   }
 
   @GetMapping("/new")
@@ -59,12 +65,16 @@ public class LicenceController {
   @PostMapping("/new")
   ModelAndView saveNewLicence(
       @ModelAttribute("form") NewLicenceForm form,
-      BindingResult bindingResult
+      BindingResult bindingResult,
+      ServiceUserDetail serviceUserDetail
   ) {
     if (newLicenceValidator.isValid(form, bindingResult)) {
       var licence = licenceFormService.saveNewLicenceFromForm(form);
 
-      return ReverseRouter.redirectToUrl(tabbedLicencePageService.getDefaultTabUrl(licence));
+      return licenceCorrectionService.startCorrectionForNewLicence(licence, serviceUserDetail)
+          .map(correction -> ReverseRouter.redirect(on(LicenceCorrectionController.class)
+              .renderCorrection(correction.getId(), null)))
+          .orElseGet(() -> ReverseRouter.redirectToUrl(tabbedLicencePageService.getDefaultTabUrl(licence)));
     }
 
     return getNewLicenceModelAndView(form);

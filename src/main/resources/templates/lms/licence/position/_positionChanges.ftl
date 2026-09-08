@@ -56,11 +56,11 @@
 
 <#macro administratorChange change>
   <#assign removed>
-    <@fdsTag.tag tagClass="govuk-tag--red">Removed</@fdsTag.tag>
+    <@fdsTag.tag tagClass="govuk-tag--red">Withdrawing</@fdsTag.tag>
   </#assign>
 
   <#assign added>
-    <@fdsTag.tag tagClass="govuk-tag--green">Added</@fdsTag.tag>
+    <@fdsTag.tag tagClass="govuk-tag--green">Joining</@fdsTag.tag>
   </#assign>
 
   <#assign isRemoved = (change.changeType()!) == "remove-change">

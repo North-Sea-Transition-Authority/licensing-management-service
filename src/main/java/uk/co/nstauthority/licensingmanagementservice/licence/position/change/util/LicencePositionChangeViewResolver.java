@@ -212,7 +212,9 @@ public final class LicencePositionChangeViewResolver {
                 ctx -> ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
                     .renderRemoveExecutedPartialSurrender(
                         ctx.correctionId(), ctx.routingId(), change.changeId(), null))),
-            null,
+            undoChangeUrl(urlContext, change,
+                ctx -> ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+                    .renderUndoPartialSurrender(ctx.correctionId(), change.changeId(), null))),
             correctChangeOrderUrl
         )
     );
@@ -242,7 +244,9 @@ public final class LicencePositionChangeViewResolver {
                 ctx -> ReverseRouter.route(on(RemoveAdministratorChangeController.class)
                     .renderRemoveExecutedAdminChange(
                         ctx.correctionId(), ctx.routingId(), change.changeId(), null))),
-            undoChangeUrl(urlContext, change),
+            undoChangeUrl(urlContext, change,
+                ctx -> ReverseRouter.route(on(RemoveAdministratorChangeController.class)
+                    .renderUndoAdminChange(ctx.correctionId(), change.changeId(), null))),
             correctChangeOrderUrl
         )
     );
@@ -351,11 +355,12 @@ public final class LicencePositionChangeViewResolver {
 
   @Nullable
   private static String undoEquityChangeUrl(@Nullable PositionChangeUrlContext urlContext, PositionChange change) {
-    if (urlContext == null || change.changeType() == null) {
-      return null;
-    }
-    return ReverseRouter.route(on(RemoveEquityChangeController.class)
-        .renderUndoEquityChange(urlContext.correctionId(), change.changeId(), null));
+    return undoChangeUrl(
+        urlContext,
+        change,
+        ctx -> ReverseRouter.route(on(RemoveEquityChangeController.class)
+            .renderUndoEquityChange(ctx.correctionId(), change.changeId(), null))
+    );
   }
 
   @Nullable
@@ -454,13 +459,19 @@ public final class LicencePositionChangeViewResolver {
     return removeUrl.apply(urlContext);
   }
 
+  /**
+   * Only a change staged by this correction can be undone, whether it was added, corrected or removed.
+   */
   @Nullable
-  //TODO LMS2-134: When other change types are added, we should adapt how the undo urls for change  views are built
-  private static String undoChangeUrl(@Nullable PositionChangeUrlContext urlContext, PositionChange change) {
+  private static String undoChangeUrl(
+      @Nullable PositionChangeUrlContext urlContext,
+      PositionChange change,
+      Function<PositionChangeUrlContext, String> undoUrl
+  ) {
     if (urlContext == null || change.changeType() == null) {
       return null;
     }
-    return ReverseRouter.route(on(RemoveAdministratorChangeController.class)
-        .renderUndoAdminChange(urlContext.correctionId(), change.changeId(), null));
+
+    return undoUrl.apply(urlContext);
   }
 }

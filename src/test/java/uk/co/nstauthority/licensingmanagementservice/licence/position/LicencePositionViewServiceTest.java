@@ -38,6 +38,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.RemovePartialSurrenderChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
@@ -236,6 +237,51 @@ class LicencePositionViewServiceTest {
     return LicencePositionTestUtil.newBuilder()
         .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
+  }
+
+  @Test
+  void getCorrectionPositionPageView_whenPartialSurrenderRemoved_rendersTheLiveSurrenderWithAnUndoUrl() {
+    var correctionId = UUID.randomUUID();
+    var changeId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().withId(correctionId).withLicence(LICENCE).build();
+    var executed = executedPosition();
+
+    var liveSurrenderChange = LicencePositionChangeTestUtil.newBuilder()
+        .withId(changeId)
+        .withLicencePosition(executed)
+        .withOperations(List.of(partialSurrenderOperation()))
+        .build();
+
+    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(executed)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withEffectiveDate(executed.getPositionDate())
+            .withEffectiveDateOrder(executed.getPositionDateOrder())
+            .withChanges(List.of(LicencePositionChangeType.removeChange().withChangeId(changeId.toString()).build()))
+            .build())
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(executed)))
+        .thenReturn(List.of(liveSurrenderChange));
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(removeCorrection));
+    when(featureService.getFeaturesByIds(List.of(SURRENDERED_BLOCK.getId()))).thenReturn(List.of(SURRENDERED_BLOCK));
+
+    var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
+
+    var expected = new PartialSurrenderChangeView(
+        "1 January 2026",
+        List.of(new PartialSurrenderChangeView.BlockRow(SURRENDERED_BLOCK.getFeatureName(), "Full surrender")),
+        LicencePositionChangeType.REMOVE_CHANGE,
+        new ChangeViewUrls(
+            null,
+            null,
+            ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+                .renderUndoPartialSurrender(correctionId, changeId.toString(), null)),
+            null));
+    assertThat(changeViewOfType(result, LicenceOperation.PARTIAL_SURRENDER)).isEqualTo(expected);
   }
 
   private static PartialSurrenderOperation partialSurrenderOperation() {

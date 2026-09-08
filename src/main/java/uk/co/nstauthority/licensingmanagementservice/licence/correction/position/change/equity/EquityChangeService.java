@@ -1,27 +1,20 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity;
 
-import static java.util.function.Predicate.not;
-
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.SetEquityCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.TransferEquityCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil;
 
 @Service
 public class EquityChangeService {
@@ -56,25 +49,14 @@ public class EquityChangeService {
     var positionCorrection = licencePositionCorrectionService
         .getPositionCorrectionContainingChange(licenceCorrection, changeId);
 
-    var payload = positionCorrection.getPayload();
-    var changeToUndo = findChange(positionCorrection, changeId);
+    var changeToUndo = licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId);
 
     if (!isEquityChange(changeToUndo)) {
       throw new IllegalStateException(
           "Change with id %s is not a beneficial interest change".formatted(changeId));
     }
 
-    var remainingChanges = LicencePositionChangeType.removeChangesById(payload.changes(), changeId);
-
-    if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.UPDATE_POSITION
-        && remainingChanges.isEmpty()
-        && LicencePositionChangeUtil.positionDateAndOrderUnchanged(positionCorrection)) {
-      licencePositionCorrectionService.delete(positionCorrection);
-      return;
-    }
-
-    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, remainingChanges));
-    licencePositionCorrectionService.save(positionCorrection);
+    licencePositionCorrectionService.dropStagedChange(positionCorrection, changeId);
   }
 
   public EquityChangeContext getExecutedEquityChangeContext(String changeId) {
@@ -86,7 +68,8 @@ public class EquityChangeService {
     var positionCorrection = licencePositionCorrectionService
         .getPositionCorrectionContainingChange(licenceCorrection, changeId);
 
-    return buildContext(resolveOperations(findChange(positionCorrection, changeId)));
+    return buildContext(licencePositionCorrectionService.resolveStagedChangeOperations(
+        licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId)));
   }
 
   private EquityChangeContext buildContext(List<LicenceOperation> operations) {
@@ -105,26 +88,8 @@ public class EquityChangeService {
     return new EquityChangeContext(setEquityRows, transferEquityRows);
   }
 
-  private LicencePositionChangeType findChange(LicencePositionCorrection positionCorrection, String changeId) {
-    return positionCorrection.getPayload().changes().stream()
-        .filter(not(LicencePositionChangeType::isUpdateChangeOrder))
-        .filter(change -> changeId.equals(change.changeId()))
-        .findFirst()
-        .orElseThrow(() -> new IllegalStateException(
-            "No change with id %s found in position correction %s"
-                .formatted(changeId, positionCorrection.getId())));
-  }
-
   private boolean isEquityChange(LicencePositionChangeType change) {
-    return containsEquityOperation(resolveOperations(change));
-  }
-
-  private List<LicenceOperation> resolveOperations(LicencePositionChangeType change) {
-    if (change instanceof RemoveChange(String changeId)) {
-      var liveChange = licencePositionChangeService.getByIdOrThrow(UUID.fromString(changeId));
-      return LicencePositionChange.operationsOf(liveChange);
-    }
-    return LicencePositionChangeType.operationsOf(change);
+    return containsEquityOperation(licencePositionCorrectionService.resolveStagedChangeOperations(change));
   }
 
   private boolean containsEquityOperation(List<LicenceOperation> operations) {

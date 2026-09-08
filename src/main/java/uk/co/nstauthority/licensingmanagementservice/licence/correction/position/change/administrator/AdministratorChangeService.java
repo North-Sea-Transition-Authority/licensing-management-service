@@ -1,7 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator;
 
-import static java.util.function.Predicate.not;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -13,7 +11,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
@@ -23,7 +20,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionAdministratorChangeUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil;
 
 @Service
 public class AdministratorChangeService {
@@ -172,16 +168,7 @@ public class AdministratorChangeService {
     var positionCorrection = licencePositionCorrectionService
         .getPositionCorrectionContainingChange(licenceCorrection, changeId);
 
-    var payload = positionCorrection.getPayload();
-
-    var changeToUndo = payload.changes().stream()
-        .filter(not(LicencePositionChangeType::isUpdateChangeOrder))
-        .filter(change -> changeId.equals(change.changeId()))
-        .findFirst()
-        .orElseThrow(() -> new IllegalStateException(
-            "No change with id %s found in position correction %s"
-                .formatted(changeId, positionCorrection.getId()))
-        );
+    var changeToUndo = licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId);
 
     if (!isAdministratorChange(changeToUndo)) {
       throw new IllegalStateException(
@@ -189,17 +176,7 @@ public class AdministratorChangeService {
               .formatted(changeId));
     }
 
-    var remainingChanges = LicencePositionChangeType.removeChangesById(payload.changes(), changeId);
-
-    if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.UPDATE_POSITION
-        && remainingChanges.isEmpty()
-        && LicencePositionChangeUtil.positionDateAndOrderUnchanged(positionCorrection)) {
-      licencePositionCorrectionService.delete(positionCorrection);
-      return;
-    }
-
-    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, remainingChanges));
-    licencePositionCorrectionService.save(positionCorrection);
+    licencePositionCorrectionService.dropStagedChange(positionCorrection, changeId);
   }
 
   public boolean hasPendingAdministratorChange(LicencePosition licencePosition, LicenceCorrection licenceCorrection) {
@@ -211,11 +188,8 @@ public class AdministratorChangeService {
   }
 
   private boolean isAdministratorChange(LicencePositionChangeType change) {
-    if (change instanceof RemoveChange(String changeId)) {
-      var liveChange = licencePositionChangeService.getByIdOrThrow(UUID.fromString(changeId));
-      return LicencePositionAdministratorChangeUtil.containsAdminOperation(liveChange);
-    }
-    return LicencePositionAdministratorChangeUtil.containsAdminOperation(change);
+    return licencePositionCorrectionService.resolveStagedChangeOperations(change).stream()
+        .anyMatch(AdministratorOperation.class::isInstance);
   }
 
   private static AdministratorOperation administratorOperation(Integer administratorId) {

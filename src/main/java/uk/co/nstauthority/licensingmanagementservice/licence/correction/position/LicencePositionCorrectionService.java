@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position;
 
+import static java.util.function.Predicate.not;
+
 import jakarta.annotation.Nullable;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -18,14 +20,17 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 
 @Service
@@ -339,6 +344,44 @@ public class LicencePositionCorrectionService {
         .orElseThrow(() -> new LmsEntityNotFoundException(
             "No position correction containing change with id %s found for licence correction %s"
                 .formatted(changeId, licenceCorrection.getId())));
+  }
+
+  public LicencePositionChangeType getStagedChangeOrThrow(
+      LicencePositionCorrection positionCorrection,
+      String changeId
+  ) {
+    return positionCorrection.getPayload().changes().stream()
+        .filter(not(LicencePositionChangeType::isUpdateChangeOrder))
+        .filter(change -> changeId.equals(change.changeId()))
+        .findFirst()
+        .orElseThrow(() -> new IllegalStateException(
+            "No change with id %s found in position correction %s"
+                .formatted(changeId, positionCorrection.getId())));
+  }
+
+  public List<LicenceOperation> resolveStagedChangeOperations(LicencePositionChangeType change) {
+    if (change instanceof RemoveChange(String liveChangeId)) {
+      return LicencePositionChange.operationsOf(
+          licencePositionChangeService.getByIdOrThrow(UUID.fromString(liveChangeId)));
+    }
+
+    return LicencePositionChangeType.operationsOf(change);
+  }
+
+  @Transactional
+  public void dropStagedChange(LicencePositionCorrection positionCorrection, String changeId) {
+    var payload = positionCorrection.getPayload();
+    var remainingChanges = LicencePositionChangeType.removeChangesById(payload.changes(), changeId);
+
+    if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.UPDATE_POSITION
+        && remainingChanges.isEmpty()
+        && LicencePositionChangeUtil.positionDateAndOrderUnchanged(positionCorrection)) {
+      licencePositionCorrectionRepository.delete(positionCorrection);
+      return;
+    }
+
+    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, remainingChanges));
+    licencePositionCorrectionRepository.save(positionCorrection);
   }
 
   public List<OrderablePosition> getOrderableSameDatePositions(

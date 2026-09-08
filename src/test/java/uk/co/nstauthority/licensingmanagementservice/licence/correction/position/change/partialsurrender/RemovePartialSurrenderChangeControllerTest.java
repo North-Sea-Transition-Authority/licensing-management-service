@@ -34,6 +34,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -52,6 +55,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final String CHANGE_ID = UUID.randomUUID().toString();
   private static final String REMOVE_PAGE_TITLE = "Are you sure you want to remove this partial surrender?";
+  private static final String UNDO_PAGE_TITLE = "Are you sure you want to undo this partial surrender?";
   private static final String VIEW_NAME =
       "lms/licence/correction/change/partialSurrender/removePartialSurrenderChange";
   private static final List<PartialSurrenderChangeView.BlockRow> BLOCK_ROWS =
@@ -170,6 +174,134 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
     verify(partialSurrenderCorrectionService).removeExistingPartialSurrender(position, correction, CHANGE_ID);
   }
 
+  @Test
+  void renderUndoPartialSurrender_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+            .renderUndoPartialSurrender(CORRECTION_ID, CHANGE_ID, null))))
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void renderUndoPartialSurrender_whenNotAllocatedToUser() throws Exception {
+    givenCorrectionNotAllocatedToUser();
+
+    mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+            .renderUndoPartialSurrender(CORRECTION_ID, CHANGE_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderUndoPartialSurrender_whenTheSurrenderHasItsOwnDate_thenThatDateIsShown() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var positionCorrection = executedPositionCorrection();
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+    givenStagedSurrender(positionCorrection, SURRENDER_DATE);
+
+    mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+            .renderUndoPartialSurrender(CORRECTION_ID, CHANGE_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("pageTitle", UNDO_PAGE_TITLE),
+            model().attribute("primaryButtonText", "Undo partial surrender"),
+            model().attribute("surrenderDate", "5 June 2026"),
+            model().attribute("blockRows", BLOCK_ROWS),
+            model().attribute("cancelUrl", positionUrl)
+        );
+
+    verify(licencePositionCorrectionService, never()).resolveEffectiveDate(positionCorrection);
+  }
+
+  @Test
+  void renderUndoPartialSurrender_whenTheSurrenderHasNoDate_thenTheEffectivePositionDateIsShown() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var positionCorrection = executedPositionCorrection();
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+    givenStagedSurrender(positionCorrection, null);
+    when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
+
+    mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+            .renderUndoPartialSurrender(CORRECTION_ID, CHANGE_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            model().attribute("surrenderDate", "1 January 2026"),
+            model().attribute("blockRows", BLOCK_ROWS)
+        );
+  }
+
+  @Test
+  void renderUndoPartialSurrender_whenTheSurrenderIsOnAnAddedPosition_thenCancelsBackToTheAddedPosition()
+      throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+        .withTargetLicencePosition(null)
+        .build();
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+    givenStagedSurrender(positionCorrection, SURRENDER_DATE);
+
+    mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+            .renderUndoPartialSurrender(CORRECTION_ID, CHANGE_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            model().attribute("cancelUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
+                .renderAddedPosition(CORRECTION_ID, positionCorrection.getId(), null)))
+        );
+  }
+
+  @Test
+  void undoPartialSurrender_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(post(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+            .undoPartialSurrender(CORRECTION_ID, CHANGE_ID, null, null)))
+            .with(csrf()))
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void undoPartialSurrender_whenNotAllocatedToUser() throws Exception {
+    givenCorrectionNotAllocatedToUser();
+
+    mockMvc.perform(post(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+            .undoPartialSurrender(CORRECTION_ID, CHANGE_ID, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden());
+
+    verifyNoInteractions(partialSurrenderCorrectionService);
+  }
+
+  @Test
+  void undoPartialSurrender_whenAllocatedToUser() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(executedPositionCorrection());
+
+    mockMvc.perform(post(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+            .undoPartialSurrender(CORRECTION_ID, CHANGE_ID, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(positionUrl),
+            notificationBanner(NotificationBanner.newSuccessBanner()
+                .withHeadingContent("Partial surrender undone")
+                .build())
+        );
+
+    verify(partialSurrenderCorrectionService).undoPartialSurrenderChange(correction, CHANGE_ID);
+  }
+
   private void givenExecutedSurrender(@Nullable LocalDate surrenderDate) {
     var surrender = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderDate(surrenderDate)
@@ -178,6 +310,24 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
 
     when(partialSurrenderCorrectionService.getLiveSurrenderOrThrow(CHANGE_ID)).thenReturn(surrender);
     when(partialSurrenderCorrectionService.getBlockRows(surrender)).thenReturn(BLOCK_ROWS);
+  }
+
+  private void givenStagedSurrender(LicencePositionCorrection positionCorrection, @Nullable LocalDate surrenderDate) {
+    var surrender = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(surrenderDate)
+        .withSurrenderedFeatureIds(List.of(UUID.randomUUID()))
+        .build();
+
+    when(partialSurrenderCorrectionService.getStagedPartialSurrenderOrThrow(positionCorrection, CHANGE_ID))
+        .thenReturn(surrender);
+    when(partialSurrenderCorrectionService.getBlockRows(surrender)).thenReturn(BLOCK_ROWS);
+  }
+
+  private LicencePositionCorrection executedPositionCorrection() {
+    return LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(positionWithId())
+        .build();
   }
 
   private LicencePosition positionWithId() {

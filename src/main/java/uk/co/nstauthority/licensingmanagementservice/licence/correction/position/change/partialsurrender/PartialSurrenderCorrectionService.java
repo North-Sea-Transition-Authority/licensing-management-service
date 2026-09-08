@@ -8,10 +8,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -26,8 +28,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOrder;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
@@ -221,6 +226,25 @@ public class PartialSurrenderCorrectionService {
     recalculateOutputsAfter(licenceCorrection, licencePosition.getId(), changeId);
   }
 
+  /**
+   * Drops a surrender change staged by this correction, whether it was added, corrected or removed.
+   *
+   * <p>Only the command journeys owned exclusively by this correction are deleted: any journey the live surrender
+   * also holds is retained. A staged removal never created any journeys of its own, so nothing is deleted for it.</p>
+   */
+  @Transactional
+  public void undoPartialSurrenderChange(LicenceCorrection licenceCorrection, String changeId) {
+    var positionCorrection = licencePositionCorrectionService
+        .getPositionCorrectionContainingChange(licenceCorrection, changeId);
+    var changeToUndo = licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId);
+
+    var surrender = getPartialSurrenderForChangeOrThrow(changeToUndo);
+
+    correctionOwnedCommandJourneyIds(changeToUndo, surrender).forEach(commandJourneyService::deleteCommandJourney);
+
+    licencePositionCorrectionService.dropStagedChange(positionCorrection, changeId);
+  }
+
   public List<PartialSurrenderChangeView.BlockRow> getBlockRows(PartialSurrenderOperation surrender) {
     var blockNamesById = featureService.getFeaturesByIds(surrender.surrenderedFeatureIds())
         .stream()
@@ -231,6 +255,14 @@ public class PartialSurrenderCorrectionService {
             blockNamesById.getOrDefault(featureId, NOT_AVAILABLE),
             surrender.surrenderTypeDisplayName(featureId)))
         .toList();
+  }
+
+  public PartialSurrenderOperation getStagedPartialSurrenderOrThrow(
+      LicencePositionCorrection positionCorrection,
+      String changeId
+  ) {
+    return getPartialSurrenderForChangeOrThrow(
+        licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId));
   }
 
   public boolean hasStagedPartialSurrender(LicencePositionCorrection licencePositionCorrection) {
@@ -447,6 +479,14 @@ public class PartialSurrenderCorrectionService {
         .withSurrenderedFeatureIds(operation.surrenderedFeatureIds())
         .withSurrenderDetails(featureIdToSurrenderDetails)
         .build();
+  }
+
+  private PartialSurrenderOperation getPartialSurrenderForChangeOrThrow(LicencePositionChangeType change) {
+    return licencePositionCorrectionService.resolveStagedChangeOperations(change).stream()
+        .filter(PartialSurrenderOperation.class::isInstance)
+        .map(PartialSurrenderOperation.class::cast)
+        .findFirst()
+        .orElseThrow(() -> new IllegalStateException(NOT_A_PARTIAL_SURRENDER.formatted(change.changeId())));
   }
 
   private void removeStagedPartialSurrender(LicencePositionCorrection licencePositionCorrection) {
@@ -673,5 +713,27 @@ public class PartialSurrenderCorrectionService {
     featureIdToSurrenderDetails.entrySet().stream()
         .filter(entry -> !retainFeatureId.test(entry.getKey()))
         .forEach(entry -> commandJourneyService.deleteCommandJourney(entry.getValue().commandJourneyId()));
+  }
+
+  private Set<UUID> correctionOwnedCommandJourneyIds(
+      LicencePositionChangeType changeToUndo,
+      PartialSurrenderOperation stagedSurrender
+  ) {
+    return switch (changeToUndo) {
+      case AddChange ignored -> commandJourneyIdsOf(stagedSurrender);
+      case UpdateChangeOperations correctedChange -> {
+        var ownedCommandJourneyIds = new LinkedHashSet<>(commandJourneyIdsOf(stagedSurrender));
+        ownedCommandJourneyIds.removeAll(commandJourneyIdsOf(getLiveSurrenderOrThrow(correctedChange.changeId())));
+        yield ownedCommandJourneyIds;
+      }
+      case RemoveChange ignored -> Set.of();
+      case UpdateChangeOrder ignored -> Set.of();
+    };
+  }
+
+  private static Set<UUID> commandJourneyIdsOf(PartialSurrenderOperation surrender) {
+    return surrender.featureIdToSurrenderDetails().values().stream()
+        .map(SurrenderDetails::commandJourneyId)
+        .collect(Collectors.toCollection(LinkedHashSet::new));
   }
 }

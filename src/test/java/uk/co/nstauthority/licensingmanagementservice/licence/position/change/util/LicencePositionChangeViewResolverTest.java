@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.RemovePartialSurrenderChangeController;
@@ -932,7 +934,7 @@ class LicencePositionChangeViewResolverTest {
   }
 
   @Test
-  void getChangeViews_whenPartialSurrenderIsAnUntouchedLiveChange_populatesRemoveUrl() {
+  void getChangeViews_whenPartialSurrenderIsAnUntouchedLiveChange_populatesRemoveNotUndo() {
     var correctionId = UUID.randomUUID();
     var positionId = UUID.randomUUID();
     var changeId = UUID.randomUUID().toString();
@@ -942,18 +944,76 @@ class LicencePositionChangeViewResolverTest {
         PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, null)
     );
 
-    assertThat(result.urls().remove()).isEqualTo(
+    assertThat(result.urls()).isEqualTo(new ChangeViewUrls(
+        ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+            .renderForCorrectingChange(correctionId, positionId, changeId, null, null)),
         ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderRemoveExecutedPartialSurrender(correctionId, positionId, changeId, null)));
+            .renderRemoveExecutedPartialSurrender(correctionId, positionId, changeId, null)),
+        null,
+        null));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      LicencePositionChangeType.ADD_CHANGE + ", true",
+      LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS + ", true",
+      LicencePositionChangeType.REMOVE_CHANGE + ", false"
+  })
+  void getChangeViews_whenPartialSurrenderIsStagedInThisCorrection_populatesUndoNotRemove(
+      String changeType,
+      boolean correctable
+  ) {
+    var correctionId = UUID.randomUUID();
+    var positionId = UUID.randomUUID();
+    var changeId = UUID.randomUUID().toString();
+    var positionCorrectionId = UUID.randomUUID();
+
+    var result = partialSurrenderChangeView(
+        positionId, changeId, changeType,
+        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, positionCorrectionId)
+    );
+
+    var correctUrl = correctable
+        ? ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+            .renderTaskList(correctionId, positionCorrectionId, null, null))
+        : null;
+
+    assertThat(result.urls()).isEqualTo(new ChangeViewUrls(
+        correctUrl,
+        null,
+        ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+            .renderUndoPartialSurrender(correctionId, changeId, null)),
+        null));
   }
 
   @Test
-  void getChangeViews_whenNoUrlContext_partialSurrenderHasNoRemoveUrl() {
+  void getChangeViews_whenPartialSurrenderIsOnAnAddedPosition_populatesUndoNotRemove() {
+    var correctionId = UUID.randomUUID();
+    var positionId = UUID.randomUUID();
+    var changeId = UUID.randomUUID().toString();
+    var positionCorrectionId = UUID.randomUUID();
+
+    var result = partialSurrenderChangeView(
+        positionId, changeId, LicencePositionChangeType.ADD_CHANGE,
+        PositionChangeUrlContext.forAddedPosition(correctionId, positionCorrectionId)
+    );
+
+    assertThat(result.urls()).isEqualTo(new ChangeViewUrls(
+        ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+            .renderTaskList(correctionId, positionCorrectionId, null, null)),
+        null,
+        ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+            .renderUndoPartialSurrender(correctionId, changeId, null)),
+        null));
+  }
+
+  @Test
+  void getChangeViews_whenNoUrlContext_partialSurrenderHasNoRemoveOrUndoUrl() {
     var positionId = UUID.randomUUID();
 
     var result = partialSurrenderChangeView(positionId, UUID.randomUUID().toString(), null, null);
 
-    assertThat(result.urls().remove()).isNull();
+    assertThat(result.urls()).isEqualTo(ChangeViewUrls.none());
   }
 
   private static PartialSurrenderChangeView partialSurrenderChangeView(

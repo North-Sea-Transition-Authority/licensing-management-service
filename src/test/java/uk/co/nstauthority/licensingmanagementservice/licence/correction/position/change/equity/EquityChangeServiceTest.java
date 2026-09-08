@@ -8,14 +8,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.Month;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -31,10 +27,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.TransferEquityCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
@@ -73,9 +69,6 @@ class EquityChangeServiceTest {
   @InjectMocks
   private EquityChangeService equityChangeService;
 
-  @Captor
-  private ArgumentCaptor<LicencePositionCorrection> licencePositionCorrectionCaptor;
-
   @Test
   void removeExistingEquityChange() {
     var changeId = UUID.randomUUID().toString();
@@ -87,249 +80,66 @@ class EquityChangeServiceTest {
   }
 
   @Test
-  void undoEquityChange_whenUpdatePositionEmptyAndDateOrderUnchanged_deletesCorrection() {
+  void undoEquityChange_whenTheChangeStagesASetEquityOperation_thenDropsIt() {
     var changeId = UUID.randomUUID().toString();
-    var payload = new UpdateLicencePositionPayload(null, null, CORRECTION_REFERENCE,
-        List.of(setEquityAddChange(changeId)));
-    var correction = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
-        .withTargetLicencePosition(LICENCE_POSITION)
-        .withPayload(payload)
-        .build();
-
-    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(LICENCE_CORRECTION, changeId))
-        .thenReturn(correction);
+    var correction = givenStagedChange(setEquityAddChange(changeId), setEquityOperation());
 
     equityChangeService.undoEquityChange(LICENCE_CORRECTION, changeId);
 
-    verify(licencePositionCorrectionService).delete(correction);
-    verify(licencePositionCorrectionService, never()).save(any());
+    verify(licencePositionCorrectionService).dropStagedChange(correction, changeId);
   }
 
   @Test
-  void undoEquityChange_whenTransferEquityChange_undoesChange() {
+  void undoEquityChange_whenTheChangeStagesATransferEquityOperation_thenDropsIt() {
     var changeId = UUID.randomUUID().toString();
-    var payload = new UpdateLicencePositionPayload(null, null, CORRECTION_REFERENCE,
-        List.of(transferEquityAddChange(changeId)));
-    var correction = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
-        .withTargetLicencePosition(LICENCE_POSITION)
-        .withPayload(payload)
-        .build();
-
-    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(LICENCE_CORRECTION, changeId))
-        .thenReturn(correction);
+    var correction = givenStagedChange(transferEquityAddChange(changeId), transferEquityOperation());
 
     equityChangeService.undoEquityChange(LICENCE_CORRECTION, changeId);
 
-    verify(licencePositionCorrectionService).delete(correction);
+    verify(licencePositionCorrectionService).dropStagedChange(correction, changeId);
   }
 
   @Test
-  void undoEquityChange_whenOtherChangesRemain_savesWithoutDelete() {
+  void undoEquityChange_whenTheChangeIsNotAnEquityChange_thenThrowsAndDropsNothing() {
     var changeId = UUID.randomUUID().toString();
-    var remaining = setEquityAddChange(UUID.randomUUID().toString());
-    var payload = new UpdateLicencePositionPayload(null, null, CORRECTION_REFERENCE,
-        List.of(setEquityAddChange(changeId), remaining));
-    var correction = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
-        .withTargetLicencePosition(LICENCE_POSITION)
-        .withPayload(payload)
-        .build();
+    givenStagedChange(administratorAddChange(changeId),
+        LicenceOperation.newAdministratorChange().withOperator(1).build());
 
-    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(LICENCE_CORRECTION, changeId))
-        .thenReturn(correction);
-
-    equityChangeService.undoEquityChange(LICENCE_CORRECTION, changeId);
-
-    verify(licencePositionCorrectionService, never()).delete(correction);
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    assertThat(licencePositionCorrectionCaptor.getValue().getPayload().changes()).containsExactly(remaining);
-  }
-
-  @Test
-  void undoEquityChange_whenUpdatePositionEmptyButDateChanged_savesWithoutDelete() {
-    var changeId = UUID.randomUUID().toString();
-    var position = LicencePositionTestUtil.newBuilder()
-        .withLicence(LICENCE)
-        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1))
-        .build();
-    var payload = new UpdateLicencePositionPayload(
-        LocalDate.of(2026, Month.MARCH, 1), null, CORRECTION_REFERENCE, List.of(setEquityAddChange(changeId)));
-    var correction = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
-        .withTargetLicencePosition(position)
-        .withPayload(payload)
-        .build();
-
-    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(LICENCE_CORRECTION, changeId))
-        .thenReturn(correction);
-
-    equityChangeService.undoEquityChange(LICENCE_CORRECTION, changeId);
-
-    verify(licencePositionCorrectionService, never()).delete(correction);
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    assertThat(licencePositionCorrectionCaptor.getValue().getPayload().changes()).isEmpty();
-  }
-
-  @Test
-  void undoEquityChange_whenAddPositionEmpty_savesWithoutDelete() {
-    var changeId = UUID.randomUUID().toString();
-    var payload = LicencePositionPayload.newCreateLicencePositionPayload()
-        .withLicencePositionId(UUID.randomUUID().toString())
-        .withCorrectionReference(CORRECTION_REFERENCE)
-        .withChanges(List.of(setEquityAddChange(changeId)))
-        .build();
-    var correction = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
-        .withPayload(payload)
-        .build();
-
-    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(LICENCE_CORRECTION, changeId))
-        .thenReturn(correction);
-
-    equityChangeService.undoEquityChange(LICENCE_CORRECTION, changeId);
-
-    verify(licencePositionCorrectionService, never()).delete(correction);
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    assertThat(licencePositionCorrectionCaptor.getValue().getPayload()).isInstanceOf(CreateLicencePositionPayload.class);
-    assertThat(licencePositionCorrectionCaptor.getValue().getPayload().changes()).isEmpty();
-  }
-
-  @Test
-  void undoEquityChange_whenChangeIsRemoveChange_resolvesLiveChangeAndUndoes() {
-    var changeId = UUID.randomUUID();
-    var removeChange = LicencePositionChangeType.removeChange().withChangeId(changeId.toString()).build();
-    var payload = new UpdateLicencePositionPayload(null, null, CORRECTION_REFERENCE, List.of(removeChange));
-    var correction = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
-        .withTargetLicencePosition(LICENCE_POSITION)
-        .withPayload(payload)
-        .build();
-    var liveChange = LicencePositionChangeTestUtil.newBuilder()
-        .withId(changeId)
-        .withOperations(List.of(
-            LicenceOperation.newSetEquityOperation()
-                .withTransferTo(TRANSFER_TO_ID)
-                .withEquity(BigDecimal.TEN)
-                .build()
-        ))
-        .build();
-
-    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(LICENCE_CORRECTION, changeId.toString()))
-        .thenReturn(correction);
-    when(licencePositionChangeService.getByIdOrThrow(changeId)).thenReturn(liveChange);
-
-    equityChangeService.undoEquityChange(LICENCE_CORRECTION, changeId.toString());
-
-    verify(licencePositionCorrectionService).delete(correction);
-  }
-
-  @Test
-  void undoEquityChange_whenRemoveChangeTargetsNonEquityChange_throwsAndDoesNotModify() {
-    var changeId = UUID.randomUUID();
-    var changeIdValue = changeId.toString();
-    var removeChange = LicencePositionChangeType.removeChange().withChangeId(changeIdValue).build();
-    var payload = new UpdateLicencePositionPayload(null, null, CORRECTION_REFERENCE, List.of(removeChange));
-    var correction = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
-        .withTargetLicencePosition(LICENCE_POSITION)
-        .withPayload(payload)
-        .build();
-
-    var nonEquityLiveChange = LicencePositionChangeTestUtil.newBuilder()
-        .withId(changeId)
-        .withOperations(List.of(
-            LicenceOperation.newAdministratorChange().withOperator(1).build()
-        ))
-        .build();
-
-    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(LICENCE_CORRECTION, changeIdValue))
-        .thenReturn(correction);
-
-    when(licencePositionChangeService.getByIdOrThrow(changeId)).thenReturn(nonEquityLiveChange);
-
-    assertThatThrownBy(() -> equityChangeService.undoEquityChange(LICENCE_CORRECTION, changeIdValue))
+    assertThatThrownBy(() -> equityChangeService.undoEquityChange(LICENCE_CORRECTION, changeId))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining(changeIdValue);
+        .hasMessageContaining(changeId);
 
-    verify(licencePositionCorrectionService, never()).delete(correction);
-    verify(licencePositionCorrectionService, never()).save(any());
+    verify(licencePositionCorrectionService, never()).dropStagedChange(any(), any());
   }
 
   @Test
-  void getEquityChangeContext_whenRemoveChange_resolvesLiveOperations() {
-    var changeId = UUID.randomUUID();
-    var removeChange = LicencePositionChangeType.removeChange().withChangeId(changeId.toString()).build();
-    var payload = new UpdateLicencePositionPayload(null, null, CORRECTION_REFERENCE, List.of(removeChange));
-    var correction = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
-        .withTargetLicencePosition(LICENCE_POSITION)
-        .withPayload(payload)
-        .build();
-    var setEquityOperation = LicenceOperation.newSetEquityOperation()
-        .withTransferTo(TRANSFER_TO_ID).withEquity(BigDecimal.TEN).build();
-    var liveChange = LicencePositionChangeTestUtil.newBuilder()
-        .withId(changeId)
-        .withOperations(List.of(setEquityOperation))
-        .build();
+  void getEquityChangeContext_whenSetEquityChange_returnsSetEquityRows() {
+    var changeId = UUID.randomUUID().toString();
     var setEquityRow = new SetEquityRow(TRANSFER_TO_NAME, BigDecimal.TEN);
+    givenStagedChange(setEquityAddChange(changeId), setEquityOperation());
 
-    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(LICENCE_CORRECTION, changeId.toString()))
-        .thenReturn(correction);
-    when(licencePositionChangeService.getByIdOrThrow(changeId)).thenReturn(liveChange);
-    when(setEquityCorrectionService.getSetEquityViews(List.of(setEquityOperation)))
+    when(setEquityCorrectionService.getSetEquityViews(List.of(setEquityOperation())))
         .thenReturn(List.of(setEquityRow));
     when(transferEquityCorrectionService.getTransferEquityViews(List.of())).thenReturn(List.of());
 
-    var context = equityChangeService.getEquityChangeContext(LICENCE_CORRECTION, changeId.toString());
+    var context = equityChangeService.getEquityChangeContext(LICENCE_CORRECTION, changeId);
 
-    assertThat(context.setEquityRows()).containsExactly(setEquityRow);
-    assertThat(context.transferEquityRows()).isEmpty();
+    assertThat(context).isEqualTo(new EquityChangeContext(List.of(setEquityRow), List.of()));
   }
 
   @Test
-  void undoEquityChange_whenChangeNotFound_throwsAndDoesNotModify() {
+  void getEquityChangeContext_whenTransferEquityChange_returnsTransferRows() {
     var changeId = UUID.randomUUID().toString();
-    var payload = new UpdateLicencePositionPayload(null, null, CORRECTION_REFERENCE,
-        List.of(setEquityAddChange(UUID.randomUUID().toString())));
-    var correction = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
-        .withTargetLicencePosition(LICENCE_POSITION)
-        .withPayload(payload)
-        .build();
+    var transferEquityRow = new TransferEquityHoldingView(TRANSFER_FROM_NAME, TRANSFER_TO_NAME, BigDecimal.TEN, null);
+    givenStagedChange(transferEquityAddChange(changeId), transferEquityOperation());
 
-    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(LICENCE_CORRECTION, changeId))
-        .thenReturn(correction);
+    when(setEquityCorrectionService.getSetEquityViews(List.of())).thenReturn(List.of());
+    when(transferEquityCorrectionService.getTransferEquityViews(List.of(transferEquityOperation())))
+        .thenReturn(List.of(transferEquityRow));
 
-    assertThatThrownBy(() -> equityChangeService.undoEquityChange(LICENCE_CORRECTION, changeId))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining(changeId);
+    var context = equityChangeService.getEquityChangeContext(LICENCE_CORRECTION, changeId);
 
-    verify(licencePositionCorrectionService, never()).delete(correction);
-    verify(licencePositionCorrectionService, never()).save(any());
-  }
-
-  @Test
-  void undoEquityChange_whenTargetChangeIsNonEquityChange_throwsAndDoesNotModify() {
-    var changeId = UUID.randomUUID().toString();
-    var payload = new UpdateLicencePositionPayload(null, null, CORRECTION_REFERENCE,
-        List.of(administratorAddChange(changeId)));
-    var correction = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
-        .withTargetLicencePosition(LICENCE_POSITION)
-        .withPayload(payload)
-        .build();
-
-    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(LICENCE_CORRECTION, changeId))
-        .thenReturn(correction);
-
-    assertThatThrownBy(() -> equityChangeService.undoEquityChange(LICENCE_CORRECTION, changeId))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining(changeId);
-
-    verify(licencePositionCorrectionService, never()).delete(correction);
-    verify(licencePositionCorrectionService, never()).save(any());
+    assertThat(context).isEqualTo(new EquityChangeContext(List.of(), List.of(transferEquityRow)));
   }
 
   @Test
@@ -382,62 +192,36 @@ class EquityChangeServiceTest {
     assertThat(context.transferEquityRows()).containsExactly(transferEquityRow);
   }
 
-  @Test
-  void getEquityChangeContext_whenSetEquityChange_returnsSetEquityRows() {
-    var changeId = UUID.randomUUID().toString();
-    var payload = new UpdateLicencePositionPayload(null, null, CORRECTION_REFERENCE,
-        List.of(setEquityAddChange(changeId)));
+  private LicencePositionCorrection givenStagedChange(
+      LicencePositionChangeType change,
+      LicenceOperation... resolvedOperations
+  ) {
     var correction = LicencePositionCorrectionTestUtil.newBuilder()
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(LICENCE_POSITION)
-        .withPayload(payload)
+        .withPayload(new UpdateLicencePositionPayload(null, null, CORRECTION_REFERENCE, List.of(change)))
         .build();
 
-    var setEquityRow = new SetEquityRow(TRANSFER_TO_NAME, BigDecimal.TEN);
-
-    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(LICENCE_CORRECTION, changeId))
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(LICENCE_CORRECTION, change.changeId()))
         .thenReturn(correction);
-    when(setEquityCorrectionService.getSetEquityViews(
-        List.of(LicenceOperation.newSetEquityOperation().withTransferTo(TRANSFER_TO_ID).withEquity(BigDecimal.TEN).build())))
-        .thenReturn(List.of(setEquityRow));
-    when(transferEquityCorrectionService.getTransferEquityViews(List.of()))
-        .thenReturn(List.of());
+    when(licencePositionCorrectionService.getStagedChangeOrThrow(correction, change.changeId()))
+        .thenReturn(change);
+    when(licencePositionCorrectionService.resolveStagedChangeOperations(change))
+        .thenReturn(List.of(resolvedOperations));
 
-    var context = equityChangeService.getEquityChangeContext(LICENCE_CORRECTION, changeId);
-
-    assertThat(context.setEquityRows()).containsExactly(setEquityRow);
-    assertThat(context.transferEquityRows()).isEmpty();
+    return correction;
   }
 
-  @Test
-  void getEquityChangeContext_whenTransferEquityChange_returnsTransferRows() {
-    var changeId = UUID.randomUUID().toString();
-    var payload = new UpdateLicencePositionPayload(null, null, CORRECTION_REFERENCE,
-        List.of(transferEquityAddChange(changeId)));
-    var correction = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
-        .withTargetLicencePosition(LICENCE_POSITION)
-        .withPayload(payload)
-        .build();
+  private static SetEquityOperation setEquityOperation() {
+    return LicenceOperation.newSetEquityOperation().withTransferTo(TRANSFER_TO_ID).withEquity(BigDecimal.TEN).build();
+  }
 
-    var transferEquityOperation = LicenceOperation.newTransferEquityOperation()
+  private static TransferEquityOperation transferEquityOperation() {
+    return LicenceOperation.newTransferEquityOperation()
         .withTransferFrom(TRANSFER_FROM_ID)
         .withTransferTo(TRANSFER_TO_ID)
         .withEquity(BigDecimal.TEN)
         .build();
-    var transferEquityRow = new TransferEquityHoldingView(TRANSFER_FROM_NAME, TRANSFER_TO_NAME, BigDecimal.TEN, null);
-
-    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(LICENCE_CORRECTION, changeId))
-        .thenReturn(correction);
-    when(setEquityCorrectionService.getSetEquityViews(List.of()))
-        .thenReturn(List.of());
-    when(transferEquityCorrectionService.getTransferEquityViews(List.of(transferEquityOperation)))
-        .thenReturn(List.of(transferEquityRow));
-
-    var context = equityChangeService.getEquityChangeContext(LICENCE_CORRECTION, changeId);
-
-    assertThat(context.setEquityRows()).isEmpty();
-    assertThat(context.transferEquityRows()).containsExactly(transferEquityRow);
   }
 
   private LicencePositionChangeType setEquityAddChange(String changeId) {

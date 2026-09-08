@@ -46,7 +46,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOp
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
@@ -1478,5 +1477,144 @@ class LicencePositionCorrectionServiceTest {
         addedCorrection, excludedChange.changeId());
 
     assertThat(result).containsExactly(retainedFeatureId);
+  }
+
+  @Test
+  void getStagedChangeOrThrow_whenTheChangeIsStaged_thenReturnsIt() {
+    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID())), 1);
+    var positionCorrection = updatePositionCorrectionWith(List.of(change));
+
+    var result = licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, change.changeId());
+
+    assertThat(result).isEqualTo(change);
+  }
+
+  @Test
+  void getStagedChangeOrThrow_whenOnlyAChangeOrderIsStagedForThatId_thenThrows() {
+    var changeId = UUID.randomUUID().toString();
+    var positionCorrection = updatePositionCorrectionWith(List.of(
+        LicencePositionChangeType.updateChangeOrder().withChangeId(changeId).withChangeOrder(2).build()));
+
+    assertThatThrownBy(() -> licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining(changeId);
+  }
+
+  @Test
+  void getStagedChangeOrThrow_whenTheChangeIsNotStaged_thenThrows() {
+    var changeId = UUID.randomUUID().toString();
+    var positionCorrection = updatePositionCorrectionWith(List.of());
+
+    assertThatThrownBy(() -> licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining(changeId);
+  }
+
+  @Test
+  void resolveStagedChangeOperations_whenTheChangeStagesItsOwnOperations_thenReturnsThem() {
+    var operation = new SubareaOperation(UUID.randomUUID());
+    var change = AddChange.buildOperationsChange(List.of(operation), 1);
+
+    var result = licencePositionCorrectionService.resolveStagedChangeOperations(change);
+
+    assertThat(result).containsExactly(operation);
+  }
+
+  @Test
+  void resolveStagedChangeOperations_whenTheChangeRemovesALiveChange_thenReturnsTheLiveOperations() {
+    var liveChangeId = UUID.randomUUID();
+    var operation = new SubareaOperation(UUID.randomUUID());
+    when(licencePositionChangeService.getByIdOrThrow(liveChangeId))
+        .thenReturn(LicencePositionChangeTestUtil.newBuilder()
+            .withId(liveChangeId)
+            .withOperations(List.of(operation))
+            .build());
+
+    var result = licencePositionCorrectionService.resolveStagedChangeOperations(
+        LicencePositionChangeType.removeChange().withChangeId(liveChangeId.toString()).build());
+
+    assertThat(result).containsExactly(operation);
+  }
+
+  @Test
+  void dropStagedChange_whenTheCorrectionIsLeftEmptyAndTheDateAndOrderAreUnchanged_thenDeletesTheCorrection() {
+    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID())), 1);
+    var positionCorrection = updatePositionCorrectionWith(List.of(change));
+
+    licencePositionCorrectionService.dropStagedChange(positionCorrection, change.changeId());
+
+    verify(licencePositionCorrectionRepository).delete(positionCorrection);
+    verify(licencePositionCorrectionRepository, never()).save(any());
+  }
+
+  @Test
+  void dropStagedChange_whenOtherChangesRemain_thenSavesWithoutDeleting() {
+    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID())), 1);
+    var retainedChange = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID())), 2);
+    var positionCorrection = updatePositionCorrectionWith(List.of(change, retainedChange));
+
+    licencePositionCorrectionService.dropStagedChange(positionCorrection, change.changeId());
+
+    verify(licencePositionCorrectionRepository, never()).delete(any());
+    verify(licencePositionCorrectionRepository).save(positionCorrection);
+    assertThat(positionCorrection.getPayload().changes()).containsExactly(retainedChange);
+  }
+
+  @Test
+  void dropStagedChange_whenAChangeOrderIsStagedForTheSameChange_thenThatIsKeptAndTheCorrectionSaved() {
+    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID())), 1);
+    var changeOrder = LicencePositionChangeType.updateChangeOrder()
+        .withChangeId(change.changeId()).withChangeOrder(2).build();
+    var positionCorrection = updatePositionCorrectionWith(List.of(change, changeOrder));
+
+    licencePositionCorrectionService.dropStagedChange(positionCorrection, change.changeId());
+
+    verify(licencePositionCorrectionRepository, never()).delete(any());
+    verify(licencePositionCorrectionRepository).save(positionCorrection);
+    assertThat(positionCorrection.getPayload().changes()).containsExactly(changeOrder);
+  }
+
+  @Test
+  void dropStagedChange_whenThePositionDateWasAlsoCorrected_thenSavesWithoutDeleting() {
+    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID())), 1);
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(LICENCE_POSITION)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withEffectiveDate(LICENCE_POSITION.getPositionDate().plusMonths(1))
+            .withEffectiveDateOrder(LICENCE_POSITION.getPositionDateOrder())
+            .withChanges(List.of(change))
+            .build())
+        .build();
+
+    licencePositionCorrectionService.dropStagedChange(positionCorrection, change.changeId());
+
+    verify(licencePositionCorrectionRepository, never()).delete(any());
+    verify(licencePositionCorrectionRepository).save(positionCorrection);
+    assertThat(positionCorrection.getPayload().changes()).isEmpty();
+  }
+
+  @Test
+  void dropStagedChange_whenTheCorrectionAddsThePosition_thenSavesWithoutDeleting() {
+    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID())), 1);
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+        .withTargetLicencePosition(null)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(List.of(change)).build())
+        .build();
+
+    licencePositionCorrectionService.dropStagedChange(positionCorrection, change.changeId());
+
+    verify(licencePositionCorrectionRepository, never()).delete(any());
+    verify(licencePositionCorrectionRepository).save(positionCorrection);
+    assertThat(positionCorrection.getPayload().changes()).isEmpty();
+  }
+
+  private static LicencePositionCorrection updatePositionCorrectionWith(List<LicencePositionChangeType> changes) {
+    return LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(LICENCE_POSITION)
+        .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withChanges(changes).build())
+        .build();
   }
 }

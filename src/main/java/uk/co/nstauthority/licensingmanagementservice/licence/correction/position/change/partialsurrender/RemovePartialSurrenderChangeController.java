@@ -23,6 +23,8 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
@@ -38,6 +40,8 @@ public class RemovePartialSurrenderChangeController {
 
   private static final String REMOVE_PAGE_TITLE = "Are you sure you want to remove this partial surrender?";
   private static final String REMOVE_PRIMARY_BUTTON_TEXT = "Remove partial surrender";
+  private static final String UNDO_PAGE_TITLE = "Are you sure you want to undo this partial surrender?";
+  private static final String UNDO_PRIMARY_BUTTON_TEXT = "Undo partial surrender";
   private static final String CONFIRMATION_TEMPLATE =
       "lms/licence/correction/change/partialSurrender/removePartialSurrenderChange";
 
@@ -76,7 +80,8 @@ public class RemovePartialSurrenderChangeController {
     var cancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
         .renderLicencePosition(correction.getId(), licencePosition.getId(), null));
 
-    return confirmationModelAndView(surrenderDate, blockRows, cancelUrl);
+    return confirmationModelAndView(
+        surrenderDate, blockRows, REMOVE_PAGE_TITLE, REMOVE_PRIMARY_BUTTON_TEXT, cancelUrl);
   }
 
   @PostMapping("/position/{licencePositionId}/change/{changeId}/remove-partial-surrender")
@@ -99,16 +104,72 @@ public class RemovePartialSurrenderChangeController {
         .renderLicencePosition(correction.getId(), licencePositionId, null));
   }
 
+  @GetMapping("/change/{changeId}/undo-partial-surrender")
+  public ModelAndView renderUndoPartialSurrender(
+      @PathVariable UUID correctionId,
+      @PathVariable String changeId,
+      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+  ) {
+    var positionCorrection = licencePositionCorrectionService
+        .getPositionCorrectionContainingChange(correction, changeId);
+
+    var stagedSurrender = partialSurrenderCorrectionService
+        .getStagedPartialSurrenderOrThrow(positionCorrection, changeId);
+    var blockRows = partialSurrenderCorrectionService.getBlockRows(stagedSurrender);
+    var surrenderDate = Objects.requireNonNullElseGet(
+        stagedSurrender.surrenderDate(),
+        () -> licencePositionCorrectionService.resolveEffectiveDate(positionCorrection));
+
+    return confirmationModelAndView(
+        surrenderDate,
+        blockRows,
+        UNDO_PAGE_TITLE,
+        UNDO_PRIMARY_BUTTON_TEXT,
+        positionPageRoute(correction, positionCorrection));
+  }
+
+  @PostMapping("/change/{changeId}/undo-partial-surrender")
+  public ModelAndView undoPartialSurrender(
+      @PathVariable UUID correctionId,
+      @PathVariable String changeId,
+      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      RedirectAttributes redirectAttributes
+  ) {
+    var positionCorrection = licencePositionCorrectionService
+        .getPositionCorrectionContainingChange(correction, changeId);
+
+    partialSurrenderCorrectionService.undoPartialSurrenderChange(correction, changeId);
+
+    NotificationBanner.newSuccessBannerWithHeader("Partial surrender undone", redirectAttributes);
+
+    return ReverseRouter.redirectToUrl(positionPageRoute(correction, positionCorrection));
+  }
+
   private static ModelAndView confirmationModelAndView(
       @Nullable LocalDate surrenderDate,
       List<PartialSurrenderChangeView.BlockRow> blockRows,
+      String pageTitle,
+      String primaryButtonText,
       String cancelUrl
   ) {
     return new ModelAndView(CONFIRMATION_TEMPLATE)
-        .addObject("pageTitle", REMOVE_PAGE_TITLE)
-        .addObject("primaryButtonText", REMOVE_PRIMARY_BUTTON_TEXT)
+        .addObject("pageTitle", pageTitle)
+        .addObject("primaryButtonText", primaryButtonText)
         .addObject("surrenderDate", surrenderDate == null ? null : DateUtil.formatLongDate(surrenderDate))
         .addObject("blockRows", blockRows)
         .addObject("cancelUrl", cancelUrl);
+  }
+
+  private static String positionPageRoute(
+      LicenceCorrection correction,
+      LicencePositionCorrection positionCorrection
+  ) {
+    if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
+      return ReverseRouter.route(on(LicenceCorrectionController.class)
+          .renderAddedPosition(correction.getId(), positionCorrection.getId(), null));
+    }
+
+    return ReverseRouter.route(on(LicenceCorrectionController.class)
+        .renderLicencePosition(correction.getId(), positionCorrection.getTargetLicencePosition().getId(), null));
   }
 }

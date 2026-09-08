@@ -24,6 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.energyportalapi.generated.types.OrganisationNameHistory;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
@@ -62,6 +63,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SubareaChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.NameHistoryEntryView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationNameHistoryView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -163,6 +166,72 @@ class LicencePositionViewServiceTest {
             .renderTaskList(correctionId, updateCorrection.getId(), null, null)));
   }
 
+  @Test
+  void getPositionPageView_returnsNameHistoryForTheStateOrganisationsSplitOnThePositionDate() {
+    var position = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
+        .withPositionDate(LocalDate.of(2010, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+
+    var change = LicencePositionChangeTestUtil.newBuilder().withLicencePosition(position).build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1))).thenReturn(Map.of(1, "Admin Ltd"));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
+        .thenReturn(Map.of(1, List.of(
+            new OrganisationNameHistory("Former Admin Ltd", LocalDate.of(1990, Month.JANUARY, 1), LocalDate.of(2000, Month.MARCH, 3)),
+            new OrganisationNameHistory("Future Admin Ltd", LocalDate.of(2022, Month.JANUARY, 22), null))
+        ));
+
+    var result = licencePositionViewService.getPositionPageView(position);
+
+    assertThat(result.stateView().organisationNameHistories())
+        .isEqualTo(List.of(new OrganisationNameHistoryView(
+            "Admin Ltd",
+            List.of(new NameHistoryEntryView("Former Admin Ltd", "to 3 March 2000")),
+            List.of(new NameHistoryEntryView("Future Admin Ltd", "from 22 January 2022"))
+        )));
+  }
+
+  @Test
+  void getCorrectionPositionPageView_whenPositionDateIsCorrected_splitsNameHistoryOnTheCorrectedDate() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+
+    var executed = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
+
+    var dateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(executed)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withEffectiveDate(LocalDate.of(1990, Month.JANUARY, 1))
+            .build())
+        .build();
+
+    var change = LicencePositionChangeTestUtil.newBuilder().withLicencePosition(executed).build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of(change));
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(dateCorrection));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1))).thenReturn(Map.of(1, "Admin Ltd"));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
+        .thenReturn(Map.of(1, List.of(
+            new OrganisationNameHistory("Admin Ltd", LocalDate.of(2000, Month.JANUARY, 1), null))));
+
+    var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
+
+    assertThat(result.stateView().organisationNameHistories())
+        .isEqualTo(List.of(new OrganisationNameHistoryView(
+            "Admin Ltd",
+            List.of(),
+            List.of(new NameHistoryEntryView("Admin Ltd", "from 1 January 2000"))
+        )));
+  }
+
   private static LicencePosition executedPosition() {
     return LicencePositionTestUtil.newBuilder()
         .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
@@ -261,7 +330,7 @@ class LicencePositionViewServiceTest {
         .containsExactly("REF-1");
     // the queried position has no change of its own, so its resolved change/state are empty
     assertThat(result.orderedChangeViews()).isEmpty();
-    assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of()));
+    assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of(), List.of()));
     assertThat(result.licenceType()).isEqualTo(LICENCE.getType());
   }
 
@@ -331,7 +400,7 @@ class LicencePositionViewServiceTest {
         .isEqualTo(ReverseRouter.route(on(LicencePositionAddChangeController.class)
             .renderForAddedPosition(correction.getId(), positionCorrection.getId(), null)));
     assertThat(result.orderedChangeViews()).isEmpty();
-    assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of()));
+    assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of(), List.of()));
     assertThat(result.canEdit()).isTrue();
     assertThat(result.selectedPositionId()).isEqualTo(addedPositionId);
     assertThat(result.timelineViews())
@@ -437,7 +506,7 @@ class LicencePositionViewServiceTest {
     assertThat(adminChange.joiningOrganisationName()).isEqualTo("Executed Admin Org");
     assertThat(adminChange.changeType()).isEqualTo(LicencePositionChangeType.REMOVE_CHANGE);
     assertThat(adminChange.urls().remove()).isNull();
-    assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of()));
+    assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of(), List.of()));
   }
 
   @Test
@@ -549,7 +618,7 @@ class LicencePositionViewServiceTest {
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, current);
 
     // the removed position is excluded from recalculation, and the current position carries no administrator
-    assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of()));
+    assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of(), List.of()));
     assertThat(result.timelineViews())
         .extracting(
             LicencePositionTimelineView::regulatorReference,
@@ -790,7 +859,7 @@ class LicencePositionViewServiceTest {
             .withEffectiveDate(sameDate).withEffectiveDateOrder(1).build())
         .build();
 
-    var stateView = new LicencePositionStateView(new AdministratorStateView(""), List.of());
+    var stateView = new LicencePositionStateView(new AdministratorStateView(""), List.of(), List.of());
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
         .thenReturn(List.of(moved, other));

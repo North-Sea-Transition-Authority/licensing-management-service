@@ -259,7 +259,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
                     new PartialSurrenderChangeView.BlockRow("30/2", "Partial surrender")),
                 LicencePositionChangeType.ADD_CHANGE,
                 new ChangeViewUrls("/correct", null, null, null))),
-        new LicencePositionStateView(new AdministratorStateView("Operator Ltd"), List.of()),
+        new LicencePositionStateView(new AdministratorStateView("Operator Ltd"), List.of(), List.of()),
         position.getId(),
         LicencePositionPageView.Actions.none(),
         LICENCE_TYPE,

@@ -16,6 +16,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
+import uk.co.fivium.energyportalapi.generated.types.OrganisationNameHistory;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
@@ -44,6 +45,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.uti
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.PositionChangeUrlContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
@@ -122,11 +125,7 @@ public class LicencePositionViewService {
             featureNames,
             null
         ),
-        LicencePositionStateViewResolver.getStateView(
-            licencePosition.getId(),
-            resolvedStates,
-            organisationNames
-        ),
+        getStateView(licencePosition.getId(), liveChronologicalPositions, resolvedStates, organisationNames),
         licencePosition.getId(),
         licence.getType()
     );
@@ -212,11 +211,7 @@ public class LicencePositionViewService {
         licencePosition.getFormattedPositionDate(),
         licencePosition.getLicenceTransaction().getRegulatorReference(),
         changeViews,
-        LicencePositionStateViewResolver.getStateView(
-            licencePosition.getId(),
-            resolvedStates,
-            organisationNames
-        ),
+        getStateView(licencePosition.getId(), allChronologicalPositions, resolvedStates, organisationNames),
         licencePosition.getId(),
         actions,
         licence.getType(),
@@ -282,7 +277,7 @@ public class LicencePositionViewService {
         DateUtil.formatLongDate(payload.effectiveDate()),
         payload.correctionReference(),
         changeViews,
-        LicencePositionStateViewResolver.getStateView(addedPositionId, resolvedStates, organisationNames),
+        getStateView(addedPositionId, allChronologicalPositions, resolvedStates, organisationNames),
         addedPositionId,
         actions,
         licenceCorrection.getLicence().getType(),
@@ -376,6 +371,40 @@ public class LicencePositionViewService {
     return validationErrors.stream()
         .map(PositionValidationError::positionId)
         .collect(Collectors.toSet());
+  }
+
+  /**
+   * Builds the state view for the selected position, resolving organisation name history against the date that
+   * position actually sits at. That is the corrected date where a correction has moved the position, and the payload
+   * date for a position added in a correction, so the split between previous and later names follows what the user
+   * is looking at rather than the stored date.
+   */
+  private LicencePositionStateView getStateView(
+      UUID selectedPositionId,
+      List<ChronologicalPosition> chronologicalPositions,
+      ResolvedStates resolvedStates,
+      Map<Integer, String> organisationNames
+  ) {
+    var effectivePositionDate = chronologicalPositions.stream()
+        .filter(chronologicalPosition -> chronologicalPosition.id().equals(selectedPositionId))
+        .map(ChronologicalPosition::date)
+        .findFirst()
+        .orElse(null);
+
+    Map<Integer, List<OrganisationNameHistory>> organisationNameHistories = Map.of();
+    if (effectivePositionDate != null) {
+      var currentState = resolvedStates.currentState(selectedPositionId);
+      var organisationIds = LicencePositionStateViewResolver.stateOrganisationIds(currentState).toList();
+      organisationNameHistories = organisationUnitQueryService.getOrganisationNameHistoriesByIds(organisationIds);
+    }
+
+    return LicencePositionStateViewResolver.getStateView(
+        selectedPositionId,
+        resolvedStates,
+        organisationNames,
+        organisationNameHistories,
+        effectivePositionDate
+    );
   }
 
   private Map<Integer, String> resolveOrganisationNames(List<ChronologicalPosition> chronologicalPositions) {

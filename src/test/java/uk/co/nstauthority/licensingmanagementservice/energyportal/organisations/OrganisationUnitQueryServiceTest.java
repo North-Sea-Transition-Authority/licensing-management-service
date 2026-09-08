@@ -3,9 +3,12 @@ package uk.co.nstauthority.licensingmanagementservice.energyportal.organisations
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService.ORGANISATION_UNITS_PROJECTION_ROOT;
 
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -16,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.energyportalapi.client.organisation.OrganisationApi;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationGroup;
+import uk.co.fivium.energyportalapi.generated.types.OrganisationNameHistory;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
 
 @ExtendWith(MockitoExtension.class)
@@ -178,5 +182,47 @@ class OrganisationUnitQueryServiceTest {
         .thenReturn(List.of(unitNoGroup));
 
     assertThat(organisationUnitQueryService.findOrganisationGroupIdsByUnitIds(List.of(1))).isEmpty();
+  }
+
+  @Test
+  void getOrganisationNameHistoriesByIds_omitsUnitsWithoutNameHistory() {
+    var renamedUnit = new OrganisationUnit();
+    renamedUnit.setOrganisationUnitId(1);
+    renamedUnit.setOrganisationNameHistory(List.of(
+        organisationNameHistory("Old Name Ltd", LocalDate.of(1990, Month.JANUARY, 1), LocalDate.of(2000, Month.MARCH, 3))
+    ));
+
+    var neverRenamedUnit = new OrganisationUnit();
+    neverRenamedUnit.setOrganisationUnitId(2);
+    neverRenamedUnit.setOrganisationNameHistory(List.of());
+
+    when(organisationApi.getOrganisationUnitsByIds(
+        eq(List.of(1, 2)),
+        eq(OrganisationUnitQueryService.ORGANISATION_UNITS_NAME_HISTORY_PROJECTION_ROOT),
+        any()
+    )).thenReturn(List.of(renamedUnit, neverRenamedUnit));
+
+    assertThat(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1, 2)))
+        .isEqualTo(Map.of(1, List.of(OrganisationNameHistory.newBuilder()
+            .name("Old Name Ltd")
+            .startDate(LocalDate.of(1990, Month.JANUARY, 1))
+            .endDate(LocalDate.of(2000, Month.MARCH, 3))
+            .build()
+        )));
+  }
+
+  @Test
+  void getOrganisationNameHistoriesByIds_whenNoOrganisationUnitIds_doesNotCallTheEnergyPortal() {
+    assertThat(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of())).isEmpty();
+
+    verifyNoInteractions(organisationApi);
+  }
+
+  private static OrganisationNameHistory organisationNameHistory(String name, LocalDate startDate, LocalDate endDate) {
+    var organisationNameHistory = new OrganisationNameHistory();
+    organisationNameHistory.setName(name);
+    organisationNameHistory.setStartDate(startDate);
+    organisationNameHistory.setEndDate(endDate);
+    return organisationNameHistory;
   }
 }

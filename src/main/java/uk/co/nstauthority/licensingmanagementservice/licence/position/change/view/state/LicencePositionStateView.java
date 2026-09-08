@@ -4,6 +4,7 @@ import java.util.List;
 
 public record LicencePositionStateView(
     AdministratorStateView administratorStateView,
-    List<BeneficialInterestView> beneficialInterests
+    List<BeneficialInterestView> beneficialInterests,
+    List<OrganisationNameHistoryView> organisationNameHistories
 ) {
 }

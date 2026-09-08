@@ -111,6 +111,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
         List.of(),
         new LicencePositionStateView(
             new AdministratorStateView("admin organisation"),
+            List.of(),
             List.of()
         ),
         false,

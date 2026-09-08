@@ -30,6 +30,29 @@
       </#list>
     </@fdsSummaryList.summaryListCard>
   </#if>
+  <#if licencePositionState.organisationNameHistories()?has_content>
+    <@fdsDetails.summaryDetails summaryTitle="Organisation name history">
+      <#list licencePositionState.organisationNameHistories() as organisationNameHistory>
+        <h3 class="govuk-heading-s">${organisationNameHistory.organisationName()}</h3>
+        <#if organisationNameHistory.previousNames()?has_content>
+          <p class="govuk-body govuk-!-margin-bottom-1">Previously known as</p>
+          <ul class="govuk-list govuk-list--bullet">
+            <#list organisationNameHistory.previousNames() as previousName>
+              <li>${previousName.name()} <span class="govuk-hint govuk-!-display-inline">${previousName.dateText()}</span></li>
+            </#list>
+          </ul>
+        </#if>
+        <#if organisationNameHistory.laterNames()?has_content>
+          <p class="govuk-body govuk-!-margin-bottom-1">Later known as</p>
+          <ul class="govuk-list govuk-list--bullet">
+            <#list organisationNameHistory.laterNames() as laterName>
+              <li>${laterName.name()} <span class="govuk-hint govuk-!-display-inline">${laterName.dateText()}</span></li>
+            </#list>
+          </ul>
+        </#if>
+      </#list>
+    </@fdsDetails.summaryDetails>
+  </#if>
   <#list licencePositionChanges?reverse as change>
     <#if change.type() == "licence-administrator" && !isCarbonStorage>
       <@positionChanges.administratorChange change=change/>

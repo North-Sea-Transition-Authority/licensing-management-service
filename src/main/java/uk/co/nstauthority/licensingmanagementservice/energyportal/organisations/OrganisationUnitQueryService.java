@@ -1,11 +1,13 @@
 package uk.co.nstauthority.licensingmanagementservice.energyportal.organisations;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,7 @@ import uk.co.fivium.energyportalapi.generated.client.OrganisationUnitProjectionR
 import uk.co.fivium.energyportalapi.generated.client.OrganisationUnitsProjectionRoot;
 import uk.co.fivium.energyportalapi.generated.types.Address;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationGroup;
+import uk.co.fivium.energyportalapi.generated.types.OrganisationNameHistory;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.correlationid.CorrelationIdUtil;
 
@@ -29,6 +32,10 @@ public class OrganisationUnitQueryService {
 
   public static final OrganisationUnitsProjectionRoot ORGANISATION_UNITS_GROUPS_PROJECTION_ROOT
       = new OrganisationUnitsProjectionRoot().organisationUnitId().name().organisationGroups().organisationGroupId().root();
+
+  public static final OrganisationUnitsProjectionRoot ORGANISATION_UNITS_NAME_HISTORY_PROJECTION_ROOT
+      = new OrganisationUnitsProjectionRoot().organisationUnitId()
+          .organisationNameHistory().name().startDate().endDate().root();
 
   private final OrganisationApi organisationApi;
 
@@ -46,6 +53,25 @@ public class OrganisationUnitQueryService {
   public Map<Integer, String> getOrganisationUnitNamesByIds(List<Integer> responsibleOrganisationIds) {
     return getOrganisationUnitsByIdsFromEpa(responsibleOrganisationIds).stream()
         .collect(Collectors.toMap(OrganisationUnit::getOrganisationUnitId, OrganisationUnit::getName));
+  }
+
+  /**
+   * Returns every name each of the given organisation units has been known by, keyed by organisation unit id.
+   * Organisation units with no name history are omitted from the map.
+   */
+  public Map<Integer, List<OrganisationNameHistory>> getOrganisationNameHistoriesByIds(Collection<Integer> organisationUnitIds) {
+    if (organisationUnitIds.isEmpty()) {
+      return Map.of();
+    }
+
+    return organisationApi.getOrganisationUnitsByIds(
+            organisationUnitIds.stream().distinct().toList(),
+            ORGANISATION_UNITS_NAME_HISTORY_PROJECTION_ROOT,
+            new RequestPurpose("Get organisation unit name histories by ids")
+        )
+        .stream()
+        .filter(organisationUnit -> !CollectionUtils.isEmpty(organisationUnit.getOrganisationNameHistory()))
+        .collect(Collectors.toMap(OrganisationUnit::getOrganisationUnitId, OrganisationUnit::getOrganisationNameHistory));
   }
 
   public Optional<String> getOrganisationUnitNameById(Integer responsibleOrganisationUnitId) {

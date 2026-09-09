@@ -17,17 +17,17 @@ codebase. All table and column names below are the live PostgreSQL names.
 | **Schedule** | The set of commitments and dates attached to a licence — terms, phases, work programme activities, rental rates, expiry. One schedule per licence. |
 | **Schedule version** (a.k.a. *schedule detail*) | A complete point-in-time snapshot of the whole schedule. A licence's schedule accumulates one row per version. Lives in `licence_schedule_details`. |
 | **Schedule event** | Any dated item within a schedule version — a term, a phase, a work programme activity, a rate, an "other" event, or the expiry date. |
-| **Term** | A major licence period (Initial, Second, Third; for carbon storage: Appraisal, Initial, Operational, Post Closure). |
-| **Phase** | A subdivision of a term (Phase A/B/C — Initial term only). |
+| **Term** | A major licence period — production: Initial, Second, Third; carbon storage: Appraisal, Operational, Post Closure Period (§7.3). |
+| **Phase** | A subdivision of the production Initial term (Phase A/B/C). Carbon storage schedules have no phases (§7.4). |
 | **Work programme activity (WPA)** | A committed piece of work with a due date (drill a well, shoot seismic, etc.). |
 
 The single most important structural fact: **LMS never edits a live schedule in place.
-Every change produces a brand-new set of rows for the entire schedule.** Section 5 explains
-the consequences for reporting.
+Every change produces a brand-new set of rows for the entire schedule.** §5 explains how that
+works; §10 collects the practical consequences.
 
 ---
 
-## 2. The three-layer structure
+## 2. How the tables fit together
 
 ```
 licences (id INTEGER)
@@ -53,7 +53,7 @@ licence_schedule_expiry_dates
   `type`, `subtype`, `prefix`, `licence_number`, `licence_reference`, `responsible_team`,
   `end_date`.
 - `licence_schedule_details` is the version table. Its `status` column drives everything
-  (see section 4).
+  (§4).
 - Every child table carries `licence_schedule_detail_id` — i.e. child rows belong to **one
   specific version**, never to the schedule as a whole.
 
@@ -93,8 +93,12 @@ flowchart TB
     SE -- "1 : many" --> SAT
 ```
 
-The diagram deliberately omits the foreign keys *within* the content layer, which would
-obscure the top-down shape. They are:
+Two of the seven content tables hold **at most one row per version** — `licence_start_dates`
+and `licence_schedule_expiry_dates`. The other five hold many, so the single `1 : many` edge
+into the content layer is a simplification on that point.
+
+The diagram also omits the foreign keys *within* the content layer, which would obscure the
+top-down shape. They are:
 
 | From | To | Column |
 |---|---|---|
@@ -112,10 +116,11 @@ these references never cross between versions (§5.2).
 
 This is the part most likely to trip up a query written from table names alone.
 
-Five of the six schedule event types plus expiry are stored using **joined-table
-inheritance**. There is a parent table, `schedule_events`, and each event type has its own
-child table. The child table's `id` is **both its primary key and a foreign key to
-`schedule_events.id`** — the two rows share the same UUID.
+All six schedule event types — terms, phases, work programme activities, rates, other events
+and expiry — are stored using **joined-table inheritance**. There is a parent table,
+`schedule_events`, and each event type has its own child table. The child table's `id` is
+**both its primary key and a foreign key to `schedule_events.id`** — the two rows share the
+same UUID.
 
 ```
 schedule_events
@@ -125,7 +130,7 @@ schedule_events
   original_event_id   UUID NOT NULL  ← see §5.2
 ```
 
-To get a complete term you must join both tables:
+Retrieving a complete term requires joining both tables:
 
 ```sql
 SELECT se.event_type, se.original_event_id, t.*
@@ -161,21 +166,20 @@ Stored as `TEXT`. Values:
 
 **For any "what is the schedule right now" query, filter to `status = 'ACTIVE'`.**
 For "what did the schedule look like historically", `REPLACED` rows plus `created_instant`
-give you the version chain. `DRAFT` and `DELETED` must be excluded from published reporting —
+form the version chain. `DRAFT` and `DELETED` must be excluded from published reporting —
 `DRAFT` is unapproved work in progress and `DELETED` is abandoned work.
 
-### Status transitions
+### 4.1 Status transitions
 
 ```
-                       (user starts a new schedule)
-                                  │
-                                  ▼
-                               DRAFT ──── abandon ────► DELETED
-                                  │
-                              apply
-                                  │
-                                  ▼
-   previous ACTIVE ──► REPLACED  ACTIVE
+   (user creates or updates a schedule)
+                │
+                ▼
+              DRAFT ──────── abandon ────────► DELETED
+                │
+                │ apply
+                ▼
+              ACTIVE ─── a newer version is applied ───► REPLACED
 ```
 
 ---
@@ -260,7 +264,7 @@ or delete within a draft, and again immediately after a version is copied. The r
 
 | Table / column | How it is derived |
 |---|---|
-| `licence_schedule_terms.start_date` | First term starts on `licence_start_dates.start_date`. Each subsequent term (ordered by `term_type`) starts the day after the previous term's `end_date`. |
+| `licence_schedule_terms.start_date` | First term starts on `licence_start_dates.start_date`. Each subsequent term — in the term sequence for the licence type (§7.3) — starts the day after the previous term's `end_date`. |
 | `licence_schedule_terms.end_date` | `start_date` + `term_duration_years`/`_months`/`_days`. If years or months are non-zero, one day is subtracted (so a "5 year" term runs to the day before the fifth anniversary). Pure-day durations are not adjusted. |
 | `licence_schedule_phases.start_date` / `end_date` | Same arithmetic, chained within the parent term, starting at the term's `start_date`. |
 | `work_programme_activities.due_date` | **Only populated when `date_option = 'RELATIVE_DATE'`** (= anchor date + `relative_duration_*`). For `WITHIN_A_TERM` / `WITHIN_A_PHASE` the column is left null and the effective due date is the linked term's or phase's `end_date`. |
@@ -319,8 +323,8 @@ ORDER BY se.original_event_id, ec.timestamp;
 
 - Only one `PENDING` comment per `original_event_id` is possible at a time.
 - `author_wua_id` is an external Energy Portal identifier. Names are not stored in LMS — they
-  are resolved from the Energy Portal at render time. Any warehouse extract needing author
-  names must resolve `wua_id` from the Portal.
+  are resolved from the Energy Portal at render time. Author names are therefore only
+  obtainable by resolving `wua_id` against the Portal.
 
 ### 6.2 `work_programme_activity_statuses`
 
@@ -349,8 +353,10 @@ ORDER BY se.original_event_id, s.applied_datetime DESC;
   the existing ledger is simply reused).
 - `licence_transferred_to` is populated only for the `TRANSFERRED` status, naming the licence
   the commitment moved to.
-- Deleting a work programme activity from a draft removes the status ledger **only if that
-  was the last remaining row with that `original_event_id`** across all versions.
+- Deleting a work programme activity from a draft removes its status ledger **only if that
+  activity was the last remaining `work_programme_activities` row carrying that
+  `original_event_id`** across all versions. While any other version still holds the
+  activity, the ledger stays.
 
 ---
 
@@ -359,9 +365,9 @@ ORDER BY se.original_event_id, s.applied_datetime DESC;
 All enums are persisted as their **Java constant name in a `TEXT` column** — no numeric codes,
 no lookup tables, no database `CHECK` constraints or `ENUM` types. The display strings below
 are what LMS shows in its own UI; they are held in code and are **not** present in the
-database. There is nothing at the database level preventing an unexpected value, so a
-warehouse load should treat unknown values as a data-quality signal rather than assume the
-list is enforced.
+database. There is nothing at the database level preventing an unexpected value, so the lists
+below describe what the service writes rather than what the schema guarantees — a value
+outside them is a data-quality signal, not a documentation gap.
 
 ### 7.1 `licence_schedule_details.status`
 
@@ -412,8 +418,8 @@ carbon storage schedule can take are:
 resolves either shape correctly without special handling — the Appraisal rank is simply
 unoccupied on the schedules that use `INITIAL_CS`.
 
-A useful assertion for a warehouse load: every carbon storage schedule version should have
-exactly one of `APPRAISAL` or `INITIAL_CS`, and a version carrying both is malformed.
+This gives a checkable invariant: every carbon storage schedule version holds exactly one of
+`APPRAISAL` or `INITIAL_CS`, and a version carrying both is malformed.
 
 Note also that `INITIAL` and `INITIAL_CS` share the display text "Initial Term" but are
 distinct values belonging to different licence families, so do not join or group on the
@@ -429,7 +435,10 @@ the NSTA to manage.
 | `PHASE_B` | Phase B | `INITIAL` |
 | `PHASE_C` | Phase C | `INITIAL` |
 
-Phases exist only within the Initial term. Any phase found under another term is anomalous.
+Phases exist only within the production `INITIAL` term — not the carbon storage `INITIAL_CS`,
+despite the shared display text (§7.3). **Carbon storage schedules have no phases at all**, so
+a phase row on a carbon storage licence is anomalous, as is a phase under any term other than
+`INITIAL`.
 
 ### 7.5 `work_programme_activities.category`
 
@@ -563,9 +572,23 @@ Terms, phases, work programme activities, rates and other events all store durat
 | `other_schedule_events` | `relative_duration_years`, `relative_duration_months`, `relative_duration_days` |
 
 These are calendar durations, not fixed day counts, so they cannot be flattened to a single
-number of days without losing meaning. Any component may be zero or null. The `relative_*`
-columns are only meaningful when the row's `date_option` / `rate_relative_date_option` calls
-for them.
+number of days without losing meaning.
+
+Nullability differs by table:
+
+- The three `licence_schedule_phases.phase_duration_*` columns are **`NOT NULL`** — they may be
+  zero but never null.
+- `licence_schedule_terms.term_duration_*` and every `relative_duration_*` column are
+  **nullable**.
+
+The `relative_duration_*` columns are only meaningful when the row's date option calls for
+them; expect them null otherwise. The gate differs by table:
+
+- `work_programme_activities` and `other_schedule_events` — meaningful only when
+  `date_option = 'RELATIVE_DATE'` (§7.8).
+- `licence_schedule_rates` — gated twice: `rate_definition_option = 'CUSTOM_PERIOD'` (§7.9)
+  **and** `rate_relative_date_option = 'RELATIVE_TO_START_DATE'` (§7.10). Under
+  `ON_START_DATE` the rate takes the anchor's own date and the duration columns are unused.
 
 ---
 
@@ -609,7 +632,7 @@ ORDER BY d.rev;
    timestamp, use `audit_revisions.created_date_time` for the revision where `status` became
    `ACTIVE` (§9). The gap between the two can be days or weeks.
 2. **"At most one `ACTIVE` per licence" is not a database constraint.** It is enforced only in
-   application code. A warehouse load should assert it rather than assume it.
+   application code, so it is an invariant to verify rather than one the schema guarantees.
 3. **The individual event tables carry no status column.** `licence_schedule_terms`,
    `licence_schedule_phases`, `work_programme_activities`, `licence_schedule_rates` and
    `other_schedule_events` have no per-row status. The only event-level status in the model is
@@ -637,8 +660,10 @@ ORDER BY d.rev;
 
 ## 11. Reference: current columns per table
 
-Schedule event tables — remember each also joins to `schedule_events` on `id` for
-`licence_schedule_id`, `event_type` and `original_event_id`.
+The six schedule event tables — terms, phases, work programme activities, rates, other events
+and expiry — each additionally join to `schedule_events` on `id` to reach
+`licence_schedule_id`, `event_type` and `original_event_id` (§3). The other tables listed
+below do not.
 
 **`licence_schedule_details`**
 `id`, `licence_schedule_id`, `status`, `created_instant`

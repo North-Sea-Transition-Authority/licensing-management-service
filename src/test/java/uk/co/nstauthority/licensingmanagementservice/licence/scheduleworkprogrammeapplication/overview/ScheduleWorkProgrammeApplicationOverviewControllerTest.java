@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -19,6 +20,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
@@ -42,6 +45,19 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
 
   @MockitoBean
   private LicenceScheduleSummarySectionService licenceScheduleSummarySectionService;
+
+  @Test
+  void renderOverview_classAnnotations_presentAndCorrect() {
+    assertThat(ScheduleWorkProgrammeApplicationOverviewController.class)
+        .hasAnnotation(ScheduleAmendmentApplicationHasStatus.class);
+    assertThat(ScheduleWorkProgrammeApplicationOverviewController.class
+        .getAnnotation(ScheduleAmendmentApplicationHasStatus.class).value())
+        .containsExactlyInAnyOrder(
+            ApplicationStatus.SUBMITTED,
+            ApplicationStatus.ISSUE_DECISION);
+    assertThat(ScheduleWorkProgrammeApplicationOverviewController.class)
+        .hasAnnotation(InvokingUserCanAccessScheduleApplication.class);
+  }
 
   @Test
   void renderOverview_whenSubmitted_displaysApplicationContext() throws Exception {

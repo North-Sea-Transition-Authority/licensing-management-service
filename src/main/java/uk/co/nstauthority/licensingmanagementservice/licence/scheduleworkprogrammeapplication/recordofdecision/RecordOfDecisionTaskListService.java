@@ -59,6 +59,12 @@ public class RecordOfDecisionTaskListService {
         .toList();
   }
 
+  public boolean isSubmittable(RecordOfDecisionTaskListContext context, ServiceUserDetail user) {
+    return getTaskListSections(context, user)
+        .stream()
+        .allMatch(TaskListSection::isCompleted);
+  }
+
   // TODO: placeholder for the signed DSP
   public Optional<SummaryItem> getSignedDspSummaryItem(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
     var uploadedFiles = applicationFileService.getUploadedFiles(

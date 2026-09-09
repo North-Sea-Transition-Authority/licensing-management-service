@@ -1,10 +1,13 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.review.ReviewRecordOfDecisionController;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 
 class RecordOfDecisionReviewSectionServiceTest {
@@ -26,5 +29,35 @@ class RecordOfDecisionReviewSectionServiceTest {
     assertThat(section.items())
         .extracting(TaskListItem::displayName)
         .containsExactly(RecordOfDecisionReviewSectionService.REVIEW_RECORD_OF_DECISION);
+  }
+
+  @Test
+  void getSection_linksToTheReviewPage() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .build();
+    var context = new RecordOfDecisionTaskListContext(applicationDetail);
+
+    var section = recordOfDecisionReviewSectionService.getSection(context, null).orElseThrow();
+
+    assertThat(section.items())
+        .extracting(TaskListItem::actionUrl)
+        .containsExactly(ReverseRouter.route(on(ReviewRecordOfDecisionController.class)
+            .renderReview(applicationDetail.getId(), null, null)));
+  }
+
+  @Test
+  void getSection_reviewItemHasNoLabelSoItNeverBlocksSubmission() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .build();
+    var context = new RecordOfDecisionTaskListContext(applicationDetail);
+
+    var section = recordOfDecisionReviewSectionService.getSection(context, null).orElseThrow();
+
+    assertThat(section.items())
+        .extracting(TaskListItem::label)
+        .containsOnlyNulls();
+    assertThat(section.isCompleted()).isTrue();
   }
 }

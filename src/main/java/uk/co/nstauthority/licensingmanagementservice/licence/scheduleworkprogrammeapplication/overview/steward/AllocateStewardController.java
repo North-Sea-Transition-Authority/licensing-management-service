@@ -48,7 +48,7 @@ public class AllocateStewardController {
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail applicationDetail
   ) {
-    var stewardOptions = allocateStewardService.getStewardOptions();
+    var stewardOptions = allocateStewardService.getStewardOptions(applicationDetail.getLicence().getType());
     var form = allocateStewardService.getFormForApplication(
         applicationDetail.getScheduleWorkProgrammeApplication());
     return getModelAndView(applicationDetail, form, stewardOptions);
@@ -61,7 +61,7 @@ public class AllocateStewardController {
       @ModelAttribute("form") AllocateStewardForm form,
       BindingResult bindingResult
   ) {
-    var stewardOptions = allocateStewardService.getStewardOptions();
+    var stewardOptions = allocateStewardService.getStewardOptions(applicationDetail.getLicence().getType());
     if (!allocateStewardValidator.isValid(form, bindingResult, stewardOptions)) {
       return getModelAndView(applicationDetail, form, stewardOptions);
     }

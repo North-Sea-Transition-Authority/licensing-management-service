@@ -28,11 +28,6 @@ public class ApplicationAccessService {
   private final OrganisationGroupQueryService organisationGroupQueryService;
   private final TeamQueryService teamQueryService;
   private final Set<Role> editorSubmitterRoles = Set.of(Role.APPLICATION_EDITOR, Role.APPLICATION_SUBMITTER);
-  public static final Set<Role> STEWARD_ROLES = EnumSet.of(
-      Role.STEWARD_OFFSHORE,
-      Role.STEWARD_CARBON_STORAGE,
-      Role.STEWARD_ONSHORE
-  );
   public static final Set<Role> CONTINUATION_REVIEWER_ROLES = EnumSet.of(
       Role.CONTINUATION_REVIEWER_OFFSHORE,
       Role.CONTINUATION_REVIEWER_ONSHORE
@@ -83,7 +78,7 @@ public class ApplicationAccessService {
 
     var allowedSubmittedRoles = StreamUtil.unionSets(
         allowedDrafterRoles,
-        STEWARD_ROLES,
+        StewardRoles.ROLES,
         CaseManagerRoles.ROLES,
         CONTINUATION_REVIEWER_ROLES,
         DECISION_ISSUER_ROLES
@@ -120,7 +115,9 @@ public class ApplicationAccessService {
       Role role,
       LicenceType licenceType
   ) {
-    var isSteward = STEWARD_ROLES.contains(role);
+    var isSteward = StewardRoles.getRequiredRoleForLicenceType(licenceType)
+        .map(requiredRole -> requiredRole == role)
+        .orElse(false);
     var isCaseManager = CaseManagerRoles.getRequiredRoleForLicenceType(licenceType)
         .map(requiredRole -> requiredRole == role)
         .orElse(false);

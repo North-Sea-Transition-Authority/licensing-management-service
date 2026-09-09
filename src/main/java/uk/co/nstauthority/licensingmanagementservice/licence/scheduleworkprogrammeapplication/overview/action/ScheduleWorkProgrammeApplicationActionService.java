@@ -14,9 +14,9 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.CaseManagerRoles;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.StewardRoles;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -46,7 +46,7 @@ public class ScheduleWorkProgrammeApplicationActionService {
         .registerAction(ScheduleWorkProgrammeApplicationActionItem.ALLOCATE_STEWARD)
           .requiresAnyStatusFrom(ApplicationStatus.SUBMITTED)
           .requiresAnyRoleFrom(StreamUtil.unionSets(
-              ApplicationAccessService.STEWARD_ROLES,
+              StewardRoles.ROLES,
               CaseManagerRoles.ROLES
           ).toArray(Role[]::new))
           .isPrimaryButton(false)

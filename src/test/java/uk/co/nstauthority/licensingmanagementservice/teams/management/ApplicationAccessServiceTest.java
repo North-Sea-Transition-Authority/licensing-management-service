@@ -307,20 +307,39 @@ class ApplicationAccessServiceTest {
   }
 
   @ParameterizedTest
-  @EnumSource(value = Role.class, names = {
-      "STEWARD_OFFSHORE",
-      "STEWARD_CARBON_STORAGE",
-      "STEWARD_ONSHORE"
-  })
-  void userHasAccessToApplication_whenUserIsSteward_returnsTrue(Role stewardRole) {
+  @MethodSource("stewardRoleAndMatchingLicenceType")
+  void userHasAccessToApplication_whenUserIsStewardForApplicationLicenceType_returnsTrue(
+      Role stewardRole,
+      LicenceType licenceType
+  ) {
     var irrelevantTeam = buildTeam(TeamType.LICENCE_MANAGEMENT);
     var role = buildTeamRole(stewardRole, irrelevantTeam);
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
 
     assertThat(applicationAccessService.userHasAccessToApplication(
-        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now()),
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now(), licenceType),
         Map.of(ORG_UNIT_ID, ORG_GROUP_ID), USER_1_WUA_ID)).isTrue();
+  }
+
+  private static Stream<Arguments> stewardRoleAndMatchingLicenceType() {
+    return Stream.of(
+        Arguments.of(Role.STEWARD_OFFSHORE, LicenceType.SEAWARD_PRODUCTION),
+        Arguments.of(Role.STEWARD_ONSHORE, LicenceType.LANDWARD_PRODUCTION),
+        Arguments.of(Role.STEWARD_CARBON_STORAGE, LicenceType.CARBON_STORAGE)
+    );
+  }
+
+  @Test
+  void userHasAccessToApplication_whenUserIsStewardForDifferentLicenceType_returnsFalse() {
+    var irrelevantTeam = buildTeam(TeamType.LICENCE_MANAGEMENT);
+    var role = buildTeamRole(Role.STEWARD_OFFSHORE, irrelevantTeam);
+
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now(), LicenceType.CARBON_STORAGE),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID), USER_1_WUA_ID)).isFalse();
   }
 
   @ParameterizedTest

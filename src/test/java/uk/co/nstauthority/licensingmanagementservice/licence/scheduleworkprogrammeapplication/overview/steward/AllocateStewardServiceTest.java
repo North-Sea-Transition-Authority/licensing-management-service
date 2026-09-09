@@ -3,11 +3,13 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,11 +21,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.StewardAssignedNotificationService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
@@ -48,6 +51,9 @@ class AllocateStewardServiceTest {
   @Mock
   private ClearDownWorkAreaLogService clearDownWorkAreaLogService;
 
+  @Mock
+  private StewardAssignedNotificationService stewardAssignedNotificationService;
+
   @InjectMocks
   private AllocateStewardService allocateStewardService;
 
@@ -63,16 +69,24 @@ class AllocateStewardServiceTest {
 
     var user = new EnergyPortalUserJson(wuaId, null, "Jane", "Doe", null, null, true, null, false);
 
-    when(teamQueryService.getAllTeamRolesWithRoles(ApplicationAccessService.STEWARD_ROLES))
+    when(teamQueryService.getAllTeamRolesWithRoles(Set.of(Role.STEWARD_OFFSHORE)))
         .thenReturn(List.of(teamRole));
     when(energyPortalUserService.findByWuaIds(
         List.of(WebUserAccountId.from(wuaId)),
         AllocateStewardService.STEWARD_OPTIONS_PURPOSE))
         .thenReturn(List.of(user));
 
-    Map<String, String> result = allocateStewardService.getStewardOptions();
+    Map<String, String> result = allocateStewardService.getStewardOptions(LicenceType.SEAWARD_PRODUCTION);
 
     assertThat(result).containsEntry(String.valueOf(wuaId), "Jane Doe");
+  }
+
+  @Test
+  void getStewardOptions_whenLicenceTypeHasNoStewardRole_returnsEmptyAndSkipsLookup() {
+    Map<String, String> result = allocateStewardService.getStewardOptions(LicenceType.GAS_STORAGE);
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(teamQueryService, energyPortalUserService);
   }
 
   @Test
@@ -89,14 +103,14 @@ class AllocateStewardServiceTest {
 
     var user = new EnergyPortalUserJson(wuaId, null, "Jane", "Doe", null, null, true, null, false);
 
-    when(teamQueryService.getAllTeamRolesWithRoles(ApplicationAccessService.STEWARD_ROLES))
+    when(teamQueryService.getAllTeamRolesWithRoles(Set.of(Role.STEWARD_OFFSHORE)))
         .thenReturn(List.of(teamRole1, teamRole2));
     when(energyPortalUserService.findByWuaIds(
         eq(List.of((WebUserAccountId.from(wuaId)))),
         eq(AllocateStewardService.STEWARD_OPTIONS_PURPOSE)))
         .thenReturn(List.of(user));
 
-    Map<String, String> result = allocateStewardService.getStewardOptions();
+    Map<String, String> result = allocateStewardService.getStewardOptions(LicenceType.SEAWARD_PRODUCTION);
 
     assertThat(result).hasSize(1).containsEntry(String.valueOf(wuaId), "Jane Doe");
   }
@@ -160,5 +174,38 @@ class AllocateStewardServiceTest {
         detailId,
         WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION
     );
+  }
+
+  @Test
+  void saveSteward_sendsCaseAssignedNotificationToNewlyAssignedSteward() {
+    var newStewardWuaId = 42L;
+    var application = new ScheduleWorkProgrammeApplication();
+    application.setId(UUID.randomUUID());
+
+    var detail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .build();
+
+    when(scheduleWorkProgrammeApplicationDetailRepository
+        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+        .thenReturn(Optional.of(detail));
+
+    allocateStewardService.saveSteward(application, newStewardWuaId);
+
+    verify(stewardAssignedNotificationService).sendCaseAssignedEmail(detail, newStewardWuaId);
+  }
+
+  @Test
+  void saveSteward_whenNoDetailFound_doesNotSendNotification() {
+    var application = new ScheduleWorkProgrammeApplication();
+    application.setId(UUID.randomUUID());
+
+    when(scheduleWorkProgrammeApplicationDetailRepository
+        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+        .thenReturn(Optional.empty());
+
+    allocateStewardService.saveSteward(application, 99L);
+
+    verifyNoInteractions(stewardAssignedNotificationService);
   }
 }

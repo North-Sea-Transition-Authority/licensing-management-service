@@ -54,7 +54,7 @@ class AllocateStewardControllerTest extends AbstractControllerTest {
     var applicationDetail = buildApplicationDetail(applicationDetailId);
 
     setupPassingInterceptors(applicationDetail);
-    when(allocateStewardService.getStewardOptions()).thenReturn(Map.of());
+    when(allocateStewardService.getStewardOptions(LicenceType.CARBON_STORAGE)).thenReturn(Map.of());
     when(allocateStewardService.getFormForApplication(applicationDetail.getScheduleWorkProgrammeApplication()))
         .thenReturn(new AllocateStewardForm());
 
@@ -98,7 +98,7 @@ class AllocateStewardControllerTest extends AbstractControllerTest {
     var applicationDetail = buildApplicationDetail(applicationDetailId);
 
     setupPassingInterceptors(applicationDetail);
-    when(allocateStewardService.getStewardOptions()).thenReturn(Map.of());
+    when(allocateStewardService.getStewardOptions(LicenceType.CARBON_STORAGE)).thenReturn(Map.of());
     when(allocateStewardValidator.isValid(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
@@ -119,7 +119,7 @@ class AllocateStewardControllerTest extends AbstractControllerTest {
     var applicationDetail = buildApplicationDetail(applicationDetailId);
 
     setupPassingInterceptors(applicationDetail);
-    when(allocateStewardService.getStewardOptions()).thenReturn(Map.of());
+    when(allocateStewardService.getStewardOptions(LicenceType.CARBON_STORAGE)).thenReturn(Map.of());
     when(allocateStewardValidator.isValid(any(), any(), any())).thenReturn(false);
 
     mockMvc.perform(

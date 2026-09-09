@@ -2,10 +2,12 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -22,6 +24,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 
 @Service
 public class RecordDurationChangesService {
+
+  static final String MAINTAINED = "Maintained";
+  static final String REDUCED_BY = "Reduced by %s";
+  static final String EXTENDED_BY = "Extended by %s";
 
   private final Clock clock;
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
@@ -82,6 +88,7 @@ public class RecordDurationChangesService {
           candidate.isPhase(),
           DateFormatUtil.convertToDisplayText(candidate.endDate()),
           ThreeFieldDurationDisplayUtil.convertToDisplayText(candidate.duration()),
+          toThreeFieldDuration(getSpan(candidate)),
           canReduce,
           canExtend));
     }
@@ -129,15 +136,8 @@ public class RecordDurationChangesService {
   public RecordDurationChangesForm getFilledForm(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
     var form = new RecordDurationChangesForm();
 
-    var extensionsById = recordOfDecisionExtensionRepository
-        .findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail)
-        .stream()
-        .collect(Collectors.toMap(this::getExtensionIdString, RecordOfDecisionExtension::getExtensionDuration));
-
-    var reductionsById = recordOfDecisionReductionRepository
-        .findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail)
-        .stream()
-        .collect(Collectors.toMap(this::getReductionIdString, RecordOfDecisionReduction::getReductionDuration));
+    var extensionsById = getExtensionsById(applicationDetail);
+    var reductionsById = getReductionsById(applicationDetail);
 
     for (var candidate : getScheduleInOrder(applicationDetail)) {
       var id = candidate.id();
@@ -301,6 +301,112 @@ public class RecordDurationChangesService {
             .stream()
             .map(RecordOfDecisionReduction::getReductionDuration)
             .toList());
+  }
+
+  public List<RecordDurationChangeSummaryView> getSummaryViews(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail
+  ) {
+    var extensionsById = getExtensionsById(applicationDetail);
+    var reductionsById = getReductionsById(applicationDetail);
+
+    var views = new ArrayList<RecordDurationChangeSummaryView>();
+    LocalDate nextStartDate = null;
+
+    for (var candidate : getScheduleInOrder(applicationDetail)) {
+      if (nextStartDate == null) {
+        nextStartDate = candidate.startDate();
+      }
+
+      var newStartDate = nextStartDate;
+      var newEndDate = newStartDate.plus(getNewSpan(candidate, extensionsById, reductionsById)).minusDays(1);
+
+      views.add(new RecordDurationChangeSummaryView(
+          candidate.displayName(),
+          candidate.isPhase(),
+          ThreeFieldDurationDisplayUtil.convertToDisplayText(candidate.duration()),
+          DateFormatUtil.convertToDisplayText(candidate.endDate()),
+          getChangeDisplayText(candidate, extensionsById, reductionsById),
+          ThreeFieldDurationDisplayUtil.convertDatesToDurationDisplayText(newStartDate, newEndDate),
+          DateFormatUtil.convertToDisplayText(newEndDate)));
+
+      nextStartDate = newEndDate.plusDays(1);
+    }
+
+    return views;
+  }
+
+  public boolean isReductionLongerThanPeriod(ThreeFieldDuration duration, ThreeFieldDuration reduction) {
+    var remaining = toPeriod(duration).minus(toPeriod(reduction)).normalized();
+
+    return remaining.toTotalMonths() < 0 || (remaining.toTotalMonths() == 0 && remaining.getDays() < 1);
+  }
+
+  private Period getNewSpan(
+      DurationChangeCandidate candidate,
+      Map<String, ThreeFieldDuration> extensionsById,
+      Map<String, ThreeFieldDuration> reductionsById
+  ) {
+    var span = getSpan(candidate);
+
+    if (extensionsById.containsKey(candidate.id())) {
+      return span.plus(toPeriod(extensionsById.get(candidate.id())));
+    }
+
+    if (reductionsById.containsKey(candidate.id())) {
+      return span.minus(toPeriod(reductionsById.get(candidate.id())));
+    }
+
+    return span;
+  }
+
+  private Period getSpan(DurationChangeCandidate candidate) {
+    return Period.between(candidate.startDate(), candidate.endDate().plusDays(1));
+  }
+
+  private String getChangeDisplayText(
+      DurationChangeCandidate candidate,
+      Map<String, ThreeFieldDuration> extensionsById,
+      Map<String, ThreeFieldDuration> reductionsById
+  ) {
+    if (extensionsById.containsKey(candidate.id())) {
+      return EXTENDED_BY.formatted(
+          ThreeFieldDurationDisplayUtil.convertToDisplayText(extensionsById.get(candidate.id())));
+    }
+
+    if (reductionsById.containsKey(candidate.id())) {
+      return REDUCED_BY.formatted(
+          ThreeFieldDurationDisplayUtil.convertToDisplayText(reductionsById.get(candidate.id())));
+    }
+
+    return MAINTAINED;
+  }
+
+  private ThreeFieldDuration toThreeFieldDuration(Period period) {
+    var normalised = period.normalized();
+
+    return new ThreeFieldDuration(normalised.getYears(), normalised.getMonths(), normalised.getDays());
+  }
+
+  private Period toPeriod(ThreeFieldDuration duration) {
+    return Period.of(duration.years(), duration.months(), duration.days());
+  }
+
+  private Map<String, ThreeFieldDuration> getExtensionsById(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail
+  ) {
+    return recordOfDecisionExtensionRepository
+        .findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail)
+        .stream()
+        .collect(Collectors.toMap(this::getExtensionIdString, RecordOfDecisionExtension::getExtensionDuration));
+  }
+
+  private Map<String, ThreeFieldDuration> getReductionsById(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail
+  ) {
+    return recordOfDecisionReductionRepository
+        .findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail)
+        .stream()
+        .collect(Collectors.toMap(this::getReductionIdString, RecordOfDecisionReduction::getReductionDuration));
   }
 
   public boolean isComplete(ScheduleWorkProgrammeApplicationDetail applicationDetail) {

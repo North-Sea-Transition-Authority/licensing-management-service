@@ -17,6 +17,8 @@ public class RecordDurationChangesFormValidator {
       "%s is already under way, so its duration cannot be reduced";
   static final String EXTEND_NOT_AVAILABLE_ERROR_MESSAGE =
       "%s is the final period of the schedule, so its duration cannot be extended";
+  static final String REDUCTION_TOO_LONG_ERROR_MESSAGE =
+      "The reduction of %s must be less than its current duration of %s";
   static final String TOTAL_MISMATCH_ERROR_MESSAGE =
       "The total reduction of %s must equal the total extension of %s";
 
@@ -36,6 +38,10 @@ public class RecordDurationChangesFormValidator {
     initialiseFormFromViews(form, views);
 
     views.forEach(view -> validateRow(form, bindingResult, view));
+
+    if (!bindingResult.hasErrors()) {
+      views.forEach(view -> validateReductionFitsInPeriod(form, bindingResult, view));
+    }
 
     if (!bindingResult.hasErrors()) {
       validateTotalsBalance(form, bindingResult, views);
@@ -92,6 +98,28 @@ public class RecordDurationChangesFormValidator {
         "changeType[%s]".formatted(view.id()),
         "changeType.notAvailable",
         errorMessage.formatted(view.displayName()));
+  }
+
+  private void validateReductionFitsInPeriod(
+      RecordDurationChangesForm form,
+      BindingResult bindingResult,
+      RecordDurationChangeView view
+  ) {
+    if (form.getChangeType().get(view.id()) != DurationChangeType.REDUCE) {
+      return;
+    }
+
+    var reductionInput = form.durationFor(view.id(), DurationChangeType.REDUCE);
+    var reduction = reductionInput.toThreeFieldDuration();
+
+    if (!recordDurationChangesService.isReductionLongerThanPeriod(view.duration(), reduction)) {
+      return;
+    }
+
+    bindingResult.rejectValue(
+        "%s.years".formatted(reductionInput.getFieldName()),
+        "reduceDuration.tooLong",
+        REDUCTION_TOO_LONG_ERROR_MESSAGE.formatted(view.displayName(), view.currentDuration()));
   }
 
   private void validateTotalsBalance(

@@ -252,6 +252,101 @@ class RecordDurationChangesServiceTest {
     form.getChangeType().put(term.getId().toString(), DurationChangeType.MAINTAIN);
   }
 
+  @Test
+  void getSummaryViews_whenATermIsReducedAndAnotherExtended_thenLaterPeriodsShiftAndEndDatesCascade() {
+    var second = secondTerm();
+    var third = thirdTerm();
+    mockSchedule(List.of(initialTerm(), second, third));
+    mockRecordedChanges(
+        List.of(extensionFor(third, new ThreeFieldDuration(1, 0, 0))),
+        List.of(reductionFor(second, new ThreeFieldDuration(1, 0, 0))));
+
+    var views = recordDurationChangesService.getSummaryViews(applicationDetail);
+
+    assertThat(views).containsExactly(
+        new RecordDurationChangeSummaryView(
+            TermType.INITIAL.getDisplayName(), false,
+            "4 years", "31 December 2027",
+            RecordDurationChangesService.MAINTAINED,
+            "4 years", "31 December 2027"),
+        new RecordDurationChangeSummaryView(
+            TermType.SECOND.getDisplayName(), false,
+            "4 years", "31 December 2031",
+            RecordDurationChangesService.REDUCED_BY.formatted("1 year"),
+            "3 years", "31 December 2030"),
+        new RecordDurationChangeSummaryView(
+            TermType.THIRD.getDisplayName(), false,
+            "18 years", "31 December 2049",
+            RecordDurationChangesService.EXTENDED_BY.formatted("1 year"),
+            "19 years", "31 December 2049"));
+  }
+
+  @Test
+  void getSummaryViews_whenEveryPeriodIsMaintained_thenNoEndDateMoves() {
+    mockSchedule(List.of(initialTerm(), secondTerm(), thirdTerm()));
+    mockRecordedChanges(List.of(), List.of());
+
+    var views = recordDurationChangesService.getSummaryViews(applicationDetail);
+
+    assertThat(views)
+        .extracting(
+            RecordDurationChangeSummaryView::change,
+            RecordDurationChangeSummaryView::currentEndDate,
+            RecordDurationChangeSummaryView::newEndDate)
+        .containsExactly(
+            tuple(RecordDurationChangesService.MAINTAINED, "31 December 2027", "31 December 2027"),
+            tuple(RecordDurationChangesService.MAINTAINED, "31 December 2031", "31 December 2031"),
+            tuple(RecordDurationChangesService.MAINTAINED, "31 December 2049", "31 December 2049"));
+  }
+
+  @Test
+  void getSummaryViews_whenTheEarlierPeriodIsExtendedByWhatThisOneLoses_thenThisEndDateDoesNotMove() {
+    var initial = term(TermType.INITIAL, LocalDate.of(2034, 1, 1), LocalDate.of(2038, 2, 1), 4);
+    var second = term(TermType.SECOND, LocalDate.of(2038, 2, 2), LocalDate.of(2039, 3, 2), 1);
+    mockSchedule(List.of(initial, second));
+    mockRecordedChanges(
+        List.of(extensionFor(initial, new ThreeFieldDuration(1, 0, 0))),
+        List.of(reductionFor(second, new ThreeFieldDuration(1, 0, 0))));
+
+    var views = recordDurationChangesService.getSummaryViews(applicationDetail);
+
+    assertThat(views)
+        .extracting(
+            RecordDurationChangeSummaryView::change,
+            RecordDurationChangeSummaryView::currentEndDate,
+            RecordDurationChangeSummaryView::newEndDate,
+            RecordDurationChangeSummaryView::newDuration)
+        .containsExactly(
+            tuple(RecordDurationChangesService.EXTENDED_BY.formatted("1 year"),
+                "1 February 2038", "1 February 2039", "5 years 1 month 1 day"),
+            tuple(RecordDurationChangesService.REDUCED_BY.formatted("1 year"),
+                "2 March 2039", "2 March 2039", "1 month 1 day"));
+  }
+
+  private void mockRecordedChanges(
+      List<RecordOfDecisionExtension> extensions,
+      List<RecordOfDecisionReduction> reductions
+  ) {
+    when(recordOfDecisionExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail))
+        .thenReturn(extensions);
+    when(recordOfDecisionReductionRepository.findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail))
+        .thenReturn(reductions);
+  }
+
+  private RecordOfDecisionExtension extensionFor(LicenceScheduleTerm term, ThreeFieldDuration duration) {
+    var extension = new RecordOfDecisionExtension();
+    extension.setLicenceScheduleTerm(term);
+    extension.setExtensionDuration(duration);
+    return extension;
+  }
+
+  private RecordOfDecisionReduction reductionFor(LicenceScheduleTerm term, ThreeFieldDuration duration) {
+    var reduction = new RecordOfDecisionReduction();
+    reduction.setLicenceScheduleTerm(term);
+    reduction.setReductionDuration(duration);
+    return reduction;
+  }
+
   private void mockToday() {
     when(clock.instant()).thenReturn(Instant.parse("2026-08-25T10:00:00.00Z"));
     when(clock.getZone()).thenReturn(ZoneOffset.UTC);

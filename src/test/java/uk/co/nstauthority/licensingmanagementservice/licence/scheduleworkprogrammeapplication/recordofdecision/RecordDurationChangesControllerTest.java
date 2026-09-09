@@ -32,6 +32,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
+import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
@@ -175,8 +176,8 @@ class RecordDurationChangesControllerTest extends AbstractControllerTest {
                 .with(user(USER))
                 .with(csrf()))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(RecordOfDecisionTaskListController.class)
-            .getTaskList(applicationDetailId, null, null))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(RecordDurationChangesSummaryController.class)
+            .renderSummary(applicationDetailId, null))));
 
     verify(recordDurationChangesService).saveDurationChanges(
         any(RecordDurationChangesForm.class), eq(applicationDetail));
@@ -226,6 +227,7 @@ class RecordDurationChangesControllerTest extends AbstractControllerTest {
         false,
         endDate,
         duration,
+        new ThreeFieldDuration(4, 0, 0),
         canReduce,
         canExtend);
   }

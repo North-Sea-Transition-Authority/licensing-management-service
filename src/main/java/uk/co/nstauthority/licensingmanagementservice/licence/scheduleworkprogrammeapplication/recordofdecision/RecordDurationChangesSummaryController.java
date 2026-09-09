@@ -4,9 +4,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,52 +19,51 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping(
-    "licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/duration-changes")
+    "licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}" +
+        "/duration-changes/summary")
 @ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.ISSUE_DECISION)
 @InvokingUserCanAccessScheduleApplication
-public class RecordDurationChangesController {
+public class RecordDurationChangesSummaryController {
 
-  static final String PAGE_TITLE = "Term and phase durations";
+  static final String PAGE_TITLE = "Review changes to term and phase durations";
 
   private final RecordDurationChangesService recordDurationChangesService;
-  private final RecordDurationChangesFormValidator recordDurationChangesFormValidator;
 
-  public RecordDurationChangesController(
-      RecordDurationChangesService recordDurationChangesService,
-      RecordDurationChangesFormValidator recordDurationChangesFormValidator
-  ) {
+  public RecordDurationChangesSummaryController(RecordDurationChangesService recordDurationChangesService) {
     this.recordDurationChangesService = recordDurationChangesService;
-    this.recordDurationChangesFormValidator = recordDurationChangesFormValidator;
   }
 
   @GetMapping
-  public ModelAndView renderForm(
+  public ModelAndView renderSummary(
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
-    return getModelAndView(
-        recordDurationChangesService.getFilledForm(scheduleWorkProgrammeApplicationDetail),
-        scheduleWorkProgrammeApplicationDetail);
+
+    if (!recordDurationChangesService.isComplete(scheduleWorkProgrammeApplicationDetail)) {
+      return redirectToDurationChanges(scheduleWorkProgrammeApplicationDetailId);
+    }
+
+    return getModelAndView(scheduleWorkProgrammeApplicationDetail);
   }
 
   @PostMapping
-  public ModelAndView submitForm(
+  public ModelAndView confirmSummary(
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
-      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
-      @ModelAttribute("form") RecordDurationChangesForm form,
-      BindingResult bindingResult) {
-    if (!recordDurationChangesFormValidator.isValid(
-        form, bindingResult, scheduleWorkProgrammeApplicationDetail)) {
-      return getModelAndView(form, scheduleWorkProgrammeApplicationDetail);
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
+
+    if (!recordDurationChangesService.isComplete(scheduleWorkProgrammeApplicationDetail)) {
+      return redirectToDurationChanges(scheduleWorkProgrammeApplicationDetailId);
     }
 
-    recordDurationChangesService.saveDurationChanges(form, scheduleWorkProgrammeApplicationDetail);
+    return ReverseRouter.redirect(on(RecordOfDecisionTaskListController.class)
+        .getTaskList(scheduleWorkProgrammeApplicationDetailId, null, null));
+  }
 
-    return ReverseRouter.redirect(on(RecordDurationChangesSummaryController.class)
-        .renderSummary(scheduleWorkProgrammeApplicationDetailId, null));
+  private ModelAndView redirectToDurationChanges(UUID scheduleWorkProgrammeApplicationDetailId) {
+    return ReverseRouter.redirect(on(RecordDurationChangesController.class)
+        .renderForm(scheduleWorkProgrammeApplicationDetailId, null));
   }
 
   private ModelAndView getModelAndView(
-      RecordDurationChangesForm form,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
 
     var taskListUrl = ReverseRouter.route(on(RecordOfDecisionTaskListController.class)
@@ -77,13 +74,13 @@ public class RecordDurationChangesController {
         .addTaskListBreadcrumb(taskListUrl)
         .build();
 
-    var modelAndView = new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/recordDurationChanges")
-        .addObject("form", form)
-        .addObject("pageTitle", PAGE_TITLE)
-        .addObject("durationChangeViews",
-            recordDurationChangesService.getDurationChangeViews(scheduleWorkProgrammeApplicationDetail))
-        .addObject("changeTypeOptions", DurationChangeType.getOptions())
-        .addObject("cancelUrl", taskListUrl);
+    var modelAndView =
+        new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/recordDurationChangesSummary")
+            .addObject("pageTitle", PAGE_TITLE)
+            .addObject("durationChangeSummaryViews",
+                recordDurationChangesService.getSummaryViews(scheduleWorkProgrammeApplicationDetail))
+            .addObject("backUrl", ReverseRouter.route(on(RecordDurationChangesController.class)
+                .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null)));
 
     BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
 

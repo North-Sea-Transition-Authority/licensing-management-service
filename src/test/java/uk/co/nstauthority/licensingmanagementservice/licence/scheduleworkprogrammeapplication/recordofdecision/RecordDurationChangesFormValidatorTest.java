@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
+import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
@@ -140,6 +141,27 @@ class RecordDurationChangesFormValidatorTest {
     assertThat(isValid).isTrue();
   }
 
+  @Test
+  void isValid_whenAReductionConsumesTheWholePeriod_assertError() {
+    var form = formWith(
+        change(INITIAL_ID, DurationChangeType.EXTEND, 4, 0, 0),
+        change(SECOND_ID, DurationChangeType.MAINTAIN, 0, 0, 0),
+        change(THIRD_ID, DurationChangeType.REDUCE, 4, 0, 0));
+    var bindingResult = new BeanPropertyBindingResult(form, "form");
+    mockViews();
+    when(recordDurationChangesService.isReductionLongerThanPeriod(
+        new ThreeFieldDuration(4, 0, 0), new ThreeFieldDuration(4, 0, 0)))
+        .thenReturn(true);
+
+    var isValid = recordDurationChangesFormValidator.isValid(form, bindingResult, applicationDetail);
+
+    assertThat(isValid).isFalse();
+    assertThat(bindingResult.getFieldErrors())
+        .extracting(FieldError::getDefaultMessage)
+        .containsExactly(RecordDurationChangesFormValidator.REDUCTION_TOO_LONG_ERROR_MESSAGE
+            .formatted(TermType.THIRD.getDisplayName(), "4 years"));
+  }
+
   private record Change(String id, DurationChangeType changeType, int years, int months, int days) {
   }
 
@@ -183,6 +205,7 @@ class RecordDurationChangesFormValidatorTest {
         false,
         "31 December 2027",
         "4 years",
+        new ThreeFieldDuration(4, 0, 0),
         canReduce,
         canExtend);
   }

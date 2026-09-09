@@ -1,7 +1,6 @@
 # Licence Schedules — Data Model, Creation and Update Behaviour
 
-**Audience:** Data Warehouse team
-**Scope:** How the Licensing Management Service (LMS) stores licence schedules, what happens
+How the Licensing Management Service (LMS) stores licence schedules, what happens
 in the database when a schedule is created and when it is updated, and the enumerated values
 that appear in the data.
 

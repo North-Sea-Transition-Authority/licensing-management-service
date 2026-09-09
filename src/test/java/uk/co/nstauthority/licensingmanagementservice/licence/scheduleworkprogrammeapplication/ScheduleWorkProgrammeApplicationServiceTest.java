@@ -58,6 +58,9 @@ class ScheduleWorkProgrammeApplicationServiceTest {
   @Mock
   private TeamManagementService teamManagementService;
 
+  @Mock
+  private ScheduleWorkProgrammeApplicationSubmittedNotificationService applicationSubmittedNotificationService;
+
   @InjectMocks
   private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
 
@@ -237,6 +240,8 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     assertThat(savedDetail.getStatus()).isEqualTo(ApplicationStatus.SUBMITTED);
     assertThat(savedDetail.getSubmittedByWuaId()).isEqualTo(1L);
     assertThat(savedDetail.getSubmittedDatetime()).isEqualTo(Instant.now(clock));
+
+    verify(applicationSubmittedNotificationService).sendNewApplicationSubmittedEmails(scheduleWorkProgrammeApplicationDetail);
   }
 
   @Test

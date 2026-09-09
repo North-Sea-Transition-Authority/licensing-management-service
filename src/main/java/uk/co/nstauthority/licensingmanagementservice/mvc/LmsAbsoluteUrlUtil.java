@@ -14,7 +14,11 @@ public class LmsAbsoluteUrlUtil {
 
   public static String getWorkAreaUrl() {
     var workAreaUrl = ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null));
-    return "%s%s".formatted(getBaseUrl(), workAreaUrl);
+    return getAbsoluteUrl(workAreaUrl);
+  }
+
+  public static String getAbsoluteUrl(String relativeUrl) {
+    return "%s%s".formatted(getBaseUrl(), relativeUrl);
   }
 
   private static String getBaseUrl() {

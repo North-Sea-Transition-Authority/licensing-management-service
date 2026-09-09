@@ -16,6 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.CaseManagerRoles;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -46,12 +47,12 @@ public class ScheduleWorkProgrammeApplicationActionService {
           .requiresAnyStatusFrom(ApplicationStatus.SUBMITTED)
           .requiresAnyRoleFrom(StreamUtil.unionSets(
               ApplicationAccessService.STEWARD_ROLES,
-              ApplicationAccessService.CASE_MANAGER_ROLES
+              CaseManagerRoles.ROLES
           ).toArray(Role[]::new))
           .isPrimaryButton(false)
         .registerAction(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION)
           .requiresAnyStatusFrom(ApplicationStatus.SUBMITTED)
-          .requiresAnyRoleFrom(ApplicationAccessService.CASE_MANAGER_ROLES.toArray(Role[]::new))
+          .requiresAnyRoleFrom(CaseManagerRoles.ROLES.toArray(Role[]::new))
             .orGrantedToUser(detail -> detail.getScheduleWorkProgrammeApplication().getStewardWuaId())
           .isPrimaryButton(true)
         .build();

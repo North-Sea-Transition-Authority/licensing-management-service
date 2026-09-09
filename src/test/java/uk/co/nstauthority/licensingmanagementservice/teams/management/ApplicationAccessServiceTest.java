@@ -14,11 +14,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -30,6 +33,8 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -60,6 +65,7 @@ class ApplicationAccessServiceTest {
   private static final UUID APP_ID = UUID.randomUUID();
   private static final int ORG_UNIT_ID = 100;
   private static final int ORG_GROUP_ID = 999;
+  private static final LicenceType DEFAULT_LICENCE_TYPE = LicenceType.SEAWARD_PRODUCTION;
   private ServiceUserDetail organisationUser;
 
   @BeforeEach
@@ -147,7 +153,7 @@ class ApplicationAccessServiceTest {
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
 
     assertThat(applicationAccessService.userHasAccessToApplication(
-        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now()),
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now(), null),
         Map.of(ORG_UNIT_ID, ORG_GROUP_ID),
         USER_1_WUA_ID
     )).isTrue();
@@ -318,12 +324,11 @@ class ApplicationAccessServiceTest {
   }
 
   @ParameterizedTest
-  @EnumSource(value = Role.class, names = {
-      "CASE_MANAGER_OFFSHORE",
-      "CASE_MANAGER_CARBON_STORAGE",
-      "CASE_MANAGER_ONSHORE"
-  })
-  void userHasAccessToApplication_whenUserIsCaseManager_returnsTrue(Role caseManagerRole) {
+  @MethodSource("caseManagerRoleAndMatchingLicenceType")
+  void userHasAccessToApplication_whenUserIsCaseManagerForApplicationLicenceType_returnsTrue(
+      Role caseManagerRole,
+      LicenceType licenceType
+  ) {
     var irrelevantTeam = buildTeam(TeamType.ORGANISATION);
     irrelevantTeam.setScopeId(String.valueOf(ORG_GROUP_ID));
 
@@ -332,8 +337,30 @@ class ApplicationAccessServiceTest {
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
 
     assertThat(applicationAccessService.userHasAccessToApplication(
-        mockApplicationDetail(ApplicationType.CONTINUATION_APPLICATION, null, Instant.now()),
+        mockApplicationDetail(ApplicationType.CONTINUATION_APPLICATION, null, Instant.now(), licenceType),
         Map.of(ORG_UNIT_ID, ORG_GROUP_ID), USER_1_WUA_ID)).isTrue();
+  }
+
+  private static Stream<Arguments> caseManagerRoleAndMatchingLicenceType() {
+    return Stream.of(
+        Arguments.of(Role.CASE_MANAGER_OFFSHORE, LicenceType.SEAWARD_PRODUCTION),
+        Arguments.of(Role.CASE_MANAGER_ONSHORE, LicenceType.LANDWARD_PRODUCTION),
+        Arguments.of(Role.CASE_MANAGER_CARBON_STORAGE, LicenceType.CARBON_STORAGE)
+    );
+  }
+
+  @Test
+  void userHasAccessToApplication_whenUserIsCaseManagerForDifferentLicenceType_returnsFalse() {
+    var irrelevantTeam = buildTeam(TeamType.ORGANISATION);
+    irrelevantTeam.setScopeId(String.valueOf(ORG_GROUP_ID));
+
+    var role = buildTeamRole(Role.CASE_MANAGER_OFFSHORE, irrelevantTeam);
+
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now(), LicenceType.CARBON_STORAGE),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID), USER_1_WUA_ID)).isFalse();
   }
 
   @ParameterizedTest
@@ -401,6 +428,16 @@ class ApplicationAccessServiceTest {
       Integer responsibleOrganisationUnitId,
       Instant submittedDatetime
   ) {
+    return mockApplicationDetail(applicationType, responsibleOrganisationUnitId, submittedDatetime, DEFAULT_LICENCE_TYPE);
+  }
+
+  // licenceType is null for scenarios granted before licence type is consulted, to avoid an unused stub
+  private LicenceApplicationDetail mockApplicationDetail(
+      ApplicationType applicationType,
+      Integer responsibleOrganisationUnitId,
+      Instant submittedDatetime,
+      LicenceType licenceType
+  ) {
     var licenceApplication = mock(LicenceApplication.class);
     when(licenceApplication.getId()).thenReturn(APP_ID);
     when(licenceApplication.getApplicationType()).thenReturn(applicationType);
@@ -413,6 +450,11 @@ class ApplicationAccessServiceTest {
     }
 
     when(detail.getSubmittedDatetime()).thenReturn(submittedDatetime);
+
+    if (submittedDatetime != null && licenceType != null) {
+      var licence = LicenceTestUtil.builder().withLicenceType(licenceType).build();
+      when(detail.getLicence()).thenReturn(licence);
+    }
 
     return detail;
   }

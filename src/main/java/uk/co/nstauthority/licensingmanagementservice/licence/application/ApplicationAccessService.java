@@ -12,6 +12,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgr
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -31,11 +32,6 @@ public class ApplicationAccessService {
       Role.STEWARD_OFFSHORE,
       Role.STEWARD_CARBON_STORAGE,
       Role.STEWARD_ONSHORE
-  );
-  public static final Set<Role> CASE_MANAGER_ROLES = EnumSet.of(
-      Role.CASE_MANAGER_OFFSHORE,
-      Role.CASE_MANAGER_CARBON_STORAGE,
-      Role.CASE_MANAGER_ONSHORE
   );
   public static final Set<Role> CONTINUATION_REVIEWER_ROLES = EnumSet.of(
       Role.CONTINUATION_REVIEWER_OFFSHORE,
@@ -88,7 +84,7 @@ public class ApplicationAccessService {
     var allowedSubmittedRoles = StreamUtil.unionSets(
         allowedDrafterRoles,
         STEWARD_ROLES,
-        CASE_MANAGER_ROLES,
+        CaseManagerRoles.ROLES,
         CONTINUATION_REVIEWER_ROLES,
         DECISION_ISSUER_ROLES
     );
@@ -102,7 +98,7 @@ public class ApplicationAccessService {
         .anyMatch(teamRole ->
             isExternalContributor(teamRole.getTeam(), applicationId.toString(), applicationType)
             || isLicenseeOrgGroupMember(teamRole.getTeam(), organisationGroupIds)
-            || isCaseManagerOrSteward(teamRole.getRole())
+            || isCaseManagerOrSteward(teamRole.getRole(), applicationDetail.getLicence().getType())
             || isContinuationReviewer(teamRole.getRole(), applicationType)
             || isDecisionIssuer(teamRole.getRole())
         );
@@ -121,10 +117,13 @@ public class ApplicationAccessService {
   }
 
   private boolean isCaseManagerOrSteward(
-      Role role
+      Role role,
+      LicenceType licenceType
   ) {
-    var isCaseManager = CASE_MANAGER_ROLES.contains(role);
     var isSteward = STEWARD_ROLES.contains(role);
+    var isCaseManager = CaseManagerRoles.getRequiredRoleForLicenceType(licenceType)
+        .map(requiredRole -> requiredRole == role)
+        .orElse(false);
 
     return isCaseManager || isSteward;
   }

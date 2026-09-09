@@ -34,6 +34,7 @@ public class ScheduleWorkProgrammeApplicationService {
   private final Clock clock;
   private final ApplicationAccessService applicationAccessService;
   private final TeamManagementService teamManagementService;
+  private final ScheduleWorkProgrammeApplicationSubmittedNotificationService applicationSubmittedNotificationService;
 
   public ScheduleWorkProgrammeApplicationService(
       ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository,
@@ -41,13 +42,15 @@ public class ScheduleWorkProgrammeApplicationService {
       LicenceScheduleDetailService licenceScheduleDetailService,
       Clock clock,
       ApplicationAccessService applicationAccessService,
-      TeamManagementService teamManagementService) {
+      TeamManagementService teamManagementService,
+      ScheduleWorkProgrammeApplicationSubmittedNotificationService applicationSubmittedNotificationService) {
     this.scheduleWorkProgrammeApplicationRepository = scheduleWorkProgrammeApplicationRepository;
     this.scheduleWorkProgrammeApplicationDetailRepository = scheduleWorkProgrammeApplicationDetailRepository;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.clock = clock;
     this.applicationAccessService = applicationAccessService;
     this.teamManagementService = teamManagementService;
+    this.applicationSubmittedNotificationService = applicationSubmittedNotificationService;
   }
 
   @Transactional
@@ -202,6 +205,8 @@ public class ScheduleWorkProgrammeApplicationService {
     scheduleWorkProgrammeApplicationDetail.setSubmittedByWuaId(user.wuaId());
 
     scheduleWorkProgrammeApplicationDetailRepository.save(scheduleWorkProgrammeApplicationDetail);
+
+    applicationSubmittedNotificationService.sendNewApplicationSubmittedEmails(scheduleWorkProgrammeApplicationDetail);
 
     return scheduleWorkProgrammeApplication;
   }

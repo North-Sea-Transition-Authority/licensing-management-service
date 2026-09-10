@@ -24,9 +24,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.co.fivium.energyportalapi.generated.types.OrganisationNameHistory;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods.OrganisationNamePeriod;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -63,6 +64,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SubareaChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.BeneficialInterestView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.NameHistoryEntryView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationNameHistoryView;
@@ -178,11 +180,11 @@ class LicencePositionViewServiceTest {
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
-    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1))).thenReturn(Map.of(1, "Admin Ltd"));
     when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
-        .thenReturn(Map.of(1, List.of(
-            new OrganisationNameHistory("Former Admin Ltd", LocalDate.of(1990, Month.JANUARY, 1), LocalDate.of(2000, Month.MARCH, 3)),
-            new OrganisationNameHistory("Future Admin Ltd", LocalDate.of(2022, Month.JANUARY, 22), null))
+        .thenReturn(Map.of(1, namePeriods("Future Admin Ltd",
+            namePeriod("Former Admin Ltd", LocalDate.of(1990, Month.JANUARY, 1), LocalDate.of(2000, Month.MARCH, 3)),
+            namePeriod("Admin Ltd", LocalDate.of(2000, Month.MARCH, 3), LocalDate.of(2022, Month.JANUARY, 22)),
+            namePeriod("Future Admin Ltd", LocalDate.of(2022, Month.JANUARY, 22), null))
         ));
 
     var result = licencePositionViewService.getPositionPageView(position);
@@ -218,10 +220,9 @@ class LicencePositionViewServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of(change));
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(dateCorrection));
-    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1))).thenReturn(Map.of(1, "Admin Ltd"));
     when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
-        .thenReturn(Map.of(1, List.of(
-            new OrganisationNameHistory("Admin Ltd", LocalDate.of(2000, Month.JANUARY, 1), null))));
+        .thenReturn(Map.of(1, namePeriods("Admin Ltd",
+            namePeriod("Admin Ltd", LocalDate.of(2000, Month.JANUARY, 1), null))));
 
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
 
@@ -231,6 +232,179 @@ class LicencePositionViewServiceTest {
             List.of(),
             List.of(new NameHistoryEntryView("Admin Ltd", "from 1 January 2000"))
         )));
+  }
+
+  @Test
+  void getPositionPageView_namesOrganisationsAsTheyWereOnThePositionDate() {
+    var changeId = UUID.randomUUID();
+
+    var position = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
+        .withPositionDate(LocalDate.of(2010, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+
+    var change = LicencePositionChangeTestUtil.newBuilder().withId(changeId).withLicencePosition(position).build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
+        .thenReturn(Map.of(1, namePeriods("Shell plc",
+            namePeriod("Shell Expro", LocalDate.of(1999, Month.MARCH, 3), LocalDate.of(2022, Month.JANUARY, 22)),
+            namePeriod("Shell plc", LocalDate.of(2022, Month.JANUARY, 22), null))
+        ));
+
+    var result = licencePositionViewService.getPositionPageView(position);
+
+    assertThat(changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR))
+        .isEqualTo(new AdministratorChangeView(
+            null,
+            "Shell Expro",
+            changeId.toString(),
+            null,
+            new ChangeViewUrls(null, null, null, null)
+        ));
+    assertThat(result.stateView())
+        .isEqualTo(new LicencePositionStateView(
+            new AdministratorStateView("Shell Expro"),
+            List.of(),
+            List.of(new OrganisationNameHistoryView(
+                "Shell Expro",
+                List.of(),
+                List.of(new NameHistoryEntryView("Shell plc", "from 22 January 2022"))
+            ))
+        ));
+  }
+
+  @Test
+  void getPositionPageView_whenBeneficialInterestHoldersHaveBeenRenamed_namesThemAsTheyWereOnThePositionDate() {
+    var position = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
+        .withPositionDate(LocalDate.of(2010, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+
+    var change = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(position)
+        .withOperations(List.of(
+            LicenceOperation.newAdministratorChange().withOperator(1).build(),
+            LicenceOperation.newSetEquityOperation().withTransferTo(1).withEquity(new BigDecimal("60")).build(),
+            LicenceOperation.newSetEquityOperation().withTransferTo(2).withEquity(new BigDecimal("40")).build()))
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1, 2))).thenReturn(Map.of(
+        1, namePeriods("Shell plc",
+            namePeriod("Shell Expro", LocalDate.of(1999, Month.MARCH, 3), LocalDate.of(2022, Month.JANUARY, 22)),
+            namePeriod("Shell plc", LocalDate.of(2022, Month.JANUARY, 22), null)),
+        2, namePeriods("BP plc",
+            namePeriod("Britoil", LocalDate.of(1980, Month.JANUARY, 1), LocalDate.of(2000, Month.JANUARY, 1)),
+            namePeriod("BP Exploration", LocalDate.of(2000, Month.JANUARY, 1), LocalDate.of(2015, Month.JULY, 7)),
+            namePeriod("BP plc", LocalDate.of(2015, Month.JULY, 7), null))
+    ));
+
+    var result = licencePositionViewService.getPositionPageView(position);
+
+    assertThat(result.stateView())
+        .isEqualTo(new LicencePositionStateView(
+            new AdministratorStateView("Shell Expro"),
+            List.of(
+                new BeneficialInterestView("BP Exploration", new BigDecimal("40")),
+                new BeneficialInterestView("Shell Expro", new BigDecimal("60"))
+            ),
+            List.of(
+                new OrganisationNameHistoryView(
+                    "BP Exploration",
+                    List.of(new NameHistoryEntryView("Britoil", "to 1 January 2000")),
+                    List.of(new NameHistoryEntryView("BP plc", "from 7 July 2015"))),
+                new OrganisationNameHistoryView(
+                    "Shell Expro",
+                    List.of(),
+                    List.of(new NameHistoryEntryView("Shell plc", "from 22 January 2022")))
+            )
+        ));
+  }
+
+  @Test
+  void getPositionPageView_whenNoNamePeriodCoversThePositionDate_namesTheOrganisationByItsCurrentName() {
+    var changeId = UUID.randomUUID();
+
+    var position = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
+        .withPositionDate(LocalDate.of(2010, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+
+    var change = LicencePositionChangeTestUtil.newBuilder().withId(changeId).withLicencePosition(position).build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
+        .thenReturn(Map.of(1, namePeriods("Current Name Ltd",
+            namePeriod("Interim Ltd", LocalDate.of(2015, Month.APRIL, 4), LocalDate.of(2020, Month.APRIL, 4)))
+        ));
+
+    var result = licencePositionViewService.getPositionPageView(position);
+
+    assertThat(changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR))
+        .isEqualTo(new AdministratorChangeView(
+            null,
+            "Current Name Ltd",
+            changeId.toString(),
+            null,
+            new ChangeViewUrls(null, null, null, null)
+        ));
+    assertThat(result.stateView())
+        .isEqualTo(new LicencePositionStateView(
+            new AdministratorStateView("Current Name Ltd"),
+            List.of(),
+            List.of(new OrganisationNameHistoryView(
+                "Current Name Ltd",
+                List.of(),
+                List.of(new NameHistoryEntryView("Interim Ltd", "from 4 April 2015"))
+            ))
+        ));
+  }
+
+  @Test
+  void getCorrectionPositionPageView_whenPositionDateIsCorrected_namesOrganisationsAsTheyWereOnTheCorrectedDate() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+
+    var executed = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
+
+    var dateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(executed)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withEffectiveDate(LocalDate.of(1990, Month.JANUARY, 1))
+            .build())
+        .build();
+
+    var change = LicencePositionChangeTestUtil.newBuilder().withLicencePosition(executed).build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of(change));
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(dateCorrection));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
+        .thenReturn(Map.of(1, namePeriods("Shell plc",
+            namePeriod("Shell UK Exploration", LocalDate.of(1987, Month.JANUARY, 12), LocalDate.of(1999, Month.MARCH, 3)),
+            namePeriod("Shell plc", LocalDate.of(1999, Month.MARCH, 3), null))
+        ));
+
+    var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
+
+    assertThat(result.stateView())
+        .isEqualTo(new LicencePositionStateView(
+            new AdministratorStateView("Shell UK Exploration"),
+            List.of(),
+            List.of(new OrganisationNameHistoryView(
+                "Shell UK Exploration",
+                List.of(),
+                List.of(new NameHistoryEntryView("Shell plc", "from 3 March 1999"))
+            ))
+        ));
   }
 
   private static LicencePosition executedPosition() {
@@ -345,11 +519,11 @@ class LicencePositionViewServiceTest {
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
-    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1))).thenReturn(Map.of());
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1))).thenReturn(Map.of());
 
     licencePositionViewService.getPositionPageView(position);
 
-    verify(organisationUnitQueryService).getOrganisationUnitNamesByIds(List.of(1));
+    verify(organisationUnitQueryService).getOrganisationNameHistoriesByIds(List.of(1));
   }
 
   @Test
@@ -367,7 +541,7 @@ class LicencePositionViewServiceTest {
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(older));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(older))).thenReturn(List.of(change));
-    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1))).thenReturn(Map.of());
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1))).thenReturn(Map.of());
 
     var result = licencePositionViewService.getPositionPageView(newer);
 
@@ -475,7 +649,7 @@ class LicencePositionViewServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of());
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(updateCorrection));
-    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(any())).thenReturn(Map.of());
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(any())).thenReturn(Map.of());
 
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
 
@@ -507,7 +681,7 @@ class LicencePositionViewServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of(committedChange));
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
-    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(any())).thenReturn(Map.of());
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(any())).thenReturn(Map.of());
 
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
 
@@ -544,7 +718,8 @@ class LicencePositionViewServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of(liveChange));
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(removeCorrection));
-    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(any())).thenReturn(Map.of(5, "Executed Admin Org"));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(any())).thenReturn(Map.of(5, namePeriods(
+        "Executed Admin Org", namePeriod("Executed Admin Org", LocalDate.of(1990, Month.JANUARY, 1), null))));
 
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
 
@@ -621,7 +796,7 @@ class LicencePositionViewServiceTest {
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of());
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(positionCorrection));
-    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(any())).thenReturn(Map.of());
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(any())).thenReturn(Map.of());
 
     var result = licencePositionViewService.getCorrectionAddedPositionPageView(correction, positionCorrection);
 
@@ -738,7 +913,8 @@ class LicencePositionViewServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(removed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(removed))).thenReturn(List.of(liveChange));
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(removeCorrection));
-    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(any())).thenReturn(Map.of(5, "Executed Admin Org"));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(any())).thenReturn(Map.of(5, namePeriods(
+        "Executed Admin Org", namePeriod("Executed Admin Org", LocalDate.of(1990, Month.JANUARY, 1), null))));
 
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, removed);
 
@@ -968,14 +1144,14 @@ class LicencePositionViewServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(position)))
         .thenReturn(List.of(setEquityChange, transferEquityChange));
-    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(any())).thenReturn(Map.of());
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(any())).thenReturn(Map.of());
 
     licencePositionViewService.getPositionPageView(position);
 
     @SuppressWarnings("unchecked")
     ArgumentCaptor<List<Integer>> idsCaptor = ArgumentCaptor.forClass(List.class);
 
-    verify(organisationUnitQueryService).getOrganisationUnitNamesByIds(idsCaptor.capture());
+    verify(organisationUnitQueryService).getOrganisationNameHistoriesByIds(idsCaptor.capture());
 
     assertThat(idsCaptor.getValue()).containsExactlyInAnyOrder(1, 2, 3);
   }
@@ -1132,7 +1308,7 @@ class LicencePositionViewServiceTest {
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
-    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1))).thenReturn(Map.of());
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1))).thenReturn(Map.of());
 
     licencePositionViewService.getPositionPageView(position);
 
@@ -1226,6 +1402,14 @@ class LicencePositionViewServiceTest {
             .withCorrectionReference(correctionReference)
             .build())
         .build();
+  }
+
+  private static OrganisationNamePeriods namePeriods(String currentName, OrganisationNamePeriod... namePeriods) {
+    return new OrganisationNamePeriods(currentName, List.of(namePeriods));
+  }
+
+  private static OrganisationNamePeriod namePeriod(String name, LocalDate startDate, LocalDate endDate) {
+    return new OrganisationNamePeriod(name, startDate, endDate);
   }
 
   private static LicencePositionChangeView changeViewOfType(LicencePositionPageView pageView, String type) {

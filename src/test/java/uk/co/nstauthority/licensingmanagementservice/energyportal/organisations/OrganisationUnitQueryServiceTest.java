@@ -21,6 +21,7 @@ import uk.co.fivium.energyportalapi.client.organisation.OrganisationApi;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationGroup;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationNameHistory;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods.OrganisationNamePeriod;
 
 @ExtendWith(MockitoExtension.class)
 class OrganisationUnitQueryServiceTest {
@@ -185,15 +186,17 @@ class OrganisationUnitQueryServiceTest {
   }
 
   @Test
-  void getOrganisationNameHistoriesByIds_omitsUnitsWithoutNameHistory() {
+  void getOrganisationNameHistoriesByIds_returnsTheCurrentNameAndNameHistoryOfEveryUnit() {
     var renamedUnit = new OrganisationUnit();
     renamedUnit.setOrganisationUnitId(1);
+    renamedUnit.setName("Current Name Ltd");
     renamedUnit.setOrganisationNameHistory(List.of(
         organisationNameHistory("Old Name Ltd", LocalDate.of(1990, Month.JANUARY, 1), LocalDate.of(2000, Month.MARCH, 3))
     ));
 
     var neverRenamedUnit = new OrganisationUnit();
     neverRenamedUnit.setOrganisationUnitId(2);
+    neverRenamedUnit.setName("Never Renamed Ltd");
     neverRenamedUnit.setOrganisationNameHistory(List.of());
 
     when(organisationApi.getOrganisationUnitsByIds(
@@ -203,12 +206,12 @@ class OrganisationUnitQueryServiceTest {
     )).thenReturn(List.of(renamedUnit, neverRenamedUnit));
 
     assertThat(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1, 2)))
-        .isEqualTo(Map.of(1, List.of(OrganisationNameHistory.newBuilder()
-            .name("Old Name Ltd")
-            .startDate(LocalDate.of(1990, Month.JANUARY, 1))
-            .endDate(LocalDate.of(2000, Month.MARCH, 3))
-            .build()
-        )));
+        .isEqualTo(Map.of(
+            1, new OrganisationNamePeriods("Current Name Ltd", List.of(new OrganisationNamePeriod(
+                "Old Name Ltd", LocalDate.of(1990, Month.JANUARY, 1), LocalDate.of(2000, Month.MARCH, 3)
+            ))),
+            2, new OrganisationNamePeriods("Never Renamed Ltd", List.of())
+        ));
   }
 
   @Test

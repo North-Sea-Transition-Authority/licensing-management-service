@@ -109,6 +109,9 @@ public class CrossLicenceEventTrackerService {
     var eventDate = eventCache.getEventDate() != null
         ? DateFormatUtil.convertToDisplayText(eventCache.getEventDate())
         : "";
+    var eventDateSort = eventCache.getEventDate() != null
+        ? eventCache.getEventDate().toString()
+        : null;
     var workProgrammeActivity = eventCache.getActivityType() != null
         ? eventCache.getActivityType()
         : "";
@@ -124,7 +127,7 @@ public class CrossLicenceEventTrackerService {
         .withValue(new SortableTableValue(eventCache.getLicenceReference(), null, licenceLink, List.of()))
         .withValue(getTermPhaseTransition(eventCache))
         .withValue(workProgrammeActivity)
-        .withValue(eventDate)
+        .withValue(new SortableTableValue(eventDate, eventDateSort, null, List.of()))
         .withValue("")
         .withValue(licensees)
         .withValue(Objects.toString(eventCache.getQuadBlock(), ""))
@@ -176,6 +179,16 @@ public class CrossLicenceEventTrackerService {
         .toList();
 
     licenceEventCacheRepository.saveAll(termsToAdd);
+
+    // A term that has gained phases since it was last cached should no longer have its own term-level
+    // row - the phases now cover that transition individually. Remove any such now-stale cache entry.
+    var staleTermCaches = terms.stream()
+        .filter(term -> termIdsWithPhases.contains(term.getId()))
+        .map(term -> existingEventCaches.get(term.getOriginalEventId()))
+        .filter(cache -> cache != null && cache.getEventType() == ScheduleEventType.TERM)
+        .toList();
+
+    licenceEventCacheRepository.deleteAll(staleTermCaches);
   }
 
   private LicenceEventCache createOrUpdateEventCacheForTerm(

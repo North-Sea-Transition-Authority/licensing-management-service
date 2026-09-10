@@ -2,7 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.fds.table;
 
 import java.util.List;
 
-public record SortableTableValue(String value, Integer sortValue, String link, List<Tag> tags) {
+public record SortableTableValue(String value, String sortValue, String link, List<Tag> tags) {
 
   public SortableTableValue(String value) {
     this(value, null, null, List.of());

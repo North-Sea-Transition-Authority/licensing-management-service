@@ -163,27 +163,23 @@ class CrossLicenceEventTrackerServiceTest {
         .withDefaultSortIndex(4)
         .addRow(SortableTableRow.builder()
             .withValue(licenceValue("P 111", licenceWithOneLicensee.getId()))
-            .withValues(
-                "Initial term",
-                "",
-                DateFormatUtil.convertToDisplayText(LocalDate.of(2025, 6, 15)),
-                "",
-                "Licensee One",
-                "",
-                ""
-            )
+            .withValue("Initial term")
+            .withValue("")
+            .withValue(dateValue(LocalDate.of(2025, 6, 15)))
+            .withValue("")
+            .withValue("Licensee One")
+            .withValue("")
+            .withValue("")
             .build())
         .addRow(SortableTableRow.builder()
             .withValue(licenceValue("P 222", licenceWithMultipleLicensees.getId()))
-            .withValues(
-                "Phase A to Phase B",
-                WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName(),
-                DateFormatUtil.convertToDisplayText(LocalDate.of(2026, 1, 1)),
-                "",
-                "Licensee Two, Licensee Three",
-                "12/3",
-                ""
-            )
+            .withValue("Phase A to Phase B")
+            .withValue(WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName())
+            .withValue(dateValue(LocalDate.of(2026, 1, 1)))
+            .withValue("")
+            .withValue("Licensee Two, Licensee Three")
+            .withValue("12/3")
+            .withValue("")
             .build())
         .addRow(SortableTableRow.builder()
             .withValue(licenceValue("P 333", licenceWithNoLicensees.getId()))
@@ -208,6 +204,10 @@ class CrossLicenceEventTrackerServiceTest {
         "/"
     );
     return new SortableTableValue(licenceReference, licenceLink, List.of());
+  }
+
+  private SortableTableValue dateValue(LocalDate date) {
+    return new SortableTableValue(DateFormatUtil.convertToDisplayText(date), date.toString(), null, List.of());
   }
 
   private LicenceEventCache buildEventCache(
@@ -308,6 +308,37 @@ class CrossLicenceEventTrackerServiceTest {
 
     assertThat(savedTermCaches).hasSize(1);
     assertThat(savedTermCaches.get(0).getId()).isEqualTo(existingCacheId);
+  }
+
+  @Test
+  void refreshScheduleCache_whenTermGainsPhases_thenStaleTermLevelCacheIsDeleted() {
+    var licence = LicenceTestUtil.builder().withId(100).withLicenceReference("P 111").build();
+    var licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(
+        LicenceScheduleTestUtil.createLicenceSchedule(licence)
+    );
+
+    var initialTerm = buildTerm(TermType.INITIAL, LocalDate.of(2030, 1, 1));
+    var phaseA = buildPhase(initialTerm, PhaseType.PHASE_A, LocalDate.of(2027, 1, 1));
+
+    var staleTermCache = new LicenceEventCache();
+    staleTermCache.setId(UUID.randomUUID());
+    staleTermCache.setOriginalEventId(initialTerm.getOriginalEventId());
+    staleTermCache.setEventType(ScheduleEventType.TERM);
+
+    when(licenceEventCacheRepository.getAllByLicenceId(licence.getId())).thenReturn(List.of(staleTermCache));
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(new ArrayList<>(List.of(initialTerm)));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(new ArrayList<>(List.of(phaseA)));
+    when(workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(List.of());
+
+    crossLicenceEventTrackerService.refreshScheduleCache(licenceScheduleDetail);
+
+    verify(licenceEventCacheRepository, times(3)).saveAll(eventCacheListCaptor.capture());
+    var savedTermCaches = eventCacheListCaptor.getAllValues().get(0);
+    assertThat(savedTermCaches).isEmpty();
+
+    verify(licenceEventCacheRepository).deleteAll(List.of(staleTermCache));
   }
 
   @Test

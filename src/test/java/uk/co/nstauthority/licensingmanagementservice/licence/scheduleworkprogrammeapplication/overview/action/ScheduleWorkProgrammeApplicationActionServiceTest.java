@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -47,6 +48,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
         .withStatus(ApplicationStatus.SUBMITTED)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()
@@ -66,6 +68,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
         .withStatus(ApplicationStatus.DRAFT)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()
@@ -85,6 +88,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
         .withStatus(ApplicationStatus.SUBMITTED)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()
@@ -100,10 +104,31 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
   }
 
   @Test
+  void getAvailableUserActionItems_allocateSteward_notAvailableWhenRoleIsForDifferentLicenceType() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.SUBMITTED)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+
+    TeamRole teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.STEWARD_CARBON_STORAGE)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
+        .doesNotContain(ScheduleWorkProgrammeApplicationActionItem.ALLOCATE_STEWARD.toActionItemView(applicationDetail));
+  }
+
+  @Test
   void getAvailableUserActionItems_recordFinalDecision_availableWhenCaseManagerAndSubmitted() {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
         .withStatus(ApplicationStatus.SUBMITTED)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
         .build();
 
     var teamRole = TeamRoleTestUtil.newBuilder()
@@ -123,6 +148,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
         .withStatus(ApplicationStatus.SUBMITTED)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
         .build();
     applicationDetail.getScheduleWorkProgrammeApplication().setStewardWuaId(USER_WUA_ID);
 
@@ -143,6 +169,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
         .withStatus(ApplicationStatus.SUBMITTED)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
         .build();
 
     var teamRole = TeamRoleTestUtil.newBuilder()
@@ -162,6 +189,27 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
         .withStatus(ApplicationStatus.DRAFT)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.CASE_MANAGER_CARBON_STORAGE)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
+        .doesNotContain(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION.toActionItemView(applicationDetail));
+  }
+
+  @Test
+  void getAvailableUserActionItems_recordFinalDecision_notAvailableWhenCaseManagerRoleIsForDifferentLicenceType() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.SUBMITTED)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
         .build();
 
     var teamRole = TeamRoleTestUtil.newBuilder()
@@ -181,6 +229,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
         .withStatus(ApplicationStatus.SUBMITTED)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
         .build();
 
     TeamRole teamRole = TeamRoleTestUtil.newBuilder()

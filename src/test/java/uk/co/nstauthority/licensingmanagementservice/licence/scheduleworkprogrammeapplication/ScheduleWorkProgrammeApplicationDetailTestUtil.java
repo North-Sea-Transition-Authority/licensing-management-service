@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 import java.time.Instant;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -26,6 +27,7 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
     private String applicationReference;
     private Long submittedByWuaId;
     private Integer responsibleOrganisationUnitId;
+    private LicenceType licenceType;
 
     private Builder() {}
 
@@ -79,6 +81,11 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
       return this;
     }
 
+    public Builder withLicenceType(LicenceType licenceType) {
+      this.licenceType = licenceType;
+      return this;
+    }
+
     public ScheduleWorkProgrammeApplicationDetail build() {
       var scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
       scheduleWorkProgrammeApplicationDetail.setId(id);
@@ -94,6 +101,7 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
         swpApplication.setId(UUID.randomUUID());
         swpApplication.setApplicationReference(applicationReference);
         var defaultLicence = new Licence();
+        defaultLicence.setType(licenceType);
         var defaultSchedule = new LicenceSchedule();
         defaultSchedule.setLicence(defaultLicence);
         swpApplication.setLicenceSchedule(defaultSchedule);

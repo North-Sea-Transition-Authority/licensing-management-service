@@ -25,7 +25,8 @@ import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 @Service
 public class ScheduleWorkProgrammeApplicationActionService {
-  private static final Map<ScheduleWorkProgrammeApplicationActionItem, Set<Role>> ACTIONS_TO_ROLES
+  private static final Map<ScheduleWorkProgrammeApplicationActionItem,
+      Function<ScheduleWorkProgrammeApplicationDetail, Set<Role>>> ACTIONS_TO_ROLES
       = new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
   private static final Map<ApplicationStatus,
       Set<ScheduleWorkProgrammeApplicationActionItem>> STATUS_TO_ACTIONS
@@ -45,14 +46,15 @@ public class ScheduleWorkProgrammeApplicationActionService {
     var registeredActions = ScheduleWorkProgrammeApplicationActionBuilder.newBuilder()
         .registerAction(ScheduleWorkProgrammeApplicationActionItem.ALLOCATE_STEWARD)
           .requiresAnyStatusFrom(ApplicationStatus.SUBMITTED)
-          .requiresAnyRoleFrom(StreamUtil.unionSets(
-              StewardRoles.ROLES,
-              CaseManagerRoles.ROLES
-          ).toArray(Role[]::new))
+          .requiresAnyRoleFrom(detail -> StreamUtil.toSet(
+              StewardRoles.getRequiredRoleForLicenceType(detail.getLicence().getType()),
+              CaseManagerRoles.getRequiredRoleForLicenceType(detail.getLicence().getType())
+          ))
           .isPrimaryButton(false)
         .registerAction(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION)
           .requiresAnyStatusFrom(ApplicationStatus.SUBMITTED)
-          .requiresAnyRoleFrom(CaseManagerRoles.ROLES.toArray(Role[]::new))
+          .requiresAnyRoleFrom(detail -> StreamUtil.toSet(
+              CaseManagerRoles.getRequiredRoleForLicenceType(detail.getLicence().getType())))
             .orGrantedToUser(detail -> detail.getScheduleWorkProgrammeApplication().getStewardWuaId())
           .isPrimaryButton(true)
         .build();
@@ -77,7 +79,10 @@ public class ScheduleWorkProgrammeApplicationActionService {
           var grantedUserId = ACTIONS_TO_USER_GRANT_PREDICATES
               .getOrDefault(action, detail -> null)
               .apply(applicationDetail);
-          return CollectionUtils.containsAny(ACTIONS_TO_ROLES.get(action), userRoles)
+          var requiredRoles = ACTIONS_TO_ROLES
+              .getOrDefault(action, detail -> Set.<Role>of())
+              .apply(applicationDetail);
+          return CollectionUtils.containsAny(requiredRoles, userRoles)
               || Objects.equals(grantedUserId, user.wuaId());
         })
         .map(actionItem -> actionItem.toActionItemView(applicationDetail, isPrimary(applicationDetail, actionItem)))

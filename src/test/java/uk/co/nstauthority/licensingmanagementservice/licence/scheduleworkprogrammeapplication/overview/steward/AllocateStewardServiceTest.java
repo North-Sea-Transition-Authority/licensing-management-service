@@ -1,9 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.steward;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -36,6 +36,10 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
 @ExtendWith(MockitoExtension.class)
 class AllocateStewardServiceTest {
 
+  private static final long USER_WUA_ID = 100L;
+  public static final long STEWARD_WUA_ID = 101L;
+  private static final long NEW_STEWARD_WUA_ID = 142L;
+
   @Mock
   private TeamQueryService teamQueryService;
 
@@ -62,23 +66,20 @@ class AllocateStewardServiceTest {
 
   @Test
   void getStewardOptions_returnsUsersByWuaId() {
-    var wuaId = 100L;
-    var teamRole = new TeamRole();
-    teamRole.setWuaId(wuaId);
-    teamRole.setRole(Role.STEWARD_OFFSHORE);
+    var teamRole = stubTeamRole(USER_WUA_ID, Role.STEWARD_OFFSHORE);
 
-    var user = new EnergyPortalUserJson(wuaId, null, "Jane", "Doe", null, null, true, null, false);
+    var user = new EnergyPortalUserJson(USER_WUA_ID, null, "Jane", "Doe", null, null, true, null, false);
 
     when(teamQueryService.getAllTeamRolesWithRoles(Set.of(Role.STEWARD_OFFSHORE)))
         .thenReturn(List.of(teamRole));
     when(energyPortalUserService.findByWuaIds(
-        List.of(WebUserAccountId.from(wuaId)),
+        List.of(WebUserAccountId.from(USER_WUA_ID)),
         AllocateStewardService.STEWARD_OPTIONS_PURPOSE))
         .thenReturn(List.of(user));
 
-    Map<String, String> result = allocateStewardService.getStewardOptions(LicenceType.SEAWARD_PRODUCTION);
+    var result = allocateStewardService.getStewardOptions(LicenceType.SEAWARD_PRODUCTION);
 
-    assertThat(result).containsEntry(String.valueOf(wuaId), "Jane Doe");
+    assertThat(result).containsEntry(String.valueOf(USER_WUA_ID), "Jane Doe");
   }
 
   @Test
@@ -91,45 +92,36 @@ class AllocateStewardServiceTest {
 
   @Test
   void getStewardOptions_deduplicatesUsersWithMultipleRoles() {
-    var wuaId = 100L;
+    var teamRole1 = stubTeamRole(USER_WUA_ID, Role.STEWARD_OFFSHORE);
+    var teamRole2 = stubTeamRole(USER_WUA_ID, Role.STEWARD_ONSHORE);
 
-    var teamRole1 = new TeamRole();
-    teamRole1.setWuaId(wuaId);
-    teamRole1.setRole(Role.STEWARD_OFFSHORE);
-
-    var teamRole2 = new TeamRole();
-    teamRole2.setWuaId(wuaId);
-    teamRole2.setRole(Role.STEWARD_ONSHORE);
-
-    var user = new EnergyPortalUserJson(wuaId, null, "Jane", "Doe", null, null, true, null, false);
+    var user = new EnergyPortalUserJson(USER_WUA_ID, null, "Jane", "Doe", null, null, true, null, false);
 
     when(teamQueryService.getAllTeamRolesWithRoles(Set.of(Role.STEWARD_OFFSHORE)))
         .thenReturn(List.of(teamRole1, teamRole2));
     when(energyPortalUserService.findByWuaIds(
-        eq(List.of((WebUserAccountId.from(wuaId)))),
-        eq(AllocateStewardService.STEWARD_OPTIONS_PURPOSE)))
+        List.of(WebUserAccountId.from(USER_WUA_ID)),
+        AllocateStewardService.STEWARD_OPTIONS_PURPOSE))
         .thenReturn(List.of(user));
 
     Map<String, String> result = allocateStewardService.getStewardOptions(LicenceType.SEAWARD_PRODUCTION);
 
-    assertThat(result).hasSize(1).containsEntry(String.valueOf(wuaId), "Jane Doe");
+    assertThat(result).hasSize(1).containsEntry(String.valueOf(USER_WUA_ID), "Jane Doe");
   }
 
   @Test
   void getFormForApplication_whenStewardSet_populatesForm() {
-    var application = new ScheduleWorkProgrammeApplication();
-    application.setId(UUID.randomUUID());
-    application.setStewardWuaId(42L);
+    var application = stubApplication();
+    application.setStewardWuaId(NEW_STEWARD_WUA_ID);
 
     var form = allocateStewardService.getFormForApplication(application);
 
-    assertThat(form.getStewardWuaId()).isEqualTo("42");
+    assertThat(form.getStewardWuaId()).isEqualTo("142");
   }
 
   @Test
   void getFormForApplication_whenNoSteward_returnsEmptyForm() {
-    var application = new ScheduleWorkProgrammeApplication();
-    application.setId(UUID.randomUUID());
+    var application = stubApplication();
 
     var form = allocateStewardService.getFormForApplication(application);
 
@@ -138,26 +130,22 @@ class AllocateStewardServiceTest {
 
   @Test
   void saveSteward_setsWuaIdAndSaves() {
-    var application = new ScheduleWorkProgrammeApplication();
-    application.setId(UUID.randomUUID());
-    var stewardWuaId = 99L;
+    var application = stubApplication();
 
     when(scheduleWorkProgrammeApplicationDetailRepository
         .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
         .thenReturn(Optional.empty());
 
-    allocateStewardService.saveSteward(application, stewardWuaId);
+    allocateStewardService.saveSteward(application, STEWARD_WUA_ID);
 
     verify(scheduleWorkProgrammeApplicationRepository).save(applicationCaptor.capture());
-    assertThat(applicationCaptor.getValue().getStewardWuaId()).isEqualTo(stewardWuaId);
+    assertThat(applicationCaptor.getValue().getStewardWuaId()).isEqualTo(STEWARD_WUA_ID);
   }
 
   @Test
   void saveSteward_clearsWorkAreaViewRecordForNewlyAssignedStewardOnly() {
     var detailId = UUID.randomUUID();
-    var newStewardWuaId = 42L;
-    var application = new ScheduleWorkProgrammeApplication();
-    application.setId(UUID.randomUUID());
+    var application = stubApplication();
 
     var detail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(detailId)
@@ -167,10 +155,10 @@ class AllocateStewardServiceTest {
         .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
         .thenReturn(Optional.of(detail));
 
-    allocateStewardService.saveSteward(application, newStewardWuaId);
+    allocateStewardService.saveSteward(application, NEW_STEWARD_WUA_ID);
 
     verify(clearDownWorkAreaLogService).clearDownViewFor(
-        newStewardWuaId,
+        NEW_STEWARD_WUA_ID,
         detailId,
         WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION
     );
@@ -178,9 +166,7 @@ class AllocateStewardServiceTest {
 
   @Test
   void saveSteward_sendsCaseAssignedNotificationToNewlyAssignedSteward() {
-    var newStewardWuaId = 42L;
-    var application = new ScheduleWorkProgrammeApplication();
-    application.setId(UUID.randomUUID());
+    var application = stubApplication();
 
     var detail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
@@ -190,22 +176,55 @@ class AllocateStewardServiceTest {
         .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
         .thenReturn(Optional.of(detail));
 
-    allocateStewardService.saveSteward(application, newStewardWuaId);
+    allocateStewardService.saveSteward(application, NEW_STEWARD_WUA_ID);
 
-    verify(stewardAssignedNotificationService).sendCaseAssignedEmail(detail, newStewardWuaId);
+    verify(stewardAssignedNotificationService).sendCaseAssignedEmail(detail, NEW_STEWARD_WUA_ID);
+  }
+
+  @Test
+  void saveSteward_whenStewardAlreadyAssigned_reassignsAndNotifiesNewStewardOnly() {
+    var application = stubApplication();
+    application.setStewardWuaId(STEWARD_WUA_ID);
+
+    var detail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .build();
+
+    when(scheduleWorkProgrammeApplicationDetailRepository
+        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+        .thenReturn(Optional.of(detail));
+
+    allocateStewardService.saveSteward(application, NEW_STEWARD_WUA_ID);
+
+    verify(scheduleWorkProgrammeApplicationRepository).save(applicationCaptor.capture());
+    assertThat(applicationCaptor.getValue().getStewardWuaId()).isEqualTo(NEW_STEWARD_WUA_ID);
+    verify(stewardAssignedNotificationService).sendCaseAssignedEmail(detail, NEW_STEWARD_WUA_ID);
+    verifyNoMoreInteractions(stewardAssignedNotificationService);
   }
 
   @Test
   void saveSteward_whenNoDetailFound_doesNotSendNotification() {
-    var application = new ScheduleWorkProgrammeApplication();
-    application.setId(UUID.randomUUID());
+    var application = stubApplication();
 
     when(scheduleWorkProgrammeApplicationDetailRepository
         .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
         .thenReturn(Optional.empty());
 
-    allocateStewardService.saveSteward(application, 99L);
+    allocateStewardService.saveSteward(application, STEWARD_WUA_ID);
 
     verifyNoInteractions(stewardAssignedNotificationService);
+  }
+
+  private static ScheduleWorkProgrammeApplication stubApplication() {
+    var application = new ScheduleWorkProgrammeApplication();
+    application.setId(UUID.randomUUID());
+    return application;
+  }
+
+  private static TeamRole stubTeamRole(long userWuaId, Role role) {
+    var teamRole = new TeamRole();
+    teamRole.setWuaId(userWuaId);
+    teamRole.setRole(role);
+    return teamRole;
   }
 }

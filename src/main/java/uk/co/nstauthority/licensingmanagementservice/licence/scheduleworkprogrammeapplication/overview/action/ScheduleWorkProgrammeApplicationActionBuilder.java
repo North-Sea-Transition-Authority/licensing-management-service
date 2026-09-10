@@ -10,7 +10,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
@@ -25,7 +24,8 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
   static class Builder implements SetRolesForAnAction, SetStatusForAnAction, RegisterAnAction {
     public final Map<ApplicationStatus, Set<ScheduleWorkProgrammeApplicationActionItem>> statusMap =
         new EnumMap<>(ApplicationStatus.class);
-    public final Map<ScheduleWorkProgrammeApplicationActionItem, Set<Role>> roleMap =
+    public final Map<ScheduleWorkProgrammeApplicationActionItem,
+        Function<ScheduleWorkProgrammeApplicationDetail, Set<Role>>> roleMap =
         new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
     public final Map<ScheduleWorkProgrammeApplicationActionItem,
         Function<ScheduleWorkProgrammeApplicationDetail, Long>> userGrantPredicateMap =
@@ -49,8 +49,8 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
     }
 
     @Override
-    public RegisterAnAction requiresAnyRoleFrom(Role... roles) {
-      roleMap.put(actionItems.peek(), Arrays.stream(roles).collect(Collectors.toSet()));
+    public RegisterAnAction requiresAnyRoleFrom(Function<ScheduleWorkProgrammeApplicationDetail, Set<Role>> roleResolver) {
+      roleMap.put(actionItems.peek(), roleResolver);
       return this;
     }
 
@@ -123,7 +123,7 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
   }
 
   interface SetRolesForAnAction {
-    RegisterAnAction requiresAnyRoleFrom(Role... roles);
+    RegisterAnAction requiresAnyRoleFrom(Function<ScheduleWorkProgrammeApplicationDetail, Set<Role>> roleResolver);
   }
 
   interface RegisterAnAction {

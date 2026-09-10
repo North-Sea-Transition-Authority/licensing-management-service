@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collector;
@@ -34,6 +35,13 @@ public class StreamUtil {
 
     return Arrays.stream(sets)
         .flatMap(Collection::stream)
+        .collect(Collectors.toSet());
+  }
+
+  @SafeVarargs
+  public static <T> Set<T> toSet(Optional<T>... optionals) {
+    return Arrays.stream(optionals)
+        .flatMap(Optional::stream)
         .collect(Collectors.toSet());
   }
 }

@@ -42,6 +42,7 @@ import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockRequest;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockResponse;
 import uk.co.fivium.grpc.gis.ParentLine;
+import uk.co.fivium.grpc.gis.PolygonContainsRequest;
 import uk.co.fivium.grpc.gis.ReferenceBlockValidationRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
 import uk.co.fivium.grpc.gis.TopologicallyEqualValidationRequest;
@@ -487,6 +488,23 @@ public class GrpcClientService {
 
     var response = arcgisClient.coordinatesToPolyline(request);
     return response.getPolylineEsriJson();
+  }
+
+  /**
+   * Check whether one polygon fully contains another.
+   *
+   * @param esriJsonContainerPolygon The EsriJSON of the polygon that may contain the other polygon.
+   * @param esriJsonContainedPolygon The EsriJSON of the polygon that may be contained by the other polygon.
+   * @return true if the container polygon fully contains the contained polygon, false otherwise.
+   */
+  public boolean polygonContains(String esriJsonContainerPolygon, String esriJsonContainedPolygon) {
+    var request = PolygonContainsRequest.newBuilder()
+        .setEsriJsonContainerPolygon(esriJsonContainerPolygon)
+        .setEsriJsonContainedPolygon(esriJsonContainedPolygon)
+        .build();
+
+    var response = arcgisClient.polygonContains(request);
+    return response.getContains();
   }
 
   private Point getEsriPoint(Coordinate grpcPoint) {

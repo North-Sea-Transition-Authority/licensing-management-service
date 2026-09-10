@@ -12,3 +12,4 @@ export type FindParentLinesHandler = ArcGisServiceHandlers["findParentLines"];
 export type FindNorthwestMostLineHandler = ArcGisServiceHandlers["findNorthwestMostLine"];
 export type GetLineStartAndEndPointsHandler = ArcGisServiceHandlers["getLineStartAndEndPoints"];
 export type ValidatePolygonReconstructionFromPolylinesHandler = ArcGisServiceHandlers["validatePolygonReconstructionFromPolylines"];
+export type PolygonContainsHandler = ArcGisServiceHandlers["polygonContains"];

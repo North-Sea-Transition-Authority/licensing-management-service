@@ -14,6 +14,7 @@ import {generalizePolygonHandler} from "../src/handlers/generalize-polygon-handl
 import {getLineStartAndEndPointsHandler} from "../src/handlers/get-line-start-and-end-points-handler.ts";
 import {mergeAndGeneralizeLinesHandler} from "../src/handlers/merge-and-generalize-lines-handler.ts";
 import {mergePolygonsHandler} from "../src/handlers/merge-polygons-handler.ts";
+import {polygonContainsHandler} from "../src/handlers/polygon-contains-handler.ts";
 import {splitPolygonHandler} from "../src/handlers/split-polygon-handler.ts";
 import {
   validatePolygonReconstructionFromPolylinesHandler,
@@ -125,6 +126,7 @@ describe("main()", () => {
         validatePolygonReconstructionFromPolylines: validatePolygonReconstructionFromPolylinesHandler,
         calculateArea: calculateAreaHandler,
         coordinatesToPolyline: coordinatesToPolylineHandler,
+        polygonContains: polygonContainsHandler,
         migrateBlockOrSubarea,
         validateBlockAndSubarea,
         validateTopologicallyEqual,

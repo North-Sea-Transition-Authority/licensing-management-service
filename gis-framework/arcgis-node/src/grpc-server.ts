@@ -17,6 +17,7 @@ import { generalizePolygonHandler } from "./handlers/generalize-polygon-handler"
 import { getLineStartAndEndPointsHandler } from "./handlers/get-line-start-and-end-points-handler";
 import { mergeAndGeneralizeLinesHandler } from "./handlers/merge-and-generalize-lines-handler";
 import { mergePolygonsHandler } from "./handlers/merge-polygons-handler";
+import { polygonContainsHandler } from "./handlers/polygon-contains-handler";
 import { splitPolygonHandler } from "./handlers/split-polygon-handler";
 import {
   validatePolygonReconstructionFromPolylinesHandler,
@@ -80,6 +81,7 @@ function startGrpcServer(arcGisJsProto: ProtoGrpcType["uk"]["co"]["fivium"]["grp
     validatePolygonReconstructionFromPolylines: validatePolygonReconstructionFromPolylinesHandler,
     calculateArea: calculateAreaHandler,
     coordinatesToPolyline: coordinatesToPolylineHandler,
+    polygonContains: polygonContainsHandler,
     migrateBlockOrSubarea,
     validateBlockAndSubarea,
     validateTopologicallyEqual,

@@ -68,6 +68,8 @@ import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockRequest;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockResponse;
 import uk.co.fivium.grpc.gis.ParentLine;
+import uk.co.fivium.grpc.gis.PolygonContainsRequest;
+import uk.co.fivium.grpc.gis.PolygonContainsResponse;
 import uk.co.fivium.grpc.gis.ReferenceBlockValidationRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonResponse;
@@ -741,5 +743,22 @@ class GrpcClientServiceTest {
 
     when(arcgisClient.coordinatesToPolyline(expectedRequest)).thenReturn(expectedResponse);
     assertThat(grpcClientService.convertPointsToPolyline(lineCoordinates, srsWkid)).isEqualTo("dummy esriJson polyline");
+  }
+
+  @Test
+  void polygonContains_verifyServiceClientCall() {
+    var esriJsonContainerPolygon = "dummy esriJson container polygon";
+    var esriJsonContainedPolygon = "dummy esriJson contained polygon";
+
+    var expectedRequest = PolygonContainsRequest.newBuilder()
+        .setEsriJsonContainerPolygon(esriJsonContainerPolygon)
+        .setEsriJsonContainedPolygon(esriJsonContainedPolygon)
+        .build();
+    var expectedResponse = PolygonContainsResponse.newBuilder()
+        .setContains(true)
+        .build();
+
+    when(arcgisClient.polygonContains(expectedRequest)).thenReturn(expectedResponse);
+    assertThat(grpcClientService.polygonContains(esriJsonContainerPolygon, esriJsonContainedPolygon)).isTrue();
   }
 }

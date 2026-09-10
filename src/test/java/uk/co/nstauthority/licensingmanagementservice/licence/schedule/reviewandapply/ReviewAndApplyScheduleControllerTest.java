@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.CrossLicenceEventTrackerService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.ScheduleRelativeDateValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
@@ -43,6 +44,9 @@ class ReviewAndApplyScheduleControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private ScheduleRelativeDateValidationService scheduleRelativeDateValidationService;
+
+  @MockitoBean
+  private CrossLicenceEventTrackerService crossLicenceEventTrackerService;
 
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
@@ -167,6 +171,7 @@ class ReviewAndApplyScheduleControllerTest extends AbstractControllerTest {
 
     verify(eventCommentService).publishPendingCommentsForSchedule(licenceScheduleDetail.getLicenceSchedule());
     verify(licenceScheduleDetailService).applyAndReplaceActiveScheduleDetail(licenceScheduleDetail);
+    verify(crossLicenceEventTrackerService).refreshScheduleCache(licenceScheduleDetail);
   }
 
   @Test

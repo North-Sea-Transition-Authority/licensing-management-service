@@ -14,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTea
 import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.CrossLicenceEventTrackerService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.ScheduleRelativeDateValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -39,19 +40,22 @@ public class ReviewAndApplyScheduleController {
   private final LicenceScheduleTimelineService licenceScheduleTimelineService;
   private final EventCommentService eventCommentService;
   private final ScheduleRelativeDateValidationService scheduleRelativeDateValidationService;
+  private final CrossLicenceEventTrackerService crossLicenceEventTrackerService;
 
   public ReviewAndApplyScheduleController(
       LicenceService licenceService,
       LicenceScheduleDetailService licenceScheduleDetailService,
       LicenceScheduleTimelineService licenceScheduleTimelineService,
       EventCommentService eventCommentService,
-      ScheduleRelativeDateValidationService scheduleRelativeDateValidationService
+      ScheduleRelativeDateValidationService scheduleRelativeDateValidationService,
+      CrossLicenceEventTrackerService crossLicenceEventTrackerService
   ) {
     this.licenceService = licenceService;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.licenceScheduleTimelineService = licenceScheduleTimelineService;
     this.eventCommentService = eventCommentService;
     this.scheduleRelativeDateValidationService = scheduleRelativeDateValidationService;
+    this.crossLicenceEventTrackerService = crossLicenceEventTrackerService;
   }
 
   @GetMapping
@@ -79,6 +83,7 @@ public class ReviewAndApplyScheduleController {
   ) {
     eventCommentService.publishPendingCommentsForSchedule(licenceScheduleDetail.getLicenceSchedule());
     licenceScheduleDetailService.applyAndReplaceActiveScheduleDetail(licenceScheduleDetail);
+    crossLicenceEventTrackerService.refreshScheduleCache(licenceScheduleDetail);
 
     var licenceReference = licenceScheduleDetail.getLicenceSchedule().getLicence().getLicenceReference();
 

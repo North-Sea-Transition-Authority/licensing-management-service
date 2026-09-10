@@ -1,28 +1,38 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import jakarta.transaction.Transactional;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableRow;
+import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableValue;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableView;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 @Service
@@ -33,18 +43,22 @@ public class CrossLicenceEventTrackerService {
   private final LicenceEventCacheRepository licenceEventCacheRepository;
   private final LicenceService licenceService;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
+  private final WorkProgrammeActivityService workProgrammeActivityService;
 
-  public CrossLicenceEventTrackerService(LicenceScheduleTermService licenceScheduleTermService,
-                                         LicenceSchedulePhaseService licenceSchedulePhaseService,
-                                         LicenceEventCacheRepository licenceEventCacheRepository,
-                                         LicenceService licenceService,
-                                         LicenceResponsibleOrganisationService licenceResponsibleOrganisationService
+  public CrossLicenceEventTrackerService(
+      LicenceScheduleTermService licenceScheduleTermService,
+      LicenceSchedulePhaseService licenceSchedulePhaseService,
+      LicenceEventCacheRepository licenceEventCacheRepository,
+      LicenceService licenceService,
+      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
+      WorkProgrammeActivityService workProgrammeActivityService
   ) {
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
     this.licenceEventCacheRepository = licenceEventCacheRepository;
     this.licenceService = licenceService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
+    this.workProgrammeActivityService = workProgrammeActivityService;
   }
 
   public SortableTableView getEventTrackerTable() {
@@ -96,12 +110,18 @@ public class CrossLicenceEventTrackerService {
         ? DateFormatUtil.convertToDisplayText(eventCache.getEventDate())
         : "";
     var workProgrammeActivity = eventCache.getActivityType() != null
-        ? eventCache.getActivityType().getDisplayName()
+        ? eventCache.getActivityType()
         : "";
     var licensees = String.join(", ", licenseesByLicenceId.getOrDefault(eventCache.getLicenceId(), List.of()));
 
+    var licenceLink = StringUtils.removeStart(
+        ReverseRouter.route(on(LicenceScheduleTabController.class)
+            .renderLicenceOverview(eventCache.getLicenceId(), null, null, null)),
+        "/"
+    );
+
     return SortableTableRow.builder()
-        .withValue(eventCache.getLicenceReference())
+        .withValue(new SortableTableValue(eventCache.getLicenceReference(), null, licenceLink, List.of()))
         .withValue(getTermPhaseTransition(eventCache))
         .withValue(workProgrammeActivity)
         .withValue(eventDate)
@@ -130,9 +150,11 @@ public class CrossLicenceEventTrackerService {
 
     var terms = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail);
     var phases = licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail);
+    var workProgrammeActivities = workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail);
 
     refreshLicenceTerms(licence, terms, phases, existingEventCaches);
     refreshLicencePhases(licence, terms, phases, existingEventCaches);
+    refreshWorkProgrammeActivities(licence, workProgrammeActivities, terms, phases, existingEventCaches);
   }
 
   private void refreshLicenceTerms(
@@ -188,7 +210,7 @@ public class CrossLicenceEventTrackerService {
     phases.sort(Comparator.comparing(phase -> phase.getPhaseType().getDisplayOrder()));
 
     var phasesToAdd = phases.stream()
-        .map(phase -> createOrUpdateEventCacheForPhase(licence, phase, terms, existingEventCaches))
+        .map(phase -> createOrUpdateEventCacheForPhase(licence, phase, terms, phases, existingEventCaches))
         .toList();
 
     licenceEventCacheRepository.saveAll(phasesToAdd);
@@ -198,16 +220,12 @@ public class CrossLicenceEventTrackerService {
       Licence licence,
       LicenceSchedulePhase phase,
       List<LicenceScheduleTerm> terms,
+      List<LicenceSchedulePhase> phases,
       Map<UUID, LicenceEventCache> existingEventCaches
   ) {
-    var termIds = terms.stream()
-        .map(LicenceScheduleTerm::getId)
-        .toList();
-
-    var nextTermIndex = termIds.indexOf(phase.getLicenceScheduleTerm().getId()) + 1;
-    var nextTermPhase = nextTermIndex > 0 && nextTermIndex < terms.size()
-        ? terms.get(nextTermIndex).getTermType().getDisplayName()
-        : "";
+    var nextTermPhase = getNextPhaseInSameTerm(phase, phases)
+        .map(nextPhase -> nextPhase.getPhaseType().getDisplayName())
+        .orElseGet(() -> getNextTermDisplayName(terms, phase.getLicenceScheduleTerm().getId()));
 
     var cache = existingEventCaches.getOrDefault(phase.getOriginalEventId(), new LicenceEventCache());
     cache.setLicenceId(licence.getId());
@@ -219,5 +237,103 @@ public class CrossLicenceEventTrackerService {
     cache.setEventDate(phase.getEndDate());
 
     return cache;
+  }
+
+  private void refreshWorkProgrammeActivities(
+      Licence licence,
+      List<WorkProgrammeActivity> workProgrammeActivities,
+      List<LicenceScheduleTerm> terms,
+      List<LicenceSchedulePhase> phases,
+      Map<UUID, LicenceEventCache> existingEventCaches
+  ) {
+    var activitiesToAdd = workProgrammeActivities.stream()
+        .map(activity -> createOrUpdateEventCacheForActivity(licence, activity, terms, phases, existingEventCaches))
+        .toList();
+
+    licenceEventCacheRepository.saveAll(activitiesToAdd);
+  }
+
+  private LicenceEventCache createOrUpdateEventCacheForActivity(
+      Licence licence,
+      WorkProgrammeActivity workProgrammeActivity,
+      List<LicenceScheduleTerm> terms,
+      List<LicenceSchedulePhase> phases,
+      Map<UUID, LicenceEventCache> existingEventCaches
+  ) {
+    var cache = existingEventCaches.getOrDefault(workProgrammeActivity.getOriginalEventId(), new LicenceEventCache());
+    cache.setLicenceId(licence.getId());
+    cache.setLicenceReference(licence.getLicenceReference());
+    cache.setOriginalEventId(workProgrammeActivity.getOriginalEventId());
+    cache.setEventType(ScheduleEventType.WORK_PROGRAMME_ACTIVITY);
+    cache.setActivityType(workProgrammeActivity.getCategoryString());
+    cache.setEventDate(getWorkProgrammeActivityDate(workProgrammeActivity));
+
+    if (!workProgrammeActivity.getDateOption().equals(WorkProgrammeActivityDateOption.RELATIVE_DATE)) {
+      cache.setCurrentTermPhase(getWorkProgrammeActivityCurrentTermPhase(workProgrammeActivity));
+      cache.setNextTermPhase(getWorkProgrammeActivityNextTermPhase(workProgrammeActivity, terms, phases));
+    }
+
+    return cache;
+  }
+
+  private LocalDate getWorkProgrammeActivityDate(WorkProgrammeActivity workProgrammeActivity) {
+    if (workProgrammeActivity.getDateOption().equals(WorkProgrammeActivityDateOption.RELATIVE_DATE)) {
+      return workProgrammeActivity.getDueDate();
+    }
+
+    if (workProgrammeActivity.getDateOption().equals(WorkProgrammeActivityDateOption.WITHIN_A_TERM)) {
+      return workProgrammeActivity.getLicenceScheduleTerm().getEndDate();
+    }
+
+    return workProgrammeActivity.getLicenceSchedulePhase().getEndDate();
+  }
+
+  private String getWorkProgrammeActivityCurrentTermPhase(WorkProgrammeActivity workProgrammeActivity) {
+    if (workProgrammeActivity.getDateOption().equals(WorkProgrammeActivityDateOption.WITHIN_A_TERM)) {
+      return workProgrammeActivity.getLicenceScheduleTerm().getTermType().getDisplayName();
+    }
+
+    return workProgrammeActivity.getLicenceSchedulePhase().getPhaseType().getDisplayName();
+  }
+
+  private String getWorkProgrammeActivityNextTermPhase(
+      WorkProgrammeActivity workProgrammeActivity,
+      List<LicenceScheduleTerm> terms,
+      List<LicenceSchedulePhase> phases
+  ) {
+    if (workProgrammeActivity.getDateOption().equals(WorkProgrammeActivityDateOption.WITHIN_A_PHASE)) {
+      var phase = workProgrammeActivity.getLicenceSchedulePhase();
+      return getNextPhaseInSameTerm(phase, phases)
+          .map(nextPhase -> nextPhase.getPhaseType().getDisplayName())
+          .orElseGet(() -> getNextTermDisplayName(terms, phase.getLicenceScheduleTerm().getId()));
+    }
+
+    return getNextTermDisplayName(terms, workProgrammeActivity.getLicenceScheduleTerm().getId());
+  }
+
+  private String getNextTermDisplayName(List<LicenceScheduleTerm> terms, UUID termId) {
+    var termIds = terms.stream()
+        .map(LicenceScheduleTerm::getId)
+        .toList();
+
+    var nextTermIndex = termIds.indexOf(termId) + 1;
+    return nextTermIndex > 0 && nextTermIndex < terms.size()
+        ? terms.get(nextTermIndex).getTermType().getDisplayName()
+        : "";
+  }
+
+  private Optional<LicenceSchedulePhase> getNextPhaseInSameTerm(LicenceSchedulePhase phase, List<LicenceSchedulePhase> phases) {
+    var phasesInTerm = phases.stream()
+        .filter(candidate -> candidate.getLicenceScheduleTerm().getId().equals(phase.getLicenceScheduleTerm().getId()))
+        .toList();
+
+    var phaseIds = phasesInTerm.stream()
+        .map(LicenceSchedulePhase::getId)
+        .toList();
+
+    var nextPhaseIndex = phaseIds.indexOf(phase.getId()) + 1;
+    return nextPhaseIndex > 0 && nextPhaseIndex < phasesInTerm.size()
+        ? Optional.of(phasesInTerm.get(nextPhaseIndex))
+        : Optional.empty();
   }
 }

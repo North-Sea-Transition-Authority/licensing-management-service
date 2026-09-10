@@ -12,7 +12,6 @@ import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCategory;
 
 /**
  * Flat, denormalised cache of licence events used by the cross licence event tracker.
@@ -44,8 +43,7 @@ public class LicenceEventCache {
 
   private String nextTermPhase;
 
-  @Enumerated(EnumType.STRING)
-  private WorkProgrammeActivityCategory activityType;
+  private String activityType;
 
   private LocalDate eventDate;
 
@@ -114,11 +112,11 @@ public class LicenceEventCache {
     this.nextTermPhase = nextTermPhase;
   }
 
-  public WorkProgrammeActivityCategory getActivityType() {
+  public String getActivityType() {
     return activityType;
   }
 
-  public void setActivityType(WorkProgrammeActivityCategory activityType) {
+  public void setActivityType(String activityType) {
     this.activityType = activityType;
   }
 

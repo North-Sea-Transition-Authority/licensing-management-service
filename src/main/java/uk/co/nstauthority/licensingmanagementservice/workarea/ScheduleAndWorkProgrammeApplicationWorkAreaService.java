@@ -5,6 +5,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -12,6 +13,9 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -38,12 +42,15 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
 @Service
 public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkAreaItemProvider {
 
+  static final String STEWARD_USER_PURPOSE = "Fetch steward users for schedule work programme work area items";
+
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final ApplicationAccessService applicationAccessService;
   private final WorkAreaItemViewService workAreaItemViewService;
   private final RegulatorRoleService regulatorRoleService;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final OrganisationGroupQueryService organisationGroupQueryService;
+  private final EnergyPortalUserService energyPortalUserService;
 
   public ScheduleAndWorkProgrammeApplicationWorkAreaService(
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
@@ -51,7 +58,8 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       WorkAreaItemViewService workAreaItemViewService,
       RegulatorRoleService regulatorRoleService,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
-      OrganisationGroupQueryService organisationGroupQueryService
+      OrganisationGroupQueryService organisationGroupQueryService,
+      EnergyPortalUserService energyPortalUserService
   ) {
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.applicationAccessService = applicationAccessService;
@@ -59,6 +67,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
     this.regulatorRoleService = regulatorRoleService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.organisationGroupQueryService = organisationGroupQueryService;
+    this.energyPortalUserService = energyPortalUserService;
   }
 
   @Override
@@ -101,7 +110,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
         .map(WorkAreaItemView::getItemId)
         .collect(Collectors.toSet());
 
-    return allApplicationDetails.stream()
+    var visibleApplicationDetails = allApplicationDetails.stream()
         .filter(applicationDetail -> matchesFilterAndHasAccess(
             applicationDetail,
             licenceByApplicationDetail.get(applicationDetail),
@@ -111,16 +120,33 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
             orgUnitToGroupMap,
             licenseeGroupOrgUnitIds,
             isRegulator
-            )
-        )
+        ))
+        .toList();
+
+    var stewardsByWuaId = getStewardsByWuaId(visibleApplicationDetails);
+
+    return visibleApplicationDetails.stream()
         .map(applicationDetail -> createWorkAreaItem(
             applicationDetail,
             licenceByApplicationDetail.get(applicationDetail),
             responsibleOrganisations,
             viewedItemIds,
+            stewardsByWuaId,
             decisionIssuer
         ))
         .toList();
+  }
+
+  private Map<WebUserAccountId, EnergyPortalUserJson> getStewardsByWuaId(
+      List<ScheduleWorkProgrammeApplicationDetail> visibleApplicationDetails
+  ) {
+    var stewardWuaIds = visibleApplicationDetails.stream()
+        .map(applicationDetail -> applicationDetail.getScheduleWorkProgrammeApplication().getStewardWuaId())
+        .filter(Objects::nonNull)
+        .map(WebUserAccountId::from)
+        .collect(Collectors.toSet());
+
+    return energyPortalUserService.getEnergyPortalUserMap(stewardWuaIds, STEWARD_USER_PURPOSE);
   }
 
   private SearchResultItem createWorkAreaItem(
@@ -128,6 +154,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       Licence licence,
       Map<Licence, List<OrganisationUnit>> responsibleOrganisationsByLicences,
       Set<UUID> viewedItemIds,
+      Map<WebUserAccountId, EnergyPortalUserJson> stewardsByWuaId,
       boolean decisionIssuer
   ) {
     var licensees = responsibleOrganisationsByLicences.getOrDefault(
@@ -140,10 +167,18 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
         .filter(Objects::nonNull)
         .toList();
 
+    var stewardWuaId = applicationDetail.getScheduleWorkProgrammeApplication().getStewardWuaId();
+    var stewardName = Optional.ofNullable(stewardWuaId)
+        .map(WebUserAccountId::from)
+        .map(stewardsByWuaId::get)
+        .map(EnergyPortalUserJson::displayName)
+        .orElse("Not allocated");
+
     var dataItemRow = SummaryDataView.newBuilder()
         .addStringValue("Licence", licence.getLicenceReference())
         .addStringValue("Licensees", String.join(", ", licensees))
         .addStringValue("Status", applicationDetail.getStatus().getDisplayName())
+        .addStringValue("Steward", stewardName)
         .build();
 
     var linkHeadingUrl = switch (applicationDetail.getStatus()) {

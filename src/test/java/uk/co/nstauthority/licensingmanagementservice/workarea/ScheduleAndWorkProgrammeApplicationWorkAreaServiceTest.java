@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
@@ -72,6 +76,9 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
   @Mock
   private OrganisationGroupQueryService organisationGroupQueryService;
 
+  @Mock
+  private EnergyPortalUserService energyPortalUserService;
+
   @InjectMocks
   private ScheduleAndWorkProgrammeApplicationWorkAreaService scheduleAndWorkProgrammeApplicationWorkAreaService;
 
@@ -100,6 +107,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     scheduleWorkProgrammeApplicationDetail2 = createScheduleWorkProgrammeApplicationDetail(licence2, testInstant.minus(1, ChronoUnit.HOURS), "LMS/EEA/002");
 
     when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
+    when(energyPortalUserService.getEnergyPortalUserMap(any(), any())).thenReturn(Map.of());
   }
 
   @Test
@@ -126,11 +134,13 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
         .addStringValue("Licence", licence1.getLicenceReference())
         .addStringValue("Licensees", String.join(", ", orgList1))
         .addStringValue("Status", scheduleWorkProgrammeApplicationDetail1.getStatus().getDisplayName())
+        .addStringValue("Steward", "Not allocated")
         .build();
     var summaryDataView2 = SummaryDataView.newBuilder()
         .addStringValue("Licence", licence2.getLicenceReference())
         .addStringValue("Licensees", String.join(", ", orgList2))
         .addStringValue("Status", scheduleWorkProgrammeApplicationDetail2.getStatus().getDisplayName())
+        .addStringValue("Steward", "Not allocated")
         .build();
 
     assertThat(workAreaItems)
@@ -210,6 +220,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
         .addStringValue("Licence", licence1.getLicenceReference())
         .addStringValue("Licensees", org1)
         .addStringValue("Status", ApplicationStatus.SUBMITTED.getDisplayName())
+        .addStringValue("Steward", "Not allocated")
         .build();
 
     assertThat(workAreaItems)
@@ -388,6 +399,67 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     verify(workAreaItemViewService, never()).hasUserViewedItem(any());
   }
 
+  @Test
+  void getWorkAreaItems_whenStewardAllocated_showsStewardName() {
+    var stewardWuaId = 456L;
+    scheduleWorkProgrammeApplicationDetail1.getScheduleWorkProgrammeApplication().setStewardWuaId(stewardWuaId);
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
+
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, true);
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail2, false);
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
+        .thenReturn(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
+
+    var steward = new EnergyPortalUserJson(stewardWuaId, null, "Jane", "Doe", null, null, true, null, false);
+    when(energyPortalUserService.getEnergyPortalUserMap(
+        Set.of(WebUserAccountId.from(stewardWuaId)),
+        ScheduleAndWorkProgrammeApplicationWorkAreaService.STEWARD_USER_PURPOSE
+    ))
+        .thenReturn(Map.of(WebUserAccountId.from(stewardWuaId), steward));
+
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    var summaryDataView = SummaryDataView.newBuilder()
+        .addStringValue("Licence", licence1.getLicenceReference())
+        .addStringValue("Licensees", "Org 1")
+        .addStringValue("Status", ApplicationStatus.SUBMITTED.getDisplayName())
+        .addStringValue("Steward", "Jane Doe")
+        .build();
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::dataItemRows)
+        .containsExactly(List.of(summaryDataView));
+  }
+
+  @Test
+  void getWorkAreaItems_resolvesStewardNamesInOneBatchedCall_notPerItem() {
+    var stewardWuaId = 456L;
+    scheduleWorkProgrammeApplicationDetail1.getScheduleWorkProgrammeApplication().setStewardWuaId(stewardWuaId);
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
+    scheduleWorkProgrammeApplicationDetail2.setStatus(ApplicationStatus.SUBMITTED);
+    scheduleWorkProgrammeApplicationDetail2.setSubmittedDatetime(testInstant);
+
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
+        .thenReturn(Map.of(
+            licence1, List.of(new OrganisationUnit(1, "Org 1")),
+            licence2, List.of(new OrganisationUnit(2, "Org 2"))
+        ));
+
+    scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    verify(energyPortalUserService, times(1)).getEnergyPortalUserMap(
+        Set.of(WebUserAccountId.from(stewardWuaId)),
+        ScheduleAndWorkProgrammeApplicationWorkAreaService.STEWARD_USER_PURPOSE
+    );
+  }
+
   private void mockIsDecisionIssuer() {
     when(regulatorRoleService.isDecisionIssuer(serviceUserDetail)).thenReturn(true);
   }
@@ -411,6 +483,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
         .addStringValue("Licence", licence2.getLicenceReference())
         .addStringValue("Licensees", String.join(", ", org1))
         .addStringValue("Status", scheduleWorkProgrammeApplicationDetail2.getStatus().getDisplayName())
+        .addStringValue("Steward", "Not allocated")
         .build();
 
     assertThat(workAreaItems)
@@ -636,6 +709,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
         .addStringValue("Licence", licence1.getLicenceReference())
         .addStringValue("Licensees", String.join(", ", orgList1))
         .addStringValue("Status", scheduleWorkProgrammeApplicationDetail1.getStatus().getDisplayName())
+        .addStringValue("Steward", "Not allocated")
         .build();
 
     assertThat(workAreaItems)

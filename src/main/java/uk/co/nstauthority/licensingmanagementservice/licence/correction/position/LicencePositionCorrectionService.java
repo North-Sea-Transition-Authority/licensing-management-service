@@ -339,7 +339,7 @@ public class LicencePositionCorrectionService {
   ) {
     return licencePositionCorrectionRepository.findByLicenceCorrection(licenceCorrection)
         .stream()
-        .filter(correction -> containsChange(correction.getPayload(), changeId))
+        .filter(correction -> containsChange(correction, changeId))
         .findFirst()
         .orElseThrow(() -> new LmsEntityNotFoundException(
             "No position correction containing change with id %s found for licence correction %s"
@@ -677,7 +677,10 @@ public class LicencePositionCorrectionService {
     );
   }
 
-  private static boolean containsChange(LicencePositionPayload payload, String changeId) {
-    return payload.changes().stream().anyMatch(change -> changeId.equals(change.changeId()));
+  private boolean containsChange(LicencePositionCorrection licencePositionCorrection, String changeId) {
+    var payload = licencePositionCorrection.getPayload();
+
+    return payload != null
+        && payload.changes().stream().anyMatch(change -> changeId.equals(change.changeId()));
   }
 }

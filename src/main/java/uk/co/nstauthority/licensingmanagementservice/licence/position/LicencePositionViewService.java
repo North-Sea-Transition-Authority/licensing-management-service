@@ -151,7 +151,7 @@ public class LicencePositionViewService {
         removedPositionIds,
         updatedCorrections,
         addedPositionCorrections,
-        licencePosition.getId()
+        Set.of(licencePosition.getId())
     );
 
     // Removed position is kept in allChronologicalPositions (for rendering) it needs to be excluded from validation
@@ -247,7 +247,7 @@ public class LicencePositionViewService {
         removedPositionIds,
         updatedCorrections,
         addedPositionCorrections,
-        addedPositionId
+        Set.of(addedPositionId)
     );
     var resolvedStates = LicencePositionStateResolver.resolve(allChronologicalPositions);
     var featureNames = resolveFeatureNames(allChronologicalPositions);
@@ -315,6 +315,13 @@ public class LicencePositionViewService {
       LicenceCorrection licenceCorrection,
       UUID currentLicencePositionId
   ) {
+    return getCorrectedChronologicalPositions(licenceCorrection, Set.of(currentLicencePositionId));
+  }
+
+  public List<ChronologicalPosition> getCorrectedChronologicalPositions(
+      LicenceCorrection licenceCorrection,
+      Set<UUID> retainedRemovedPositionIds
+  ) {
     var executedChronologicalLicencePositions =
         licencePositionService.getExecutedChronologicalLicencePositions(licenceCorrection.getLicence());
     var positionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection);
@@ -323,7 +330,7 @@ public class LicencePositionViewService {
         removedPositionIds(positionCorrections),
         correctionsOfType(positionCorrections, LicencePositionCorrectionChangeType.UPDATE_POSITION),
         correctionsOfType(positionCorrections, LicencePositionCorrectionChangeType.ADD_POSITION),
-        currentLicencePositionId
+        retainedRemovedPositionIds
     );
   }
 
@@ -345,7 +352,7 @@ public class LicencePositionViewService {
       Set<UUID> removedPositionIds,
       List<LicencePositionCorrection> updatedCorrections,
       List<LicencePositionCorrection> addedCorrections,
-      UUID currentLicencePositionId
+      Set<UUID> retainedRemovedPositionIds
   ) {
     var liveChangesByPositionId = getLiveChangesByPositionId(executedChronologicalLicencePositions);
 
@@ -354,9 +361,9 @@ public class LicencePositionViewService {
     var chronologicalPositions = new ArrayList<ChronologicalPosition>();
 
     // Positions removed in this correction are excluded from the state/change recalculation so their operations no
-    // longer contribute, except for the position currently being viewed which is retained so its own page still renders.
+    // longer contribute, except for those in retainedRemovedPositionIds which are kept so their own pages still render.
     executedChronologicalLicencePositions.stream()
-        .filter(position -> position.getId().equals(currentLicencePositionId)
+        .filter(position -> retainedRemovedPositionIds.contains(position.getId())
             || !removedPositionIds.contains(position.getId()))
         .forEach(position -> {
           var correctedPayload = correctedPayloadsByPositionId.get(position.getId());
@@ -409,7 +416,7 @@ public class LicencePositionViewService {
         .orElse(null);
   }
 
-  private Map<Integer, String> resolveOrganisationNames(List<ChronologicalPosition> chronologicalPositions) {
+  public Map<Integer, String> resolveOrganisationNames(List<ChronologicalPosition> chronologicalPositions) {
     var organisationIds = resolveIds(chronologicalPositions, LicenceOperation::organisationIds);
 
     if (organisationIds.isEmpty()) {
@@ -419,7 +426,7 @@ public class LicencePositionViewService {
     return organisationUnitQueryService.getOrganisationUnitNamesByIds(organisationIds);
   }
 
-  private Map<UUID, String> resolveFeatureNames(List<ChronologicalPosition> chronologicalPositions) {
+  public Map<UUID, String> resolveFeatureNames(List<ChronologicalPosition> chronologicalPositions) {
     var featureIds = resolveIds(chronologicalPositions, LicenceOperation::featureIds);
 
     if (featureIds.isEmpty()) {

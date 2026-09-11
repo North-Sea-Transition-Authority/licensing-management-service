@@ -7,6 +7,7 @@ import jakarta.annotation.Nullable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +59,57 @@ public final class LicencePositionChangeViewResolver {
       Map<UUID, String> featureNames,
       @Nullable PositionChangeUrlContext urlContext
   ) {
+    return viewsForPosition(
+        currentPositionId,
+        chronologicalPositions,
+        resolvedStates,
+        new ChangeViewContext(organisationNames, featureNames, urlContext)
+    )
+        .stream()
+        .map(ChangeViews::viewsByOperationType)
+        .map(Map::values)
+        .flatMap(Collection::stream)
+        .toList();
+  }
+
+
+  private static List<ChangeViews> viewsByChange(
+      UUID currentPositionId,
+      List<PositionChange> currentPositionChanges,
+      LicencePositionState stateBeforeCurrentPosition,
+      @Nullable LocalDate currentPositionDate,
+      ChangeViewContext context,
+      boolean canReorder
+  ) {
+    var viewsByChange = new ArrayList<ChangeViews>();
+    var stateBeforeChange = stateBeforeCurrentPosition;
+
+    for (var change : currentPositionChanges) {
+      var correctChangeOrderUrl = canReorder
+          ? correctChangeOrderUrl(context.urlContext(), change, currentPositionId)
+          : null;
+
+      var changeViews = new LinkedHashMap<String, LicencePositionChangeView>();
+
+      for (var operation : change.operations()) {
+        changeViews.merge(
+            operation.type(),
+            toView(operation, change, stateBeforeChange, currentPositionDate, context, correctChangeOrderUrl),
+            LicencePositionChangeView::merge
+        );
+      }
+      stateBeforeChange = LicencePositionStateResolver.applyChange(stateBeforeChange, change);
+      viewsByChange.add(new ChangeViews(change.changeId(), changeViews));
+    }
+    return viewsByChange;
+  }
+
+  private static List<ChangeViews> viewsForPosition(
+      UUID currentPositionId,
+      List<ChronologicalPosition> chronologicalPositions,
+      ResolvedStates resolvedStates,
+      ChangeViewContext context
+  ) {
     var stateBeforeCurrentPosition = resolvedStates.previousState(currentPositionId);
 
     var currentPosition = chronologicalPositions.stream()
@@ -72,33 +124,14 @@ public final class LicencePositionChangeViewResolver {
 
     var canReorder = currentPositionChanges.stream().filter(PositionChange::isOrderable).count() > 1;
 
-    var changeViews = new ArrayList<LicencePositionChangeView>();
-    var stateBeforeChange = stateBeforeCurrentPosition;
-
-    for (var change : currentPositionChanges) {
-      var correctChangeOrderUrl = canReorder
-          ? correctChangeOrderUrl(urlContext, change, currentPositionId)
-          : null;
-      var stateForChange = stateBeforeChange;
-
-      // Merge a change's operations of the same type into one card, keeping distinct types as separate cards.
-      var viewsByType = new LinkedHashMap<String, LicencePositionChangeView>();
-      for (var operation : change.operations()) {
-        var view = toView(operation, change, stateForChange,
-            currentPositionDate,
-            organisationNames,
-            featureNames,
-            urlContext,
-            correctChangeOrderUrl
-        );
-        viewsByType.merge(view.type(), view, LicencePositionChangeView::merge);
-      }
-      changeViews.addAll(viewsByType.values());
-
-      stateBeforeChange = LicencePositionStateResolver.applyChange(stateBeforeChange, change);
-    }
-
-    return changeViews;
+    return viewsByChange(
+        currentPositionId,
+        currentPositionChanges,
+        stateBeforeCurrentPosition,
+        currentPositionDate,
+        context,
+        canReorder
+    );
   }
 
   public static Map<UUID, String> getOrderableChangeLabels(
@@ -137,24 +170,34 @@ public final class LicencePositionChangeViewResolver {
       PositionChange change,
       LicencePositionState previousState,
       @Nullable LocalDate currentPositionDate,
-      Map<Integer, String> organisationNames,
-      Map<UUID, String> featureNames,
-      @Nullable PositionChangeUrlContext urlContext,
+      ChangeViewContext context,
       @Nullable String correctChangeOrderUrl
   ) {
     return switch (operation) {
       case AdministratorOperation administratorChange ->
-          buildAdministratorChange(administratorChange, change, previousState, organisationNames, urlContext,
-              correctChangeOrderUrl);
+          buildAdministratorChange(
+              administratorChange,
+              change,
+              previousState,
+              context.organisationNames(),
+              context.urlContext(),
+              correctChangeOrderUrl
+          );
       case SetEquityOperation setEquityOperation ->
-          buildSetEquityChangeView(setEquityOperation, change, organisationNames, urlContext, correctChangeOrderUrl);
+          buildSetEquityChangeView(
+              setEquityOperation,
+              change,
+              context.organisationNames(),
+              context.urlContext(),
+              correctChangeOrderUrl
+          );
       case TransferEquityOperation transferEquityOperation ->
           buildTransferEquityChangeView(
               transferEquityOperation,
               change,
               previousState,
-              organisationNames,
-              urlContext,
+              context.organisationNames(),
+              context.urlContext(),
               correctChangeOrderUrl
           );
       case PartialSurrenderOperation partialSurrenderOperation ->
@@ -162,12 +205,12 @@ public final class LicencePositionChangeViewResolver {
               partialSurrenderOperation,
               change,
               currentPositionDate,
-              featureNames,
-              urlContext,
+              context.featureNames(),
+              context.urlContext(),
               correctChangeOrderUrl
           );
       case SubareaOperation subareaOperation ->
-          buildSubareaChange(subareaOperation, change, featureNames, correctChangeOrderUrl);
+          buildSubareaChange(subareaOperation, change, context.featureNames(), correctChangeOrderUrl);
     };
   }
 
@@ -440,6 +483,19 @@ public final class LicencePositionChangeViewResolver {
       String addedPosition,
       String executedPosition,
       String correctingChange
+  ) {
+  }
+
+  private record ChangeViews(
+      String changeId,
+      Map<String, LicencePositionChangeView> viewsByOperationType
+  ) {
+  }
+
+  private record ChangeViewContext(
+      Map<Integer, String> organisationNames,
+      Map<UUID, String> featureNames,
+      @Nullable PositionChangeUrlContext urlContext
   ) {
   }
 

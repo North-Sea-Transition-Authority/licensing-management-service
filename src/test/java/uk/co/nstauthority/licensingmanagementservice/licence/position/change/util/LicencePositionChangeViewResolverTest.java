@@ -1260,6 +1260,38 @@ class LicencePositionChangeViewResolverTest {
             .build()));
   }
 
+  @Test
+  void getChangeViews_returnsAViewPerChangeInChangeOrder() {
+    var positionId = UUID.randomUUID();
+
+    var result = changeOrderChangeViews(positionId, List.of(
+        administratorChange(UUID.randomUUID().toString(), null),
+        setEquityChange(UUID.randomUUID().toString(), null),
+        partialSurrenderChange(UUID.randomUUID().toString(), null)), null);
+
+    assertThat(result)
+        .extracting(LicencePositionChangeView::type)
+        .containsExactly(
+            LicenceOperation.LICENCE_ADMINISTRATOR,
+            LicenceOperation.SET_EQUITY,
+            LicenceOperation.PARTIAL_SURRENDER);
+  }
+
+  @Test
+  void getChangeViews_whenTwoChangesShareAnOperationType_doesNotMergeThem() {
+    var positionId = UUID.randomUUID();
+
+    var result = changeOrderChangeViews(positionId, List.of(
+        setEquityChange(UUID.randomUUID().toString(), null),
+        setEquityChange(UUID.randomUUID().toString(), null)), null);
+
+    var expectedView = new SetEquityChangeView(
+        List.of(new SetEquityRow(SET_EQUITY_ORG_NAME, BigDecimal.valueOf(75))),
+        null,
+        ChangeViewUrls.none());
+    assertThat(result).containsExactly(expectedView, expectedView);
+  }
+
   private static LicencePositionChangeView byType(List<LicencePositionChangeView> views, String type) {
     return views.stream()
         .filter(view -> view.type().equals(type))

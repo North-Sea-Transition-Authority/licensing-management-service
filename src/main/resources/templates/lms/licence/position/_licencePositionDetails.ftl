@@ -54,16 +54,10 @@
     </@fdsDetails.summaryDetails>
   </#if>
   <#list licencePositionChanges?reverse as change>
-    <#if change.type() == "licence-administrator" && !isCarbonStorage>
-      <@positionChanges.administratorChange change=change/>
-    <#elseif change.type() == "set-equity">
-      <@positionChanges.setEquityChange change=change/>
-    <#elseif change.type() == "transfer-equity">
-      <@positionChanges.transferEquityChange change=change/>
-    <#elseif change.type() == "partial-surrender">
-      <@positionChanges.partialSurrenderChange change=change/>
-    <#elseif change.type() == "subarea">
-      <@positionChanges.subAreaChange change=change/>
-    </#if>
+    <@positionChanges.changeCard
+      change=change
+      summaryListId=change.type()
+      isCarbonStorage=isCarbonStorage
+    />
   </#list>
 </#macro>

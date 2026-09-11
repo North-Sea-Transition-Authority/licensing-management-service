@@ -1,6 +1,7 @@
 <#include '../../layout/layout.ftl'>
 <#import '../position/_licencePositionTimeLine.ftl' as licencePositionTimeLine>
 <#import '../position/_licencePositionDetails.ftl' as licencePositionDetails>
+<#import '_correctionDetailsCard.ftl' as correctionDetailsCard>
 
 <@defaultPage
   htmlTitle=pageTitle
@@ -9,36 +10,11 @@
   caption=pageCaption
   errorSummaryItems=licencePositionPageView.errorSummaryItems()
 >
-    <#assign correctionDetailsCardActions>
-        <#if canUpdateGeneralDetails>
-      <@fdsSummaryList.summaryListCardActionList>
-          <@fdsSummaryList.summaryListCardActionItem
-            itemUrl=springUrl(updateGeneralDetailsUrl)
-            itemText="Update"
-            itemScreenReaderText="correction details"
-          />
-      </@fdsSummaryList.summaryListCardActionList>
-  </#if>
-    </#assign>
-
-    <@fdsSummaryList.summaryListCard
-     summaryListId="correction-details"
-     headingText="Correction details"
-     cardActionsContent=correctionDetailsCardActions
-    >
-    <@fdsSummaryList.summaryListRowNoAction keyText="Correction reference">
-      ${correction.getCorrectionReference()}
-    </@fdsSummaryList.summaryListRowNoAction>
-    <@fdsSummaryList.summaryListRowNoAction keyText="Reason for correction">
-      ${correction.getReason()}
-    </@fdsSummaryList.summaryListRowNoAction>
-    <@fdsSummaryList.summaryListRowNoAction keyText="Allocated to">
-      ${allocatedToUser}
-    </@fdsSummaryList.summaryListRowNoAction>
-    <@fdsSummaryList.summaryListRowNoAction keyText="Status">
-      ${correction.getStatus().displayName}
-    </@fdsSummaryList.summaryListRowNoAction>
-  </@fdsSummaryList.summaryListCard>
+  <@correctionDetailsCard.correctionDetailsCard
+    correction=correction
+    allocatedToUser=allocatedToUser
+    updateUrl=isCorrectionInProgress?then(updateGeneralDetailsUrl, "")
+  />
 
   <@fdsAction.buttonGroup>
     <@fdsAction.link linkText="Add position" linkUrl=springUrl(addPositionUrl) linkClass="govuk-button"/>

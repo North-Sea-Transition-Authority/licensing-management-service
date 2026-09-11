@@ -123,7 +123,7 @@ public class LicenceCorrectionController {
         .addObject("updateGeneralDetailsUrl",
             ReverseRouter.route(on(UpdateCorrectionGeneralDetailsController.class)
                 .renderUpdateGeneralDetails(licenceCorrection.getId(), null)))
-        .addObject("canUpdateGeneralDetails",
+        .addObject("isCorrectionInProgress",
             LicenceCorrectionStatus.IN_PROGRESS.equals(licenceCorrection.getStatus()))
         .addObject("cancelCorrectionUrl", ReverseRouter.route(on(LicenceCorrectionCancelController.class)
             .renderCancelCorrection(licenceCorrection.getId(), null)));

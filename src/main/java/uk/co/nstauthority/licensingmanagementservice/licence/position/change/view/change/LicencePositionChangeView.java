@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change;
 
 import jakarta.annotation.Nullable;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.CorrectionMarker;
 
 public sealed interface LicencePositionChangeView permits
     AdministratorChangeView,
@@ -15,6 +16,11 @@ public sealed interface LicencePositionChangeView permits
   ChangeViewUrls urls();
 
   String type();
+
+  @Nullable
+  default CorrectionMarker marker() {
+    return CorrectionMarker.forChange(changeType());
+  }
 
   default LicencePositionChangeView merge(LicencePositionChangeView other) {
     throw new UnsupportedOperationException(

@@ -216,6 +216,27 @@ class LicencePositionCorrectionServiceTest {
   }
 
   @Test
+  void getPositionCorrectionContainingChange_whenACorrectionHasNoPayload_thenThatCorrectionIsSkipped() {
+    var changeId = UUID.randomUUID().toString();
+    var removedPosition = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+        .withPayload(null)
+        .build();
+    var match = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload()
+            .withChanges(List.of(LicencePositionChangeType.removeChange().withChangeId(changeId).build()))
+            .build())
+        .build();
+
+    when(licencePositionCorrectionRepository.findByLicenceCorrection(LICENCE_CORRECTION))
+        .thenReturn(List.of(removedPosition, match));
+
+    assertThat(licencePositionCorrectionService.getPositionCorrectionContainingChange(LICENCE_CORRECTION, changeId))
+        .isEqualTo(match);
+  }
+
+  @Test
   void getPositionCorrectionContainingChange_whenNotFound_throws() {
     when(licencePositionCorrectionRepository.findByLicenceCorrection(LICENCE_CORRECTION)).thenReturn(List.of());
 

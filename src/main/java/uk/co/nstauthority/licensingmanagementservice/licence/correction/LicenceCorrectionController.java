@@ -16,6 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAc
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewandapply.ReviewCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.update.UpdateCorrectionGeneralDetailsController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionPageView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
@@ -126,7 +127,9 @@ public class LicenceCorrectionController {
         .addObject("isCorrectionInProgress",
             LicenceCorrectionStatus.IN_PROGRESS.equals(licenceCorrection.getStatus()))
         .addObject("cancelCorrectionUrl", ReverseRouter.route(on(LicenceCorrectionCancelController.class)
-            .renderCancelCorrection(licenceCorrection.getId(), null)));
+            .renderCancelCorrection(licenceCorrection.getId(), null)))
+        .addObject("reviewCorrectionUrl", ReverseRouter.route(on(ReviewCorrectionController.class)
+            .renderReviewCorrection(licenceCorrection.getId(), null)));
   }
 
 }

@@ -1,7 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -28,6 +30,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewandapply.ReviewCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionPageView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTimelineView;
@@ -106,7 +109,11 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
                     .renderAddLicencePositionCorrection(CORRECTION_ID, null))),
             model().attributeExists("licencePositionPageView"),
             model().attribute("cancelCorrectionUrl", ReverseRouter.route(on(LicenceCorrectionCancelController.class)
-                .renderCancelCorrection(CORRECTION_ID, null)))
+                .renderCancelCorrection(CORRECTION_ID, null))),
+            model().attribute("reviewCorrectionUrl", ReverseRouter.route(on(ReviewCorrectionController.class)
+                .renderReviewCorrection(CORRECTION_ID, null))),
+            content().string(containsString("Licence reference")),
+            content().string(containsString(LICENCE_REFERENCE))
         );
   }
 

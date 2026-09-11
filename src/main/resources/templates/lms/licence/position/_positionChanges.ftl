@@ -1,7 +1,10 @@
 <#include '../../layout/layout.ftl'>
 
-<#macro changeHeading change headingText>
+<#macro changeHeading change headingText correction="">
   <#local marker = change.marker()!''>
+  <#if correction?has_content>
+    <#local marker = correction.marker()!''>
+  </#if>
 
   <div style="display: flex; gap: 1rem">
     ${headingText}
@@ -67,9 +70,9 @@
   </@fdsSummaryList.summaryListRowNoAction>
 </#macro>
 
-<#macro administratorChange change summaryListId="licence-administrator">
+<#macro administratorChange change summaryListId="licence-administrator" correction="">
   <#assign headingText>
-    <@changeHeading change=change headingText="Licence administrator change"/>
+    <@changeHeading change=change headingText="Licence administrator change" correction=correction/>
   </#assign>
 
   <#assign cardActions>
@@ -81,6 +84,7 @@
     summaryListId=summaryListId
     cardActionsContent=cardActions
   >
+    <@correctionRows correction=correction/>
     <@administratorRows change=change/>
   </@fdsSummaryList.summaryListCard>
 </#macro>
@@ -93,9 +97,9 @@
   </#list>
 </#macro>
 
-<#macro setEquityChange change summaryListId="set-equity">
+<#macro setEquityChange change summaryListId="set-equity" correction="">
   <#assign headingText>
-    <@changeHeading change=change headingText="Set equity"/>
+    <@changeHeading change=change headingText="Set equity" correction=correction/>
   </#assign>
 
   <#assign cardActions>
@@ -103,6 +107,7 @@
   </#assign>
 
   <@fdsSummaryList.summaryListCard headingText=headingText summaryListId=summaryListId cardActionsContent=cardActions>
+    <@correctionRows correction=correction/>
     <@setEquityRows change=change/>
   </@fdsSummaryList.summaryListCard>
 </#macro>
@@ -134,18 +139,33 @@
   </table>
 </#macro>
 
-<#macro transferEquityChange change summaryListId="transfer-equity">
+<#macro transferEquityChange change summaryListId="transfer-equity" correction="">
   <#assign headingText>
-    <@changeHeading change=change headingText="Transfer equity"/>
+    <@changeHeading change=change headingText="Transfer equity" correction=correction/>
   </#assign>
 
   <#assign cardActions>
     <@changeCardActions screenReaderText="equity transfer change" urls=change.urls()/>
   </#assign>
 
-  <@fdsSummaryList.summaryListCard headingText=headingText summaryListId=summaryListId cardActionsContent=cardActions>
-    <@transferEquityRows change=change/>
+  <@fdsSummaryList.summaryListCard
+    headingText=headingText
+    summaryListId=summaryListId
+    cardActionsContent=cardActions
+  >
+    <div>
+      <#if correction?has_content && correction.previousChange()??>
+        <@transferEquityHoldingsHeading>Before correction</@transferEquityHoldingsHeading>
+        <@transferEquityRows change=correction.previousChange()/>
+        <@transferEquityHoldingsHeading>After correction</@transferEquityHoldingsHeading>
+      </#if>
+      <@transferEquityRows change=change/>
+    </div>
   </@fdsSummaryList.summaryListCard>
+</#macro>
+
+<#macro transferEquityHoldingsHeading>
+  <h3 class="govuk-heading-s govuk-!-margin-top-4 govuk-!-margin-bottom-0"><#nested></h3>
 </#macro>
 
 <#macro partialSurrenderRows change>
@@ -163,9 +183,9 @@
   </@fdsSummaryList.summaryListRowNoAction>
 </#macro>
 
-<#macro partialSurrenderChange change summaryListId="partial-surrender">
+<#macro partialSurrenderChange change summaryListId="partial-surrender" correction="">
   <#assign headingText>
-    <@changeHeading change=change headingText="Partial surrender"/>
+    <@changeHeading change=change headingText="Partial surrender" correction=correction/>
   </#assign>
 
   <#assign cardActions>
@@ -177,6 +197,7 @@
     summaryListId=summaryListId
     cardActionsContent=cardActions
   >
+    <@correctionRows correction=correction/>
     <@partialSurrenderRows change=change/>
   </@fdsSummaryList.summaryListCard>
 </#macro>
@@ -187,9 +208,9 @@
   </@fdsSummaryList.summaryListRowNoAction>
 </#macro>
 
-<#macro subAreaChange change summaryListId="subarea">
+<#macro subAreaChange change summaryListId="subarea" correction="">
   <#assign headingText>
-    <@changeHeading change=change headingText="Subarea change"/>
+    <@changeHeading change=change headingText="Subarea change" correction=correction/>
   </#assign>
 
   <#assign cardActions>
@@ -201,20 +222,49 @@
     summaryListId=summaryListId
     cardActionsContent=cardActions
   >
+    <@correctionRows correction=correction/>
     <@subareaRows change=change/>
   </@fdsSummaryList.summaryListCard>
 </#macro>
 
-<#macro changeCard change summaryListId isCarbonStorage=false>
-  <#if change.type() == "licence-administrator" && !isCarbonStorage>
-    <@administratorChange change=change summaryListId=summaryListId/>
+<#macro changeRows change>
+  <#if change.type() == "licence-administrator">
+    <@administratorRows change=change/>
   <#elseif change.type() == "set-equity">
-    <@setEquityChange change=change summaryListId=summaryListId/>
+    <@setEquityRows change=change/>
   <#elseif change.type() == "transfer-equity">
-    <@transferEquityChange change=change summaryListId=summaryListId/>
+    <@transferEquityRows change=change/>
   <#elseif change.type() == "partial-surrender">
-    <@partialSurrenderChange change=change summaryListId=summaryListId/>
+    <@partialSurrenderRows change=change/>
   <#elseif change.type() == "subarea">
-    <@subAreaChange change=change summaryListId=summaryListId/>
+    <@subareaRows change=change/>
+  </#if>
+</#macro>
+
+<#macro beforeCorrectionRow previousChange>
+  <@fdsSummaryList.summaryListRowNoAction keyText="Before correction">
+    <@fdsSummaryList.summaryList showBorder=false summaryListClass="govuk-!-margin-bottom-0">
+      <@changeRows change=previousChange/>
+    </@fdsSummaryList.summaryList>
+  </@fdsSummaryList.summaryListRowNoAction>
+</#macro>
+
+<#macro correctionRows correction>
+  <#if correction?has_content && correction.previousChange()??>
+    <@beforeCorrectionRow previousChange=correction.previousChange()/>
+  </#if>
+</#macro>
+
+<#macro changeCard change summaryListId isCarbonStorage=false correction="">
+  <#if change.type() == "licence-administrator" && !isCarbonStorage>
+    <@administratorChange change=change summaryListId=summaryListId correction=correction/>
+  <#elseif change.type() == "set-equity">
+    <@setEquityChange change=change summaryListId=summaryListId correction=correction/>
+  <#elseif change.type() == "transfer-equity">
+    <@transferEquityChange change=change summaryListId=summaryListId correction=correction/>
+  <#elseif change.type() == "partial-surrender">
+    <@partialSurrenderChange change=change summaryListId=summaryListId correction=correction/>
+  <#elseif change.type() == "subarea">
+    <@subAreaChange change=change summaryListId=summaryListId correction=correction/>
   </#if>
 </#macro>

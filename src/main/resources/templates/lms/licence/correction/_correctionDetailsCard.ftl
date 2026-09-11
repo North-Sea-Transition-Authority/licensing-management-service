@@ -1,6 +1,6 @@
 <#include '../../layout/layout.ftl'>
 
-<#macro correctionDetailsCard correction allocatedToUser updateUrl="">
+<#macro correctionDetailsCard correction allocatedToUser createdDate="" updateUrl="">
   <#assign cardActions>
     <#if updateUrl?has_content>
       <@fdsSummaryList.summaryListCardActionList>
@@ -30,5 +30,13 @@
     <@fdsSummaryList.summaryListRowNoAction keyText="Status">
       ${correction.getStatus().displayName}
     </@fdsSummaryList.summaryListRowNoAction>
+    <@fdsSummaryList.summaryListRowNoAction keyText="Licence reference">
+      ${correction.getLicence().getLicenceReference()}
+    </@fdsSummaryList.summaryListRowNoAction>
+    <#if createdDate?has_content>
+      <@fdsSummaryList.summaryListRowNoAction keyText="Created">
+        ${createdDate}
+      </@fdsSummaryList.summaryListRowNoAction>
+    </#if>
   </@fdsSummaryList.summaryListCard>
 </#macro>

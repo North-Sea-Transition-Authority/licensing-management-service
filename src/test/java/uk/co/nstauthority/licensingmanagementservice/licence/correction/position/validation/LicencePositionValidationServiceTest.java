@@ -162,7 +162,7 @@ class LicencePositionValidationServiceTest {
   }
 
   private static ChronologicalPosition position(UUID transactionId, LocalDate date, PositionChange... changes) {
-    return new ChronologicalPosition(UUID.randomUUID(), transactionId, date, 1, List.of(changes));
+    return new ChronologicalPosition(UUID.randomUUID(), transactionId, "REGULATOR_REFERENCE", date, 1, List.of(changes));
   }
 
   private static PositionChange administratorChange() {

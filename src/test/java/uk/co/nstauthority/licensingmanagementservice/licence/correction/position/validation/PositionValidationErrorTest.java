@@ -171,6 +171,6 @@ class PositionValidationErrorTest {
   }
 
   private static ChronologicalPosition position(UUID id, LocalDate date, int order) {
-    return new ChronologicalPosition(id, TRANSACTION_ID, date, order, List.of());
+    return new ChronologicalPosition(id, TRANSACTION_ID, "REGULATOR_REFERENCE", date, order, List.of());
   }
 }

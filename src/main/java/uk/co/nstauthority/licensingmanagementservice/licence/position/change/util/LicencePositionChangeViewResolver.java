@@ -72,6 +72,26 @@ public final class LicencePositionChangeViewResolver {
         .toList();
   }
 
+  public static Map<String, List<LicencePositionChangeView>> getChangeViewsByChangeId(
+      UUID currentPositionId,
+      List<ChronologicalPosition> chronologicalPositions,
+      ResolvedStates resolvedStates,
+      Map<Integer, String> organisationNames,
+      Map<UUID, String> featureNames,
+      @Nullable PositionChangeUrlContext urlContext
+  ) {
+    var viewsByChangeId = new LinkedHashMap<String, List<LicencePositionChangeView>>();
+
+    viewsForPosition(
+        currentPositionId,
+        chronologicalPositions,
+        resolvedStates,
+        new ChangeViewContext(organisationNames, featureNames, urlContext))
+        .forEach(changeViews ->
+            viewsByChangeId.put(changeViews.changeId(), List.copyOf(changeViews.viewsByOperationType().values())));
+
+    return viewsByChangeId;
+  }
 
   private static List<ChangeViews> viewsByChange(
       UUID currentPositionId,

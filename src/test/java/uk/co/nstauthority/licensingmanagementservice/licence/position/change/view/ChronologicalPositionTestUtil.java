@@ -11,12 +11,18 @@ public class ChronologicalPositionTestUtil {
 
   private UUID id = UUID.randomUUID();
   private UUID transactionId = UUID.randomUUID();
+  private String reference = "REGULATOR_REFERENCE";
   private LocalDate date = LocalDate.of(2026, Month.AUGUST, 5);
   private int order = 1;
   private List<PositionChange> changes = List.of();
 
   public static ChronologicalPositionTestUtil newBuilder() {
     return new ChronologicalPositionTestUtil();
+  }
+
+  public ChronologicalPositionTestUtil withReference(String reference) {
+    this.reference = reference;
+    return this;
   }
 
   public ChronologicalPositionTestUtil withId(UUID id) {
@@ -45,7 +51,7 @@ public class ChronologicalPositionTestUtil {
   }
 
   public ChronologicalPosition build() {
-    return new ChronologicalPosition(id, transactionId, date, order, changes);
+    return new ChronologicalPosition(id, transactionId, reference, date, order, changes);
   }
 
   public static ChronologicalPosition live(LicencePosition position, LicenceOperation... operations) {
@@ -55,6 +61,7 @@ public class ChronologicalPositionTestUtil {
 
     return ChronologicalPosition.fromLicencePosition(
         position,
+        position.getLicenceTransaction().getRegulatorReference(),
         position.getPositionDate(),
         position.getPositionDateOrder(),
         changes

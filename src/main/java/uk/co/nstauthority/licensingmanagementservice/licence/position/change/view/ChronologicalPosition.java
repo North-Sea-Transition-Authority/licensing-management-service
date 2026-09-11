@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 public record ChronologicalPosition(
     UUID id,
     UUID transactionId,
+    String reference,
     LocalDate date,
     int order,
     List<PositionChange> changes
@@ -29,8 +30,13 @@ public record ChronologicalPosition(
 
   private static final BigDecimal ONE_HUNDRED_PERCENT = new BigDecimal("100");
 
+  /**
+   * The reference, date and order are passed in rather than read off the position because a correction can change any
+   * of them - the caller resolves the corrected values.
+   */
   public static ChronologicalPosition fromLicencePosition(
       LicencePosition position,
+      String reference,
       LocalDate date,
       int order,
       List<PositionChange> changes
@@ -38,6 +44,7 @@ public record ChronologicalPosition(
     return new ChronologicalPosition(
         position.getId(),
         position.getLicenceTransaction().getId(),
+        reference,
         date,
         order,
         changes
@@ -48,6 +55,7 @@ public record ChronologicalPosition(
     return new ChronologicalPosition(
         UUID.fromString(payload.licencePositionId()),
         UUID.fromString(payload.licenceTransactionId()),
+        payload.correctionReference(),
         payload.effectiveDate(),
         payload.effectiveDateOrder(),
         PositionChange.fromPayload(payload)

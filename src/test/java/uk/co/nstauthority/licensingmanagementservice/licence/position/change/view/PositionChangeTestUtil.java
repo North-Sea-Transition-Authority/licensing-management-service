@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.view;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -33,6 +34,19 @@ public class PositionChangeTestUtil {
 
   public PositionChangeTestUtil withOperations(List<LicenceOperation> operations) {
     this.operations = operations;
+    return this;
+  }
+
+  public PositionChangeTestUtil withAdministratorOperation(int operatorId) {
+    this.operations = List.of(LicenceOperation.newAdministratorChange().withOperator(operatorId).build());
+    return this;
+  }
+
+  public PositionChangeTestUtil withSetEquityOperation(int transferTo, BigDecimal equity) {
+    this.operations = List.of(LicenceOperation.newSetEquityOperation()
+        .withTransferTo(transferTo)
+        .withEquity(equity)
+        .build());
     return this;
   }
 

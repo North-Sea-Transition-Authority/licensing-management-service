@@ -78,7 +78,11 @@ class LicencePositionStateResolverTest {
         List.of(LicenceOperation.newAdministratorChange().withOperator(2).build())
     );
     var currentChronological = ChronologicalPosition.fromLicencePosition(
-        current, current.getPositionDate(), current.getPositionDateOrder(), List.of(removeChange));
+        current,
+        current.getLicenceTransaction().getRegulatorReference(),
+        current.getPositionDate(),
+        current.getPositionDateOrder(),
+        List.of(removeChange));
 
     var laterChronological = ChronologicalPositionTestUtil.live(later);
 
@@ -309,7 +313,11 @@ class LicencePositionStateResolverTest {
         List.of(LicenceOperation.newSetEquityOperation().withTransferTo(3).withEquity(new BigDecimal("100")).build())
     );
     var removeChronological = ChronologicalPosition.fromLicencePosition(
-        removePosition, removePosition.getPositionDate(), removePosition.getPositionDateOrder(), List.of(removeChange));
+        removePosition,
+        removePosition.getLicenceTransaction().getRegulatorReference(),
+        removePosition.getPositionDate(),
+        removePosition.getPositionDateOrder(),
+        List.of(removeChange));
 
     var result = LicencePositionStateResolver.resolve(
         List.of(setChronological, removeChronological));

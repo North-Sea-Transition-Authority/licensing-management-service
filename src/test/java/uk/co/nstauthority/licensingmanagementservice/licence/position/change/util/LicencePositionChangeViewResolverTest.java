@@ -34,6 +34,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
@@ -163,6 +164,7 @@ class LicencePositionChangeViewResolverTest {
     );
     var currentChronologicalPosition = ChronologicalPosition.fromLicencePosition(
         currentLicencePosition,
+        currentLicencePosition.getLicenceTransaction().getRegulatorReference(),
         currentLicencePosition.getPositionDate(),
         currentLicencePosition.getPositionDateOrder(),
         List.of(correctionChange));
@@ -263,6 +265,7 @@ class LicencePositionChangeViewResolverTest {
     );
     var currentChronologicalPosition = ChronologicalPosition.fromLicencePosition(
         currentLicencePosition,
+        currentLicencePosition.getLicenceTransaction().getRegulatorReference(),
         currentLicencePosition.getPositionDate(),
         currentLicencePosition.getPositionDateOrder(),
         List.of(change));
@@ -658,6 +661,7 @@ class LicencePositionChangeViewResolverTest {
         List.of(new SetEquityOperation(SET_EQUITY_ORG_ID, BigDecimal.valueOf(75))));
     var currentChronologicalPosition = ChronologicalPosition.fromLicencePosition(
         currentLicencePosition,
+        currentLicencePosition.getLicenceTransaction().getRegulatorReference(),
         currentLicencePosition.getPositionDate(),
         currentLicencePosition.getPositionDateOrder(),
         List.of(change));
@@ -699,6 +703,7 @@ class LicencePositionChangeViewResolverTest {
             .build()));
     var currentChronological = ChronologicalPosition.fromLicencePosition(
         currentPosition,
+        currentPosition.getLicenceTransaction().getRegulatorReference(),
         currentPosition.getPositionDate(),
         currentPosition.getPositionDateOrder(),
         List.of(transferChange));
@@ -1239,13 +1244,21 @@ class LicencePositionChangeViewResolverTest {
   }
 
   private static PositionChange administratorChange(String changeId, String changeType) {
-    return new PositionChange(changeId, 1, changeType,
-        List.of(LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build()));
+    return PositionChangeTestUtil.newBuilder()
+        .withChangeId(changeId)
+        .withChangeOrder(1)
+        .withChangeType(changeType)
+        .withAdministratorOperation(JOINING_ID)
+        .build();
   }
 
   private static PositionChange setEquityChange(String changeId, String changeType) {
-    return new PositionChange(changeId, 2, changeType,
-        List.of(new SetEquityOperation(SET_EQUITY_ORG_ID, BigDecimal.valueOf(75))));
+    return PositionChangeTestUtil.newBuilder()
+        .withChangeId(changeId)
+        .withChangeOrder(2)
+        .withChangeType(changeType)
+        .withSetEquityOperation(SET_EQUITY_ORG_ID, BigDecimal.valueOf(75))
+        .build();
   }
 
   private static PositionChange partialSurrenderChange(String changeId, String changeType) {
@@ -1290,6 +1303,34 @@ class LicencePositionChangeViewResolverTest {
         null,
         ChangeViewUrls.none());
     assertThat(result).containsExactly(expectedView, expectedView);
+  }
+
+  @Test
+  void getChangeViewsByChangeId_keysEachChangesViewsByTheChangeTheyBelongTo() {
+    var positionId = UUID.randomUUID();
+    var administratorChangeId = UUID.randomUUID().toString();
+    var setEquityChangeId = UUID.randomUUID().toString();
+
+    var positions = List.of(ChronologicalPositionTestUtil.newBuilder()
+        .withId(positionId)
+        .withChanges(List.of(
+            administratorChange(administratorChangeId, null),
+            setEquityChange(setEquityChangeId, null)))
+        .build());
+
+    var result = LicencePositionChangeViewResolver.getChangeViewsByChangeId(
+        positionId,
+        positions,
+        LicencePositionStateResolver.resolve(positions),
+        Map.of(JOINING_ID, JOINING_NAME, SET_EQUITY_ORG_ID, SET_EQUITY_ORG_NAME),
+        FEATURE_NAMES,
+        null);
+
+    assertThat(result).containsExactly(
+        Map.entry(administratorChangeId, List.of(new AdministratorChangeView(
+            null, JOINING_NAME, administratorChangeId, null, ChangeViewUrls.none()))),
+        Map.entry(setEquityChangeId, List.of(new SetEquityChangeView(
+            List.of(new SetEquityRow(SET_EQUITY_ORG_NAME, BigDecimal.valueOf(75))), null, ChangeViewUrls.none()))));
   }
 
   private static LicencePositionChangeView byType(List<LicencePositionChangeView> views, String type) {

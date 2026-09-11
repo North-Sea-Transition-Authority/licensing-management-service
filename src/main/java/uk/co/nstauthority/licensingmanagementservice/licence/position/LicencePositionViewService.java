@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
@@ -296,14 +297,17 @@ public class LicencePositionViewService {
     );
   }
 
-  public List<ChronologicalPosition> getLiveChronologicalPositions(
-      List<LicencePosition> executedChronologicalLicencePositions
-  ) {
+  public List<ChronologicalPosition> getLiveChronologicalPositions(Licence licence) {
+    return getLiveChronologicalPositions(licencePositionService.getExecutedChronologicalLicencePositions(licence));
+  }
+
+  private List<ChronologicalPosition> getLiveChronologicalPositions(List<LicencePosition> executedChronologicalLicencePositions) {
     var liveChangesByPositionId = getLiveChangesByPositionId(executedChronologicalLicencePositions);
 
     return executedChronologicalLicencePositions.stream()
         .map(licencePosition -> ChronologicalPosition.fromLicencePosition(
             licencePosition,
+            executedReference(licencePosition),
             licencePosition.getPositionDate(),
             licencePosition.getPositionDateOrder(),
             PositionChange.foldChanges(liveChangesByPositionId.getOrDefault(licencePosition.getId(), List.of()), List.of()))
@@ -373,6 +377,7 @@ public class LicencePositionViewService {
           );
           chronologicalPositions.add(ChronologicalPosition.fromLicencePosition(
               position,
+              effectiveReference(position, correctedPayloadsByPositionId),
               effectiveDate(position, correctedPayloadsByPositionId),
               effectiveDateOrder(position, correctedPayloadsByPositionId),
               changes
@@ -653,6 +658,19 @@ public class LicencePositionViewService {
   private String getCorrectOrderPositionUrl(LicenceCorrection correction, UUID positionId) {
     return ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
         .renderCorrectionLicencePositionOrder(correction.getId(), positionId, null));
+  }
+
+  private String effectiveReference(
+      LicencePosition position,
+      Map<UUID, UpdateLicencePositionPayload> correctedPayloadsByPositionId
+  ) {
+    var correctedPayload = correctedPayloadsByPositionId.get(position.getId());
+    return correctedPayload != null && correctedPayload.correctionReference() != null
+        ? correctedPayload.correctionReference() : executedReference(position);
+  }
+
+  private String executedReference(LicencePosition position) {
+    return position.getLicenceTransaction().getRegulatorReference();
   }
 
   private LocalDate effectiveDate(

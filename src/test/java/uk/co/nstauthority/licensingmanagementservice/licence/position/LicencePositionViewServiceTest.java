@@ -53,6 +53,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSu
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
@@ -692,6 +693,53 @@ class LicencePositionViewServiceTest {
   }
 
   @Test
+  void getLiveChronologicalPositions_holdsEachChangeAgainstThePositionItWasExecutedOn() {
+    var firstPosition = executedPosition(LocalDate.of(2026, Month.JULY, 26));
+    var secondPosition = executedPosition(LocalDate.of(2026, Month.AUGUST, 1));
+    var changeId = UUID.randomUUID();
+    var change = liveAdminChange(changeId, firstPosition);
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
+        .thenReturn(List.of(firstPosition, secondPosition));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(firstPosition, secondPosition)))
+        .thenReturn(List.of(change));
+
+    var result = licencePositionViewService.getLiveChronologicalPositions(LICENCE);
+
+    assertThat(result).isEqualTo(List.of(
+        ChronologicalPosition.fromLicencePosition(
+            firstPosition,
+            firstPosition.getLicenceTransaction().getRegulatorReference(),
+            firstPosition.getPositionDate(),
+            firstPosition.getPositionDateOrder(),
+            List.of(new PositionChange(changeId.toString(), 1, null, List.of(ADMINISTRATOR_OPERATION)))),
+        ChronologicalPosition.fromLicencePosition(
+            secondPosition,
+            secondPosition.getLicenceTransaction().getRegulatorReference(),
+            secondPosition.getPositionDate(),
+            secondPosition.getPositionDateOrder(),
+            List.of())));
+  }
+
+  private static LicencePosition executedPosition(LocalDate positionDate) {
+    return LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withIsExecuted(true)
+        .withPositionDate(positionDate)
+        .withPositionOrder(1)
+        .build();
+  }
+
+  private static LicencePositionChange liveAdminChange(UUID changeId, LicencePosition licencePosition) {
+    return LicencePositionChangeTestUtil.newBuilder()
+        .withId(changeId)
+        .withLicencePosition(licencePosition)
+        .withOperations(List.of(ADMINISTRATOR_OPERATION))
+        .withChangeOrder(1)
+        .build();
+  }
+
+  @Test
   void getCorrectionPositionPageView_whenAdminChangeRemoved_rendersExecutedAdminWithRemoveTypeAndRevertsState() {
     var correctionId = UUID.randomUUID();
     var changeId = UUID.randomUUID();
@@ -728,6 +776,61 @@ class LicencePositionViewServiceTest {
     assertThat(adminChange.changeType()).isEqualTo(LicencePositionChangeType.REMOVE_CHANGE);
     assertThat(adminChange.urls().remove()).isNull();
     assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of(), List.of()));
+  }
+
+  @Test
+  void getCorrectedChronologicalPositions_whenReferenceCorrected_usesTheCorrectedReference() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withId(UUID.randomUUID()).withLicence(LICENCE).build();
+
+    var executed = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("EXEC-1").build())
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
+
+    var payload = UpdateLicencePositionPayloadTestUtil.newBuilder().withCorrectionReference("COR-1").build();
+    var referenceCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(executed)
+        .withPayload(payload)
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of());
+    when(licencePositionCorrectionService.getPositionCorrections(correction))
+        .thenReturn(List.of(referenceCorrection));
+
+    var result = licencePositionViewService.getCorrectedChronologicalPositions(correction, POSITION_ID);
+
+    assertThat(result).containsExactly(ChronologicalPosition.fromLicencePosition(
+        executed,
+        "COR-1",
+        payload.effectiveDate(),
+        payload.effectiveDateOrder(),
+        List.of()));
+  }
+
+  @Test
+  void getCorrectedChronologicalPositions_whenReferenceNotCorrected_usesTheExecutedReference() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withId(UUID.randomUUID()).withLicence(LICENCE).build();
+
+    var executed = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("EXEC-1").build())
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of());
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
+
+    var result = licencePositionViewService.getCorrectedChronologicalPositions(correction, POSITION_ID);
+
+    assertThat(result).containsExactly(ChronologicalPosition.fromLicencePosition(
+        executed,
+        "EXEC-1",
+        executed.getPositionDate(),
+        executed.getPositionDateOrder(),
+        List.of()));
   }
 
   @Test

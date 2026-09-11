@@ -120,6 +120,33 @@ class GisTestControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("srsWkid", 4230));
   }
 
+  @Test
+  void renderSplitDisjointByPointAndClick_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(get(ReverseRouter.route(on(GisTestController.class).renderSplitDisjointByPointAndClick())))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void renderSplitDisjointByPointAndClick_assertModelProperties() throws Exception {
+    UUID featureId = UUID.randomUUID();
+    var feature = getMockFeature(featureId);
+    when(feature.getCoordinateSystem()).thenReturn(CoordinateSystem.ED50);
+    var commandJourneyId = UUID.randomUUID();
+    var commandJourney = mock(CommandJourney.class);
+    when(commandJourney.getId()).thenReturn(commandJourneyId);
+
+    when(featureService.getFeatureOrThrow(UUID.fromString("11111111-1111-1111-1111-111111111100"))).thenReturn(feature);
+    when(commandJourneyService.findOrCreateCommandJourneyForFeature(feature)).thenReturn(commandJourney);
+
+    mockMvc.perform(get(ReverseRouter.route(on(GisTestController.class).renderSplitDisjointByPointAndClick()))
+            .with(user(regulatorUser)))
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/mockups/gis/pointAndClickMapTester"))
+        .andExpect(model().attribute("commandJourneyId", commandJourneyId.toString()))
+        .andExpect(model().attribute("srsWkid", 4230));
+  }
+
   private Feature getMockFeature(UUID featureId) {
     var mock = mock(Feature.class);
     when(mock.getId()).thenReturn(featureId);

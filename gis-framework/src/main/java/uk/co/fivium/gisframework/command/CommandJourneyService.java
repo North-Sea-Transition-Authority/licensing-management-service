@@ -92,4 +92,13 @@ public class CommandJourneyService {
 
     entityManager.flush();
   }
+
+  /**
+   * Used only for the GIS test page, will remove in the future.
+   */
+  @Transactional
+  public CommandJourney findOrCreateCommandJourneyForFeature(Feature feature) {
+    return featureJourneyStateService.findJourneyForFeature(feature)
+        .orElseGet(() -> createAndAssignCommandJourney(List.of(feature)));
+  }
 }

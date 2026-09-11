@@ -2,6 +2,7 @@ package uk.co.fivium.gisframework.command;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Limit;
@@ -26,6 +27,11 @@ interface FeatureJourneyStateRepository extends ListCrudRepository<FeatureJourne
   List<FeatureJourneyState> findAllByCommandJourneyAndFeature_IdIn(CommandJourney commandJourney, Set<UUID> featureIds);
 
   List<FeatureJourneyState> findAllByFeature_IdIn(Set<UUID> featureIds);
+
+  /**
+   * Used for GIS test page, will not be needed in the future.
+   */
+  Optional<FeatureJourneyState> findFirstByFeature_IdAndCreatedByCommandIsNull(UUID featureId);
 
   /**
    * Used for GIS test page, will not be needed in the future.

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -249,5 +250,30 @@ class FeatureJourneyStateServiceTest {
     assertThatThrownBy(() -> featureJourneyStateService.findFeatureWithNoJourneyStateOrThrow(CoordinateSystem.ED50))
         .isInstanceOf(EntityNotFoundException.class)
         .hasMessage("Feature with coordinate system %s not found".formatted(CoordinateSystem.ED50));
+  }
+
+  @Test
+  void findJourneyForFeature_whenStateFound_returnsCommandJourney() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var commandJourney = CommandJourneyTestUtil.newBuilder().build();
+    var state = FeatureJourneyStateTestUtil.newBuilder()
+        .withFeature(feature)
+        .withCommandJourney(commandJourney)
+        .build();
+
+    when(featureJourneyStateRepository.findFirstByFeature_IdAndCreatedByCommandIsNull(feature.getId()))
+        .thenReturn(Optional.of(state));
+
+    assertThat(featureJourneyStateService.findJourneyForFeature(feature)).contains(commandJourney);
+  }
+
+  @Test
+  void findJourneyForFeature_whenNoStateFound_returnsEmpty() {
+    var feature = FeatureTestUtil.newBuilder().build();
+
+    when(featureJourneyStateRepository.findFirstByFeature_IdAndCreatedByCommandIsNull(feature.getId()))
+        .thenReturn(Optional.empty());
+
+    assertThat(featureJourneyStateService.findJourneyForFeature(feature)).isEmpty();
   }
 }

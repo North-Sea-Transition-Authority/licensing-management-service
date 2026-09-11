@@ -2,6 +2,7 @@ package uk.co.fivium.gisframework.command;
 
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
@@ -134,6 +135,14 @@ public class FeatureJourneyStateService {
         .findFirst()
         .orElseThrow(() -> new EntityNotFoundException(
             "Feature with coordinate system %s not found".formatted(coordinateSystem)));
+  }
+
+  /**
+   * Used only for the GIS test page, will remove in the future.
+   */
+  public Optional<CommandJourney> findJourneyForFeature(Feature feature) {
+    return featureJourneyStateRepository.findFirstByFeature_IdAndCreatedByCommandIsNull(feature.getId())
+        .map(FeatureJourneyState::getCommandJourney);
   }
 
   private static FeatureJourneyState newState(Feature feature,

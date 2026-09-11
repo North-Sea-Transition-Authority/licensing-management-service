@@ -32,9 +32,20 @@ public class SplitOperatorService {
     List<String> esriJsonPolygons = polygonService.getPolygonsAsEsriJson(target);
     List<String> resultEsriJsonPolygons = new ArrayList<>();
 
-    esriJsonPolygons.forEach(polygon ->
-        resultEsriJsonPolygons.addAll(grpcClientService.splitPolygon(polygon, cutterLineEsriJson))
-    );
+    boolean anyCuts = false;
+    for (String polygon : esriJsonPolygons) {
+      var result = grpcClientService.splitPolygon(polygon, cutterLineEsriJson);
+      if (result.isEmpty()) {
+        resultEsriJsonPolygons.add(polygon);
+      } else  {
+        anyCuts = true;
+        resultEsriJsonPolygons.addAll(result);
+      }
+    }
+
+    if (!anyCuts) {
+      return List.of();
+    }
 
     List<Feature> resultFeatures = new ArrayList<>();
 

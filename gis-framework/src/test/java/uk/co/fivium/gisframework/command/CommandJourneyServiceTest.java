@@ -151,4 +151,27 @@ class CommandJourneyServiceTest {
     assertThatThrownBy(() -> commandJourneyService.deleteCommandJourney(journeyId))
         .isInstanceOf(EntityNotFoundException.class);
   }
+
+  @Test
+  void findOrCreateCommandJourneyForFeature_whenJourneyExists_returnsExistingJourney() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var journey = new CommandJourney();
+
+    when(featureJourneyStateService.findJourneyForFeature(feature)).thenReturn(Optional.of(journey));
+
+    assertThat(commandJourneyService.findOrCreateCommandJourneyForFeature(feature)).isEqualTo(journey);
+    verify(commandJourneyRepository, never()).save(any());
+  }
+
+  @Test
+  void findOrCreateCommandJourneyForFeature_whenNoJourney_createsAndAssignsJourney() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var savedJourney = new CommandJourney();
+
+    when(featureJourneyStateService.findJourneyForFeature(feature)).thenReturn(Optional.empty());
+    when(commandJourneyRepository.save(any(CommandJourney.class))).thenReturn(savedJourney);
+
+    assertThat(commandJourneyService.findOrCreateCommandJourneyForFeature(feature)).isEqualTo(savedJourney);
+    verify(featureJourneyStateService).createInitialFeatureJourneyStates(savedJourney, List.of(feature));
+  }
 }

@@ -44,6 +44,7 @@ class SplitOperatorServiceTest {
     var rawSplitResult2 = "dummy raw split result 2";
     var postProcessedFeature1 = FeatureTestUtil.newBuilder().build();
     var postProcessedFeature2 = FeatureTestUtil.newBuilder().build();
+    var postProcessedFeature3 = FeatureTestUtil.newBuilder().build();
 
     when(polygonService.getPolygonsAsEsriJson(feature)).thenReturn(List.of(esriJsonPolygon1, esriJsonPolygon2));
     when(grpcClientService.splitPolygon(esriJsonPolygon1, cutterLineEsriJson))
@@ -54,9 +55,11 @@ class SplitOperatorServiceTest {
         .thenReturn(postProcessedFeature1);
     when(operatorResultProcessingService.processOutputPolygon(List.of(feature), rawSplitResult2, 2))
         .thenReturn(postProcessedFeature2);
+    when(operatorResultProcessingService.processOutputPolygon(List.of(feature), esriJsonPolygon2, 3))
+        .thenReturn(postProcessedFeature3);
 
     assertThat(splitOperatorService.splitPolygon(feature, cutterLineEsriJson))
-        .containsExactly(postProcessedFeature1, postProcessedFeature2);
+        .containsExactly(postProcessedFeature1, postProcessedFeature2, postProcessedFeature3);
   }
 
   @Test

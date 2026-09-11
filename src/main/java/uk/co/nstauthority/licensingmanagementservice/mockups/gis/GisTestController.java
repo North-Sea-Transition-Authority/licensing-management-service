@@ -63,4 +63,13 @@ public class GisTestController {
         .addObject(SRS_WKID_MODEL_NAME, CoordinateSystemUtils.getWkid(coordinateSystem))
         .addObject("precision", precision);
   }
+
+  @GetMapping("/split-disjoint")
+  public ModelAndView renderSplitDisjointByPointAndClick() {
+    var feature = featureService.getFeatureOrThrow(UUID.fromString("11111111-1111-1111-1111-111111111100"));
+    var commandJourney = commandJourneyService.findOrCreateCommandJourneyForFeature(feature);
+    return new ModelAndView("lms/mockups/gis/pointAndClickMapTester")
+        .addObject("commandJourneyId", commandJourney.getId().toString())
+        .addObject(SRS_WKID_MODEL_NAME, CoordinateSystemUtils.getWkid(feature.getCoordinateSystem()));
+  }
 }

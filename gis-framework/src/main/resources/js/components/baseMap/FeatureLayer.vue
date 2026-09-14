@@ -10,14 +10,18 @@
 </template>
 
 <script setup lang="ts">
+import type { EventsKey } from "ol/events";
+import type { Extent } from "ol/extent";
 import type Feature from "ol/Feature";
 import type { Geometry } from "ol/geom";
+import type Map from "ol/Map";
 import type { VectorSourceEvent } from "ol/source/Vector";
 import type OlMap from "vue3-openlayers/map/OlMap";
 import type OlSourceVector from "vue3-openlayers/sources/OlSourceVector";
 import { EsriJSON } from "ol/format";
+import { unByKey } from "ol/Observable";
 import { Fill, Stroke, Style, Text } from "ol/style";
-import { nextTick, ref, watch } from "vue";
+import { nextTick, onUnmounted, ref, watch } from "vue";
 
 interface Props {
   featuresUrl: string,
@@ -35,6 +39,10 @@ const props = withDefaults(defineProps<Props>(), {
 const esriJson = new EsriJSON();
 const featureLabelFont = "18px \"GDS Transport\"";
 const vectorSourceRef = ref<InstanceType<typeof OlSourceVector> | null>(null);
+
+// Set when the features load before the map has a size, so the fit can be retried once it gets one.
+let pendingExtent: Extent | null = null;
+let sizeListenerKey: EventsKey | null = null;
 
 watch(() => props.refreshCounter, async () => {
   await nextTick();
@@ -75,10 +83,45 @@ function fitToExtent(event: VectorSourceEvent<Feature<Geometry>>) {
   const source = event.target;
   const extent = source.getExtent();
 
-  if (extent && Number.isFinite(extent[0])) {
-    map.getView().fit(extent, {
-      padding: [50, 50, 50, 50],
-    });
+  if (!extent || !Number.isFinite(extent[0])) {
+    return;
+  }
+
+  if (hasSize(map)) {
+    fit(map, extent);
+    return;
+  }
+
+  pendingExtent = extent;
+  if (!sizeListenerKey) {
+    sizeListenerKey = map.on("change:size", () => fitPendingExtent(map));
   }
 }
+
+function fitPendingExtent(map: Map) {
+  if (!pendingExtent || !hasSize(map)) {
+    return;
+  }
+
+  fit(map, pendingExtent);
+  pendingExtent = null;
+}
+
+function hasSize(map: Map) {
+  const size = map.getSize();
+  return !!size && size[0] > 0 && size[1] > 0;
+}
+
+function fit(map: Map, extent: Extent) {
+  map.getView().fit(extent, {
+    padding: [50, 50, 50, 50],
+  });
+}
+
+onUnmounted(() => {
+  if (sizeListenerKey) {
+    unByKey(sizeListenerKey);
+    sizeListenerKey = null;
+  }
+});
 </script>

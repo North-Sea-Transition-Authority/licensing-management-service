@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.summary;
 
 import static uk.co.nstauthority.licensingmanagementservice.summary.SummaryValueType.EXTERNAL_URL_VALUE;
 import static uk.co.nstauthority.licensingmanagementservice.summary.SummaryValueType.FILE_VALUE;
+import static uk.co.nstauthority.licensingmanagementservice.summary.SummaryValueType.MAP_VALUE;
 import static uk.co.nstauthority.licensingmanagementservice.summary.SummaryValueType.STRING_VALUE;
 
 import java.util.ArrayList;
@@ -49,6 +50,17 @@ public record SummaryDataView(
               key,
               FILE_VALUE,
               value
+          )
+      );
+      return this;
+    }
+
+    public Builder addMapValue(String key, SummaryMapView value) {
+      keyValues.add(
+          new SummaryKeyValue(
+              key,
+              MAP_VALUE,
+              List.of(value)
           )
       );
       return this;

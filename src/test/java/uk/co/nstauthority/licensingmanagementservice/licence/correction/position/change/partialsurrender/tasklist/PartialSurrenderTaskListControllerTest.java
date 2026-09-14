@@ -48,6 +48,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryMapView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
@@ -291,6 +292,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
             model().attribute("pageTitle", PartialSurrenderTaskListController.REVIEW_AND_SUBMIT_PAGE_TITLE),
             model().attribute("pageCaption", LICENCE.getLicenceReference()),
             model().attribute("summarySections", summarySections),
+            model().attribute("accordionId", LIVE_CHANGE_ID),
             model().attribute("allSurrenderedBlocksAreFull", false),
             model().attribute("backLinkUrl", correctingChangeTaskListUrl())
         );
@@ -316,6 +318,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
             model().attribute("pageTitle", PartialSurrenderTaskListController.REVIEW_AND_SUBMIT_PAGE_TITLE),
             model().attribute("pageCaption", LICENCE.getLicenceReference()),
             model().attribute("summarySections", summarySections),
+            model().attribute("accordionId", LIVE_CHANGE_ID),
             model().attribute("allSurrenderedBlocksAreFull", true),
             model().attribute("backLinkUrl", correctingChangeTaskListUrl())
         );
@@ -353,8 +356,32 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
             model().attribute("pageTitle", PartialSurrenderTaskListController.REVIEW_AND_SUBMIT_PAGE_TITLE),
             model().attribute("pageCaption", LICENCE.getLicenceReference()),
             model().attribute("summarySections", summarySections),
+            model().attribute("accordionId", POSITION_CORRECTION_ID),
             model().attribute("allSurrenderedBlocksAreFull", false),
             model().attribute("backLinkUrl", taskListUrl())
+        );
+  }
+
+  @Test
+  void renderReviewAndSubmit_whenABlockIsPartiallySurrendered_thenBeforeAndAfterMapSectionsInModel() throws Exception {
+    var correction = givenCorrectionAllocatedToUser(LICENCE);
+    var positionCorrection = givenPositionCorrection(correction, LicencePositionCorrectionChangeType.UPDATE_POSITION);
+    var summarySections = List.of(new SummarySection(20, List.of(SummaryItem.withCard(
+        "Block 30/1",
+        SummaryCard.simpleSummaryCard(SummaryDataView.newBuilder()
+            .addStringValue("Type of surrender", "Partial surrender")
+            .addMapValue("Before", new SummaryMapView(List.of(UUID.randomUUID()), 4230))
+            .addMapValue("After", new SummaryMapView(List.of(UUID.randomUUID()), 4230))
+            .build())))));
+    when(partialSurrenderSummarySectionService.getSummarySections(
+        new PartialSurrenderSummaryContext.Staged(positionCorrection), regulatorUser)).thenReturn(summarySections);
+    when(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(positionCorrection)).thenReturn(false);
+
+    mockMvc.perform(get(reviewAndSubmitUrl()).with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            model().attribute("summarySections", summarySections),
+            model().attribute("accordionId", POSITION_CORRECTION_ID)
         );
   }
 

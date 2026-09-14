@@ -2,6 +2,7 @@
 <#import 'summaryValue/_fileSummaryValue.ftl' as fileSummaryValue>
 <#import 'summaryValue/_stringSummaryValue.ftl' as stringSummaryValue>
 <#import 'summaryValue/_externalUrlSummaryValue.ftl' as externalUrlSummaryValue>
+<#import 'summaryValue/_mapSummaryValue.ftl' as mapSummaryValue>
 
 <#-- @ftlvariable name="summaryDataView" type="uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView" -->
 
@@ -18,6 +19,8 @@
           <@fileSummaryValue.fileValueDisplay keyValue.summaryValueData()/>
         <#elseif keyValue.summaryValueType() == "EXTERNAL_URL_VALUE">
           <@externalUrlSummaryValue.externalUrlValueDisplay keyValue.summaryValueData()/>
+        <#elseif keyValue.summaryValueType() == "MAP_VALUE">
+          <@mapSummaryValue.mapValueDisplay keyValue.summaryValueData()/>
         </#if>
       </@fdsSummaryList.summaryListRowNoAction>
     </#list>

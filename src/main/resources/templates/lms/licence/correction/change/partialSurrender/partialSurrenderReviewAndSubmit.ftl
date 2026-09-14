@@ -1,4 +1,4 @@
-<#include '../../../../layout/layout.ftl'>
+<#include '../../../../layout/layoutWithGisAssets.ftl'>
 <#import '../../../../summary/_summaryDetails.ftl' as summaryDetails>
 
 <@defaultPage
@@ -14,17 +14,18 @@
   </#if>
 
   <@fdsForm.htmlForm>
-    <#list summarySections as summarySection>
-      <#list summarySection.summaryItems() as summaryItem>
-        <@fdsSummaryList.summaryListWrapper
-          headingText=summaryItem.displayName()
-          headingSize="h2"
-          summaryListId="summary-${summarySection?index}-${summaryItem?index}"
-        >
-          <@summaryDetails.summaryDetails summaryItem=summaryItem/>
-        </@fdsSummaryList.summaryListWrapper>
+    <@fdsAccordion.accordion accordionId="summaryaccordion-${accordionId}">
+      <#list summarySections as summarySection>
+        <#list summarySection.summaryItems() as summaryItem>
+          <@fdsAccordion.accordionSection
+            sectionHeading=summaryItem.displayName()
+            openSection=(summarySection?index == 0 && summaryItem?index == 0)
+          >
+            <@summaryDetails.summaryDetails summaryItem=summaryItem/>
+          </@fdsAccordion.accordionSection>
+        </#list>
       </#list>
-    </#list>
+    </@fdsAccordion.accordion>
 
     <@fdsAction.submitButtons
       primaryButtonText="Submit"

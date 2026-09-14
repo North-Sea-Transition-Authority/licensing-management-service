@@ -134,6 +134,7 @@ public class PartialSurrenderTaskListController {
 
     return reviewAndSubmitModelAndView(
         correction,
+        licencePositionCorrectionId,
         sections,
         partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(licencePositionCorrection),
         taskListUrl);
@@ -161,6 +162,7 @@ public class PartialSurrenderTaskListController {
 
     return reviewAndSubmitModelAndView(
         correction,
+        changeId,
         sections,
         partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(surrender),
         taskListUrl
@@ -185,6 +187,7 @@ public class PartialSurrenderTaskListController {
 
   private ModelAndView reviewAndSubmitModelAndView(
       LicenceCorrection correction,
+      Object accordionId,
       List<SummarySection> summarySections,
       boolean allSurrenderedBlocksAreFull,
       String backLinkUrl
@@ -192,6 +195,7 @@ public class PartialSurrenderTaskListController {
     return new ModelAndView("lms/licence/correction/change/partialSurrender/partialSurrenderReviewAndSubmit")
         .addObject("pageTitle", REVIEW_AND_SUBMIT_PAGE_TITLE)
         .addObject("pageCaption", correction.getLicence().getLicenceReference())
+        .addObject("accordionId", accordionId)
         .addObject("summarySections", summarySections)
         .addObject("allSurrenderedBlocksAreFull", allSurrenderedBlocksAreFull)
         .addObject("backLinkUrl", backLinkUrl);

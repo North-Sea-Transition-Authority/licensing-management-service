@@ -71,6 +71,7 @@ dependencies {
 	implementation 'net.ttddyy.observation:datasource-micrometer-spring-boot:1.1.1'
 
 	runtimeOnly 'org.postgresql:postgresql'
+	runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
@@ -82,7 +83,9 @@ dependencies {
 
 tasks {
 	test {
-		useJUnitPlatform()
+		useJUnitPlatform {
+			excludeTags 'pears-migration'
+		}
 		finalizedBy jacocoTestReport
 		systemProperty 'spring.profiles.active', 'test'
 		maxParallelForks 4
@@ -90,6 +93,24 @@ tasks {
 	bootJar {
 		archiveFileName.set("${rootProject.name}.jar")
 		exclude('**/localdevonly/**')
+	}
+}
+
+// Not wired into 'check' or 'build': this sweeps every licence PEARS holds over a live Oracle
+// connection, and its failures are discrepancies to investigate rather than a broken build.
+tasks.register('pearsMigrationTest', Test) {
+	group = 'verification'
+	description = 'Compares the licence timeline this application builds with the one PEARS holds.'
+	useJUnitPlatform {
+		includeTags 'pears-migration'
+	}
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	// One Oracle pool, one database container, one report.
+	maxParallelForks = 1
+	shouldRunAfter tasks.named('test')
+	testLogging {
+		showStandardStreams = true
 	}
 }
 

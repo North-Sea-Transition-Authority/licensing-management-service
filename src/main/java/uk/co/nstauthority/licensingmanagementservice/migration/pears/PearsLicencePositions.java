@@ -34,7 +34,7 @@ import java.util.List;
  * positions by, though not quite an identifier: one transaction master can execute twice against a
  * licence, on two dates, under one reference.
  */
-record LivePositions(
+record PearsLicencePositions(
     String licenceType,
     int licenceNo,
     List<Position> positions
@@ -75,7 +75,7 @@ record LivePositions(
    *
    * @throws IllegalStateException if the rows hold no licence, or more than one
    */
-  public static LivePositions reconstruct(List<Row> rows) {
+  public static PearsLicencePositions reconstruct(List<Row> rows) {
     var licences = rows.stream().map(row -> new LicenceKey(row.licenceType(), row.licenceNo())).distinct().toList();
     if (licences.size() != 1) {
       throw new IllegalStateException("Expected rows for exactly one licence but found " + licences);
@@ -90,7 +90,7 @@ record LivePositions(
   /**
    * One licence's positions, in the order it holds them: by date, then by sequence within the date.
    */
-  private static LivePositions forOneLicence(List<Row> rows) {
+  private static PearsLicencePositions forOneLicence(List<Row> rows) {
     var firstRows = new HashMap<PositionKey, Row>();
     for (var row : rows) {
       firstRows.putIfAbsent(new PositionKey(row.positionDate(), row.positionSequence()), row);
@@ -114,7 +114,7 @@ record LivePositions(
     }
 
     var first = rows.getFirst();
-    return new LivePositions(first.licenceType(), first.licenceNo(), positions);
+    return new PearsLicencePositions(first.licenceType(), first.licenceNo(), positions);
   }
 
   /**

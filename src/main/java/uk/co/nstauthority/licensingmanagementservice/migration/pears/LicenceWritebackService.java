@@ -56,12 +56,12 @@ class LicenceWritebackService {
 
   @Transactional
   LicenceWritebackResult overwriteLicencePositionsFromPears(Licence licence) {
-    var livePositions = pearsLicenceService.livePositions(
+    var pearsLicencePositions = pearsLicenceService.getLicencePositions(
         licence.getPrefix(),
         Integer.parseInt(licence.getLicenceNumber())
     );
 
-    if (livePositions.positions().isEmpty()) {
+    if (pearsLicencePositions.positions().isEmpty()) {
       return new LicenceWritebackResult("No positions found in PEARS for licence %s".formatted(licence.getLicenceReference()));
     }
 
@@ -93,18 +93,18 @@ class LicenceWritebackService {
     licencePositionRepository.deleteAll(licencePositions);
     licenceTransactionRepository.deleteAll(unheldLicenceTransactions);
 
-    for (var livePosition : livePositions.positions()) {
-      var licenceTransaction = licenceTransactionService.createLicenceTransaction(livePosition.regulatorReference());
+    for (var pearsLicencePosition : pearsLicencePositions.positions()) {
+      var licenceTransaction = licenceTransactionService.createLicenceTransaction(pearsLicencePosition.regulatorReference());
       licencePositionService.createLicencePosition(
           licence,
           licenceTransaction,
-          livePosition.positionDate()
+          pearsLicencePosition.positionDate()
       );
     }
 
     return new LicenceWritebackResult("Saved %d positions for licence %s".formatted(
-        livePositions.positions().size(),
-        livePositions.licenceReference()
+        pearsLicencePositions.positions().size(),
+        pearsLicencePositions.licenceReference()
     ));
   }
 }

@@ -184,7 +184,7 @@ class PearsLicenceWritebackEndpointIntegrationTest {
 
   @Test
   void overwriteLicencePositionsFromPears_whenLicenceHasPositionsAndCorrections_thenTheyAreReplacedByPearsPositions() {
-    when(pearsLicenceService.livePositions("P", 1)).thenReturn(pearsPositions());
+    when(pearsLicenceService.getLicencePositions("P", 1)).thenReturn(pearsPositions());
 
     var response = writeback("P1", LicenceWritebackResult.class);
 
@@ -227,8 +227,8 @@ class PearsLicenceWritebackEndpointIntegrationTest {
 
   @Test
   void overwriteLicencePositionsFromPears_whenLicenceHasNoPositions_thenPearsPositionsAreCreated() {
-    when(pearsLicenceService.livePositions("P", 3)).thenReturn(new LivePositions("P", 3, List.of(
-        new LivePositions.Position(LAST_POSITION_DATE, 2, 1, "XPT/4")
+    when(pearsLicenceService.getLicencePositions("P", 3)).thenReturn(new PearsLicencePositions("P", 3, List.of(
+        new PearsLicencePositions.Position(LAST_POSITION_DATE, 2, 1, "XPT/4")
     )));
 
     var response = writeback("P3", LicenceWritebackResult.class);
@@ -252,7 +252,7 @@ class PearsLicenceWritebackEndpointIntegrationTest {
 
   @Test
   void overwriteLicencePositionsFromPears_whenAPositionCannotBeSaved_thenNothingIsDeleted() {
-    when(pearsLicenceService.livePositions("P", 1)).thenReturn(pearsPositions());
+    when(pearsLicenceService.getLicencePositions("P", 1)).thenReturn(pearsPositions());
     doThrow(new IllegalStateException("Could not create licence transaction"))
         .when(licenceTransactionService).createLicenceTransaction("XPT/3");
 
@@ -312,11 +312,11 @@ class PearsLicenceWritebackEndpointIntegrationTest {
     );
   }
 
-  private LivePositions pearsPositions() {
-    return new LivePositions("P", 1, List.of(
-        new LivePositions.Position(FIRST_POSITION_DATE, 6, 1, "XPT/1"),
-        new LivePositions.Position(FIRST_POSITION_DATE, 9, 2, "XPT/2"),
-        new LivePositions.Position(LAST_POSITION_DATE, 2, 1, "XPT/3")
+  private PearsLicencePositions pearsPositions() {
+    return new PearsLicencePositions("P", 1, List.of(
+        new PearsLicencePositions.Position(FIRST_POSITION_DATE, 6, 1, "XPT/1"),
+        new PearsLicencePositions.Position(FIRST_POSITION_DATE, 9, 2, "XPT/2"),
+        new PearsLicencePositions.Position(LAST_POSITION_DATE, 2, 1, "XPT/3")
     ));
   }
 

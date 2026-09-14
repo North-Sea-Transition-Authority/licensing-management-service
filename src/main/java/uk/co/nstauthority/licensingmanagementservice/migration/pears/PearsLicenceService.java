@@ -24,6 +24,8 @@ class PearsLicenceService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PearsLicenceService.class);
 
   private static final String LIVE_POSITIONS_SQL = sql("live-positions.sql");
+  private static final String LICENCE_REFERENCES_SQL = sql("licence-references.sql");
+  private static final String DATA_POINT_POSITIONS_SQL = sql("data-point-positions.sql");
 
   private final DataSource dataSource;
 
@@ -37,39 +39,100 @@ class PearsLicenceService {
    * @param licenceType   the licence's prefix, for example {@code P}
    * @param licenceNumber the licence's number, for example {@code 1}
    */
-  public LivePositions livePositions(String licenceType, int licenceNumber) {
-    var livePositions = LivePositions.reconstruct(queryLivePositionRows(licenceType, licenceNumber));
-    LOGGER.info("Found {} live positions for licence {}", livePositions.positions().size(), livePositions.licenceReference());
-    return livePositions;
+  public PearsLicencePositions getLicencePositions(String licenceType, int licenceNumber) {
+    var positionRows = queryPositionRows(LIVE_POSITIONS_SQL, "live positions", licenceType, licenceNumber);
+    if (positionRows.isEmpty()) {
+      return new PearsLicencePositions(licenceType, licenceNumber, List.of());
+    }
+
+    return PearsLicencePositions.reconstruct(positionRows);
   }
 
-  private List<LivePositions.Row> queryLivePositionRows(String licenceType, int licenceNumber) {
+  /**
+   * The positions PEARS itself holds for one licence, taken from its own data points.
+   *
+   * <p>An oracle independent of {@link #getLicencePositions}, which re-derives the positions from the
+   * operations that made them. The migration builds a licence from the operations, so checking the
+   * result against them again would only restate the reading; the data points are what PEARS holds.
+   *
+   * @param licenceType   the licence's prefix, for example {@code P}
+   * @param licenceNumber the licence's number, for example {@code 1}
+   */
+  public PearsLicencePositions dataPointPositions(String licenceType, int licenceNumber) {
+    var rows = queryPositionRows(DATA_POINT_POSITIONS_SQL, "data point positions", licenceType, licenceNumber);
+    if (rows.isEmpty()) {
+      return new PearsLicencePositions(licenceType, licenceNumber, List.of());
+    }
+
+    return PearsLicencePositions.reconstruct(rows);
+  }
+
+  /**
+   * Every licence the sweep should compare, in licence order: the licences PEARS holds data
+   * points for, together with the licences its operations name.
+   */
+  public List<PearsLicenceReference> licenceReferences() {
     var start = System.nanoTime();
-    var rows = new ArrayList<LivePositions.Row>();
+    var references = new ArrayList<PearsLicenceReference>();
 
     try (var connection = dataSource.getConnection();
-         var statement = connection.prepareStatement(LIVE_POSITIONS_SQL)) {
+         var statement = connection.prepareStatement(LICENCE_REFERENCES_SQL)) {
+      statement.setFetchSize(5_000);
+
+      try (var resultSet = statement.executeQuery()) {
+        while (resultSet.next()) {
+          references.add(new PearsLicenceReference(
+              resultSet.getString(1), // licence_type
+              resultSet.getInt(2) // licence_no
+          ));
+        }
+      }
+    } catch (SQLException e) {
+      throw new IllegalStateException("Could not read the licences to compare from PEARS", e);
+    }
+
+    LOGGER.info("Found {} licences in PEARS in {}ms",
+        references.size(), Duration.ofNanos(System.nanoTime() - start).toMillis());
+    return references;
+  }
+
+  /**
+   * Both position queries return the same five columns -- licence, regulator reference, position
+   * date and the position's sequence within that date -- so they are read the same way.
+   */
+  private List<PearsLicencePositions.Row> queryPositionRows(
+      String sql,
+      String description,
+      String licenceType,
+      int licenceNumber
+  ) {
+    var start = System.nanoTime();
+    var rows = new ArrayList<PearsLicencePositions.Row>();
+
+    try (var connection = dataSource.getConnection();
+         var statement = connection.prepareStatement(sql)) {
       statement.setFetchSize(5_000);
       statement.setString(1, licenceType);
       statement.setInt(2, licenceNumber);
 
       try (var resultSet = statement.executeQuery()) {
         while (resultSet.next()) {
-          rows.add(new LivePositions.Row(
-              resultSet.getString(1), // xpo.licence_type
-              resultSet.getInt(2), // xpo.licence_no
-              resultSet.getString(3), // xpt.regulator_reference_full
-              LocalDate.parse(resultSet.getString(4)), // TO_CHAR(xpt.position_datetime, 'YYYY-MM-DD') position_date
-              resultSet.getInt(5) // pst.position_sequence
+          rows.add(new PearsLicencePositions.Row(
+              resultSet.getString(1), // licence_type
+              resultSet.getInt(2), // licence_no
+              resultSet.getString(3), // regulator_reference_full
+              LocalDate.parse(resultSet.getString(4)), // position_date
+              resultSet.getInt(5) // position_sequence
           ));
         }
       }
     } catch (SQLException e) {
-      throw new IllegalStateException("Could not read live positions for %s%d".formatted(licenceType, licenceNumber), e);
+      throw new IllegalStateException(
+          "Could not read %s for %s%d".formatted(description, licenceType, licenceNumber), e);
     }
 
-    LOGGER.info("Processed {} rows from PEARS in {}ms",
-        rows.size(), Duration.ofNanos(System.nanoTime() - start).toMillis());
+    LOGGER.info("Processed {} {} rows from PEARS in {}ms",
+        rows.size(), description, Duration.ofNanos(System.nanoTime() - start).toMillis());
     return rows;
   }
 

@@ -57,7 +57,7 @@ class LicenceWritebackServiceTest {
         .withLicenceReference("P1")
         .build();
 
-    when(pearsLicenceService.livePositions("P", 1)).thenReturn(new LivePositions("P", 1, List.of()));
+    when(pearsLicenceService.getLicencePositions("P", 1)).thenReturn(new PearsLicencePositions("P", 1, List.of()));
 
     var result = licenceWritebackService.overwriteLicencePositionsFromPears(licence);
 

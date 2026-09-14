@@ -179,7 +179,7 @@ public class CarbonStorageLicenceMigrationService {
       }
     }
 
-    var savedLicences = (List<Licence>) licenceService.saveLicences(licences);
+    var savedLicences = licenceService.saveLicences(licences);
 
     var licenceStatuses = savedLicences.stream()
         .map(savedLicence -> {

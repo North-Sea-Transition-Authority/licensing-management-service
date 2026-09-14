@@ -144,4 +144,27 @@ class PearsResponsibleOrganisationRefreshServiceTest {
 
     verify(licenceContactRepository).deleteAll(List.of(departedContact));
   }
+
+  @Test
+  void deleteRemovedResponsibleOrganisationsForLicence_onlyConsidersThatLicencesOrganisations() {
+    var licence = new Licence();
+    licence.setId(1);
+
+    var activeLicensee = new LicenceResponsibleOrganisation();
+    activeLicensee.setLicence(licence);
+    activeLicensee.setResponsibleOrganisationId(1);
+    activeLicensee.setManagedByLms(false);
+
+    var departedLicensee = new LicenceResponsibleOrganisation();
+    departedLicensee.setLicence(licence);
+    departedLicensee.setResponsibleOrganisationId(2);
+    departedLicensee.setManagedByLms(false);
+
+    when(licenceResponsibleOrganisationRepository.findAllByLicence_IdAndManagedByLmsIsFalse(1))
+        .thenReturn(List.of(activeLicensee, departedLicensee));
+
+    pearsResponsibleOrganisationRefreshService.deleteRemovedResponsibleOrganisationsForLicence(1, List.of(1));
+
+    verify(licenceResponsibleOrganisationRepository).deleteAll(List.of(departedLicensee));
+  }
 }

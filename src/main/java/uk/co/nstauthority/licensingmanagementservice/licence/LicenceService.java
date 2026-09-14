@@ -44,7 +44,7 @@ public class LicenceService {
   }
 
   @Transactional
-  public Iterable<Licence> saveLicences(Collection<Licence> licences) {
+  public List<Licence> saveLicences(Collection<Licence> licences) {
     return licenceRepository.saveAll(licences);
   }
 

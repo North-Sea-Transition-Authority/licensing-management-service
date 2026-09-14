@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.energyportal.licence;
 
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
@@ -49,6 +50,20 @@ public class LicenceQueryService {
         searchFilter,
         LICENCE_PROJECTION_ROOT,
         new RequestPurpose("Get all licences"),
+        CorrelationIdUtil.getLogCorrelationId()
+    ));
+  }
+
+  /**
+   * The same licence data as {@link #getEpaLicenceData()} for named licences only, for refreshing one licence
+   * without paying for a search across every licence the Energy Portal holds. Licences the Energy Portal does not
+   * hold are simply absent from the result.
+   */
+  public EpaLicenceDataDto getEpaLicenceData(Collection<Integer> licenceIds) {
+    return createLicenceDataDto(licenceApi.searchLicencesById(
+        List.copyOf(licenceIds),
+        LICENCE_PROJECTION_ROOT,
+        new RequestPurpose("Get licences by ID"),
         CorrelationIdUtil.getLogCorrelationId()
     ));
   }

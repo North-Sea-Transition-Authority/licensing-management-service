@@ -151,6 +151,18 @@ public class LicenceResponsibleOrganisationService {
     pearsResponsibleOrganisationRefreshService.deleteRemovedResponsibleOrganisationsForLicences(licenceIdOrgIdMap);
   }
 
+  /**
+   * The same refresh as {@link #refreshPearsResponsibleOrganisations(List, Map)} for a single licence, leaving every
+   * other licence's responsible organisations untouched.
+   */
+  @Transactional
+  public void refreshPearsResponsibleOrganisationsForLicence(Licence licence, List<Integer> organisationIds) {
+    var licenceIdOrgIdMap = Map.of(licence.getId(), organisationIds);
+    pearsResponsibleOrganisationRefreshService.saveResponsibleOrganisationsForLicences(List.of(licence), licenceIdOrgIdMap);
+    pearsResponsibleOrganisationRefreshService
+        .deleteRemovedResponsibleOrganisationsForLicence(licence.getId(), organisationIds);
+  }
+
   @Transactional
   public void saveLicenseesFromForm(
       Licence licence,

@@ -27,15 +27,39 @@ public class PearsResponsibleOrganisationRefreshService {
 
   @Transactional
   public void deleteRemovedResponsibleOrganisationsForLicences(Map<Integer, List<Integer>> licenceIdOrgIdMap) {
+    deleteRemovedResponsibleOrganisations(
+        licenceIdOrgIdMap,
+        // Find all existing organisations that are not managed by LMS
+        licenceResponsibleOrganisationRepository.findAllByManagedByLmsIsFalse()
+    );
+  }
+
+  /**
+   * The same removal as {@link #deleteRemovedResponsibleOrganisationsForLicences(Map)} narrowed to one licence.
+   * Only that licence's organisations are considered, so passing a single licence to the map-wide method - which
+   * treats every organisation absent from the map as departed - does not remove every other licence's organisations.
+   *
+   * @param licenceId the licence to reconcile
+   * @param organisationIds the organisations the Energy Portal now holds against the licence
+   */
+  @Transactional
+  public void deleteRemovedResponsibleOrganisationsForLicence(Integer licenceId, List<Integer> organisationIds) {
+    deleteRemovedResponsibleOrganisations(
+        Map.of(licenceId, organisationIds),
+        licenceResponsibleOrganisationRepository.findAllByLicence_IdAndManagedByLmsIsFalse(licenceId)
+    );
+  }
+
+  private void deleteRemovedResponsibleOrganisations(
+      Map<Integer, List<Integer>> licenceIdOrgIdMap,
+      List<LicenceResponsibleOrganisation> existingOrganisations
+  ) {
     // Convert the licenceIdOrgIdMap to a flat list of LicenceOrganisationDto
     List<LicenceOrganisationDto> licenceOrgsFlatList =
         licenceIdOrgIdMap.entrySet().stream()
             .flatMap(entry -> entry.getValue().stream()
                 .map(orgId -> new LicenceOrganisationDto(entry.getKey(), orgId)))
             .toList();
-
-    // Find all existing organisations that are not managed by LMS
-    var existingOrganisations = licenceResponsibleOrganisationRepository.findAllByManagedByLmsIsFalse();
 
     // Find organisations that are in the database but not in the provided licenceIdOrgIdMap
     var removedOrganisations = existingOrganisations.stream()

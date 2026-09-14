@@ -28,6 +28,8 @@ public interface LicenceResponsibleOrganisationRepository
   @EntityGraph(attributePaths = "licence")
   List<LicenceResponsibleOrganisation> findAllByResponsibleOrganisationIdIn(Collection<Integer> responsibleOrganisationIds);
 
+  List<LicenceResponsibleOrganisation> findAllByLicence_IdAndManagedByLmsIsFalse(Integer licenceId);
+
   Optional<LicenceResponsibleOrganisation> findByLicence_IdAndResponsibleOrganisationId(
       Integer licenceId,
       Integer responsibleOrganisationId

@@ -27,7 +27,10 @@ pageSize=PageSize.TWO_THIRDS_COLUMN
           <li>Another licence position other than the final position</li>
         </ul>
       </li>
-      <li>Another position will partially surrender a further block</li>
+      <li>
+        The penultimate position will surrender two further blocks: one fully, and one partially by cutting
+        it in half and surrendering the western half
+      </li>
     </ul>
     <p>If a carbon storage licence is selected, beneficial interest position changes will be generated for:</p>
     <ul class="govuk-list govuk-list--bullet">

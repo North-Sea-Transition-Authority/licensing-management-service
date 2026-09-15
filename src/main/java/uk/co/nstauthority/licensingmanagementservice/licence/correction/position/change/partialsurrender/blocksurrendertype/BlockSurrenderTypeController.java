@@ -170,11 +170,11 @@ public class BlockSurrenderTypeController {
     }
 
     var blockSurrenderType = BlockSurrenderType.valueOf(form.getSurrenderType());
+    var liveOperation = partialSurrenderCorrectionService.getLiveSurrenderOrThrow(changeId);
 
-    // the surrender date is deliberately omitted so that saving a type does not stage a date correction; the block's
-    // existing command journey is reused (a block can only carry one) so the correction points at the same splits
+    // the surrender date is deliberately omitted so that saving a type does not stage a date correction
     var correctedSurrender = partialSurrenderCorrectionService
-        .getOrCreatePartialSurrenderDetails(surrenderUnderCorrection, featureId, blockSurrenderType);
+        .getOrCreatePartialSurrenderDetails(surrenderUnderCorrection, liveOperation, featureId, blockSurrenderType);
 
     if (blockSurrenderType == BlockSurrenderType.PARTIAL_SURRENDER) {
       var positionCorrection = partialSurrenderCorrectionService
@@ -183,14 +183,20 @@ public class BlockSurrenderTypeController {
           .renderDefineArea(correctionId, positionCorrection.getId(), featureId, null));
     }
 
-    if (correctedSurrender.hasUpdateOccurred(partialSurrenderCorrectionService.getLiveSurrenderOrThrow(changeId))) {
+    if (correctedSurrender.hasUpdateOccurred(liveOperation)) {
       partialSurrenderCorrectionService.correctExistingPartialSurrender(
           correction,
           licencePosition,
           changeId,
-          correctedSurrender);
+          correctedSurrender
+      );
     } else {
-      partialSurrenderCorrectionService.revertPartialSurrenderCorrection(correction, licencePosition);
+      partialSurrenderCorrectionService.revertPartialSurrenderCorrection(
+          correction,
+          licencePosition,
+          liveOperation,
+          correctedSurrender
+      );
     }
 
     NotificationBanner.newSuccessBannerWithHeader(SAVED_BANNER, redirectAttributes);

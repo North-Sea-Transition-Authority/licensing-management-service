@@ -23,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeController;
@@ -81,7 +82,7 @@ public class PartialSurrenderDefineAreaController {
 
     return getDefineAreaModelAndView(
         correctionId,
-        licencePositionCorrectionId,
+        positionCorrection,
         featureId,
         correction,
         commandJourneyId,
@@ -108,7 +109,7 @@ public class PartialSurrenderDefineAreaController {
     if (partialSurrenderDefineAreaValidator.hasErrors(activeFeatures)) {
       return getDefineAreaModelAndView(
           correctionId,
-          licencePositionCorrectionId,
+          positionCorrection,
           featureId,
           correction,
           commandJourneyId,
@@ -193,7 +194,7 @@ public class PartialSurrenderDefineAreaController {
 
   private ModelAndView getDefineAreaModelAndView(
       UUID correctionId,
-      UUID licencePositionCorrectionId,
+      LicencePositionCorrection positionCorrection,
       UUID featureId,
       LicenceCorrection correction,
       UUID commandJourneyId,
@@ -206,8 +207,28 @@ public class PartialSurrenderDefineAreaController {
         .addObject("srsWkid", CoordinateSystemUtils.getWkid(coordinateSystem))
         .addObject("pageCaption", correction.getLicence().getLicenceReference())
         .addObject("pageTitle", DEFINE_AREA_PAGE_TITLE)
-        .addObject("backLinkUrl", ReverseRouter.route(on(BlockSurrenderTypeController.class)
-            .renderSurrenderTypeForm(correctionId, licencePositionCorrectionId, featureId, null)));
+        .addObject("backLinkUrl", surrenderTypeUrl(correctionId, positionCorrection, featureId));
+  }
+
+  /**
+   * A surrender correcting an executed change is edited through the correcting-change route, so the back link points
+   * there rather than at the staged form.
+   */
+  private String surrenderTypeUrl(
+      UUID correctionId,
+      LicencePositionCorrection positionCorrection,
+      UUID featureId
+  ) {
+    return partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection)
+        .map(changeId -> ReverseRouter.route(on(BlockSurrenderTypeController.class)
+            .renderSurrenderTypeFormForCorrectingChange(
+                correctionId,
+                positionCorrection.getTargetLicencePosition().getId(),
+                changeId,
+                featureId,
+                null)))
+        .orElseGet(() -> ReverseRouter.route(on(BlockSurrenderTypeController.class)
+            .renderSurrenderTypeForm(correctionId, positionCorrection.getId(), featureId, null)));
   }
 
   private ModelAndView getSelectAreasModelAndView(

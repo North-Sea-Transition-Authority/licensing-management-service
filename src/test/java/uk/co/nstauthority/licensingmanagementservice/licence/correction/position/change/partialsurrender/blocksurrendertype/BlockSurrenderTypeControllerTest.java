@@ -317,6 +317,7 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
 
     verify(partialSurrenderCorrectionService, never())
         .correctExistingPartialSurrender(any(), any(), any(), any());
+    verify(partialSurrenderCorrectionService, never()).getLiveSurrenderOrThrow(any());
   }
 
   @Test
@@ -326,13 +327,19 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
         .withSurrenderedFeatureIds(List.of(FEATURE_ID))
         .build();
     var correction = givenSurrenderUnderCorrection(surrenderUnderCorrection);
+    var liveSurrender = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(LocalDate.of(2026, Month.AUGUST, 1))
+        .withSurrenderedFeatureIds(List.of(FEATURE_ID))
+        .build();
+    givenLiveSurrender(liveSurrender);
     var corrected = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(FEATURE_ID))
         .withSurrenderDetails(Map.of(FEATURE_ID, new PartialSurrenderOperation.SurrenderDetails(
             BlockSurrenderType.PARTIAL_SURRENDER, UUID.randomUUID(), List.of())))
         .build();
     when(partialSurrenderCorrectionService.getOrCreatePartialSurrenderDetails(
-        surrenderUnderCorrection, FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER)).thenReturn(corrected);
+        surrenderUnderCorrection, liveSurrender, FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER))
+        .thenReturn(corrected);
     when(partialSurrenderCorrectionService.correctExistingPartialSurrender(
         correction, POSITION, LIVE_CHANGE_ID, corrected)).thenReturn(positionCorrection());
     when(blockSurrenderTypeFormValidator.hasErrors(any(BlockSurrenderTypeForm.class), any(BindingResult.class)))
@@ -357,6 +364,10 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
         .withSurrenderedFeatureIds(List.of(FEATURE_ID))
         .build();
     var correction = givenSurrenderUnderCorrection(surrenderUnderCorrection);
+    var liveSurrender = givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(LocalDate.of(2026, Month.AUGUST, 1))
+        .withSurrenderedFeatureIds(List.of(FEATURE_ID))
+        .build());
     // a full surrender still carries a command journey, so the corrected operation differs from the untyped live one
     var corrected = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(FEATURE_ID))
@@ -364,11 +375,8 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
             BlockSurrenderType.FULL_SURRENDER, UUID.randomUUID(), List.of(FEATURE_ID))))
         .build();
     when(partialSurrenderCorrectionService.getOrCreatePartialSurrenderDetails(
-        surrenderUnderCorrection, FEATURE_ID, BlockSurrenderType.FULL_SURRENDER)).thenReturn(corrected);
-    givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderDate(LocalDate.of(2026, Month.AUGUST, 1))
-        .withSurrenderedFeatureIds(List.of(FEATURE_ID))
-        .build());
+        surrenderUnderCorrection, liveSurrender, FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
+        .thenReturn(corrected);
     when(blockSurrenderTypeFormValidator.hasErrors(any(BlockSurrenderTypeForm.class), any(BindingResult.class)))
         .thenReturn(false);
 
@@ -394,6 +402,12 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
         .withSurrenderedFeatureIds(List.of(FEATURE_ID))
         .build();
     var correction = givenSurrenderUnderCorrection(surrenderUnderCorrection);
+    var liveSurrender = givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(LocalDate.of(2026, Month.AUGUST, 1))
+        .withSurrenderedFeatureIds(List.of(FEATURE_ID))
+        .withSurrenderDetails(Map.of(FEATURE_ID, new PartialSurrenderOperation.SurrenderDetails(
+            BlockSurrenderType.FULL_SURRENDER, UUID.randomUUID(), List.of(FEATURE_ID))))
+        .build());
     // the corrected surrender matches the live one (only the reused command journey id would differ)
     var corrected = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(FEATURE_ID))
@@ -401,13 +415,8 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
             BlockSurrenderType.FULL_SURRENDER, UUID.randomUUID(), List.of(FEATURE_ID))))
         .build();
     when(partialSurrenderCorrectionService.getOrCreatePartialSurrenderDetails(
-        surrenderUnderCorrection, FEATURE_ID, BlockSurrenderType.FULL_SURRENDER)).thenReturn(corrected);
-    givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderDate(LocalDate.of(2026, Month.AUGUST, 1))
-        .withSurrenderedFeatureIds(List.of(FEATURE_ID))
-        .withSurrenderDetails(Map.of(FEATURE_ID, new PartialSurrenderOperation.SurrenderDetails(
-            BlockSurrenderType.FULL_SURRENDER, UUID.randomUUID(), List.of(FEATURE_ID))))
-        .build());
+        surrenderUnderCorrection, liveSurrender, FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
+        .thenReturn(corrected);
     when(blockSurrenderTypeFormValidator.hasErrors(any(BlockSurrenderTypeForm.class), any(BindingResult.class)))
         .thenReturn(false);
 
@@ -419,13 +428,15 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(correctingChangeTaskListUrl()));
 
-    verify(partialSurrenderCorrectionService).revertPartialSurrenderCorrection(correction, POSITION);
+    verify(partialSurrenderCorrectionService)
+        .revertPartialSurrenderCorrection(correction, POSITION, liveSurrender, corrected);
     verify(partialSurrenderCorrectionService, never())
         .correctExistingPartialSurrender(any(), any(), any(), any());
   }
 
-  private void givenLiveSurrender(PartialSurrenderOperation liveSurrender) {
+  private PartialSurrenderOperation givenLiveSurrender(PartialSurrenderOperation liveSurrender) {
     when(partialSurrenderCorrectionService.getLiveSurrenderOrThrow(LIVE_CHANGE_ID)).thenReturn(liveSurrender);
+    return liveSurrender;
   }
 
   private LicenceCorrection givenSurrenderUnderCorrection(PartialSurrenderOperation surrenderUnderCorrection) {

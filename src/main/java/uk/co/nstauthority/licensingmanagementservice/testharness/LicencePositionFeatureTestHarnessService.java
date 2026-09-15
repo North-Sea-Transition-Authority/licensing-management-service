@@ -1,16 +1,22 @@
 package uk.co.nstauthority.licensingmanagementservice.testharness;
 
+import jakarta.annotation.Nullable;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.IntStream;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.fivium.gisframework.command.CommandJourney;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
+import uk.co.fivium.gisframework.command.FeatureJourneyStateService;
+import uk.co.fivium.gisframework.command.OperatorCommandService;
+import uk.co.fivium.gisframework.command.TransformationType;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.Layer;
@@ -49,16 +55,14 @@ class LicencePositionFeatureTestHarnessService {
   // Nominal - the harness does not ask the node server to calculate the square's real area.
   private static final BigDecimal FEATURE_AREA = BigDecimal.valueOf(200000000);
 
-  private static final String SOUTH_LINE =
-      "{\"spatialReference\":{\"wkid\":4230},\"paths\":[[[2.8,53.8333333333333],[3.0,53.8333333333333]]]}";
-  private static final String EAST_LINE =
-      "{\"spatialReference\":{\"wkid\":4230},\"paths\":[[[3.0,53.8333333333333],[3.0,54.0]]]}";
-  private static final String NORTH_LINE =
-      "{\"spatialReference\":{\"wkid\":4230},\"paths\":[[[3.0,54.0],[2.8,54.0]]]}";
-  private static final String WEST_LINE =
-      "{\"spatialReference\":{\"wkid\":4230},\"paths\":[[[2.8,54.0],[2.8,53.8333333333333]]]}";
+  private static final String LINE_TEMPLATE =
+      "{\"spatialReference\":{\"wkid\":4230},\"paths\":[[[%s,%s],[%s,%s]]]}";
 
-  private static final List<String> SQUARE_LINES = List.of(SOUTH_LINE, EAST_LINE, NORTH_LINE, WEST_LINE);
+  private static final String WESTERN_LONGITUDE = "2.8";
+  private static final String MIDDLE_LONGITUDE = "2.9";
+  private static final String EASTERN_LONGITUDE = "3.0";
+  private static final String SOUTHERN_LATITUDE = "53.8333333333333";
+  private static final String NORTHERN_LATITUDE = "54.0";
 
   private final FeatureService featureService;
   private final PolygonService polygonService;
@@ -66,6 +70,8 @@ class LicencePositionFeatureTestHarnessService {
   private final LicencePositionService licencePositionService;
   private final LicencePositionChangeService licencePositionChangeService;
   private final CommandJourneyService commandJourneyService;
+  private final OperatorCommandService operatorCommandService;
+  private final FeatureJourneyStateService featureJourneyStateService;
 
   LicencePositionFeatureTestHarnessService(
       FeatureService featureService,
@@ -73,7 +79,9 @@ class LicencePositionFeatureTestHarnessService {
       LineService lineService,
       LicencePositionService licencePositionService,
       LicencePositionChangeService licencePositionChangeService,
-      CommandJourneyService commandJourneyService
+      CommandJourneyService commandJourneyService,
+      OperatorCommandService operatorCommandService,
+      FeatureJourneyStateService featureJourneyStateService
   ) {
     this.featureService = featureService;
     this.polygonService = polygonService;
@@ -81,6 +89,8 @@ class LicencePositionFeatureTestHarnessService {
     this.licencePositionService = licencePositionService;
     this.licencePositionChangeService = licencePositionChangeService;
     this.commandJourneyService = commandJourneyService;
+    this.operatorCommandService = operatorCommandService;
+    this.featureJourneyStateService = featureJourneyStateService;
   }
 
   public LicencePositionFeatureSeedState getSeedState(Licence licence) {
@@ -177,6 +187,53 @@ class LicencePositionFeatureTestHarnessService {
   }
 
   /**
+   * Cuts a block down the middle, as drawing a split on the map would. The two halves become the journey's active
+   * features and the block itself is deactivated, so the surrender journey's map and select-areas pages read back the
+   * halves rather than the whole block.
+   *
+   * <p>The node server calculates neither the halves' geometry nor their area here - the block is a fixed square, so
+   * both halves are known up front.</p>
+   *
+   * @return the halves of the block, the western one to be surrendered
+   */
+  @Transactional
+  public SplitBlock splitBlockInHalf(CommandJourney commandJourney, Feature block) {
+    var westernHalf = createHalfBlock(block, WESTERN_LONGITUDE, MIDDLE_LONGITUDE, 1);
+    var easternHalf = createHalfBlock(block, MIDDLE_LONGITUDE, EASTERN_LONGITUDE, 2);
+
+    var splitCommand = operatorCommandService.createOperatorCommand(
+        commandJourney,
+        Set.of(block.getId()),
+        TransformationType.SPLIT
+    );
+
+    featureJourneyStateService.deactivateFeatures(commandJourney, List.of(block));
+    featureJourneyStateService.createFeatureJourneyStatesForCommandOutput(
+        commandJourney,
+        splitCommand,
+        List.of(westernHalf, easternHalf)
+    );
+
+    return new SplitBlock(westernHalf, easternHalf);
+  }
+
+  // a split output keeps the attributes and parent of the shape it came from, and is named after it
+  private Feature createHalfBlock(
+      Feature block,
+      String westernLongitude,
+      String easternLongitude,
+      int splitPartNumber
+  ) {
+    return createShape(
+        "%s_%s".formatted(block.getFeatureName(), splitPartNumber),
+        Map.copyOf(block.getAttributes()),
+        block.getParentFeature(),
+        block.getFeatureArea().divide(BigDecimal.TWO),
+        rectangleEdges(westernLongitude, easternLongitude)
+    );
+  }
+
+  /**
    * The blocks are kept apart from their subareas because only the blocks are named by the seed operation. The seed
    * operation fully surrenders the first block, so the licence is left holding the rest.
    */
@@ -195,20 +252,39 @@ class LicencePositionFeatureTestHarnessService {
     }
   }
 
-  /**
-   * Creates the square as a feature, its single polygon and the four lines of that polygon's only ring.
-   * None of this needs the node server - the lines are built here rather than by an ArcGIS operation.
-   */
+  record SplitBlock(Feature surrenderedHalf, Feature retainedHalf) {
+  }
+
   private Feature createFeature(
       Licence licence,
       int shapeIndex,
       Map<String, String> attributes,
       Feature parentFeature
   ) {
+    return createShape(
+        "test harness for %s %s".formatted(licence.getLicenceReference(), shapeIndex),
+        attributes,
+        parentFeature,
+        FEATURE_AREA,
+        rectangleEdges(WESTERN_LONGITUDE, EASTERN_LONGITUDE)
+    );
+  }
+
+  /**
+   * Creates the shape as a feature, its single polygon and the four lines of that polygon's only ring.
+   * None of this needs the node server - the lines are built here rather than by an ArcGIS operation.
+   */
+  private Feature createShape(
+      String featureName,
+      Map<String, String> attributes,
+      @Nullable Feature parentFeature,
+      BigDecimal featureArea,
+      List<String> edges
+  ) {
     var feature = new Feature();
-    feature.setFeatureName("test harness for %s %s".formatted(licence.getLicenceReference(), shapeIndex));
+    feature.setFeatureName(featureName);
     feature.setCoordinateSystem(COORDINATE_SYSTEM);
-    feature.setFeatureArea(FEATURE_AREA);
+    feature.setFeatureArea(featureArea);
     feature.setAttributes(attributes);
     feature.setParentFeature(parentFeature);
     featureService.saveFeature(feature);
@@ -218,17 +294,30 @@ class LicencePositionFeatureTestHarnessService {
     polygon.setAttributes(Map.of());
     polygonService.savePolygon(polygon);
 
-    lineService.saveLines(squareLines(polygon));
+    lineService.saveLines(lines(polygon, edges));
 
     return feature;
   }
 
-  private List<Line> squareLines(Polygon polygon) {
-    return IntStream.rangeClosed(1, SQUARE_LINES.size())
+  /**
+   * The four edges of a rectangle spanning the two longitudes, clockwise from its southern edge. Every shape the
+   * harness creates is one of these, so a block and either half of a split block differ only in their longitudes.
+   */
+  private static List<String> rectangleEdges(String westernLongitude, String easternLongitude) {
+    return List.of(
+        LINE_TEMPLATE.formatted(westernLongitude, SOUTHERN_LATITUDE, easternLongitude, SOUTHERN_LATITUDE),
+        LINE_TEMPLATE.formatted(easternLongitude, SOUTHERN_LATITUDE, easternLongitude, NORTHERN_LATITUDE),
+        LINE_TEMPLATE.formatted(easternLongitude, NORTHERN_LATITUDE, westernLongitude, NORTHERN_LATITUDE),
+        LINE_TEMPLATE.formatted(westernLongitude, NORTHERN_LATITUDE, westernLongitude, SOUTHERN_LATITUDE)
+    );
+  }
+
+  private List<Line> lines(Polygon polygon, List<String> edges) {
+    return IntStream.rangeClosed(1, edges.size())
         .mapToObj(displayOrder -> {
           var line = new Line();
           line.setPolygon(polygon);
-          line.setEsriJson(SQUARE_LINES.get(displayOrder - 1));
+          line.setEsriJson(edges.get(displayOrder - 1));
           line.setNavigationType(LineNavigationType.LOXODROME);
           line.setRingNumber(RING_NUMBER);
           line.setDisplayOrder(displayOrder);

@@ -260,8 +260,8 @@ public class LicencePositionPartialSurrenderController {
     }
 
     var correctedSurrender = toOperation(getSurrenderToCorrect(stagedSurrender, changeId), form);
-
-    if (correctedSurrender.hasUpdateOccurred(partialSurrenderCorrectionService.getLiveSurrenderOrThrow(changeId))) {
+    var liveOperation = partialSurrenderCorrectionService.getLiveSurrenderOrThrow(changeId);
+    if (correctedSurrender.hasUpdateOccurred(liveOperation)) {
       partialSurrenderCorrectionService.correctExistingPartialSurrender(
           correction,
           licencePosition,
@@ -270,7 +270,12 @@ public class LicencePositionPartialSurrenderController {
 
       NotificationBanner.newSuccessBannerWithHeader(CORRECTED_BANNER, redirectAttributes);
     } else {
-      partialSurrenderCorrectionService.revertPartialSurrenderCorrection(correction, licencePosition);
+      partialSurrenderCorrectionService.revertPartialSurrenderCorrection(
+          correction,
+          licencePosition,
+          liveOperation,
+          correctedSurrender
+      );
     }
 
     return ReverseRouter.redirect(on(PartialSurrenderTaskListController.class)

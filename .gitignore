@@ -48,6 +48,7 @@ out/
 
 ### Claude ###
 /.claude/settings.local.json
+bash.exe.stackdump
 
 ### Node ###
 logs

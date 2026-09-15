@@ -111,25 +111,19 @@ public record PartialSurrenderOperation(
     }
   }
 
-  /**
-   * Whether this surrender differs from the one currently live on the position, so a correction of a live change knows
-   * whether anything actually needs staging. The command journey id is deliberately excluded: it is recreated whenever a
-   * type is (re)chosen, so it never reflects a meaningful change to the surrender itself. The output features are
-   * excluded for the same reason: they are derived from the inputs and per-block state compared here.
-   */
   public boolean hasUpdateOccurred(PartialSurrenderOperation liveSurrender) {
     return !Set.copyOf(liveSurrender.surrenderedFeatureIds()).equals(Set.copyOf(surrenderedFeatureIds))
         || !surrenderStateByFeatureId().equals(liveSurrender.surrenderStateByFeatureId());
   }
 
-  private Map<UUID, SurrenderState> surrenderStateByFeatureId() {
+  public Map<UUID, SurrenderState> surrenderStateByFeatureId() {
     return featureIdToSurrenderDetails.entrySet().stream()
         .collect(Collectors.toMap(
             Map.Entry::getKey,
             entry -> new SurrenderState(entry.getValue().type(), Set.copyOf(entry.getValue().surrenderedFeatureIds()))));
   }
 
-  private record SurrenderState(BlockSurrenderType type, Set<UUID> surrenderedFeatureIds) {
+  public record SurrenderState(BlockSurrenderType type, Set<UUID> surrenderedFeatureIds) {
   }
 
   /**

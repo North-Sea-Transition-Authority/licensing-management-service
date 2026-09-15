@@ -14,7 +14,9 @@ import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -24,6 +26,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.command.CommandJourney;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
+import uk.co.fivium.gisframework.command.FeatureJourneyStateService;
+import uk.co.fivium.gisframework.command.OperatorCommand;
+import uk.co.fivium.gisframework.command.OperatorCommandService;
+import uk.co.fivium.gisframework.command.TransformationType;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.Line;
@@ -43,6 +49,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
 import uk.co.nstauthority.licensingmanagementservice.testharness.LicencePositionFeatureTestHarnessService.SeededFeatures;
 
@@ -55,14 +62,50 @@ class LicencePositionFeatureTestHarnessServiceTest {
 
   private static final BigDecimal FEATURE_AREA = BigDecimal.valueOf(200000000);
 
-  private static final String SOUTHERN_EDGE = """
-      {"spatialReference":{"wkid":4230},"paths":[[[2.8,53.8333333333333],[3.0,53.8333333333333]]]}""";
-  private static final String EASTERN_EDGE = """
-      {"spatialReference":{"wkid":4230},"paths":[[[3.0,53.8333333333333],[3.0,54.0]]]}""";
-  private static final String NORTHERN_EDGE = """
-      {"spatialReference":{"wkid":4230},"paths":[[[3.0,54.0],[2.8,54.0]]]}""";
-  private static final String WESTERN_EDGE = """
-      {"spatialReference":{"wkid":4230},"paths":[[[2.8,54.0],[2.8,53.8333333333333]]]}""";
+  // clockwise from the southern edge, as the harness builds them
+  private static final List<String> BLOCK_EDGES = List.of(
+      """
+      {"spatialReference":{"wkid":4230},"paths":[[[2.8,53.8333333333333],[3.0,53.8333333333333]]]}""",
+      """
+      {"spatialReference":{"wkid":4230},"paths":[[[3.0,53.8333333333333],[3.0,54.0]]]}""",
+      """
+      {"spatialReference":{"wkid":4230},"paths":[[[3.0,54.0],[2.8,54.0]]]}""",
+      """
+      {"spatialReference":{"wkid":4230},"paths":[[[2.8,54.0],[2.8,53.8333333333333]]]}"""
+  );
+
+  private static final List<String> WESTERN_HALF_EDGES = List.of(
+      """
+      {"spatialReference":{"wkid":4230},"paths":[[[2.8,53.8333333333333],[2.9,53.8333333333333]]]}""",
+      """
+      {"spatialReference":{"wkid":4230},"paths":[[[2.9,53.8333333333333],[2.9,54.0]]]}""",
+      """
+      {"spatialReference":{"wkid":4230},"paths":[[[2.9,54.0],[2.8,54.0]]]}""",
+      """
+      {"spatialReference":{"wkid":4230},"paths":[[[2.8,54.0],[2.8,53.8333333333333]]]}"""
+  );
+
+  private static final List<String> EASTERN_HALF_EDGES = List.of(
+      """
+      {"spatialReference":{"wkid":4230},"paths":[[[2.9,53.8333333333333],[3.0,53.8333333333333]]]}""",
+      """
+      {"spatialReference":{"wkid":4230},"paths":[[[3.0,53.8333333333333],[3.0,54.0]]]}""",
+      """
+      {"spatialReference":{"wkid":4230},"paths":[[[3.0,54.0],[2.9,54.0]]]}""",
+      """
+      {"spatialReference":{"wkid":4230},"paths":[[[2.9,54.0],[2.9,53.8333333333333]]]}"""
+  );
+
+  private static final Map<String, String> BLOCK_ATTRIBUTES =
+      Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "30", "BLOCK_NO", "1");
+
+  private static final Feature BLOCK = FeatureTestUtil.builder()
+      .withFeatureName("block 30/1")
+      .withAttributes(BLOCK_ATTRIBUTES)
+      .withFeatureArea(FEATURE_AREA)
+      .build();
+
+  private static final CommandJourney COMMAND_JOURNEY = commandJourney();
 
   @Mock
   private FeatureService featureService;
@@ -81,6 +124,12 @@ class LicencePositionFeatureTestHarnessServiceTest {
 
   @Mock
   private CommandJourneyService commandJourneyService;
+
+  @Mock
+  private OperatorCommandService operatorCommandService;
+
+  @Mock
+  private FeatureJourneyStateService featureJourneyStateService;
 
   @InjectMocks
   private LicencePositionFeatureTestHarnessService licencePositionFeatureTestHarnessService;
@@ -223,11 +272,7 @@ class LicencePositionFeatureTestHarnessServiceTest {
     assertThat(linesCaptor.getAllValues())
         .zipSatisfy(polygonCaptor.getAllValues(), (lines, polygon) -> assertThat(lines)
             .usingRecursiveFieldByFieldElementComparator()
-            .containsExactly(
-                expectedLine(polygon, SOUTHERN_EDGE, 1),
-                expectedLine(polygon, EASTERN_EDGE, 2),
-                expectedLine(polygon, NORTHERN_EDGE, 3),
-                expectedLine(polygon, WESTERN_EDGE, 4)));
+            .containsExactlyElementsOf(expectedLines(polygon, BLOCK_EDGES)));
   }
 
   @Test
@@ -238,6 +283,48 @@ class LicencePositionFeatureTestHarnessServiceTest {
         .isEqualTo(new SeededFeatures(List.of(), List.of()));
 
     verifyNoInteractions(featureService, polygonService, lineService);
+  }
+
+  @Test
+  void splitBlockInHalf_assertTheBlockBecomesTwoHalvesKeepingItsAttributes() {
+    givenFeaturesCanBePersisted();
+
+    var splitBlock = licencePositionFeatureTestHarnessService.splitBlockInHalf(COMMAND_JOURNEY, BLOCK);
+
+    assertThat(List.of(splitBlock.surrenderedHalf(), splitBlock.retainedHalf()))
+        .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
+        .containsExactly(expectedHalfBlock("block 30/1_1"), expectedHalfBlock("block 30/1_2"));
+  }
+
+  @Test
+  void splitBlockInHalf_assertEachHalfIsASquareOfTheBlockCutDownTheMiddle() {
+    givenFeaturesCanBePersisted();
+
+    licencePositionFeatureTestHarnessService.splitBlockInHalf(COMMAND_JOURNEY, BLOCK);
+
+    verify(polygonService, times(2)).savePolygon(polygonCaptor.capture());
+    verify(lineService, times(2)).saveLines(linesCaptor.capture());
+
+    assertThat(linesCaptor.getAllValues().getFirst())
+        .usingRecursiveFieldByFieldElementComparator()
+        .containsExactlyElementsOf(expectedLines(polygonCaptor.getAllValues().getFirst(), WESTERN_HALF_EDGES));
+
+    assertThat(linesCaptor.getAllValues().getLast())
+        .usingRecursiveFieldByFieldElementComparator()
+        .containsExactlyElementsOf(expectedLines(polygonCaptor.getAllValues().getLast(), EASTERN_HALF_EDGES));
+  }
+
+  @Test
+  void splitBlockInHalf_assertTheHalvesReplaceTheBlockAsTheJourneysActiveFeatures() {
+    var splitCommand = new OperatorCommand();
+    when(operatorCommandService.createOperatorCommand(
+        COMMAND_JOURNEY, Set.of(BLOCK.getId()), TransformationType.SPLIT)).thenReturn(splitCommand);
+
+    var splitBlock = licencePositionFeatureTestHarnessService.splitBlockInHalf(COMMAND_JOURNEY, BLOCK);
+
+    verify(featureJourneyStateService).deactivateFeatures(COMMAND_JOURNEY, List.of(BLOCK));
+    verify(featureJourneyStateService).createFeatureJourneyStatesForCommandOutput(
+        COMMAND_JOURNEY, splitCommand, List.of(splitBlock.surrenderedHalf(), splitBlock.retainedHalf()));
   }
 
   @Test
@@ -260,7 +347,11 @@ class LicencePositionFeatureTestHarnessServiceTest {
    * The real services assign ids on save, which the seeded spatial operation then records.
    */
   private void givenSpatialDataCanBePersisted() {
-    when(commandJourneyService.createAndAssignCommandJourney(anyList())).thenReturn(commandJourney());
+    when(commandJourneyService.createAndAssignCommandJourney(anyList())).thenReturn(COMMAND_JOURNEY);
+    givenFeaturesCanBePersisted();
+  }
+
+  private void givenFeaturesCanBePersisted() {
     doAnswer(invocation -> {
       invocation.getArgument(0, Feature.class).setId(UUID.randomUUID());
       return null;
@@ -293,6 +384,12 @@ class LicencePositionFeatureTestHarnessServiceTest {
     return commandJourney;
   }
 
+  private static Feature expectedHalfBlock(String featureName) {
+    var halfBlock = expectedFeature(featureName, BLOCK_ATTRIBUTES, null);
+    halfBlock.setFeatureArea(FEATURE_AREA.divide(BigDecimal.TWO));
+    return halfBlock;
+  }
+
   private static Feature expectedFeature(String featureName, Map<String, String> attributes, Feature parentFeature) {
     var feature = new Feature();
     feature.setFeatureName(featureName);
@@ -308,6 +405,12 @@ class LicencePositionFeatureTestHarnessServiceTest {
     polygon.setFeature(feature);
     polygon.setAttributes(Map.of());
     return polygon;
+  }
+
+  private static List<Line> expectedLines(Polygon polygon, List<String> edges) {
+    return IntStream.rangeClosed(1, edges.size())
+        .mapToObj(displayOrder -> expectedLine(polygon, edges.get(displayOrder - 1), displayOrder))
+        .toList();
   }
 
   private static Line expectedLine(Polygon polygon, String esriJson, int displayOrder) {

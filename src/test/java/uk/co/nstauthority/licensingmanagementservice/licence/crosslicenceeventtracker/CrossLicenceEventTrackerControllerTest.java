@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventt
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -17,8 +18,10 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.stubbing.Answer;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.validation.BindingResult;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupRestController;
@@ -39,11 +42,17 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
   private static final String CLEAR_FILTERS_ROUTE =
       ReverseRouter.route(on(CrossLicenceEventTrackerController.class).clearEventTrackerFilters(null, null));
 
+  private static final String FILTER_EVENT_TRACKER_ROUTE =
+      ReverseRouter.route(on(CrossLicenceEventTrackerController.class).filterEventTracker(null, null, null, null));
+
   @MockitoBean
   private CrossLicenceEventTrackerService crossLicenceEventTrackerService;
 
   @MockitoBean
   private RegulatorRoleService regulatorRoleService;
+
+  @MockitoBean
+  private EventTrackerFormValidator eventTrackerFormValidator;
 
   private SortableTableView eventTrackerTable;
 
@@ -102,7 +111,7 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
     var filterSession = new EventTrackerFilterSession(new EventTrackerForm());
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(CrossLicenceEventTrackerController.class).filterEventTracker(null, null)))
+            post(FILTER_EVENT_TRACKER_ROUTE)
                 .param("licenceTypes", LicenceType.CARBON_STORAGE.name())
                 .flashAttr("eventTrackerFilterSession", filterSession)
                 .with(user(regulatorUser))
@@ -112,6 +121,32 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
         .andExpect(redirectedUrl(RENDER_EVENT_TRACKER_ROUTE));
 
     assertThat(filterSession.getFilterForm().getLicenceTypes()).containsExactly(LicenceType.CARBON_STORAGE.name());
+  }
+
+  @Test
+  void filterEventTracker_whenValidationFails_thenReRendersWithErrorsAndDoesNotUpdateSession() throws Exception {
+    var existingForm = new EventTrackerForm();
+    var filterSession = new EventTrackerFilterSession(existingForm);
+
+    Answer<Void> rejectFromDate = invocation -> {
+      BindingResult bindingResult = invocation.getArgument(1);
+      bindingResult.rejectValue("fromDate", "fromDate.invalid", "Event from must be a real date in the format dd/mm/yyyy");
+      return null;
+    };
+    doAnswer(rejectFromDate).when(eventTrackerFormValidator).isValid(any(), any());
+
+    mockMvc.perform(
+            post(FILTER_EVENT_TRACKER_ROUTE)
+                .param("fromDate", "not-a-date")
+                .flashAttr("eventTrackerFilterSession", filterSession)
+                .with(user(regulatorUser))
+                .with(csrf())
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/licence/crosslicenceeventtracker/eventTracker"))
+        .andExpect(model().attributeHasFieldErrors("form", "fromDate"));
+
+    assertThat(filterSession.getFilterForm()).isSameAs(existingForm);
   }
 
   @Test

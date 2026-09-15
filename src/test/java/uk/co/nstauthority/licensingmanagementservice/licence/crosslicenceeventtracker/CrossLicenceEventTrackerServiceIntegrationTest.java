@@ -142,4 +142,63 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
     assertThat(result.tableRows()).hasSize(2);
     assertThat(result.tableRows().get(1).rowValues().get(0).value()).isEqualTo("CS 995");
   }
+
+  @Test
+  void getEventTrackerTable_whenDateFilterApplied_thenOnlyEventsWithinRangeReturned() {
+    var earlyLicence = LicenceTestUtil.builder()
+        .withId(9006)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withLicenceNumber("994")
+        .withLicenceReference("P 994")
+        .build();
+    entityManager.persist(earlyLicence);
+
+    var withinRangeLicence = LicenceTestUtil.builder()
+        .withId(9007)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withLicenceNumber("993")
+        .withLicenceReference("P 993")
+        .build();
+    entityManager.persist(withinRangeLicence);
+
+    var lateLicence = LicenceTestUtil.builder()
+        .withId(9008)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withLicenceNumber("992")
+        .withLicenceReference("P 992")
+        .build();
+    entityManager.persist(lateLicence);
+
+    var earlyEventCache = new LicenceEventCache();
+    earlyEventCache.setLicenceId(earlyLicence.getId());
+    earlyEventCache.setLicenceReference(earlyLicence.getLicenceReference());
+    earlyEventCache.setEventType(ScheduleEventType.TERM);
+    earlyEventCache.setEventDate(LocalDate.of(2029, 12, 31));
+    entityManager.persist(earlyEventCache);
+
+    var withinRangeEventCache = new LicenceEventCache();
+    withinRangeEventCache.setLicenceId(withinRangeLicence.getId());
+    withinRangeEventCache.setLicenceReference(withinRangeLicence.getLicenceReference());
+    withinRangeEventCache.setEventType(ScheduleEventType.TERM);
+    withinRangeEventCache.setEventDate(LocalDate.of(2030, 6, 15));
+    entityManager.persist(withinRangeEventCache);
+
+    var lateEventCache = new LicenceEventCache();
+    lateEventCache.setLicenceId(lateLicence.getId());
+    lateEventCache.setLicenceReference(lateLicence.getLicenceReference());
+    lateEventCache.setEventType(ScheduleEventType.TERM);
+    lateEventCache.setEventDate(LocalDate.of(2031, 1, 1));
+    entityManager.persist(lateEventCache);
+
+    entityManager.flush();
+
+    var form = new EventTrackerForm();
+    form.setFromDate("01/01/2030");
+    form.setToDate("31/12/2030");
+
+    var result = crossLicenceEventTrackerService.getEventTrackerTable(form);
+
+    assertThat(result.tableRows()).hasSize(2);
+    assertThat(result.tableRows().get(1).rowValues().get(0).value()).isEqualTo("P 993");
+  }
 }

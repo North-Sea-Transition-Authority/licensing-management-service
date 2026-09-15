@@ -4,6 +4,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.util.Collections;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,13 +28,16 @@ public class CrossLicenceEventTrackerController {
 
   private final CrossLicenceEventTrackerService crossLicenceEventTrackerService;
   private final RegulatorRoleService regulatorRoleService;
+  private final EventTrackerFormValidator eventTrackerFormValidator;
 
   public CrossLicenceEventTrackerController(
       CrossLicenceEventTrackerService crossLicenceEventTrackerService,
-      RegulatorRoleService regulatorRoleService
+      RegulatorRoleService regulatorRoleService,
+      EventTrackerFormValidator eventTrackerFormValidator
   ) {
     this.crossLicenceEventTrackerService = crossLicenceEventTrackerService;
     this.regulatorRoleService = regulatorRoleService;
+    this.eventTrackerFormValidator = eventTrackerFormValidator;
   }
 
   @GetMapping
@@ -41,30 +45,22 @@ public class CrossLicenceEventTrackerController {
       @ModelAttribute("eventTrackerFilterSession") EventTrackerFilterSession filterSession,
       ServiceUserDetail user
   ) {
-    var form = filterSession.getFilterForm();
-
-    return new ModelAndView("lms/licence/crosslicenceeventtracker/eventTracker")
-        .addObject("eventTrackerTableJson", crossLicenceEventTrackerService.getEventTrackerTable(form).toString())
-        .addObject("form", form)
-        .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
-        .addObject("licenseeOrgUnitUrl",
-            SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
-        .addObject("preSelectedLicenseeOrgUnit", Collections.emptyMap())
-        .addObject("isRegulatorUser", regulatorRoleService.isRegulator(user))
-        .addObject("licenseeGroupOrgUnitUrl",
-            SearchSelectorService.route(on(OrganisationGroupRestController.class).getOrganisationGroupSearchResults(null)))
-        .addObject("preSelectedLicenseeGroupOrgUnit", Collections.emptyMap())
-        .addObject("requestTypes", DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerRequestType.class))
-        .addObject("eventStatuses", DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerApplicationStatus.class))
-        .addObject("clearFilterUrl",
-            ReverseRouter.route(on(CrossLicenceEventTrackerController.class).clearEventTrackerFilters(null, null)));
+    return eventTrackerModelAndView(filterSession.getFilterForm(), user);
   }
 
   @PostMapping
   public ModelAndView filterEventTracker(
       @ModelAttribute("form") EventTrackerForm form,
-      @ModelAttribute("eventTrackerFilterSession") EventTrackerFilterSession filterSession
+      BindingResult bindingResult,
+      @ModelAttribute("eventTrackerFilterSession") EventTrackerFilterSession filterSession,
+      ServiceUserDetail user
   ) {
+    eventTrackerFormValidator.isValid(form, bindingResult);
+
+    if (bindingResult.hasErrors()) {
+      return eventTrackerModelAndView(form, user);
+    }
+
     filterSession.update(form);
     return ReverseRouter.redirect(on(CrossLicenceEventTrackerController.class).renderEventTracker(null, null));
   }
@@ -81,5 +77,23 @@ public class CrossLicenceEventTrackerController {
   @ModelAttribute("eventTrackerFilterSession")
   private EventTrackerFilterSession getFilterSession() {
     return new EventTrackerFilterSession(new EventTrackerForm());
+  }
+
+  private ModelAndView eventTrackerModelAndView(EventTrackerForm form, ServiceUserDetail user) {
+    return new ModelAndView("lms/licence/crosslicenceeventtracker/eventTracker")
+        .addObject("eventTrackerTableJson", crossLicenceEventTrackerService.getEventTrackerTable(form).toString())
+        .addObject("form", form)
+        .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
+        .addObject("licenseeOrgUnitUrl",
+            SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
+        .addObject("preSelectedLicenseeOrgUnit", Collections.emptyMap())
+        .addObject("isRegulatorUser", regulatorRoleService.isRegulator(user))
+        .addObject("licenseeGroupOrgUnitUrl",
+            SearchSelectorService.route(on(OrganisationGroupRestController.class).getOrganisationGroupSearchResults(null)))
+        .addObject("preSelectedLicenseeGroupOrgUnit", Collections.emptyMap())
+        .addObject("requestTypes", DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerRequestType.class))
+        .addObject("eventStatuses", DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerApplicationStatus.class))
+        .addObject("clearFilterUrl",
+            ReverseRouter.route(on(CrossLicenceEventTrackerController.class).clearEventTrackerFilters(null, null)));
   }
 }

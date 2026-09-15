@@ -10,6 +10,7 @@ import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
+import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 
 class DateUtilTest {
 
@@ -58,5 +59,60 @@ class DateUtilTest {
     var result = DateUtil.filterByDateRange(dates, Function.identity(), startDate, endDate);
 
     assertThat(result).containsExactly(onStartDate, withinRange, onEndDate);
+  }
+
+  @Test
+  void validateDateStrict_whenDateBlank_thenReturnsNullAndHasNoErrors() {
+    var bindingResult = ValidatorTestingUtil.getBindingResult(new DateForm());
+
+    var result = DateUtil.validateDateStrict(null, "date", "Date", bindingResult);
+
+    assertThat(result).isNull();
+    assertThat(bindingResult.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validateDateStrict_whenDateValid_thenReturnsParsedDateAndHasNoErrors() {
+    var bindingResult = ValidatorTestingUtil.getBindingResult(new DateForm());
+
+    var result = DateUtil.validateDateStrict("05/08/2026", "date", "Date", bindingResult);
+
+    assertThat(result).isEqualTo(LocalDate.of(2026, Month.AUGUST, 5));
+    assertThat(bindingResult.hasErrors()).isFalse();
+  }
+
+  @Test
+  void validateDateStrict_whenDateNotReal_thenRejectsFieldAndReturnsNull() {
+    var bindingResult = ValidatorTestingUtil.getBindingResult(new DateForm());
+
+    var result = DateUtil.validateDateStrict("31/02/2026", "date", "Date", bindingResult);
+
+    assertThat(result).isNull();
+    ValidatorTestingUtil.assertErrorExists(
+        bindingResult, "date", "date.invalid", "Date must be a real date in the format dd/mm/yyyy");
+  }
+
+  @Test
+  void validateDateStrict_whenDateNotParseable_thenRejectsFieldAndReturnsNull() {
+    var bindingResult = ValidatorTestingUtil.getBindingResult(new DateForm());
+
+    var result = DateUtil.validateDateStrict("not-a-date", "date", "Date", bindingResult);
+
+    assertThat(result).isNull();
+    ValidatorTestingUtil.assertErrorExists(
+        bindingResult, "date", "date.invalid", "Date must be a real date in the format dd/mm/yyyy");
+  }
+
+  private static class DateForm {
+
+    private String date;
+
+    public String getDate() {
+      return date;
+    }
+
+    public void setDate(String date) {
+      this.date = date;
+    }
   }
 }

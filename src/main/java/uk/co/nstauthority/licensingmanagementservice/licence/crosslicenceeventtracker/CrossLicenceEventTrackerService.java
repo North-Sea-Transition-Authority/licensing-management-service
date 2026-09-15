@@ -6,6 +6,9 @@ import static uk.co.nstauthority.licensingmanagementservice.jooq.tables.Licences
 
 import jakarta.transaction.Transactional;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +46,9 @@ import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 @Service
 public class CrossLicenceEventTrackerService {
 
+  private static final DateTimeFormatter EVENT_DATE_FILTER_FORMAT = DateTimeFormatter.ofPattern("dd/MM/uuuu")
+      .withResolverStyle(ResolverStyle.STRICT);
+
   private final LicenceScheduleTermService licenceScheduleTermService;
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
   private final LicenceEventCacheRepository licenceEventCacheRepository;
@@ -74,6 +80,7 @@ public class CrossLicenceEventTrackerService {
         .from(LICENCE_EVENT_CACHE)
         .join(LICENCES).on(LICENCES.ID.eq(LICENCE_EVENT_CACHE.LICENCE_ID))
         .where(getLicenceTypeCondition(form))
+        .and(getEventDateCondition(form))
         .fetchInto(LicenceEventCache.class);
 
     var licenceIds = eventCaches.stream()
@@ -109,6 +116,34 @@ public class CrossLicenceEventTrackerService {
     }
 
     return LICENCES.TYPE.in(form.getLicenceTypes());
+  }
+
+  private Condition getEventDateCondition(EventTrackerForm form) {
+    var condition = DSL.noCondition();
+
+    var fromDate = parseFilterDate(form.getFromDate());
+    if (fromDate != null) {
+      condition = condition.and(LICENCE_EVENT_CACHE.EVENT_DATE.ge(fromDate));
+    }
+
+    var toDate = parseFilterDate(form.getToDate());
+    if (toDate != null) {
+      condition = condition.and(LICENCE_EVENT_CACHE.EVENT_DATE.le(toDate));
+    }
+
+    return condition;
+  }
+
+  private LocalDate parseFilterDate(String date) {
+    if (StringUtils.isBlank(date)) {
+      return null;
+    }
+
+    try {
+      return LocalDate.parse(date, EVENT_DATE_FILTER_FORMAT);
+    } catch (DateTimeParseException e) {
+      return null;
+    }
   }
 
   private Map<Integer, List<String>> getLicenseesByLicenceId(List<Integer> licenceIds) {

@@ -29,30 +29,42 @@ public class LicenceEventCache {
   @UuidGenerator
   private UUID id;
 
-  @Column(nullable = false)
+  // @Column added for jOOQ fetchInto()
+  @Column(name = "licence_id", nullable = false)
   private Integer licenceId;
 
+  @Column(name = "licence_reference")
   private String licenceReference;
 
+  @Column(name = "original_event_id")
   private UUID originalEventId;
 
+  @Column(name = "event_type")
   @Enumerated(EnumType.STRING)
   private ScheduleEventType eventType;
 
+  @Column(name = "current_term_phase")
   private String currentTermPhase;
 
+  @Column(name = "next_term_phase")
   private String nextTermPhase;
 
+  @Column(name = "activity_type")
   private String activityType;
 
+  @Column(name = "event_date")
   private LocalDate eventDate;
 
+  @Column(name = "quad_block")
   private String quadBlock;
 
+  @Column(name = "steward_wua_id")
   private Long stewardWuaId;
 
+  @Column(name = "application_id")
   private UUID applicationId;
 
+  @Column(name = "application_type")
   @Enumerated(EnumType.STRING)
   private ApplicationType applicationType;
 

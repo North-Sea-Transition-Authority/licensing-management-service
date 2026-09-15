@@ -1,9 +1,14 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
@@ -29,7 +34,10 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEn
 class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
 
   private static final String RENDER_EVENT_TRACKER_ROUTE =
-      ReverseRouter.route(on(CrossLicenceEventTrackerController.class).renderEventTracker(null));
+      ReverseRouter.route(on(CrossLicenceEventTrackerController.class).renderEventTracker(null, null));
+
+  private static final String CLEAR_FILTERS_ROUTE =
+      ReverseRouter.route(on(CrossLicenceEventTrackerController.class).clearEventTrackerFilters(null, null));
 
   @MockitoBean
   private CrossLicenceEventTrackerService crossLicenceEventTrackerService;
@@ -44,7 +52,7 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
     eventTrackerTable = SortableTableView.sortableTableBuilder()
         .newWithHeadings("Licence", "Steward")
         .build();
-    when(crossLicenceEventTrackerService.getEventTrackerTable()).thenReturn(eventTrackerTable);
+    when(crossLicenceEventTrackerService.getEventTrackerTable(any())).thenReturn(eventTrackerTable);
   }
 
   @Test
@@ -72,7 +80,8 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
             DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerRequestType.class)))
         .andExpect(model().attribute("eventStatuses",
             DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerApplicationStatus.class)))
-        .andExpect(model().attribute("eventTrackerTableJson", eventTrackerTable.toString()));
+        .andExpect(model().attribute("eventTrackerTableJson", eventTrackerTable.toString()))
+        .andExpect(model().attribute("clearFilterUrl", CLEAR_FILTERS_ROUTE));
   }
 
   @Test
@@ -86,5 +95,32 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().isOk())
         .andExpect(model().attribute("isRegulatorUser", false));
+  }
+
+  @Test
+  void filterEventTracker_updatesSessionAndRedirects() throws Exception {
+    var filterSession = new EventTrackerFilterSession(new EventTrackerForm());
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(CrossLicenceEventTrackerController.class).filterEventTracker(null, null)))
+                .param("licenceTypes", LicenceType.CARBON_STORAGE.name())
+                .flashAttr("eventTrackerFilterSession", filterSession)
+                .with(user(regulatorUser))
+                .with(csrf())
+        )
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(RENDER_EVENT_TRACKER_ROUTE));
+
+    assertThat(filterSession.getFilterForm().getLicenceTypes()).containsExactly(LicenceType.CARBON_STORAGE.name());
+  }
+
+  @Test
+  void clearEventTrackerFilters_redirectsToRenderEventTracker() throws Exception {
+    mockMvc.perform(
+            get(CLEAR_FILTERS_ROUTE)
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(RENDER_EVENT_TRACKER_ROUTE));
   }
 }

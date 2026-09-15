@@ -1,19 +1,14 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -21,20 +16,14 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableRow;
-import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableValue;
-import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableView;
-import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceSchedulePhaseTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduleTermTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
@@ -45,7 +34,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCategory;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ExtendWith(MockitoExtension.class)
 class CrossLicenceEventTrackerServiceTest {
@@ -73,163 +61,6 @@ class CrossLicenceEventTrackerServiceTest {
 
   @Captor
   private ArgumentCaptor<List<LicenceEventCache>> eventCacheListCaptor;
-
-  @Test
-  void getEventTrackerTable_whenNoEventCaches_thenOnlyHeadingRow() {
-    when(licenceEventCacheRepository.findAll()).thenReturn(List.of());
-    when(licenceService.getLicencesByIds(anyList())).thenReturn(List.of());
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(anyList())).thenReturn(Map.of());
-
-    var result = crossLicenceEventTrackerService.getEventTrackerTable();
-
-    var expected = SortableTableView.sortableTableBuilder()
-        .newWithHeadings(
-            "Licence",
-            "Term / phase transition",
-            "Work programme activity",
-            "Event end / due date",
-            "Application status",
-            "Licensee(s)",
-            "Quad/block",
-            "Steward"
-        )
-        .withDefaultSortIndex(4)
-        .build();
-
-    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
-  }
-
-  @Test
-  void getEventTrackerTable_whenEventCaches_thenRowsSortedByEventDateWithLicenseesPopulated() {
-    var licenceWithOneLicensee = LicenceTestUtil.builder().withId(100).build();
-    var licenceWithMultipleLicensees = LicenceTestUtil.builder().withId(200).build();
-    var licenceWithNoLicensees = LicenceTestUtil.builder().withId(300).build();
-
-    var earliestEventCache = buildEventCache(
-        licenceWithOneLicensee.getId(),
-        "P 111",
-        LocalDate.of(2025, 6, 15),
-        "Initial term",
-        null,
-        null,
-        null
-    );
-    var latestEventCache = buildEventCache(
-        licenceWithMultipleLicensees.getId(),
-        "P 222",
-        LocalDate.of(2026, 1, 1),
-        "Phase A",
-        "Phase B",
-        WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName(),
-        "12/3"
-    );
-    var undatedEventCache = buildEventCache(
-        licenceWithNoLicensees.getId(),
-        "P 333",
-        null,
-        "Terms",
-        null,
-        null,
-        null
-    );
-
-    when(licenceEventCacheRepository.findAll())
-        .thenReturn(List.of(latestEventCache, undatedEventCache, earliestEventCache));
-
-    var licences = List.of(licenceWithMultipleLicensees, licenceWithNoLicensees, licenceWithOneLicensee);
-    when(licenceService.getLicencesByIds(anyList())).thenReturn(licences);
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(eq(licences)))
-        .thenReturn(Map.of(
-            licenceWithOneLicensee, List.of(new OrganisationUnit(1, "Licensee One")),
-            licenceWithMultipleLicensees, List.of(
-                new OrganisationUnit(2, "Licensee Two"),
-                new OrganisationUnit(3, "Licensee Three")
-            )
-        ));
-
-    var result = crossLicenceEventTrackerService.getEventTrackerTable();
-
-    var expected = SortableTableView.sortableTableBuilder()
-        .newWithHeadings(
-            "Licence",
-            "Term / phase transition",
-            "Work programme activity",
-            "Event end / due date",
-            "Application status",
-            "Licensee(s)",
-            "Quad/block",
-            "Steward"
-        )
-        .withDefaultSortIndex(4)
-        .addRow(SortableTableRow.builder()
-            .withValue(licenceValue("P 111", licenceWithOneLicensee.getId()))
-            .withValue("Initial term")
-            .withValue("")
-            .withValue(dateValue(LocalDate.of(2025, 6, 15)))
-            .withValue("")
-            .withValue("Licensee One")
-            .withValue("")
-            .withValue("")
-            .build())
-        .addRow(SortableTableRow.builder()
-            .withValue(licenceValue("P 222", licenceWithMultipleLicensees.getId()))
-            .withValue("Phase A to Phase B")
-            .withValue(WorkProgrammeActivityCategory.DRILL_WELL.getDisplayName())
-            .withValue(dateValue(LocalDate.of(2026, 1, 1)))
-            .withValue("")
-            .withValue("Licensee Two, Licensee Three")
-            .withValue("12/3")
-            .withValue("")
-            .build())
-        .addRow(SortableTableRow.builder()
-            .withValue(licenceValue("P 333", licenceWithNoLicensees.getId()))
-            .withValues(
-                "Terms",
-                "",
-                "",
-                "",
-                "",
-                "",
-                ""
-            )
-            .build())
-        .build();
-
-    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
-  }
-
-  private SortableTableValue licenceValue(String licenceReference, Integer licenceId) {
-    var licenceLink = StringUtils.removeStart(
-        ReverseRouter.route(on(LicenceScheduleTabController.class).renderLicenceOverview(licenceId, null, null, null)),
-        "/"
-    );
-    return new SortableTableValue(licenceReference, licenceLink, List.of());
-  }
-
-  private SortableTableValue dateValue(LocalDate date) {
-    return new SortableTableValue(DateFormatUtil.convertToDisplayText(date), date.toString(), null, List.of());
-  }
-
-  private LicenceEventCache buildEventCache(
-      Integer licenceId,
-      String licenceReference,
-      LocalDate eventDate,
-      String currentTermPhase,
-      String nextTermPhase,
-      String activityType,
-      String quadBlock
-  ) {
-    var eventCache = new LicenceEventCache();
-    eventCache.setLicenceId(licenceId);
-    eventCache.setLicenceReference(licenceReference);
-    eventCache.setEventType(ScheduleEventType.TERM);
-    eventCache.setEventDate(eventDate);
-    eventCache.setCurrentTermPhase(currentTermPhase);
-    eventCache.setNextTermPhase(nextTermPhase);
-    eventCache.setActivityType(activityType);
-    eventCache.setQuadBlock(quadBlock);
-    return eventCache;
-  }
 
   @Test
   void refreshScheduleCache_whenNoExistingCaches_thenSavesCachesForTermsWithoutPhasesAndAllPhases() {

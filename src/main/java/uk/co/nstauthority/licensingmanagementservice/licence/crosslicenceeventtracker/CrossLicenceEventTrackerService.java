@@ -1,6 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+import static uk.co.nstauthority.licensingmanagementservice.jooq.tables.LicenceEventCache.LICENCE_EVENT_CACHE;
+import static uk.co.nstauthority.licensingmanagementservice.jooq.tables.Licences.LICENCES;
 
 import jakarta.transaction.Transactional;
 import java.time.LocalDate;
@@ -13,6 +15,9 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableRow;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableValue;
@@ -44,6 +49,7 @@ public class CrossLicenceEventTrackerService {
   private final LicenceService licenceService;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final WorkProgrammeActivityService workProgrammeActivityService;
+  private final DSLContext dslContext;
 
   public CrossLicenceEventTrackerService(
       LicenceScheduleTermService licenceScheduleTermService,
@@ -51,7 +57,8 @@ public class CrossLicenceEventTrackerService {
       LicenceEventCacheRepository licenceEventCacheRepository,
       LicenceService licenceService,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
-      WorkProgrammeActivityService workProgrammeActivityService
+      WorkProgrammeActivityService workProgrammeActivityService,
+      DSLContext dslContext
   ) {
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
@@ -59,10 +66,15 @@ public class CrossLicenceEventTrackerService {
     this.licenceService = licenceService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.workProgrammeActivityService = workProgrammeActivityService;
+    this.dslContext = dslContext;
   }
 
-  public SortableTableView getEventTrackerTable() {
-    var eventCaches = licenceEventCacheRepository.findAll();
+  public SortableTableView getEventTrackerTable(EventTrackerForm form) {
+    var eventCaches = dslContext.select(LICENCE_EVENT_CACHE.fields())
+        .from(LICENCE_EVENT_CACHE)
+        .join(LICENCES).on(LICENCES.ID.eq(LICENCE_EVENT_CACHE.LICENCE_ID))
+        .where(getLicenceTypeCondition(form))
+        .fetchInto(LicenceEventCache.class);
 
     var licenceIds = eventCaches.stream()
         .map(LicenceEventCache::getLicenceId)
@@ -89,6 +101,14 @@ public class CrossLicenceEventTrackerService {
         .forEach(eventCache -> tableBuilder.addRow(toRow(eventCache, licenseesByLicenceId)));
 
     return tableBuilder.build();
+  }
+
+  private Condition getLicenceTypeCondition(EventTrackerForm form) {
+    if (form.getLicenceTypes() == null || form.getLicenceTypes().isEmpty()) {
+      return DSL.noCondition();
+    }
+
+    return LICENCES.TYPE.in(form.getLicenceTypes());
   }
 
   private Map<Integer, List<String>> getLicenseesByLicenceId(List<Integer> licenceIds) {

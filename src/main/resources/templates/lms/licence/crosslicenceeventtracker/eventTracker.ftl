@@ -13,7 +13,7 @@ extendContainerWidth=true
             <@fdsSearch.searchFilter>
                 <@fdsSearch.searchFilterList
                 clearFilterText="Clear filters"
-                clearFilterUrl="#">
+                clearFilterUrl=springUrl(clearFilterUrl)>
                     <@dataItemFilter.licenceTypeFilter form=form licenceTypes=licenceTypes/>
                     <#if isRegulatorUser>
                         <@dataItemFilter.licenseeGroupFilter

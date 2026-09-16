@@ -12,9 +12,9 @@ public class LmsAbsoluteUrlUtil {
     throw new IllegalUtilClassInstantiationException(this.getClass());
   }
 
-  public static String getWorkAreaUrl() {
+  public static String getWorkAreaUrl(String baseUrl) {
     var workAreaUrl = ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null));
-    return getAbsoluteUrl(workAreaUrl);
+    return "%s%s".formatted(baseUrl, workAreaUrl);
   }
 
   public static String getAbsoluteUrl(String relativeUrl) {

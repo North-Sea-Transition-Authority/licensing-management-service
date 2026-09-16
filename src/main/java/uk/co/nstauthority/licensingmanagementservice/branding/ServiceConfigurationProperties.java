@@ -9,7 +9,8 @@ import org.springframework.validation.annotation.Validated;
 public record ServiceConfigurationProperties(
     @NotNull String name,
     @NotNull String mnemonic,
-    @NotNull SupportContact supportContact
+    @NotNull SupportContact supportContact,
+    @NotNull String baseUrl
 ) {
   public record SupportContact(
       @NotNull String email,

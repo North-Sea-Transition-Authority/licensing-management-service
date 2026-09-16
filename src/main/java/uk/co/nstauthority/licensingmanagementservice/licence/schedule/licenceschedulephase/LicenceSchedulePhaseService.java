@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase;
 
 import jakarta.transaction.Transactional;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -9,6 +10,7 @@ import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventService;
@@ -44,6 +46,14 @@ public class LicenceSchedulePhaseService {
 
   public List<LicenceSchedulePhase> getPhasesByLicenceScheduleDetail(LicenceScheduleDetail licenceScheduleDetail) {
     return licenceSchedulePhaseRepository.findAllByLicenceScheduleDetail(licenceScheduleDetail);
+  }
+
+  public List<LicenceSchedulePhase> getPhasesEndingBetweenOnActiveSchedules(
+      LocalDate earliestEndDate,
+      LocalDate latestEndDate
+  ) {
+    return licenceSchedulePhaseRepository.findAllByEndDateBetweenAndLicenceScheduleDetail_Status(
+        earliestEndDate, latestEndDate, LicenceScheduleDetailStatus.ACTIVE);
   }
 
   @Transactional

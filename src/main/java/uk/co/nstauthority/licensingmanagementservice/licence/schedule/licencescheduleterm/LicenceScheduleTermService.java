@@ -1,6 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm;
 
 import jakarta.transaction.Transactional;
+import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -10,6 +12,7 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventService;
@@ -42,6 +45,20 @@ public class LicenceScheduleTermService {
 
   public List<LicenceScheduleTerm> getTermsByLicenceScheduleDetail(LicenceScheduleDetail scheduleDetail) {
     return licenceScheduleTermRepository.findAllByLicenceScheduleDetail(scheduleDetail);
+  }
+
+  public List<LicenceScheduleTerm> getTermsEndingBetweenOnActiveSchedules(
+      LocalDate earliestEndDate,
+      LocalDate latestEndDate
+  ) {
+    return licenceScheduleTermRepository.findAllByEndDateBetweenAndLicenceScheduleDetail_Status(
+        earliestEndDate, latestEndDate, LicenceScheduleDetailStatus.ACTIVE);
+  }
+
+  public List<LicenceScheduleTerm> getTermsByLicenceScheduleDetails(
+      Collection<LicenceScheduleDetail> licenceScheduleDetails
+  ) {
+    return licenceScheduleTermRepository.findAllByLicenceScheduleDetailIn(licenceScheduleDetails);
   }
 
   @Transactional

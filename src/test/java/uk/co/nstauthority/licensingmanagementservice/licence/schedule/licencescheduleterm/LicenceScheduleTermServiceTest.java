@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
@@ -192,5 +194,25 @@ class LicenceScheduleTermServiceTest {
     when(otherScheduleEventService.getAllEventsLinkedTo(licenceScheduleTerm)).thenReturn(List.of());
 
     assertThat(licenceScheduleTermService.canDeleteTerm(licenceScheduleTerm)).isTrue();
+  }
+
+  @Test
+  void getTermsEndingBetweenOnActiveSchedules() {
+    var earliestEndDate = LocalDate.of(2026, 9, 14);
+    var latestEndDate = LocalDate.of(2027, 3, 17);
+
+    licenceScheduleTermService.getTermsEndingBetweenOnActiveSchedules(earliestEndDate, latestEndDate);
+
+    verify(licenceScheduleTermRepository).findAllByEndDateBetweenAndLicenceScheduleDetail_Status(
+        earliestEndDate, latestEndDate, LicenceScheduleDetailStatus.ACTIVE);
+  }
+
+  @Test
+  void getTermsByLicenceScheduleDetails() {
+    var licenceScheduleDetails = List.of(new LicenceScheduleDetail());
+
+    licenceScheduleTermService.getTermsByLicenceScheduleDetails(licenceScheduleDetails);
+
+    verify(licenceScheduleTermRepository).findAllByLicenceScheduleDetailIn(licenceScheduleDetails);
   }
 }

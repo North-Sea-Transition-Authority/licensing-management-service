@@ -83,6 +83,10 @@ public class LicenceContactService {
     return buildContactsTable(licensees, nameByOrgUnitId, orgUnitIds, canManage, filterForm);
   }
 
+  public List<LicenceContact> getContactsForLicensees(Collection<LicenceResponsibleOrganisation> licensees) {
+    return licenceContactRepository.findAllByLicenseeIn(licensees);
+  }
+
   public boolean hasContactForLicensee(LicenceApplicationDetail applicationDetail) {
     var licence = applicationDetail.getLicence();
     var responsibleOrganisationUnitId = applicationDetail.getResponsibleOrganisationUnitId();

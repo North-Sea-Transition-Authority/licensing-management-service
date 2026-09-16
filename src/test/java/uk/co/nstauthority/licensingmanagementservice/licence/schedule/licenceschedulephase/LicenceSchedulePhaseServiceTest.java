@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRate;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulerate.LicenceScheduleRateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -156,5 +158,16 @@ class LicenceSchedulePhaseServiceTest {
     when(otherScheduleEventService.getAllEventsLinkedTo(licenceSchedulePhase)).thenReturn(List.of());
 
     assertThat(licenceSchedulePhaseService.canDeletePhase(licenceSchedulePhase)).isTrue();
+  }
+
+  @Test
+  void getPhasesEndingBetweenOnActiveSchedules() {
+    var earliestEndDate = LocalDate.of(2026, 9, 14);
+    var latestEndDate = LocalDate.of(2027, 3, 17);
+
+    licenceSchedulePhaseService.getPhasesEndingBetweenOnActiveSchedules(earliestEndDate, latestEndDate);
+
+    verify(licenceSchedulePhaseRepository).findAllByEndDateBetweenAndLicenceScheduleDetail_Status(
+        earliestEndDate, latestEndDate, LicenceScheduleDetailStatus.ACTIVE);
   }
 }

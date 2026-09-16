@@ -8,6 +8,7 @@ import uk.co.fivium.digitalnotificationlibrary.core.notification.NotificationLib
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailNotification;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailRecipient;
 import uk.co.nstauthority.licensingmanagementservice.branding.CustomerConfigurationProperties;
+import uk.co.nstauthority.licensingmanagementservice.branding.ServiceConfigurationProperties;
 import uk.co.nstauthority.licensingmanagementservice.correlationid.CorrelationIdUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.LmsAbsoluteUrlUtil;
 
@@ -16,12 +17,15 @@ public class EmailService {
 
   private final NotificationLibraryClient notificationLibraryClient;
   private final CustomerConfigurationProperties customerConfigurationProperties;
+  private final ServiceConfigurationProperties serviceConfigurationProperties;
 
   @Autowired
   public EmailService(NotificationLibraryClient notificationLibraryClient,
-                      CustomerConfigurationProperties customerConfigurationProperties) {
+                      CustomerConfigurationProperties customerConfigurationProperties,
+                      ServiceConfigurationProperties serviceConfigurationProperties) {
     this.notificationLibraryClient = notificationLibraryClient;
     this.customerConfigurationProperties = customerConfigurationProperties;
+    this.serviceConfigurationProperties = serviceConfigurationProperties;
   }
 
   public MergedTemplate.MergedTemplateBuilder getTemplate(GovukNotifyTemplate notifyTemplate) {
@@ -34,7 +38,9 @@ public class EmailService {
         .withMailMergeField("VALEDICTION", "Kind regards")
         .withMailMergeField("REGULATOR_MNEMONIC", customerConfigurationProperties.mnemonic())
         .withMailMergeField("SERVICE_NAME", customerConfigurationProperties.name())
-        .withMailMergeField("DEFAULT_SERVICE_LINK", LmsAbsoluteUrlUtil.getWorkAreaUrl());
+        .withMailMergeField(
+            "DEFAULT_SERVICE_LINK",
+            LmsAbsoluteUrlUtil.getWorkAreaUrl(serviceConfigurationProperties.baseUrl()));
   }
 
   public EmailNotification sendEmail(MergedTemplate mergedTemplate,

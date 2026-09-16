@@ -18,8 +18,8 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

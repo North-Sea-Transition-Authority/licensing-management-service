@@ -639,4 +639,13 @@ class LicenceContactServiceTest {
     contact.setContactEmail(email);
     return contact;
   }
+
+  @Test
+  void getContactsForLicensees() {
+    var licensees = List.of(new LicenceResponsibleOrganisation());
+
+    licenceContactService.getContactsForLicensees(licensees);
+
+    verify(licenceContactRepository).findAllByLicenseeIn(licensees);
+  }
 }

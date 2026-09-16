@@ -9,13 +9,8 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
 
 import java.util.Set;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.DomainReference;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.MailMergeField;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.MergedTemplate;
@@ -24,8 +19,8 @@ import uk.co.fivium.digitalnotificationlibrary.core.notification.Template;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.TemplateType;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailRecipient;
 import uk.co.nstauthority.licensingmanagementservice.branding.CustomerConfigurationProperties;
+import uk.co.nstauthority.licensingmanagementservice.branding.ServiceConfigurationProperties;
 import uk.co.nstauthority.licensingmanagementservice.correlationid.CorrelationIdUtil;
-import uk.co.nstauthority.licensingmanagementservice.mvc.LmsAbsoluteUrlUtil;
 
 class EmailServiceTest {
 
@@ -43,27 +38,23 @@ class EmailServiceTest {
       "name", "mnemonic", "contactEmail", "approvals@nstauthority.co.uk"
   );
 
+  private static final String WORK_AREA_URL = "http://localhost:8080/lms/work-area";
+
   private static NotificationLibraryClient notificationLibraryClient;
   private static EmailService emailService;
 
   @BeforeAll
   static void setup() {
     notificationLibraryClient = mock(NotificationLibraryClient.class);
-
     emailService = new EmailService(
         notificationLibraryClient,
-        CUSTOMER_CONFIGURATION_PROPERTIES
+        CUSTOMER_CONFIGURATION_PROPERTIES,
+        new ServiceConfigurationProperties(
+            "Licence Management Service",
+            "LMS",
+            new ServiceConfigurationProperties.SupportContact("support@example.com", "0123456789"),
+            "http://localhost:8080/lms")
     );
-  }
-
-  @BeforeEach
-  void setUpRequestContext() {
-    RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
-  }
-
-  @AfterEach
-  void tearDownRequestContext() {
-    RequestContextHolder.resetRequestAttributes();
   }
 
   @Test
@@ -85,7 +76,7 @@ class EmailServiceTest {
             tuple("VALEDICTION", "Kind regards"),
             tuple("REGULATOR_MNEMONIC", CUSTOMER_CONFIGURATION_PROPERTIES.mnemonic()),
             tuple("SERVICE_NAME", CUSTOMER_CONFIGURATION_PROPERTIES.name()),
-            tuple("DEFAULT_SERVICE_LINK", LmsAbsoluteUrlUtil.getWorkAreaUrl()));
+            tuple("DEFAULT_SERVICE_LINK", WORK_AREA_URL));
   }
 
   @Test
@@ -107,7 +98,7 @@ class EmailServiceTest {
             tuple("SALUTATION", "Dear"),
             tuple("VALEDICTION", "Kind regards"),
             tuple("SERVICE_NAME", CUSTOMER_CONFIGURATION_PROPERTIES.name()),
-            tuple("DEFAULT_SERVICE_LINK", LmsAbsoluteUrlUtil.getWorkAreaUrl()));
+            tuple("DEFAULT_SERVICE_LINK", WORK_AREA_URL));
   }
 
   @Test

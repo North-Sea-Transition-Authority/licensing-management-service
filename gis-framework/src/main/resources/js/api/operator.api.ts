@@ -29,11 +29,11 @@ export async function splitFeature(
   return await response.json() as JsonSplitResponse;
 }
 
-export async function undoSplit(
+export async function undo(
   undoUrl: string,
   csrfHeaderName: string,
   csrfToken: string,
-): Promise<JsonSplitResponse> {
+): Promise<void> {
   const response = await fetch(undoUrl, {
     method: "POST",
     headers: { [csrfHeaderName]: csrfToken },
@@ -42,15 +42,13 @@ export async function undoSplit(
   if (!response.ok) {
     return Promise.reject(`Response status: ${response.statusText}`);
   }
-
-  return await response.json() as JsonSplitResponse;
 }
 
-export async function redoSplit(
+export async function redo(
   redoUrl: string,
   csrfHeaderName: string,
   csrfToken: string,
-): Promise<JsonSplitResponse> {
+): Promise<void> {
   const response = await fetch(redoUrl, {
     method: "POST",
     headers: { [csrfHeaderName]: csrfToken },
@@ -59,6 +57,4 @@ export async function redoSplit(
   if (!response.ok) {
     return Promise.reject(`Response status: ${response.statusText}`);
   }
-
-  return await response.json() as JsonSplitResponse;
 }

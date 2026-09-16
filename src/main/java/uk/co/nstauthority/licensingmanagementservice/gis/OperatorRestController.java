@@ -16,22 +16,22 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
-import uk.co.fivium.gisframework.operator.JsonSplitHistoryStatus;
+import uk.co.fivium.gisframework.operator.JsonHistoryStatus;
 import uk.co.fivium.gisframework.operator.JsonSplitResponse;
 import uk.co.fivium.gisframework.operator.OperatorCommandReceiver;
 import uk.co.fivium.gisframework.operator.SplitFromMapRequest;
 
 @RestController
 @RequestMapping("/api/gis-framework")
-class SplitRestController {
+class OperatorRestController {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(SplitRestController.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(OperatorRestController.class);
 
   private final OperatorCommandReceiver operatorCommandReceiver;
   private final CommandJourneyService commandJourneyService;
   private final OperatorCommandService operatorCommandService;
 
-  SplitRestController(
+  OperatorRestController(
       OperatorCommandReceiver operatorCommandReceiver,
       CommandJourneyService commandJourneyService,
       OperatorCommandService operatorCommandService) {
@@ -56,34 +56,34 @@ class SplitRestController {
     );
   }
 
-  @GetMapping("/split-history/{commandJourneyId}")
-  ResponseEntity<JsonSplitHistoryStatus> getSplitHistory(@PathVariable UUID commandJourneyId) {
+  @GetMapping("/history/{commandJourneyId}")
+  ResponseEntity<JsonHistoryStatus> getHistory(@PathVariable UUID commandJourneyId) {
     var commandJourney = commandJourneyService.getCommandJourneyOrThrow(commandJourneyId);
-    return ResponseEntity.ok(new JsonSplitHistoryStatus(
+    return ResponseEntity.ok(new JsonHistoryStatus(
         operatorCommandService.canUndo(commandJourney),
         operatorCommandService.canRedo(commandJourney)
     ));
   }
 
   @PostMapping("/undo/{commandJourneyId}")
-  ResponseEntity<JsonSplitResponse> undo(@PathVariable UUID commandJourneyId) {
+  ResponseEntity<Void> undo(@PathVariable UUID commandJourneyId) {
     LOGGER.info("Received undo request for command journey '{}'", commandJourneyId);
     var commandJourney = commandJourneyService.getCommandJourneyOrThrow(commandJourneyId);
     var reactivatedFeatures = operatorCommandReceiver.undo(commandJourney);
     List<String> reactivatedFeatureIds = reactivatedFeatures.stream().map(feature -> feature.getId().toString()).toList();
     LOGGER.info("Undo request completed successfully for command journey '{}', reactivated {} features",
         commandJourneyId, reactivatedFeatureIds.size());
-    return ResponseEntity.ok(new JsonSplitResponse(reactivatedFeatureIds));
+    return ResponseEntity.ok().build();
   }
 
   @PostMapping("/redo/{commandJourneyId}")
-  ResponseEntity<JsonSplitResponse> redo(@PathVariable UUID commandJourneyId) {
+  ResponseEntity<Void> redo(@PathVariable UUID commandJourneyId) {
     LOGGER.info("Received redo request for command journey '{}'", commandJourneyId);
     var commandJourney = commandJourneyService.getCommandJourneyOrThrow(commandJourneyId);
     var reactivatedFeatures = operatorCommandReceiver.redo(commandJourney);
     List<String> reactivatedFeatureIds = reactivatedFeatures.stream().map(feature -> feature.getId().toString()).toList();
     LOGGER.info("Redo request completed successfully for command journey '{}', reactivated {} features",
         commandJourneyId, reactivatedFeatureIds.size());
-    return ResponseEntity.ok(new JsonSplitResponse(reactivatedFeatureIds));
+    return ResponseEntity.ok().build();
   }
 }

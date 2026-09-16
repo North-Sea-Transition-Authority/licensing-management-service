@@ -59,7 +59,7 @@ function installSplitPageHandlers({ hasSplit = false, hasUndone = false } = {}):
     }),
     http.get("/api/outline-nodes/1", () => HttpResponse.json({ featureOutlineNodes: [] })),
     http.get("/api/textual-description/1", () => HttpResponse.text("")),
-    http.get("/api/split-history/1", () => HttpResponse.json({ canUndo: split, canRedo: undone })),
+    http.get("/api/history/1", () => HttpResponse.json({ canUndo: split, canRedo: undone })),
     http.post("/api/split", () => {
       split = true;
       undone = false;
@@ -88,7 +88,7 @@ function renderPage() {
       featuresBaseUrl: "/api/features",
       outlineNodesBaseUrl: "/api/outline-nodes",
       splitUrl: "/api/split",
-      historyBaseUrl: "/api/split-history",
+      historyBaseUrl: "/api/history",
       undoBaseUrl: "/api/undo",
       redoBaseUrl: "/api/redo",
       textualDescriptionUrl: "/api/textual-description",

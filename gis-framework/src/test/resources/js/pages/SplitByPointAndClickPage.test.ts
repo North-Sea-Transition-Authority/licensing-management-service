@@ -79,7 +79,7 @@ const baseProps = {
   featuresBaseUrl: "/api/gis-framework/features",
   outlineNodesBaseUrl: "/api/gis-framework/outline-nodes",
   splitUrl: "/api/gis-framework/split",
-  historyBaseUrl: "/api/gis-framework/split-history",
+  historyBaseUrl: "/api/gis-framework/history",
   undoBaseUrl: "/api/gis-framework/undo",
   redoBaseUrl: "/api/gis-framework/redo",
   textualDescriptionUrl: "/api/gis-framework/command-journey-textual-description",
@@ -120,7 +120,7 @@ describe("splitByPointAndClickPage", () => {
     renderPage();
 
     expect(screen.getByTestId("history-url").textContent)
-      .toBe("/api/gis-framework/split-history/journey-1");
+      .toBe("/api/gis-framework/history/journey-1");
     expect(screen.getByTestId("undo-url").textContent)
       .toBe("/api/gis-framework/undo/journey-1");
     expect(screen.getByTestId("redo-url").textContent)

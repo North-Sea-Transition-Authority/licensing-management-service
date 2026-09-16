@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getSplitHistoryStatus } from "@/api/split-history.api";
+import { getHistoryStatus } from "@/api/history.api";
 
-describe("splitHistoryApi", () => {
+describe("historyApi", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  describe("getSplitHistoryStatus", () => {
-    it("getSplitHistoryStatus_whenResponseOk_returnsResponse", async () => {
+  describe("getHistoryStatus", () => {
+    it("getHistoryStatus_whenResponseOk_returnsResponse", async () => {
       const expected = { canUndo: true };
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
@@ -15,20 +15,20 @@ describe("splitHistoryApi", () => {
       });
       vi.stubGlobal("fetch", fetchMock);
 
-      const result = await getSplitHistoryStatus("/api/gis-framework/split-history/journey-1");
+      const result = await getHistoryStatus("/api/gis-framework/history/journey-1");
 
       expect(result).toEqual(expected);
-      expect(fetchMock).toHaveBeenCalledWith("/api/gis-framework/split-history/journey-1");
+      expect(fetchMock).toHaveBeenCalledWith("/api/gis-framework/history/journey-1");
     });
 
-    it("getSplitHistoryStatus_whenResponseNotOk_rejects", async () => {
+    it("getHistoryStatus_whenResponseNotOk_rejects", async () => {
       const fetchMock = vi.fn().mockResolvedValue({
         ok: false,
         statusText: "Internal Server Error",
       });
       vi.stubGlobal("fetch", fetchMock);
 
-      await expect(getSplitHistoryStatus("/api/gis-framework/split-history/journey-1"))
+      await expect(getHistoryStatus("/api/gis-framework/history/journey-1"))
         .rejects
         .toBe("Response status: Internal Server Error");
     });

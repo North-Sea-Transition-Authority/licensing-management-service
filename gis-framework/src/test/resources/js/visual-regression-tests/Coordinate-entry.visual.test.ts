@@ -45,7 +45,7 @@ describe("coordinate entry page", () => {
     worker.use(
       http.get("/api/features/1", () => HttpResponse.json(singleBlockEd50)),
       http.get("/api/outline-nodes/1", () => HttpResponse.json({ featureOutlineNodes: [] })),
-      http.get("/api/split-history/1", () => HttpResponse.json({ canUndo: false, canRedo: false })),
+      http.get("/api/history/1", () => HttpResponse.json({ canUndo: false, canRedo: false })),
       http.get("/api/textual-description/1", () => HttpResponse.text("")),
     );
 
@@ -56,7 +56,7 @@ describe("coordinate entry page", () => {
         featuresBaseUrl: "/api/features",
         outlineNodesBaseUrl: "/api/outline-nodes",
         splitUrl: "/api/split",
-        historyBaseUrl: "/api/split-history",
+        historyBaseUrl: "/api/history",
         undoBaseUrl: "/api/undo",
         redoBaseUrl: "/api/redo",
         textualDescriptionUrl: "/api/textual-description",

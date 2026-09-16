@@ -6,11 +6,11 @@ import SplitByCoordinateEntryPage
 
 const {
   getTextualDescriptionMock,
-  getSplitHistoryStatusMock,
+  getHistoryStatusMock,
   splitFeatureMock,
 } = vi.hoisted(() => ({
   getTextualDescriptionMock: vi.fn(),
-  getSplitHistoryStatusMock: vi.fn(),
+  getHistoryStatusMock: vi.fn(),
   splitFeatureMock: vi.fn(),
 }));
 
@@ -19,14 +19,14 @@ vi.mock("@/api/features.api", () => ({
   getOutlineNodes: vi.fn(),
 }));
 
-vi.mock("@/api/split-history.api", () => ({
-  getSplitHistoryStatus: getSplitHistoryStatusMock,
+vi.mock("@/api/history.api", () => ({
+  getHistoryStatus: getHistoryStatusMock,
 }));
 
-vi.mock("@/api/split.api", () => ({
+vi.mock("@/api/operator.api", () => ({
   splitFeature: splitFeatureMock,
-  undoSplit: vi.fn(),
-  redoSplit: vi.fn(),
+  undo: vi.fn(),
+  redo: vi.fn(),
 }));
 
 // Stubs BaseMap entirely, exposing the props the page wires into it, so tests can assert the
@@ -57,7 +57,7 @@ const baseProps = {
   featuresBaseUrl: "/api/gis-framework/features",
   outlineNodesBaseUrl: "/api/gis-framework/outline-nodes",
   splitUrl: "/api/gis-framework/split",
-  historyBaseUrl: "/api/gis-framework/split-history",
+  historyBaseUrl: "/api/gis-framework/history",
   undoBaseUrl: "/api/gis-framework/undo",
   redoBaseUrl: "/api/gis-framework/redo",
   textualDescriptionUrl: "/api/gis-framework/command-journey-textual-description",
@@ -87,7 +87,7 @@ function cardHeadings(): string[] {
 describe("splitByCoordinateEntryPage", () => {
   beforeEach(() => {
     getTextualDescriptionMock.mockReset().mockResolvedValue("");
-    getSplitHistoryStatusMock.mockReset().mockResolvedValue({ canUndo: false, canRedo: false });
+    getHistoryStatusMock.mockReset().mockResolvedValue({ canUndo: false, canRedo: false });
     splitFeatureMock.mockReset();
   });
 

@@ -2,21 +2,21 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SplitActions from "@/components/split/SplitActions.vue";
 
-const { getSplitHistoryStatusMock, splitFeatureMock, undoSplitMock, redoSplitMock } = vi.hoisted(() => ({
-  getSplitHistoryStatusMock: vi.fn(),
+const { getHistoryStatusMock, splitFeatureMock, undoMock, redoMock } = vi.hoisted(() => ({
+  getHistoryStatusMock: vi.fn(),
   splitFeatureMock: vi.fn(),
-  undoSplitMock: vi.fn(),
-  redoSplitMock: vi.fn(),
+  undoMock: vi.fn(),
+  redoMock: vi.fn(),
 }));
 
-vi.mock("@/api/split-history.api", () => ({
-  getSplitHistoryStatus: getSplitHistoryStatusMock,
+vi.mock("@/api/history.api", () => ({
+  getHistoryStatus: getHistoryStatusMock,
 }));
 
-vi.mock("@/api/split.api", () => ({
+vi.mock("@/api/operator.api", () => ({
   splitFeature: splitFeatureMock,
-  undoSplit: undoSplitMock,
-  redoSplit: redoSplitMock,
+  undo: undoMock,
+  redo: redoMock,
 }));
 
 const twoPoints = [
@@ -26,7 +26,7 @@ const twoPoints = [
 
 const baseProps = {
   refreshCounter: 0,
-  historyUrl: "/api/gis-framework/split-history/journey-1",
+  historyUrl: "/api/gis-framework/history/journey-1",
   undoUrl: "/api/gis-framework/undo/journey-1",
   redoUrl: "/api/gis-framework/redo/journey-1",
   csrfHeaderName: "X-CSRF-TOKEN",
@@ -42,14 +42,14 @@ function renderComponent(props = {}) {
 
 describe("splitActions", () => {
   beforeEach(() => {
-    getSplitHistoryStatusMock.mockReset();
+    getHistoryStatusMock.mockReset();
     splitFeatureMock.mockReset();
-    undoSplitMock.mockReset();
-    redoSplitMock.mockReset();
+    undoMock.mockReset();
+    redoMock.mockReset();
   });
 
   it("disables the undo and redo buttons when there is nothing to undo or redo", async () => {
-    getSplitHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
+    getHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
     renderComponent();
 
     await waitFor(() => {
@@ -59,7 +59,7 @@ describe("splitActions", () => {
   });
 
   it("enables the undo button when there is a command to undo", async () => {
-    getSplitHistoryStatusMock.mockResolvedValue({ canUndo: true, canRedo: false });
+    getHistoryStatusMock.mockResolvedValue({ canUndo: true, canRedo: false });
     renderComponent();
 
     await waitFor(() => {
@@ -69,7 +69,7 @@ describe("splitActions", () => {
   });
 
   it("enables the redo button when there is a command to redo", async () => {
-    getSplitHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: true });
+    getHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: true });
     renderComponent();
 
     await waitFor(() => {
@@ -79,22 +79,22 @@ describe("splitActions", () => {
   });
 
   it("refetches the history status when the refresh counter changes", async () => {
-    getSplitHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
+    getHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
     const { rerender } = renderComponent();
 
     await waitFor(() => {
-      expect(getSplitHistoryStatusMock).toHaveBeenCalledTimes(1);
+      expect(getHistoryStatusMock).toHaveBeenCalledTimes(1);
     });
 
     await rerender({ ...baseProps, refreshCounter: 1 });
 
     await waitFor(() => {
-      expect(getSplitHistoryStatusMock).toHaveBeenCalledTimes(2);
+      expect(getHistoryStatusMock).toHaveBeenCalledTimes(2);
     });
   });
 
   it("emits action-error when the history status cannot be loaded", async () => {
-    getSplitHistoryStatusMock.mockRejectedValue(new Error("network error"));
+    getHistoryStatusMock.mockRejectedValue(new Error("network error"));
     const { emitted } = renderComponent();
 
     await waitFor(() => {
@@ -103,7 +103,7 @@ describe("splitActions", () => {
   });
 
   it("does not render the split button unless showSplitButton is set", async () => {
-    getSplitHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
+    getHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
     renderComponent({ points: twoPoints });
 
     await waitFor(() => {
@@ -114,7 +114,7 @@ describe("splitActions", () => {
   });
 
   it("disables the split button until at least two points are present", async () => {
-    getSplitHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
+    getHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
     const { rerender } = renderComponent({ showSplitButton: true, points: [] });
 
     await waitFor(() => {
@@ -127,7 +127,7 @@ describe("splitActions", () => {
   });
 
   it("splits and emits action-success when the split button is clicked", async () => {
-    getSplitHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
+    getHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
     splitFeatureMock.mockResolvedValue({ outputFeatureIds: ["feature-2", "feature-3"] });
     const { emitted } = renderComponent({ showSplitButton: true, points: twoPoints });
 
@@ -146,7 +146,7 @@ describe("splitActions", () => {
   });
 
   it("emits action-error when the split produces no output features", async () => {
-    getSplitHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
+    getHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
     splitFeatureMock.mockResolvedValue({ outputFeatureIds: [] });
     const { emitted } = renderComponent({ showSplitButton: true, points: twoPoints });
 
@@ -160,7 +160,7 @@ describe("splitActions", () => {
   });
 
   it("emits action-error when the split request fails", async () => {
-    getSplitHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
+    getHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
     splitFeatureMock.mockRejectedValue(new Error("network error"));
     const { emitted } = renderComponent({ showSplitButton: true, points: twoPoints });
 
@@ -174,7 +174,7 @@ describe("splitActions", () => {
   });
 
   it("automatically splits when autoSplit is set and the points change to at least two", async () => {
-    getSplitHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
+    getHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
     splitFeatureMock.mockResolvedValue({ outputFeatureIds: ["feature-2"] });
     const { rerender, emitted } = renderComponent({ autoSplit: true, points: [] });
 
@@ -193,7 +193,7 @@ describe("splitActions", () => {
   });
 
   it("does not automatically split when fewer than two points are present", async () => {
-    getSplitHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
+    getHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: false });
     const { rerender } = renderComponent({ autoSplit: true, points: [] });
 
     await rerender({ ...baseProps, autoSplit: true, points: [twoPoints[0]] });
@@ -202,8 +202,8 @@ describe("splitActions", () => {
   });
 
   it("emits action-success after a successful undo", async () => {
-    getSplitHistoryStatusMock.mockResolvedValue({ canUndo: true, canRedo: false });
-    undoSplitMock.mockResolvedValue({ outputFeatureIds: ["feature-1"] });
+    getHistoryStatusMock.mockResolvedValue({ canUndo: true, canRedo: false });
+    undoMock.mockResolvedValue(undefined);
     const { emitted } = renderComponent();
 
     await waitFor(() => {
@@ -213,7 +213,7 @@ describe("splitActions", () => {
     await fireEvent.click(screen.getByRole("button", { name: "Undo split" }));
 
     await waitFor(() => {
-      expect(undoSplitMock).toHaveBeenCalledWith(
+      expect(undoMock).toHaveBeenCalledWith(
         "/api/gis-framework/undo/journey-1",
         "X-CSRF-TOKEN",
         "csrf-token-1",
@@ -223,8 +223,8 @@ describe("splitActions", () => {
   });
 
   it("emits action-error when the undo request fails", async () => {
-    getSplitHistoryStatusMock.mockResolvedValue({ canUndo: true, canRedo: false });
-    undoSplitMock.mockRejectedValue(new Error("network error"));
+    getHistoryStatusMock.mockResolvedValue({ canUndo: true, canRedo: false });
+    undoMock.mockRejectedValue(new Error("network error"));
     const { emitted } = renderComponent();
 
     await waitFor(() => {
@@ -241,8 +241,8 @@ describe("splitActions", () => {
   });
 
   it("emits action-success after a successful redo", async () => {
-    getSplitHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: true });
-    redoSplitMock.mockResolvedValue({ outputFeatureIds: ["feature-1"] });
+    getHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: true });
+    redoMock.mockResolvedValue(undefined);
     const { emitted } = renderComponent();
 
     await waitFor(() => {
@@ -252,7 +252,7 @@ describe("splitActions", () => {
     await fireEvent.click(screen.getByRole("button", { name: "Redo split" }));
 
     await waitFor(() => {
-      expect(redoSplitMock).toHaveBeenCalledWith(
+      expect(redoMock).toHaveBeenCalledWith(
         "/api/gis-framework/redo/journey-1",
         "X-CSRF-TOKEN",
         "csrf-token-1",
@@ -262,8 +262,8 @@ describe("splitActions", () => {
   });
 
   it("emits action-error when the redo request fails", async () => {
-    getSplitHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: true });
-    redoSplitMock.mockRejectedValue(new Error("network error"));
+    getHistoryStatusMock.mockResolvedValue({ canUndo: false, canRedo: true });
+    redoMock.mockRejectedValue(new Error("network error"));
     const { emitted } = renderComponent();
 
     await waitFor(() => {

@@ -19,7 +19,7 @@
         data-gis-features-base-url="<@spring.url '/api/gis-framework/command-journey-features'/>"
         data-gis-outline-nodes-base-url="<@spring.url '/api/gis-framework/command-journey-outline-nodes'/>"
         data-gis-split-url="<@spring.url '/api/gis-framework/split'/>"
-        data-gis-history-base-url="<@spring.url '/api/gis-framework/split-history'/>"
+        data-gis-history-base-url="<@spring.url '/api/gis-framework/history'/>"
         data-gis-undo-base-url="<@spring.url '/api/gis-framework/undo'/>"
         data-gis-redo-base-url="<@spring.url '/api/gis-framework/redo'/>"
         data-gis-textual-description-url="<@spring.url '/api/gis-framework/command-journey-textual-description'/>"

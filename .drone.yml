@@ -21,9 +21,7 @@ steps:
   - name: fetch-fds-submodule
     image: alpine/git:v2.26.2
     commands:
-      - echo "$${BITBUCKET_SSH_KEY}" > bitbucket_ssh_key
-      - chmod 600 bitbucket_ssh_key
-      - export GIT_SSH_COMMAND="ssh -i bitbucket_ssh_key -F /dev/null  -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+      - git config submodule.fivium-design-system-core.url https://github.com/Fivium/fivium-design-system-core.git
       - git submodule update --init --recursive
     environment:
       BITBUCKET_SSH_KEY:
@@ -353,9 +351,7 @@ steps:
   - name: fetch-fds-submodule
     image: alpine/git:v2.26.2
     commands:
-      - echo "$${BITBUCKET_SSH_KEY}" > bitbucket_ssh_key
-      - chmod 600 bitbucket_ssh_key
-      - export GIT_SSH_COMMAND="ssh -i bitbucket_ssh_key -F /dev/null  -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+      - git config submodule.fivium-design-system-core.url https://github.com/Fivium/fivium-design-system-core.git
       - git submodule update --init --recursive
     environment:
       BITBUCKET_SSH_KEY:
@@ -507,13 +503,6 @@ data: nf9QW4ARHRCwLMpIVVs4uRwYg3If3vRSjXpqhGTdHA9uhOoZ027pB7exHIF0s2h8Uw6Pi8BmkV
 kind: secret
 name: sonarcloud_token
 data: CmL8irC3ppW8jSLEhHBElLGt6G8BIHIcscuG6Z57HPfeZDGwSACQ0iWB7/P2uYnb+sGrARLyuG1lyqaPmTP3wj5kGiY=
-
----
-
-kind: secret
-name: bitbucket_ssh_key
-data: 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
-
 
 ---
 

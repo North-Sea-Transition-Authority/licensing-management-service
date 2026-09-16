@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicateThisOnUpdate;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
@@ -52,4 +53,12 @@ public interface WorkProgrammeActivityRepository
   boolean existsByLicenceSchedulePhase(LicenceSchedulePhase licenceSchedulePhase);
 
   boolean existsByLicenceScheduleTerm(LicenceScheduleTerm licenceScheduleTerm);
+
+  @EntityGraph(attributePaths = "licenceScheduleDetail.licenceSchedule.licence")
+  List<WorkProgrammeActivity> findAllByDateOptionAndDueDateBetweenAndLicenceScheduleDetail_Status(
+      WorkProgrammeActivityDateOption dateOption,
+      LocalDate earliestDueDate,
+      LocalDate latestDueDate,
+      LicenceScheduleDetailStatus licenceScheduleDetailStatus
+  );
 }

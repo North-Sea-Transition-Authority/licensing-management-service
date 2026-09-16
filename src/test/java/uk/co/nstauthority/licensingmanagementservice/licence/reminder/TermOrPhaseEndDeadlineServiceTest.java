@@ -38,8 +38,8 @@ class TermOrPhaseEndDeadlineServiceTest {
   private static final LocalDate THIRD_TERM_END = LocalDate.of(2049, Month.DECEMBER, 31);
   private static final LocalDate PHASE_A_END = LocalDate.of(2025, Month.DECEMBER, 31);
 
-  private static final LocalDate INITIAL_TERM_NOTICE_DATE = LocalDate.of(2027, Month.JUNE, 30);
-  private static final LocalDate INITIAL_TERM_WINDOW_END = LocalDate.of(2028, Month.JANUARY, 2);
+  private static final LocalDate INITIAL_TERM_NOTICE_DATE = LocalDate.of(2027, Month.JULY, 1);
+  private static final LocalDate INITIAL_TERM_WINDOW_END = LocalDate.of(2028, Month.JANUARY, 1);
 
   @Mock
   private LicenceScheduleTermService licenceScheduleTermService;
@@ -103,22 +103,22 @@ class TermOrPhaseEndDeadlineServiceTest {
   }
 
   @Test
-  void getDeadlinesDueReminder_theDayBeforeTheNoticeDate_thenNothingIsDue() {
-    mockWindow(
-        LocalDate.of(2027, Month.JUNE, 29),
-        LocalDate.of(2028, Month.JANUARY, 1),
-        List.of(initialTerm),
-        List.of());
-    mockAllTermsOnTheSchedule(List.of(initialTerm, secondTerm, thirdTerm));
+  void getDeadlinesDueReminder_thenTheWindowRunsFromTodayToTheLatestDeadlineDate() {
+    mockWindow(INITIAL_TERM_NOTICE_DATE, INITIAL_TERM_WINDOW_END, List.of(), List.of());
 
-    assertThat(termOrPhaseEndDeadlineService.getDeadlinesDueReminder()).isEmpty();
+    termOrPhaseEndDeadlineService.getDeadlinesDueReminder();
+
+    verify(licenceScheduleTermService)
+        .getTermsEndingBetweenOnActiveSchedules(INITIAL_TERM_NOTICE_DATE, INITIAL_TERM_WINDOW_END);
+    verify(licenceSchedulePhaseService)
+        .getPhasesEndingBetweenOnActiveSchedules(INITIAL_TERM_NOTICE_DATE, INITIAL_TERM_WINDOW_END);
   }
 
   @Test
   void getDeadlinesDueReminder_whenTheTermIsTheFinalTerm_thenItIsNotDue() {
     mockWindow(
-        LocalDate.of(2049, Month.JUNE, 30),
-        LocalDate.of(2050, Month.JANUARY, 2),
+        LocalDate.of(2049, Month.JULY, 1),
+        LocalDate.of(2050, Month.JANUARY, 1),
         List.of(thirdTerm),
         List.of());
     mockAllTermsOnTheSchedule(List.of(initialTerm, secondTerm, thirdTerm));
@@ -155,8 +155,8 @@ class TermOrPhaseEndDeadlineServiceTest {
   void getDeadlinesDueReminder_whenOnlyAPhaseIsInTheWindow_thenItIsDueWithoutReadingTheTerms() {
     var phaseA = phase(PhaseType.PHASE_A, initialTerm, PHASE_A_END);
     mockWindow(
-        LocalDate.of(2025, Month.JUNE, 30),
-        LocalDate.of(2026, Month.JANUARY, 2),
+        LocalDate.of(2025, Month.JULY, 1),
+        LocalDate.of(2026, Month.JANUARY, 1),
         List.of(),
         List.of(phaseA));
 
@@ -178,8 +178,8 @@ class TermOrPhaseEndDeadlineServiceTest {
     var undatedTerm = term(TermType.INITIAL, LocalDate.of(2024, Month.JANUARY, 1), null);
     var phaseA = phase(PhaseType.PHASE_A, undatedTerm, PHASE_A_END);
     mockWindow(
-        LocalDate.of(2025, Month.JUNE, 30),
-        LocalDate.of(2026, Month.JANUARY, 2),
+        LocalDate.of(2025, Month.JULY, 1),
+        LocalDate.of(2026, Month.JANUARY, 1),
         List.of(),
         List.of(phaseA));
 

@@ -10,8 +10,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.ScheduleEvent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -22,10 +20,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 
 @Service
 public class TermOrPhaseEndDeadlineService implements ReminderDeadlineSource {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(TermOrPhaseEndDeadlineService.class);
-
-  private static final int PREFILTER_BUFFER_DAYS = 3;
 
   private final Clock clock;
   private final LicenceScheduleTermService licenceScheduleTermService;
@@ -45,7 +39,7 @@ public class TermOrPhaseEndDeadlineService implements ReminderDeadlineSource {
   public List<ReminderDeadline> getDeadlinesDueReminder() {
     var noticePeriod = ReminderType.TERM_OR_PHASE_END.getNoticePeriod();
     var today = LocalDate.now(clock);
-    var latestEndDate = today.plusMonths(noticePeriod.getMonths()).plusDays(PREFILTER_BUFFER_DAYS);
+    var latestEndDate = noticePeriod.getLatestDeadlineDate(today);
 
     var candidateTerms = licenceScheduleTermService.getTermsEndingBetweenOnActiveSchedules(today, latestEndDate);
 
@@ -63,13 +57,11 @@ public class TermOrPhaseEndDeadlineService implements ReminderDeadlineSource {
 
     candidateTerms.stream()
         .filter(term -> !finalTermIds.contains(term.getId()))
-        .filter(term -> isDue(noticePeriod, term.getEndDate(), today, term.getTermType().getDisplayName()))
         .map(term -> toDeadline(term, term.getEndDate(), term.getTermType().getDisplayName()))
         .forEach(deadlines::add);
 
     candidatePhases.stream()
         .filter(phase -> !endsWithItsTerm(phase))
-        .filter(phase -> isDue(noticePeriod, phase.getEndDate(), today, phase.getPhaseType().getDisplayName()))
         .map(phase -> toDeadline(phase, phase.getEndDate(), phase.getPhaseType().getDisplayName()))
         .forEach(deadlines::add);
 
@@ -99,15 +91,6 @@ public class TermOrPhaseEndDeadlineService implements ReminderDeadlineSource {
     var term = phase.getLicenceScheduleTerm();
 
     return term != null && term.getEndDate() != null && term.getEndDate().equals(phase.getEndDate());
-  }
-
-  private boolean isDue(NoticePeriod noticePeriod, LocalDate endDate, LocalDate today, String displayName) {
-    if (endDate == null) {
-      LOGGER.warn("Skipping {} for reminders as it has no end date", displayName);
-      return false;
-    }
-
-    return noticePeriod.isDueBy(endDate, today);
   }
 
   private ReminderDeadline toDeadline(

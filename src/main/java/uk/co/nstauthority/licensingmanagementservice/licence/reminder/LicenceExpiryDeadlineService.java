@@ -13,8 +13,6 @@ public class LicenceExpiryDeadlineService implements ReminderDeadlineSource {
 
   static final String DISPLAY_NAME = "Licence expiry";
 
-  private static final int PREFILTER_BUFFER_DAYS = 3;
-
   private final Clock clock;
   private final LicenceScheduleExpiryRepository licenceScheduleExpiryRepository;
 
@@ -30,13 +28,12 @@ public class LicenceExpiryDeadlineService implements ReminderDeadlineSource {
   public List<ReminderDeadline> getDeadlinesDueReminder() {
     var noticePeriod = ReminderType.LICENCE_EXPIRY.getNoticePeriod();
     var today = LocalDate.now(clock);
-    var latestExpiryDate = today.plusMonths(noticePeriod.getMonths()).plusDays(PREFILTER_BUFFER_DAYS);
+    var latestExpiryDate = noticePeriod.getLatestDeadlineDate(today);
 
     return licenceScheduleExpiryRepository
         .findAllByExpiryDateBetweenAndLicenceScheduleDetail_Status(
             today, latestExpiryDate, LicenceScheduleDetailStatus.ACTIVE)
         .stream()
-        .filter(expiry -> noticePeriod.isDueBy(expiry.getExpiryDate(), today))
         .map(this::toDeadline)
         .toList();
   }

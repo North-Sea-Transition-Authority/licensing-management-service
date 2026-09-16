@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatus;
@@ -334,5 +335,19 @@ class WorkProgrammeActivityServiceTest {
 
     assertThat(result.id()).isEqualTo(targetId);
     assertThat(result.dueDate()).isEqualTo(DUE_DATE_DISPLAY);
+  }
+
+  @Test
+  void getRelativeDateActivitiesDueBetweenOnActiveSchedules() {
+    var earliestDueDate = LocalDate.of(2026, 9, 14);
+    var latestDueDate = LocalDate.of(2027, 3, 17);
+
+    workProgrammeActivityService.getRelativeDateActivitiesDueBetweenOnActiveSchedules(earliestDueDate, latestDueDate);
+
+    verify(workProgrammeActivityRepository).findAllByDateOptionAndDueDateBetweenAndLicenceScheduleDetail_Status(
+        WorkProgrammeActivityDateOption.RELATIVE_DATE,
+        earliestDueDate,
+        latestDueDate,
+        LicenceScheduleDetailStatus.ACTIVE);
   }
 }

@@ -11,41 +11,53 @@ import org.junit.jupiter.params.provider.CsvSource;
 class NoticePeriodTest {
 
   @Test
-  void getNoticeDateFor() {
-    assertThat(NoticePeriod.SIX_MONTHS.getNoticeDateFor(LocalDate.of(2026, Month.SEPTEMBER, 15)))
-        .isEqualTo(LocalDate.of(2026, Month.MARCH, 15));
+  void getLatestDeadlineDate() {
+    assertThat(NoticePeriod.SIX_MONTHS.getLatestDeadlineDate(LocalDate.of(2026, Month.MARCH, 15)))
+        .isEqualTo(LocalDate.of(2026, Month.SEPTEMBER, 15));
   }
 
   @ParameterizedTest
   @CsvSource({
-      "2026-08-31, 2026-02-27, false",
-      "2026-08-31, 2026-02-28, true",
-      "2026-08-31, 2026-03-01, true",
-      "2026-10-31, 2026-04-29, false",
-      "2026-10-31, 2026-04-30, true",
-      "2028-08-30, 2028-02-28, false",
-      "2028-08-30, 2028-02-29, true",
-      "2026-09-15, 2026-03-14, false",
-      "2026-09-15, 2026-03-15, true"
+      "2026-09-14, 2026-03-15, true",
+      "2026-09-15, 2026-03-15, true",
+      "2026-03-15, 2026-03-15, true",
+      "2026-03-14, 2026-03-15, false",
+      "2026-09-16, 2026-03-15, false"
   })
-  void isDueBy(LocalDate deadlineDate, LocalDate today, boolean expected) {
-    assertThat(NoticePeriod.SIX_MONTHS.isDueBy(deadlineDate, today)).isEqualTo(expected);
+  void isWithinNoticeWindow(LocalDate deadlineDate, LocalDate today, boolean expected) {
+    assertThat(NoticePeriod.SIX_MONTHS.isWithinNoticeWindow(deadlineDate, today)).isEqualTo(expected);
   }
 
   @ParameterizedTest
   @CsvSource({
-      "2026-08-31, 2026-02-28",
-      "2026-10-31, 2026-04-30",
-      "2028-08-30, 2028-02-29",
+      "2026-08-31, 2026-03-01",
+      "2026-08-29, 2026-03-01",
+      "2028-08-30, 2028-03-01",
+      "2026-10-31, 2026-05-01",
       "2026-09-15, 2026-03-15"
   })
-  void isDueBy_whenTodayIsTheNoticeDate_thenTheReminderIsDueRatherThanADayLate(
+  void isWithinNoticeWindow_whenTodayIsTheNoticeDate_thenTheDeadlineEntersTheWindowThatDayAndNotBefore(
       LocalDate deadlineDate,
       LocalDate noticeDate
   ) {
-    assertThat(NoticePeriod.SIX_MONTHS.isDueBy(deadlineDate, noticeDate)).isTrue();
-    assertThat(NoticePeriod.SIX_MONTHS.isDueBy(deadlineDate, noticeDate.minusDays(1))).isFalse();
-    assertThat(noticeDate.plusMonths(NoticePeriod.SIX_MONTHS.getMonths()))
-        .isBeforeOrEqualTo(deadlineDate);
+    assertThat(NoticePeriod.SIX_MONTHS.isWithinNoticeWindow(deadlineDate, noticeDate)).isTrue();
+    assertThat(NoticePeriod.SIX_MONTHS.isWithinNoticeWindow(deadlineDate, noticeDate.minusDays(1))).isFalse();
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "2026-02-28, 2026-08-28",
+      "2026-03-01, 2026-09-01",
+      "2028-02-29, 2028-08-29",
+      "2026-08-31, 2027-02-28",
+      "2026-09-01, 2027-03-01"
+  })
+  void getLatestDeadlineDate_whenTheMonthsAreDifferentLengths_thenTheWindowNeverShrinksAsTodayAdvances(
+      LocalDate today,
+      LocalDate expectedLatestDeadlineDate
+  ) {
+    assertThat(NoticePeriod.SIX_MONTHS.getLatestDeadlineDate(today))
+        .isEqualTo(expectedLatestDeadlineDate)
+        .isAfterOrEqualTo(NoticePeriod.SIX_MONTHS.getLatestDeadlineDate(today.minusDays(1)));
   }
 }

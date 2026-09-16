@@ -3,12 +3,14 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogr
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -200,5 +202,29 @@ class WorkProgrammeActivityStatusServiceTest {
             activityStatus.getStatus(),
             null
         );
+  }
+
+  @Test
+  void getActivityIdsWithLatestStatusIn_whenNoActivities_thenTheRepositoryIsNotQueried() {
+    var closedActivityIds = workProgrammeActivityStatusService
+        .getActivityIdsWithLatestStatusIn(List.of(), Set.of(WorkProgrammeStatus.COMPLETE));
+
+    assertThat(closedActivityIds).isEmpty();
+
+    verifyNoInteractions(workProgrammeActivityStatusRepository);
+  }
+
+  @Test
+  void getActivityIdsWithLatestStatusIn_queriesByTheActivitiesOriginalEventIds() {
+    var activity = new WorkProgrammeActivity();
+    activity.setId(UUID.randomUUID());
+    activity.setOriginalEventId(activity.getId());
+    var statuses = Set.of(WorkProgrammeStatus.COMPLETE, WorkProgrammeStatus.FULL_WAIVER);
+    when(workProgrammeActivityStatusRepository
+        .findOriginalEventIdsWithLatestStatusIn(List.of(activity.getOriginalEventId()), statuses))
+        .thenReturn(Set.of(activity.getOriginalEventId()));
+
+    assertThat(workProgrammeActivityStatusService.getActivityIdsWithLatestStatusIn(List.of(activity), statuses))
+        .containsExactly(activity.getOriginalEventId());
   }
 }

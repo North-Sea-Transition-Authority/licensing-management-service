@@ -27,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 
 @ExtendWith(MockitoExtension.class)
 class ReminderServiceTest {
@@ -40,6 +41,9 @@ class ReminderServiceTest {
 
   @Mock
   private ReminderDeadlineSource licenceExpiryDeadlineSource;
+
+  @Mock
+  private ReminderDeadlineSource workProgrammeActivityDeadlineSource;
 
   @Mock
   private ReminderSuppressionService reminderSuppressionService;
@@ -63,7 +67,7 @@ class ReminderServiceTest {
   @BeforeEach
   void setUp() {
     reminderService = new ReminderService(
-        List.of(termOrPhaseEndDeadlineSource, licenceExpiryDeadlineSource),
+        List.of(termOrPhaseEndDeadlineSource, licenceExpiryDeadlineSource, workProgrammeActivityDeadlineSource),
         reminderSuppressionService,
         reminderRecipientService,
         reminderBatchService,
@@ -75,6 +79,7 @@ class ReminderServiceTest {
   @Test
   void sendDueReminders_whenNothingIsDue_thenNoBatchIsQueued() {
     when(termOrPhaseEndDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
+    when(workProgrammeActivityDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
     when(licenceExpiryDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
 
     var summary = reminderService.sendDueReminders();
@@ -88,6 +93,7 @@ class ReminderServiceTest {
   void sendDueReminders_whenTheLicenceIsSuppressed_thenNoBatchIsQueued() {
     var deadline = deadline(TermType.INITIAL.getDisplayName());
     when(termOrPhaseEndDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of(deadline));
+    when(workProgrammeActivityDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
     when(licenceExpiryDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
     when(reminderSuppressionService.getSuppressedLicenceIds(List.of(licence))).thenReturn(Set.of(1));
 
@@ -122,6 +128,7 @@ class ReminderServiceTest {
         null, null, licence, DEADLINE_DATE, "Licence expiry", ReminderType.LICENCE_EXPIRY);
 
     when(termOrPhaseEndDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of(termDeadline));
+    when(workProgrammeActivityDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
     when(licenceExpiryDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of(expiryDeadline));
     when(reminderSuppressionService.getSuppressedLicenceIds(List.of(licence)))
         .thenReturn(Set.of());
@@ -202,6 +209,7 @@ class ReminderServiceTest {
   void sendDueReminders_whenTheLicenceHasNoRecipients_thenNoBatchIsQueued() {
     var deadline = deadline(TermType.INITIAL.getDisplayName());
     when(termOrPhaseEndDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of(deadline));
+    when(workProgrammeActivityDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
     when(licenceExpiryDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
     when(reminderSuppressionService.getSuppressedLicenceIds(List.of(licence))).thenReturn(Set.of());
     when(reminderRecipientService.getRecipientsByLicenceId(List.of(licence))).thenReturn(Map.of());
@@ -212,12 +220,43 @@ class ReminderServiceTest {
     verify(reminderBatchService, never()).queueBatch(any(), any(), anyCollection(), any());
   }
 
+  @Test
+  void sendDueReminders_whenAnActivityIsDue_thenItIsBatchedAsAnActivityReminder() {
+    var activityDeadline = new ReminderDeadline(
+        new WorkProgrammeActivity(),
+        UUID.randomUUID(),
+        licence,
+        DEADLINE_DATE,
+        "Seismic survey",
+        ReminderType.WORK_PROGRAMME_ACTIVITY);
+    when(termOrPhaseEndDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
+    when(licenceExpiryDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
+    when(workProgrammeActivityDeadlineSource.getDeadlinesDueReminder())
+        .thenReturn(List.of(activityDeadline));
+    when(reminderSuppressionService.getSuppressedLicenceIds(List.of(licence)))
+        .thenReturn(Set.of());
+    when(reminderRecipientService.getRecipientsByLicenceId(List.of(licence)))
+        .thenReturn(Map.of(licence.getId(), List.of(bpRecipient)));
+    when(licenceReminderRepository.findAllByLicenceIn(List.of(licence)))
+        .thenReturn(List.of());
+
+    var summary = reminderService.sendDueReminders();
+
+    assertThat(summary).isEqualTo(new ReminderRunSummary(1, 0, 1, 0));
+    verify(reminderBatchService).queueBatch(
+        bpRecipient,
+        DEADLINE_DATE,
+        List.of(activityDeadline),
+        ReminderType.WORK_PROGRAMME_ACTIVITY);
+  }
+
   private void mockRun(
       List<ReminderDeadline> deadlines,
       List<ReminderRecipient> recipients,
       List<LicenceReminder> existingReminders
   ) {
     when(termOrPhaseEndDeadlineSource.getDeadlinesDueReminder()).thenReturn(deadlines);
+    when(workProgrammeActivityDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
     when(licenceExpiryDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
     when(reminderSuppressionService.getSuppressedLicenceIds(List.of(licence))).thenReturn(Set.of());
     when(reminderRecipientService.getRecipientsByLicenceId(List.of(licence)))

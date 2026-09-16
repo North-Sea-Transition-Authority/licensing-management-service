@@ -13,6 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatus;
@@ -183,6 +184,14 @@ public class WorkProgrammeActivityService {
       return workProgrammeActivity.getCategory().getDisplayName();
     }
     return workProgrammeActivity.getOtherCategoryName();
+  }
+
+  public List<WorkProgrammeActivity> getRelativeDateActivitiesDueBetweenOnActiveSchedules(
+      LocalDate earliestDueDate,
+      LocalDate latestDueDate
+  ) {
+    return workProgrammeActivityRepository.findAllByDateOptionAndDueDateBetweenAndLicenceScheduleDetail_Status(
+        WorkProgrammeActivityDateOption.RELATIVE_DATE, earliestDueDate, latestDueDate, LicenceScheduleDetailStatus.ACTIVE);
   }
 
   public LocalDate resolveWorkProgrammeActivityDueDate(WorkProgrammeActivity activity) {

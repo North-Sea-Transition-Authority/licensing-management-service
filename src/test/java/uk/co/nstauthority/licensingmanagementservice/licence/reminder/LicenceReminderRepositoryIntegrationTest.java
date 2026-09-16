@@ -159,6 +159,23 @@ class LicenceReminderRepositoryIntegrationTest {
     assertThatExceptionOfType(PersistenceException.class).isThrownBy(em::flush);
   }
 
+  @Test
+  void save_whenTheSameActivityReminderIsQueuedTwice_thenRejected() {
+    var originalEventId = UUID.randomUUID();
+    licenceReminderRepository.save(buildActivityReminder(originalEventId));
+    em.flush();
+
+    licenceReminderRepository.save(buildActivityReminder(originalEventId));
+
+    assertThatExceptionOfType(PersistenceException.class).isThrownBy(em::flush);
+  }
+
+  private LicenceReminder buildActivityReminder(UUID originalEventId) {
+    var reminder = buildReminder(originalEventId);
+    reminder.setReminderType(ReminderType.WORK_PROGRAMME_ACTIVITY);
+    return reminder;
+  }
+
   private LicenceReminder buildReminder(UUID originalEventId) {
     var reminder = new LicenceReminder();
     reminder.setScheduleEvent(term);

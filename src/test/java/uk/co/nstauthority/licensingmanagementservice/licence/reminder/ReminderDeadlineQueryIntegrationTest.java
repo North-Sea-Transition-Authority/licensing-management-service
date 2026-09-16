@@ -4,8 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
+import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +27,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeStatus;
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
 
 @Transactional
@@ -40,6 +49,12 @@ class ReminderDeadlineQueryIntegrationTest {
 
   @Autowired
   private LicenceSchedulePhaseRepository licenceSchedulePhaseRepository;
+
+  @Autowired
+  private WorkProgrammeActivityRepository workProgrammeActivityRepository;
+
+  @Autowired
+  private WorkProgrammeActivityStatusRepository workProgrammeActivityStatusRepository;
 
   @Autowired
   private LicenceScheduleExpiryRepository licenceScheduleExpiryRepository;
@@ -112,6 +127,48 @@ class ReminderDeadlineQueryIntegrationTest {
     assertThat(expiries).containsExactly(expected);
   }
 
+  @Test
+  void findAllByDateOptionAndDueDateBetweenAndStatus_returnsRelativeDateActivitiesOnActiveSchedulesInTheWindow() {
+    var activeDetail = persistScheduleDetail(LicenceScheduleDetailStatus.ACTIVE);
+    var term = persistTerm(activeDetail, IN_WINDOW);
+    var expected = persistRelativeDateActivity(activeDetail, term, IN_WINDOW);
+    persistRelativeDateActivity(activeDetail, term, AFTER_WINDOW);
+    persistTermBoundActivity(activeDetail, term);
+
+    var replacedDetail = persistScheduleDetail(LicenceScheduleDetailStatus.REPLACED);
+    persistRelativeDateActivity(replacedDetail, persistTerm(replacedDetail, IN_WINDOW), IN_WINDOW);
+    em.flush();
+
+    var activities = workProgrammeActivityRepository
+        .findAllByDateOptionAndDueDateBetweenAndLicenceScheduleDetail_Status(
+            WorkProgrammeActivityDateOption.RELATIVE_DATE, TODAY, WINDOW_END, LicenceScheduleDetailStatus.ACTIVE);
+
+    assertThat(activities).containsExactly(expected);
+  }
+
+  @Test
+  void findOriginalEventIdsWithLatestStatusIn_returnsOnlyActivitiesWhoseLatestStatusIsOneOfThoseGiven() {
+    var activeDetail = persistScheduleDetail(LicenceScheduleDetailStatus.ACTIVE);
+    var term = persistTerm(activeDetail, IN_WINDOW);
+    var completed = persistTermBoundActivity(activeDetail, term);
+    var reopened = persistTermBoundActivity(activeDetail, term);
+    var open = persistTermBoundActivity(activeDetail, term);
+    var completedButNotAskedAbout = persistTermBoundActivity(activeDetail, term);
+    persistStatus(completed, WorkProgrammeStatus.OPEN, Instant.parse("2026-01-01T09:00:00Z"));
+    persistStatus(completed, WorkProgrammeStatus.COMPLETE, Instant.parse("2026-02-01T09:00:00Z"));
+    persistStatus(reopened, WorkProgrammeStatus.COMPLETE, Instant.parse("2026-01-01T09:00:00Z"));
+    persistStatus(reopened, WorkProgrammeStatus.IN_PROGRESS, Instant.parse("2026-02-01T09:00:00Z"));
+    persistStatus(open, WorkProgrammeStatus.OPEN, Instant.parse("2026-01-01T09:00:00Z"));
+    persistStatus(completedButNotAskedAbout, WorkProgrammeStatus.COMPLETE, Instant.parse("2026-02-01T09:00:00Z"));
+    em.flush();
+
+    var closedActivityIds = workProgrammeActivityStatusRepository.findOriginalEventIdsWithLatestStatusIn(
+        List.of(completed.getOriginalEventId(), reopened.getOriginalEventId(), open.getOriginalEventId()),
+        Set.of(WorkProgrammeStatus.COMPLETE, WorkProgrammeStatus.FULL_WAIVER, WorkProgrammeStatus.TRANSFERRED));
+
+    assertThat(closedActivityIds).containsExactly(completed.getOriginalEventId());
+  }
+
   private LicenceScheduleDetail persistScheduleDetail(LicenceScheduleDetailStatus status) {
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(null, licence);
     em.persist(licenceSchedule);
@@ -162,5 +219,49 @@ class ReminderDeadlineQueryIntegrationTest {
     em.persist(phase);
 
     return phase;
+  }
+
+  private WorkProgrammeActivity persistActivity(
+      LicenceScheduleDetail licenceScheduleDetail,
+      WorkProgrammeActivityDateOption dateOption,
+      LicenceScheduleTerm licenceScheduleTerm,
+      LicenceSchedulePhase licenceSchedulePhase,
+      LocalDate dueDate
+  ) {
+    var activity = new WorkProgrammeActivity();
+    activity.setLicenceScheduleDetail(licenceScheduleDetail);
+    activity.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
+    activity.setDateOption(dateOption);
+    activity.setLicenceScheduleTerm(licenceScheduleTerm);
+    activity.setLicenceSchedulePhase(licenceSchedulePhase);
+    activity.setDueDate(dueDate);
+    em.persist(activity);
+
+    return activity;
+  }
+
+  private WorkProgrammeActivity persistTermBoundActivity(
+      LicenceScheduleDetail licenceScheduleDetail,
+      LicenceScheduleTerm licenceScheduleTerm
+  ) {
+    return persistActivity(
+        licenceScheduleDetail, WorkProgrammeActivityDateOption.WITHIN_A_TERM, licenceScheduleTerm, null, null);
+  }
+
+  private WorkProgrammeActivity persistRelativeDateActivity(
+      LicenceScheduleDetail licenceScheduleDetail,
+      LicenceScheduleTerm licenceScheduleTerm,
+      LocalDate dueDate
+  ) {
+    return persistActivity(
+        licenceScheduleDetail, WorkProgrammeActivityDateOption.RELATIVE_DATE, licenceScheduleTerm, null, dueDate);
+  }
+
+  private void persistStatus(WorkProgrammeActivity activity, WorkProgrammeStatus status, Instant appliedDatetime) {
+    var activityStatus = new WorkProgrammeActivityStatus();
+    activityStatus.setScheduleEvent(activity);
+    activityStatus.setStatus(status);
+    activityStatus.setAppliedDatetime(appliedDatetime);
+    em.persist(activityStatus);
   }
 }

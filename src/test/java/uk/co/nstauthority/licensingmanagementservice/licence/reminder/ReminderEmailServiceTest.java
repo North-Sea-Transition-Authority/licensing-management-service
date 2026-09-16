@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.refEq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,6 +30,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 
 @ExtendWith(MockitoExtension.class)
 class ReminderEmailServiceTest {
@@ -128,6 +130,34 @@ class ReminderEmailServiceTest {
     assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
         reminderEmailService.queueReminder(RECIPIENT, DEADLINE_DATE, List.of(), BATCH_REFERENCE,
         ReminderType.TERM_OR_PHASE_END));
+  }
+
+  @Test
+  void queueReminder_whenTheReminderIsForAnActivity_thenTheActivityTemplateIsUsed() {
+    when(emailService.getTemplate(GovukNotifyTemplate.WORK_PROGRAMME_ACTIVITY_REMINDER_V1))
+        .thenReturn(mergedTemplateBuilder);
+    when(mergedTemplateBuilder.withMailMergeField(anyString(), anyString())).thenReturn(mergedTemplateBuilder);
+    when(mergedTemplateBuilder.merge()).thenReturn(mergedTemplate);
+    var activityDeadline = new ReminderDeadline(
+        new WorkProgrammeActivity(),
+        UUID.randomUUID(),
+        LicenceTestUtil.builder().withId(1).withLicenceReference("P001").build(),
+        DEADLINE_DATE,
+        "Drill well: Drill one exploration well",
+        ReminderType.WORK_PROGRAMME_ACTIVITY);
+
+    reminderEmailService.queueReminder(
+        RECIPIENT,
+        DEADLINE_DATE,
+        List.of(activityDeadline),
+        BATCH_REFERENCE,
+        ReminderType.WORK_PROGRAMME_ACTIVITY);
+
+    verify(mergedTemplateBuilder).withMailMergeField("DEADLINE_LIST", "* P001 — Drill well: Drill one exploration well");
+    verify(emailService).sendEmail(
+        eq(mergedTemplate),
+        refEq(EmailRecipient.directEmailAddress(RECIPIENT.contactEmail())),
+        refEq(DomainReference.from(BATCH_REFERENCE.toString(), ReminderEmailService.DOMAIN_REFERENCE_TYPE)));
   }
 
   @Test

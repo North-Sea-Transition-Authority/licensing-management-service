@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX licence_reminders_activity_unique ON licence_reminders(original_event_id, responsible_organisation_id, notice_period, deadline_date) WHERE reminder_type = 'WORK_PROGRAMME_ACTIVITY';

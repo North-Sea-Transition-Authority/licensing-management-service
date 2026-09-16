@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.reminder;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
@@ -27,8 +28,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 class LicenceExpiryDeadlineServiceTest {
 
   private static final LocalDate EXPIRY_DATE = LocalDate.of(2027, Month.MARCH, 31);
-  private static final LocalDate NOTICE_DATE = LocalDate.of(2026, Month.SEPTEMBER, 30);
-  private static final LocalDate WINDOW_END = LocalDate.of(2027, Month.APRIL, 2);
+  private static final LocalDate NOTICE_DATE = LocalDate.of(2026, Month.OCTOBER, 1);
+  private static final LocalDate WINDOW_END = LocalDate.of(2027, Month.APRIL, 1);
 
   @Mock
   private LicenceScheduleExpiryRepository licenceScheduleExpiryRepository;
@@ -80,11 +81,13 @@ class LicenceExpiryDeadlineServiceTest {
   }
 
   @Test
-  void getDeadlinesDueReminder_theDayBeforeTheNoticeDate_thenNothingIsDue() {
-    var scheduleExpiry = scheduleExpiry(EXPIRY_DATE);
-    mockWindow(LocalDate.of(2026, Month.SEPTEMBER, 29), LocalDate.of(2027, Month.APRIL, 1), List.of(scheduleExpiry));
+  void getDeadlinesDueReminder_thenTheWindowRunsFromTodayToTheLatestDeadlineDate() {
+    mockWindow(NOTICE_DATE, WINDOW_END, List.of());
 
-    assertThat(licenceExpiryDeadlineService.getDeadlinesDueReminder()).isEmpty();
+    licenceExpiryDeadlineService.getDeadlinesDueReminder();
+
+    verify(licenceScheduleExpiryRepository).findAllByExpiryDateBetweenAndLicenceScheduleDetail_Status(
+        NOTICE_DATE, WINDOW_END, LicenceScheduleDetailStatus.ACTIVE);
   }
 
   private void mockWindow(LocalDate today, LocalDate latestExpiryDate, List<LicenceScheduleExpiry> scheduleExpiries) {

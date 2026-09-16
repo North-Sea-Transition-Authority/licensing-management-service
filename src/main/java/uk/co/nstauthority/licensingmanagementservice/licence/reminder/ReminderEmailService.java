@@ -52,6 +52,7 @@ public class ReminderEmailService {
     return switch (reminderType) {
       case TERM_OR_PHASE_END -> GovukNotifyTemplate.TERM_OR_PHASE_END_REMINDER_V1;
       case LICENCE_EXPIRY -> GovukNotifyTemplate.LICENCE_EXPIRY_REMINDER_V1;
+      case WORK_PROGRAMME_ACTIVITY -> GovukNotifyTemplate.WORK_PROGRAMME_ACTIVITY_REMINDER_V1;
     };
   }
 

@@ -3,7 +3,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventt
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -16,6 +18,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.util.Collections;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
@@ -25,6 +28,7 @@ import org.springframework.validation.BindingResult;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupRestController;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableView;
@@ -54,6 +58,9 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
   @MockitoBean
   private EventTrackerFormValidator eventTrackerFormValidator;
 
+  @MockitoBean
+  private OrganisationUnitQueryService organisationUnitQueryService;
+
   private SortableTableView eventTrackerTable;
 
   @BeforeEach
@@ -61,7 +68,7 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
     eventTrackerTable = SortableTableView.sortableTableBuilder()
         .newWithHeadings("Licence", "Steward")
         .build();
-    when(crossLicenceEventTrackerService.getEventTrackerTable(any())).thenReturn(eventTrackerTable);
+    when(crossLicenceEventTrackerService.getEventTrackerTable(any(), any())).thenReturn(eventTrackerTable);
   }
 
   @Test
@@ -91,6 +98,8 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
             DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerApplicationStatus.class)))
         .andExpect(model().attribute("eventTrackerTableJson", eventTrackerTable.toString()))
         .andExpect(model().attribute("clearFilterUrl", CLEAR_FILTERS_ROUTE));
+
+    verify(crossLicenceEventTrackerService).getEventTrackerTable(any(), eq(regulatorUser));
   }
 
   @Test
@@ -104,6 +113,28 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().isOk())
         .andExpect(model().attribute("isRegulatorUser", false));
+
+    verify(crossLicenceEventTrackerService).getEventTrackerTable(any(), eq(industryUser));
+  }
+
+  @Test
+  void renderEventTracker_whenLicenseeSelected_thenPreselectedLicenseeOrgUnitIncluded() throws Exception {
+    when(regulatorRoleService.isRegulator(regulatorUser)).thenReturn(true);
+
+    var form = new EventTrackerForm();
+    form.setLicenseeOrgUnitId(700);
+    var filterSession = new EventTrackerFilterSession(form);
+
+    when(organisationUnitQueryService.getOrganisationUnitSelectOption("700"))
+        .thenReturn(Map.of("700", "Licensee Ltd"));
+
+    mockMvc.perform(
+            get(RENDER_EVENT_TRACKER_ROUTE)
+                .flashAttr("eventTrackerFilterSession", filterSession)
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("preSelectedLicenseeOrgUnit", Map.of("700", "Licensee Ltd")));
   }
 
   @Test

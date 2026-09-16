@@ -22,6 +22,7 @@ import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableRow;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableValue;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableView;
@@ -41,6 +42,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
+import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 @Service
@@ -56,6 +59,7 @@ public class CrossLicenceEventTrackerService {
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final WorkProgrammeActivityService workProgrammeActivityService;
   private final DSLContext dslContext;
+  private final RegulatorRoleService regulatorRoleService;
 
   public CrossLicenceEventTrackerService(
       LicenceScheduleTermService licenceScheduleTermService,
@@ -64,7 +68,8 @@ public class CrossLicenceEventTrackerService {
       LicenceService licenceService,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
       WorkProgrammeActivityService workProgrammeActivityService,
-      DSLContext dslContext
+      DSLContext dslContext,
+      RegulatorRoleService regulatorRoleService
   ) {
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
@@ -73,9 +78,10 @@ public class CrossLicenceEventTrackerService {
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.workProgrammeActivityService = workProgrammeActivityService;
     this.dslContext = dslContext;
+    this.regulatorRoleService = regulatorRoleService;
   }
 
-  public SortableTableView getEventTrackerTable(EventTrackerForm form) {
+  public SortableTableView getEventTrackerTable(EventTrackerForm form, ServiceUserDetail user) {
     var eventCaches = dslContext.select(LICENCE_EVENT_CACHE.fields())
         .from(LICENCE_EVENT_CACHE)
         .join(LICENCES).on(LICENCES.ID.eq(LICENCE_EVENT_CACHE.LICENCE_ID))
@@ -88,7 +94,12 @@ public class CrossLicenceEventTrackerService {
         .distinct()
         .toList();
 
-    var licenseesByLicenceId = getLicenseesByLicenceId(licenceIds);
+    var responsibleOrganisationsByLicence = licenceResponsibleOrganisationService
+        .getResponsibleOrganisationsByLicences(licenceService.getLicencesByIds(licenceIds));
+    var licenseesByLicenceId = toLicenseeNamesByLicenceId(responsibleOrganisationsByLicence);
+    var licenseeOrgUnitIdsByLicenceId = getLicenceIdToLicenseeOrgUnitIdMap(responsibleOrganisationsByLicence);
+
+    var isRegulator = regulatorRoleService.isRegulator(user);
 
     var tableBuilder = SortableTableView.sortableTableBuilder()
         .newWithHeadings(
@@ -104,6 +115,7 @@ public class CrossLicenceEventTrackerService {
         .withDefaultSortIndex(4);
 
     eventCaches.stream()
+        .filter(eventCache -> matchesLicenseeCondition(eventCache, licenseeOrgUnitIdsByLicenceId, form, isRegulator))
         .sorted(Comparator.comparing(LicenceEventCache::getEventDate, Comparator.nullsLast(Comparator.naturalOrder())))
         .forEach(eventCache -> tableBuilder.addRow(toRow(eventCache, licenseesByLicenceId)));
 
@@ -146,16 +158,41 @@ public class CrossLicenceEventTrackerService {
     }
   }
 
-  private Map<Integer, List<String>> getLicenseesByLicenceId(List<Integer> licenceIds) {
-    var licences = licenceService.getLicencesByIds(licenceIds);
+  // The licensee filter is only ever shown to regulator users, so a value submitted by anyone else is ignored.
+  private boolean matchesLicenseeCondition(
+      LicenceEventCache eventCache,
+      Map<Integer, List<Integer>> licenseeOrgUnitIdsByLicenceId,
+      EventTrackerForm form,
+      boolean isRegulator
+  ) {
+    if (!isRegulator) {
+      return true;
+    }
 
-    return licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(licences)
-        .entrySet()
-        .stream()
+    var orgUnitIds = licenseeOrgUnitIdsByLicenceId.getOrDefault(eventCache.getLicenceId(), List.of());
+    return FilterUtil.matchesIdList(orgUnitIds, form.getLicenseeOrgUnitId());
+  }
+
+  private Map<Integer, List<String>> toLicenseeNamesByLicenceId(
+      Map<Licence, List<OrganisationUnit>> responsibleOrganisationsByLicence
+  ) {
+    return responsibleOrganisationsByLicence.entrySet().stream()
         .collect(Collectors.toMap(
             entry -> entry.getKey().getId(),
             entry -> entry.getValue().stream()
                 .map(OrganisationUnit::organisationUnitName)
+                .toList()
+        ));
+  }
+
+  private Map<Integer, List<Integer>> getLicenceIdToLicenseeOrgUnitIdMap(
+      Map<Licence, List<OrganisationUnit>> responsibleOrganisationsByLicence
+  ) {
+    return responsibleOrganisationsByLicence.entrySet().stream()
+        .collect(Collectors.toMap(
+            entry -> entry.getKey().getId(),
+            entry -> entry.getValue().stream()
+                .map(OrganisationUnit::organisationUnitId)
                 .toList()
         ));
   }

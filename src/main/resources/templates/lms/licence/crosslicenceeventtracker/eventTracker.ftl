@@ -21,12 +21,12 @@ extendContainerWidth=true
                         licenseeGroupOrgUnitUrl=licenseeGroupOrgUnitUrl
                         preSelectedLicenseeGroup=preSelectedLicenseeGroupOrgUnit
                         />
+                        <@dataItemFilter.licenseeOrgUnitFilter
+                        form=form
+                        licenseeOrgUnitUrl=licenseeOrgUnitUrl
+                        preSelectedLicenseeOrgUnit=preSelectedLicenseeOrgUnit
+                        />
                     </#if>
-                    <@dataItemFilter.licenseeOrgUnitFilter
-                    form=form
-                    licenseeOrgUnitUrl=licenseeOrgUnitUrl
-                    preSelectedLicenseeOrgUnit=preSelectedLicenseeOrgUnit
-                    />
                     <@fdsSearch.searchFilterItem itemName="Event from" expanded=false>
                         <@fdsDatePicker.datePicker path="form.fromDate" labelText="Event from" hintText="For example, 31/08/2025" labelClass="govuk-visually-hidden"/>
                     </@fdsSearch.searchFilterItem>

@@ -77,12 +77,11 @@ class LicenceReminderRepositoryIntegrationTest {
   }
 
   @Test
-  void findAllByOriginalEventIdInAndNoticePeriod_returnsWhatWasAlreadyQueued() {
+  void findAllByLicenceIn_returnsWhatWasAlreadyQueued() {
     var reminder = licenceReminderRepository.save(buildReminder(UUID.randomUUID()));
     em.flush();
 
-    assertThat(licenceReminderRepository.findAllByOriginalEventIdInAndNoticePeriod(
-        List.of(reminder.getOriginalEventId()), NoticePeriod.SIX_MONTHS))
+    assertThat(licenceReminderRepository.findAllByLicenceIn(List.of(licence)))
         .extracting(
             LicenceReminder::getOriginalEventId,
             LicenceReminder::getResponsibleOrganisationId,
@@ -91,14 +90,48 @@ class LicenceReminderRepositoryIntegrationTest {
   }
 
   @Test
-  void findAllByOriginalEventIdInAndNoticePeriod_whenTheNoticePeriodDiffers_thenNothingIsFound() {
+  void findAllByLicenceIn_whenTheLicenceDiffers_thenNothingIsFound() {
+    var otherLicence = LicenceTestUtil.builder()
+        .withId(2)
+        .withLicenceReference("P002")
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+    em.persist(otherLicence);
     var reminder = licenceReminderRepository.save(buildReminder(UUID.randomUUID()));
     em.flush();
 
-    assertThat(licenceReminderRepository.findAllByOriginalEventIdInAndNoticePeriod(
-        List.of(UUID.randomUUID()), NoticePeriod.SIX_MONTHS))
+    assertThat(licenceReminderRepository.findAllByLicenceIn(List.of(otherLicence)))
         .isEmpty();
     assertThat(reminder.getNoticePeriod()).isEqualTo(NoticePeriod.SIX_MONTHS);
+  }
+
+  @Test
+  void save_whenTheReminderIsLicenceLevelWithNoScheduleEvent_thenItPersists() {
+    var reminder = buildReminder(null);
+    reminder.setScheduleEvent(null);
+    reminder.setReminderType(ReminderType.LICENCE_EXPIRY);
+    licenceReminderRepository.save(reminder);
+    em.flush();
+
+    assertThat(licenceReminderRepository.findAllByLicenceIn(List.of(licence)))
+        .extracting(LicenceReminder::getReminderType, LicenceReminder::getOriginalEventId)
+        .containsExactly(tuple(ReminderType.LICENCE_EXPIRY, null));
+  }
+
+  @Test
+  void save_whenTheSameLicenceLevelReminderIsQueuedTwice_thenRejected() {
+    var first = buildReminder(null);
+    first.setScheduleEvent(null);
+    first.setReminderType(ReminderType.LICENCE_EXPIRY);
+    licenceReminderRepository.save(first);
+    em.flush();
+
+    var second = buildReminder(null);
+    second.setScheduleEvent(null);
+    second.setReminderType(ReminderType.LICENCE_EXPIRY);
+    licenceReminderRepository.save(second);
+
+    assertThatExceptionOfType(PersistenceException.class).isThrownBy(em::flush);
   }
 
   @Test
@@ -130,6 +163,7 @@ class LicenceReminderRepositoryIntegrationTest {
     var reminder = new LicenceReminder();
     reminder.setScheduleEvent(term);
     reminder.setOriginalEventId(originalEventId);
+    reminder.setReminderType(ReminderType.TERM_OR_PHASE_END);
     reminder.setLicence(licence);
     reminder.setResponsibleOrganisationId(ORGANISATION_ID);
     reminder.setDeadlineDate(DEADLINE);

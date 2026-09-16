@@ -30,24 +30,23 @@ public class ReminderBatchService {
       ReminderRecipient recipient,
       LocalDate deadlineDate,
       Collection<ReminderDeadline> deadlines,
-      NoticePeriod noticePeriod
+      ReminderType reminderType
   ) {
     var notificationBatchReference = UUID.randomUUID();
     var queuedAt = Instant.now(clock);
 
     var reminders = deadlines.stream()
-        .map(deadline -> toReminder(deadline, recipient, noticePeriod, notificationBatchReference, queuedAt))
+        .map(deadline -> toReminder(deadline, recipient, notificationBatchReference, queuedAt))
         .toList();
 
     licenceReminderRepository.saveAllAndFlush(reminders);
 
-    reminderEmailService.queueReminder(recipient, deadlineDate, deadlines, notificationBatchReference);
+    reminderEmailService.queueReminder(recipient, deadlineDate, deadlines, notificationBatchReference, reminderType);
   }
 
   private LicenceReminder toReminder(
       ReminderDeadline deadline,
       ReminderRecipient recipient,
-      NoticePeriod noticePeriod,
       UUID notificationBatchReference,
       Instant queuedAt
   ) {
@@ -57,7 +56,8 @@ public class ReminderBatchService {
     reminder.setLicence(deadline.licence());
     reminder.setResponsibleOrganisationId(recipient.responsibleOrganisationId());
     reminder.setDeadlineDate(deadline.deadlineDate());
-    reminder.setNoticePeriod(noticePeriod);
+    reminder.setNoticePeriod(deadline.reminderType().getNoticePeriod());
+    reminder.setReminderType(deadline.reminderType());
     reminder.setNotificationBatchReference(notificationBatchReference);
     reminder.setQueuedAt(queuedAt);
     return reminder;

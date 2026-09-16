@@ -39,7 +39,7 @@ class TermOrPhaseEndDeadlineServiceTest {
   private static final LocalDate PHASE_A_END = LocalDate.of(2025, Month.DECEMBER, 31);
 
   private static final LocalDate INITIAL_TERM_NOTICE_DATE = LocalDate.of(2027, Month.JUNE, 30);
-  private static final LocalDate INITIAL_TERM_WINDOW_END = LocalDate.of(2028, Month.JANUARY, 1);
+  private static final LocalDate INITIAL_TERM_WINDOW_END = LocalDate.of(2028, Month.JANUARY, 2);
 
   @Mock
   private LicenceScheduleTermService licenceScheduleTermService;
@@ -81,7 +81,7 @@ class TermOrPhaseEndDeadlineServiceTest {
   void getDeadlinesDueReminder_whenNothingIsInTheNoticeWindow_thenNothingIsDue() {
     mockWindow(INITIAL_TERM_NOTICE_DATE, INITIAL_TERM_WINDOW_END, List.of(), List.of());
 
-    assertThat(termOrPhaseEndDeadlineService.getDeadlinesDueReminder(NoticePeriod.SIX_MONTHS)).isEmpty();
+    assertThat(termOrPhaseEndDeadlineService.getDeadlinesDueReminder()).isEmpty();
 
     verify(licenceScheduleTermService, never()).getTermsByLicenceScheduleDetails(Set.of(scheduleDetail));
   }
@@ -91,38 +91,39 @@ class TermOrPhaseEndDeadlineServiceTest {
     mockWindow(INITIAL_TERM_NOTICE_DATE, INITIAL_TERM_WINDOW_END, List.of(initialTerm), List.of());
     mockAllTermsOnTheSchedule(List.of(initialTerm, secondTerm, thirdTerm));
 
-    var deadlines = termOrPhaseEndDeadlineService.getDeadlinesDueReminder(NoticePeriod.SIX_MONTHS);
+    var deadlines = termOrPhaseEndDeadlineService.getDeadlinesDueReminder();
 
     assertThat(deadlines).containsExactly(new ReminderDeadline(
         initialTerm,
         initialTerm.getOriginalEventId(),
         licence,
         INITIAL_TERM_END,
-        TermType.INITIAL.getDisplayName()));
+        TermType.INITIAL.getDisplayName(),
+        ReminderType.TERM_OR_PHASE_END));
   }
 
   @Test
   void getDeadlinesDueReminder_theDayBeforeTheNoticeDate_thenNothingIsDue() {
     mockWindow(
         LocalDate.of(2027, Month.JUNE, 29),
-        LocalDate.of(2027, Month.DECEMBER, 31),
+        LocalDate.of(2028, Month.JANUARY, 1),
         List.of(initialTerm),
         List.of());
     mockAllTermsOnTheSchedule(List.of(initialTerm, secondTerm, thirdTerm));
 
-    assertThat(termOrPhaseEndDeadlineService.getDeadlinesDueReminder(NoticePeriod.SIX_MONTHS)).isEmpty();
+    assertThat(termOrPhaseEndDeadlineService.getDeadlinesDueReminder()).isEmpty();
   }
 
   @Test
   void getDeadlinesDueReminder_whenTheTermIsTheFinalTerm_thenItIsNotDue() {
     mockWindow(
         LocalDate.of(2049, Month.JUNE, 30),
-        LocalDate.of(2050, Month.JANUARY, 1),
+        LocalDate.of(2050, Month.JANUARY, 2),
         List.of(thirdTerm),
         List.of());
     mockAllTermsOnTheSchedule(List.of(initialTerm, secondTerm, thirdTerm));
 
-    assertThat(termOrPhaseEndDeadlineService.getDeadlinesDueReminder(NoticePeriod.SIX_MONTHS)).isEmpty();
+    assertThat(termOrPhaseEndDeadlineService.getDeadlinesDueReminder()).isEmpty();
   }
 
   @Test
@@ -130,7 +131,7 @@ class TermOrPhaseEndDeadlineServiceTest {
     mockWindow(INITIAL_TERM_NOTICE_DATE, INITIAL_TERM_WINDOW_END, List.of(initialTerm), List.of());
     mockAllTermsOnTheSchedule(List.of(initialTerm));
 
-    assertThat(termOrPhaseEndDeadlineService.getDeadlinesDueReminder(NoticePeriod.SIX_MONTHS)).isEmpty();
+    assertThat(termOrPhaseEndDeadlineService.getDeadlinesDueReminder()).isEmpty();
   }
 
   @Test
@@ -143,7 +144,7 @@ class TermOrPhaseEndDeadlineServiceTest {
         List.of(coincidingPhase));
     mockAllTermsOnTheSchedule(List.of(initialTerm, secondTerm, thirdTerm));
 
-    var deadlines = termOrPhaseEndDeadlineService.getDeadlinesDueReminder(NoticePeriod.SIX_MONTHS);
+    var deadlines = termOrPhaseEndDeadlineService.getDeadlinesDueReminder();
 
     assertThat(deadlines)
         .extracting(ReminderDeadline::displayName)
@@ -155,18 +156,19 @@ class TermOrPhaseEndDeadlineServiceTest {
     var phaseA = phase(PhaseType.PHASE_A, initialTerm, PHASE_A_END);
     mockWindow(
         LocalDate.of(2025, Month.JUNE, 30),
-        LocalDate.of(2026, Month.JANUARY, 1),
+        LocalDate.of(2026, Month.JANUARY, 2),
         List.of(),
         List.of(phaseA));
 
-    var deadlines = termOrPhaseEndDeadlineService.getDeadlinesDueReminder(NoticePeriod.SIX_MONTHS);
+    var deadlines = termOrPhaseEndDeadlineService.getDeadlinesDueReminder();
 
     assertThat(deadlines).containsExactly(new ReminderDeadline(
         phaseA,
         phaseA.getOriginalEventId(),
         licence,
         PHASE_A_END,
-        PhaseType.PHASE_A.getDisplayName()));
+        PhaseType.PHASE_A.getDisplayName(),
+        ReminderType.TERM_OR_PHASE_END));
 
     verify(licenceScheduleTermService, never()).getTermsByLicenceScheduleDetails(Set.of(scheduleDetail));
   }
@@ -177,11 +179,11 @@ class TermOrPhaseEndDeadlineServiceTest {
     var phaseA = phase(PhaseType.PHASE_A, undatedTerm, PHASE_A_END);
     mockWindow(
         LocalDate.of(2025, Month.JUNE, 30),
-        LocalDate.of(2026, Month.JANUARY, 1),
+        LocalDate.of(2026, Month.JANUARY, 2),
         List.of(),
         List.of(phaseA));
 
-    var deadlines = termOrPhaseEndDeadlineService.getDeadlinesDueReminder(NoticePeriod.SIX_MONTHS);
+    var deadlines = termOrPhaseEndDeadlineService.getDeadlinesDueReminder();
 
     assertThat(deadlines)
         .extracting(ReminderDeadline::displayName)

@@ -64,7 +64,8 @@ class ReminderEmailServiceTest {
         RECIPIENT,
         DEADLINE_DATE,
         List.of(deadline(TermType.INITIAL.getDisplayName())),
-        BATCH_REFERENCE);
+        BATCH_REFERENCE,
+        ReminderType.TERM_OR_PHASE_END);
 
     verify(mergedTemplateBuilder).withMailMergeField("LICENCE_REFERENCE", "P001");
     verify(mergedTemplateBuilder).withMailMergeField("LICENSEE_NAME", "BP Exploration Alpha Ltd");
@@ -92,7 +93,8 @@ class ReminderEmailServiceTest {
         List.of(
             deadline(PhaseType.PHASE_B.getDisplayName()),
             deadline(TermType.INITIAL.getDisplayName())),
-        BATCH_REFERENCE);
+        BATCH_REFERENCE,
+        ReminderType.TERM_OR_PHASE_END);
 
     verify(mergedTemplateBuilder).withMailMergeField(
         "DEADLINE_LIST",
@@ -103,9 +105,29 @@ class ReminderEmailServiceTest {
   }
 
   @Test
+  void queueReminder_whenTheReminderIsForExpiry_thenTheExpiryTemplateIsUsed() {
+    when(emailService.getTemplate(GovukNotifyTemplate.LICENCE_EXPIRY_REMINDER_V1))
+        .thenReturn(mergedTemplateBuilder);
+    when(mergedTemplateBuilder.withMailMergeField(anyString(), anyString())).thenReturn(mergedTemplateBuilder);
+    when(mergedTemplateBuilder.merge()).thenReturn(mergedTemplate);
+
+    reminderEmailService.queueReminder(
+        RECIPIENT,
+        DEADLINE_DATE,
+        List.of(deadline("Licence expiry")),
+        BATCH_REFERENCE,
+        ReminderType.LICENCE_EXPIRY);
+
+    verify(mergedTemplateBuilder).withMailMergeField("DEADLINE_LIST", "* P001 — Licence expiry");
+    verify(emailService).sendEmail(
+        eq(mergedTemplate), any(EmailRecipient.class), any(DomainReference.class));
+  }
+
+  @Test
   void queueReminder_whenThereAreNoDeadlines_thenItFailsRatherThanSendingAnEmptyReminder() {
     assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-        reminderEmailService.queueReminder(RECIPIENT, DEADLINE_DATE, List.of(), BATCH_REFERENCE));
+        reminderEmailService.queueReminder(RECIPIENT, DEADLINE_DATE, List.of(), BATCH_REFERENCE,
+        ReminderType.TERM_OR_PHASE_END));
   }
 
   @Test
@@ -118,7 +140,8 @@ class ReminderEmailServiceTest {
     var deadlines = List.of(deadline(TermType.INITIAL.getDisplayName()));
 
     assertThatExceptionOfType(RuntimeException.class).isThrownBy(() ->
-        reminderEmailService.queueReminder(RECIPIENT, DEADLINE_DATE, deadlines, BATCH_REFERENCE));
+        reminderEmailService.queueReminder(RECIPIENT, DEADLINE_DATE, deadlines, BATCH_REFERENCE,
+        ReminderType.TERM_OR_PHASE_END));
   }
 
   private void mockTemplate() {
@@ -136,6 +159,7 @@ class ReminderEmailServiceTest {
         UUID.randomUUID(),
         licence,
         DEADLINE_DATE,
-        displayName);
+        displayName,
+        ReminderType.TERM_OR_PHASE_END);
   }
 }

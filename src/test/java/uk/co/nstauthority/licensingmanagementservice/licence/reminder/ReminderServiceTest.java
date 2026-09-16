@@ -39,6 +39,9 @@ class ReminderServiceTest {
   private ReminderDeadlineSource termOrPhaseEndDeadlineSource;
 
   @Mock
+  private ReminderDeadlineSource licenceExpiryDeadlineSource;
+
+  @Mock
   private ReminderSuppressionService reminderSuppressionService;
 
   @Mock
@@ -60,7 +63,7 @@ class ReminderServiceTest {
   @BeforeEach
   void setUp() {
     reminderService = new ReminderService(
-        List.of(termOrPhaseEndDeadlineSource),
+        List.of(termOrPhaseEndDeadlineSource, licenceExpiryDeadlineSource),
         reminderSuppressionService,
         reminderRecipientService,
         reminderBatchService,
@@ -71,9 +74,10 @@ class ReminderServiceTest {
 
   @Test
   void sendDueReminders_whenNothingIsDue_thenNoBatchIsQueued() {
-    when(termOrPhaseEndDeadlineSource.getDeadlinesDueReminder(NoticePeriod.SIX_MONTHS)).thenReturn(List.of());
+    when(termOrPhaseEndDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
+    when(licenceExpiryDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
 
-    var summary = reminderService.sendDueReminders(NoticePeriod.SIX_MONTHS);
+    var summary = reminderService.sendDueReminders();
 
     assertThat(summary).isEqualTo(new ReminderRunSummary(0, 0, 0, 0));
     verify(reminderBatchService, never()).queueBatch(any(), any(), anyCollection(), any());
@@ -83,10 +87,11 @@ class ReminderServiceTest {
   @Test
   void sendDueReminders_whenTheLicenceIsSuppressed_thenNoBatchIsQueued() {
     var deadline = deadline(TermType.INITIAL.getDisplayName());
-    when(termOrPhaseEndDeadlineSource.getDeadlinesDueReminder(NoticePeriod.SIX_MONTHS)).thenReturn(List.of(deadline));
+    when(termOrPhaseEndDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of(deadline));
+    when(licenceExpiryDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
     when(reminderSuppressionService.getSuppressedLicenceIds(List.of(licence))).thenReturn(Set.of(1));
 
-    var summary = reminderService.sendDueReminders(NoticePeriod.SIX_MONTHS);
+    var summary = reminderService.sendDueReminders();
 
     assertThat(summary).isEqualTo(new ReminderRunSummary(1, 1, 0, 0));
     verify(reminderBatchService, never()).queueBatch(any(), any(), anyCollection(), any());
@@ -99,12 +104,45 @@ class ReminderServiceTest {
     var secondTerm = deadline(TermType.SECOND.getDisplayName());
     mockRun(List.of(initialTerm, secondTerm), List.of(bpRecipient), List.of());
 
-    reminderService.sendDueReminders(NoticePeriod.SIX_MONTHS);
+    reminderService.sendDueReminders();
 
     verify(reminderBatchService).queueBatch(
-        eq(bpRecipient), eq(DEADLINE_DATE), deadlinesCaptor.capture(), eq(NoticePeriod.SIX_MONTHS));
+        eq(bpRecipient),
+        eq(DEADLINE_DATE),
+        deadlinesCaptor.capture(),
+        eq(ReminderType.TERM_OR_PHASE_END));
 
     assertThat(deadlinesCaptor.getValue()).containsExactly(initialTerm, secondTerm);
+  }
+
+  @Test
+  void sendDueReminders_whenATermAndAnExpiryShareARecipientAndDate_thenTheyAreSeparateBatches() {
+    var termDeadline = deadline(TermType.INITIAL.getDisplayName());
+    var expiryDeadline = new ReminderDeadline(
+        null, null, licence, DEADLINE_DATE, "Licence expiry", ReminderType.LICENCE_EXPIRY);
+
+    when(termOrPhaseEndDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of(termDeadline));
+    when(licenceExpiryDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of(expiryDeadline));
+    when(reminderSuppressionService.getSuppressedLicenceIds(List.of(licence)))
+        .thenReturn(Set.of());
+    when(reminderRecipientService.getRecipientsByLicenceId(List.of(licence)))
+        .thenReturn(Map.of(licence.getId(), List.of(bpRecipient)));
+    when(licenceReminderRepository.findAllByLicenceIn(List.of(licence)))
+        .thenReturn(List.of());
+
+    var summary = reminderService.sendDueReminders();
+
+    assertThat(summary).isEqualTo(new ReminderRunSummary(2, 0, 2, 0));
+    verify(reminderBatchService).queueBatch(
+        eq(bpRecipient),
+        eq(DEADLINE_DATE),
+        eq(List.of(termDeadline)),
+        eq(ReminderType.TERM_OR_PHASE_END));
+    verify(reminderBatchService).queueBatch(
+        eq(bpRecipient),
+        eq(DEADLINE_DATE),
+        eq(List.of(expiryDeadline)),
+        eq(ReminderType.LICENCE_EXPIRY));
   }
 
   @Test
@@ -115,10 +153,10 @@ class ReminderServiceTest {
         List.of(bpRecipient, shellRecipient),
         List.of());
 
-    reminderService.sendDueReminders(NoticePeriod.SIX_MONTHS);
+    reminderService.sendDueReminders();
 
     verify(reminderBatchService, times(2)).queueBatch(
-        any(), eq(DEADLINE_DATE), anyCollection(), eq(NoticePeriod.SIX_MONTHS));
+        any(), eq(DEADLINE_DATE), anyCollection(), eq(ReminderType.TERM_OR_PHASE_END));
     verify(reminderBatchService).queueBatch(eq(bpRecipient), any(), anyCollection(), any());
     verify(reminderBatchService).queueBatch(eq(shellRecipient), any(), anyCollection(), any());
   }
@@ -128,7 +166,7 @@ class ReminderServiceTest {
     var deadline = deadline(TermType.INITIAL.getDisplayName());
     mockRun(List.of(deadline), List.of(bpRecipient), List.of(reminderRow(deadline, BP_ID)));
 
-    reminderService.sendDueReminders(NoticePeriod.SIX_MONTHS);
+    reminderService.sendDueReminders();
 
     verify(reminderBatchService, never()).queueBatch(any(), any(), anyCollection(), any());
   }
@@ -138,10 +176,10 @@ class ReminderServiceTest {
     var deadline = deadline(TermType.INITIAL.getDisplayName());
     mockRun(List.of(deadline), List.of(bpRecipient), List.of(reminderRow(deadline, SHELL_ID)));
 
-    reminderService.sendDueReminders(NoticePeriod.SIX_MONTHS);
+    reminderService.sendDueReminders();
 
     verify(reminderBatchService).queueBatch(
-        eq(bpRecipient), eq(DEADLINE_DATE), anyCollection(), eq(NoticePeriod.SIX_MONTHS));
+        eq(bpRecipient), eq(DEADLINE_DATE), anyCollection(), eq(ReminderType.TERM_OR_PHASE_END));
   }
 
   @Test
@@ -154,7 +192,7 @@ class ReminderServiceTest {
     doThrow(new RuntimeException("notify unavailable"))
         .when(reminderBatchService).queueBatch(eq(bpRecipient), any(), anyCollection(), any());
 
-    var summary = reminderService.sendDueReminders(NoticePeriod.SIX_MONTHS);
+    var summary = reminderService.sendDueReminders();
 
     assertThat(summary).isEqualTo(new ReminderRunSummary(1, 0, 1, 1));
     verify(reminderBatchService).queueBatch(eq(shellRecipient), any(), anyCollection(), any());
@@ -163,13 +201,13 @@ class ReminderServiceTest {
   @Test
   void sendDueReminders_whenTheLicenceHasNoRecipients_thenNoBatchIsQueued() {
     var deadline = deadline(TermType.INITIAL.getDisplayName());
-    when(termOrPhaseEndDeadlineSource.getDeadlinesDueReminder(NoticePeriod.SIX_MONTHS)).thenReturn(List.of(deadline));
+    when(termOrPhaseEndDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of(deadline));
+    when(licenceExpiryDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
     when(reminderSuppressionService.getSuppressedLicenceIds(List.of(licence))).thenReturn(Set.of());
     when(reminderRecipientService.getRecipientsByLicenceId(List.of(licence))).thenReturn(Map.of());
-    when(licenceReminderRepository.findAllByOriginalEventIdInAndNoticePeriod(
-        List.of(deadline.originalEventId()), NoticePeriod.SIX_MONTHS)).thenReturn(List.of());
+    when(licenceReminderRepository.findAllByLicenceIn(List.of(licence))).thenReturn(List.of());
 
-    reminderService.sendDueReminders(NoticePeriod.SIX_MONTHS);
+    reminderService.sendDueReminders();
 
     verify(reminderBatchService, never()).queueBatch(any(), any(), anyCollection(), any());
   }
@@ -179,19 +217,20 @@ class ReminderServiceTest {
       List<ReminderRecipient> recipients,
       List<LicenceReminder> existingReminders
   ) {
-    when(termOrPhaseEndDeadlineSource.getDeadlinesDueReminder(NoticePeriod.SIX_MONTHS)).thenReturn(deadlines);
+    when(termOrPhaseEndDeadlineSource.getDeadlinesDueReminder()).thenReturn(deadlines);
+    when(licenceExpiryDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
     when(reminderSuppressionService.getSuppressedLicenceIds(List.of(licence))).thenReturn(Set.of());
     when(reminderRecipientService.getRecipientsByLicenceId(List.of(licence)))
         .thenReturn(Map.of(licence.getId(), recipients));
-    when(licenceReminderRepository.findAllByOriginalEventIdInAndNoticePeriod(
-        deadlines.stream().map(ReminderDeadline::originalEventId).distinct().toList(),
-        NoticePeriod.SIX_MONTHS))
+    when(licenceReminderRepository.findAllByLicenceIn(List.of(licence)))
         .thenReturn(existingReminders);
   }
 
   private LicenceReminder reminderRow(ReminderDeadline deadline, Integer responsibleOrganisationId) {
     var reminder = new LicenceReminder();
     reminder.setOriginalEventId(deadline.originalEventId());
+    reminder.setLicence(licence);
+    reminder.setReminderType(ReminderType.TERM_OR_PHASE_END);
     reminder.setResponsibleOrganisationId(responsibleOrganisationId);
     reminder.setDeadlineDate(deadline.deadlineDate());
     reminder.setNoticePeriod(NoticePeriod.SIX_MONTHS);
@@ -204,6 +243,7 @@ class ReminderServiceTest {
         UUID.randomUUID(),
         licence,
         DEADLINE_DATE,
-        displayName);
+        displayName,
+        ReminderType.TERM_OR_PHASE_END);
   }
 }

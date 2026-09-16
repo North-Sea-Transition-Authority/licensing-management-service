@@ -23,13 +23,12 @@ class ReminderJobTest {
   private ReminderJob reminderJob;
 
   @Test
-  void sendDueReminders_delegatesWithTheSixMonthNoticePeriod() {
-    when(reminderService.sendDueReminders(NoticePeriod.SIX_MONTHS))
-        .thenReturn(new ReminderRunSummary(1, 0, 1, 0));
+  void sendDueReminders_delegatesToTheReminderService() {
+    when(reminderService.sendDueReminders()).thenReturn(new ReminderRunSummary(1, 0, 1, 0));
 
     reminderJob.sendDueReminders();
 
-    verify(reminderService).sendDueReminders(NoticePeriod.SIX_MONTHS);
+    verify(reminderService).sendDueReminders();
   }
 
   @Test

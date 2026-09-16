@@ -26,11 +26,14 @@ public class LicenceReminder {
   private UUID id;
 
   @ManyToOne
-  @JoinColumn(name = "schedule_event_id", nullable = false)
+  @JoinColumn(name = "schedule_event_id")
   private ScheduleEvent scheduleEvent;
 
-  @Column(nullable = false)
   private UUID originalEventId;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private ReminderType reminderType;
 
   @ManyToOne
   @JoinColumn(name = "licence_id", nullable = false)
@@ -66,6 +69,14 @@ public class LicenceReminder {
 
   public void setScheduleEvent(ScheduleEvent scheduleEvent) {
     this.scheduleEvent = scheduleEvent;
+  }
+
+  public ReminderType getReminderType() {
+    return reminderType;
+  }
+
+  public void setReminderType(ReminderType reminderType) {
+    this.reminderType = reminderType;
   }
 
   public UUID getOriginalEventId() {

@@ -25,7 +25,7 @@ public class TermOrPhaseEndDeadlineService implements ReminderDeadlineSource {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(TermOrPhaseEndDeadlineService.class);
 
-  private static final int PREFILTER_BUFFER_DAYS = 2;
+  private static final int PREFILTER_BUFFER_DAYS = 3;
 
   private final Clock clock;
   private final LicenceScheduleTermService licenceScheduleTermService;
@@ -42,7 +42,8 @@ public class TermOrPhaseEndDeadlineService implements ReminderDeadlineSource {
   }
 
   @Override
-  public List<ReminderDeadline> getDeadlinesDueReminder(NoticePeriod noticePeriod) {
+  public List<ReminderDeadline> getDeadlinesDueReminder() {
+    var noticePeriod = ReminderType.TERM_OR_PHASE_END.getNoticePeriod();
     var today = LocalDate.now(clock);
     var latestEndDate = today.plusMonths(noticePeriod.getMonths()).plusDays(PREFILTER_BUFFER_DAYS);
 
@@ -119,6 +120,7 @@ public class TermOrPhaseEndDeadlineService implements ReminderDeadlineSource {
         scheduleEvent.getOriginalEventId(),
         scheduleEvent.getLicenceSchedule().getLicence(),
         deadlineDate,
-        displayName);
+        displayName,
+        ReminderType.TERM_OR_PHASE_END);
   }
 }

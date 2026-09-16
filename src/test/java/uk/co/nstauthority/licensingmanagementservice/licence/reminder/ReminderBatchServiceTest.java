@@ -61,7 +61,7 @@ class ReminderBatchServiceTest {
     var secondTerm = deadline(TermType.SECOND.getDisplayName());
 
     reminderBatchService.queueBatch(
-        RECIPIENT, DEADLINE_DATE, List.of(initialTerm, secondTerm), NoticePeriod.SIX_MONTHS);
+        RECIPIENT, DEADLINE_DATE, List.of(initialTerm, secondTerm), ReminderType.TERM_OR_PHASE_END);
 
     verify(licenceReminderRepository).saveAllAndFlush(remindersCaptor.capture());
 
@@ -90,12 +90,12 @@ class ReminderBatchServiceTest {
     var deadline = deadline(TermType.INITIAL.getDisplayName());
 
     reminderBatchService.queueBatch(
-        RECIPIENT, DEADLINE_DATE, List.of(deadline), NoticePeriod.SIX_MONTHS);
+        RECIPIENT, DEADLINE_DATE, List.of(deadline), ReminderType.TERM_OR_PHASE_END);
 
     InOrder inOrder = Mockito.inOrder(licenceReminderRepository, reminderEmailService);
     inOrder.verify(licenceReminderRepository).saveAllAndFlush(anyCollection());
     inOrder.verify(reminderEmailService).queueReminder(
-        eq(RECIPIENT), eq(DEADLINE_DATE), anyCollection(), any(UUID.class));
+        eq(RECIPIENT), eq(DEADLINE_DATE), anyCollection(), any(UUID.class), eq(ReminderType.TERM_OR_PHASE_END));
   }
 
   @Test
@@ -107,9 +107,9 @@ class ReminderBatchServiceTest {
     var deadlines = List.of(deadline(TermType.INITIAL.getDisplayName()));
 
     assertThatExceptionOfType(RuntimeException.class).isThrownBy(() ->
-        reminderBatchService.queueBatch(RECIPIENT, DEADLINE_DATE, deadlines, NoticePeriod.SIX_MONTHS));
+        reminderBatchService.queueBatch(RECIPIENT, DEADLINE_DATE, deadlines, ReminderType.TERM_OR_PHASE_END));
 
-    verify(reminderEmailService, never()).queueReminder(any(), any(), anyCollection(), any());
+    verify(reminderEmailService, never()).queueReminder(any(), any(), anyCollection(), any(), any());
   }
 
   @Test
@@ -121,11 +121,11 @@ class ReminderBatchServiceTest {
         RECIPIENT,
         DEADLINE_DATE,
         List.of(deadline(TermType.INITIAL.getDisplayName())),
-        NoticePeriod.SIX_MONTHS);
+        ReminderType.TERM_OR_PHASE_END);
 
     verify(licenceReminderRepository).saveAllAndFlush(remindersCaptor.capture());
     verify(reminderEmailService).queueReminder(
-        eq(RECIPIENT), eq(DEADLINE_DATE), anyCollection(), batchReferenceCaptor.capture());
+        eq(RECIPIENT), eq(DEADLINE_DATE), anyCollection(), batchReferenceCaptor.capture(), eq(ReminderType.TERM_OR_PHASE_END));
 
     assertThat(batchReferenceCaptor.getValue())
         .isEqualTo(remindersCaptor.getValue().getFirst().getNotificationBatchReference());
@@ -143,6 +143,7 @@ class ReminderBatchServiceTest {
         UUID.randomUUID(),
         licence,
         DEADLINE_DATE,
-        displayName);
+        displayName,
+        ReminderType.TERM_OR_PHASE_END);
   }
 }

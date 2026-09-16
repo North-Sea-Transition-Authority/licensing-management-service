@@ -4,5 +4,5 @@ import java.util.List;
 
 public interface ReminderDeadlineSource {
 
-  List<ReminderDeadline> getDeadlinesDueReminder(NoticePeriod noticePeriod);
+  List<ReminderDeadline> getDeadlinesDueReminder();
 }

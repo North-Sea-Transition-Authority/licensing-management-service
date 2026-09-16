@@ -28,13 +28,14 @@ public class ReminderEmailService {
       ReminderRecipient recipient,
       LocalDate deadlineDate,
       Collection<ReminderDeadline> deadlines,
-      UUID notificationBatchReference
+      UUID notificationBatchReference,
+      ReminderType reminderType
   ) {
     if (deadlines.isEmpty()) {
       throw new IllegalArgumentException("Cannot queue a reminder with no deadlines");
     }
 
-    var mergedTemplate = emailService.getTemplate(GovukNotifyTemplate.TERM_OR_PHASE_END_REMINDER_V1)
+    var mergedTemplate = emailService.getTemplate(getTemplate(reminderType))
         .withMailMergeField("LICENCE_REFERENCE", getLicenceReference(deadlines))
         .withMailMergeField("LICENSEE_NAME", recipient.licenseeName())
         .withMailMergeField("DEADLINE_DATE", DateFormatUtil.convertToDisplayText(deadlineDate))
@@ -45,6 +46,13 @@ public class ReminderEmailService {
         mergedTemplate,
         EmailRecipient.directEmailAddress(recipient.contactEmail()),
         DomainReference.from(notificationBatchReference.toString(), DOMAIN_REFERENCE_TYPE));
+  }
+
+  private GovukNotifyTemplate getTemplate(ReminderType reminderType) {
+    return switch (reminderType) {
+      case TERM_OR_PHASE_END -> GovukNotifyTemplate.TERM_OR_PHASE_END_REMINDER_V1;
+      case LICENCE_EXPIRY -> GovukNotifyTemplate.LICENCE_EXPIRY_REMINDER_V1;
+    };
   }
 
   private String getLicenceReference(Collection<ReminderDeadline> deadlines) {

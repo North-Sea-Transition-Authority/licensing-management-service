@@ -18,6 +18,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiry;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -38,6 +40,9 @@ class ReminderDeadlineQueryIntegrationTest {
 
   @Autowired
   private LicenceSchedulePhaseRepository licenceSchedulePhaseRepository;
+
+  @Autowired
+  private LicenceScheduleExpiryRepository licenceScheduleExpiryRepository;
 
   @Autowired
   private EntityManager em;
@@ -94,6 +99,19 @@ class ReminderDeadlineQueryIntegrationTest {
     assertThat(phases).containsExactly(expected);
   }
 
+  @Test
+  void findAllByExpiryDateBetweenAndLicenceScheduleDetailStatus_returnsOnlyActiveSchedulesInsideTheWindow() {
+    var expected = persistExpiry(persistScheduleDetail(LicenceScheduleDetailStatus.ACTIVE), IN_WINDOW);
+    persistExpiry(persistScheduleDetail(LicenceScheduleDetailStatus.ACTIVE), AFTER_WINDOW);
+    persistExpiry(persistScheduleDetail(LicenceScheduleDetailStatus.REPLACED), IN_WINDOW);
+    em.flush();
+
+    var expiries = licenceScheduleExpiryRepository.findAllByExpiryDateBetweenAndLicenceScheduleDetail_Status(
+        TODAY, WINDOW_END, LicenceScheduleDetailStatus.ACTIVE);
+
+    assertThat(expiries).containsExactly(expected);
+  }
+
   private LicenceScheduleDetail persistScheduleDetail(LicenceScheduleDetailStatus status) {
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(null, licence);
     em.persist(licenceSchedule);
@@ -116,6 +134,16 @@ class ReminderDeadlineQueryIntegrationTest {
     em.persist(term);
 
     return term;
+  }
+
+  private LicenceScheduleExpiry persistExpiry(LicenceScheduleDetail licenceScheduleDetail, LocalDate expiryDate) {
+    var expiry = new LicenceScheduleExpiry();
+    expiry.setLicenceScheduleDetail(licenceScheduleDetail);
+    expiry.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
+    expiry.setExpiryDate(expiryDate);
+    em.persist(expiry);
+
+    return expiry;
   }
 
   private LicenceSchedulePhase persistPhase(

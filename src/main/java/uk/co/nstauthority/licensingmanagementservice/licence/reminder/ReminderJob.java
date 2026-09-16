@@ -22,7 +22,7 @@ public class ReminderJob {
   public void sendDueReminders() {
     LOGGER.info("Starting licence reminder run");
 
-    var summary = reminderService.sendDueReminders(NoticePeriod.SIX_MONTHS);
+    var summary = reminderService.sendDueReminders();
 
     LOGGER.info("Completed licence reminder run: {}", summary);
   }

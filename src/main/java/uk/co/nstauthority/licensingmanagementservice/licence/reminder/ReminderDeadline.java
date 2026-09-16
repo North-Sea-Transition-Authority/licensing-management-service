@@ -10,6 +10,7 @@ public record ReminderDeadline(
     UUID originalEventId,
     Licence licence,
     LocalDate deadlineDate,
-    String displayName
+    String displayName,
+    ReminderType reminderType
 ) {
 }

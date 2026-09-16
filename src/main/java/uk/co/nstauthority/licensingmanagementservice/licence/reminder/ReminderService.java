@@ -38,54 +38,58 @@ public class ReminderService {
     this.licenceReminderRepository = licenceReminderRepository;
   }
 
-  public ReminderRunSummary sendDueReminders(NoticePeriod noticePeriod) {
+  public ReminderRunSummary sendDueReminders() {
     var dueDeadlines = reminderDeadlineSources.stream()
-        .flatMap(source -> source.getDeadlinesDueReminder(noticePeriod).stream())
+        .flatMap(source -> source.getDeadlinesDueReminder().stream())
         .toList();
 
     if (dueDeadlines.isEmpty()) {
-      LOGGER.info("No {} reminders due", noticePeriod);
+      LOGGER.info("No reminders due");
       return new ReminderRunSummary(0, 0, 0, 0);
     }
 
-    var suppressedLicenceIds = reminderSuppressionService
-        .getSuppressedLicenceIds(getDistinctLicences(dueDeadlines));
-
-    var deadlines = dueDeadlines.stream()
-        .filter(deadline -> !suppressedLicenceIds.contains(deadline.licence().getId()))
-        .toList();
+    var deadlines = getUnsuppressedDeadlines(dueDeadlines);
 
     var suppressedCount = dueDeadlines.size() - deadlines.size();
 
     if (deadlines.isEmpty()) {
-      LOGGER.info("All {} candidate {} reminders were suppressed", dueDeadlines.size(), noticePeriod);
+      LOGGER.info("All {} candidate reminders were suppressed", dueDeadlines.size());
       return new ReminderRunSummary(dueDeadlines.size(), suppressedCount, 0, 0);
     }
 
     var recipientsByLicenceId = reminderRecipientService
         .getRecipientsByLicenceId(getDistinctLicences(deadlines));
 
-    var alreadyReminded = getAlreadyRemindedKeys(deadlines, noticePeriod);
+    var alreadyReminded = getAlreadyRemindedKeys(deadlines);
     var batches = getBatches(deadlines, recipientsByLicenceId, alreadyReminded);
 
-    LOGGER.info("Queueing {} {} reminder batches", batches.size(), noticePeriod);
+    LOGGER.info("Queueing {} reminder batches", batches.size());
 
     var failed = 0;
 
     for (var batch : batches.entrySet()) {
-      if (!queueBatch(batch.getKey(), batch.getValue(), noticePeriod)) {
+      if (!queueBatch(batch.getKey(), batch.getValue())) {
         failed++;
       }
     }
 
-    LOGGER.info("Queued {} of {} {} reminder batches", batches.size() - failed, batches.size(), noticePeriod);
+    LOGGER.info("Queued {} of {} reminder batches", batches.size() - failed, batches.size());
 
     return new ReminderRunSummary(dueDeadlines.size(), suppressedCount, batches.size() - failed, failed);
   }
 
-  private boolean queueBatch(BatchKey batchKey, List<ReminderDeadline> deadlines, NoticePeriod noticePeriod) {
+  private List<ReminderDeadline> getUnsuppressedDeadlines(List<ReminderDeadline> dueDeadlines) {
+    var suppressedLicenceIds = reminderSuppressionService.getSuppressedLicenceIds(getDistinctLicences(dueDeadlines));
+
+    return dueDeadlines.stream()
+        .filter(deadline -> !suppressedLicenceIds.contains(deadline.licence().getId()))
+        .toList();
+  }
+
+  private boolean queueBatch(BatchKey batchKey, List<ReminderDeadline> deadlines) {
     try {
-      reminderBatchService.queueBatch(batchKey.recipient(), batchKey.deadlineDate(), deadlines, noticePeriod);
+      reminderBatchService.queueBatch(
+          batchKey.recipient(), batchKey.deadlineDate(), deadlines, batchKey.reminderType());
       return true;
     } catch (Exception e) {
       LOGGER.error(
@@ -109,6 +113,8 @@ public class ReminderService {
       for (var recipient : recipientsByLicenceId.getOrDefault(deadline.licence().getId(), List.of())) {
         var remindedKey = new RemindedKey(
             deadline.originalEventId(),
+            deadline.licence().getId(),
+            deadline.reminderType(),
             recipient.responsibleOrganisationId(),
             deadline.deadlineDate());
 
@@ -117,7 +123,9 @@ public class ReminderService {
         }
 
         batches
-            .computeIfAbsent(new BatchKey(recipient, deadline.deadlineDate()), key -> new ArrayList<>())
+            .computeIfAbsent(
+                new BatchKey(recipient, deadline.deadlineDate(), deadline.reminderType()),
+                key -> new ArrayList<>())
             .add(deadline);
       }
     }
@@ -125,17 +133,14 @@ public class ReminderService {
     return batches;
   }
 
-  private Set<RemindedKey> getAlreadyRemindedKeys(List<ReminderDeadline> deadlines, NoticePeriod noticePeriod) {
-    var originalEventIds = deadlines.stream()
-        .map(ReminderDeadline::originalEventId)
-        .distinct()
-        .toList();
-
+  private Set<RemindedKey> getAlreadyRemindedKeys(List<ReminderDeadline> deadlines) {
     return licenceReminderRepository
-        .findAllByOriginalEventIdInAndNoticePeriod(originalEventIds, noticePeriod)
+        .findAllByLicenceIn(getDistinctLicences(deadlines))
         .stream()
         .map(reminder -> new RemindedKey(
             reminder.getOriginalEventId(),
+            reminder.getLicence().getId(),
+            reminder.getReminderType(),
             reminder.getResponsibleOrganisationId(),
             reminder.getDeadlineDate()))
         .collect(Collectors.toSet());
@@ -148,9 +153,15 @@ public class ReminderService {
         .toList();
   }
 
-  private record BatchKey(ReminderRecipient recipient, LocalDate deadlineDate) {
+  private record BatchKey(ReminderRecipient recipient, LocalDate deadlineDate, ReminderType reminderType) {
   }
 
-  private record RemindedKey(UUID originalEventId, Integer responsibleOrganisationId, LocalDate deadlineDate) {
+  private record RemindedKey(
+      UUID originalEventId,
+      Integer licenceId,
+      ReminderType reminderType,
+      Integer responsibleOrganisationId,
+      LocalDate deadlineDate
+  ) {
   }
 }

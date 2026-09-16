@@ -53,6 +53,7 @@ public class ReminderEmailService {
       case TERM_OR_PHASE_END -> GovukNotifyTemplate.TERM_OR_PHASE_END_REMINDER_V1;
       case LICENCE_EXPIRY -> GovukNotifyTemplate.LICENCE_EXPIRY_REMINDER_V1;
       case WORK_PROGRAMME_ACTIVITY -> GovukNotifyTemplate.WORK_PROGRAMME_ACTIVITY_REMINDER_V1;
+      case OTHER_SCHEDULE_EVENT -> GovukNotifyTemplate.OTHER_SCHEDULE_EVENT_REMINDER_V1;
     };
   }
 

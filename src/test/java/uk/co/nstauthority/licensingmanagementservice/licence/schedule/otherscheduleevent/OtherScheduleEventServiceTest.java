@@ -230,4 +230,35 @@ class OtherScheduleEventServiceTest {
         detail, OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, state))
         .isFalse();
   }
+
+  @Test
+  void resolveOtherScheduleEventDate_whenWithinATerm_thenTheTermEndDate() {
+    var term = new LicenceScheduleTerm();
+    term.setEndDate(LocalDate.of(2027, 3, 31));
+    var event = new OtherScheduleEvent();
+    event.setDateOption(OtherScheduleEventDateOption.WITHIN_A_TERM);
+    event.setLicenceScheduleTerm(term);
+
+    assertThat(otherScheduleEventService.resolveOtherScheduleEventDate(event)).isEqualTo(LocalDate.of(2027, 3, 31));
+  }
+
+  @Test
+  void resolveOtherScheduleEventDate_whenWithinAPhase_thenThePhaseEndDate() {
+    var phase = new LicenceSchedulePhase();
+    phase.setEndDate(LocalDate.of(2027, 3, 31));
+    var event = new OtherScheduleEvent();
+    event.setDateOption(OtherScheduleEventDateOption.WITHIN_A_PHASE);
+    event.setLicenceSchedulePhase(phase);
+
+    assertThat(otherScheduleEventService.resolveOtherScheduleEventDate(event)).isEqualTo(LocalDate.of(2027, 3, 31));
+  }
+
+  @Test
+  void resolveOtherScheduleEventDate_whenARelativeDate_thenTheCalculatedEventDate() {
+    var event = new OtherScheduleEvent();
+    event.setDateOption(OtherScheduleEventDateOption.RELATIVE_DATE);
+    event.setEventDate(LocalDate.of(2027, 3, 31));
+
+    assertThat(otherScheduleEventService.resolveOtherScheduleEventDate(event)).isEqualTo(LocalDate.of(2027, 3, 31));
+  }
 }

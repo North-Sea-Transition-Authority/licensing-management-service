@@ -97,6 +97,14 @@ public class OtherScheduleEventService {
     return otherScheduleEventRepository.findAllByLicenceSchedulePhase(licenceSchedulePhase);
   }
 
+  public LocalDate resolveOtherScheduleEventDate(OtherScheduleEvent otherScheduleEvent) {
+    return switch (otherScheduleEvent.getDateOption()) {
+      case WITHIN_A_TERM -> otherScheduleEvent.getLicenceScheduleTerm().getEndDate();
+      case WITHIN_A_PHASE -> otherScheduleEvent.getLicenceSchedulePhase().getEndDate();
+      case RELATIVE_DATE -> otherScheduleEvent.getEventDate();
+    };
+  }
+
   @Transactional
   public void deleteOtherScheduleEvent(OtherScheduleEvent otherScheduleEvent) {
     eventCommentService.deletePendingCommentForScheduleEvent(otherScheduleEvent);

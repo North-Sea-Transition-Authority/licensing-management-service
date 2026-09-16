@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -159,20 +161,21 @@ class LicenceReminderRepositoryIntegrationTest {
     assertThatExceptionOfType(PersistenceException.class).isThrownBy(em::flush);
   }
 
-  @Test
-  void save_whenTheSameActivityReminderIsQueuedTwice_thenRejected() {
+  @ParameterizedTest
+  @EnumSource(value = ReminderType.class, names = {"WORK_PROGRAMME_ACTIVITY", "OTHER_SCHEDULE_EVENT"})
+  void save_whenTheSameEventReminderIsQueuedTwice_thenRejected(ReminderType reminderType) {
     var originalEventId = UUID.randomUUID();
-    licenceReminderRepository.save(buildActivityReminder(originalEventId));
+    licenceReminderRepository.save(buildReminder(originalEventId, reminderType));
     em.flush();
 
-    licenceReminderRepository.save(buildActivityReminder(originalEventId));
+    licenceReminderRepository.save(buildReminder(originalEventId, reminderType));
 
     assertThatExceptionOfType(PersistenceException.class).isThrownBy(em::flush);
   }
 
-  private LicenceReminder buildActivityReminder(UUID originalEventId) {
+  private LicenceReminder buildReminder(UUID originalEventId, ReminderType reminderType) {
     var reminder = buildReminder(originalEventId);
-    reminder.setReminderType(ReminderType.WORK_PROGRAMME_ACTIVITY);
+    reminder.setReminderType(reminderType);
     return reminder;
   }
 

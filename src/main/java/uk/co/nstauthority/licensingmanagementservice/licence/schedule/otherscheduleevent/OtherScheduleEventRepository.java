@@ -3,11 +3,13 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.othersche
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicateThisOnUpdate;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
@@ -42,4 +44,12 @@ public interface OtherScheduleEventRepository
   List<OtherScheduleEvent> findAllByLicenceScheduleTerm(LicenceScheduleTerm licenceScheduleTerm);
 
   List<OtherScheduleEvent> findAllByLicenceSchedulePhase(LicenceSchedulePhase licenceSchedulePhase);
+
+  @EntityGraph(attributePaths = "licenceSchedule.licence")
+  List<OtherScheduleEvent> findAllByDateOptionAndEventDateBetweenAndLicenceScheduleDetail_Status(
+      OtherScheduleEventDateOption dateOption,
+      LocalDate earliestEventDate,
+      LocalDate latestEventDate,
+      LicenceScheduleDetailStatus licenceScheduleDetailStatus
+  );
 }

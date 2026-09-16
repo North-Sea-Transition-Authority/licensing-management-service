@@ -30,6 +30,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 
 @ExtendWith(MockitoExtension.class)
@@ -130,6 +131,36 @@ class ReminderEmailServiceTest {
     assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
         reminderEmailService.queueReminder(RECIPIENT, DEADLINE_DATE, List.of(), BATCH_REFERENCE,
         ReminderType.TERM_OR_PHASE_END));
+  }
+
+  @Test
+  void queueReminder_whenTheReminderIsForAnotherScheduleEvent_thenTheOtherScheduleEventTemplateIsUsed() {
+    when(emailService.getTemplate(GovukNotifyTemplate.OTHER_SCHEDULE_EVENT_REMINDER_V1))
+        .thenReturn(mergedTemplateBuilder);
+    when(mergedTemplateBuilder.withMailMergeField(anyString(), anyString())).thenReturn(mergedTemplateBuilder);
+    when(mergedTemplateBuilder.merge()).thenReturn(mergedTemplate);
+    var eventDeadline = new ReminderDeadline(
+        new OtherScheduleEvent(),
+        UUID.randomUUID(),
+        LicenceTestUtil.builder().withId(1).withLicenceReference("P001").build(),
+        DEADLINE_DATE,
+        "Mandatory relinquishment: Relinquish 50% of the licensed area",
+        ReminderType.OTHER_SCHEDULE_EVENT);
+
+    reminderEmailService.queueReminder(
+        RECIPIENT,
+        DEADLINE_DATE,
+        List.of(eventDeadline),
+        BATCH_REFERENCE,
+        ReminderType.OTHER_SCHEDULE_EVENT);
+
+    verify(mergedTemplateBuilder).withMailMergeField(
+        "DEADLINE_LIST",
+        "* P001 — Mandatory relinquishment: Relinquish 50% of the licensed area");
+    verify(emailService).sendEmail(
+        eq(mergedTemplate),
+        refEq(EmailRecipient.directEmailAddress(RECIPIENT.contactEmail())),
+        refEq(DomainReference.from(BATCH_REFERENCE.toString(), ReminderEmailService.DOMAIN_REFERENCE_TYPE)));
   }
 
   @Test

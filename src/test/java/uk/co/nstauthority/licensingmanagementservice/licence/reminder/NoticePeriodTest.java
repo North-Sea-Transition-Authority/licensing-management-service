@@ -60,4 +60,5 @@ class NoticePeriodTest {
         .isEqualTo(expectedLatestDeadlineDate)
         .isAfterOrEqualTo(NoticePeriod.SIX_MONTHS.getLatestDeadlineDate(today.minusDays(1)));
   }
+
 }

@@ -27,6 +27,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDateOption;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityRepository;
@@ -58,6 +61,9 @@ class ReminderDeadlineQueryIntegrationTest {
 
   @Autowired
   private LicenceScheduleExpiryRepository licenceScheduleExpiryRepository;
+
+  @Autowired
+  private OtherScheduleEventRepository otherScheduleEventRepository;
 
   @Autowired
   private EntityManager em;
@@ -169,6 +175,25 @@ class ReminderDeadlineQueryIntegrationTest {
     assertThat(closedActivityIds).containsExactly(completed.getOriginalEventId());
   }
 
+  @Test
+  void findAllByDateOptionAndEventDateBetweenAndStatus_returnsRelativeDateOtherEventsOnActiveSchedulesInTheWindow() {
+    var activeDetail = persistScheduleDetail(LicenceScheduleDetailStatus.ACTIVE);
+    var term = persistTerm(activeDetail, IN_WINDOW);
+    var expected = persistRelativeDateOtherEvent(activeDetail, term, IN_WINDOW);
+    persistRelativeDateOtherEvent(activeDetail, term, AFTER_WINDOW);
+    persistTermBoundOtherEvent(activeDetail, term);
+
+    var replacedDetail = persistScheduleDetail(LicenceScheduleDetailStatus.REPLACED);
+    persistRelativeDateOtherEvent(replacedDetail, persistTerm(replacedDetail, IN_WINDOW), IN_WINDOW);
+    em.flush();
+
+    var events = otherScheduleEventRepository
+        .findAllByDateOptionAndEventDateBetweenAndLicenceScheduleDetail_Status(
+            OtherScheduleEventDateOption.RELATIVE_DATE, TODAY, WINDOW_END, LicenceScheduleDetailStatus.ACTIVE);
+
+    assertThat(events).containsExactly(expected);
+  }
+
   private LicenceScheduleDetail persistScheduleDetail(LicenceScheduleDetailStatus status) {
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(null, licence);
     em.persist(licenceSchedule);
@@ -263,5 +288,41 @@ class ReminderDeadlineQueryIntegrationTest {
     activityStatus.setStatus(status);
     activityStatus.setAppliedDatetime(appliedDatetime);
     em.persist(activityStatus);
+  }
+
+  private OtherScheduleEvent persistTermBoundOtherEvent(
+      LicenceScheduleDetail licenceScheduleDetail,
+      LicenceScheduleTerm licenceScheduleTerm
+  ) {
+    return persistOtherEvent(
+        licenceScheduleDetail, OtherScheduleEventDateOption.WITHIN_A_TERM, licenceScheduleTerm, null, null);
+  }
+
+  private OtherScheduleEvent persistRelativeDateOtherEvent(
+      LicenceScheduleDetail licenceScheduleDetail,
+      LicenceScheduleTerm licenceScheduleTerm,
+      LocalDate eventDate
+  ) {
+    return persistOtherEvent(
+        licenceScheduleDetail, OtherScheduleEventDateOption.RELATIVE_DATE, licenceScheduleTerm, null, eventDate);
+  }
+
+  private OtherScheduleEvent persistOtherEvent(
+      LicenceScheduleDetail licenceScheduleDetail,
+      OtherScheduleEventDateOption dateOption,
+      LicenceScheduleTerm licenceScheduleTerm,
+      LicenceSchedulePhase licenceSchedulePhase,
+      LocalDate eventDate
+  ) {
+    var event = new OtherScheduleEvent();
+    event.setLicenceScheduleDetail(licenceScheduleDetail);
+    event.setLicenceSchedule(licenceScheduleDetail.getLicenceSchedule());
+    event.setDateOption(dateOption);
+    event.setLicenceScheduleTerm(licenceScheduleTerm);
+    event.setLicenceSchedulePhase(licenceSchedulePhase);
+    event.setEventDate(eventDate);
+    em.persist(event);
+
+    return event;
   }
 }

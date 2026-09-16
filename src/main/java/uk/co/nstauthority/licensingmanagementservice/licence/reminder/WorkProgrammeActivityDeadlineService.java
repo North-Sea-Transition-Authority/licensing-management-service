@@ -19,8 +19,6 @@ public class WorkProgrammeActivityDeadlineService implements ReminderDeadlineSou
   static final Set<WorkProgrammeStatus> CLOSED_STATUSES =
       Set.of(WorkProgrammeStatus.COMPLETE, WorkProgrammeStatus.FULL_WAIVER, WorkProgrammeStatus.TRANSFERRED);
 
-  static final String DISPLAY_NAME_FORMAT = "%s: %s";
-
   private static final Logger LOGGER = LoggerFactory.getLogger(WorkProgrammeActivityDeadlineService.class);
 
   private final Clock clock;

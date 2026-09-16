@@ -3,7 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.reminder;
 import java.time.LocalDate;
 
 public enum NoticePeriod {
-
   SIX_MONTHS(6);
 
   private final int months;

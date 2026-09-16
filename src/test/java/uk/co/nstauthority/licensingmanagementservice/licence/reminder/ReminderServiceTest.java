@@ -117,7 +117,6 @@ class ReminderServiceTest {
         eq(DEADLINE_DATE),
         deadlinesCaptor.capture(),
         eq(ReminderType.TERM_OR_PHASE_END));
-
     assertThat(deadlinesCaptor.getValue()).containsExactly(initialTerm, secondTerm);
   }
 
@@ -221,13 +220,13 @@ class ReminderServiceTest {
   }
 
   @Test
-  void sendDueReminders_whenAnActivityIsDue_thenItIsBatchedAsAnActivityReminder() {
+  void sendDueReminders_whenASourceReturnsAnotherReminderType_thenItIsBatchedAndSuppressedUnderThatType() {
     var activityDeadline = new ReminderDeadline(
         new WorkProgrammeActivity(),
         UUID.randomUUID(),
         licence,
         DEADLINE_DATE,
-        "Seismic survey",
+        "Drill well: Drill one exploration well",
         ReminderType.WORK_PROGRAMME_ACTIVITY);
     when(termOrPhaseEndDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());
     when(licenceExpiryDeadlineSource.getDeadlinesDueReminder()).thenReturn(List.of());

@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence;
 
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,6 +18,7 @@ public class LicenceScheduledJobService {
   }
 
   @Scheduled(fixedRateString = "PT1H", initialDelayString = "PT1H")
+  @SchedulerLock(name = "pearsLicenceRefresh", lockAtMostFor = "PT45M", lockAtLeastFor = "PT1M")
   public void retrieveAndSavePearsLicences() {
 
     LOGGER.info("Starting update of PEARS licences and responsible organisations");

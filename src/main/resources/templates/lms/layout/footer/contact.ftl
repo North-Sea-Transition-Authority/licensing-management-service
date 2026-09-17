@@ -14,7 +14,12 @@ pageSize=PageSize.FULL_COLUMN
     <h2 class="govuk-heading-m">Business support</h2>
     <p>For example, questions about filling in your application or the information you need to provide</p>
       <@fdsSummaryList.summaryListCard summaryListId="business-contact-details" headingText="${serviceBranding.mnemonic()} business support">
-        [TODO XYZ business support contact]
+          <@fdsSummaryList.summaryListRowNoAction keyText="Email">
+              <@fdsAction.link
+              linkText="example@xyz.com"
+              linkUrl="mailto:example@xyz.com?subject=${serviceBranding.name()} - Support"
+              />
+          </@fdsSummaryList.summaryListRowNoAction>
       </@fdsSummaryList.summaryListCard>
   </div>
   <div class="govuk-body">

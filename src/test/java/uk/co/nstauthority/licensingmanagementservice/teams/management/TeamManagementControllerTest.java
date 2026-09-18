@@ -977,7 +977,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
     when(teamManagementService.getTeamMemberViewsForTeam(externalContributors))
         .thenReturn(List.of(applicationScopedTeamMemberView));
 
-    when(licenceContinuationService.getDetailByIdOrThrow(id))
+    when(licenceContinuationService.getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(id))
         .thenReturn(licenceContinuationApplicationDetail);
 
     externalContributors.setScopeType(ApplicationType.CONTINUATION_APPLICATION.name());

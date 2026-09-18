@@ -434,7 +434,7 @@ public class TeamManagementController {
       }
       case CONTINUATION_APPLICATION -> {
         var applicationDetailId = licenceContinuationService
-            .getDetailByIdOrThrow(UUID.fromString(team.getScopeId()))
+            .getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(UUID.fromString(team.getScopeId()))
             .getId();
 
         yield new ExternalContributorFormNavigation(
